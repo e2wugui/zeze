@@ -11,10 +11,13 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
+import Zeze.Util.SortedMap;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Provider负载分发算法。
@@ -33,8 +36,26 @@ public class ProviderDistribute extends ReentrantLock {
 		this.providerService = providerService;
 	}
 
+	private static final @NotNull SortedMap.Selector<Integer, BServiceInfo> selector =
+			(oldK, oldV, oldIndex, newK, newV, newIndex) -> {
+				var oldHash = Bean.hash64(oldK ^ oldIndex, oldV.serviceName) ^ Bean.hash64(oldK ^ oldIndex, oldV.serviceIdentity);
+				var newHash = Bean.hash64(newK ^ newIndex, newV.serviceName) ^ Bean.hash64(newK ^ newIndex, newV.serviceIdentity);
+				if (oldHash < newHash)
+					return true;
+				if (oldHash > newHash)
+					return false;
+				// hash一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
+				int c = oldV.serviceName.compareTo(newV.serviceName);
+				if (c < 0)
+					return false;
+				if (c > 0)
+					return true;
+				c = oldV.serviceIdentity.compareTo(newV.serviceIdentity);
+				return c > 0; // 如果服务名和ID都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
+			};
+
 	public void addServer(Agent.SubscribeState state, BServiceInfo s) {
-		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>())
+		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(selector))
 				.add(s.getServiceIdentity(), s);
 	}
 
@@ -45,7 +66,7 @@ public class ProviderDistribute extends ReentrantLock {
 	}
 
 	public void applyServers(Agent.SubscribeState ass) {
-		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), __ -> new ConsistentHash<>());
+		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), __ -> new ConsistentHash<>(selector));
 		var nodeSet = consistentHash.getNodes();
 		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
 		var current = new HashSet<BServiceInfo>();

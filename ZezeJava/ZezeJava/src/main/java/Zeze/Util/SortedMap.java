@@ -2,230 +2,232 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * 这根本不是Map。
- *
- * @param <K>
- * @param <V>
+ * 以有序Entry(K+V)数组为存储结构的Map
+ * 除只读方法外不支持并发
  */
 public class SortedMap<K extends Comparable<K>, V> {
 	public static class Entry<K extends Comparable<K>, V> implements Comparable<Entry<K, V>> {
-		final K key;
-		final V value;
+		final @NotNull K key;
+		final @NotNull V value;
+		final int index;
 
-		public Entry(K key, V value) {
+		public Entry(@NotNull K key, @NotNull V value, int index) {
 			this.key = key;
 			this.value = value;
+			this.index = index;
 		}
 
-		public K getKey() {
+		public @NotNull K getKey() {
 			return key;
 		}
 
-		public V getValue() {
+		public @NotNull V getValue() {
 			return value;
 		}
 
-		public static <K extends Comparable<K>, V> Entry<K, V> create(K key, V value) {
-			return new Entry<>(key, value);
-		}
-
 		@Override
-		public int compareTo(SortedMap.Entry<K, V> o) {
+		public int compareTo(@NotNull SortedMap.Entry<K, V> o) {
 			return key.compareTo(o.key);
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return "(" + key + "," + value + ")";
 		}
 	}
 
-	private ArrayList<Entry<K, V>> elements = new ArrayList<>();
+	public interface Selector<K extends Comparable<K>, V> {
+		/**
+		 * @return 是否用new替换old
+		 */
+		boolean select(@NotNull K oldK, @NotNull V oldV, int oldIndex, @NotNull K newK, @NotNull V newV, int newIndex);
+	}
+
+	private @NotNull ArrayList<Entry<K, V>> elements = new ArrayList<>();
+	private final @Nullable Selector<K, V> selector;
+
+	public SortedMap() {
+		this(null);
+	}
+
+	public SortedMap(@Nullable Selector<K, V> selector) {
+		this.selector = selector;
+	}
 
 	public int size() {
 		return elements.size();
 	}
 
-	public Entry<K, V> first() {
-		return elements.isEmpty() ? null : elements.get(0);
+	public @Nullable Entry<K, V> first() {
+		var es = elements;
+		return es.isEmpty() ? null : es.get(0);
 	}
 
-	public Entry<K, V> lowerBound(K key) {
+	public @Nullable Entry<K, V> lowerBound(@NotNull K key) {
+		var es = elements;
 		var index = lowerBoundIndex(key);
-		if (index < elements.size())
-			return getAt(index);
-		return null;
+		return index < es.size() ? es.get(index) : null;
 	}
 
-	public Entry<K, V> upperBound(K key) {
+	public @Nullable Entry<K, V> upperBound(@NotNull K key) {
+		var es = elements;
 		var index = upperBoundIndex(key);
-		if (index < elements.size())
-			return getAt(index);
-		return null;
+		return index < es.size() ? es.get(index) : null;
 	}
 
 	/**
 	 * std::lower_bound 定义。返回指定key为上限的索引。即在>=key范围内找最小的key的索引
 	 *
-	 * @param key key
-	 * @return index locate，不存在时返回lastIndex+1。
+	 * @return index. 不存在时返回size
 	 */
-	public int lowerBoundIndex(K key) {
-		var first = 0;
-		var count = elements.size();
-		while (count > 0) {
-			var it = first;
-			var step = count >> 1;
-			it += step;
-			if (getAt(it).key.compareTo(key) < 0) {
-				first = it + 1;
-				count -= step + 1;
-			} else
-				count = step;
+	public int lowerBoundIndex(@NotNull K key) {
+		var es = elements;
+		int b = 0, e = es.size();
+		while (b < e) {
+			int m = (b + e) >> 1;
+			int c = es.get(m).key.compareTo(key);
+			if (c < 0)
+				b = m + 1;
+			else if (c > 0)
+				e = m;
+			else
+				return m;
 		}
-		return first;
+		return b;
 	}
 
 	/**
 	 * std::upper_bound 定义。返回指定key为下限的索引。即在>key范围内找最小的key的索引
 	 *
-	 * @param key key
-	 * @return index locate，不存在时返回lastIndex+1
+	 * @return index. 不存在时返回size
 	 */
-	public int upperBoundIndex(K key) {
-		var first = 0;
-		var count = elements.size();
-		while (count > 0) {
-			var it = first;
-			var step = count >> 1;
-			it += step;
-			if (getAt(it).key.compareTo(key) <= 0) {
-				first = it + 1;
-				count -= step + 1;
-			} else
-				count = step;
+	public int upperBoundIndex(@NotNull K key) {
+		var es = elements;
+		int b = 0, e = es.size();
+		while (b < e) {
+			int m = (b + e) >> 1;
+			int c = es.get(m).key.compareTo(key);
+			if (c < 0)
+				b = m + 1;
+			else if (c > 0)
+				e = m;
+			else
+				return m + 1;
 		}
-		return first;
+		return b;
 	}
 
 	/**
 	 * 二分法查找key
 	 *
-	 * @param key key
-	 * @return index found. -1 means not found.
+	 * @return index. 不存在时返回-1
 	 */
-	public int findIndex(K key) {
-		int low = 0;
-		int high = elements.size() - 1;
-		while (low <= high) {
-			int middle = (low + high) / 2;
-			int c = key.compareTo(elements.get(middle).key);
+	public int findIndex(@NotNull K key) {
+		var es = elements;
+		int b = 0, e = es.size();
+		while (b < e) {
+			int m = (b + e) >> 1;
+			int c = es.get(m).key.compareTo(key);
+			if (c < 0)
+				b = m + 1;
+			else if (c > 0)
+				e = m;
 			if (c == 0)
-				return middle;
-			if (c > 0)
-				low = middle + 1;
-			else
-				high = middle - 1;
+				return m;
 		}
 		return -1;
 	}
 
-	public Entry<K, V> get(K key) {
+	public @Nullable Entry<K, V> get(@NotNull K key) {
 		var index = findIndex(key);
-		if (index >= 0)
-			return getAt(index);
-		return null;
+		return index >= 0 ? elements.get(index) : null;
 	}
 
-	public int add(K key, V value) {
+	public int add(@NotNull K key, @NotNull V value) {
+		var es = elements;
 		var index = lowerBoundIndex(key);
-		if (index >= 0) {
-			if (index < elements.size() && getAt(index).key.compareTo(key) == 0)
-				return -1; // duplicate.
-			elements.add(index, Entry.create(key, value));
-			return index;
-		}
-		throw new IllegalStateException("internal error");
+		if (index < es.size() && es.get(index).key.compareTo(key) == 0)
+			return -1; // duplicate
+		es.add(index, new Entry<>(key, value, 0));
+		return index;
 	}
 
-	// 返回冲突entry(原elements中的,未被覆盖)列表
-	public List<Entry<K, V>> addAll(K[] keys, V value) {
+	public void addAll(@NotNull K @NotNull [] keys, @NotNull V value) {
 		Arrays.sort(keys);
-		return addSortedAll(keys, value);
+		addSortedAll(keys, value);
 	}
 
-	// 返回冲突entry(原elements中的,未被覆盖)列表
-	public List<Entry<K, V>> addSortedAll(K[] keys, V value) {
-		List<Entry<K, V>> r = null;
-		int in = elements.size(), jn = keys.length;
-		var newElements = new ArrayList<Entry<K, V>>(in + jn);
-		int i = 0, j = 0;
-		if (i < in && j < jn) {
-			var ie = elements.get(i);
-			for (K ik = ie.key, jk = keys[j]; ; ) {
-				int c = ik.compareTo(jk);
-				if (c < 0) {
-					newElements.add(ie);
-					if (++i >= in)
-						break;
-					ie = elements.get(i);
-					ik = ie.key;
-				} else if (c > 0) {
-					newElements.add(new Entry<>(jk, value));
-					if (++j >= jn)
-						break;
-					jk = keys[j];
-				} else {
-					if (r == null)
-						r = new ArrayList<>();
-					r.add(ie);
-					newElements.add(ie);
-					++j;
-					if (++i >= in || j >= jn)
-						break;
-					ie = elements.get(i);
-					ik = ie.key;
-					jk = keys[j];
+	public void addSortedAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+		int jn = keys.length;
+		if (jn > 0) {
+			var es = elements;
+			int in = es.size();
+			var newElements = new ArrayList<Entry<K, V>>(in + jn);
+			int i = 0, j = 0;
+			if (in > 0) {
+				var ie = es.get(0);
+				for (K ik = ie.key, jk = keys[0]; ; ) {
+					int c = ik.compareTo(jk);
+					if (c < 0) {
+						newElements.add(ie);
+						if (++i >= in)
+							break;
+						ie = es.get(i);
+						ik = ie.key;
+					} else if (c > 0) {
+						newElements.add(new Entry<>(jk, value, j));
+						if (++j >= jn)
+							break;
+						jk = keys[j];
+					} else {
+						if (selector != null && selector.select(ik, ie.value, ie.index, jk, value, j))
+							newElements.add(new Entry<>(jk, value, j));
+						else
+							newElements.add(ie);
+						++j;
+						if (++i >= in || j >= jn)
+							break;
+						ie = es.get(i);
+						ik = ie.key;
+						jk = keys[j];
+					}
 				}
 			}
+			if (i < in)
+				newElements.addAll(es.subList(i, in));
+			else {
+				for (; j < jn; j++)
+					newElements.add(new Entry<>(keys[j], value, j));
+			}
+			elements = newElements;
 		}
-		if (i < in)
-			newElements.addAll(elements.subList(i, in));
-		else {
-			while (j < jn)
-				newElements.add(new Entry<>(keys[j++], value));
-		}
-		elements = newElements;
-		return r != null ? r : List.of();
 	}
 
-	public Entry<K, V> remove(K key) {
+	public @Nullable Entry<K, V> remove(@NotNull K key) {
 		var index = findIndex(key);
-		if (index >= 0)
-			return removeAt(index);
-		return null;
+		return index >= 0 ? elements.remove(index) : null;
 	}
 
-	public Entry<K, V> remove(K key, V value) {
+	public @Nullable Entry<K, V> remove(@NotNull K key, @NotNull V value) {
+		var es = elements;
 		var index = findIndex(key);
-		if (index >= 0 && getAt(index).value == value)
-			return removeAt(index);
-		return null;
+		return index >= 0 && es.get(index).value.equals(value) ? es.remove(index) : null;
 	}
 
-	public Entry<K, V> getAt(int index) {
+	public @NotNull Entry<K, V> getAt(int index) {
 		return elements.get(index);
 	}
 
-	public Entry<K, V> removeAt(int index) {
+	public @NotNull Entry<K, V> removeAt(int index) {
 		return elements.remove(index);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return elements.toString();
 	}
 }

@@ -7,13 +7,14 @@ import java.util.HashMap;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
 import Zeze.Util.OutLong;
+import Zeze.Util.SortedMap;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class TestConsistentHash {
 	@Test
 	public void testConsistentHash() throws IOException {
-		var consistentHash = new ConsistentHash<Integer>();
+		var consistentHash = new ConsistentHash<Integer>((oldK, oldV, oldIndex, newK, newV, newIndex) -> false);
 
 		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
 
@@ -78,5 +79,42 @@ public class TestConsistentHash {
 		consistentHash.remove(4);
 
 		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
+	}
+
+	@Test
+	public void testStable() {
+		SortedMap.Selector<Integer, Integer> selector = (oldK, oldV, oldIndex, newK, newV, newIndex) -> {
+			var oldHash = Bean.hash64(oldK ^ oldIndex, String.valueOf(oldV));
+			var newHash = Bean.hash64(newK ^ newIndex, String.valueOf(newV));
+			if (oldHash < newHash)
+				return true;
+			if (oldHash > newHash)
+				return false;
+			// hash一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
+			int c = oldK.compareTo(newK);
+			if (c < 0)
+				return false;
+			if (c > 0)
+				return true;
+			c = oldV.compareTo(newV);
+			return c > 0; // 如果K,V都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
+		};
+
+		final int TEST_COUNT = 1000;
+		for (int j = 0; j < TEST_COUNT; j++) {
+			final int begin = Long.hashCode(System.nanoTime());
+			System.out.println("testStable: " + begin);
+
+			var ch1 = new ConsistentHash<>(selector);
+			for (int i = begin; i != begin + 1000; i++)
+				ch1.add(String.valueOf(i), i);
+
+			var ch2 = new ConsistentHash<>(selector);
+			for (int i = begin + 1000; i-- != begin; )
+				ch2.add(String.valueOf(i), i);
+
+			Assert.assertEquals(ch1.getNodes().size(), ch2.getNodes().size());
+			Assert.assertEquals(ch1.toString(), ch2.toString());
+		}
 	}
 }
