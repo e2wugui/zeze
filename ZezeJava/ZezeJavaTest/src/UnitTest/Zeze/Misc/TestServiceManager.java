@@ -53,7 +53,7 @@ public class TestServiceManager {
 			var pending = state.getServiceInfosPending();
 			if (null != pending) {
 				for (var service : pending.getServiceInfoListSortedByIdentity()) {
-					state.setServiceIdentityReadyState(service.getServiceIdentity(), "");
+					state.setIdentityLocalState(service.getServiceIdentity(), "");
 				}
 			}
 		});
@@ -94,9 +94,9 @@ public class TestServiceManager {
 
 		var state = agent.getSubscribeStates().get(serviceName);
 		Object anyState = this;
-		state.setServiceIdentityReadyState("1", anyState);
-		state.setServiceIdentityReadyState("2", anyState);
-		state.setServiceIdentityReadyState("3", anyState);
+		state.setIdentityLocalState("1", anyState);
+		state.setIdentityLocalState("2", anyState);
+		state.setIdentityLocalState("3", anyState);
 
 		System.out.println("RegisterService 3");
 		future = new TaskCompletionSource<>();

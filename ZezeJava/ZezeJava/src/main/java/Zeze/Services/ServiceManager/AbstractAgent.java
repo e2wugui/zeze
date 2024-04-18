@@ -30,7 +30,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected Action1<Agent.SubscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
 	protected Action2<Agent.SubscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
 	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
-	protected Action1<Agent.SubscribeState> onPrepare; // ReadyCommit 的第一步回调。
+	protected Action1<Agent.SubscribeState> onPrepare; // ReadyCommit 的第一步回调。 // todo remove
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
@@ -106,8 +106,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		onKeepAlive = value;
 	}
 
-	protected abstract boolean sendReadyList(String serviceName, long serialId);
-
 	protected abstract void allocate(AutoKey autoKey, int pool);
 
 	public abstract void start() throws Exception;
@@ -123,11 +121,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public volatile BServiceInfos serviceInfos;
 		public volatile BServiceInfos serviceInfosPending;
 
-		/**
-		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
-		 * 目前的实现不会发生乱序。
-		 */
-		public boolean committed = false;
 		// 服务准备好。
 		public final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
@@ -174,32 +167,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		// NOT UNDER LOCK
-		private boolean trySendReadyServiceList() {
-			var pending = serviceInfosPending;
-			if (pending == null)
-				return false;
-
-			for (var p : pending.getServiceInfoListSortedByIdentity()) {
-				if (!localStates.containsKey(p.getServiceIdentity()))
-					return false;
-			}
-			sendReadyList(pending.getServiceName(), pending.getSerialId());
-			return true;
-		}
-
-		public void setServiceIdentityReadyState(String identity, Object state) {
+		public void setIdentityLocalState(String identity, Object state) {
 			if (state == null)
 				localStates.remove(identity);
 			else
 				localStates.put(identity, state);
-
-			lock();
-			try {
-				// 尝试发送Ready，如果有pending.
-				trySendReadyServiceList();
-			} finally {
-				unlock();
-			}
 		}
 
 		private void prepareAndTriggerOnChanged() {
@@ -300,63 +272,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onNotify(BServiceInfos infos) {
-			lock();
-			try {
-				switch (getSubscribeType()) {
-				case BSubscribeInfo.SubscribeTypeSimple:
-					serviceInfos = infos;
-					committed = true;
-					prepareAndTriggerOnChanged();
-					break;
-
-				case BSubscribeInfo.SubscribeTypeReadyCommit:
-					if (serviceInfosPending == null || infos.getSerialId() > serviceInfosPending.getSerialId()) {
-						serviceInfosPending = infos;
-						if (onPrepare != null) {
-							Task.getCriticalThreadPool().execute(() -> {
-								try {
-									onPrepare.run(this);
-								} catch (Throwable e) { // logger.error
-									logger.error("", e);
-								}
-							});
-						}
-						trySendReadyServiceList();
-					}
-					break;
-				}
-			} finally {
-				unlock();
-			}
-		}
-
 		public void onFirstCommit(BServiceInfos infos) {
 			lock();
 			try {
-				if (committed)
-					return;
-				if (getSubscribeType() == BSubscribeInfo.SubscribeTypeReadyCommit)
-					return; // ReadyCommit 模式不会走到这里。OnNotify(infos);
-				committed = true;
 				serviceInfos = infos;
 				serviceInfosPending = null;
-				prepareAndTriggerOnChanged();
-			} finally {
-				unlock();
-			}
-		}
-
-		public void onCommit(BServiceListVersion version) {
-			lock();
-			try {
-				if (serviceInfosPending == null)
-					return; // 并发过来的Commit，只需要处理一个。
-				if (version.serialId != serviceInfosPending.getSerialId())
-					logger.warn("onCommit {} {} != {}", getServiceName(), version.serialId, serviceInfosPending.getSerialId());
-				serviceInfos = serviceInfosPending;
-				serviceInfosPending = null;
-				committed = true;
 				prepareAndTriggerOnChanged();
 			} finally {
 				unlock();

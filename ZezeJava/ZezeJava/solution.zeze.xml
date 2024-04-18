@@ -10,7 +10,6 @@
 	<external bean="Zeze.Services.ServiceManager.BServerLoad"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
-	<external bean="Zeze.Services.ServiceManager.BServiceListVersion"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
 
 	<module name="Builtin" id="11000">
@@ -1105,12 +1104,9 @@
 			<rpc name="Login" argument="BLogin" base="Zeze.Raft.RaftRpc" handle="server"/>
 
 			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="CommitServiceList" argument="Zeze.Services.ServiceManager.BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="NotifyServiceList" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="ReadyServiceList" argument="Zeze.Services.ServiceManager.BServiceListVersion" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="Register" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateRegister" value="1"/>

@@ -2,14 +2,11 @@ package Zeze.Services;
 
 import java.util.concurrent.ExecutionException;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
-import Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
 import Zeze.Builtin.ServiceManagerWithRaft.NormalClose;
-import Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineRegister;
-import Zeze.Builtin.ServiceManagerWithRaft.ReadyServiceList;
 import Zeze.Builtin.ServiceManagerWithRaft.Register;
 import Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
@@ -81,31 +78,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	////////////////////////////////////////////////////////////////////////
 	@Override
-	protected long ProcessCommitServiceListRequest(CommitServiceList r) throws Exception {
-		var state = subscribeStates.get(r.Argument.serviceName);
-		if (state != null)
-			state.onCommit(r.Argument);
-		else
-			logger.warn("CommitServiceList But SubscribeState Not Found.");
-		r.SendResult();
-		return Procedure.Success;
-	}
-
-	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive r) throws Exception {
 		if (onKeepAlive != null)
 			Task.getCriticalThreadPool().execute(onKeepAlive);
-		r.SendResult();
-		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessNotifyServiceListRequest(NotifyServiceList r) throws Exception {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state != null)
-			state.onNotify(r.Argument);
-		else
-			logger.warn("NotifyServiceList But SubscribeState Not Found.");
 		r.SendResult();
 		return Procedure.Success;
 	}
@@ -177,15 +152,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		state.onUpdate(r.Argument);
 		r.SendResult();
 		return 0;
-	}
-
-	@Override
-	protected boolean sendReadyList(String serviceName, long serialId) {
-		var r = new ReadyServiceList();
-		r.Argument.serviceName = serviceName;
-		r.Argument.serialId = serialId;
-		raftClient.send(r, p -> 0);
-		return true;
 	}
 
 	@Override

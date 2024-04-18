@@ -47,9 +47,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private final Table<String, BLoadObservers> tableLoadObservers;
 	private final Table<String, BServerState> tableServerState;
 	private final HashMap<Integer, Future<?>> offlineNotifyFutures = new HashMap<>();
-	private final HashMap<String, Future<?>> notifyTimeoutTasks = new HashMap<>();
 
-	private Future<?> startNotifyDelayTask;
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
 	private final ServiceManagerServer.Conf conf = new ServiceManagerServer.Conf();
 
@@ -76,19 +74,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
-
-		if (this.conf.startNotifyDelay > 0) {
-			startNotifyDelayTask = Task.scheduleUnsafe(this.conf.startNotifyDelay, () -> {
-				startNotifyDelayTask = null;
-				tableServerState.walk((__, state) -> {
-					rocks.newProcedure(() -> {
-						startReadyCommitNotify(state, true);
-						return 0;
-					}).call();
-					return true;
-				});
-			});
-		}
 	}
 
 	@Override
@@ -204,14 +189,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				for (var info : session.getSubscribes().values())
 					unSubscribeNow(name, fromRocks(info));
 
-				var changed = new HashMap<String, BServerState>(session.getRegisters().size());
-				for (var info : session.getRegisters()) {
-					var state = unRegisterNow(name, fromRocks(info.getValue()));
-					if (state != null)
-						changed.putIfAbsent(state.getServiceName(), state);
-				}
-				for (var state : changed.values())
-					startReadyCommitNotify(state);
+				for (var info : session.getRegisters())
+					unRegisterNow(name, fromRocks(info.getValue()));
 
 				// offline notify，开启一个线程执行，避免互等造成麻烦。
 				// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -411,7 +390,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			state.setServiceName(r.Argument.getServiceName());
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
-		startReadyCommitNotify(state);
 		notifySimpleOnRegister(state, r.Argument);
 		r.SendResultCode(Register.Success);
 		return 0;
@@ -519,7 +497,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (changed != null) {
 					r.setResultCode(UnSubscribe.Success);
 					r.SendResult();
-					tryCommit(changed);
 					return 0;
 				}
 			}
@@ -615,10 +592,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	private void startReadyCommitNotify(BServerState state) {
-		startReadyCommitNotify(state, false);
-	}
-
 	private static BServiceInfos newSortedBServiceInfos(BServerState state) {
 		var result = new BServiceInfos();
 		result.serviceName = state.getServiceName();
@@ -631,125 +604,12 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return result;
 	}
 
-	private void startReadyCommitNotify(BServerState state, boolean notifySimple) {
-		if (startNotifyDelayTask != null)
-			return;
-
-		state.setSerialId(state.getSerialId() + 1);
-		var notify = new NotifyServiceList(newSortedBServiceInfos(state));
-
-		var sb = new StringBuilder();
-
-		if (notifySimple) {
-			for (var it : state.getSimple()) {
-				var session = tableSession.get(it.getKey());
-				if (null != session) {
-					var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-					if (s != null && notify.Send(s))
-						sb.append(s.getSessionId()).append(',');
-				}
-			}
-		}
-
-		var n = sb.length();
-		if (n > 0)
-			sb.setCharAt(n - 1, ';');
-		else
-			sb.append(';');
-
-		for (var it : state.getReadyCommit()) {
-			it.getValue().setReady(false);
-			var session = tableSession.get(it.getKey());
-			if (null != session) {
-				var s = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-				if (s != null && notify.Send(s))
-					sb.append(s.getSessionId()).append(',');
-			}
-		}
-		if (sb.length() > 1)
-			AsyncSocket.logger.info("SEND[{}]: NotifyServiceList: {}", sb, notify.Argument);
-
-		if (state.getReadyCommit().size() > 0) {
-			var notifyTimeoutTask = notifyTimeoutTasks.get(state.getServiceName());
-			// 只有两段公告模式需要回应处理。
-			if (notifyTimeoutTask != null)
-				notifyTimeoutTask.cancel(false);
-			notifyTimeoutTasks.put(state.getServiceName(), Task.scheduleUnsafe(conf.retryNotifyDelayWhenNotAllReady,
-					() -> {
-						// NotifyTimeoutTask 会在下面两种情况下被修改：
-						// 1. 在 Notify.ReadyCommit 完成以后会被清空。
-						// 2. 启动了新的 Notify。
-						// restart
-						rocks.newProcedure(() -> {
-							startReadyCommitNotify(state);
-							return 0;
-						}).call();
-					}));
-		}
-	}
-
-	@Override
-	protected long ProcessReadyServiceListRequest(ReadyServiceList r) {
-		var netSession = (Session)r.getSender().getUserState();
-		var state = tableServerState.getOrAdd(r.Argument.serviceName);
-		if (!state.getServiceName().equals(r.Argument.serviceName))
-			state.setServiceName(r.Argument.serviceName);
-		setReady(state, r, netSession.name);
-		r.SendResult();
-		return 0;
-	}
-
-	private void setReady(BServerState state, ReadyServiceList r, String sessionName) {
-		if (r.Argument.serialId != state.getSerialId()) {
-			logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", r.Argument.serialId, state.getSerialId());
-			return;
-		}
-		// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
-		var subscribeState = state.getReadyCommit().get(sessionName);
-		if (subscribeState != null) {
-			subscribeState.setReady(true);
-			tryCommit(state);
-		}
-	}
-
-	private void tryCommit(BServerState state) {
-		var notifyTimeoutTask = notifyTimeoutTasks.get(state.getServiceName());
-		if (notifyTimeoutTask == null)
-			return; // no pending notify
-
-		for (var it : state.getReadyCommit()) {
-			if (!it.getValue().isReady())
-				return;
-		}
-
-		logger.debug("Ready Broadcast.");
-		var commit = new CommitServiceList();
-		commit.Argument.serviceName = state.getServiceName();
-		commit.Argument.serialId = state.getSerialId();
-		for (var it : state.getReadyCommit()) {
-			var session = tableSession.get(it.getKey());
-			if (null != session)
-				commit.Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()));
-		}
-		notifyTimeoutTask.cancel(false);
-		notifyTimeoutTasks.remove(state.getServiceName());
-	}
-
 	private long subscribeAndSend(BServerState state, Subscribe r, String ssName) {
 		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-		switch (r.Argument.getSubscribeType()) {
-		case BSubscribeInfo.SubscribeTypeSimple:
+		if (r.Argument.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple) {
 			state.getSimple().put(ssName, new BSubscribeStateRocks());
-			if (startNotifyDelayTask == null)
-				new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
-			break;
-
-		case BSubscribeInfo.SubscribeTypeReadyCommit:
-			state.getReadyCommit().put(ssName, new BSubscribeStateRocks());
-			startReadyCommitNotify(state);
-			break;
-
-		default:
+			new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
+		} else {
 			r.SendResultCode(Subscribe.UnknownSubscribeType);
 			return Zeze.Transaction.Procedure.LogicError;
 		}

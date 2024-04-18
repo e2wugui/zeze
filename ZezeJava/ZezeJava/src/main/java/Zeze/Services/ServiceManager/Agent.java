@@ -170,15 +170,6 @@ public final class Agent extends AbstractAgent {
 		autoKey.setCurrentAndCount(r.Result.getStartId(), r.Result.getCount());
 	}
 
-	@Override
-	protected boolean sendReadyList(String serviceName, long serialId) {
-		var r = new ReadyServiceList();
-		r.Argument.serviceName = serviceName;
-		r.Argument.serialId = serialId;
-		var s = client.getSocket();
-		return s != null && s.Send(r);
-	}
-
 	public void onConnected() {
 		for (var e : registers.keySet()) {
 			try {
@@ -190,7 +181,6 @@ public final class Agent extends AbstractAgent {
 		}
 		for (var e : subscribeStates.values()) {
 			try {
-				e.committed = false;
 				var r = new Subscribe();
 				r.Argument = e.subscribeInfo;
 				r.SendAndWaitCheckResultCode(client.getSocket());
@@ -228,28 +218,10 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	private long processNotifyServiceList(NotifyServiceList r) {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state != null)
-			state.onNotify(r.Argument);
-		else
-			logger.warn("NotifyServiceList But SubscribeState Not Found.");
-		return Procedure.Success;
-	}
-
 	private long processSubscribeFirstCommit(SubscribeFirstCommit r) {
 		var state = subscribeStates.get(r.Argument.getServiceName());
 		if (state != null)
 			state.onFirstCommit(r.Argument);
-		return Procedure.Success;
-	}
-
-	private long processCommitServiceList(CommitServiceList r) {
-		var state = subscribeStates.get(r.Argument.serviceName);
-		if (state != null)
-			state.onCommit(r.Argument);
-		else
-			logger.warn("CommitServiceList But SubscribeState Not Found.");
 		return Procedure.Success;
 	}
 
@@ -310,12 +282,8 @@ public final class Agent extends AbstractAgent {
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
 				UnSubscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
-		client.AddFactoryHandle(NotifyServiceList.TypeId_, new ProtocolFactoryHandle<>(
-				NotifyServiceList::new, this::processNotifyServiceList, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(SubscribeFirstCommit.TypeId_, new ProtocolFactoryHandle<>(
 				SubscribeFirstCommit::new, this::processSubscribeFirstCommit, TransactionLevel.None, DispatchMode.Direct));
-		client.AddFactoryHandle(CommitServiceList.TypeId_, new ProtocolFactoryHandle<>(
-				CommitServiceList::new, this::processCommitServiceList, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
 				KeepAlive::new, this::processKeepAlive, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(

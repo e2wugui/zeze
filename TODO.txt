@@ -1,8 +1,14 @@
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/5/10 v1.4.6 
+2024/5/10 v1.4.6 ServiceManager; 
 ------------------------------------------------------------------------------------------------------------------------------
+ServiceManager 删除启动延迟通知机制；【完成】
+ServiceManager 删除ReadyCommit订阅模式；【完成】
+TestAll Memory 【除了Direct，Sm，Timer相关测试，应该是配置问题】
+ServiceManager.Agent 清理ReadyCommit订阅模式；由于暴露的接口对于不同模式有混合，需要小心；【TODO】
+Arch 清理ReadyCommit订阅模式相关代码，进行简化；【TODO】
+ServiceManager 完全去掉订阅模式；【TODO】
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/4/17 v1.4.5 ThreadDiagnosable；Service；StatLog; Raft; Dbh2; AppBase & Gen; ConcurrentHashMapOrdered; Hot;

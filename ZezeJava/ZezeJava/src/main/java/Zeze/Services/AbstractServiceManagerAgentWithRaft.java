@@ -26,14 +26,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             service.AddFactoryHandle(47342648206403L, factoryHandle); // 11022, -776297405
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList.class, Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList::new;
-            factoryHandle.Handle = this::ProcessCommitServiceListRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitServiceListRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitServiceListRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47340049712890L, factoryHandle); // 11022, 920176378
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive.class, Zeze.Builtin.ServiceManagerWithRaft.KeepAlive.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.KeepAlive::new;
             factoryHandle.Handle = this::ProcessKeepAliveRequest;
@@ -56,14 +48,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             service.AddFactoryHandle(47342647871189L, factoryHandle); // 11022, -776632619
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList.class, Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList::new;
-            factoryHandle.Handle = this::ProcessNotifyServiceListRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNotifyServiceListRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNotifyServiceListRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47339587192283L, factoryHandle); // 11022, 457655771
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify.class, Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify::new;
             factoryHandle.Handle = this::ProcessOfflineNotifyRequest;
@@ -77,13 +61,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessOfflineRegisterResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessOfflineRegisterResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47340511174741L, factoryHandle); // 11022, 1381638229
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.ReadyServiceList.class, Zeze.Builtin.ServiceManagerWithRaft.ReadyServiceList.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.ReadyServiceList::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadyServiceListResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadyServiceListResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47339697966893L, factoryHandle); // 11022, 568430381
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.Register.class, Zeze.Builtin.ServiceManagerWithRaft.Register.TypeId_);
@@ -143,14 +120,11 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47342648206403L);
-        service.getFactorys().remove(47340049712890L);
         service.getFactorys().remove(47341226054794L);
         service.getFactorys().remove(47339747890828L);
         service.getFactorys().remove(47342647871189L);
-        service.getFactorys().remove(47339587192283L);
         service.getFactorys().remove(47340558537840L);
         service.getFactorys().remove(47340511174741L);
-        service.getFactorys().remove(47339697966893L);
         service.getFactorys().remove(47340640775066L);
         service.getFactorys().remove(47342529828679L);
         service.getFactorys().remove(47340271484727L);
@@ -169,9 +143,7 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessCommitServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.CommitServiceList r) throws Exception;
     protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive r) throws Exception;
-    protected abstract long ProcessNotifyServiceListRequest(Zeze.Builtin.ServiceManagerWithRaft.NotifyServiceList r) throws Exception;
     protected abstract long ProcessOfflineNotifyRequest(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify r) throws Exception;
     protected abstract long ProcessRegisterRequest(Zeze.Builtin.ServiceManagerWithRaft.Register r) throws Exception;
     protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Exception;

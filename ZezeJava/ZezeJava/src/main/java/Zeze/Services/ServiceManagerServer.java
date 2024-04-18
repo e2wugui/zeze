@@ -153,17 +153,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final @NotNull AsyncSocket serverSocket;
 	private final @NotNull RocksDB autoKeysDb;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
-	private volatile @Nullable Future<?> startNotifyDelayTask;
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
-		/**
-		 * 启动以后接收注册和订阅，一段时间内不进行通知。
-		 * 用来处理ServiceManager异常重启导致服务列表重置的问题。
-		 * 在Delay时间内，希望所有的服务都重新连接上来并注册和订阅。
-		 * Delay到达时，全部通知一遍，以后正常工作。
-		 */
-		public int startNotifyDelay = 12 * 1000;
 		public int retryNotifyDelayWhenNotAllReady = 30 * 1000;
 		public @NotNull String dbHome = ".";
 
@@ -179,9 +171,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			String attr = self.getAttribute("KeepAlivePeriod");
 			if (!attr.isEmpty())
 				keepAlivePeriod = Integer.parseInt(attr);
-			attr = self.getAttribute("StartNotifyDelay");
-			if (!attr.isEmpty())
-				startNotifyDelay = Integer.parseInt(attr);
 			attr = self.getAttribute("RetryNotifyDelayWhenNotAllReady");
 			if (!attr.isEmpty())
 				retryNotifyDelayWhenNotAllReady = Integer.parseInt(attr);
@@ -202,9 +191,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 记录一下SessionId，方便以后找到服务所在的连接。
 		private final HashMap<String, BServiceInfo> serviceInfos = new HashMap<>(); // key:serverId
 		private final LongHashMap<SubscribeState> simple = new LongHashMap<>(); // key:sessionId
-		private final LongHashMap<SubscribeState> readyCommit = new LongHashMap<>(); // key:sessionId
-		private @Nullable Future<?> notifyTimeoutTask;
-		private long serialId;
 
 		public ServiceState(@NotNull ServiceManagerServer sm, @NotNull String serviceName) {
 			serviceManager = sm;
@@ -212,71 +198,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void close() {
-			lock();
-			try {
-				if (notifyTimeoutTask != null) {
-					notifyTimeoutTask.cancel(false);
-					notifyTimeoutTask = null;
-				}
-			} finally {
-				unlock();
-			}
 		}
 
 		public void getServiceInfos(@NotNull List<BServiceInfo> target) {
 			lock();
 			try {
 				target.addAll(serviceInfos.values());
-			} finally {
-				unlock();
-			}
-		}
-
-		public void startReadyCommitNotify() {
-			startReadyCommitNotify(false);
-		}
-
-		public void startReadyCommitNotify(boolean notifySimple) {
-			lock();
-			try {
-				if (serviceManager.startNotifyDelayTask != null)
-					return;
-				var notify = new NotifyServiceList(new BServiceInfos(serviceName, this, ++serialId));
-				var notifyBytes = notify.encode();
-				var sb = new StringBuilder();
-				if (notifySimple) {
-					for (var it = simple.iterator(); it.moveToNext(); ) {
-						var s = serviceManager.server.GetSocket(it.key());
-						if (s != null && s.Send(notifyBytes))
-							sb.append(s.getSessionId()).append(',');
-					}
-				}
-				var n = sb.length();
-				if (n > 0)
-					sb.setCharAt(n - 1, ';');
-				else
-					sb.append(';');
-				for (var it = readyCommit.iterator(); it.moveToNext(); ) {
-					it.value().ready = false;
-					var s = serviceManager.server.GetSocket(it.key());
-					if (s != null && s.Send(notifyBytes))
-						sb.append(s.getSessionId()).append(',');
-				}
-				if (sb.length() > 1)
-					AsyncSocket.logger.info("SEND[{}]: NotifyServiceList: {}", sb, notify.Argument);
-
-				if (!readyCommit.isEmpty()) {
-					// 只有两段公告模式需要回应处理。
-					if (notifyTimeoutTask != null)
-						notifyTimeoutTask.cancel(false);
-					notifyTimeoutTask = Task.scheduleUnsafe(serviceManager.conf.retryNotifyDelayWhenNotAllReady,
-							() -> {
-								// NotifyTimeoutTask 会在下面两种情况下被修改：
-								// 1. 在 Notify.ReadyCommit 完成以后会被清空。
-								// 2. 启动了新的 Notify。
-								startReadyCommitNotify(); // restart
-							});
-				}
 			} finally {
 				unlock();
 			}
@@ -361,45 +288,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					sb.setCharAt(n - 1, ';');
 				else
 					sb.append(';');
-				for (var it = readyCommit.iterator(); it.moveToNext(); ) {
-					var sessionId = it.key();
-					if (new Update(current).Send(serviceManager.server.GetSocket(sessionId)))
-						sb.append(sessionId).append(',');
-					else {
-						logger.warn("updateAndNotify readyCommit {} failed: serverId({}) => sessionId({})",
-								info.getServiceName(), info.getServiceIdentity(), sessionId);
-					}
-				}
 				if (sb.length() > 1) {
 					logger.info("updateAndNotify {} serverId({}) => sessionIds({})",
 							info.getServiceName(), info.getServiceIdentity(), sb);
 				}
 				return 0;
-			} finally {
-				unlock();
-			}
-		}
-
-		public void tryCommit() {
-			lock();
-			try {
-				if (notifyTimeoutTask == null)
-					return; // no pending notify
-
-				for (var it = readyCommit.iterator(); it.moveToNext(); ) {
-					if (!it.value().ready)
-						return;
-				}
-				logger.debug("Ready Broadcast.");
-				var commit = new CommitServiceList();
-				commit.Argument.serviceName = serviceName;
-				commit.Argument.serialId = serialId;
-				for (var it = readyCommit.iterator(); it.moveToNext(); )
-					commit.Send(serviceManager.server.GetSocket(it.key()));
-				if (notifyTimeoutTask != null) {
-					notifyTimeoutTask.cancel(false);
-					notifyTimeoutTask = null;
-				}
 			} finally {
 				unlock();
 			}
@@ -413,17 +306,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			lock();
 			try {
 				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-				switch (r.Argument.getSubscribeType()) {
-				case BSubscribeInfo.SubscribeTypeSimple:
+				if (r.Argument.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple) {
 					simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
-					if (serviceManager.startNotifyDelayTask == null)
-						new SubscribeFirstCommit(new BServiceInfos(serviceName, this, serialId)).Send(r.getSender());
-					break;
-				case BSubscribeInfo.SubscribeTypeReadyCommit:
-					readyCommit.computeIfAbsent(sessionId, __ -> new SubscribeState());
-					startReadyCommitNotify();
-					break;
-				default:
+					new SubscribeFirstCommit(new BServiceInfos(serviceName, this, 0)).Send(r.getSender());
+				} else {
 					r.SendResultCode(Subscribe.UnknownSubscribeType);
 					return Procedure.LogicError;
 				}
@@ -435,28 +321,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				unlock();
 			}
 		}
-
-		public void setReady(@NotNull ReadyServiceList p, long sessionId) {
-			lock();
-			try {
-				if (p.Argument.serialId != serialId) {
-					logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", p.Argument.serialId, serialId);
-					return;
-				}
-				// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
-				var subscribeState = readyCommit.get(sessionId);
-				if (subscribeState != null) {
-					subscribeState.ready = true;
-					tryCommit();
-				}
-			} finally {
-				unlock();
-			}
-		}
 	}
 
 	private static final class SubscribeState {
-		private boolean ready;
 	}
 
 	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
@@ -509,14 +376,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			for (var info : subscribes.values())
 				serviceManager.unSubscribeNow(sessionId, info);
-
-			var changed = new HashMap<String, ServiceState>(registers.size());
-			for (var info : registers) {
-				var state = serviceManager.unRegisterNow(sessionId, info);
-				if (state != null)
-					changed.putIfAbsent(state.serviceName, state);
-			}
-			changed.values().forEach(ServiceState::startReadyCommitNotify);
+			for (var info : registers)
+				serviceManager.unRegisterNow(sessionId, info);
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -634,7 +495,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		try {
 			state.serviceInfos.put(r.Argument.getServiceIdentity(), r.Argument);
 			r.SendResultCode(Register.Success);
-			state.startReadyCommitNotify();
 			state.notifySimpleOnRegister(r.Argument);
 		} finally {
 			state.unlock();
@@ -700,20 +560,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public ServiceState unSubscribeNow(long sessionId, @NotNull BSubscribeInfo info) {
 		var state = serviceStates.get(info.getServiceName());
 		if (state != null) {
-			LongHashMap<SubscribeState> subState;
-			switch (info.getSubscribeType()) {
-			case BSubscribeInfo.SubscribeTypeSimple:
-				subState = state.simple;
-				break;
-			case BSubscribeInfo.SubscribeTypeReadyCommit:
-				subState = state.readyCommit;
-				break;
-			default:
-				return null;
-			}
 			state.lock();
 			try {
-				if (subState.remove(sessionId) != null)
+				if (state.simple.remove(sessionId) != null)
 					return state;
 			} finally {
 				state.unlock();
@@ -733,7 +582,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				if (changed != null) {
 					r.setResultCode(UnSubscribe.Success);
 					r.SendResult();
-					changed.tryCommit();
 					return Procedure.Success;
 				}
 			}
@@ -744,12 +592,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		//return Procedure.LogicError;
 		r.setResultCode(UnRegister.Success);
 		r.SendResult();
-		return Procedure.Success;
-	}
-
-	private long processReadyServiceList(@NotNull ReadyServiceList r) {
-		serviceStates.computeIfAbsent(r.Argument.serviceName, name -> new ServiceState(this, name))
-				.setReady(r, ((Session)r.getSender().getUserState()).sessionId);
 		return Procedure.Success;
 	}
 
@@ -804,23 +646,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private final @NotNull ThreadingServer threading;
 
-	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port, @NotNull Config config) throws Exception {
-		this(ipaddress, port, config, -1);
+	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
+								@NotNull Config config) throws Exception {
+		this(ipaddress, port, config, "autokeys");
 	}
 
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config, int startNotifyDelay) throws Exception {
-		this(ipaddress, port, config, startNotifyDelay, "autokeys");
-	}
-
-	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
-								@NotNull Config config, int startNotifyDelay,
+								@NotNull Config config,
 								@NotNull String autokeys) throws Exception {
 		PerfCounter.instance.tryStartScheduledLog();
 		config.parseCustomize(this.conf);
-
-		if (startNotifyDelay >= 0)
-			this.conf.startNotifyDelay = startNotifyDelay;
 
 		server = new NetServer(this, config);
 
@@ -834,8 +669,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
 				UnSubscribe::new, this::processUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(ReadyServiceList.TypeId_, new Service.ProtocolFactoryHandle<>(
-				ReadyServiceList::new, this::processReadyServiceList, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -848,13 +681,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				OfflineNotify::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
 				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
-		if (this.conf.startNotifyDelay > 0) {
-			//noinspection NonAtomicOperationOnVolatileField
-			startNotifyDelayTask = Task.scheduleUnsafe(this.conf.startNotifyDelay, () -> {
-				startNotifyDelayTask = null;
-				serviceStates.values().forEach(s -> s.startReadyCommitNotify(true));
-			});
-		}
 
 		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);
@@ -930,9 +756,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		try {
 			if (server == null)
 				return;
-			var startNotifyDelayTask = this.startNotifyDelayTask;
-			if (startNotifyDelayTask != null)
-				startNotifyDelayTask.cancel(false);
 			serverSocket.close();
 			server.stop();
 			server = null;
@@ -1009,7 +832,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		String raftName = null;
 		String raftConf = "servicemanager.raft.xml";
 		String autokeys = "autokeys";
-		int startNotifyDelay = -1;
 
 		Task.tryInitThreadPool();
 
@@ -1034,9 +856,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			case "-autokeys":
 				autokeys = args[++i];
 				break;
-			case "-startNotifyDelay":
-				startNotifyDelay = Integer.parseInt(args[++i]);
-				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
@@ -1047,7 +866,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var conf = new ServiceManagerServer.Conf();
 			var config = Config.load();
 			config.parseCustomize(conf);
-			try (var ignored = new ServiceManagerServer(address, port, config, startNotifyDelay, autokeys)) {
+			try (var ignored = new ServiceManagerServer(address, port, config, autokeys)) {
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}

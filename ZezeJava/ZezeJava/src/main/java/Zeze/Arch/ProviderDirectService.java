@@ -54,7 +54,7 @@ public class ProviderDirectService extends HandshakeBoth {
 				providerByLoadName.remove(connName);
 				var serverId = Integer.parseInt(pm.getServiceIdentity());
 				providerByServerId.remove(serverId);
-				ss.setServiceIdentityReadyState(pm.getServiceIdentity(), null);
+				ss.setIdentityLocalState(pm.getServiceIdentity(), null);
 				getConfig().removeConnector(conn);
 			}
 		} finally {
@@ -273,7 +273,7 @@ public class ProviderDirectService extends HandshakeBoth {
 						  int mid, @NotNull BModule.Data m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.getOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-		ss.setServiceIdentityReadyState(server.getServiceIdentity(), pms);
+		ss.setIdentityLocalState(server.getServiceIdentity(), pms);
 	}
 
 	@Override
@@ -283,7 +283,7 @@ public class ProviderDirectService extends HandshakeBoth {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
 				var subs = getZeze().getServiceManager().getSubscribeStates().get(service.getKey());
 				for (var identity : service.getValue().keySet()) {
-					subs.setServiceIdentityReadyState(identity, null);
+					subs.setIdentityLocalState(identity, null);
 				}
 			}
 			providerByLoadName.remove(ps.getServerLoadName());
