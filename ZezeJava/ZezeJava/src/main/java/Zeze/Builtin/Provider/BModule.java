@@ -22,7 +22,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 
     private int _ChoiceType;
     private int _ConfigType;
-    private int _SubscribeType;
 
     private transient Object __zeze_map_key__;
 
@@ -76,42 +75,20 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         txn.putLog(new Log__ConfigType(this, 2, value));
     }
 
-    @Override
-    public int getSubscribeType() {
-        if (!isManaged())
-            return _SubscribeType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _SubscribeType;
-        var log = (Log__SubscribeType)txn.getLog(objectId() + 3);
-        return log != null ? log.value : _SubscribeType;
-    }
-
-    public void setSubscribeType(int value) {
-        if (!isManaged()) {
-            _SubscribeType = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SubscribeType(this, 3, value));
-    }
-
     @SuppressWarnings("deprecation")
     public BModule() {
     }
 
     @SuppressWarnings("deprecation")
-    public BModule(int _ChoiceType_, int _ConfigType_, int _SubscribeType_) {
+    public BModule(int _ChoiceType_, int _ConfigType_) {
         _ChoiceType = _ChoiceType_;
         _ConfigType = _ConfigType_;
-        _SubscribeType = _SubscribeType_;
     }
 
     @Override
     public void reset() {
         setChoiceType(0);
         setConfigType(0);
-        setSubscribeType(0);
         _unknown_ = null;
     }
 
@@ -130,14 +107,12 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     public void assign(BModule.Data other) {
         setChoiceType(other._ChoiceType);
         setConfigType(other._ConfigType);
-        setSubscribeType(other._SubscribeType);
         _unknown_ = null;
     }
 
     public void assign(BModule other) {
         setChoiceType(other.getChoiceType());
         setConfigType(other.getConfigType());
-        setSubscribeType(other.getSubscribeType());
         _unknown_ = other._unknown_;
     }
 
@@ -177,13 +152,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         public void commit() { ((BModule)getBelong())._ConfigType = value; }
     }
 
-    private static final class Log__SubscribeType extends Zeze.Transaction.Logs.LogInt {
-        public Log__SubscribeType(BModule bean, int varId, int value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BModule)getBelong())._SubscribeType = value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -196,8 +164,7 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(getChoiceType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(getConfigType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType=").append(getSubscribeType()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(getConfigType()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -244,13 +211,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
                 _o_.WriteInt(_x_);
             }
         }
-        {
-            int _x_ = getSubscribeType();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -268,10 +228,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
             setConfigType(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
-            setSubscribeType(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -281,8 +237,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         if (getChoiceType() < 0)
             return true;
         if (getConfigType() < 0)
-            return true;
-        if (getSubscribeType() < 0)
             return true;
         return false;
     }
@@ -298,7 +252,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
             switch (vlog.getVariableId()) {
                 case 1: _ChoiceType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
                 case 2: _ConfigType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _SubscribeType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
             }
         }
     }
@@ -308,7 +261,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setChoiceType(rs.getInt(_parents_name_ + "ChoiceType"));
         setConfigType(rs.getInt(_parents_name_ + "ConfigType"));
-        setSubscribeType(rs.getInt(_parents_name_ + "SubscribeType"));
     }
 
     @Override
@@ -316,7 +268,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendInt(_parents_name_ + "ChoiceType", getChoiceType());
         st.appendInt(_parents_name_ + "ConfigType", getConfigType());
-        st.appendInt(_parents_name_ + "SubscribeType", getSubscribeType());
     }
 
     @Override
@@ -324,7 +275,6 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ChoiceType", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ConfigType", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SubscribeType", "int", "", ""));
         return vars;
     }
 
@@ -346,7 +296,6 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private int _ChoiceType;
     private int _ConfigType;
-    private int _SubscribeType;
 
     public int getChoiceType() {
         return _ChoiceType;
@@ -364,30 +313,20 @@ public static final class Data extends Zeze.Transaction.Data {
         _ConfigType = value;
     }
 
-    public int getSubscribeType() {
-        return _SubscribeType;
-    }
-
-    public void setSubscribeType(int value) {
-        _SubscribeType = value;
-    }
-
     @SuppressWarnings("deprecation")
     public Data() {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ChoiceType_, int _ConfigType_, int _SubscribeType_) {
+    public Data(int _ChoiceType_, int _ConfigType_) {
         _ChoiceType = _ChoiceType_;
         _ConfigType = _ConfigType_;
-        _SubscribeType = _SubscribeType_;
     }
 
     @Override
     public void reset() {
         _ChoiceType = 0;
         _ConfigType = 0;
-        _SubscribeType = 0;
     }
 
     @Override
@@ -405,13 +344,11 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BModule other) {
         _ChoiceType = other.getChoiceType();
         _ConfigType = other.getConfigType();
-        _SubscribeType = other.getSubscribeType();
     }
 
     public void assign(BModule.Data other) {
         _ChoiceType = other._ChoiceType;
         _ConfigType = other._ConfigType;
-        _SubscribeType = other._SubscribeType;
     }
 
     @Override
@@ -449,8 +386,7 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(_ChoiceType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(_ConfigType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType=").append(_SubscribeType).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(_ConfigType).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -482,13 +418,6 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
-        {
-            int _x_ = _SubscribeType;
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -502,10 +431,6 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 2) {
             _ConfigType = _o_.ReadInt(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            _SubscribeType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

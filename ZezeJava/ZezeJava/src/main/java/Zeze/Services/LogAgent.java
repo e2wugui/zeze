@@ -50,7 +50,7 @@ public class LogAgent extends AbstractLogAgent {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
 				serviceManager.waitReady();
 			}
-			serviceManager.subscribeService("Zeze.LogService", BSubscribeInfo.SubscribeTypeSimple);
+			serviceManager.subscribeService("Zeze.LogService");
 		}
 	}
 

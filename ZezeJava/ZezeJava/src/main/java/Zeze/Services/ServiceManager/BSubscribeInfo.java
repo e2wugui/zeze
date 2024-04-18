@@ -5,10 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 
 public final class BSubscribeInfo extends Bean {
-	public static final int SubscribeTypeSimple = 0;
-
 	private String serviceName;
-	private int subscribeType; // 见上面定义的枚举
 	private Object localState;
 
 	public String getServiceName() {
@@ -17,14 +14,6 @@ public final class BSubscribeInfo extends Bean {
 
 	public void setServiceName(String value) {
 		serviceName = value;
-	}
-
-	public int getSubscribeType() {
-		return subscribeType;
-	}
-
-	public void setSubscribeType(int value) {
-		subscribeType = value;
 	}
 
 	public Object getLocalState() {
@@ -38,18 +27,16 @@ public final class BSubscribeInfo extends Bean {
 	@Override
 	public void decode(IByteBuffer bb) {
 		setServiceName(bb.ReadString());
-		setSubscribeType(bb.ReadInt());
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteString(getServiceName());
-		bb.WriteInt(getSubscribeType());
 	}
 
 	@Override
 	public String toString() {
-		return getServiceName() + ":" + getSubscribeType();
+		return getServiceName();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

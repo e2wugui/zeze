@@ -145,7 +145,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private static BSubscribeInfo fromRocks(BSubscribeInfoRocks rocks) {
 		var r = new BSubscribeInfo();
 		r.setServiceName(rocks.getServiceName());
-		r.setSubscribeType(rocks.getSubscribeType());
 		return r;
 	}
 
@@ -376,7 +375,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	private static BSubscribeInfoRocks toRocks(BSubscribeInfo si) {
-		return new BSubscribeInfoRocks(si.getServiceName(), si.getSubscribeType());
+		return new BSubscribeInfoRocks(si.getServiceName());
 	}
 
 	@Override
@@ -418,8 +417,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessSubscribeRequest(Subscribe r) {
-		logger.info("{}: Subscribe {} type={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
+		logger.info("{}: Subscribe {}",
+				r.getSender(), r.Argument.getServiceName());
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
 		session.getSubscribes().put(r.Argument.getServiceName(), toRocks(r.Argument));
@@ -485,20 +484,18 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessUnSubscribeRequest(UnSubscribe r) {
-		logger.info("{}: UnSubscribe {} type={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
+		logger.info("{}: UnSubscribe {}",
+				r.getSender(), r.Argument.getServiceName());
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
 		var sub = session.getSubscribes().get(r.Argument.getServiceName());
 		session.getSubscribes().remove(r.Argument.getServiceName());
 		if (sub != null) {
-			if (r.Argument.getSubscribeType() == sub.getSubscribeType()) {
-				var changed = unSubscribeNow(netSession.name, r.Argument);
-				if (changed != null) {
-					r.setResultCode(UnSubscribe.Success);
-					r.SendResult();
-					return 0;
-				}
+			var changed = unSubscribeNow(netSession.name, r.Argument);
+			if (changed != null) {
+				r.setResultCode(UnSubscribe.Success);
+				r.SendResult();
+				return 0;
 			}
 		}
 		// 取消订阅不能存在返回成功。否则Agent比较麻烦。
@@ -585,13 +582,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private long subscribeAndSend(BServerState state, Subscribe r, String ssName) {
 		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-		if (r.Argument.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple) {
-			state.getSimple().put(ssName, new BSubscribeStateRocks());
-			new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
-		} else {
-			r.SendResultCode(Subscribe.UnknownSubscribeType);
-			return Zeze.Transaction.Procedure.LogicError;
-		}
+		state.getSimple().put(ssName, new BSubscribeStateRocks());
+		new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
 
 		var netSession = (Session)r.getSender().getUserState();
 		for (var info : state.getServiceInfos().values())

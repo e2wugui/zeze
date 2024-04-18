@@ -343,12 +343,6 @@
 				<enum name="ConfigTypeDynamic" value="2"/>
 
 				<variable name="ConfigType" id="2" type="int"/>
-
-				<!-- SubscribeType
-				定义于： Zeze.Services.ServiceManager.BSubscribeInfo.
-				静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
-				-->
-				<variable name="SubscribeType" id="3" type="int"/>
 			</bean>
 
 			<bean name="BBind">
@@ -1115,7 +1109,6 @@
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateSubscribe" value="1"/>
-				<enum name="UnknownSubscribeType" value="2"/>
 			</rpc>
 			<rpc name="SubscribeFirstCommit" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="UnRegister" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
@@ -1166,7 +1159,6 @@
 			</bean>
 			<bean name="BSubscribeInfoRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
-				<variable id="2" name="SubscribeType" type="int"/>
 			</bean>
 			<table name="tSession" key="string" value="BSession" kind="rocks"/>
 

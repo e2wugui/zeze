@@ -53,7 +53,7 @@ public class TestServiceManager {
 			System.out.println("OnSetLoad " + load);
 			this.future.setResult(0);
 		});
-		agent.subscribeService(serviceName, BSubscribeInfo.SubscribeTypeSimple);
+		agent.subscribeService(serviceName);
 		var load = new BServerLoad();
 		load.ip = "127.0.0.1";
 		load.port = 1234;

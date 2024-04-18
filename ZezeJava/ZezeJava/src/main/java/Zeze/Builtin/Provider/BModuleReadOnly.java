@@ -10,5 +10,4 @@ public interface BModuleReadOnly {
 
     int getChoiceType();
     int getConfigType();
-    int getSubscribeType();
 }

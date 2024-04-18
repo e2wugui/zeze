@@ -9,7 +9,6 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 3024932175735380785L;
 
     private String _ServiceName;
-    private int _SubscribeType;
 
     private transient Object __zeze_map_key__;
 
@@ -46,41 +45,18 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 1, value));
     }
 
-    public int getSubscribeType() {
-        if (!isManaged())
-            return _SubscribeType;
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        if (txn == null)
-            return _SubscribeType;
-        var log = txn.getLog(objectId() + 2);
-        if (log == null)
-            return _SubscribeType;
-        return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).value;
-    }
-
-    public void setSubscribeType(int value) {
-        if (!isManaged()) {
-            _SubscribeType = value;
-            return;
-        }
-        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
-    }
-
     public BSubscribeInfoRocks() {
         _ServiceName = "";
     }
 
-    public BSubscribeInfoRocks(String _ServiceName_, int _SubscribeType_) {
+    public BSubscribeInfoRocks(String _ServiceName_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
-        _SubscribeType = _SubscribeType_;
     }
 
     public void assign(BSubscribeInfoRocks other) {
         setServiceName(other.getServiceName());
-        setSubscribeType(other.getSubscribeType());
     }
 
     public BSubscribeInfoRocks copyIfManaged() {
@@ -116,8 +92,7 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SubscribeType").append('=').append(getSubscribeType()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -144,13 +119,6 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
                 _o_.WriteString(_x_);
             }
         }
-        {
-            int _x_ = getSubscribeType();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -160,10 +128,6 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _SubscribeType = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -180,7 +144,6 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
-            case 2: _SubscribeType = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
         }
     }
 
@@ -193,7 +156,6 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
-                case 2: _SubscribeType = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             }
         }
     }

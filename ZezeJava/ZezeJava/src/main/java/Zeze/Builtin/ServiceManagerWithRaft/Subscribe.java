@@ -24,7 +24,6 @@ public class Subscribe extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BS
 
     public static final int Success = 0;
     public static final int DuplicateSubscribe = 1;
-    public static final int UnknownSubscribeType = 2;
 
     public Subscribe() {
         Argument = new Zeze.Services.ServiceManager.BSubscribeInfo();

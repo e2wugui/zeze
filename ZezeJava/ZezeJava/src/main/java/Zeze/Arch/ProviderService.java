@@ -231,7 +231,7 @@ public class ProviderService extends HandshakeClient {
 			sm.registerService(
 					providerApp.serverServiceNamePrefix + module.getId(), identity,
 					providerApp.directIp, providerApp.directPort);
-			sm.subscribeService(providerApp.serverServiceNamePrefix + module.getId(), config.getSubscribeType());
+			sm.subscribeService(providerApp.serverServiceNamePrefix + module.getId());
 		}
 
 		// 并通知所有links。

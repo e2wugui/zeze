@@ -113,7 +113,7 @@ public class OnzServer extends AbstractOnz {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
 				serviceManager.waitReady();
 			}
-			serviceManager.subscribeService(Onz.eServiceName, BSubscribeInfo.SubscribeTypeSimple);
+			serviceManager.subscribeService(Onz.eServiceName);
 			this.zezes.put(zezeNameAndConfig[0], serviceManager);
 		}
 		this.sharedServiceManager = false;
@@ -274,7 +274,7 @@ public class OnzServer extends AbstractOnz {
 			this.zezes.put(zeze, serviceManager);
 		}
 		this.sharedServiceManager = true;
-		serviceManager.subscribeService(Onz.eServiceName, BSubscribeInfo.SubscribeTypeSimple);
+		serviceManager.subscribeService(Onz.eServiceName);
 		service = new OnzServerService(myConfig);
 		onzAgent = new OnzAgent();
 		RegisterProtocols(service);

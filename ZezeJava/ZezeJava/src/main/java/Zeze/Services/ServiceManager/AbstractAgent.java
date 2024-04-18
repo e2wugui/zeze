@@ -114,7 +114,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public final class SubscribeState extends ReentrantLock {
 		public final BSubscribeInfo subscribeInfo;
 		public volatile BServiceInfos serviceInfos;
-		public volatile BServiceInfos serviceInfosPending;
 
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
@@ -133,15 +132,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 		@Override
 		public String toString() {
-			return getSubscribeType() + " " + serviceInfos;
+			return serviceInfos.toString();
 		}
 
 		public BSubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
-		}
-
-		public int getSubscribeType() {
-			return subscribeInfo.getSubscribeType();
 		}
 
 		public String getServiceName() {
@@ -150,10 +145,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 		public BServiceInfos getServiceInfos() {
 			return serviceInfos;
-		}
-
-		public BServiceInfos getServiceInfosPending() {
-			return serviceInfosPending;
 		}
 
 		public SubscribeState(BSubscribeInfo info) {
@@ -276,7 +267,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			lock();
 			try {
 				serviceInfos = infos;
-				serviceInfosPending = null;
 				prepareAndTriggerOnChanged();
 			} finally {
 				unlock();
@@ -321,17 +311,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract void unRegisterService(BServiceInfo info);
 
-	public SubscribeState subscribeService(String serviceName, int type) {
-		return subscribeService(serviceName, type, null);
+	public SubscribeState subscribeService(String serviceName) {
+		return subscribeService(serviceName, null);
 	}
 
-	public SubscribeState subscribeService(String serviceName, int type, Object state) {
-		if (type != BSubscribeInfo.SubscribeTypeSimple)
-			throw new UnsupportedOperationException("Unknown SubscribeType: " + type);
-
+	public SubscribeState subscribeService(String serviceName, Object state) {
 		var info = new BSubscribeInfo();
 		info.setServiceName(serviceName);
-		info.setSubscribeType(type);
 		info.setLocalState(state);
 		return subscribeService(info);
 	}

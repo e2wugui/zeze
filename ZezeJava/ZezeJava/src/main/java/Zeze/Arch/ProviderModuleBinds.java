@@ -7,7 +7,6 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.IModule;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Task;
@@ -44,7 +43,6 @@ public final class ProviderModuleBinds {
 	public static class Module {
 		private final @NotNull String fullName;
 		private final int choiceType;
-		private final int subscribeType;
 		private final int configType; // 为了兼容，没有配置的话，从其他条件推导出来。
 		private final IntHashSet providers = new IntHashSet();
 
@@ -54,10 +52,6 @@ public final class ProviderModuleBinds {
 
 		public final int getChoiceType() {
 			return choiceType;
-		}
-
-		public final int getSubscribeType() {
-			return subscribeType;
 		}
 
 		public final int getConfigType() {
@@ -88,17 +82,9 @@ public final class ProviderModuleBinds {
 		}
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
-		private static int getSubscribeType(@NotNull Element self) {
-			var type = self.getAttribute("SubscribeType");
-			if (!type.isBlank() && !"SubscribeTypeSimple".equals(type))
-				throw new UnsupportedOperationException("unsupported subscribe type=" + type);
-			return BSubscribeInfo.SubscribeTypeSimple;
-		}
-
 		public Module(@NotNull Element self) {
 			fullName = self.getAttribute("name");
 			choiceType = getChoiceType(self);
-			subscribeType = getSubscribeType(self);
 
 			ProviderModuleBinds.splitIntoSet(self.getAttribute("providers"), providers);
 
@@ -194,11 +180,10 @@ public final class ProviderModuleBinds {
 					continue;
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
-			out.put(m.getId(), cm != null ? new BModule.Data(cm.choiceType, cm.configType, cm.subscribeType)
+			out.put(m.getId(), cm != null ? new BModule.Data(cm.choiceType, cm.configType)
 					: new BModule.Data(
 							BModule.ChoiceTypeDefault,
-							BModule.ConfigTypeDefault,
-							BSubscribeInfo.SubscribeTypeSimple));
+							BModule.ConfigTypeDefault));
 		}
 	}
 
@@ -210,7 +195,7 @@ public final class ProviderModuleBinds {
 			var cm = modules.get(m.getFullName());
 			if (cm != null && cm.configType == BModule.ConfigTypeDynamic &&
 					(cm.providers.isEmpty() || cm.providers.contains(serverId)))
-				out.put(m.getId(), new BModule.Data(cm.choiceType, BModule.ConfigTypeDynamic, cm.subscribeType));
+				out.put(m.getId(), new BModule.Data(cm.choiceType, BModule.ConfigTypeDynamic));
 		}
 	}
 }

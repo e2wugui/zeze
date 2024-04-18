@@ -85,10 +85,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 		// 订阅provider直连发现服务
 		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
-			sm.subscribeService(providerApp.serverServiceNamePrefix + it.key(), it.value().getSubscribeType());
+			sm.subscribeService(providerApp.serverServiceNamePrefix + it.key());
 
 		// 订阅linkd发现服务。
-		sm.subscribeService(providerApp.linkdServiceName, BSubscribeInfo.SubscribeTypeSimple);
+		sm.subscribeService(providerApp.linkdServiceName);
 	}
 
 	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc) {

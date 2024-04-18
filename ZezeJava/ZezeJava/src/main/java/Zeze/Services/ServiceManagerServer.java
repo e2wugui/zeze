@@ -306,13 +306,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			lock();
 			try {
 				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-				if (r.Argument.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple) {
-					simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
-					new SubscribeFirstCommit(new BServiceInfos(serviceName, this, 0)).Send(r.getSender());
-				} else {
-					r.SendResultCode(Subscribe.UnknownSubscribeType);
-					return Procedure.LogicError;
-				}
+				simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
+				new SubscribeFirstCommit(new BServiceInfos(serviceName, this, 0)).Send(r.getSender());
 				for (var info : serviceInfos.values())
 					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
 				r.SendResultCode(Subscribe.Success);
@@ -549,8 +544,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSubscribe(@NotNull Subscribe r) {
-		logger.info("{}: Subscribe {} type={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
+		logger.info("{}: Subscribe {}",
+				r.getSender(), r.Argument.getServiceName());
 		var session = (Session)r.getSender().getUserState();
 		session.subscribes.putIfAbsent(r.Argument.getServiceName(), r.Argument);
 		return serviceStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServiceState(this, name))
@@ -572,18 +567,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processUnSubscribe(@NotNull UnSubscribe r) {
-		logger.info("{}: UnSubscribe {} type={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
+		logger.info("{}: UnSubscribe {}",
+				r.getSender(), r.Argument.getServiceName());
 		var session = (Session)r.getSender().getUserState();
 		var sub = session.subscribes.remove(r.Argument.getServiceName());
 		if (sub != null) {
-			if (r.Argument.getSubscribeType() == sub.getSubscribeType()) {
-				var changed = unSubscribeNow(r.getSender().getSessionId(), r.Argument);
-				if (changed != null) {
-					r.setResultCode(UnSubscribe.Success);
-					r.SendResult();
-					return Procedure.Success;
-				}
+			var changed = unSubscribeNow(r.getSender().getSessionId(), r.Argument);
+			if (changed != null) {
+				r.setResultCode(UnSubscribe.Success);
+				r.SendResult();
+				return Procedure.Success;
 			}
 		}
 		// 取消订阅不能存在返回成功。否则Agent比较麻烦。
