@@ -12,6 +12,9 @@ import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
+import org.jetbrains.annotations.NotNull;
 
 public class LogAgent extends AbstractLogAgent {
 	private final Config conf;
@@ -32,16 +35,20 @@ public class LogAgent extends AbstractLogAgent {
 		return logConf;
 	}
 
+	void applyOnChanged(@NotNull BEdit edit) {
+		for (var r : edit.remove) {
+			client.onSmRemoved(r);
+		}
+		for (var p : edit.put) {
+			client.onSmUpdated(p);
+		}
+	}
+
 	public void start() throws Exception {
 		client.start();
 		var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 		if (serviceManagerConf != null && serviceManager != null) {
-			serviceManager.setOnChanged((ss) -> {
-				for (var si : ss.getServiceInfos().getServiceInfoListSortedByIdentity())
-					client.onSmUpdated(ss, si);
-			});
-			serviceManager.setOnUpdate(client::onSmUpdated);
-			serviceManager.setOnRemoved(client::onSmRemoved);
+			serviceManager.setOnChanged(this::applyOnChanged);
 			serviceManager.start();
 			try {
 				serviceManager.waitReady();

@@ -8,6 +8,7 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
+import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,23 +96,32 @@ public class ProviderApp extends ReentrantLock {
 		});
 
 		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
-
-		this.zeze.getServiceManager().setOnChanged((ss) -> {
-			providerImplement.applyOnChanged(ss);
-			distribute.applyServers(ss);
-		});
-		this.zeze.getServiceManager().setOnUpdate((ss, si) -> {
-			distribute.addServer(ss, si);
-			providerDirectService.addServer(ss, si);
-			providerImplement.addServer(ss, si);
-		});
-		this.zeze.getServiceManager().setOnRemoved((ss, si) -> {
-			distribute.removeServer(ss, si);
-			providerDirectService.removeServer(ss, si);
-		});
-
+		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
+
+	void applyOnChanged(@NotNull BEdit edit) {
+		var refresh = false;
+		for (var r : edit.remove) {
+			if (r.getServiceName().equals(linkdServiceName))
+				refresh |= providerService.applyRemove(r);
+			else if (r.getServiceName().startsWith(serverServiceNamePrefix)) {
+				providerDirectService.removeServer(r);
+				distribute.removeServer(r);
+			}
+		}
+		for (var p : edit.put) {
+			if (p.getServiceName().equals(linkdServiceName))
+				refresh |= providerService.applyPut(p);
+			else if (p.getServiceName().startsWith(serverServiceNamePrefix)) {
+				providerDirectService.addServer(p);
+				distribute.addServer(p);
+			}
+		}
+		if (refresh)
+			providerService.refreshLinkConnectors();
+	}
+
 
 	/**
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。

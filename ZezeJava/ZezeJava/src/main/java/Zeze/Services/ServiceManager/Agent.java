@@ -48,6 +48,7 @@ public final class Agent extends AbstractAgent {
 		client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
+	@Deprecated
 	@Override
 	public BServiceInfo updateService(BServiceInfo info) {
 		waitConnectorReady();
@@ -55,53 +56,54 @@ public final class Agent extends AbstractAgent {
 		if (reg == null)
 			return null;
 
-		new Update(info).SendAndWaitCheckResultCode(client.getSocket());
+		var edit = new BEdit();
+		edit.update.add(info);
+		editService(edit);
 
-		reg.setPassiveIp(info.getPassiveIp());
-		reg.setPassivePort(info.getPassivePort());
-		reg.setExtraInfo(info.getExtraInfo());
 		return reg;
 	}
 
 	@Override
-	public BServiceInfo registerService(BServiceInfo info) {
-		verify(info.getServiceIdentity());
+	public void editService(BEdit arg) {
+		for (var info : arg.put)
+			verify(info.getServiceIdentity());
 		waitConnectorReady();
 
-		var regNew = new OutObject<Boolean>();
-		regNew.value = false;
-		var regServInfo = registers.computeIfAbsent(info, key -> {
-			regNew.value = true;
-			return key;
-		});
+		var edit = new Edit(arg);
+		edit.SendAndWaitCheckResultCode(client.getSocket());
 
-		if (regNew.value) {
-			try {
-				new Register(info).SendAndWaitCheckResultCode(client.getSocket());
-				logger.debug("RegisterService {}", info);
-			} catch (Throwable e) { // rethrow
-				// rollback.
-				registers.remove(info, info); // rollback
-				throw e;
-			}
+		// 成功以后更新本地信息。
+		for (var unReg : arg.remove)
+			registers.remove(unReg);
+
+		for (var reg : arg.put)
+			registers.put(reg, reg);
+
+		for (var upd : arg.update) {
+			registers.computeIfPresent(upd, (__, present) -> {
+				present.setPassiveIp(upd.getPassiveIp());
+				present.setPassivePort(upd.getPassivePort());
+				present.setExtraInfo(upd.getExtraInfo());
+				return present;
+			});
 		}
-		return regServInfo;
 	}
 
+	@Deprecated
+	@Override
+	public BServiceInfo registerService(BServiceInfo info) {
+		var edit = new BEdit();
+		edit.put.add(info);
+		editService(edit);
+		return info;
+	}
+
+	@Deprecated
 	@Override
 	public void unRegisterService(BServiceInfo info) {
-		waitConnectorReady();
-
-		var exist = registers.remove(info);
-		if (exist != null) {
-			try {
-				new UnRegister(info).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable e) { // rethrow
-				// rollback.
-				registers.putIfAbsent(exist, exist); // rollback
-				throw e;
-			}
-		}
+		var edit = new BEdit();
+		edit.remove.add(info);
+		editService(edit);
 	}
 
 	@Override
@@ -171,14 +173,15 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void onConnected() {
-		for (var e : registers.keySet()) {
-			try {
-				new Register(e).SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) { // logger.debug
-				// skip and continue.
-				logger.debug("OnConnected.Register={}", e, ex);
-			}
+		var edit = new BEdit();
+		edit.put.addAll(registers.keySet());
+		try {
+			editService(edit);
+		} catch (Throwable ex) { // logger.debug
+			// skip and continue.
+			logger.debug("OnConnected.Register", ex);
 		}
+
 		for (var e : subscribeStates.values()) {
 			try {
 				var r = new Subscribe();
@@ -191,30 +194,31 @@ public final class Agent extends AbstractAgent {
 		}
 	}
 
-	private long processRegister(Register r) {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServiceNotSubscribe;
-		state.onRegister(r.Argument);
-		r.SendResult();
-		return 0;
-	}
+	private long processEdit(Edit r) {
 
-	private long processUnRegister(UnRegister r) {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServiceNotSubscribe;
-		state.onUnRegister(r.Argument);
-		r.SendResult();
-		return 0;
-	}
+		for (var unReg : r.Argument.remove) {
+			var state = subscribeStates.get(unReg.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onUnRegister(unReg, r.Argument);
+		}
 
-	private long processUpdate(Update r) {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServiceNotSubscribe;
-		state.onUpdate(r.Argument);
+		for (var reg : r.Argument.put) {
+			var state = subscribeStates.get(reg.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onRegister(reg);
+		}
+
+		for (var upd : r.Argument.update) {
+			var state = subscribeStates.get(upd.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onUpdate(upd, r.Argument);
+		}
+
 		r.SendResult();
+		triggerOnChanged(r.Argument);
 		return 0;
 	}
 
@@ -272,12 +276,8 @@ public final class Agent extends AbstractAgent {
 				? new AgentClient(this, config)
 				: new AgentClient(this, config, netServiceName);
 
-		client.AddFactoryHandle(Register.TypeId_, new ProtocolFactoryHandle<>(
-				Register::new, this::processRegister, TransactionLevel.None, DispatchMode.Direct));
-		client.AddFactoryHandle(UnRegister.TypeId_, new ProtocolFactoryHandle<>(
-				UnRegister::new, this::processUnRegister, TransactionLevel.None, DispatchMode.Direct));
-		client.AddFactoryHandle(Update.TypeId_, new ProtocolFactoryHandle<>(
-				Update::new, this::processUpdate, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(Edit.TypeId_, new ProtocolFactoryHandle<>(
+				Edit::new, this::processEdit, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(

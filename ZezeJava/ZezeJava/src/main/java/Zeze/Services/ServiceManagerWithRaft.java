@@ -187,8 +187,19 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				for (var info : session.getSubscribes().values())
 					unSubscribeNow(name, fromRocks(info));
 
-				for (var info : session.getRegisters())
-					unRegisterNow(name, fromRocks(info.getValue()));
+				var notifies = new HashMap<AsyncSocket, Edit>();
+				for (var unReg : session.getRegisters().values()) {
+					var state = tableServerState.get(unReg.getServiceName());
+					if (state != null) {
+						var exist = state.getServiceInfos().get(unReg.getServiceIdentity());
+						state.getServiceInfos().remove(unReg.getServiceIdentity());
+						if (exist != null && exist.getSessionName().equals(name)) {
+							// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+							collectRemoveNotify(state, fromRocks(exist), notifies);
+						}
+					}
+				}
+				ServiceManagerWithRaft.sendNotifies(notifies);
 
 				// offline notify，开启一个线程执行，避免互等造成麻烦。
 				// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -377,40 +388,73 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return new BSubscribeInfoRocks(si.getServiceName());
 	}
 
+	private static void sendNotifies(HashMap<AsyncSocket, Edit> notifies) {
+		// todo 增加一些发送错误的日志。
+		for (var e : notifies.entrySet()) {
+			e.getValue().Send(e.getKey());
+		}
+	}
+
 	@Override
-	protected long ProcessRegisterRequest(Register r) {
+	protected long ProcessEditRequest(Edit r) {
 		var netSession = (Session)r.getSender().getUserState();
-		var session = tableSession.get(netSession.name);
-		// 允许重复登录，断线重连Agent不好原子实现重发。
-		session.getRegisters().put(toRocksKey(r.Argument), toRocks(r.Argument, netSession.name));
-		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
-		if (!state.getServiceName().equals(r.Argument.getServiceName()))
-			state.setServiceName(r.Argument.getServiceName());
-		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-		state.getServiceInfos().put(r.Argument.getServiceIdentity(), toRocks(r.Argument, netSession.name));
-		notifySimpleOnRegister(state, r.Argument);
-		r.SendResultCode(Register.Success);
+
+		var notifies = new HashMap<AsyncSocket, Edit>();
+
+		// step 1: remove
+		for (var unReg : r.Argument.remove) {
+			var state = tableServerState.get(unReg.getServiceName());
+			if (state != null) {
+				var exist = state.getServiceInfos().get(unReg.getServiceIdentity());
+				state.getServiceInfos().remove(unReg.getServiceIdentity());
+				if (exist != null && exist.getSessionName().equals(netSession.name)) {
+					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+					collectRemoveNotify(state, fromRocks(exist), notifies);
+				}
+			}
+			var session = tableSession.get(netSession.name);
+			session.getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
+		}
+
+		// step 2: put
+		for (var reg : r.Argument.put) {
+			var session = tableSession.get(netSession.name);
+			// 允许重复登录，断线重连Agent不好原子实现重发。
+			session.getRegisters().put(toRocksKey(reg), toRocks(reg, netSession.name));
+			var state = tableServerState.getOrAdd(reg.getServiceName());
+			if (!state.getServiceName().equals(reg.getServiceName()))
+				state.setServiceName(reg.getServiceName());
+			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
+			state.getServiceInfos().put(reg.getServiceIdentity(), toRocks(reg, netSession.name));
+			collectPutNotify(state, reg, notifies);
+		}
+
+		// step 3: update
+		for (var upd : r.Argument.update) {
+			var session = tableSession.get(netSession.name);
+			if (!session.getRegisters().containsKey(toRocksKey(upd)))
+				continue;
+			var state = tableServerState.get(upd.getServiceName());
+			if (state == null)
+				continue;
+			collectUpdateNotify(state, upd, notifies);
+		}
+		sendNotifies(notifies);
+		r.SendResult();
 		return 0;
 	}
 
-	private void notifySimpleOnRegister(BServerState state, BServiceInfo info) {
-		if (state.getSimple().size() == 0)
-			return;
-		var sb = new StringBuilder();
+	private void collectPutNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
 		for (var sessionName : state.getSimple().keys()) {
 			var session = tableSession.get(sessionName);
-			if (null != session && new Register(info).Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()))) {
-				sb.append(sessionName).append(',');
+			if (null == session)
 				continue;
-			}
-			logger.warn("NotifySimpleOnRegister {} failed: serverId({}) => sessionId({})",
-					info.getServiceName(), info.getServiceIdentity(), sessionName);
-		}
-		var n = sb.length();
-		if (n > 0) {
-			sb.setLength(n - 1);
-			logger.info("NotifySimpleOnRegister {} serverId({}) => sessionIds({})",
-					info.getServiceName(), info.getServiceIdentity(), sb);
+			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+			if (null == peer)
+				continue;
+
+			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+			notify.Argument.put.add(info);
 		}
 	}
 
@@ -427,57 +471,22 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return subscribeAndSend(state, r, netSession.name);
 	}
 
-	@Override
-	protected long ProcessUnRegisterRequest(UnRegister r) {
-		logger.info("{}: UnRegister {} serverId={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
-		var netSession = (Session)r.getSender().getUserState();
-		unRegisterNow(netSession.name, r.Argument); // ignore UnRegisterNow failed
-		var session = tableSession.get(netSession.name);
-		session.getRegisters().remove(toRocksKey(r.Argument)); // ignore remove failed
-		// 注销不存在也返回成功，否则Agent处理比较麻烦。
-		r.SendResultCode(Zeze.Services.ServiceManager.UnRegister.Success);
-		return 0;
-	}
-
-	public BServerState unRegisterNow(String ssName, BServiceInfo info) {
-		var state = tableServerState.get(info.getServiceName());
-		if (state != null) {
-			var exist = state.getServiceInfos().get(info.getServiceIdentity());
-			state.getServiceInfos().remove(info.getServiceIdentity());
-			if (exist != null && exist.getSessionName().equals(ssName)) {
-				// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-				notifySimpleOnUnRegister(state, fromRocks(exist));
-				return state;
-			}
-		}
-		return null;
-	}
-
 	private static BServiceInfo fromRocks(BServiceInfoRocks rocks) {
 		return new BServiceInfo(rocks.getServiceName(), rocks.getServiceIdentity(),
 				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
 	}
 
-	public void notifySimpleOnUnRegister(BServerState state, BServiceInfo info) {
-		if (state.getSimple().size() == 0)
-			return;
-
-		var sb = new StringBuilder();
+	public void collectRemoveNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
 		for (var sessionName : state.getSimple().keys()) {
 			var session = tableSession.get(sessionName);
-			if (null != session && new UnRegister(info).Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()))) {
-				sb.append(sessionName).append(',');
+			if (null == session)
 				continue;
-			}
-			logger.warn("NotifySimpleOnUnRegister {} failed: serverId({}) => sessionId({})",
-					info.getServiceName(), info.getServiceIdentity(), sessionName);
-		}
-		var n = sb.length();
-		if (n > 0) {
-			sb.setLength(n - 1);
-			logger.info("NotifySimpleOnUnRegister {} serverId({}) => sessionIds({})",
-					info.getServiceName(), info.getServiceIdentity(), sb);
+			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+			if (null == peer)
+				continue;
+
+			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+			notify.Argument.remove.add(info);
 		}
 	}
 
@@ -490,18 +499,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var sub = session.getSubscribes().get(r.Argument.getServiceName());
 		session.getSubscribes().remove(r.Argument.getServiceName());
 		if (sub != null) {
-			var changed = unSubscribeNow(netSession.name, r.Argument);
-			if (changed != null) {
-				r.setResultCode(UnSubscribe.Success);
-				r.SendResult();
-				return 0;
-			}
+			unSubscribeNow(netSession.name, r.Argument);
 		}
-		// 取消订阅不能存在返回成功。否则Agent比较麻烦。
-		//r.ResultCode = UnSubscribe.NotExist;
-		//r.SendResult();
-		//return Procedure.LogicError;
-		r.setResultCode(Zeze.Services.ServiceManager.UnRegister.Success);
 		r.SendResult();
 		return 0;
 	}
@@ -517,60 +516,32 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return null;
 	}
 
-	@Override
-	protected long ProcessUpdateRequest(Update r) {
-		logger.info("{}: Update {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		var netSession = (Session)r.getSender().getUserState();
-		var session = tableSession.get(netSession.name);
-		if (!session.getRegisters().containsKey(toRocksKey(r.Argument)))
-			return Update.ServiceNotRegister;
-		var state = tableServerState.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServerStateError;
-		var rc = updateAndNotify(state, r.Argument);
-		if (rc != 0)
-			return rc;
-		r.SendResult();
-		return 0;
-	}
-
-	public int updateAndNotify(BServerState state, BServiceInfo info) {
+	public void collectUpdateNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
 		var current = state.getServiceInfos().get(info.getServiceIdentity());
 		if (current == null)
-			return Update.ServiceIdentityNotExist;
+			return;
 
 		current.setPassiveIp(info.getPassiveIp());
 		current.setPassivePort(info.getPassivePort());
 		current.setExtraInfo(info.getExtraInfo());
 
 		// 简单广播。
-		var sb = new StringBuilder();
 		for (var sessionName : state.getSimple().keys()) {
 			var session = tableSession.get(sessionName);
-			if (null != session && new Update(fromRocks(current)).Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()))) {
-				sb.append(sessionName).append(',');
+			if (null == session)
 				continue;
-			}
+			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+			if (null == peer)
+				continue;
 
-			logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
-					info.getServiceName(), info.getServiceIdentity(), sessionName);
+			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+			notify.Argument.update.add(info);
 		}
-		var n = sb.length();
-		if (n > 0)
-			sb.setCharAt(n - 1, ';');
-		else
-			sb.append(';');
-		if (sb.length() > 1)
-			logger.info("UpdateAndNotify {} serverId({}) => sessionIds({})",
-					info.getServiceName(), info.getServiceIdentity(), sb);
-		return 0;
 	}
 
 	private static BServiceInfos newSortedBServiceInfos(BServerState state) {
 		var result = new BServiceInfos();
 		result.serviceName = state.getServiceName();
-		result.serialId = state.getSerialId();
 		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
 		for (var info : state.getServiceInfos())
 			sortedMap.put(new BServiceInfoKeyRocks(state.getServiceName(), info.getKey()), info.getValue());

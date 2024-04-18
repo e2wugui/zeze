@@ -10,6 +10,7 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
@@ -59,25 +60,10 @@ public class ProviderDistribute extends ReentrantLock {
 				.add(s.getServiceIdentity(), s);
 	}
 
-	public void removeServer(Agent.SubscribeState state, BServiceInfo s) {
+	public void removeServer(BServiceInfo s) {
 		var consistentHash = consistentHashes.get(s.getServiceName());
 		if (consistentHash != null)
 			consistentHash.remove(s);
-	}
-
-	public void applyServers(Agent.SubscribeState ass) {
-		var consistentHash = consistentHashes.computeIfAbsent(ass.getServiceName(), __ -> new ConsistentHash<>(selector));
-		var nodeSet = consistentHash.getNodes();
-		var nodes = nodeSet.toArray(new BServiceInfo[nodeSet.size()]);
-		var current = new HashSet<BServiceInfo>();
-		for (var node : ass.getServiceInfos().getServiceInfoListSortedByIdentity()) {
-			consistentHash.add(node.getServiceIdentity(), node);
-			current.add(node);
-		}
-		for (var node : nodes) {
-			if (!current.contains(node))
-				consistentHash.remove(node);
-		}
 	}
 
 	public static String makeServiceName(String serviceNamePrefix, int moduleId) {

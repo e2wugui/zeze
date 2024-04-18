@@ -14,6 +14,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -40,21 +41,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	public abstract @Nullable ProviderLoadBase getLoad();
-
-	void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
-		if (ss.getServiceName().equals(providerApp.linkdServiceName))
-			providerApp.providerService.apply(pm);
-	}
-
-	void applyOnChanged(@NotNull Agent.SubscribeState subState) {
-		if (subState.getServiceName().equals(providerApp.linkdServiceName)) {
-			// Linkd info
-			providerApp.providerService.apply(subState.getServiceInfos());
-		} else if (subState.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-			// Provider info
-			providerApp.providerDirectService.tryConnectAndSetReady(subState, subState.getServiceInfos());
-		}
-	}
 
 	public static @Nullable Dispatch localDispatch() {
 		return localDispatch.get();

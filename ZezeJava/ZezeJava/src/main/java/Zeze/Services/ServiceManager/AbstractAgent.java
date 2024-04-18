@@ -9,7 +9,7 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
-import Zeze.Util.Action2;
+import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,9 +35,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	protected Action1<Agent.SubscribeState> onChanged;
-	protected Action2<Agent.SubscribeState, BServiceInfo> onUpdate;
-	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove;
+	protected Action1<BEdit> onChanged;
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
@@ -59,11 +57,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return config;
 	}
 
-	public Action1<Agent.SubscribeState> getOnChanged() {
+	public Action1<BEdit> getOnChanged() {
 		return onChanged;
 	}
 
-	public void setOnChanged(Action1<Agent.SubscribeState> value) {
+	public void setOnChanged(Action1<BEdit> value) {
 		onChanged = value;
 	}
 
@@ -85,22 +83,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public Action2<Agent.SubscribeState, BServiceInfo> getOnRemoved() {
-		return onRemove;
-	}
-
-	public void setOnRemoved(Action2<Agent.SubscribeState, BServiceInfo> value) {
-		onRemove = value;
-	}
-
-	public Action2<Agent.SubscribeState, BServiceInfo> getOnUpdate() {
-		return onUpdate;
-	}
-
-	public void setOnUpdate(Action2<Agent.SubscribeState, BServiceInfo> value) {
-		onUpdate = value;
-	}
-
 	public Runnable getOnKeepAlive() {
 		return onKeepAlive;
 	}
@@ -114,6 +96,27 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public abstract void start() throws Exception;
 
 	public abstract void waitReady();
+
+	private final FastLock onChangedLock = new FastLock();
+	protected void triggerOnChanged(BEdit edit) {
+		if (onChanged != null) {
+			Task.getCriticalThreadPool().execute(() -> {
+				onChangedLock.lock();
+				// 触发回调前修正集合之间的关系。
+				// 删除后来又加入的。
+				edit.remove.removeIf(edit.put::contains);
+
+				try {
+					onChanged.run(edit);
+				} catch (Throwable e) { // logger.error
+					logger.error("", e);
+				} finally {
+					onChangedLock.unlock();
+				}
+			});
+		}
+	}
+
 
 	// 【警告】
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
@@ -173,98 +176,36 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				localStates.put(identity, state);
 		}
 
-		private void prepareAndTriggerOnChanged() {
-			if (onChanged != null) {
-				Task.getCriticalThreadPool().execute(() -> {
-					try {
-						onChanged.run(this);
-					} catch (Throwable e) { // logger.error
-						logger.error("", e);
-					}
-				});
-			}
-		}
-
 		public void onRegister(BServiceInfo info) {
 			lock();
 			try {
 				serviceInfos.insert(info);
-				if (onUpdate != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onUpdate.run(this, info);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
-				} else if (onChanged != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onChanged.run(this);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
-				}
 			} finally {
 				unlock();
 			}
 		}
 
-		public void onUnRegister(BServiceInfo info) {
+		public void onUnRegister(BServiceInfo info, BEdit edit) {
 			lock();
 			try {
 				var removed = serviceInfos.remove(info);
 				if (removed == null)
-					return;
-				if (onRemove != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onRemove.run(this, removed);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
-				} else if (onChanged != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onChanged.run(this);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
-				}
+					edit.remove.remove(info);
 			} finally {
 				unlock();
 			}
 		}
 
-		public void onUpdate(BServiceInfo info) {
+		public void onUpdate(BServiceInfo info, BEdit edit) {
 			lock();
 			try {
 				var exist = serviceInfos.findServiceInfo(info);
 				if (exist == null)
-					return;
-				exist.setPassiveIp(info.getPassiveIp());
-				exist.setPassivePort(info.getPassivePort());
-				exist.setExtraInfo(info.getExtraInfo());
-
-				if (onUpdate != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onUpdate.run(this, exist);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
-				} else if (onChanged != null) {
-					Task.getCriticalThreadPool().execute(() -> {
-						try {
-							onChanged.run(this);
-						} catch (Throwable e) { // logger.error
-							logger.error("", e);
-						}
-					});
+					edit.update.remove(info);
+				else {
+					exist.setPassiveIp(info.getPassiveIp());
+					exist.setPassivePort(info.getPassivePort());
+					exist.setExtraInfo(info.getExtraInfo());
 				}
 			} finally {
 				unlock();
@@ -272,38 +213,49 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		public void onFirstCommit(BServiceInfos infos) {
+			var edit = new BEdit();
 			lock();
 			try {
 				serviceInfos = infos;
-				prepareAndTriggerOnChanged();
+				edit.put.addAll(infos.serviceInfoListSortedByIdentity);
 			} finally {
 				unlock();
 			}
+			triggerOnChanged(edit);
 		}
 	}
 
+	public abstract void editService(BEdit arg);
+
+	@Deprecated
 	public BServiceInfo registerService(String name, String identity) {
 		return registerService(name, identity, null, 0, null);
 	}
 
+	@Deprecated
 	public BServiceInfo registerService(String name, String identity, String ip) {
 		return registerService(name, identity, ip, 0, null);
 	}
 
+	@Deprecated
 	public BServiceInfo registerService(String name, String identity, String ip, int port) {
 		return registerService(name, identity, ip, port, null);
 	}
 
+	@Deprecated
 	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
 		return registerService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
+	@Deprecated
 	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
 		return updateService(new BServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
+	@Deprecated
 	public abstract BServiceInfo registerService(BServiceInfo info);
 
+	@Deprecated
 	public abstract BServiceInfo updateService(BServiceInfo info);
 
 	protected static void verify(String identity) {
@@ -313,10 +265,12 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
+	@Deprecated
 	public void unRegisterService(String name, String identity) {
 		unRegisterService(new BServiceInfo(name, identity));
 	}
 
+	@Deprecated
 	public abstract void unRegisterService(BServiceInfo info);
 
 	public SubscribeState subscribeService(String serviceName) {

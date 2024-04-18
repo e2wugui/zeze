@@ -7,18 +7,17 @@ import Zeze.Builtin.ServiceManagerWithRaft.Login;
 import Zeze.Builtin.ServiceManagerWithRaft.NormalClose;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineRegister;
-import Zeze.Builtin.ServiceManagerWithRaft.Register;
 import Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit;
-import Zeze.Builtin.ServiceManagerWithRaft.UnRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
-import Zeze.Builtin.ServiceManagerWithRaft.Update;
+import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -100,12 +99,32 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessRegisterRequest(Register r) throws Exception {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return errorCode(Update.ServiceNotSubscribe);
-		state.onRegister(r.Argument);
+	protected long ProcessEditRequest(Edit r) {
+
+		for (var unReg : r.Argument.remove) {
+			var state = subscribeStates.get(unReg.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onUnRegister(unReg, r.Argument);
+		}
+
+		for (var reg : r.Argument.put) {
+			var state = subscribeStates.get(reg.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onRegister(reg);
+		}
+
+		for (var upd : r.Argument.update) {
+			var state = subscribeStates.get(upd.getServiceName());
+			if (null == state)
+				continue; // 忽略本地没有订阅的。最好加个日志。
+			state.onUpdate(upd, r.Argument);
+		}
+
 		r.SendResult();
+		triggerOnChanged(r.Argument);
+
 		return 0;
 	}
 
@@ -132,26 +151,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			state.onFirstCommit(r.Argument);
 		r.SendResult();
 		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessUnRegisterRequest(UnRegister r) throws Exception {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServiceNotSubscribe;
-		state.onUnRegister(r.Argument);
-		r.SendResult();
-		return 0;
-	}
-
-	@Override
-	protected long ProcessUpdateRequest(Update r) throws Exception {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServiceNotSubscribe;
-		state.onUpdate(r.Argument);
-		r.SendResult();
-		return 0;
 	}
 
 	@Override
@@ -203,25 +202,40 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public BServiceInfo registerService(BServiceInfo info) {
-		verify(info.getServiceIdentity());
+	public void editService(BEdit arg) {
+		for (var info : arg.put)
+			verify(info.getServiceIdentity());
 		waitLoginReady();
-		raftClient.sendForWait(new Register(info)).await();
-		logger.debug("RegisterService {}", info);
+
+		var edit = new Edit(arg);
+		raftClient.sendForWait(edit).await();
+		logger.debug("EditService {}", arg);
+	}
+
+	@Deprecated
+	@Override
+	public BServiceInfo registerService(BServiceInfo info) {
+		var edit = new BEdit();
+		edit.put.add(info);
+		editService(edit);
 		return info;
 	}
 
+	@Deprecated
 	@Override
 	public BServiceInfo updateService(BServiceInfo info) {
-		waitLoginReady();
-		raftClient.sendForWait(new Update(info)).await();
+		var edit = new BEdit();
+		edit.update.add(info);
+		editService(edit);
 		return info;
 	}
 
+	@Deprecated
 	@Override
 	public void unRegisterService(BServiceInfo info) {
-		waitLoginReady();
-		raftClient.sendForWait(new UnRegister(info)).await();
+		var edit = new BEdit();
+		edit.remove.add(info);
+		editService(edit);
 	}
 
 	@Override

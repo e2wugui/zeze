@@ -20,7 +20,7 @@ public class TestServiceManager {
 		infos.insert(new BServiceInfo("TestBase", "1"));
 		infos.insert(new BServiceInfo("TestBase", "3"));
 		infos.insert(new BServiceInfo("TestBase", "2"));
-		Assert.assertEquals("TestBase Version=0[1,2,3,]", infos.toString());
+		Assert.assertEquals("TestBase[1,2,3,]", infos.toString());
 	}
 
 	@Before
@@ -46,7 +46,7 @@ public class TestServiceManager {
 		var agent = App.Instance.Zeze.getServiceManager();
 		agent.registerService(serviceName, "1", "127.0.0.1", 1234);
 		agent.setOnChanged((state) -> {
-			System.out.println("OnChanged: " + state.getServiceInfos());
+			System.out.println("OnChanged 1:" + state);
 			this.future.setResult(0);
 		});
 		agent.setOnSetServerLoad((load) -> {
@@ -62,8 +62,8 @@ public class TestServiceManager {
 		future.await();
 
 		future = new TaskCompletionSource<>();
-		agent.setOnUpdate((state, info) -> {
-			System.out.println("OnUpdate: " + info);
+		agent.setOnChanged((state) -> {
+			System.out.println("OnChanged 2:" + state);
 			this.future.setResult(0);
 		});
 		System.out.println("WaitOnUpdate");

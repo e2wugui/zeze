@@ -7,10 +7,12 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public class LinkdApp {
 	public final String linkdServiceName;
@@ -58,9 +60,7 @@ public class LinkdApp {
 		this.linkdProvider.distribute = new ProviderDistribute(zeze, loadConfig, linkdProviderService);
 		this.linkdProvider.RegisterProtocols(this.linkdProviderService);
 
-		this.zeze.getServiceManager().setOnChanged(this.linkdProvider.distribute::applyServers);
-		this.zeze.getServiceManager().setOnUpdate(this.linkdProvider.distribute::addServer);
-		this.zeze.getServiceManager().setOnRemoved(this.linkdProvider.distribute::removeServer);
+		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
 
 		this.zeze.getServiceManager().setOnSetServerLoad(serverLoad -> {
 			var ps = this.linkdProviderService.providerSessions.get(serverLoad.getName());
@@ -80,6 +80,16 @@ public class LinkdApp {
 
 		var checkPeriod = PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000);
 		Task.scheduleUnsafe(checkPeriod, checkPeriod, this::keepAliveCheckTimer);
+	}
+
+	void applyOnChanged(@NotNull BEdit edit) {
+		for (var r : edit.remove) {
+			linkdProvider.distribute.removeServer(r);
+		}
+		for (var p : edit.put) {
+			linkdProvider.distribute.addServer(p);
+		}
+		// todo process update
 	}
 
 	private void keepAliveCheckTimer() throws Exception {

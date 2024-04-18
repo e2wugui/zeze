@@ -184,7 +184,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	// 每个服务的状态
-	public static final class ServiceState extends ReentrantLock {
+	public static final class ServiceState {
 		private final @NotNull ServiceManagerServer serviceManager;
 		private final @NotNull String serviceName;
 		// identity ->
@@ -201,100 +201,60 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void getServiceInfos(@NotNull List<BServiceInfo> target) {
-			lock();
+			serviceManager.editLock.lock();
 			try {
 				target.addAll(serviceInfos.values());
 			} finally {
-				unlock();
+				serviceManager.editLock.unlock();
 			}
 		}
 
-		public void notifySimpleOnRegister(@NotNull BServiceInfo info) {
-			lock();
-			try {
-				if (simple.isEmpty())
-					return;
-				var sb = new StringBuilder();
-				for (var it = simple.iterator(); it.moveToNext(); ) {
-					var sessionId = it.key();
-					if (new Register(info).Send(serviceManager.server.GetSocket(sessionId)))
-						sb.append(sessionId).append(',');
-					else {
-						logger.warn("notifySimpleOnRegister {} failed: serverId({}) => sessionId({})",
-								info.getServiceName(), info.getServiceIdentity(), sessionId);
-					}
-				}
-				var n = sb.length();
-				if (n > 0) {
-					sb.setLength(n - 1);
-					logger.info("notifySimpleOnRegister {} serverId({}) => sessionIds({})",
-							info.getServiceName(), info.getServiceIdentity(), sb);
-				}
-			} finally {
-				unlock();
+		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, Edit> result) {
+			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
+			serviceInfos.put(info.getServiceIdentity(), info);
+			for (var it = simple.iterator(); it.moveToNext(); ) {
+				var sessionId = it.key();
+				var peer = serviceManager.server.GetSocket(sessionId);
+				if (peer == null)
+					continue;
+				var notify = result.computeIfAbsent(peer, __ -> new Edit());
+				notify.Argument.put.add(info);
 			}
 		}
 
-		public void notifySimpleOnUnRegister(@NotNull BServiceInfo info) {
-			lock();
-			try {
-				if (simple.isEmpty())
-					return;
-				var sb = new StringBuilder();
+		public void collectRemoveNotify(@NotNull BServiceInfo info, long sessionId, @NotNull HashMap<AsyncSocket, Edit> result) {
+			var exist = serviceInfos.remove(info.getServiceIdentity());
+			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+			if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
 				for (var it = simple.iterator(); it.moveToNext(); ) {
-					var sessionId = it.key();
-					if (new UnRegister(info).Send(serviceManager.server.GetSocket(sessionId)))
-						sb.append(sessionId).append(',');
-					else {
-						logger.warn("notifySimpleOnUnRegister {} failed: serverId({}) => sessionId({})",
-								info.getServiceName(), info.getServiceIdentity(), sessionId);
-					}
+					var peerSessionId = it.key();
+					var peer = serviceManager.server.GetSocket(peerSessionId);
+					if (peer == null)
+						continue;
+
+					var notify = result.computeIfAbsent(peer, __ -> new Edit());
+					notify.Argument.remove.add(info);
 				}
-				var n = sb.length();
-				if (n > 0) {
-					sb.setLength(n - 1);
-					logger.info("notifySimpleOnUnRegister {} serverId({}) => sessionIds({})",
-							info.getServiceName(), info.getServiceIdentity(), sb);
-				}
-			} finally {
-				unlock();
 			}
 		}
 
-		public int updateAndNotify(@NotNull BServiceInfo info) {
-			lock();
-			try {
-				var current = serviceInfos.get(info.getServiceIdentity());
-				if (current == null)
-					return Update.ServiceIdentityNotExist;
+		public void collectUpdateNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, Edit> result) {
+			var current = serviceInfos.get(info.getServiceIdentity());
+			if (current == null)
+				return;
 
-				current.setPassiveIp(info.getPassiveIp());
-				current.setPassivePort(info.getPassivePort());
-				current.setExtraInfo(info.getExtraInfo());
+			current.setPassiveIp(info.getPassiveIp());
+			current.setPassivePort(info.getPassivePort());
+			current.setExtraInfo(info.getExtraInfo());
 
-				// 简单广播。
-				var sb = new StringBuilder();
-				for (var it = simple.iterator(); it.moveToNext(); ) {
-					var sessionId = it.key();
-					if (new Update(current).Send(serviceManager.server.GetSocket(sessionId)))
-						sb.append(sessionId).append(',');
-					else {
-						logger.warn("updateAndNotify simple {} failed: serverId({}) => sessionId({})",
-								info.getServiceName(), info.getServiceIdentity(), sessionId);
-					}
-				}
-				var n = sb.length();
-				if (n > 0)
-					sb.setCharAt(n - 1, ';');
-				else
-					sb.append(';');
-				if (sb.length() > 1) {
-					logger.info("updateAndNotify {} serverId({}) => sessionIds({})",
-							info.getServiceName(), info.getServiceIdentity(), sb);
-				}
-				return 0;
-			} finally {
-				unlock();
+			for (var it = simple.iterator(); it.moveToNext(); ) {
+				var sessionId = it.key();
+				var peer = serviceManager.server.GetSocket(sessionId);
+				if (peer == null)
+					continue;
+
+				var notify = result.computeIfAbsent(peer, __ -> new Edit());
+				notify.Argument.update.add(info);
 			}
 		}
 
@@ -303,17 +263,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		 * 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
 		 */
 		public long subscribeAndSend(@NotNull Subscribe r, long sessionId) {
-			lock();
+			serviceManager.editLock.lock();
 			try {
 				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 				simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
-				new SubscribeFirstCommit(new BServiceInfos(serviceName, this, 0)).Send(r.getSender());
+				new SubscribeFirstCommit(new BServiceInfos(serviceName, this)).Send(r.getSender());
 				for (var info : serviceInfos.values())
 					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
 				r.SendResultCode(Subscribe.Success);
 				return Procedure.Success;
 			} finally {
-				unlock();
+				serviceManager.editLock.unlock();
 			}
 		}
 	}
@@ -371,8 +331,19 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			for (var info : subscribes.values())
 				serviceManager.unSubscribeNow(sessionId, info);
-			for (var info : registers)
-				serviceManager.unRegisterNow(sessionId, info);
+
+			serviceManager.editLock.lock();
+			var notifies = new HashMap<AsyncSocket, Edit>();
+			try {
+				for (var unReg : registers) {
+					var state = serviceManager.serviceStates.get(unReg.getServiceName());
+					if (state != null)
+						state.collectRemoveNotify(unReg, sessionId, notifies);
+				}
+				ServiceManagerServer.sendNotifies(notifies);
+			} finally {
+				serviceManager.editLock.unlock();
+			}
 
 			// offline notify，开启一个线程执行，避免互等造成麻烦。
 			// 这个操作不能cancel，即使Server重新起来了，通知也会进行下去。
@@ -462,85 +433,72 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			loads.computeIfAbsent(ip + "_" + port, __ -> new LoadObservers(this)).addObserver(sender.getSessionId());
 	}
 
-	private long processRegister(@NotNull Register r) {
+	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
+
+	private static void sendNotifies(HashMap<AsyncSocket, Edit> notifies) {
+		// todo 增加一些发送错误的日志。
+		for (var e : notifies.entrySet()) {
+			e.getValue().Send(e.getKey());
+		}
+	}
+
+	private long processEdit(@NotNull Edit r) {
 		var session = (Session)r.getSender().getUserState();
 
-		// 允许重复登录，断线重连Agent不好原子实现重发。
-		if (session.registers.add(r.Argument)) {
-			logger.info("{}: Register {} serverId={} ip={} port={}",
-					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity(),
-					r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		} else {
-			logger.info("{}: Already Registered {} serverId={} ip={} port={}",
-					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity(),
-					r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		}
-		var state = serviceStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServiceState(this, name));
+		var notifies = new HashMap<AsyncSocket, Edit>();
 
-		// 【警告】
-		// 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
-		// 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
-		// 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
-		// 另外它也被Session引用（用于连接关闭时，自动注销）。
-		// 这是专用程序，不是一个库，以后有修改时，小心就是了。
-		r.Argument.sessionId = r.getSender().getSessionId();
-
-		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-		state.lock();
+		// 原子的完成所有编辑的修改和通知。
+		editLock.lock();
 		try {
-			state.serviceInfos.put(r.Argument.getServiceIdentity(), r.Argument);
-			r.SendResultCode(Register.Success);
-			state.notifySimpleOnRegister(r.Argument);
-		} finally {
-			state.unlock();
-		}
-		return Procedure.Success;
-	}
-
-	public @Nullable ServiceState unRegisterNow(long sessionId, @NotNull BServiceInfo info) {
-		var state = serviceStates.get(info.getServiceName());
-		if (state != null) {
-			state.lock();
-			try {
-				var exist = state.serviceInfos.remove(info.getServiceIdentity());
-				if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
-					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-					state.notifySimpleOnUnRegister(exist);
-					return state;
-				}
-			} finally {
-				state.unlock();
+			// step 1: remove
+			for (var unReg : r.Argument.remove) {
+				var state = serviceStates.get(unReg.getServiceName());
+				if (state != null)
+					state.collectRemoveNotify(unReg, r.getSender().getSessionId(), notifies);
+				session.registers.remove(unReg);
 			}
+
+			// step 2: put
+			// 允许重复登录，断线重连Agent不好原子实现重发。
+			for (var reg : r.Argument.put) {
+				if (session.registers.add(reg)) {
+					logger.info("{}: Register {} serverId={} ip={} port={}",
+							r.getSender(), reg.getServiceName(), reg.getServiceIdentity(),
+							reg.getPassiveIp(), reg.getPassivePort());
+				} else {
+					logger.info("{}: Already Registered {} serverId={} ip={} port={}",
+							r.getSender(), reg.getServiceName(), reg.getServiceIdentity(),
+							reg.getPassiveIp(), reg.getPassivePort());
+				}
+				var state = serviceStates.computeIfAbsent(reg.getServiceName(), name -> new ServiceState(this, name));
+
+				// 【警告】
+				// 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
+				// 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
+				// 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
+				// 另外它也被Session引用（用于连接关闭时，自动注销）。
+				// 这是专用程序，不是一个库，以后有修改时，小心就是了。
+				reg.sessionId = r.getSender().getSessionId();
+				state.collectPutNotify(reg, notifies);
+			}
+
+			// step 3: update
+			for (var update : r.Argument.update) {
+				if (!session.registers.containsKey(update))
+					continue;
+
+				var state = serviceStates.get(update.getServiceName());
+				if (state == null)
+					continue;
+
+				state.collectUpdateNotify(update, notifies);
+			}
+			sendNotifies(notifies);
+		} finally {
+			editLock.unlock();
 		}
-		return null;
-	}
-
-	private long processUnRegister(@NotNull UnRegister r) {
-		logger.info("{}: UnRegister {} serverId={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
-		unRegisterNow(r.getSender().getSessionId(), r.Argument); // ignore UnRegisterNow failed
-		((Session)r.getSender().getUserState()).registers.remove(r.Argument); // ignore remove failed
-		// 注销不存在也返回成功，否则Agent处理比较麻烦。
-		r.SendResultCode(UnRegister.Success);
-		return Procedure.Success;
-	}
-
-	private long processUpdate(@NotNull Update r) {
-		logger.info("{}: Update {} serverId={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
-				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
-		var session = (Session)r.getSender().getUserState();
-		if (!session.registers.containsKey(r.Argument))
-			return Update.ServiceNotRegister;
-
-		var state = serviceStates.get(r.Argument.getServiceName());
-		if (state == null)
-			return Update.ServerStateError;
-
-		var rc = state.updateAndNotify(r.Argument);
-		if (rc != 0)
-			return rc;
 		r.SendResult();
-		return 0;
+		return Procedure.Success;
 	}
 
 	private long processSubscribe(@NotNull Subscribe r) {
@@ -555,12 +513,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public ServiceState unSubscribeNow(long sessionId, @NotNull BSubscribeInfo info) {
 		var state = serviceStates.get(info.getServiceName());
 		if (state != null) {
-			state.lock();
+			editLock.lock();
 			try {
 				if (state.simple.remove(sessionId) != null)
 					return state;
 			} finally {
-				state.unlock();
+				editLock.unlock();
 			}
 		}
 		return null;
@@ -571,19 +529,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				r.getSender(), r.Argument.getServiceName());
 		var session = (Session)r.getSender().getUserState();
 		var sub = session.subscribes.remove(r.Argument.getServiceName());
-		if (sub != null) {
-			var changed = unSubscribeNow(r.getSender().getSessionId(), r.Argument);
-			if (changed != null) {
-				r.setResultCode(UnSubscribe.Success);
-				r.SendResult();
-				return Procedure.Success;
-			}
-		}
-		// 取消订阅不能存在返回成功。否则Agent比较麻烦。
-		//r.ResultCode = UnSubscribe.NotExist;
-		//r.SendResult();
-		//return Procedure.LogicError;
-		r.setResultCode(UnRegister.Success);
+		if (sub != null)
+			unSubscribeNow(r.getSender().getSessionId(), r.Argument);
+
 		r.SendResult();
 		return Procedure.Success;
 	}
@@ -652,12 +600,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		server = new NetServer(this, config);
 
-		server.AddFactoryHandle(Register.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Register::new, this::processRegister, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(Update.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Update::new, this::processUpdate, TransactionLevel.None, DispatchMode.Critical));
-		server.AddFactoryHandle(UnRegister.TypeId_, new Service.ProtocolFactoryHandle<>(
-				UnRegister::new, this::processUnRegister, TransactionLevel.None, DispatchMode.Critical));
+		server.AddFactoryHandle(Edit.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Edit::new, this::processEdit, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(

@@ -43,25 +43,28 @@ public class ProviderDirectService extends HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public void removeServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
+	public void removeServer(@NotNull BServiceInfo pm) {
 		lock();
 		try {
-			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
-			var conn = getConfig().findConnector(connName);
-			if (conn != null) {
-				conn.stop();
-				providerByLoadName.remove(connName);
-				var serverId = Integer.parseInt(pm.getServiceIdentity());
-				providerByServerId.remove(serverId);
-				ss.setIdentityLocalState(pm.getServiceIdentity(), null);
-				getConfig().removeConnector(conn);
+			var ss = providerApp.zeze.getServiceManager().getSubscribeStates().get(pm.getServiceName());
+			if (null != ss) {
+				var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
+				var conn = getConfig().findConnector(connName);
+				if (conn != null) {
+					conn.stop();
+					providerByLoadName.remove(connName);
+					var serverId = Integer.parseInt(pm.getServiceIdentity());
+					providerByServerId.remove(serverId);
+					ss.setIdentityLocalState(pm.getServiceIdentity(), null);
+					getConfig().removeConnector(conn);
+				}
 			}
 		} finally {
 			unlock();
 		}
 	}
 
-	public void addServer(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo pm) {
+	public void addServer(@NotNull BServiceInfo pm) {
 		lock();
 		try {
 			var connName = pm.getPassiveIp() + "_" + pm.getPassivePort();
@@ -71,7 +74,7 @@ public class ProviderDirectService extends HandshakeBoth {
 				var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
 				var m = providerApp.modules.get(mid);
 				if (m != null)
-					setReady(ss, pm, ps, mid, m);
+					setReady(pm.getServiceName(), pm, ps, mid, m);
 				else
 					logger.error("addServer: not found module: {}", pm.getServiceName());
 				return;
@@ -93,18 +96,6 @@ public class ProviderDirectService extends HandshakeBoth {
 			}
 		} finally {
 			unlock();
-		}
-	}
-
-	public void tryConnectAndSetReady(Agent.SubscribeState ss, BServiceInfos infos) {
-		var current = new HashMap<String, BServiceInfo>();
-		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
-			addServer(ss, pm);
-			current.put(pm.getPassiveIp() + "_" + pm.getPassivePort(), pm);
-		}
-		getConfig().forEachConnector(c -> current.remove(c.getName()));
-		for (var pm : current.values()) {
-			removeServer(ss, pm);
 		}
 	}
 
@@ -255,7 +246,7 @@ public class ProviderDirectService extends HandshakeBoth {
 					for (var server : infos.getServiceInfoListSortedByIdentity()) {
 						// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 						if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
-							setReady(ss, server, ps, mid, m);
+							setReady(ss.getServiceName(), server, ps, mid, m);
 						}
 					}
 				}
@@ -267,11 +258,14 @@ public class ProviderDirectService extends HandshakeBoth {
 		}
 	}
 
-	private void setReady(@NotNull Agent.SubscribeState ss, @NotNull BServiceInfo server, @NotNull ProviderSession ps,
+	private void setReady(@NotNull String serviceName, @NotNull BServiceInfo server, @NotNull ProviderSession ps,
 						  int mid, @NotNull BModule.Data m) {
-		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
-		ps.getOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-		ss.setIdentityLocalState(server.getServiceIdentity(), pms);
+		var ss = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
+		if (null != ss) {
+			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
+			ps.getOrAddServiceReadyState(serviceName).put(server.getServiceIdentity(), pms);
+			ss.setIdentityLocalState(server.getServiceIdentity(), pms);
+		}
 	}
 
 	@Override

@@ -11,6 +11,7 @@
 	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
+	<external bean="Zeze.Services.ServiceManager.BEdit"/>
 
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
@@ -1101,27 +1102,16 @@
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="Register" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
-				<enum name="Success" value="0"/>
-				<enum name="DuplicateRegister" value="1"/>
-			</rpc>
+			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEdit" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateSubscribe" value="1"/>
 			</rpc>
 			<rpc name="SubscribeFirstCommit" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="UnRegister" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="UnSubscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="NotExist" value="1"/>
-			</rpc>
-			<rpc name="Update" argument="Zeze.Services.ServiceManager.BServiceInfo" base="Zeze.Raft.RaftRpc" handle="server,client">
-				<enum name="Success" value="0"/>
-				<enum name="ServiceNotRegister" value="1"/>
-				<enum name="ServerStateError" value="2"/>
-				<enum name="ServiceIdentityNotExist" value="3"/>
-				<enum name="ServiceNotSubscribe" value="4"/>
 			</rpc>
 			<rpc name="NormalClose" base="Zeze.Raft.RaftRpc" handle="server"/>
 

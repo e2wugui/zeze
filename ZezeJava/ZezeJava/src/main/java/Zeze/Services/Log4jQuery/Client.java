@@ -25,7 +25,7 @@ public class Client extends Service {
 		return logServers;
 	}
 
-	public void onSmUpdated(Agent.SubscribeState ss, BServiceInfo si) {
+	public void onSmUpdated(BServiceInfo si) {
 		var out = new OutObject<Connector>();
 		if (getConfig().tryGetOrAddConnector(si.getPassiveIp(), si.getPassivePort(), true, out)) {
 			// 新建的Connector。开始连接。
@@ -34,7 +34,7 @@ public class Client extends Service {
 		}
 	}
 
-	public void onSmRemoved(Agent.SubscribeState ss, BServiceInfo si) {
+	public void onSmRemoved(BServiceInfo si) {
 		var conn = logServers.get(si.getServiceIdentity());
 		if (conn != null) {
 			conn.stop();

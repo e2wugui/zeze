@@ -71,38 +71,36 @@ public class ProviderService extends HandshakeClient {
 		super.start();
 	}
 
-	public @Nullable Connector apply(@NotNull BServiceInfo link) {
+	public boolean applyPut(@NotNull BServiceInfo link) {
 		var linkName = getLinkName(link);
-		return links.computeIfAbsent(linkName, __ -> {
+		var isNew = new OutObject<>(false);
+		links.computeIfAbsent(linkName, __ -> {
 			var outC = new OutObject<Connector>();
 			if (getConfig().tryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
 				try {
 					outC.value.start();
+					isNew.value = true;
 				} catch (Exception e) {
 					Task.forceThrow(e);
 				}
 			}
 			return outC.value;
 		});
+		return isNew.value;
 	}
 
-	public void apply(@NotNull BServiceInfos serviceInfos) {
-		var current = new HashSet<String>();
-		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
-			var connector = apply(link);
-			if (connector != null)
-				current.add(connector.getName());
+	public boolean applyRemove(@NotNull BServiceInfo link) {
+		var linkName = getLinkName(link);
+		var removed = links.remove(linkName);
+		if (removed != null) {
+			getConfig().removeConnector(removed);
+			removed.stop();
+			return true;
 		}
-		// 删除多余的连接器。
-		for (var linkName : links.keySet()) {
-			if (current.contains(linkName))
-				continue;
-			var removed = links.remove(linkName);
-			if (removed != null) {
-				getConfig().removeConnector(removed);
-				removed.stop();
-			}
-		}
+		return false;
+	}
+
+	public void refreshLinkConnectors() {
 		linkConnectors = links.values().toArray(new Connector[links.size()]);
 	}
 

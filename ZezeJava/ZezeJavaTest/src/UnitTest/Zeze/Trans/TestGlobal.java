@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import java.util.Objects;
 import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
@@ -25,6 +26,7 @@ public class TestGlobal extends TestCase {
 
 		public PrintLog(Bean bean, BValue value, int appId) {
 			super(bean, 0, value);
+			assert getValue() != null;
 			oldInt = getValue().getInt_1();
 			eq = lastInt == oldInt;
 			this.appId = appId;
@@ -53,7 +55,7 @@ public class TestGlobal extends TestCase {
 	}
 
 	public final void testNone() {
-		var rname = Zeze.Services.ServiceManager.Register.class.getTypeName();
+		var rname = Zeze.Services.ServiceManager.Edit.class.getTypeName();
 		System.out.println(rname);
 		var x = Zeze.Transaction.Bean.hash32(rname);
 		System.out.println(x);
@@ -112,13 +114,13 @@ public class TestGlobal extends TestCase {
 				Thread.sleep(5000); // wait for globalForbidPeriod
 
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
-				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt_1();
+				int last1 = Objects.requireNonNull(app1.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app1 " + last1);
 				Assert.assertEquals(countall, last1);
 				return Procedure.Success;
 			}, "CheckResult1").call());
 			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
-				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt_1();
+				int last2 = Objects.requireNonNull(app2.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app2 " + last2);
 				Assert.assertEquals(countall, last2);
 				return Procedure.Success;

@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ServiceManagerWithRaft;
 
-public class UnRegister extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BServiceInfo, Zeze.Transaction.EmptyBean> {
+public class Edit extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.BEdit, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11022;
-    public static final int ProtocolId_ = 1881863600;
-    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47341011400112
-    static { register(TypeId_, UnRegister.class); }
+    public static final int ProtocolId_ = 1821169203;
+    public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47340950705715
+    static { register(TypeId_, Edit.class); }
 
     @Override
     public int getModuleId() {
@@ -22,12 +22,12 @@ public class UnRegister extends Zeze.Raft.RaftRpc<Zeze.Services.ServiceManager.B
         return TypeId_;
     }
 
-    public UnRegister() {
-        Argument = new Zeze.Services.ServiceManager.BServiceInfo();
+    public Edit() {
+        Argument = new Zeze.Services.ServiceManager.BEdit();
         Result = Zeze.Transaction.EmptyBean.instance;
     }
 
-    public UnRegister(Zeze.Services.ServiceManager.BServiceInfo arg) {
+    public Edit(Zeze.Services.ServiceManager.BEdit arg) {
         Argument = arg;
         Result = Zeze.Transaction.EmptyBean.instance;
     }

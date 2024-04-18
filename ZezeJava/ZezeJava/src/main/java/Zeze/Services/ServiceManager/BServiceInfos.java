@@ -20,7 +20,6 @@ public final class BServiceInfos extends Bean {
 	public String serviceName;
 	// sorted by ServiceIdentity
 	public final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
-	public long serialId;
 
 	public BServiceInfos() {
 	}
@@ -29,11 +28,10 @@ public final class BServiceInfos extends Bean {
 		this.serviceName = serviceName;
 	}
 
-	public BServiceInfos(String serviceName, ServiceManagerServer.ServiceState state, long serialId) {
+	public BServiceInfos(String serviceName, ServiceManagerServer.ServiceState state) {
 		this.serviceName = serviceName;
 		state.getServiceInfos(serviceInfoListSortedByIdentity);
 		serviceInfoListSortedByIdentity.sort(Comparer);
-		this.serialId = serialId;
 	}
 
 	public String getServiceName() {
@@ -42,10 +40,6 @@ public final class BServiceInfos extends Bean {
 
 	public ArrayList<BServiceInfo> getServiceInfoListSortedByIdentity() {
 		return serviceInfoListSortedByIdentity;
-	}
-
-	public long getSerialId() {
-		return serialId;
 	}
 
 	public void insert(BServiceInfo info) {
@@ -83,7 +77,6 @@ public final class BServiceInfos extends Bean {
 			service.decode(bb);
 			serviceInfoListSortedByIdentity.add(service);
 		}
-		serialId = bb.ReadLong();
 	}
 
 	@Override
@@ -93,7 +86,6 @@ public final class BServiceInfos extends Bean {
 		for (var service : serviceInfoListSortedByIdentity) {
 			service.encode(bb);
 		}
-		bb.WriteLong(serialId);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -121,7 +113,7 @@ public final class BServiceInfos extends Bean {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(serviceName).append(" Version=").append(serialId);
+		sb.append(serviceName);
 		sb.append("[");
 		for (var e : serviceInfoListSortedByIdentity) {
 			sb.append(e.getServiceIdentity());
