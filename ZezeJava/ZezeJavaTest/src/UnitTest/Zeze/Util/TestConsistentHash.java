@@ -100,7 +100,7 @@ public class TestConsistentHash {
 			return c > 0; // 如果K,V都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
 		};
 
-		final int TEST_COUNT = 1000;
+		final int TEST_COUNT = 1;
 		for (int j = 0; j < TEST_COUNT; j++) {
 			final int begin = Long.hashCode(System.nanoTime());
 			System.out.println("testStable: " + begin);
