@@ -1181,7 +1181,6 @@
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="ServiceInfos" type="map[string, BServiceInfoRocks]"/>
 				<variable id="3" name="Simple" type="map[string, BSubscribeStateRocks]"/>
-				<variable id="4" name="ReadyCommit" type="map[string, BSubscribeStateRocks]"/>
 				<variable id="5" name="SerialId" type="long"/>
 			</bean>
 			<bean name="BSubscribeStateRocks" kind="rocks">

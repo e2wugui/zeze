@@ -101,7 +101,6 @@ public class ProviderApp extends ReentrantLock {
 			providerImplement.applyOnChanged(ss);
 			distribute.applyServers(ss);
 		});
-		this.zeze.getServiceManager().setOnPrepare(providerImplement::applyOnPrepare);
 		this.zeze.getServiceManager().setOnUpdate((ss, si) -> {
 			distribute.addServer(ss, si);
 			providerDirectService.addServer(ss, si);

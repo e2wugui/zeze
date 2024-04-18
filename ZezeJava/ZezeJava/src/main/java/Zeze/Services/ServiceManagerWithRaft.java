@@ -513,19 +513,8 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	public BServerState unSubscribeNow(String sessionName, BSubscribeInfo info) {
 		var state = tableServerState.get(info.getServiceName());
 		if (state != null) {
-			CollMap2<String, BSubscribeStateRocks> subState;
-			switch (info.getSubscribeType()) {
-			case BSubscribeInfo.SubscribeTypeSimple:
-				subState = state.getSimple();
-				break;
-			case BSubscribeInfo.SubscribeTypeReadyCommit:
-				subState = state.getReadyCommit();
-				break;
-			default:
-				return null;
-			}
-			var removed = subState.get(sessionName);
-			subState.remove(sessionName);
+			var removed = state.getSimple().get(sessionName);
+			state.getSimple().remove(sessionName);
 			if (removed != null)
 				return state;
 		}
@@ -576,16 +565,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			sb.setCharAt(n - 1, ';');
 		else
 			sb.append(';');
-
-		for (var sessionName : state.getReadyCommit().keys()) {
-			var session = tableSession.get(sessionName);
-			if (new Update(fromRocks(current)).Send(rocks.getRaft().getServer().GetSocket(session.getSessionId()))) {
-				sb.append(sessionName).append(',');
-				continue;
-			}
-			logger.warn("UpdateAndNotify {} failed: serverId({}) => sessionId({})",
-					info.getServiceName(), info.getServiceIdentity(), sessionName);
-		}
 		if (sb.length() > 1)
 			logger.info("UpdateAndNotify {} serverId({}) => sessionIds({})",
 					info.getServiceName(), info.getServiceIdentity(), sb);

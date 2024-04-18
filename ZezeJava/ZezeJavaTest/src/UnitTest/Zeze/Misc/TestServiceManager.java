@@ -49,14 +49,6 @@ public class TestServiceManager {
 			System.out.println("OnChanged: " + state.getServiceInfos());
 			this.future.setResult(0);
 		});
-		agent.setOnPrepare((state) -> {
-			var pending = state.getServiceInfosPending();
-			if (null != pending) {
-				for (var service : pending.getServiceInfoListSortedByIdentity()) {
-					state.setIdentityLocalState(service.getServiceIdentity(), "");
-				}
-			}
-		});
 		agent.setOnSetServerLoad((load) -> {
 			System.out.println("OnSetLoad " + load);
 			this.future.setResult(0);
@@ -82,14 +74,6 @@ public class TestServiceManager {
 		future = new TaskCompletionSource<>();
 		System.out.println("WaitOnChanged 2");
 		agent.registerService(serviceName, "2");
-		future.await();
-
-		// 改变订阅类型
-		System.out.println("Change Subscribe type");
-		agent.unSubscribeService(serviceName);
-		future = new TaskCompletionSource<>();
-		System.out.println("WaitOnChanged When Re-SubscribeService");
-		agent.subscribeService(serviceName, BSubscribeInfo.SubscribeTypeReadyCommit);
 		future.await();
 
 		var state = agent.getSubscribeStates().get(serviceName);

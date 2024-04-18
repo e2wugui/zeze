@@ -30,7 +30,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected Action1<Agent.SubscribeState> onChanged; // Simple (如果没有定义OnUpdate和OnRemove) Or ReadyCommit (Notify, Commit)
 	protected Action2<Agent.SubscribeState, BServiceInfo> onUpdate; // Simple (Register, Update)
 	protected Action2<Agent.SubscribeState, BServiceInfo> onRemove; // Simple (UnRegister)
-	protected Action1<Agent.SubscribeState> onPrepare; // ReadyCommit 的第一步回调。 // todo remove
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
@@ -76,10 +75,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			logger.error("", ex);
 			return false;
 		}
-	}
-
-	public void setOnPrepare(Action1<Agent.SubscribeState> value) {
-		onPrepare = value;
 	}
 
 	public Action2<Agent.SubscribeState, BServiceInfo> getOnRemoved() {
@@ -326,7 +321,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public SubscribeState subscribeService(String serviceName, int type, Object state) {
-		if (type != BSubscribeInfo.SubscribeTypeSimple && type != BSubscribeInfo.SubscribeTypeReadyCommit)
+		if (type != BSubscribeInfo.SubscribeTypeSimple)
 			throw new UnsupportedOperationException("Unknown SubscribeType: " + type);
 
 		var info = new BSubscribeInfo();

@@ -11,7 +11,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
-@Ignore
 public class DiffLockAndNoLock {
 	Zeze.Util.RocksDatabase db;
 	RocksDatabase.Table table;

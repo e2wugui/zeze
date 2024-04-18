@@ -53,17 +53,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			providerApp.providerService.apply(subState.getServiceInfos());
 		} else if (subState.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
 			// Provider info
-			// 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
-			// 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
-			if (subState.getSubscribeType() == BSubscribeInfo.SubscribeTypeSimple)
-				providerApp.providerDirectService.tryConnectAndSetReady(subState, subState.getServiceInfos());
+			providerApp.providerDirectService.tryConnectAndSetReady(subState, subState.getServiceInfos());
 		}
-	}
-
-	void applyOnPrepare(@NotNull Agent.SubscribeState subState) {
-		var pending = subState.getServiceInfosPending();
-		if (pending != null && pending.getServiceName().startsWith(providerApp.serverServiceNamePrefix))
-			providerApp.providerDirectService.tryConnectAndSetReady(subState, pending);
 	}
 
 	public static @Nullable Dispatch localDispatch() {

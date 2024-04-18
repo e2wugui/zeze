@@ -89,15 +89,10 @@ public final class ProviderModuleBinds {
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
 		private static int getSubscribeType(@NotNull Element self) {
-			//noinspection SwitchStatementWithTooFewBranches
-			switch (self.getAttribute("SubscribeType")) {
-			case "SubscribeTypeReadyCommit":
-				return BSubscribeInfo.SubscribeTypeReadyCommit;
-			//case "SubscribeTypeSimple":
-			//	return SubscribeInfo.SubscribeTypeSimple;
-			default:
-				return BSubscribeInfo.SubscribeTypeSimple;
-			}
+			var type = self.getAttribute("SubscribeType");
+			if (!type.isBlank() && !"SubscribeTypeSimple".equals(type))
+				throw new UnsupportedOperationException("unsupported subscribe type=" + type);
+			return BSubscribeInfo.SubscribeTypeSimple;
 		}
 
 		public Module(@NotNull Element self) {
@@ -200,8 +195,10 @@ public final class ProviderModuleBinds {
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
 			out.put(m.getId(), cm != null ? new BModule.Data(cm.choiceType, cm.configType, cm.subscribeType)
-					: new BModule.Data(BModule.ChoiceTypeDefault, BModule.ConfigTypeDefault,
-					BSubscribeInfo.SubscribeTypeReadyCommit));
+					: new BModule.Data(
+							BModule.ChoiceTypeDefault,
+							BModule.ConfigTypeDefault,
+							BSubscribeInfo.SubscribeTypeSimple));
 		}
 	}
 
