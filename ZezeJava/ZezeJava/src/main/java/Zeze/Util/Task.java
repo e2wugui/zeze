@@ -37,6 +37,11 @@ public final class Task {
 	@SuppressWarnings("CanBeFinal")
 	public static volatile Factory<HotGuard> hotGuard = () -> null;
 	private static final FastLock taskLock = new FastLock();
+	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
+
+	public static TaskOneByOneByKey getOneByOne() {
+		return oneByOne;
+	}
 
 	public interface ILogAction {
 		void run(Throwable ex, long result, Protocol<?> p, String actionName);

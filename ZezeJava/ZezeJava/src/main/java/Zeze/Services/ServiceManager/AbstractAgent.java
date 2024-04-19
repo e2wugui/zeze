@@ -96,11 +96,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract void waitReady();
 
-	private final FastLock onChangedLock = new FastLock();
+	private static final String SMCallbackOneByOneKey = "SMCallbackOneByOneKey";
+
 	protected void triggerOnChanged(BEdit edit) {
 		if (onChanged != null) {
-			Task.getCriticalThreadPool().execute(() -> {
-				onChangedLock.lock();
+			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
 				// 触发回调前修正集合之间的关系。
 				// 删除后来又加入的。
 				edit.remove.removeIf(edit.put::contains);
@@ -109,8 +109,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 					onChanged.run(edit);
 				} catch (Throwable e) { // logger.error
 					logger.error("", e);
-				} finally {
-					onChangedLock.unlock();
 				}
 			});
 		}
