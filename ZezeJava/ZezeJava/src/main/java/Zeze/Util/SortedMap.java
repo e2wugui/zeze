@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 以有序Entry(K+V)数组为存储结构的Map
- * 除只读方法外不支持并发
+ * 主要用于读多写少的场合, 除只读方法外不支持并发
  */
 public class SortedMap<K extends Comparable<K>, V> {
 	public static class Entry<K, V> {
@@ -79,13 +79,13 @@ public class SortedMap<K extends Comparable<K>, V> {
 
 	public @Nullable Entry<K, V> lowerBound(@NotNull K key) {
 		var es = elements;
-		var index = lowerBoundIndex(key);
+		int index = lowerBoundIndex(key);
 		return index < es.size() ? es.get(index) : null;
 	}
 
 	public @Nullable Entry<K, V> upperBound(@NotNull K key) {
 		var es = elements;
-		var index = upperBoundIndex(key);
+		int index = upperBoundIndex(key);
 		return index < es.size() ? es.get(index) : null;
 	}
 
@@ -153,13 +153,13 @@ public class SortedMap<K extends Comparable<K>, V> {
 	}
 
 	public @Nullable Entry<K, V> get(@NotNull K key) {
-		var index = findIndex(key);
+		int index = findIndex(key);
 		return index >= 0 ? elements.get(index) : null;
 	}
 
 	public int add(@NotNull K key, @NotNull V value) {
 		var es = elements;
-		var index = lowerBoundIndex(key);
+		int index = lowerBoundIndex(key);
 		if (index < es.size() && es.get(index).key.compareTo(key) == 0)
 			return -1; // duplicate
 		es.add(index, new Entry<>(key, value, 0));
@@ -194,7 +194,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 						do {
 							if (++j >= jn)
 								break outer;
-						} while (jk.equals(keys[j]));
+						} while (jk.equals(keys[j])); // 考虑keys里有重复的
 						jk = keys[j];
 					} else {
 						if (selector != null && selector.select(ik, ie.value, ie.index, jk, value, j))
@@ -205,7 +205,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 						do {
 							if (++j >= jn)
 								break outer;
-						} while (jk.equals(keys[j]));
+						} while (jk.equals(keys[j])); // 考虑keys里有重复的
 						jk = keys[j];
 						if (i >= in)
 							break;
@@ -225,13 +225,13 @@ public class SortedMap<K extends Comparable<K>, V> {
 	}
 
 	public @Nullable Entry<K, V> remove(@NotNull K key) {
-		var index = findIndex(key);
+		int index = findIndex(key);
 		return index >= 0 ? elements.remove(index) : null;
 	}
 
 	public @Nullable Entry<K, V> remove(@NotNull K key, @NotNull V value) {
 		var es = elements;
-		var index = findIndex(key);
+		int index = findIndex(key);
 		return index >= 0 && es.get(index).value.equals(value) ? es.remove(index) : null;
 	}
 
@@ -251,7 +251,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 				var ie = es.get(0);
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
-					if (c < 0) {
+					if (c < 0 || (c == 0 && !ie.value.equals(value))) {
 						newElements.add(ie);
 						if (++i >= in)
 							break;

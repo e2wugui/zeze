@@ -17,12 +17,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /*
- * Agent发起协议	ServiceManager处理后通知			Agent接收通知后回调
- * Register		给订阅者广播Register				优先onUpdate,没有则onChanged
- * UnRegister	给订阅者广播UnRegister			优先onRemove,没有则onChanged
- * Update		给订阅者广播Update				优先onUpdate,没有则onChanged
- * Subscribe	给发起者通知SubscribeFirstCommit	onChanged
- * UnSubscribe	无								无
+ * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
+ * Edit			给订阅者广播Edit				onChanged
+ * Subscribe	给发起者回复BSubscribeResult	onChanged
+ * UnSubscribe	无							无
  */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
