@@ -12,14 +12,14 @@ public class BUnSubscribeArgument extends Bean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteInt(serviceNames.size());
+		bb.WriteUInt(serviceNames.size());
 		for (var serviceName : serviceNames)
 			bb.WriteString(serviceName);
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadInt(); i > 0; --i)
+		for (var i = bb.ReadUInt(); i > 0; --i)
 			serviceNames.add(bb.ReadString());
 	}
 

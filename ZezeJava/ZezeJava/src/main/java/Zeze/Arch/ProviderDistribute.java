@@ -35,32 +35,11 @@ public class ProviderDistribute extends ReentrantLock {
 		this.providerService = providerService;
 	}
 
-	private static final @NotNull SortedMap.Selector<Integer, BServiceInfo> selector =
-			(oldK, oldV, oldIndex, newK, newV, newIndex) -> {
-				long oldHash = oldK ^ oldIndex;
-				long newHash = newK ^ newIndex;
-				oldHash = Bean.hash64(oldHash, oldV.serviceName) ^ Bean.hash64(oldHash, oldV.serviceIdentity);
-				newHash = Bean.hash64(newHash, newV.serviceName) ^ Bean.hash64(newHash, newV.serviceIdentity);
-				if (oldHash < newHash)
-					return true;
-				if (oldHash > newHash)
-					return false;
-				if (oldIndex < newIndex)
-					return true;
-				if (oldIndex > newIndex)
-					return false;
-				// hash和index都一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
-				int c = oldV.serviceName.compareTo(newV.serviceName);
-				if (c < 0)
-					return true;
-				if (c > 0)
-					return false;
-				c = oldV.serviceIdentity.compareTo(newV.serviceIdentity);
-				return c < 0; // 如果服务名和ID都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
-			};
+	private static final @NotNull SortedMap.HashFunc<Integer, BServiceInfo> hashFunc = (key, value, index) ->
+			Bean.hash64(Bean.hash64(((long)key << 32) + index, value.serviceName), value.serviceIdentity);
 
 	public void addServer(BServiceInfo s) {
-		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(selector))
+		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(hashFunc))
 				.add(s.getServiceIdentity(), s);
 	}
 

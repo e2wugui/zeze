@@ -8,17 +8,21 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 以有序Entry(K+V)数组为存储结构的Map
  * 主要用于读多写少的场合, 除只读方法外不支持并发
+ *
+ * @param <K> 要求实现equals和compareTo
+ * @param <V> 要求实现equals和compareTo
  */
-public class SortedMap<K extends Comparable<K>, V> {
-	public static class Entry<K, V> {
+public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
+	public static class Entry<K extends Comparable<K>, V extends Comparable<V>> implements Comparable<Entry<K, V>> {
 		private final @NotNull K key;
 		private final @NotNull V value;
-		private final int index; // 批量加入时的数组索引,参与解决冲突
+		private final long hash; // 主要用于公平地比较
+		private @Nullable Entry<K, V> next; // 相同key的下个节点
 
-		private Entry(@NotNull K key, @NotNull V value, int index) {
+		private Entry(@NotNull K key, @NotNull V value, long hash) {
 			this.key = key;
 			this.value = value;
-			this.index = index;
+			this.hash = hash;
 		}
 
 		public @NotNull K getKey() {
@@ -29,47 +33,108 @@ public class SortedMap<K extends Comparable<K>, V> {
 			return value;
 		}
 
+		/**
+		 * @return 0:e加入到非头节点; 1:e加入到头节点; -1:已加过过相同节点
+		 */
+		private int addEntry(@NotNull Entry<K, V> e) {
+			assert key.equals(e.key);
+			int c = compareTo(e);
+			if (c > 0) {
+				e.next = this;
+				return 1;
+			}
+			if (c < 0) {
+				for (var s = this; ; ) {
+					var n = s.next;
+					if (n == null) {
+						s.next = e;
+						break;
+					}
+					c = n.compareTo(e);
+					if (c > 0) {
+						e.next = n;
+						s.next = e;
+						break;
+					}
+					if (c == 0)
+						return -1;
+					s = n;
+				}
+			}
+			return 0;
+		}
+
+		/**
+		 * @return 被移除的节点. null表示没找到指定节点
+		 */
+		private @Nullable Entry<K, V> removeEntry(@NotNull V value, long hash) {
+			if (this.hash == hash && this.value.equals(value))
+				return this;
+			for (var s = this; ; ) {
+				var n = s.next;
+				if (n == null)
+					return null;
+				if (n.hash == hash && n.value.equals(value)) {
+					s.next = n.next;
+					return n;
+				}
+				s = n;
+			}
+		}
+
+		@Override
+		public int compareTo(@NotNull Entry<K, V> o) {
+			int c = Long.compare(hash, o.hash);
+			return c != 0 ? c : value.compareTo(o.value);
+		}
+
 		@Override
 		public @NotNull String toString() {
-			return "(" + key + ',' + value + ',' + index + ')';
+			var sb = new StringBuilder(32);
+			sb.append('(').append(key).append(':').append(value).append(';').append(hash);
+			for (var s = next; s != null; s = s.next)
+				sb.append(")-(").append(s.key).append(':').append(s.value).append(';').append(s.hash);
+			return sb.append(')').toString();
 		}
 	}
 
 	/**
-	 * 处理加入时出现key冲突的选择方法
+	 * 对一个节点做hash,用于加入时出现key冲突的排序依据(越小越优先,相等时再比较value)
+	 * 如果不用hash,只比较kv本身会导致结果有强烈的偏向性,所以引入索引参与hash计算可以基本保证公平性
 	 */
-	public interface Selector<K extends Comparable<K>, V> {
+	public interface HashFunc<K extends Comparable<K>, V extends Comparable<V>> {
 		/**
-		 * 方法实现时要考虑几个因素:
-		 * <li>传递性: 通常判定是否要替换都要做成对old和new的某种计算结果的数值做大小比较,大小天然满足传递性,也即保证了不同顺序加入的稳定性
-		 * <li>公平性: 只比较kv本身会导致结果有强烈的偏向性,所以引入索引参与hash计算可以基本保证公平性
-		 * <li>如果新旧K-V-index三者完全一致,那么是否替换都不应该对map有任何影响
-		 * <li>如果完全不关心稳定性和公平性,可以只返回false或true
-		 *
-		 * @param oldK     旧(已存在的)key
-		 * @param oldV     旧(已存在的)value
-		 * @param oldIndex 旧(已存在的)索引. 来自批量加入时的数组索引
-		 * @param newK     新(尝试加入的)key
-		 * @param newV     新(尝试加入的)value
-		 * @param newIndex 新(尝试加入的)索引. 来自批量加入时的数组索引
-		 * @return 是否用新的替换旧的
+		 * 相同(equals)的value和index必须得到确定的hash值,尽量能在64位全范围分散开
 		 */
-		boolean select(@NotNull K oldK, @NotNull V oldV, int oldIndex, @NotNull K newK, @NotNull V newV, int newIndex);
+		long hash(@NotNull K key, @NotNull V value, int index);
 	}
 
 	private @NotNull ArrayList<Entry<K, V>> elements = new ArrayList<>();
-	private final @Nullable Selector<K, V> selector;
+	private final @NotNull HashFunc<K, V> hashFunc;
+	private int size;
 
 	public SortedMap() {
 		this(null);
 	}
 
-	public SortedMap(@Nullable Selector<K, V> selector) {
-		this.selector = selector;
+	public SortedMap(@Nullable HashFunc<K, V> hashFunc) {
+		this.hashFunc = hashFunc != null ? hashFunc : (k, v, i) -> ((long)v.hashCode() << 32) + i;
+	}
+
+	public boolean isEmpty() {
+		return size == 0;
 	}
 
 	public int size() {
+		return size;
+	}
+
+	public int keySize() {
 		return elements.size();
+	}
+
+	public @NotNull Entry<K, V> getAt(int index) {
+		return elements.get(index);
 	}
 
 	public @Nullable Entry<K, V> first() {
@@ -79,14 +144,14 @@ public class SortedMap<K extends Comparable<K>, V> {
 
 	public @Nullable Entry<K, V> lowerBound(@NotNull K key) {
 		var es = elements;
-		int index = lowerBoundIndex(key);
-		return index < es.size() ? es.get(index) : null;
+		int i = lowerBoundIndex(key);
+		return i < es.size() ? es.get(i) : null;
 	}
 
 	public @Nullable Entry<K, V> upperBound(@NotNull K key) {
 		var es = elements;
-		int index = upperBoundIndex(key);
-		return index < es.size() ? es.get(index) : null;
+		int i = upperBoundIndex(key);
+		return i < es.size() ? es.get(i) : null;
 	}
 
 	/**
@@ -153,17 +218,38 @@ public class SortedMap<K extends Comparable<K>, V> {
 	}
 
 	public @Nullable Entry<K, V> get(@NotNull K key) {
-		int index = findIndex(key);
-		return index >= 0 ? elements.get(index) : null;
+		int i = findIndex(key);
+		return i >= 0 ? elements.get(i) : null;
 	}
 
-	public int add(@NotNull K key, @NotNull V value) {
+	@Override
+	public @NotNull String toString() {
+		return elements.toString();
+	}
+
+	// 以上是只读方法; 以下是修改方法
+
+	public void clear() {
+		elements = new ArrayList<>();
+		size = 0;
+	}
+
+	public void add(@NotNull K key, @NotNull V value, int index) {
 		var es = elements;
-		int index = lowerBoundIndex(key);
-		if (index < es.size() && es.get(index).key.compareTo(key) == 0)
-			return -1; // duplicate
-		es.add(index, new Entry<>(key, value, 0));
-		return index;
+		int i = lowerBoundIndex(key);
+		Entry<K, V> oldE, newE = new Entry<>(key, value, hashFunc.hash(key, value, index));
+		if (i == es.size())
+			es.add(newE);
+		else if (!(oldE = es.get(i)).key.equals(key))
+			es.add(i, newE);
+		else {
+			int r = oldE.addEntry(newE);
+			if (r < 0)
+				return;
+			if (r > 0)
+				es.set(i, newE);
+		}
+		size++;
 	}
 
 	public void addAll(@NotNull K @NotNull [] keys, @NotNull V value) {
@@ -179,8 +265,9 @@ public class SortedMap<K extends Comparable<K>, V> {
 			var newElements = new ArrayList<Entry<K, V>>(in + jn);
 			int i = 0, j = 0;
 			if (in > 0) {
+				K lastK = null;
+				Entry<K, V> lastE = null;
 				var ie = es.get(0);
-				outer:
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
 					if (c < 0) {
@@ -189,50 +276,76 @@ public class SortedMap<K extends Comparable<K>, V> {
 							break;
 						ie = es.get(i);
 						ik = ie.key;
-					} else if (c > 0) {
-						newElements.add(new Entry<>(jk, value, j));
-						do {
-							if (++j >= jn)
-								break outer;
-						} while (jk.equals(keys[j])); // 考虑keys里有重复的
-						jk = keys[j];
 					} else {
-						if (selector != null && selector.select(ik, ie.value, ie.index, jk, value, j))
-							newElements.add(new Entry<>(jk, value, j));
-						else
-							newElements.add(ie);
-						++i;
-						do {
-							if (++j >= jn)
-								break outer;
-						} while (jk.equals(keys[j])); // 考虑keys里有重复的
-						jk = keys[j];
-						if (i >= in)
+						var e = new Entry<>(jk, value, hashFunc.hash(jk, value, j));
+						if (c > 0) {
+							if (jk.equals(lastK)) {
+								int r = lastE.addEntry(e);
+								if (r > 0)
+									newElements.set(newElements.size() - 1, e);
+								else if (r < 0)
+									size--;
+							} else {
+								lastK = jk;
+								newElements.add(lastE = e);
+							}
+						} else {
+							int r = ie.addEntry(e);
+							if (r > 0)
+								es.set(i, ie = e);
+							else if (r < 0)
+								size--;
+						}
+						if (++j >= jn)
 							break;
-						ie = es.get(i);
-						ik = ie.key;
+						jk = keys[j];
 					}
 				}
 			}
 			if (i < in)
 				newElements.addAll(es.subList(i, in));
 			else {
-				for (; j < jn; j++)
-					newElements.add(new Entry<>(keys[j], value, j));
+				K lastK = null;
+				Entry<K, V> lastE = null;
+				for (; j < jn; j++) {
+					K jk = keys[j];
+					var e = new Entry<>(jk, value, hashFunc.hash(jk, value, j));
+					if (jk.equals(lastK)) {
+						int r = lastE.addEntry(e);
+						if (r > 0)
+							newElements.set(newElements.size() - 1, e);
+						else if (r < 0)
+							size--;
+					} else {
+						lastK = jk;
+						newElements.add(lastE = e);
+					}
+				}
 			}
 			elements = newElements;
+			size += jn;
 		}
 	}
 
-	public @Nullable Entry<K, V> remove(@NotNull K key) {
-		int index = findIndex(key);
-		return index >= 0 ? elements.remove(index) : null;
-	}
-
-	public @Nullable Entry<K, V> remove(@NotNull K key, @NotNull V value) {
+	public @Nullable Entry<K, V> remove(@NotNull K key, @NotNull V value, int index) {
 		var es = elements;
-		int index = findIndex(key);
-		return index >= 0 && es.get(index).value.equals(value) ? es.remove(index) : null;
+		int i = findIndex(key);
+		if (i < 0)
+			return null;
+		var e = es.get(i);
+		var oldE = e.removeEntry(value, hashFunc.hash(key, value, index));
+		if (oldE != null) {
+			if (oldE == e) {
+				var n = e.next;
+				if (n != null)
+					es.set(i, n);
+				else
+					es.remove(i);
+			}
+			oldE.next = null;
+			size--;
+		}
+		return oldE;
 	}
 
 	public void removeAll(@NotNull K @NotNull [] keys, @NotNull V value) {
@@ -251,22 +364,32 @@ public class SortedMap<K extends Comparable<K>, V> {
 				var ie = es.get(0);
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
-					if (c < 0 || (c == 0 && !ie.value.equals(value))) {
+					if (c < 0) {
 						newElements.add(ie);
 						if (++i >= in)
 							break;
 						ie = es.get(i);
 						ik = ie.key;
-					} else if (c > 0) {
+					} else {
+						if (c == 0) {
+							var oldE = ie.removeEntry(value, hashFunc.hash(jk, value, j));
+							if (oldE != null) {
+								size--;
+								if (oldE == ie) {
+									var n = ie.next;
+									if (n != null)
+										es.set(i, ie = n);
+									else {
+										if (++i >= in)
+											break;
+										ie = es.get(i);
+										ik = ie.key;
+									}
+								}
+							}
+						}
 						if (++j >= jn)
 							break;
-						jk = keys[j];
-					} else {
-						++j;
-						if (++i >= in || j >= jn)
-							break;
-						ie = es.get(i);
-						ik = ie.key;
 						jk = keys[j];
 					}
 				}
@@ -275,18 +398,5 @@ public class SortedMap<K extends Comparable<K>, V> {
 				elements = newElements;
 			}
 		}
-	}
-
-	public @NotNull Entry<K, V> getAt(int index) {
-		return elements.get(index);
-	}
-
-	public @NotNull Entry<K, V> removeAt(int index) {
-		return elements.remove(index);
-	}
-
-	@Override
-	public @NotNull String toString() {
-		return elements.toString();
 	}
 }

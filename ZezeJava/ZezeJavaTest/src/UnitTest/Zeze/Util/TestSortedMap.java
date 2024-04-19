@@ -12,8 +12,10 @@ public class TestSortedMap {
 		var src = new long[10];
 		for (var i = 0; i < src.length; ++i)
 			src[i] = Zeze.Util.Random.getInstance().nextLong() & 0xffffffffL;
-		for (var hash : src)
-			sortedMap.add(hash, hash);
+		for (int i = 0; i < src.length; i++) {
+			var hash = src[i];
+			sortedMap.add(hash, hash, i);
+		}
 		Arrays.sort(src);
 		for (var i = 0; i < src.length; ++i)
 			Assert.assertEquals(Long.valueOf(src[i]), sortedMap.getAt(i).getKey());
@@ -24,8 +26,10 @@ public class TestSortedMap {
 	public void testSortedMapLowerBound() {
 		var sortedMap = new SortedMap<Long, Long>();
 		var src = new long[]{1, 3, 5, 6, 9};
-		for (var hash : src)
-			sortedMap.add(hash, hash);
+		for (int i = 0; i < src.length; i++) {
+			var hash = src[i];
+			sortedMap.add(hash, hash, i);
+		}
 		//System.out.println(sortedMap);
 		Assert.assertEquals(0, sortedMap.lowerBoundIndex(0L));
 		Assert.assertEquals(0, sortedMap.lowerBoundIndex(1L));
@@ -44,8 +48,10 @@ public class TestSortedMap {
 	public void testSortedMapUpperBound() {
 		var sortedMap = new SortedMap<Long, Long>();
 		var src = new long[]{1, 3, 5, 6, 9};
-		for (var hash : src)
-			sortedMap.add(hash, hash);
+		for (int i = 0; i < src.length; i++) {
+			var hash = src[i];
+			sortedMap.add(hash, hash, i);
+		}
 		//System.out.println(sortedMap);
 		//System.out.println(sortedMap.upperBoundIndex(0L));
 		Assert.assertEquals(0, sortedMap.upperBoundIndex(0L));
@@ -67,8 +73,10 @@ public class TestSortedMap {
 	public void testSortedMapFind() {
 		var sortedMap = new SortedMap<Long, Long>();
 		var src = new long[]{1, 3, 5, 6, 9};
-		for (var hash : src)
-			sortedMap.add(hash, hash);
+		for (int i = 0; i < src.length; i++) {
+			var hash = src[i];
+			sortedMap.add(hash, hash, i);
+		}
 		/*
 		System.out.println(sortedMap.get(0L));
 		System.out.println(sortedMap.get(1L));
@@ -101,11 +109,14 @@ public class TestSortedMap {
 		var m = new SortedMap<Integer, Integer>();
 		m.addAll(new Integer[]{10, 30, 50, 90, 70}, 1);
 		Assert.assertEquals(5, m.size());
+		Assert.assertEquals(5, m.keySize());
 		m.addAll(new Integer[]{80, 50, 20}, 2);
-		Assert.assertEquals(7, m.size());
+		Assert.assertEquals(8, m.size());
+		Assert.assertEquals(7, m.keySize());
 		m.addAll(new Integer[]{100, 40, 0}, 3);
+		Assert.assertEquals(11, m.size());
+		Assert.assertEquals(10, m.keySize());
 //		System.out.println(m);
-		Assert.assertEquals(10, m.size());
 		Assert.assertEquals(Integer.valueOf(1), m.get(10).getValue());
 		Assert.assertEquals(Integer.valueOf(2), m.get(20).getValue());
 		Assert.assertEquals(Integer.valueOf(1), m.get(30).getValue());

@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
-import Zeze.Util.OutInt;
 import Zeze.Util.OutLong;
 import Zeze.Util.SortedMap;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +18,7 @@ public class TestConsistentHash {
 
 	@Test
 	public void testConsistentHash() throws IOException {
-		var consistentHash = new ConsistentHash<Integer>((oldK, oldV, oldIndex, newK, newV, newIndex) -> false);
+		var consistentHash = new ConsistentHash<Integer>(null);
 
 		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
 
@@ -96,46 +95,56 @@ public class TestConsistentHash {
 
 	@Test
 	public void testStable() {
-		var cn = new OutInt();
-		SortedMap.Selector<Integer, Integer> selector = (oldK, oldV, oldIndex, newK, newV, newIndex) -> {
-			cn.value++;
-			var oldHash = Bean.hash64(oldK ^ oldIndex, String.valueOf(oldV));
-			var newHash = Bean.hash64(newK ^ newIndex, String.valueOf(newV));
-			if (oldHash < newHash)
-				return true;
-			if (oldHash > newHash)
-				return false;
-			if (oldIndex < newIndex)
-				return true;
-			if (oldIndex > newIndex)
-				return false;
-			// hash和index都一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
-			int c = oldK.compareTo(newK);
-			if (c < 0)
-				return true;
-			if (c > 0)
-				return false;
-			c = oldV.compareTo(newV);
-			return c < 0; // 如果K,V都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
-		};
+		SortedMap.HashFunc<Integer, Integer> selector = (key, value, index) -> ((long)value << 32) + index;
 
 		final int TEST_COUNT = 1;
 		for (int j = 0; j < TEST_COUNT; j++) {
-			final long timeBegin = System.nanoTime();
+			long timeBegin = System.nanoTime();
 			final int begin = Long.hashCode(timeBegin);
 
-			var ch1 = new ConsistentHash<>(selector);
+			final var ch1 = new ConsistentHash<>(selector);
 			for (int i = begin; i != begin + 2000; i++)
 				ch1.add(String.valueOf(i), i);
 
-			var ch2 = new ConsistentHash<>(selector);
+			final var ch2 = new ConsistentHash<>(selector);
 			for (int i = begin + 2000; i-- != begin; )
 				ch2.add(String.valueOf(i), i);
 
-			logger.info("testStable: begin={}, conflict={}, time={}ms",
-					begin, cn.value, (System.nanoTime() - timeBegin) / 1_000_000);
+			logger.info("testStable: begin={}, ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms", begin,
+					ch1.size(), ch1.circleKeySize(), ch1.circleSize(),
+					ch2.size(), ch2.circleKeySize(), ch2.circleSize(),
+					(System.nanoTime() - timeBegin) / 1_000_000);
 			Assert.assertEquals(ch1.size(), ch2.size());
-			Assert.assertEquals(ch1.toString(), ch2.toString());
+			var s1 = ch1.toString();
+			var s2 = ch2.toString();
+			if (!s1.equals(s2)) {
+				logger.error("testStable: s1={}", s1);
+				logger.error("testStable: s2={}", s2);
+				Assert.fail();
+			}
+
+			timeBegin = System.nanoTime();
+			for (int i = begin; i != begin + 2000; i++) {
+				ch1.remove(i);
+				ch2.remove(i);
+			}
+			logger.info("testStable: removed: ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms",
+					ch1.size(), ch1.circleKeySize(), ch1.circleSize(),
+					ch2.size(), ch2.circleKeySize(), ch2.circleSize(),
+					(System.nanoTime() - timeBegin) / 1_000_000);
+			s1 = ch1.toString();
+			s2 = ch2.toString();
+			if (!s1.equals("[]") || !s2.equals("[]")) {
+				logger.error("testStable: s1={}", s1);
+				logger.error("testStable: s2={}", s2);
+				Assert.fail();
+			}
+			Assert.assertEquals(0, ch1.size());
+			Assert.assertEquals(0, ch1.circleKeySize());
+			Assert.assertEquals(0, ch1.circleSize());
+			Assert.assertEquals(0, ch2.size());
+			Assert.assertEquals(0, ch2.circleKeySize());
+			Assert.assertEquals(0, ch2.circleSize());
 		}
 	}
 }

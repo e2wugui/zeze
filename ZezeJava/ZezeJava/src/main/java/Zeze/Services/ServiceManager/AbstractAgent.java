@@ -10,7 +10,6 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Util.Action1;
-import Zeze.Util.FastLock;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -285,7 +284,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public List<SubscribeState> subscribeServices(BSubscribeArgument info) {
 		var future = new TaskCompletionSource<List<SubscribeState>>();
-		subscribeServicesAsync(info, (ss) -> future.setResult(ss));
+		subscribeServicesAsync(info, future::setResult);
 		try {
 			return future.get();
 		} catch (InterruptedException | ExecutionException e) {

@@ -72,7 +72,7 @@ public final class BServiceInfos extends Bean {
 	public void decode(IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serviceInfoListSortedByIdentity.clear();
-		for (int c = bb.ReadInt(); c > 0; --c) {
+		for (int c = bb.ReadUInt(); c > 0; --c) {
 			var service = new BServiceInfo();
 			service.decode(bb);
 			serviceInfoListSortedByIdentity.add(service);
@@ -82,7 +82,7 @@ public final class BServiceInfos extends Bean {
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteString(serviceName);
-		bb.WriteInt(serviceInfoListSortedByIdentity.size());
+		bb.WriteUInt(serviceInfoListSortedByIdentity.size());
 		for (var service : serviceInfoListSortedByIdentity) {
 			service.encode(bb);
 		}

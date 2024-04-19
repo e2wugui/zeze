@@ -12,14 +12,14 @@ public class BSubscribeArgument extends Bean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteInt(subs.size());
+		bb.WriteUInt(subs.size());
 		for (var sub : subs)
 			sub.encode(bb);
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadInt(); i > 0; --i) {
+		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var sub = new BSubscribeInfo();
 			sub.decode(bb);
 			subs.add(sub);

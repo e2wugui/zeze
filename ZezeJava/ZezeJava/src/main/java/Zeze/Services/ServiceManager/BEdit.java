@@ -19,30 +19,30 @@ public class BEdit extends Bean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteInt(remove.size());
+		bb.WriteUInt(remove.size());
 		for (var r : remove)
 			r.encode(bb);
-		bb.WriteInt(put.size());
+		bb.WriteUInt(put.size());
 		for (var p : put)
 			p.encode(bb);
-		bb.WriteInt(update.size());
+		bb.WriteUInt(update.size());
 		for (var u : update)
 			u.encode(bb);
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadInt(); i > 0; --i) {
+		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var r = new BServiceInfo();
 			r.decode(bb);
 			remove.add(r);
 		}
-		for (var i = bb.ReadInt(); i > 0; --i) {
+		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var r = new BServiceInfo();
 			r.decode(bb);
 			put.add(r);
 		}
-		for (var i = bb.ReadInt(); i > 0; --i) {
+		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var r = new BServiceInfo();
 			r.decode(bb);
 			update.add(r);

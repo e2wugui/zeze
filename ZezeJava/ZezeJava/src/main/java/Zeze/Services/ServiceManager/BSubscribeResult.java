@@ -11,7 +11,7 @@ public class BSubscribeResult extends Bean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteInt(map.size());
+		bb.WriteUInt(map.size());
 		for (var e : map.values()) {
 			e.encode(bb);
 		}
@@ -19,7 +19,7 @@ public class BSubscribeResult extends Bean {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadInt(); i > 0; --i) {
+		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var infos = new BServiceInfos();
 			infos.decode(bb);
 			map.put(infos.getServiceName(), infos);

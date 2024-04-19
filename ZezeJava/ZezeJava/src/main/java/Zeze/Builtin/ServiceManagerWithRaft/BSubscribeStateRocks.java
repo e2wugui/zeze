@@ -8,7 +8,6 @@ import Zeze.Serialize.IByteBuffer;
 public final class BSubscribeStateRocks extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 1990242048237108530L;
 
-
     private transient Object __zeze_map_key__;
 
     @Override
@@ -97,19 +96,9 @@ public final class BSubscribeStateRocks extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
-        switch (vlog.getVariableId()) {
-        }
     }
 
     @Override
     public void followerApply(Zeze.Raft.RocksRaft.Log log) {
-        var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();
-        if (vars == null)
-            return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-            }
-        }
     }
 }
