@@ -398,7 +398,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	@Override
 	protected long ProcessEditRequest(Edit r) {
 		var netSession = (Session)r.getSender().getUserState();
-
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
 		// step 1: remove

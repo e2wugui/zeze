@@ -201,12 +201,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 
 		public void getServiceInfos(@NotNull List<BServiceInfo> target) {
-			serviceManager.editLock.lock();
-			try {
-				target.addAll(serviceInfos.values());
-			} finally {
-				serviceManager.editLock.unlock();
-			}
+			target.addAll(serviceInfos.values());
 		}
 
 		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, Edit> result) {
@@ -332,8 +327,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var info : subscribes.values())
 				serviceManager.unSubscribeNow(sessionId, info);
 
-			serviceManager.editLock.lock();
 			var notifies = new HashMap<AsyncSocket, Edit>();
+			serviceManager.editLock.lock();
 			try {
 				for (var unReg : registers) {
 					var state = serviceManager.serviceStates.get(unReg.getServiceName());
@@ -444,9 +439,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private long processEdit(@NotNull Edit r) {
 		var session = (Session)r.getSender().getUserState();
-
 		var notifies = new HashMap<AsyncSocket, Edit>();
-
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
 		try {
@@ -488,10 +481,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					continue;
 
 				var state = serviceStates.get(update.getServiceName());
-				if (state == null)
-					continue;
-
-				state.collectUpdateNotify(update, notifies);
+				if (state != null)
+					state.collectUpdateNotify(update, notifies);
 			}
 			sendNotifies(notifies);
 		} finally {
