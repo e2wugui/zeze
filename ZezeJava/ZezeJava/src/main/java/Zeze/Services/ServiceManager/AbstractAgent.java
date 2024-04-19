@@ -195,17 +195,17 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onUpdate(BServiceInfo info, BEdit edit) {
+		public boolean onUpdate(BServiceInfo info) {
 			lock();
 			try {
 				var exist = serviceInfos.findServiceInfo(info);
-				if (exist == null)
-					edit.update.remove(info);
-				else {
+				if (exist != null) {
 					exist.setPassiveIp(info.getPassiveIp());
 					exist.setPassivePort(info.getPassivePort());
 					exist.setExtraInfo(info.getExtraInfo());
+					return true;
 				}
+				return false;
 			} finally {
 				unlock();
 			}
