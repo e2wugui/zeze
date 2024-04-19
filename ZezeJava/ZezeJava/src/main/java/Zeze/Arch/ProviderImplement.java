@@ -78,7 +78,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key()));
 		// 订阅linkd发现服务。
 		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName));
-		sm.subscribeServicesAsync(sub);
+		sm.subscribeServices(sub);
 	}
 
 	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc) {

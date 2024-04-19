@@ -237,28 +237,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	public SubscribeState subscribeService(BSubscribeInfo info) {
 		waitLoginReady();
 
-		final var newAdd = new OutObject<Boolean>();
-		newAdd.value = false;
-		var subState = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> {
-			newAdd.value = true;
-			return new SubscribeState(info);
-		});
-
-		if (newAdd.value) {
-			try {
-				var infos = new BSubscribeArgument();
-				infos.subs.add(info);
-				raftClient.sendForWait(new Subscribe(infos)).await();
-				logger.debug("SubscribeService {}", info);
-			} catch (Throwable ex) { // rethrow
-				// 【警告】这里没有原子化执行请求和处理结果。
-				// 由于上面是computeIfAbsent，仅第一个请求会发送，不会并发发送相同的订阅，所以，
-				// 可以在这里rollback处理一下。
-				subscribeStates.remove(info.getServiceName()); // rollback
-				throw ex;
-			}
-		}
-		return subState;
+		var infos = new BSubscribeArgument();
+		infos.subs.add(info);
+		var states = subscribeServices(infos);
+		logger.debug("SubscribeService {}", info);
+		return states.get(0);
 	}
 
 	@Override

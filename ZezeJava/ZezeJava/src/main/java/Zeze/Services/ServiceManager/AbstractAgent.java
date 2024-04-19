@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.Threading;
 import Zeze.Config;
@@ -11,6 +12,7 @@ import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -281,8 +283,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract SubscribeState subscribeService(BSubscribeInfo info);
 
-	public void subscribeServicesAsync(BSubscribeArgument info) {
-		subscribeServicesAsync(info, null);
+	public List<SubscribeState> subscribeServices(BSubscribeArgument info) {
+		var future = new TaskCompletionSource<List<SubscribeState>>();
+		subscribeServicesAsync(info, (ss) -> future.setResult(ss));
+		try {
+			return future.get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public abstract void subscribeServicesAsync(BSubscribeArgument info, @Nullable Action1<List<SubscribeState>> action);

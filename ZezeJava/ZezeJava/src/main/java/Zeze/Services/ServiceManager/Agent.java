@@ -138,28 +138,11 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public SubscribeState subscribeService(BSubscribeInfo info) {
 		waitConnectorReady();
-
-		final var newAdd = new OutObject<Boolean>();
-		newAdd.value = false;
-		var subState = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> {
-			newAdd.value = true;
-			return new SubscribeState(info);
-		});
-
-		if (newAdd.value) {
-			try {
-				var infos = new BSubscribeArgument();
-				infos.subs.add(info);
-				var r = new Subscribe(infos);
-				r.SendAndWaitCheckResultCode(client.getSocket());
-				logger.debug("SubscribeServices {}", infos);
-			} catch (Throwable ex) { // rethrow
-				// rollback.
-				subscribeStates.remove(info.getServiceName()); // rollback
-				throw ex;
-			}
-		}
-		return subState;
+		var infos = new BSubscribeArgument();
+		infos.subs.add(info);
+		var states = subscribeServices(infos);
+		logger.debug("SubscribeServices {}", infos);
+		return states.get(0);
 	}
 
 	@Override
@@ -210,7 +193,7 @@ public final class Agent extends AbstractAgent {
 		for (var e : subscribeStates.values())
 			subArg.subs.add(e.getSubscribeInfo());
 
-		subscribeServicesAsync(subArg);
+		subscribeServicesAsync(subArg, null);
 	}
 
 	private long processEdit(Edit r) {
