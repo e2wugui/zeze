@@ -13,7 +13,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 	public static class Entry<K, V> {
 		private final @NotNull K key;
 		private final @NotNull V value;
-		private final int index;
+		private final int index; // 批量加入时的数组索引,参与解决冲突
 
 		private Entry(@NotNull K key, @NotNull V value, int index) {
 			this.key = key;
@@ -35,9 +35,24 @@ public class SortedMap<K extends Comparable<K>, V> {
 		}
 	}
 
+	/**
+	 * 处理加入时出现key冲突的选择方法
+	 */
 	public interface Selector<K extends Comparable<K>, V> {
 		/**
-		 * @return 是否用new替换old
+		 * 方法实现时要考虑几个因素:
+		 * <li>传递性: 通常判定是否要替换都要做成对old和new的某种计算结果的数值做大小比较,大小天然满足传递性
+		 * <li>公平性: 只比较kv本身会导致结果有强烈的偏向性,所以引入索引参与hash计算可以基本保证公平性
+		 * <li>如果新旧K-V-index三者完全一致,那么是否替换都不应该对map有任何影响
+		 * <li>如果完全不关心稳定性和公平性,可以只返回false或true
+		 *
+		 * @param oldK     旧(已存在的)key
+		 * @param oldV     旧(已存在的)value
+		 * @param oldIndex 旧(已存在的)索引. 来自批量加入时的数组索引
+		 * @param newK     新(尝试加入的)key
+		 * @param newV     新(尝试加入的)value
+		 * @param newIndex 新(尝试加入的)索引. 来自批量加入时的数组索引
+		 * @return 是否用新的替换旧的
 		 */
 		boolean select(@NotNull K oldK, @NotNull V oldV, int oldIndex, @NotNull K newK, @NotNull V newV, int newIndex);
 	}

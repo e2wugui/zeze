@@ -90,14 +90,18 @@ public class TestConsistentHash {
 				return true;
 			if (oldHash > newHash)
 				return false;
-			// hash一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
+			if (oldIndex < newIndex)
+				return true;
+			if (oldIndex > newIndex)
+				return false;
+			// hash和index都一致的可能性极低,但还得考虑极小概率的意外,此时就不管公平了
 			int c = oldK.compareTo(newK);
 			if (c < 0)
-				return false;
-			if (c > 0)
 				return true;
+			if (c > 0)
+				return false;
 			c = oldV.compareTo(newV);
-			return c > 0; // 如果K,V都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
+			return c < 0; // 如果K,V都相同,说明是服务本身的多个虚拟节点有冲突,那么选择哪个都行
 		};
 
 		final int TEST_COUNT = 1;

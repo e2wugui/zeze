@@ -3,14 +3,14 @@ package Zeze.Util;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ConsistentHash<E> extends FastLock {
-	private final SortedMap<Integer, E> circle;
-	private final IdentityHashMap<E, Integer[]> nodes = new IdentityHashMap<>();
+	private final @NotNull SortedMap<Integer, E> circle;
+	private final HashMap<E, Integer[]> nodes = new HashMap<>();
 
 	public ConsistentHash(@Nullable SortedMap.Selector<Integer, E> selector) {
 		circle = new SortedMap<>(selector);
