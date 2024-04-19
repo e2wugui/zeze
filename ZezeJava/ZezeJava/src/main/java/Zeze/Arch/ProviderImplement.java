@@ -13,6 +13,8 @@ import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -54,16 +56,18 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	public void registerModulesAndSubscribeLinkd() {
 		var sm = providerApp.zeze.getServiceManager();
 		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
+		var edit = new BEdit();
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
-			sm.registerService(providerApp.serverServiceNamePrefix + it.key(), identity,
-					providerApp.directIp, providerApp.directPort);
+			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+					providerApp.directIp, providerApp.directPort));
 		}
 		// 注册本provider的动态服务
 		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
-			sm.registerService(providerApp.serverServiceNamePrefix + it.key(), identity,
-					providerApp.directIp, providerApp.directPort);
+			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+					providerApp.directIp, providerApp.directPort));
 		}
+		sm.editService(edit);
 
 		// 订阅provider直连发现服务
 		for (var it = providerApp.modules.iterator(); it.moveToNext(); )

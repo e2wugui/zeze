@@ -8,6 +8,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
 import Zeze.Util.PropertiesHelper;
@@ -110,7 +111,8 @@ public class LinkdApp {
 		this.commandConsoleService.start();
 
 		var identity = "@" + providerIp + "_" + providerPort;
-		zeze.getServiceManager().registerService(linkdServiceName, identity,
-				providerIp, providerPort, extra);
+		var edit = new BEdit();
+		edit.put.add(new BServiceInfo(linkdServiceName, identity, providerIp, providerPort, extra));
+		zeze.getServiceManager().editService(edit);
 	}
 }
