@@ -1,64 +1,65 @@
 package Zeze.Util;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ConsistentHash<E> extends FastLock {
+/**
+ * 一致性hash
+ * 支持并发
+ */
+public class ConsistentHash<E> extends FastRWLock {
 	private final @NotNull SortedMap<Integer, E> circle;
-	private final HashMap<E, Integer[]> nodes = new HashMap<>();
+	private final HashMap<E, String> nodes = new HashMap<>(); // <node,nodeKey>
 
 	public ConsistentHash(@Nullable SortedMap.Selector<Integer, E> selector) {
 		circle = new SortedMap<>(selector);
 	}
 
+	public int circleSize() {
+		return circle.size();
+	}
+
 	public int size() {
-		lock();
+		readLock();
 		try {
 			return nodes.size();
 		} finally {
-			unlock();
+			readUnlock();
 		}
 	}
 
 	public @NotNull E @NotNull [] toArray(E @NotNull [] array) {
-		lock();
+		readLock();
 		try {
 			return nodes.keySet().toArray(array);
 		} finally {
-			unlock();
+			readUnlock();
 		}
+	}
+
+	private static @NotNull Integer @NotNull [] genVirtualIds(@NotNull String nodeKey) {
+		var virtual = new Integer[160];
+		var r = new StableRandom(Bean.hash64(nodeKey));
+		for (int i = 0, n = virtual.length; i < n; i++)
+			virtual[i] = r.next();
+		return virtual;
 	}
 
 	public void add(@NotNull String nodeKey, @NotNull E node) {
 		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");
-		nodeKey += '-';
-		var virtual = new Integer[160];
-		try {
-			var md5 = MessageDigest.getInstance("MD5");
-			for (int i = 0, n = virtual.length; i < n; ) {
-				var md5Hash = md5.digest((nodeKey + i / 4).getBytes(StandardCharsets.UTF_8));
-				virtual[i++] = ByteBuffer.ToInt(md5Hash, 0);
-				virtual[i++] = ByteBuffer.ToInt(md5Hash, 4);
-				virtual[i++] = ByteBuffer.ToInt(md5Hash, 8);
-				virtual[i++] = ByteBuffer.ToInt(md5Hash, 12);
-			}
-		} catch (NoSuchAlgorithmException e) {
-			Task.forceThrow(e);
-		}
+		var virtualIds = genVirtualIds(nodeKey);
 
-		lock();
+		writeLock();
 		try {
-			if (nodes.putIfAbsent(node, virtual) == null) // 忽略重复加入的node。不报告这个错误，简化外面的使用。
-				circle.addAll(virtual, node);
+			if (nodes.putIfAbsent(node, nodeKey) == null) // 忽略重复加入的node。不报告这个错误，简化外面的使用。
+				circle.addAll(virtualIds, node);
 		} finally {
-			unlock();
+			writeUnlock();
 		}
 	}
 
@@ -66,28 +67,22 @@ public class ConsistentHash<E> extends FastLock {
 		//noinspection ConstantValue
 		if (node == null)
 			throw new NullPointerException("node");
-		lock();
+
+		writeLock();
 		try {
-			var virtual = nodes.remove(node);
-			if (null == virtual)
-				return;
-			// 批量remove？
-			// virtual是排序的，反向遍历，然后删除效率更高。
-			for (var i = virtual.length - 1; i >= 0; --i) {
-				var hash = virtual[i];
-				circle.remove(hash, node);
-			}
+			var nodeKey = nodes.remove(node);
+			if (nodeKey != null)
+				circle.removeAll(genVirtualIds(nodeKey), node);
 		} finally {
-			unlock();
+			writeUnlock();
 		}
 	}
 
-	public @Nullable E get(int hash) {
-		hash = ByteBuffer.calc_hashnr(((long)hash << 32) ^ hash);
-		lock();
+	public @Nullable E get(long hash) {
+		int hash32 = ByteBuffer.calc_hashnr(hash);
+		readLock();
 		try {
-			// 换成新的SortedMap的方法。原来是ceilingEntry，对不对。
-			var e = circle.upperBound(hash);
+			var e = circle.lowerBound(hash32);
 			if (e == null) {
 				e = circle.first();
 				if (e == null)
@@ -95,17 +90,17 @@ public class ConsistentHash<E> extends FastLock {
 			}
 			return e.getValue();
 		} finally {
-			unlock();
+			readUnlock();
 		}
 	}
 
 	@Override
 	public @NotNull String toString() {
-		lock();
+		readLock();
 		try {
 			return circle.toString();
 		} finally {
-			unlock();
+			readUnlock();
 		}
 	}
 }

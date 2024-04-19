@@ -3,9 +3,9 @@ package Zeze.Util;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 适合读极多写极少的场合,也就是需要等锁的场合极少,让读锁的开销最小化,一旦需要等锁则使用sleep忙等
+ * 适合读极多写极少的场合,也就是需要等锁的场合极少,让读锁的开销最小化,一旦需要等锁则使用sleep忙等,只支持读锁与读锁的重入
  */
-public final class FastRWLock extends AtomicLong {
+public class FastRWLock extends AtomicLong {
 	private static final long LOCK_MASK = 0x7fff_ffff_ffff_ffffL;
 	private static final long WRITE_WAIT_FLAG = 0x8000_0000_0000_0000L;
 	private static final long WRITE_LOCK_FLAG = 0xc000_0000_0000_0000L;

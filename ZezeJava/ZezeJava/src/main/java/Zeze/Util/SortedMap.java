@@ -41,7 +41,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 	public interface Selector<K extends Comparable<K>, V> {
 		/**
 		 * 方法实现时要考虑几个因素:
-		 * <li>传递性: 通常判定是否要替换都要做成对old和new的某种计算结果的数值做大小比较,大小天然满足传递性
+		 * <li>传递性: 通常判定是否要替换都要做成对old和new的某种计算结果的数值做大小比较,大小天然满足传递性,也即保证了不同顺序加入的稳定性
 		 * <li>公平性: 只比较kv本身会导致结果有强烈的偏向性,所以引入索引参与hash计算可以基本保证公平性
 		 * <li>如果新旧K-V-index三者完全一致,那么是否替换都不应该对map有任何影响
 		 * <li>如果完全不关心稳定性和公平性,可以只返回false或true
@@ -180,6 +180,7 @@ public class SortedMap<K extends Comparable<K>, V> {
 			int i = 0, j = 0;
 			if (in > 0) {
 				var ie = es.get(0);
+				outer:
 				for (K ik = ie.key, jk = keys[0]; ; ) {
 					int c = ik.compareTo(jk);
 					if (c < 0) {
@@ -190,20 +191,26 @@ public class SortedMap<K extends Comparable<K>, V> {
 						ik = ie.key;
 					} else if (c > 0) {
 						newElements.add(new Entry<>(jk, value, j));
-						if (++j >= jn)
-							break;
+						do {
+							if (++j >= jn)
+								break outer;
+						} while (jk.equals(keys[j]));
 						jk = keys[j];
 					} else {
 						if (selector != null && selector.select(ik, ie.value, ie.index, jk, value, j))
 							newElements.add(new Entry<>(jk, value, j));
 						else
 							newElements.add(ie);
-						++j;
-						if (++i >= in || j >= jn)
+						++i;
+						do {
+							if (++j >= jn)
+								break outer;
+						} while (jk.equals(keys[j]));
+						jk = keys[j];
+						if (i >= in)
 							break;
 						ie = es.get(i);
 						ik = ie.key;
-						jk = keys[j];
 					}
 				}
 			}
@@ -226,6 +233,48 @@ public class SortedMap<K extends Comparable<K>, V> {
 		var es = elements;
 		var index = findIndex(key);
 		return index >= 0 && es.get(index).value.equals(value) ? es.remove(index) : null;
+	}
+
+	public void removeAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+		Arrays.sort(keys);
+		removeSortedAll(keys, value);
+	}
+
+	public void removeSortedAll(@NotNull K @NotNull [] keys, @NotNull V value) {
+		int jn = keys.length;
+		if (jn > 0) {
+			var es = elements;
+			int in = es.size();
+			if (in > 0) {
+				int i = 0, j = 0;
+				var newElements = new ArrayList<Entry<K, V>>(in);
+				var ie = es.get(0);
+				for (K ik = ie.key, jk = keys[0]; ; ) {
+					int c = ik.compareTo(jk);
+					if (c < 0) {
+						newElements.add(ie);
+						if (++i >= in)
+							break;
+						ie = es.get(i);
+						ik = ie.key;
+					} else if (c > 0) {
+						if (++j >= jn)
+							break;
+						jk = keys[j];
+					} else {
+						++j;
+						if (++i >= in || j >= jn)
+							break;
+						ie = es.get(i);
+						ik = ie.key;
+						jk = keys[j];
+					}
+				}
+				if (i < in)
+					newElements.addAll(es.subList(i, in));
+				elements = newElements;
+			}
+		}
 	}
 
 	public @NotNull Entry<K, V> getAt(int index) {
