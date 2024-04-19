@@ -15,6 +15,8 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BSubscribeArgument;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -69,12 +71,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 		sm.editService(edit);
 
+		// 订阅服务
+		var sub = new BSubscribeArgument();
 		// 订阅provider直连发现服务
 		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
-			sm.subscribeService(providerApp.serverServiceNamePrefix + it.key());
-
+			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key()));
 		// 订阅linkd发现服务。
-		sm.subscribeService(providerApp.linkdServiceName);
+		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName));
+		sm.subscribeServicesAsync(sub);
 	}
 
 	public static void sendKick(@Nullable AsyncSocket sender, long linkSid, int code, @NotNull String desc) {

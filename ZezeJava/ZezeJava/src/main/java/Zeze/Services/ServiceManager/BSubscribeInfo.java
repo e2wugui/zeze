@@ -8,6 +8,18 @@ public final class BSubscribeInfo extends Bean {
 	private String serviceName;
 	private Object localState;
 
+	public BSubscribeInfo() {
+	}
+
+	public BSubscribeInfo(String name) {
+		serviceName = name;
+	}
+
+	public BSubscribeInfo(String name, Object state) {
+		serviceName = name;
+		localState = state;
+	}
+
 	public String getServiceName() {
 		return serviceName;
 	}

@@ -105,11 +105,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	protected long ProcessEditRequest(Edit r) {
 
-		for (var unReg : r.Argument.remove) {
+		for (var it = r.Argument.remove.iterator(); it.hasNext(); /**/) {
+			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
-			if (null == state)
-				continue; // 忽略本地没有订阅的。最好加个日志。
-			state.onUnRegister(unReg, r.Argument);
+			if (null == state || !state.onUnRegister(unReg))
+				it.remove();
 		}
 
 		for (var reg : r.Argument.put) {

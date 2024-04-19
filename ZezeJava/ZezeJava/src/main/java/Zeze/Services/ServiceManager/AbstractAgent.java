@@ -182,12 +182,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onUnRegister(BServiceInfo info, BEdit edit) {
+		public boolean onUnRegister(BServiceInfo info) {
 			lock();
 			try {
-				var removed = serviceInfos.remove(info);
-				if (removed == null)
-					edit.remove.remove(info);
+				return (null != serviceInfos.remove(info));
 			} finally {
 				unlock();
 			}
