@@ -185,7 +185,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var session = tableSession.get(name);
 			if (null != session) {
 				for (var info : session.getSubscribes().values())
-					unSubscribeNow(name, fromRocks(info));
+					unSubscribeNow(name, info.getServiceName());
 
 				var notifies = new HashMap<AsyncSocket, Edit>();
 				for (var unReg : session.getRegisters().values()) {
@@ -459,15 +459,18 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessSubscribeRequest(Subscribe r) {
-		logger.info("{}: Subscribe {}",
-				r.getSender(), r.Argument.getServiceName());
+		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
-		session.getSubscribes().put(r.Argument.getServiceName(), toRocks(r.Argument));
-		var state = tableServerState.getOrAdd(r.Argument.getServiceName());
-		if (!state.getServiceName().equals(r.Argument.getServiceName()))
-			state.setServiceName(r.Argument.getServiceName());
-		return subscribeAndSend(state, r, netSession.name);
+		for (var info : r.Argument.subs) {
+			session.getSubscribes().put(info.getServiceName(), toRocks(info));
+			var state = tableServerState.getOrAdd(info.getServiceName());
+			if (!state.getServiceName().equals(info.getServiceName()))
+				state.setServiceName(info.getServiceName());
+			subscribeAndCollect(state, r, netSession.name);
+		}
+		r.SendResult();
+		return 0;
 	}
 
 	private static BServiceInfo fromRocks(BServiceInfoRocks rocks) {
@@ -491,21 +494,22 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessUnSubscribeRequest(UnSubscribe r) {
-		logger.info("{}: UnSubscribe {}",
-				r.getSender(), r.Argument.getServiceName());
+		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
 		var netSession = (Session)r.getSender().getUserState();
 		var session = tableSession.get(netSession.name);
-		var sub = session.getSubscribes().get(r.Argument.getServiceName());
-		session.getSubscribes().remove(r.Argument.getServiceName());
-		if (sub != null) {
-			unSubscribeNow(netSession.name, r.Argument);
+		for (var serviceName : r.Argument.serviceNames) {
+			var sub = session.getSubscribes().get(serviceName);
+			session.getSubscribes().remove(serviceName);
+			if (sub != null) {
+				unSubscribeNow(netSession.name, serviceName);
+			}
 		}
 		r.SendResult();
 		return 0;
 	}
 
-	public BServerState unSubscribeNow(String sessionName, BSubscribeInfo info) {
-		var state = tableServerState.get(info.getServiceName());
+	public BServerState unSubscribeNow(String sessionName, String serviceName) {
+		var state = tableServerState.get(serviceName);
 		if (state != null) {
 			var removed = state.getSimple().get(sessionName);
 			state.getSimple().remove(sessionName);
@@ -549,16 +553,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return result;
 	}
 
-	private long subscribeAndSend(BServerState state, Subscribe r, String ssName) {
+	private void subscribeAndCollect(BServerState state, Subscribe r, String ssName) {
 		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 		state.getSimple().put(ssName, new BSubscribeStateRocks());
-		new SubscribeFirstCommit(newSortedBServiceInfos(state)).Send(r.getSender());
+		r.Result.map.put(state.getServiceName(), newSortedBServiceInfos(state));
 
 		var netSession = (Session)r.getSender().getUserState();
 		for (var info : state.getServiceInfos().values())
 			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
-
-		r.SendResultCode(Zeze.Services.ServiceManager.Subscribe.Success);
-		return 0;
 	}
 }

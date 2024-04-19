@@ -89,13 +89,6 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
             service.AddFactoryHandle(47340271484727L, factoryHandle); // 11022, 1141948215
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit.class, Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeFirstCommitResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeFirstCommitResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47342788372847L, factoryHandle); // 11022, -636130961
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe.class, Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe::new;
             factoryHandle.Handle = this::ProcessUnSubscribeRequest;
@@ -115,7 +108,6 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
         service.getFactorys().remove(47340511174741L);
         service.getFactorys().remove(47342529828679L);
         service.getFactorys().remove(47340271484727L);
-        service.getFactorys().remove(47342788372847L);
         service.getFactorys().remove(47339752276364L);
     }
 

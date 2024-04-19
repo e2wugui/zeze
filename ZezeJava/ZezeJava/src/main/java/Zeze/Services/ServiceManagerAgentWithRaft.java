@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
@@ -9,7 +11,6 @@ import Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify;
 import Zeze.Builtin.ServiceManagerWithRaft.OfflineRegister;
 import Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad;
 import Zeze.Builtin.ServiceManagerWithRaft.Subscribe;
-import Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit;
 import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
@@ -21,7 +22,9 @@ import Zeze.Services.ServiceManager.BEdit;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Services.ServiceManager.BUnSubscribeArgument;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.OutObject;
@@ -29,6 +32,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
@@ -145,15 +149,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSubscribeFirstCommitRequest(SubscribeFirstCommit r) throws Exception {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state != null)
-			state.onFirstCommit(r.Argument);
-		r.SendResult();
-		return Procedure.Success;
-	}
-
-	@Override
 	protected void allocate(AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
@@ -251,7 +246,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 		if (newAdd.value) {
 			try {
-				raftClient.sendForWait(new Subscribe(info)).await();
+				var infos = new BSubscribeArgument();
+				infos.subs.add(info);
+				raftClient.sendForWait(new Subscribe(infos)).await();
 				logger.debug("SubscribeService {}", info);
 			} catch (Throwable ex) { // rethrow
 				// 【警告】这里没有原子化执行请求和处理结果。
@@ -265,19 +262,38 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void unSubscribeService(String serviceName) {
+	public void subscribeServicesAsync(BSubscribeArgument arg, @Nullable Action1<List<SubscribeState>> action) {
 		waitLoginReady();
-
-		var state = subscribeStates.remove(serviceName);
-		if (state != null) {
-			try {
-				raftClient.sendForWait(new UnSubscribe(state.subscribeInfo)).await();
-				logger.debug("UnSubscribeService {}", state.subscribeInfo);
-			} catch (Throwable e) { // rethrow
-				subscribeStates.putIfAbsent(serviceName, state); // rollback
-				throw e;
+		logger.debug("subscribeServicesAsync {}", arg);
+		var r = new Subscribe(arg);
+		raftClient.send(r, __ -> {
+			var states = new ArrayList<SubscribeState>();
+			for (var info : r.Argument.subs) {
+				var state = subscribeStates.computeIfAbsent(info.getServiceName(), (key) -> new SubscribeState(info));
+				states.add(state);
+				var result = r.Result.map.get(info.getServiceName());
+				if (null != result)
+					state.onFirstCommit(result);
 			}
-		}
+			if (null != action) {
+				try {
+					action.run(states);
+				} catch (Exception ex) {
+					logger.warn("", ex);
+				}
+			}
+			return 0;
+		});
+	}
+
+	@Override
+	public void unSubscribeService(BUnSubscribeArgument arg) {
+		waitLoginReady();
+		logger.debug("UnSubscribeService {}", arg);
+		var r = new UnSubscribe(arg);
+		raftClient.sendForWait(r).await();
+		for (var serviceName : arg.serviceNames)
+			subscribeStates.remove(serviceName);
 	}
 
 	@Override

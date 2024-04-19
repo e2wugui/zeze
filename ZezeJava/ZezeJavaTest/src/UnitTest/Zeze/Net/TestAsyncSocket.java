@@ -11,15 +11,6 @@ public class TestAsyncSocket extends TestCase {
 		Task.tryInitThreadPool();
 	}
 
-	public void testMain() {
-		var typeId = new Zeze.Services.ServiceManager.SubscribeFirstCommit().getTypeId();
-		System.out.println(typeId);
-		var name = Zeze.Services.ServiceManager.SubscribeFirstCommit.class.getName();
-		System.out.println(name);
-		var pid = Zeze.Transaction.Bean.hash32(name);
-		System.out.println(pid);
-	}
-
 	public static class ServiceClient extends Service {
 		public final TaskCompletionSource<Boolean> Future = new TaskCompletionSource<>();
 

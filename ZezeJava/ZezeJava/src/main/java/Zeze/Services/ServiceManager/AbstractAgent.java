@@ -14,6 +14,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 /*
  * Agent发起协议	ServiceManager处理后通知			Agent接收通知后回调
@@ -286,7 +287,19 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract SubscribeState subscribeService(BSubscribeInfo info);
 
-	public abstract void unSubscribeService(String serviceName);
+	public void subscribeServicesAsync(BSubscribeArgument info) {
+		subscribeServicesAsync(info, null);
+	}
+
+	public abstract void subscribeServicesAsync(BSubscribeArgument info, @Nullable Action1<List<SubscribeState>> action);
+
+	public abstract void unSubscribeService(BUnSubscribeArgument arg);
+
+	public void unSubscribeService(String serviceName) {
+		var arg = new BUnSubscribeArgument();
+		arg.serviceNames.add(serviceName);
+		unSubscribeService(arg);
+	}
 
 	public AutoKey getAutoKey(String name) {
 		return autoKeys.computeIfAbsent(name, k -> new AutoKey(k, this));

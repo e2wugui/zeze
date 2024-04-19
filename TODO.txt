@@ -10,6 +10,8 @@ ServiceManager.Agent 清理ReadyCommit订阅模式；由于暴露的接口对于
 Arch 清理ReadyCommit订阅模式相关代码，进行简化；【完成】
 ServiceManager 完全去掉订阅模式；【完成】
 ServiceManager 不兼容修改，简化回调，统一编辑接口。【完成】
+Subscribe 改成批量模式，第一次的结果通过Rpc.Result返回。
+UnSubscribe 改成批量模式。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/4/17 v1.4.5 ThreadDiagnosable；Service；StatLog; Raft; Dbh2; AppBase & Gen; ConcurrentHashMapOrdered; Hot;

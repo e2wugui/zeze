@@ -12,6 +12,9 @@
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BEdit"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BUnSubscribeArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeResult"/>
 
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
@@ -1104,12 +1107,11 @@
 			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
 			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEdit" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
-			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
+			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeArgument" result="Zeze.Services.ServiceManager.BSubscribeResult" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="DuplicateSubscribe" value="1"/>
 			</rpc>
-			<rpc name="SubscribeFirstCommit" argument="Zeze.Services.ServiceManager.BServiceInfos" base="Zeze.Raft.RaftRpc" handle="client"/>
-			<rpc name="UnSubscribe" argument="Zeze.Services.ServiceManager.BSubscribeInfo" base="Zeze.Raft.RaftRpc" handle="server">
+			<rpc name="UnSubscribe" argument="Zeze.Services.ServiceManager.BUnSubscribeArgument" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>
 				<enum name="NotExist" value="1"/>
 			</rpc>

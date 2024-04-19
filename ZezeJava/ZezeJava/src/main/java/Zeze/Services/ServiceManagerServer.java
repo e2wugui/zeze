@@ -253,23 +253,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		/**
-		 * 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
-		 * 原子的得到当前信息并发送，然后加入订阅(simple or readyCommit)。
-		 */
-		public long subscribeAndSend(@NotNull Subscribe r, long sessionId) {
-			serviceManager.editLock.lock();
-			try {
-				// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-				simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
-				new SubscribeFirstCommit(new BServiceInfos(serviceName, this)).Send(r.getSender());
-				for (var info : serviceInfos.values())
-					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
-				r.SendResultCode(Subscribe.Success);
-				return Procedure.Success;
-			} finally {
-				serviceManager.editLock.unlock();
-			}
+		public void subscribeAndCollectResult(@NotNull Subscribe r, long sessionId) {
+			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
+			simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
+			r.Result.map.put(serviceName, new BServiceInfos(serviceName, this));
+			for (var info : serviceInfos.values())
+				serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
 		}
 	}
 
@@ -324,11 +313,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-			for (var info : subscribes.values())
-				serviceManager.unSubscribeNow(sessionId, info);
 
 			var notifies = new HashMap<AsyncSocket, Edit>();
 			serviceManager.editLock.lock();
+			for (var info : subscribes.values())
+				serviceManager.unSubscribeNow(sessionId, info.getServiceName());
+
 			try {
 				for (var unReg : registers) {
 					var state = serviceManager.serviceStates.get(unReg.getServiceName());
@@ -493,38 +483,45 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	}
 
 	private long processSubscribe(@NotNull Subscribe r) {
-		logger.info("{}: Subscribe {}",
-				r.getSender(), r.Argument.getServiceName());
+		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
+
 		var session = (Session)r.getSender().getUserState();
-		session.subscribes.putIfAbsent(r.Argument.getServiceName(), r.Argument);
-		return serviceStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServiceState(this, name))
-				.subscribeAndSend(r, session.sessionId);
+		editLock.lock();
+		try {
+			for (var info : r.Argument.subs) {
+				session.subscribes.putIfAbsent(info.getServiceName(), info);
+				serviceStates.computeIfAbsent(info.getServiceName(), name -> new ServiceState(this, name))
+						.subscribeAndCollectResult(r, session.sessionId);
+			}
+			r.SendResult();
+			return 0;
+		} finally {
+			editLock.unlock();
+		}
 	}
 
-	public ServiceState unSubscribeNow(long sessionId, @NotNull BSubscribeInfo info) {
-		var state = serviceStates.get(info.getServiceName());
-		if (state != null) {
-			editLock.lock();
-			try {
-				if (state.simple.remove(sessionId) != null)
-					return state;
-			} finally {
-				editLock.unlock();
-			}
-		}
-		return null;
+	private void unSubscribeNow(long sessionId, String serviceName) {
+		var state = serviceStates.get(serviceName);
+		if (state != null)
+			state.simple.remove(sessionId);
 	}
 
 	private long processUnSubscribe(@NotNull UnSubscribe r) {
-		logger.info("{}: UnSubscribe {}",
-				r.getSender(), r.Argument.getServiceName());
+		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
 		var session = (Session)r.getSender().getUserState();
-		var sub = session.subscribes.remove(r.Argument.getServiceName());
-		if (sub != null)
-			unSubscribeNow(r.getSender().getSessionId(), r.Argument);
+		var sessionId = r.getSender().getSessionId();
 
-		r.SendResult();
-		return Procedure.Success;
+		editLock.lock();
+		try {
+			for (var serviceName : r.Argument.serviceNames) {
+				session.subscribes.remove(serviceName); // continue if not exist
+				unSubscribeNow(sessionId, serviceName);
+			}
+			r.SendResult();
+			return Procedure.Success;
+		} finally {
+			editLock.unlock();
+		}
 	}
 
 	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {

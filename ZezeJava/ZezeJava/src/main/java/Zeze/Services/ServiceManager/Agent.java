@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Component.Threading;
 import Zeze.Config;
@@ -14,6 +15,8 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 public final class Agent extends AbstractAgent {
 	static final Logger logger = LogManager.getLogger(Agent.class);
@@ -107,6 +110,32 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
+	public void subscribeServicesAsync(BSubscribeArgument infos, @Nullable Action1<List<SubscribeState>> action) {
+		waitConnectorReady();
+
+		var r = new Subscribe(infos);
+		r.Send(client.getSocket(), __ -> {
+			var states = new ArrayList<SubscribeState>();
+			for (var info : r.Argument.subs) {
+				var state = subscribeStates.computeIfAbsent(info.getServiceName(), (key) -> new SubscribeState(info));
+				states.add(state);
+				var result = r.Result.map.get(info.getServiceName());
+				if (null != result)
+					state.onFirstCommit(result);
+			}
+			if (null != action) {
+				try {
+					action.run(states);
+				} catch (Exception ex) {
+					logger.warn("", ex);
+				}
+			}
+			return 0;
+		});
+		logger.debug("subscribeServicesAsync {}", infos);
+	}
+
+	@Override
 	public SubscribeState subscribeService(BSubscribeInfo info) {
 		waitConnectorReady();
 
@@ -119,9 +148,11 @@ public final class Agent extends AbstractAgent {
 
 		if (newAdd.value) {
 			try {
-				var r = new Subscribe(info);
+				var infos = new BSubscribeArgument();
+				infos.subs.add(info);
+				var r = new Subscribe(infos);
 				r.SendAndWaitCheckResultCode(client.getSocket());
-				logger.debug("SubscribeService {}", info);
+				logger.debug("SubscribeServices {}", infos);
 			} catch (Throwable ex) { // rethrow
 				// rollback.
 				subscribeStates.remove(info.getServiceName()); // rollback
@@ -132,21 +163,14 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void unSubscribeService(String serviceName) {
+	public void unSubscribeService(BUnSubscribeArgument arg) {
 		waitConnectorReady();
 
-		var state = subscribeStates.remove(serviceName);
-		if (state != null) {
-			try {
-				var r = new UnSubscribe(state.subscribeInfo);
-				r.SendAndWaitCheckResultCode(client.getSocket());
-				logger.debug("UnSubscribeService {}", state.subscribeInfo);
-			} catch (Throwable e) { // rethrow
-				// rollback.
-				subscribeStates.putIfAbsent(serviceName, state); // rollback
-				throw e;
-			}
-		}
+		var r = new UnSubscribe(arg);
+		r.SendAndWaitCheckResultCode(client.getSocket());
+		logger.debug("UnSubscribeService {}", arg);
+		for (var serviceName : arg.serviceNames)
+			subscribeStates.remove(serviceName);
 	}
 
 	@Override
@@ -182,16 +206,11 @@ public final class Agent extends AbstractAgent {
 			logger.debug("OnConnected.Register", ex);
 		}
 
-		for (var e : subscribeStates.values()) {
-			try {
-				var r = new Subscribe();
-				r.Argument = e.subscribeInfo;
-				r.SendAndWaitCheckResultCode(client.getSocket());
-			} catch (Throwable ex) { // logger.debug
-				// skip and continue.
-				logger.debug("OnConnected.Subscribe={}", e.subscribeInfo, ex);
-			}
-		}
+		var subArg = new BSubscribeArgument();
+		for (var e : subscribeStates.values())
+			subArg.subs.add(e.getSubscribeInfo());
+
+		subscribeServicesAsync(subArg);
 	}
 
 	private long processEdit(Edit r) {
@@ -220,13 +239,6 @@ public final class Agent extends AbstractAgent {
 		r.SendResult();
 		triggerOnChanged(r.Argument);
 		return 0;
-	}
-
-	private long processSubscribeFirstCommit(SubscribeFirstCommit r) {
-		var state = subscribeStates.get(r.Argument.getServiceName());
-		if (state != null)
-			state.onFirstCommit(r.Argument);
-		return Procedure.Success;
 	}
 
 	private long processKeepAlive(KeepAlive r) {
@@ -282,8 +294,6 @@ public final class Agent extends AbstractAgent {
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
 				UnSubscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
-		client.AddFactoryHandle(SubscribeFirstCommit.TypeId_, new ProtocolFactoryHandle<>(
-				SubscribeFirstCommit::new, this::processSubscribeFirstCommit, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
 				KeepAlive::new, this::processKeepAlive, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(

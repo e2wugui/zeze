@@ -2,9 +2,8 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.EmptyBean;
 
-public final class Subscribe extends Rpc<BSubscribeInfo, EmptyBean> {
+public final class Subscribe extends Rpc<BSubscribeArgument, BSubscribeResult> {
 	public static final int ProtocolId_ = Bean.hash32(Subscribe.class.getName()); // 1138220698
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1138220698
 
@@ -17,13 +16,13 @@ public final class Subscribe extends Rpc<BSubscribeInfo, EmptyBean> {
 	public static final int UnknownSubscribeType = 2;
 
 	public Subscribe() {
-		Argument = new BSubscribeInfo();
-		Result = EmptyBean.instance;
+		Argument = new BSubscribeArgument();
+		Result = new BSubscribeResult();
 	}
 
-	public Subscribe(BSubscribeInfo arg) {
+	public Subscribe(BSubscribeArgument arg) {
 		Argument = arg;
-		Result = EmptyBean.instance;
+		Result = new BSubscribeResult();
 	}
 
 	@Override

@@ -86,14 +86,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
             service.AddFactoryHandle(47340271484727L, factoryHandle); // 11022, 1141948215
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit.class, Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit::new;
-            factoryHandle.Handle = this::ProcessSubscribeFirstCommitRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeFirstCommitRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeFirstCommitRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47342788372847L, factoryHandle); // 11022, -636130961
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe.class, Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
@@ -112,7 +104,6 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
         service.getFactorys().remove(47340511174741L);
         service.getFactorys().remove(47342529828679L);
         service.getFactorys().remove(47340271484727L);
-        service.getFactorys().remove(47342788372847L);
         service.getFactorys().remove(47339752276364L);
     }
 
@@ -129,5 +120,4 @@ public abstract class AbstractServiceManagerAgentWithRaft extends Zeze.Services.
     protected abstract long ProcessKeepAliveRequest(Zeze.Builtin.ServiceManagerWithRaft.KeepAlive r) throws Exception;
     protected abstract long ProcessOfflineNotifyRequest(Zeze.Builtin.ServiceManagerWithRaft.OfflineNotify r) throws Exception;
     protected abstract long ProcessSetServerLoadRequest(Zeze.Builtin.ServiceManagerWithRaft.SetServerLoad r) throws Exception;
-    protected abstract long ProcessSubscribeFirstCommitRequest(Zeze.Builtin.ServiceManagerWithRaft.SubscribeFirstCommit r) throws Exception;
 }
