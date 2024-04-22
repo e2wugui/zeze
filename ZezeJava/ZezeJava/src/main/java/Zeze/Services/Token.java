@@ -470,7 +470,8 @@ public final class Token extends AbstractToken {
 				} else {
 					if (!moveToDB(state, bb, stateBufCount == STATE_BUF_COUNT))
 						stateBuf[stateBufCount++] = state;
-					PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
+					if (PerfCounter.ENABLE_PERF)
+						PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
 				}
 			} catch (Throwable e) { // logger.error
 				logger.error("cleanTokenRef exception:", e);

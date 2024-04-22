@@ -67,6 +67,7 @@ public final class Transaction {
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
+	final Profiler profiler = new Profiler();
 
 	private Transaction() {
 	}
@@ -75,7 +76,8 @@ public final class Transaction {
 		return procedureStack;
 	}
 
-	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
+	@NotNull
+	TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return accessedRecords;
 	}
 
@@ -122,6 +124,7 @@ public final class Transaction {
 		redoBeans.clear();
 		redoActions.clear();
 		onzProcedure = null;
+		profiler.reset();
 	}
 
 	public void begin() {
@@ -610,7 +613,8 @@ public final class Transaction {
 		}
 	}
 
-	@NotNull Lockey getLockey(TableKey key) {
+	@NotNull
+	Lockey getLockey(TableKey key) {
 		return locks.get(key);
 	}
 

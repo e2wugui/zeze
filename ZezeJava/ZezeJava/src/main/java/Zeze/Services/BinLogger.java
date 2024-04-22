@@ -216,7 +216,8 @@ public final class BinLogger extends ReentrantLock {
 			var so = connector.getSocket();
 			if (so != null && so.Send(new LogData(roleId, log)))
 				return true;
-			PerfCounter.instance.addCountInfo(perfIndexSendLogFail);
+			if (PerfCounter.ENABLE_PERF)
+				PerfCounter.instance.addCountInfo(perfIndexSendLogFail);
 			return false;
 		}
 	}
@@ -471,14 +472,14 @@ public final class BinLogger extends ReentrantLock {
 							return 0;
 						}
 						if (timeBegin == 0)
-							timeBegin = System.nanoTime();
+							timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 						waitingQueue = true;
 						queueLockCond.await();
 					}
 				} finally {
 					queueLock.unlock();
 				}
-				if (timeBegin != 0)
+				if (PerfCounter.ENABLE_PERF && timeBegin != 0)
 					PerfCounter.instance.addRunInfo("BinLogger.waitQueue", System.nanoTime() - timeBegin);
 				logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
 						p.roleId, p.dataType, dataSize, p.getSender());
@@ -548,7 +549,8 @@ public final class BinLogger extends ReentrantLock {
 							idFile.write(buf);
 						}
 						readLogQueue.clear();
-						PerfCounter.instance.addCountInfo(perfIndexWriteLog, queueSize);
+						if (PerfCounter.ENABLE_PERF)
+							PerfCounter.instance.addCountInfo(perfIndexWriteLog, queueSize);
 					} else {
 						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
 							lastFlushMs = curMs;

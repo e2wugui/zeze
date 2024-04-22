@@ -119,15 +119,22 @@ public class Procedure {
 		long result = Exception;
 		Transaction currentT = Transaction.getCurrent();
 		if (currentT == null) {
-			long timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			long timeBegin = System.nanoTime();
 			try {
+				currentT = Transaction.create(zeze.getLocks(), userState);
+				currentT.profiler.onProcedureBegin(actionName, timeBegin);
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-				return result = Transaction.create(zeze.getLocks(), userState).perform(this);
+				return result = currentT.perform(this);
 			} finally {
 				Transaction.destroy();
-				if (PerfCounter.ENABLE_PERF)
-					PerfCounter.instance.addRunInfo(getActionName(), System.nanoTime() - timeBegin);
-				PerfCounter.instance.addProcedureInfo(actionName, result);
+				var curTime = System.nanoTime();
+				var runTime = curTime - timeBegin;
+				if (currentT != null)
+					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
+				if (PerfCounter.ENABLE_PERF) {
+					PerfCounter.instance.addProcedureInfo(actionName, result);
+					PerfCounter.instance.addRunInfo(actionName, runTime);
+				}
 			}
 		}
 
