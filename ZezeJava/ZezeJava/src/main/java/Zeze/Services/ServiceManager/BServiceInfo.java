@@ -11,14 +11,14 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	public @NotNull String serviceName;
-	public long version;
+	private @NotNull String serviceName;
+	private long version;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	public @NotNull String serviceIdentity;
+	private @NotNull String serviceIdentity;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
@@ -30,7 +30,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	private @NotNull Binary extraInfo = Binary.Empty;
 
 	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
-	public @Nullable Long sessionId;
+	private @Nullable Long sessionId;
 
 	public @NotNull String getServiceName() {
 		return serviceName;
@@ -42,6 +42,14 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 
 	public @NotNull String getPassiveIp() {
 		return passiveIp;
+	}
+
+	public Long getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(Long sessionId) {
+		this.sessionId = sessionId;
 	}
 
 	public long getVersion() {

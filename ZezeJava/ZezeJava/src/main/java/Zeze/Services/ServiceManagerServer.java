@@ -227,7 +227,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			var exist = versions.remove(info.getServiceIdentity());
 			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-			if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
+			if (exist != null && exist.getSessionId() != null && exist.getSessionId() == sessionId) {
 				for (var it = simple.iterator(); it.moveToNext(); ) {
 					var itVersion = it.value().getVersion();
 					if (itVersion == 0 || itVersion == info.getVersion()) {
@@ -477,7 +477,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				// 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
 				// 另外它也被Session引用（用于连接关闭时，自动注销）。
 				// 这是专用程序，不是一个库，以后有修改时，小心就是了。
-				reg.sessionId = r.getSender().getSessionId();
+				reg.setSessionId(r.getSender().getSessionId());
 				state.collectPutNotify(reg, notifies);
 			}
 

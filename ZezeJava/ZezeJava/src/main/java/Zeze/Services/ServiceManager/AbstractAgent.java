@@ -228,7 +228,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				serviceInfos = infos;
 				for (var identityMap : infos.getInfosVersion().values()) {
 					var edit = new BEditService();
-					edit.put.addAll(identityMap.serviceInfoListSortedByIdentity);
+					edit.put.addAll(identityMap.getServiceInfoListSortedByIdentity());
 					edits.add(edit);
 				}
 			} finally {

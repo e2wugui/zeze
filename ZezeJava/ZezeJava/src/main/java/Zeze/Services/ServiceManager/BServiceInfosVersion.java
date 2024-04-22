@@ -20,8 +20,8 @@ public class BServiceInfosVersion extends Bean {
 
 	private void copyAndSortIdentityMap(long version, HashMap<String, BServiceInfo> identityMap) {
 		var infos = new BServiceInfos();
-		infos.serviceInfoListSortedByIdentity.addAll(identityMap.values());
-		infos.serviceInfoListSortedByIdentity.sort(BServiceInfos.Comparer);
+		infos.getServiceInfoListSortedByIdentity().addAll(identityMap.values());
+		infos.getServiceInfoListSortedByIdentity().sort(BServiceInfos.Comparer);
 		infosVersion.put(version, infos);
 	}
 

@@ -36,7 +36,7 @@ public class ProviderDistribute extends ReentrantLock {
 	}
 
 	private static final @NotNull SortedMap.HashFunc<Integer, BServiceInfo> hashFunc = (key, value, index) ->
-			Bean.hash64(Bean.hash64(((long)key << 32) + index, value.serviceName), value.serviceIdentity);
+			Bean.hash64(Bean.hash64(((long)key << 32) + index, value.getServiceName()), value.getServiceIdentity());
 
 	public void addServer(BServiceInfo s) {
 		consistentHashes.computeIfAbsent(s.getServiceName(), __ -> new ConsistentHash<>(hashFunc))

@@ -585,7 +585,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static BServiceInfos newSortedBServiceInfos(String serviceName, BServiceInfosVersionRocks identityMap) {
 		var result = new BServiceInfos();
-		result.serviceName = serviceName;
+		result.setServiceName(serviceName);
 		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
 		for (var info : identityMap.getServiceInfos().entrySet())
 			sortedMap.put(new BServiceInfoKeyRocks(serviceName, info.getKey()), info.getValue());

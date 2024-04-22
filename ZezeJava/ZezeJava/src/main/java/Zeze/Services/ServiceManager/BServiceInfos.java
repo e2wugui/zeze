@@ -17,9 +17,9 @@ public final class BServiceInfos extends Bean {
 	};
 
 	// ServiceList maybe empty. need a ServiceName
-	public String serviceName;
+	private String serviceName;
 	// sorted by ServiceIdentity
-	public final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
+	private final ArrayList<BServiceInfo> serviceInfoListSortedByIdentity = new ArrayList<>();
 
 	public BServiceInfos() {
 	}
@@ -30,6 +30,10 @@ public final class BServiceInfos extends Bean {
 
 	public String getServiceName() {
 		return serviceName;
+	}
+
+	public void setServiceName(String serviceName) {
+		this.serviceName = serviceName;
 	}
 
 	public ArrayList<BServiceInfo> getServiceInfoListSortedByIdentity() {
