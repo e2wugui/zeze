@@ -3,6 +3,7 @@ package UnitTest.Zeze.Trans;
 import java.util.Objects;
 import java.util.concurrent.Future;
 import Zeze.Config;
+import Zeze.Services.ServiceManager.EditService;
 import Zeze.Transaction.DispatchMode;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
@@ -55,7 +56,7 @@ public class TestGlobal extends TestCase {
 	}
 
 	public final void testNone() {
-		var rname = Zeze.Services.ServiceManager.Edit.class.getTypeName();
+		var rname = EditService.class.getTypeName();
 		System.out.println(rname);
 		var x = Zeze.Transaction.Bean.hash32(rname);
 		System.out.println(x);

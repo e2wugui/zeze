@@ -204,7 +204,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			target.addAll(serviceInfos.values());
 		}
 
-		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, Edit> result) {
+		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 			serviceInfos.put(info.getServiceIdentity(), info);
 			for (var it = simple.iterator(); it.moveToNext(); ) {
@@ -212,12 +212,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				var peer = serviceManager.server.GetSocket(sessionId);
 				if (peer == null)
 					continue;
-				var notify = result.computeIfAbsent(peer, __ -> new Edit());
+				var notify = result.computeIfAbsent(peer, __ -> new EditService());
 				notify.Argument.put.add(info);
 			}
 		}
 
-		public void collectRemoveNotify(@NotNull BServiceInfo info, long sessionId, @NotNull HashMap<AsyncSocket, Edit> result) {
+		public void collectRemoveNotify(@NotNull BServiceInfo info, long sessionId, @NotNull HashMap<AsyncSocket, EditService> result) {
 			var exist = serviceInfos.remove(info.getServiceIdentity());
 			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
 			if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
@@ -227,13 +227,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					if (peer == null)
 						continue;
 
-					var notify = result.computeIfAbsent(peer, __ -> new Edit());
+					var notify = result.computeIfAbsent(peer, __ -> new EditService());
 					notify.Argument.remove.add(info);
 				}
 			}
 		}
 
-		public void collectUpdateNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, Edit> result) {
+		public void collectUpdateNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
 			var current = serviceInfos.get(info.getServiceIdentity());
 			if (current == null)
 				return;
@@ -248,7 +248,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				if (peer == null)
 					continue;
 
-				var notify = result.computeIfAbsent(peer, __ -> new Edit());
+				var notify = result.computeIfAbsent(peer, __ -> new EditService());
 				notify.Argument.update.add(info);
 			}
 		}
@@ -314,7 +314,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				keepAliveTimerTask.cancel(false);
 
 
-			var notifies = new HashMap<AsyncSocket, Edit>();
+			var notifies = new HashMap<AsyncSocket, EditService>();
 			serviceManager.editLock.lock();
 			for (var info : subscribes.values())
 				serviceManager.unSubscribeNow(sessionId, info.getServiceName());
@@ -420,16 +420,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private final ReentrantLock editLock = new ReentrantLock(); // 整个edit使用一把锁。不并发了。
 
-	private static void sendNotifies(HashMap<AsyncSocket, Edit> notifies) {
+	private static void sendNotifies(HashMap<AsyncSocket, EditService> notifies) {
 		// todo 增加一些发送错误的日志。
 		for (var e : notifies.entrySet()) {
 			e.getValue().Send(e.getKey());
 		}
 	}
 
-	private long processEdit(@NotNull Edit r) {
+	private long processEdit(@NotNull EditService r) {
 		var session = (Session)r.getSender().getUserState();
-		var notifies = new HashMap<AsyncSocket, Edit>();
+		var notifies = new HashMap<AsyncSocket, EditService>();
 		// 原子的完成所有编辑的修改和通知。
 		editLock.lock();
 		try {
@@ -588,8 +588,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		server = new NetServer(this, config);
 
-		server.AddFactoryHandle(Edit.TypeId_, new Service.ProtocolFactoryHandle<>(
-				Edit::new, this::processEdit, TransactionLevel.None, DispatchMode.Critical));
+		server.AddFactoryHandle(EditService.TypeId_, new Service.ProtocolFactoryHandle<>(
+				EditService::new, this::processEdit, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(

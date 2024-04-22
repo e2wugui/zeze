@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BEdit extends Bean {
+public class BEditService extends Bean {
 	public final @NotNull List<BServiceInfo> remove = new ArrayList<>(); // 注销，删除，忽略不存在的。
 	public final @NotNull List<BServiceInfo> put = new ArrayList<>(); // 注册，增加或替换。
 	public final @NotNull List<BServiceInfo> update = new ArrayList<>(); // 更新，忽略不存在的，只更新局部信息。

@@ -35,7 +35,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	protected Action1<BEdit> onChanged;
+	protected Action1<BEditService> onChanged;
 	protected Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
@@ -57,11 +57,11 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return config;
 	}
 
-	public Action1<BEdit> getOnChanged() {
+	public Action1<BEditService> getOnChanged() {
 		return onChanged;
 	}
 
-	public void setOnChanged(Action1<BEdit> value) {
+	public void setOnChanged(Action1<BEditService> value) {
 		onChanged = value;
 	}
 
@@ -99,7 +99,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	private static final String SMCallbackOneByOneKey = "SMCallbackOneByOneKey";
 
-	protected void triggerOnChanged(BEdit edit) {
+	protected void triggerOnChanged(BEditService edit) {
 		if (onChanged != null) {
 			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
 				// 触发回调前修正集合之间的关系。
@@ -209,7 +209,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		public void onFirstCommit(BServiceInfos infos) {
-			var edit = new BEdit();
+			var edit = new BEditService();
 			lock();
 			try {
 				serviceInfos = infos;
@@ -221,7 +221,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract void editService(BEdit arg);
+	public abstract void editService(BEditService arg);
 
 	@Deprecated
 	public BServiceInfo registerService(String name, String identity) {

@@ -13,7 +13,7 @@ import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
@@ -58,7 +58,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	public void registerModulesAndSubscribeLinkd() {
 		var sm = providerApp.zeze.getServiceManager();
 		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
-		var edit = new BEdit();
+		var edit = new BEditService();
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
 			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,

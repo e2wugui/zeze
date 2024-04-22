@@ -18,7 +18,7 @@ import Zeze.Config;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
-import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
@@ -196,7 +196,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void editService(BEdit arg) {
+	public void editService(BEditService arg) {
 		for (var info : arg.put)
 			verify(info.getServiceIdentity());
 		waitLoginReady();
@@ -209,7 +209,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Deprecated
 	@Override
 	public BServiceInfo registerService(BServiceInfo info) {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.put.add(info);
 		editService(edit);
 		return info;
@@ -218,7 +218,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Deprecated
 	@Override
 	public BServiceInfo updateService(BServiceInfo info) {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.update.add(info);
 		editService(edit);
 		return info;
@@ -227,7 +227,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Deprecated
 	@Override
 	public void unRegisterService(BServiceInfo info) {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.remove.add(info);
 		editService(edit);
 	}

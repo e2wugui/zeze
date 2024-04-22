@@ -7,7 +7,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
@@ -83,7 +83,7 @@ public class LinkdApp {
 		Task.scheduleUnsafe(checkPeriod, checkPeriod, this::keepAliveCheckTimer);
 	}
 
-	void applyOnChanged(@NotNull BEdit edit) {
+	void applyOnChanged(@NotNull BEditService edit) {
 		for (var r : edit.remove) {
 			linkdProvider.distribute.removeServer(r);
 		}
@@ -111,7 +111,7 @@ public class LinkdApp {
 		this.commandConsoleService.start();
 
 		var identity = "@" + providerIp + "_" + providerPort;
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.put.add(new BServiceInfo(linkdServiceName, identity, providerIp, providerPort, extra));
 		zeze.getServiceManager().editService(edit);
 	}

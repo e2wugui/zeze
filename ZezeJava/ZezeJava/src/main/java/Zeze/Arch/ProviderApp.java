@@ -8,7 +8,7 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
-import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
 
@@ -100,7 +100,7 @@ public class ProviderApp extends ReentrantLock {
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
 
-	void applyOnChanged(@NotNull BEdit edit) {
+	void applyOnChanged(@NotNull BEditService edit) {
 		var refresh = false;
 		for (var r : edit.remove) {
 			if (r.getServiceName().equals(linkdServiceName))

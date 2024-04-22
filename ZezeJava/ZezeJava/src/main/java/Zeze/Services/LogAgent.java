@@ -12,7 +12,7 @@ import Zeze.Services.Log4jQuery.Session;
 import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.BEdit;
+import Zeze.Services.ServiceManager.BEditService;
 import org.jetbrains.annotations.NotNull;
 
 public class LogAgent extends AbstractLogAgent {
@@ -34,7 +34,7 @@ public class LogAgent extends AbstractLogAgent {
 		return logConf;
 	}
 
-	void applyOnChanged(@NotNull BEdit edit) {
+	void applyOnChanged(@NotNull BEditService edit) {
 		for (var r : edit.remove) {
 			client.onSmRemoved(r);
 		}

@@ -11,7 +11,7 @@
 	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
 	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
-	<external bean="Zeze.Services.ServiceManager.BEdit"/>
+	<external bean="Zeze.Services.ServiceManager.BEditService"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BUnSubscribeArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeResult"/>
@@ -1105,7 +1105,7 @@
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
 			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
-			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEdit" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEditService" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
 			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeArgument" result="Zeze.Services.ServiceManager.BSubscribeResult" base="Zeze.Raft.RaftRpc" handle="server">
 				<enum name="Success" value="0"/>

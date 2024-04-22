@@ -58,7 +58,7 @@ public final class Agent extends AbstractAgent {
 		if (reg == null)
 			return null;
 
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.update.add(info);
 		editService(edit);
 
@@ -66,12 +66,12 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void editService(BEdit arg) {
+	public void editService(BEditService arg) {
 		for (var info : arg.put)
 			verify(info.getServiceIdentity());
 		waitConnectorReady();
 
-		var edit = new Edit(arg);
+		var edit = new EditService(arg);
 		edit.SendAndWaitCheckResultCode(client.getSocket());
 
 		// 成功以后更新本地信息。
@@ -94,7 +94,7 @@ public final class Agent extends AbstractAgent {
 	@Deprecated
 	@Override
 	public BServiceInfo registerService(BServiceInfo info) {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.put.add(info);
 		editService(edit);
 		return info;
@@ -103,7 +103,7 @@ public final class Agent extends AbstractAgent {
 	@Deprecated
 	@Override
 	public void unRegisterService(BServiceInfo info) {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.remove.add(info);
 		editService(edit);
 	}
@@ -179,7 +179,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	public void onConnected() {
-		var edit = new BEdit();
+		var edit = new BEditService();
 		edit.put.addAll(registers.keySet());
 		try {
 			editService(edit);
@@ -195,7 +195,7 @@ public final class Agent extends AbstractAgent {
 		subscribeServicesAsync(subArg, null);
 	}
 
-	private long processEdit(Edit r) {
+	private long processEdit(EditService r) {
 
 		for (var it = r.Argument.remove.iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
@@ -270,8 +270,8 @@ public final class Agent extends AbstractAgent {
 				? new AgentClient(this, config)
 				: new AgentClient(this, config, netServiceName);
 
-		client.AddFactoryHandle(Edit.TypeId_, new ProtocolFactoryHandle<>(
-				Edit::new, this::processEdit, TransactionLevel.None, DispatchMode.Direct));
+		client.AddFactoryHandle(EditService.TypeId_, new ProtocolFactoryHandle<>(
+				EditService::new, this::processEdit, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
