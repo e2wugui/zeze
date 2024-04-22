@@ -12,8 +12,13 @@ import Zeze.Transaction.Record;
 public final class BServiceInfos extends Bean {
 	public static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
 		String id1 = si1.getServiceIdentity();
-		String id2 = si2.getServiceIdentity();
-		return id1.compareTo(id2);
+		if (id1.startsWith("@")) {
+			String id2 = si2.getServiceIdentity();
+			return id1.compareTo(id2);
+		}
+		var long1 = Long.parseLong(id1);
+		var long2 = Long.parseLong(si2.getServiceIdentity());
+		return Long.compare(long1, long2);
 	};
 
 	// ServiceList maybe empty. need a ServiceName
