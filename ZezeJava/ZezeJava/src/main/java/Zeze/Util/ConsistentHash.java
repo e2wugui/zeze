@@ -20,19 +20,10 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		circle = new SortedMap<>(hashFunc);
 	}
 
-	public int circleSize() {
+	public boolean isEmpty() {
 		readLock();
 		try {
-			return circle.size();
-		} finally {
-			readUnlock();
-		}
-	}
-
-	public int circleKeySize() {
-		readLock();
-		try {
-			return circle.keySize();
+			return nodes.isEmpty();
 		} finally {
 			readUnlock();
 		}
@@ -47,10 +38,19 @@ public class ConsistentHash<E extends Comparable<E>> extends FastRWLock {
 		}
 	}
 
-	public boolean isEmpty() {
+	public int circleSize() {
 		readLock();
 		try {
-			return nodes.isEmpty();
+			return circle.size();
+		} finally {
+			readUnlock();
+		}
+	}
+
+	public int circleKeySize() {
+		readLock();
+		try {
+			return circle.keySize();
 		} finally {
 			readUnlock();
 		}

@@ -7,6 +7,7 @@ import java.util.HashMap;
 import Zeze.Transaction.Bean;
 import Zeze.Util.ConsistentHash;
 import Zeze.Util.OutLong;
+import Zeze.Util.Random;
 import Zeze.Util.SortedMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,6 +94,7 @@ public class TestConsistentHash {
 		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
 	}
 
+	@SuppressWarnings("LoggingSimilarMessage")
 	@Test
 	public void testStable() {
 		SortedMap.HashFunc<Integer, Integer> selector = (key, value, index) -> ((long)value << 32) + index;
@@ -122,13 +124,36 @@ public class TestConsistentHash {
 				logger.error("testStable: s2={}", s2);
 				Assert.fail();
 			}
+			Assert.assertEquals(ch1.size(), ch2.size());
+			Assert.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
+			Assert.assertEquals(ch1.circleSize(), ch2.circleSize());
 
 			timeBegin = System.nanoTime();
+
+			var indexes = new int[1000];
+			for (int i = 0; i < indexes.length; i++)
+				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 2000));
+			for (int i = indexes.length - 1; i >= 0; i--)
+				ch2.remove(indexes[i]);
+			logger.info("testStable: removed half: ch1.size={}:{}/{}, ch2.size={}:{}/{}",
+					ch1.size(), ch1.circleKeySize(), ch1.circleSize(),
+					ch2.size(), ch2.circleKeySize(), ch2.circleSize());
+			s1 = ch1.toString();
+			s2 = ch2.toString();
+			if (!s1.equals(s2)) {
+				logger.error("testStable: s1={}", s1);
+				logger.error("testStable: s2={}", s2);
+				Assert.fail();
+			}
+			Assert.assertEquals(ch1.size(), ch2.size());
+			Assert.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
+			Assert.assertEquals(ch1.circleSize(), ch2.circleSize());
+
 			for (int i = begin; i != begin + 2000; i++) {
 				ch1.remove(i);
 				ch2.remove(i);
 			}
-			logger.info("testStable: removed: ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms",
+			logger.info("testStable: removed all: ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms",
 					ch1.size(), ch1.circleKeySize(), ch1.circleSize(),
 					ch2.size(), ch2.circleKeySize(), ch2.circleSize(),
 					(System.nanoTime() - timeBegin) / 1_000_000);
