@@ -80,7 +80,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
 			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key(), appVersion));
 		// 订阅linkd发现服务。
-		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName, appVersion));
+		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName, 0)); // link 服务没有使用版本号。
 		sm.subscribeServices(sub);
 	}
 
