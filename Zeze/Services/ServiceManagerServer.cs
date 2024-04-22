@@ -19,1006 +19,94 @@ using System.Collections;
 using DotNext.Threading;
 using System.Threading;
 
-namespace Zeze.Services
-{
-    public sealed class ServiceManagerServer : IDisposable
-    {
-        //////////////////////////////////////////////////////////////////////////////
-        /// 服务管理：注册和订阅
-        /// 【名词】
-        /// 动态服务(gs)
-        ///     动态服务器一般指启用cache-sync的逻辑服务器。比如gs。
-        /// 注册服务器（ServiceManager）
-        ///     支持更新服务器，这个服务一开始是为了启用cache-sync的服务器的查找。
-        /// 动态服务器列表使用者(linkd)
-        ///     当前使用动态服务的客户端主要是Game2/linkd，linkd在hash分配请求的时候需要一致动态服务器列表。
-        ///
-        /// 【下面的流程都是用现有的服务名字（上面括号中的名字）】
-        /// 
-        /// 【本控制功能的目标】
-        /// 所有的linkd的可用动态服务列表的更新并不是原子的。
-        /// 1. 让所有的linkd的列表保持最新；
-        /// 2. 尽可能减少linkd上的服务列表不一致的时间（通过ready-commit机制）；
-        /// 3. 列表不一致时，分发请求可能引起cache不命中，但不影响正确性（cache-sync保证了正确性）；
-        /// 
-        /// 【主要事件和流程】
-        /// 1. gs停止时调用 RegisterService,UnRegisterService 向ServiceManager声明自己服务状态。
-        /// 2. linkd启动时调用 UseService, UnUseService 向ServiceManager申请使用gs-list。
-        /// 3. ServiceManager在RegisterService,UnRegisterService处理时发送 NotifyServiceList 给所有的 linkd。
-        /// 4. linkd收到NotifyServiceList先记录到本地，同时持续关注自己和gs之间的连接，
-        ///    当列表中的所有service都准备完成时调用 ReadyServiceList。
-        /// 5. ServiceManager收到所有的linkd的ReadyServiceList后，向所有的linkd广播 CommitServiceList。
-        /// 6. linkd 收到 CommitServiceList 时，启用新的服务列表。
-        /// 
-        /// 【特别规则和错误处理】
-        /// 1. linkd 异常停止，ServiceManager 按 UnUseService 处理，仅仅简单移除use-list。相当于减少了以后请求来源。
-        /// 2. gs 异常停止，ServiceManager 按 UnRegisterService 处理，移除可用服务，并启动列表更新流程（NotifyServiceList）。
-        /// 3. linkd 处理 gs 关闭（在NotifyServiceList之前），仅仅更新本地服务列表状态，让该服务暂时不可用，但不改变列表。
-        ///    linkd总是使用ServiceManager提交给他的服务列表，自己不主动增删。
-        ///    linkd在NotifyServiceList的列表减少的处理：一般总是立即进入ready（因为其他gs都是可用状态）。
-        /// 4. ServiceManager 异常关闭：
-        ///    a) 启用raft以后，新的master会有正确列表数据，但服务状态（连接）未知，此时等待gs的RegisterService一段时间,
-        ///       然后开启新的一轮NotifyServiceList，等待时间内没有再次注册的gs以后当作新的处理。
-        ///    b) 启用raft的好处是raft的非master服务器会识别这种状态，并重定向请求到master，使得系统内只有一个master启用服务。
-        ///       实际上raft不需要维护相同数据状态（gs-list），从空的开始即可，启用raft的话仅使用他的选举功能。
-        ///    #) 由于ServiceManager可以较快恢复，暂时不考虑使用Raft，实现无聊了再来加这个吧
-        /// 5. ServiceManager开启一轮变更通告过程中，有新的gs启动停止，将开启新的通告(NotifyServiceList)。
-        ///    ReadyServiceList时会检查ready中的列表是否和当前ServiceManagerList一致，不一致直接忽略。
-        ///    新的通告流程会促使linkd继续发送ready。
-        ///    另外为了更健壮的处理通告，通告加一个超时机制。超时没有全部ready，就启动一次新的通告。
-        ///    原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
-
-        // ServiceInfo.Name -> ServiceState
-        private readonly ConcurrentDictionary<string, ServerState> ServerStates = new();
-
-        // 简单负载广播，
-        // 在RegisterService/UpdateService时自动订阅，会话关闭的时候删除。
-        // ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
-        private readonly ConcurrentDictionary<string, LoadObservers> Loads = new();
-
-        public class LoadObservers
-        {
-            public ServiceManagerServer ServiceManager;
-            public ServerLoad Load;
-            public IdentityHashSet<long> Observers = new();
-
-            public LoadObservers(ServiceManagerServer m)
-            {
-                ServiceManager = m;
-            }
-
-            public void SetServerLoad(ServerLoad load)
-            {
-                // synchronized big?
-                lock (this)
-                {
-                    Load = load;
-                    var set = new SetServerLoad
-                    {
-                        Argument = load
-                    };
-                    foreach (var e in Observers)
-                    {
-                        try
-                        {
-                            // skip rpc result
-                            if (set.Send(ServiceManager.Server.GetSocket(e)))
-                                continue;
-                        }
-                        catch (Exception)
-                        {
-                            // skip error
-                        }
-                        Observers.Remove(e); // remove in loop?
-                    }
-                }
-            }
-        }
-
-
-        public NetServer Server { get; private set; }
-        private AsyncSocket ServerSocket;
-        private volatile SchedulerTask StartNotifyDelayTask;
-
-        public sealed class Conf : Config.ICustomize
-        {
-            public string Name => "Zeze.Services.ServiceManager";
-
-            public int KeepAlivePeriod { get; set; } = 300 * 1000; // 5 mins
-
-            /// <summary>
-            /// 启动以后接收注册和订阅，一段时间内不进行通知。
-            /// 用来处理ServiceManager异常重启导致服务列表重置的问题。
-            /// 在Delay时间内，希望所有的服务都重新连接上来并注册和订阅。
-            /// Delay到达时，全部通知一遍，以后正常工作。
-            /// </summary>
-            public int StartNotifyDelay { get; set; } = 12 * 1000; // 12s
-
-            public int RetryNotifyDelayWhenNotAllReady { get; set; } = 30 * 1000; // 30s
-            public string DbHome { get; private set; } = ".";
-
-            public void Parse(XmlElement self)
-            {
-                string attr = self.GetAttribute("KeepAlivePeriod");
-                if (!string.IsNullOrEmpty(attr))
-                    KeepAlivePeriod = int.Parse(attr);
-                attr = self.GetAttribute("StartNotifyDelay");
-                if (!string.IsNullOrEmpty(attr))
-                    StartNotifyDelay = int.Parse(attr);
-                attr = self.GetAttribute("RetryNotifyDelayWhenNotAllReady");
-                if (!string.IsNullOrEmpty(attr))
-                    RetryNotifyDelayWhenNotAllReady = int.Parse(attr);
-                DbHome = self.GetAttribute("DbHome");
-                if (string.IsNullOrEmpty(DbHome))
-                    DbHome = ".";
-            }
-        }
-
-        /// <summary>
-        /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
-        /// </summary>
-        public Conf SmConf { get; } = new();
-
-        private void AddLoadObserver(string ip, int port, AsyncSocket sender)
-        {
-            if (ip.Length == 0 || port == 0)
-                return;
-            var host = ip + ":" + port;
-            var loadObservers = Loads.GetOrAdd(host, _ => new LoadObservers(this));
-            lock (loadObservers)
-                loadObservers.Observers.Add(sender.SessionId);
-        }
-
-        private Task<long> ProcessSetServerLoad(Protocol _p)
-        {
-            var p = _p as SetServerLoad;
-            Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetServerLoad(p.Argument);            
-            return Task.FromResult(0L);
-        }
-
-        public sealed class ServerState
-        {
-            public ServiceManagerServer ServiceManager { get; }
-            public string ServiceName { get; }
-
-            // identity ->
-            // 记录一下SessionId，方便以后找到服务所在的连接。
-            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; } = new();
-            public ConcurrentDictionary<long, SubscribeState> Simple { get; } = new();
-            public ConcurrentDictionary<long, SubscribeState> ReadyCommit { get; } = new();
-
-            private SchedulerTask NotifyTimeoutTask;
-            private long SerialId;
-
-            public ServerState(ServiceManagerServer sm, string serviceName)
-            {
-                ServiceManager = sm;
-                ServiceName = serviceName;
-            }
-
-            public void Close()
-            {
-                NotifyTimeoutTask?.Cancel();
-                NotifyTimeoutTask = null;
-            }
-
-            public void StartReadyCommitNotify(bool notifySimple = false)
-            {
-                lock (this)
-                {
-                    if (null != ServiceManager.StartNotifyDelayTask)
-                        return;
-                    var notify = new NotifyServiceList()
-                    {
-                        Argument = new ServiceInfos(ServiceName, this, ++SerialId),
-                    };
-                    logger.Debug("StartNotify {0}", notify.Argument);
-                    var notifyBytes = notify.Encode();
-
-                    if (notifySimple)
-                    {
-                        foreach (var e in Simple)
-                        {
-                            ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
-                        }
-                    }
-
-                    foreach (var e in ReadyCommit)
-                    {
-                        e.Value.Ready = false;
-                        ServiceManager.Server.GetSocket(e.Key)?.Send(notifyBytes);
-                    }
-                    if (!ReadyCommit.IsEmpty)
-                    {
-                        // 只有两段公告模式需要回应处理。
-                        NotifyTimeoutTask = Zeze.Util.Scheduler.Schedule(ThisTask =>
-                            {
-                                if (NotifyTimeoutTask == ThisTask)
-                                {
-                                    // NotifyTimeoutTask 会在下面两种情况下被修改：
-                                    // 1. 在 Notify.ReadyCommit 完成以后会被清空。
-                                    // 2. 启动了新的 Notify。
-                                    StartReadyCommitNotify(); // restart
-                                }
-                            },
-                            ServiceManager.SmConf.RetryNotifyDelayWhenNotAllReady);
-                    }
-                }
-            }
-
-            public void NotifySimpleOnRegister(ServiceInfo info)
-            {
-                lock (this)
-                {
-                    foreach (var e in Simple)
-                    {
-                        new Register() { Argument = info }.Send(ServiceManager.Server.GetSocket(e.Key));
-                    }
-                }
-            }
-
-            public void NotifySimpleOnUnRegister(ServiceInfo info)
-            {
-                lock (this)
-                {
-                    foreach (var e in Simple)
-                    {
-                        new UnRegister() { Argument = info }.Send(ServiceManager.Server.GetSocket(e.Key));
-                    }
-                }
-            }
-
-            public int UpdateAndNotify(ServiceInfo info)
-            {
-                lock (this)
-                {
-                    if (false == ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
-                        return Update.ServiceIndentityNotExist;
-
-                    current.PassiveIp = info.PassiveIp;
-                    current.PassivePort = info.PassivePort;
-                    current.ExtraInfo = info.ExtraInfo;
-
-                    // 简单广播。
-                    foreach (var e in Simple)
-                    {
-                        new Update() { Argument = current }.Send(ServiceManager.Server.GetSocket(e.Key));
-                    }
-                    foreach (var e in ReadyCommit)
-                    {
-                        new Update() { Argument = current }.Send(ServiceManager.Server.GetSocket(e.Key));
-                    }
-                    return 0;
-                }
-            }
-
-            public void TryCommit()
-            {
-                lock (this)
-                {
-                    if (NotifyTimeoutTask == null)
-                        return; // no pending notify
-
-                    foreach (var e in ReadyCommit)
-                    {
-                        if (false == e.Value.Ready)
-                        {
-                            return;
-                        }
-                    }
-                    var commit = new CommitServiceList();
-                    commit.Argument.ServiceName = ServiceName;
-                    commit.Argument.SerialId = SerialId;
-                    foreach (var e in ReadyCommit)
-                    {
-                        ServiceManager.Server.GetSocket(e.Key)?.Send(commit);
-                    }
-                    NotifyTimeoutTask?.Cancel();
-                    NotifyTimeoutTask = null;
-                }
-            }
-
-            /// <summary>
-            /// 订阅时候返回的ServiceInfos，必须和Notify流程互斥。
-            /// 原子的得到当前信息并发送，然后加入订阅(simple or readycommit)。
-            /// </summary>
-            public long SubscribeAndSend(Subscribe r, Session session)
-            {
-                lock (this)
-                {
-                    // 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-                    switch (r.Argument.SubscribeType)
-                    {
-                        case SubscribeInfo.SubscribeTypeSimple:
-                            Simple.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
-                            if (null == ServiceManager.StartNotifyDelayTask)
-                            {
-                                var arg = new ServiceInfos(ServiceName, this, SerialId);
-                                new SubscribeFirstCommit() { Argument = arg }.Send(r.Sender);
-                            }
-                            break;
-                        case SubscribeInfo.SubscribeTypeReadyCommit:
-                            ReadyCommit.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
-                            StartReadyCommitNotify();
-                            break;
-                        default:
-                            r.ResultCode = Subscribe.UnknownSubscribeType;
-                            r.SendResult();
-                            return ResultCode.LogicError;
-                    }
-                    r.SendResultCode(Subscribe.Success);
-                    foreach (var info in ServiceInfos.Values)
-                    {
-                        ServiceManager.AddLoadObserver(info.PassiveIp, info.PassivePort, r.Sender);
-                    }
-                    return ResultCode.Success;
-                }
-            }
-
-            public void SetReady(ReadyServiceList p, Session session)
-            {
-                lock(this)
-                {
-                    if (p.Argument.SerialId != SerialId)
-                    {
-                        logger.Debug("Skip Ready: SerialId Not Equal.");
-                        return;
-                    }
-                    if (!ReadyCommit.TryGetValue(session.SessionId, out var subscribeState))
-                        return;
-
-                    subscribeState.Ready = true;
-                    TryCommit();
-                }
-            }
-        }
-
-        public sealed class SubscribeState
-        {
-            public long SessionId { get; }
-            public bool Ready { get; set; } // ReadyCommit时才被使用。
-            public SubscribeState(long ssid)
-            {
-                SessionId = ssid;
-            }
-        }
-
-        internal readonly ConcurrentDictionary<int, SchedulerTask> OfflineNotifyFutures = new();
-
-        public sealed class Session
-        {
-            public ServiceManagerServer ServiceManager { get; }
-            public long SessionId { get; }
-            public ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; } = new(new ServiceInfoEqualityComparer());
-            // key is ServiceName: 会话订阅
-            public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; } = new();
-            private SchedulerTask KeepAliveTimerTask;
-
-            public int OfflineRegisterServerId; // 原样通知,服务端不关心!!!
-                                                // 目前SM的客户端没有Id，只能使用这个区分来自哪里，所以对于Server来说，这个值必须填写。
-                                                // 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
-            public Dictionary<string, BOfflineNotify> OfflineRegisterNotifies = new Dictionary<string, BOfflineNotify>();
-            public const long eOfflineNotifyDelay = 60 * 1000;
-
-            public Session(ServiceManagerServer sm, long ssid)
-            {
-                ServiceManager = sm;
-                SessionId = ssid;
-                KeepAliveTimerTask = Zeze.Util.Scheduler.Schedule(
-                    async (ThisTask) =>
-                    {
-                        var s = ServiceManager.Server.GetSocket(SessionId);
-                        try
-                        {
-                            var r = new KeepAlive();
-                            await r.SendAndCheckResultCodeAsync(s);
-                        }
-                        catch (Exception ex)
-                        {
-                            s?.Dispose();
-                            logger.Error(ex, "ServiceManager.KeepAlive");
-                        }
-                    },
-                    Util.Random.Instance.Next(ServiceManager.SmConf.KeepAlivePeriod),
-                ServiceManager.SmConf.KeepAlivePeriod);
-            }
-
-            public void OnClose()
-            {
-                KeepAliveTimerTask?.Cancel();
-                KeepAliveTimerTask = null;
-
-                foreach (var info in Subscribes.Values)
-                {
-                    ServiceManager.UnSubscribeNow(SessionId, info);
-                }
-
-                Dictionary<string, ServerState> changed = new(Registers.Count);
-
-                foreach (var info in Registers.Values)
-                {
-                    var state = ServiceManager.UnRegisterNow(SessionId, info);
-                    if (null != state)
-                    {
-                        changed.TryAdd(state.ServiceName, state);
-                    }
-                }
-
-                foreach (var state in changed.Values)
-                {
-                    state.StartReadyCommitNotify();
-                }
-
-                if (OfflineRegisterServerId >= 0)
-                {
-                    lock (ServiceManager)
-                    {
-                        if (!ServiceManager.OfflineNotifyFutures.ContainsKey(OfflineRegisterServerId))
-                        {
-                            ServiceManager.OfflineNotifyFutures.TryAdd(OfflineRegisterServerId,
-                                Zeze.Util.Scheduler.Schedule(OfflineNotify, eOfflineNotifyDelay));
-                        }
-                    }
-                }
-                else
-                {
-                    Task.Run(async () => await OfflineNotify(null));
-                }
-            }
-
-            private async Task OfflineNotify(SchedulerTask ThisTask)
-            {
-                if (!ServiceManager.OfflineNotifyFutures.TryRemove(OfflineRegisterServerId, out var future))
-                    return; // 此serverId的新连接已经连上或者通知已经执行。
-
-                BOfflineNotify[] notifyIds;
-
-                lock (OfflineRegisterNotifies)
-                {
-                    if (0 == OfflineRegisterNotifies.Count)
-                    {
-                        return;
-                    }
-                    var values = OfflineRegisterNotifies.Values;
-                    notifyIds = values.ToArray();
-                }
-
-                logger.Info("OfflineNotify: serverId={} notifyIds={} begin", OfflineRegisterServerId, string.Join(",", notifyIds.Select(x => x.ToString()).ToArray()));
-
-                foreach (var notifyid in notifyIds)
-                {
-                    var skips = new HashSet<Session>();
-                    var notify = new OfflineNotify(notifyid);
-                    while (true)
-                    {
-                        var selected = randomFor(notifyid.NotifyId, skips);
-                        if (selected != null)
-                        {
-                            break;
-                        }
-                        try
-                        {
-                            await notify.SendAsync(selected.Value);
-
-                            logger.Info("OfflineNotify: serverId={} notifyId={} selectSessionId={} resultCode={}", OfflineRegisterServerId, notifyid, selected.Key.SessionId, notify.ResultCode);
-
-                            if (0 == notify.ResultCode)
-                            {
-                                break;
-                            }
-                        }
-                        catch (Exception)
-                        {
-                        }
-
-                        skips.Add(selected.Key);
-
-                    }
-                }
-
-                logger.Info("OfflineNotify: serverId={} end", OfflineRegisterServerId);
-            }
-
-            private KV<Session, AsyncSocket> randomFor(string notifyId, HashSet<Session> skips)
-            {
-                List<KV<Session, AsyncSocket>> sessions = new();
-                foreach (var socket in ServiceManager.Server.SocketMapInternal.Values)
-                {
-                    var session = (Session)socket.UserState;
-                    if (session != null && session != this && !skips.Contains(session))
-                    {
-                        bool contain;
-
-                        lock (session.OfflineRegisterNotifies)
-                        {
-                            contain = session.OfflineRegisterNotifies.ContainsKey(notifyId);   
-                        }
-                        if (contain)
-                        {
-                            sessions.Add(KV.Create(session, socket));
-                        }
-                    }
-                }
-
-                if (0 == sessions.Count)
-                    return null;
-
-                return sessions[(int)Util.Random.Instance.NextInt64(sessions.Count)];
-            }
-        }
-
-        private static readonly ILogger logger = LogManager.GetLogger(typeof(ServiceManagerServer));
-
-        private Task<long> ProcessRegister(Protocol p)
-        {
-            var r = p as Register;
-            var session = r.Sender.UserState as Session;
-            // 允许重复登录，断线重连Agent不好原子实现重发。
-            session.Registers.TryAdd(r.Argument, r.Argument);
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-
-            // 【警告】
-            // 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
-            // 这个破坏了r.Argument只读的属性。另外引用同一个对象，也有点风险。
-            // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
-            // 另外它也被Session引用（用于连接关闭时，自动注销）。
-            // 这是专用程序，不是一个库，以后有修改时，小心就是了。
-            r.Argument.SessionId = r.Sender.SessionId;
-
-            // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-            var current = state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
-            r.SendResultCode(Register.Success);
-            state.StartReadyCommitNotify();
-            state.NotifySimpleOnRegister(current);
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        private Task<long> ProcessOfflineRegister(Protocol _p)
-        {
-            var p = _p as OfflineRegister;
-            logger.Info("{}: OfflineRegister serverId={} notifyId={}", p.Sender, p.Argument.ServerId, p.Argument.NotifyId);
-            var session = (Session)p.Sender.UserState;
-
-            lock (session.OfflineRegisterNotifies)
-            {
-                session.OfflineRegisterServerId = p.Argument.ServerId;
-                session.OfflineRegisterNotifies.Add(p.Argument.NotifyId, p.Argument);
-                if (OfflineNotifyFutures.TryRemove(session.OfflineRegisterServerId, out var future))
-                    future.Cancel();
-            }
-            p.SendResult();
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        private Task<long> ProcessUpdate(Protocol p)
-        {
-            var r = p as Update;
-            var session = r.Sender.UserState as Session;
-            if (false == session.Registers.ContainsKey(r.Argument))
-                return Task.FromResult((long)Update.ServiceNotRetister);
-
-            if (false == ServerStates.TryGetValue(r.Argument.ServiceName, out var state))
-                return Task.FromResult((long)Update.ServerStateError);
-
-            var rc = state.UpdateAndNotify(r.Argument);
-            if (rc != ResultCode.Success)
-                return Task.FromResult((long)rc);
-            r.SendResult();
-            return Task.FromResult(0L);
-        }
-
-        internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
-        {
-            if (ServerStates.TryGetValue(info.ServiceName, out var state))
-            {
-                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
-                {
-                    // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-                    long? existSessionId = current.SessionId as long?;
-                    if (existSessionId == null || sessionId == existSessionId.Value)
-                    {
-                        // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-                        state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
-                        state.NotifySimpleOnUnRegister(current);
-                        return state;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private Task<long> ProcessUnRegister(Protocol p)
-        {
-            var r = p as UnRegister;
-            var session = r.Sender.UserState as Session;
-            if (null != UnRegisterNow(r.Sender.SessionId, r.Argument))
-            {
-                // ignore TryRemove failed.
-                session.Registers.TryRemove(r.Argument, out var _);
-                //r.SendResultCode(UnRegister.Success);
-                //return Procedure.Success;
-            }
-            // 注销不存在也返回成功，否则Agent处理比较麻烦。
-            r.SendResultCode(UnRegister.Success);
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        private Task<long> ProcessSubscribe(Protocol p)
-        {
-            var r = p as Subscribe;
-            var session = r.Sender.UserState as Session;
-            // 允许重复订阅。
-            session.Subscribes.TryAdd(r.Argument.ServiceName, r.Argument);
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            return Task.FromResult(state.SubscribeAndSend(r, session));
-        }
-
-        internal ServerState UnSubscribeNow(long sessionId, SubscribeInfo info)
-        {
-            if (ServerStates.TryGetValue(info.ServiceName, out var state))
-            {
-                switch (info.SubscribeType)
-                {
-                    case SubscribeInfo.SubscribeTypeSimple:
-                        if (state.Simple.TryRemove(sessionId, out var _))
-                            return state;
-                        break;
-                    case SubscribeInfo.SubscribeTypeReadyCommit:
-                        if (state.ReadyCommit.TryRemove(sessionId, out var _))
-                            return state;
-                        break;
-                }
-            }
-            return null;
-        }
-
-        private Task<long> ProcessUnSubscribe(Protocol p)
-        {
-            var r = p as UnSubscribe;
-            var session = r.Sender.UserState as Session;
-            if (session.Subscribes.TryRemove(r.Argument.ServiceName, out var sub))
-            {
-                if (r.Argument.SubscribeType == sub.SubscribeType)
-                {
-                    var changed = UnSubscribeNow(r.Sender.SessionId, r.Argument);
-                    if (null != changed)
-                    {
-                        r.ResultCode = UnSubscribe.Success;
-                        r.SendResult();
-                        changed.TryCommit();
-                        return Task.FromResult(ResultCode.Success);
-                    }
-                }
-            }
-            // 取消订阅不能存在返回成功。否则Agent比较麻烦。
-            //r.ResultCode = UnSubscribe.NotExist;
-            //r.SendResult();
-            //return Procedure.LogicError;
-            r.ResultCode = UnRegister.Success;
-            r.SendResult();
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        private Task<long> ProcessReadyServiceList(Protocol p)
-        {
-            var r = p as ReadyServiceList;
-            var session = r.Sender.UserState as Session;
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            state.SetReady(r, session);
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        public void Dispose()
-        {
-            try
-            {
-                Stop();
-            }
-            catch(Exception ex)
-            {
-                logger.Error(ex);
-            }
-        }
-
-        public ServiceManagerServer(IPAddress ipaddress, int port, Config config = null, int startNotifyDelay = -1)
-        {
-            if (null == config)
-                config = Zeze.Config.Load();
-            config.ParseCustomize(SmConf);
-
-            if (startNotifyDelay >= 0)
-                SmConf.StartNotifyDelay = startNotifyDelay;
-
-            Server = new NetServer(this, config);
-
-            Server.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new Register(),
-                Handle = ProcessRegister,
-            });
-
-            Server.AddFactoryHandle(new Update().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new Update(),
-                Handle = ProcessUpdate,
-            });
-
-            Server.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new UnRegister(),
-                Handle = ProcessUnRegister,
-            });
-
-            Server.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new Subscribe(),
-                Handle = ProcessSubscribe,
-            });
-
-            Server.AddFactoryHandle(new UnSubscribe().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new UnSubscribe(),
-                Handle = ProcessUnSubscribe,
-            });
-
-            Server.AddFactoryHandle(new ReadyServiceList().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new ReadyServiceList(),
-                Handle = ProcessReadyServiceList,
-            });
-
-            Server.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new KeepAlive(),
-            });
-
-            Server.AddFactoryHandle(new AllocateId().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new AllocateId(),
-                Handle = ProcessAllocateId,
-            });
-
-            Server.AddFactoryHandle(new SetServerLoad().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new SetServerLoad(),
-                Handle = ProcessSetServerLoad,
-            });
-
-            Server.AddFactoryHandle(new OfflineRegister().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new OfflineRegister(),
-                Handle = ProcessOfflineRegister,
-            });
-
-            Server.AddFactoryHandle(new OfflineNotify().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new OfflineNotify(),
-            });
-
-            if (SmConf.StartNotifyDelay > 0)
-            {
-                StartNotifyDelayTask = Zeze.Util.Scheduler.Schedule(StartNotifyAll, SmConf.StartNotifyDelay);
-            }
-
-            var options = new DbOptions().SetCreateIfMissing(true);
-            AutoKeysDb = RocksDb.Open(options, Path.Combine(SmConf.DbHome, "autokeys"));
-
-            // 允许配置多个acceptor，如果有冲突，通过日志查看。
-            ServerSocket = Server.NewServerSocket(ipaddress, port, null);
-
-            Server.Start();
-        }
-
-        private readonly RocksDb AutoKeysDb;
-        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; } = new();
-
-        public sealed class AutoKey
-        {
-            public string Name { get; }
-            public RocksDb Db { get; }
-            private byte[] Key { get; }
-            private long Current { get; set; }
-
-            public AutoKey(string name, RocksDb db)
-            {
-                Name = name;
-                Db = db;
-                {
-                    var bb = ByteBuffer.Allocate();
-                    bb.WriteString(Name);
-                    Key = bb.Copy();
-                }
-                var value = Db.Get(Key);
-                if (null != value)
-                {
-                    var bb = ByteBuffer.Wrap(value);
-                    Current = bb.ReadLong();
-                }
-            }
-
-            private readonly WriteOptions WriteOptions = new WriteOptions().SetSync(true);
-            public void Allocate(AllocateId rpc)
-            {
-                lock (this)
-                {
-                    rpc.Result.StartId = Current;
-
-                    var count = rpc.Argument.Count;
-
-                    // 随便修正一下分配数量。
-                    if (count < 256)
-                        count = 256;
-                    else if (count > 10000)
-                        count = 10000;
-
-                    Current += count;
-                    var bb = ByteBuffer.Allocate();
-                    bb.WriteLong(Current);
-                    Db.Put(Key, Key.Length, bb.Bytes, bb.Size, null, WriteOptions);
-
-                    rpc.Result.Count = count;
-                }
-            }
-        }
-
-        public class BOfflineNotify : Bean
-        {
-            public int ServerId { get; set; }
-            public string NotifyId { get; set; }
-            public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
-            public byte[] NotifyContext { get; set; } // context 扩展context。
-
-            public override void ClearParameters()
-            {
-                ServerId = 0;
-                NotifyId = null;
-                NotifySerialId = 0;
-                NotifyContext = null;
-            }
-
-            public BOfflineNotify() {}
-
-            public BOfflineNotify(int serverId, string notifyId) {
-                ServerId = serverId;
-                NotifyId = notifyId;
-                NotifySerialId = (long)Convert.ToDouble(NotifyId);
-                {
-                    var bb = ByteBuffer.Allocate();
-                    bb.WriteString(NotifyId);
-                    NotifyContext = bb.Copy();
-                }
-            }
-
-            public override void Decode(ByteBuffer bb)
-            {
-                ServerId = bb.ReadInt();
-                NotifyId = bb.ReadString();
-                NotifySerialId = bb.ReadLong();
-                NotifyContext = bb.ReadBytes();
-            }
-
-            public override void Encode(ByteBuffer bb)
-            {
-                bb.WriteInt(ServerId);
-                bb.WriteString((string)NotifyId);
-                bb.WriteLong(NotifySerialId);
-                bb.WriteBytes(NotifyContext);
-            }
-        }
-
-        public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
-        {
-            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
-
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
-
-            public OfflineNotify()
-            {
-                Argument = new BOfflineNotify();
-                Result = EmptyBean.Instance;
-            }
-
-            public OfflineNotify(BOfflineNotify bOfflineNotify)
-            {
-                Argument = bOfflineNotify;
-                Result = EmptyBean.Instance;
-            }
-        }
-
-        public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
-        {
-            public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
-
-            public override int ModuleId => 0;
-            public override int ProtocolId => ProtocolId_;
-
-            public OfflineRegister()
-            {
-                Argument = new BOfflineNotify();
-                Result = EmptyBean.Instance;
-            }
-
-            public OfflineRegister(BOfflineNotify bOfflineNotify)
-            {
-                Argument = bOfflineNotify;
-                Result = EmptyBean.Instance;
-            }
-        }
-
-        private Task<long> ProcessAllocateId(Protocol p)
-        {
-            var r = p as AllocateId;
-            var n = r.Argument.Name;
-            r.Result.Name = n;
-            AutoKeys.GetOrAdd(n, (_) => new AutoKey(n, AutoKeysDb)).Allocate(r);
-            r.SendResult();
-            return Task.FromResult(0L);
-        }
-
-        private void StartNotifyAll(SchedulerTask ThisTask)
-        {
-            StartNotifyDelayTask = null;
-            foreach (var e in ServerStates)
-            {
-                e.Value.StartReadyCommitNotify(true);
-            }
-        }
-
-        public void Stop()
-        {
-            lock (this)
-            {
-                if (null == Server)
-                    return;
-                StartNotifyDelayTask?.Cancel();
-                ServerSocket.Dispose();
-                ServerSocket = null;
-                Server.Stop();
-                Server = null;
-
-                foreach (var ss in ServerStates.Values)
-                {
-                    ss.Close();
-                }
-                AutoKeysDb?.Dispose();
-            }
-        }
-
-        public sealed class NetServer : HandshakeServer
-        {
-            public ServiceManagerServer ServiceManager { get; }
-
-            public NetServer(ServiceManagerServer sm, Config config)
-                : base("Zeze.Services.ServiceManager", config)
-            {
-                ServiceManager = sm;
-            }
-
-            public override void OnSocketAccept(AsyncSocket so)
-            {
-                so.UserState = new Session(ServiceManager, so.SessionId);
-                base.OnSocketAccept(so);
-            }
-
-            public override void OnSocketClose(AsyncSocket so, Exception e)
-            {
-                var session = so.UserState as Session;
-                session?.OnClose();
-                base.OnSocketClose(so, e);
-            }
-
-            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
-            {
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.TrySendResultCode(code));
-            }
-        }
-
-    }
-}
-
 namespace Zeze.Services.ServiceManager
 {
+    public class BOfflineNotify : Bean
+    {
+        public int ServerId { get; set; }
+        public string NotifyId { get; set; }
+        public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
+        public byte[] NotifyContext { get; set; } // context 扩展context。
+
+        public override void ClearParameters()
+        {
+            ServerId = 0;
+            NotifyId = null;
+            NotifySerialId = 0;
+            NotifyContext = null;
+        }
+
+        public BOfflineNotify() { }
+
+        public BOfflineNotify(int serverId, string notifyId)
+        {
+            ServerId = serverId;
+            NotifyId = notifyId;
+            NotifySerialId = (long)Convert.ToDouble(NotifyId);
+            {
+                var bb = ByteBuffer.Allocate();
+                bb.WriteString(NotifyId);
+                NotifyContext = bb.Copy();
+            }
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            ServerId = bb.ReadInt();
+            NotifyId = bb.ReadString();
+            NotifySerialId = bb.ReadLong();
+            NotifyContext = bb.ReadBytes();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(ServerId);
+            bb.WriteString((string)NotifyId);
+            bb.WriteLong(NotifySerialId);
+            bb.WriteBytes(NotifyContext);
+        }
+    }
+
+    public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public OfflineNotify()
+        {
+            Argument = new BOfflineNotify();
+            Result = EmptyBean.Instance;
+        }
+
+        public OfflineNotify(BOfflineNotify bOfflineNotify)
+        {
+            Argument = bOfflineNotify;
+            Result = EmptyBean.Instance;
+        }
+    }
+
+    public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public OfflineRegister()
+        {
+            Argument = new BOfflineNotify();
+            Result = EmptyBean.Instance;
+        }
+
+        public OfflineRegister(BOfflineNotify bOfflineNotify)
+        {
+            Argument = bOfflineNotify;
+            Result = EmptyBean.Instance;
+        }
+    }
+
     public sealed class Agent : IDisposable
     {
         // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
@@ -1036,7 +124,7 @@ namespace Zeze.Services.ServiceManager
         public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
         public Action<SubscribeState> OnPrepare { get; set; }
         public Action<ServerLoad> OnSetServerLoad { get; set; }
-        public Func<ServiceManagerServer.BOfflineNotify, bool> OnOfflineNotify { get; set; }
+        public Func<BOfflineNotify, bool> OnOfflineNotify { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -1368,10 +456,10 @@ namespace Zeze.Services.ServiceManager
             return p.Send(Client?.Socket);
         }
 
-        public async Task OfflineRegisterAsync(ServiceManagerServer.BOfflineNotify arg)
+        public async Task OfflineRegisterAsync(BOfflineNotify arg)
         {
             await WaitConnectorReadyAsync();
-            _ = new ServiceManagerServer.OfflineRegister(arg).SendAndCheckResultCodeAsync(Client.GetSocket());
+            _ = new OfflineRegister(arg).SendAndCheckResultCodeAsync(Client.GetSocket());
         }
 
         private Task<long> ProcessSubscribeFirstCommit(Protocol p)
@@ -1638,15 +726,15 @@ namespace Zeze.Services.ServiceManager
                 Handle = ProcessSetServerLoad,
             });
 
-            Client.AddFactoryHandle(new ServiceManagerServer.OfflineNotify().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new OfflineNotify().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new ServiceManagerServer.OfflineNotify(),
+                Factory = () => new OfflineNotify(),
                 Handle = ProcessOfflineNotify,
             });
 
-            Client.AddFactoryHandle(new ServiceManagerServer.OfflineRegister().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new OfflineRegister().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new ServiceManagerServer.OfflineRegister(),
+                Factory = () => new OfflineRegister(),
             });
         }
 
@@ -1662,7 +750,7 @@ namespace Zeze.Services.ServiceManager
 
         private Task<long> ProcessOfflineNotify(Protocol _p)
         {
-            var p = _p as ServiceManagerServer.OfflineNotify;
+            var p = _p as OfflineNotify;
             if (OnOfflineNotify == null)
             {
                 p.TrySendResultCode(1);
@@ -2055,16 +1143,6 @@ namespace Zeze.Services.ServiceManager
         public ServiceInfos(string serviceName)
         {
             ServiceName = serviceName;
-        }
-
-        public ServiceInfos(string serviceName, ServiceManagerServer.ServerState state, long serialId)
-        {
-            ServiceName = serviceName;
-            foreach (var e in state.ServiceInfos)
-            {
-                Insert(e.Value);
-            }
-            SerialId = serialId;
         }
 
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)

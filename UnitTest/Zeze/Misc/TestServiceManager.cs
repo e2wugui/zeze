@@ -19,12 +19,9 @@ namespace UnitTest.Zeze.Misc
         {
             demo.App.Instance.Start();
         }
-        ServiceManagerServer Sm;
         [TestCleanup]
         public void TestCleanup()
         {
-            Sm?.Dispose();
-            Sm = null;
             demo.App.Instance.Stop();
         }
         TaskCompletionSource<int> future;
@@ -51,8 +48,6 @@ namespace UnitTest.Zeze.Misc
                 : System.Net.IPAddress.Parse(ip);
 
             // 后面需要手动销毁重建进行重连测试。不用using了，使用TestCleanup关闭最后的实例。
-            Sm?.Dispose();
-            Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
             var serviceName = "TestServiceManager";
 
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -122,13 +117,6 @@ namespace UnitTest.Zeze.Misc
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             await agent.RegisterService(serviceName, "3");
             future.Task.Wait();
-
-            Console.WriteLine("Test Reconnect");
-            Sm.Dispose();
-            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
-            future.Task.Wait();
-            Sm?.Dispose();
         }
     }
 }

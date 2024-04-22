@@ -2,43 +2,14 @@
 using System.Text;
 using System.Threading;
 
-namespace ServiceManager
+namespace TestRocksDB
 {
     public class Program
     {
         public static void Main(string[] args)
         {
-            Run(args);
-            //TestRocksDb();
+            TestRocksDb();
             //TestServiceManager();
-        }
-
-        public static void Run(string[] args)
-        {
-            string ip = null;
-            int port = 5001;
-
-            for (int i = 0; i < args.Length; ++i)
-            {
-                switch (args[i])
-                {
-                    case "-ip": ip = args[++i]; break;
-                    case "-port": port = int.Parse(args[++i]); break;
-
-                }
-            }
-
-            System.Net.IPAddress address =
-                string.IsNullOrEmpty(ip)
-                ? System.Net.IPAddress.Any
-                : System.Net.IPAddress.Parse(ip);
-
-            using var sm = new Zeze.Services.ServiceManagerServer(address, port);
-
-            while (true)
-            {
-                Thread.Sleep(1000);
-            }
         }
 
         public static void TestRocksDb()
