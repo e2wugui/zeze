@@ -7,22 +7,24 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 
 public class BSubscribeResult extends Bean {
-	public final HashMap<String, BServiceInfos> map = new HashMap<>();
+	public final HashMap<String, BServiceInfosVersion> map = new HashMap<>();
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteUInt(map.size());
-		for (var e : map.values()) {
-			e.encode(bb);
+		for (var e : map.entrySet()) {
+			bb.WriteString(e.getKey());
+			e.getValue().encode(bb);
 		}
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i) {
-			var infos = new BServiceInfos();
+			var serviceName = bb.ReadString();
+			var infos = new BServiceInfosVersion();
 			infos.decode(bb);
-			map.put(infos.getServiceName(), infos);
+			map.put(serviceName, infos);
 		}
 	}
 

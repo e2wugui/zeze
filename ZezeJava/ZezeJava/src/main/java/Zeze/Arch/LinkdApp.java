@@ -112,7 +112,8 @@ public class LinkdApp {
 
 		var identity = "@" + providerIp + "_" + providerPort;
 		var edit = new BEditService();
-		edit.put.add(new BServiceInfo(linkdServiceName, identity, providerIp, providerPort, extra));
+		// linkService 总是使用版本0，不开启AppVersion.
+		edit.put.add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, extra));
 		zeze.getServiceManager().editService(edit);
 	}
 }

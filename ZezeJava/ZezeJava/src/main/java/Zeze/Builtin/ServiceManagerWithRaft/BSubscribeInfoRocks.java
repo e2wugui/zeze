@@ -9,6 +9,7 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 3024932175735380785L;
 
     private String _ServiceName;
+    private long _Version;
 
     private transient Object __zeze_map_key__;
 
@@ -45,18 +46,41 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 1, value));
     }
 
+    public long getVersion() {
+        if (!isManaged())
+            return _Version;
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        if (txn == null)
+            return _Version;
+        var log = txn.getLog(objectId() + 2);
+        if (log == null)
+            return _Version;
+        return ((Zeze.Raft.RocksRaft.Log1.LogLong)log).value;
+    }
+
+    public void setVersion(long value) {
+        if (!isManaged()) {
+            _Version = value;
+            return;
+        }
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogLong(this, 2, value));
+    }
+
     public BSubscribeInfoRocks() {
         _ServiceName = "";
     }
 
-    public BSubscribeInfoRocks(String _ServiceName_) {
+    public BSubscribeInfoRocks(String _ServiceName_, long _Version_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
+        _Version = _Version_;
     }
 
     public void assign(BSubscribeInfoRocks other) {
         setServiceName(other.getServiceName());
+        setVersion(other.getVersion());
     }
 
     public BSubscribeInfoRocks copyIfManaged() {
@@ -92,7 +116,8 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public void buildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version").append('=').append(getVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -119,6 +144,13 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -128,6 +160,10 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
             _ServiceName = _o_.ReadString(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
+            _Version = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -144,6 +180,7 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+            case 2: _Version = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
         }
     }
 
@@ -156,6 +193,7 @@ public final class BSubscribeInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+                case 2: _Version = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
             }
         }
     }

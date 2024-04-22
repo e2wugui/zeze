@@ -1,6 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -121,8 +122,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public final class SubscribeState extends ReentrantLock {
-		public final BSubscribeInfo subscribeInfo;
-		public volatile BServiceInfos serviceInfos;
+		private final BSubscribeInfo subscribeInfo;
+		private volatile BServiceInfosVersion serviceInfos;
 
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
@@ -153,12 +154,16 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		public BServiceInfos getServiceInfos() {
+			return serviceInfos.getInfosVersion().get(0L);
+		}
+
+		public BServiceInfosVersion getServiceInfosVersion() {
 			return serviceInfos;
 		}
 
 		public SubscribeState(BSubscribeInfo info) {
 			subscribeInfo = info;
-			serviceInfos = new BServiceInfos(info.getServiceName());
+			serviceInfos = new BServiceInfosVersion();
 		}
 
 		// NOT UNDER LOCK
@@ -177,7 +182,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public void onRegister(BServiceInfo info) {
 			lock();
 			try {
-				serviceInfos.insert(info);
+				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
+				if (null != versions)
+					versions.insert(info);
 			} finally {
 				unlock();
 			}
@@ -186,7 +193,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public boolean onUnRegister(BServiceInfo info) {
 			lock();
 			try {
-				return (null != serviceInfos.remove(info));
+				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
+				if (null != versions)
+					return (null != versions.remove(info));
+				return false;
 			} finally {
 				unlock();
 			}
@@ -195,12 +205,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public boolean onUpdate(BServiceInfo info) {
 			lock();
 			try {
-				var exist = serviceInfos.findServiceInfo(info);
-				if (exist != null) {
-					exist.setPassiveIp(info.getPassiveIp());
-					exist.setPassivePort(info.getPassivePort());
-					exist.setExtraInfo(info.getExtraInfo());
-					return true;
+				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
+				if (null != versions) {
+					var exist = versions.findServiceInfo(info);
+					if (exist != null) {
+						exist.setPassiveIp(info.getPassiveIp());
+						exist.setPassivePort(info.getPassivePort());
+						exist.setExtraInfo(info.getExtraInfo());
+						return true;
+					}
 				}
 				return false;
 			} finally {
@@ -208,16 +221,21 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onFirstCommit(BServiceInfos infos) {
-			var edit = new BEditService();
+		public void onFirstCommit(BServiceInfosVersion infos) {
+			var edits = new ArrayList<BEditService>();
 			lock();
 			try {
 				serviceInfos = infos;
-				edit.put.addAll(infos.serviceInfoListSortedByIdentity);
+				for (var identityMap : infos.getInfosVersion().values()) {
+					var edit = new BEditService();
+					edit.put.addAll(identityMap.serviceInfoListSortedByIdentity);
+					edits.add(edit);
+				}
 			} finally {
 				unlock();
 			}
-			triggerOnChanged(edit);
+			for (var edit : edits)
+				triggerOnChanged(edit);
 		}
 	}
 
@@ -240,12 +258,12 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	@Deprecated
 	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return registerService(new BServiceInfo(name, identity, ip, port, extraInfo));
+		return registerService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
 	}
 
 	@Deprecated
 	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return updateService(new BServiceInfo(name, identity, ip, port, extraInfo));
+		return updateService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
 	}
 
 	@Deprecated
@@ -263,20 +281,23 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	@Deprecated
 	public void unRegisterService(String name, String identity) {
-		unRegisterService(new BServiceInfo(name, identity));
+		unRegisterService(new BServiceInfo(name, identity, 0));
 	}
 
 	@Deprecated
 	public abstract void unRegisterService(BServiceInfo info);
 
 	public SubscribeState subscribeService(String serviceName) {
-		return subscribeService(serviceName, null);
+		return subscribeService(serviceName, 0,null);
 	}
 
 	public SubscribeState subscribeService(String serviceName, Object state) {
-		var info = new BSubscribeInfo();
-		info.setServiceName(serviceName);
-		info.setLocalState(state);
+		var info = new BSubscribeInfo(serviceName, 0, state);
+		return subscribeService(info);
+	}
+
+	public SubscribeState subscribeService(String serviceName, long version, Object state) {
+		var info = new BSubscribeInfo(serviceName, version, state);
 		return subscribeService(info);
 	}
 

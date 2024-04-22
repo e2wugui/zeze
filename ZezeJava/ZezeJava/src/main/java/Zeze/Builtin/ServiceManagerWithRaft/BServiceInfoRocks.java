@@ -14,6 +14,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
     private int _PassivePort;
     private Zeze.Net.Binary _ExtraInfo;
     private String _SessionName;
+    private long _Version;
 
     private transient Object __zeze_map_key__;
 
@@ -163,6 +164,27 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 6, value));
     }
 
+    public long getVersion() {
+        if (!isManaged())
+            return _Version;
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        if (txn == null)
+            return _Version;
+        var log = txn.getLog(objectId() + 7);
+        if (log == null)
+            return _Version;
+        return ((Zeze.Raft.RocksRaft.Log1.LogLong)log).value;
+    }
+
+    public void setVersion(long value) {
+        if (!isManaged()) {
+            _Version = value;
+            return;
+        }
+        var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
+        txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogLong(this, 7, value));
+    }
+
     public BServiceInfoRocks() {
         _ServiceName = "";
         _ServiceIdentity = "";
@@ -171,7 +193,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         _SessionName = "";
     }
 
-    public BServiceInfoRocks(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, String _SessionName_) {
+    public BServiceInfoRocks(String _ServiceName_, String _ServiceIdentity_, String _PassiveIp_, int _PassivePort_, Zeze.Net.Binary _ExtraInfo_, String _SessionName_, long _Version_) {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
@@ -188,6 +210,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         if (_SessionName_ == null)
             throw new IllegalArgumentException();
         _SessionName = _SessionName_;
+        _Version = _Version_;
     }
 
     public void assign(BServiceInfoRocks other) {
@@ -197,6 +220,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         setPassivePort(other.getPassivePort());
         setExtraInfo(other.getExtraInfo());
         setSessionName(other.getSessionName());
+        setVersion(other.getVersion());
     }
 
     public BServiceInfoRocks copyIfManaged() {
@@ -237,7 +261,8 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("PassiveIp").append('=').append(getPassiveIp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("PassivePort").append('=').append(getPassivePort()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo").append('=').append(getExtraInfo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SessionName").append('=').append(getSessionName()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SessionName").append('=').append(getSessionName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version").append('=').append(getVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -299,6 +324,13 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -330,6 +362,10 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             _SessionName = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 7) {
+            _Version = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -349,6 +385,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
             case 4: _PassivePort = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
             case 5: _ExtraInfo = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
             case 6: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+            case 7: _Version = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
         }
     }
 
@@ -366,6 +403,7 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
                 case 4: _PassivePort = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).value; break;
                 case 5: _ExtraInfo = ((Zeze.Raft.RocksRaft.Log1.LogBinary)vlog).value; break;
                 case 6: _SessionName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
+                case 7: _Version = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
             }
         }
     }

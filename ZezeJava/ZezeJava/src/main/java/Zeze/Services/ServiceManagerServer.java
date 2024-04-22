@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -187,10 +186,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public static final class ServiceState {
 		private final @NotNull ServiceManagerServer serviceManager;
 		private final @NotNull String serviceName;
-		// identity ->
+		// version -> map<identity, serviceInfo>
 		// 记录一下SessionId，方便以后找到服务所在的连接。
-		private final HashMap<String, BServiceInfo> serviceInfos = new HashMap<>(); // key:serverId
-		private final LongHashMap<SubscribeState> simple = new LongHashMap<>(); // key:sessionId
+		private final HashMap<Long, HashMap<String, BServiceInfo>> serviceInfos = new HashMap<>(); // key:serverId
+		private final LongHashMap<BSubscribeInfo> simple = new LongHashMap<>(); // key:sessionId
 
 		public ServiceState(@NotNull ServiceManagerServer sm, @NotNull String serviceName) {
 			serviceManager = sm;
@@ -200,41 +199,56 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		public void close() {
 		}
 
-		public void getServiceInfos(@NotNull List<BServiceInfo> target) {
-			target.addAll(serviceInfos.values());
+		public HashMap<Long, HashMap<String, BServiceInfo>> getServiceInfos() {
+			return serviceInfos;
 		}
 
 		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			serviceInfos.put(info.getServiceIdentity(), info);
+			var versions = serviceInfos.computeIfAbsent(info.getVersion(), (key) -> new HashMap<>());
+			versions.put(info.getServiceIdentity(), info);
 			for (var it = simple.iterator(); it.moveToNext(); ) {
-				var sessionId = it.key();
-				var peer = serviceManager.server.GetSocket(sessionId);
-				if (peer == null)
-					continue;
-				var notify = result.computeIfAbsent(peer, __ -> new EditService());
-				notify.Argument.put.add(info);
+				var itVersion = it.value().getVersion();
+				if (itVersion == 0 || itVersion == info.getVersion()) {
+					var sessionId = it.key();
+					var peer = serviceManager.server.GetSocket(sessionId);
+					if (peer == null)
+						continue;
+					var notify = result.computeIfAbsent(peer, __ -> new EditService());
+					notify.Argument.put.add(info);
+				}
 			}
 		}
 
 		public void collectRemoveNotify(@NotNull BServiceInfo info, long sessionId, @NotNull HashMap<AsyncSocket, EditService> result) {
-			var exist = serviceInfos.remove(info.getServiceIdentity());
+			var versions = serviceInfos.get(info.getVersion());
+			if (null == versions)
+				return; // version not found
+
+			var exist = versions.remove(info.getServiceIdentity());
 			// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
 			if (exist != null && exist.sessionId != null && exist.sessionId == sessionId) {
 				for (var it = simple.iterator(); it.moveToNext(); ) {
-					var peerSessionId = it.key();
-					var peer = serviceManager.server.GetSocket(peerSessionId);
-					if (peer == null)
-						continue;
+					var itVersion = it.value().getVersion();
+					if (itVersion == 0 || itVersion == info.getVersion()) {
+						var peerSessionId = it.key();
+						var peer = serviceManager.server.GetSocket(peerSessionId);
+						if (peer == null)
+							continue;
 
-					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.remove.add(info);
+						var notify = result.computeIfAbsent(peer, __ -> new EditService());
+						notify.Argument.remove.add(info);
+					}
 				}
 			}
 		}
 
 		public void collectUpdateNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
-			var current = serviceInfos.get(info.getServiceIdentity());
+			var versions = serviceInfos.get(info.getVersion());
+			if (null == versions)
+				return; // version not found
+
+			var current = versions.get(info.getServiceIdentity());
 			if (current == null)
 				return;
 
@@ -243,26 +257,28 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			current.setExtraInfo(info.getExtraInfo());
 
 			for (var it = simple.iterator(); it.moveToNext(); ) {
-				var sessionId = it.key();
-				var peer = serviceManager.server.GetSocket(sessionId);
-				if (peer == null)
-					continue;
+				var itVersion = it.value().getVersion();
+				if (itVersion == 0 || itVersion == info.getVersion()) {
+					var sessionId = it.key();
+					var peer = serviceManager.server.GetSocket(sessionId);
+					if (peer == null)
+						continue;
 
-				var notify = result.computeIfAbsent(peer, __ -> new EditService());
-				notify.Argument.update.add(info);
+					var notify = result.computeIfAbsent(peer, __ -> new EditService());
+					notify.Argument.update.add(info);
+				}
 			}
 		}
 
-		public void subscribeAndCollectResult(@NotNull Subscribe r, long sessionId) {
+		public void subscribeAndCollectResult(@NotNull Subscribe r, BSubscribeInfo subInfo, long sessionId) {
 			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-			simple.computeIfAbsent(sessionId, __ -> new SubscribeState());
-			r.Result.map.put(serviceName, new BServiceInfos(serviceName, this));
-			for (var info : serviceInfos.values())
-				serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
+			simple.put(sessionId, subInfo);
+			r.Result.map.put(serviceName, new BServiceInfosVersion(subInfo.getVersion(), this));
+			for (var versions : serviceInfos.values()) {
+				for (var info : versions.values())
+					serviceManager.addLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
+			}
 		}
-	}
-
-	private static final class SubscribeState {
 	}
 
 	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
@@ -491,7 +507,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (var info : r.Argument.subs) {
 				session.subscribes.putIfAbsent(info.getServiceName(), info);
 				serviceStates.computeIfAbsent(info.getServiceName(), name -> new ServiceState(this, name))
-						.subscribeAndCollectResult(r, session.sessionId);
+						.subscribeAndCollectResult(r, info, session.sessionId);
 			}
 			r.SendResult();
 			return 0;

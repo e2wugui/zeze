@@ -6,18 +6,25 @@ import Zeze.Transaction.Bean;
 
 public final class BSubscribeInfo extends Bean {
 	private String serviceName;
+	private long version;
 	private Object localState;
 
 	public BSubscribeInfo() {
 	}
 
-	public BSubscribeInfo(String name) {
-		serviceName = name;
+	public BSubscribeInfo(String name, long version) {
+		this.serviceName = name;
+		this.version = version;
 	}
 
-	public BSubscribeInfo(String name, Object state) {
+	public BSubscribeInfo(String name, long version, Object state) {
 		serviceName = name;
+		this.version = version;
 		localState = state;
+	}
+
+	public long getVersion() {
+		return version;
 	}
 
 	public String getServiceName() {
@@ -39,11 +46,13 @@ public final class BSubscribeInfo extends Bean {
 	@Override
 	public void decode(IByteBuffer bb) {
 		setServiceName(bb.ReadString());
+		this.version = bb.ReadLong();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteString(getServiceName());
+		bb.WriteLong(version);
 	}
 
 	@Override
@@ -51,7 +60,7 @@ public final class BSubscribeInfo extends Bean {
 		return getServiceName();
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
+	private static int _PRE_ALLOC_SIZE_ = 32;
 
 	@Override
 	public int preAllocSize() {

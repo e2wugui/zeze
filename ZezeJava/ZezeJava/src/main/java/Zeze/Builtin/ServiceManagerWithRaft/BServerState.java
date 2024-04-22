@@ -4,14 +4,13 @@ package Zeze.Builtin.ServiceManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-// service(server state)
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression", "NullableProblems", "SuspiciousNameCombination"})
 public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
     public static final long TYPEID = 8043107371087898459L;
 
     private String _ServiceName;
-    private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> _ServiceInfos;
-    private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks> _Simple;
+    private final Zeze.Raft.RocksRaft.CollMap2<Long, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks> _ServiceInfosVersion;
+    private final Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks> _Simple;
     private long _SerialId;
 
     public String getServiceName() {
@@ -37,11 +36,11 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         txn.putLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 1, value));
     }
 
-    public Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks> getServiceInfos() {
-        return _ServiceInfos;
+    public Zeze.Raft.RocksRaft.CollMap2<Long, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks> getServiceInfosVersion() {
+        return _ServiceInfosVersion;
     }
 
-    public Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks> getSimple() {
+    public Zeze.Raft.RocksRaft.CollMap2<String, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks> getSimple() {
         return _Simple;
     }
 
@@ -68,9 +67,9 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
 
     public BServerState() {
         _ServiceName = "";
-        _ServiceInfos = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
-        _ServiceInfos.variableId(2);
-        _Simple = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks.class);
+        _ServiceInfosVersion = new Zeze.Raft.RocksRaft.CollMap2<>(Long.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks.class);
+        _ServiceInfosVersion.variableId(2);
+        _Simple = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
         _Simple.variableId(3);
     }
 
@@ -78,18 +77,18 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         if (_ServiceName_ == null)
             throw new IllegalArgumentException();
         _ServiceName = _ServiceName_;
-        _ServiceInfos = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks.class);
-        _ServiceInfos.variableId(2);
-        _Simple = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks.class);
+        _ServiceInfosVersion = new Zeze.Raft.RocksRaft.CollMap2<>(Long.class, Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks.class);
+        _ServiceInfosVersion.variableId(2);
+        _Simple = new Zeze.Raft.RocksRaft.CollMap2<>(String.class, Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks.class);
         _Simple.variableId(3);
         _SerialId = _SerialId_;
     }
 
     public void assign(BServerState other) {
         setServiceName(other.getServiceName());
-        _ServiceInfos.clear();
-        for (var e : other._ServiceInfos.entrySet())
-            _ServiceInfos.put(e.getKey(), e.getValue());
+        _ServiceInfosVersion.clear();
+        for (var e : other._ServiceInfosVersion.entrySet())
+            _ServiceInfosVersion.put(e.getKey(), e.getValue());
         _Simple.clear();
         for (var e : other._Simple.entrySet())
             _Simple.put(e.getKey(), e.getValue());
@@ -130,9 +129,9 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServerState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceInfos").append("=[").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceInfosVersion").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getServiceInfos().entrySet()) {
+        for (var _kv_ : getServiceInfosVersion().entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
@@ -182,13 +181,13 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
             }
         }
         {
-            var _x_ = getServiceInfos();
+            var _x_ = getServiceInfosVersion();
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
+                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteString(_e_.getKey());
+                    _o_.WriteLong(_e_.getKey());
                     _e_.getValue().encode(_o_);
                     _n_--;
                 }
@@ -230,13 +229,13 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getServiceInfos();
+            var _x_ = getServiceInfosVersion();
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadString(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks(), _t_);
+                    var _k_ = _o_.ReadLong(_s_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else
@@ -250,7 +249,7 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeStateRocks(), _t_);
+                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ServiceManagerWithRaft.BSubscribeInfoRocks(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else
@@ -273,7 +272,7 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     protected void initChildrenRootInfo(Zeze.Raft.RocksRaft.Record.RootInfo root) {
-        _ServiceInfos.initRootInfo(root, this);
+        _ServiceInfosVersion.initRootInfo(root, this);
         _Simple.initRootInfo(root, this);
     }
 
@@ -281,7 +280,7 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
     public void leaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
             case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
-            case 2: _ServiceInfos.leaderApplyNoRecursive(vlog); break;
+            case 2: _ServiceInfosVersion.leaderApplyNoRecursive(vlog); break;
             case 3: _Simple.leaderApplyNoRecursive(vlog); break;
             case 5: _SerialId = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
         }
@@ -296,7 +295,7 @@ public final class BServerState extends Zeze.Raft.RocksRaft.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ServiceName = ((Zeze.Raft.RocksRaft.Log1.LogString)vlog).value; break;
-                case 2: _ServiceInfos.followerApply(vlog); break;
+                case 2: _ServiceInfosVersion.followerApply(vlog); break;
                 case 3: _Simple.followerApply(vlog); break;
                 case 5: _SerialId = ((Zeze.Raft.RocksRaft.Log1.LogLong)vlog).value; break;
             }

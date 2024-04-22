@@ -17,9 +17,9 @@ public class TestServiceManager {
 	@Test
 	public void testServiceInfos() {
 		var infos = new BServiceInfos("TestBase");
-		infos.insert(new BServiceInfo("TestBase", "1"));
-		infos.insert(new BServiceInfo("TestBase", "3"));
-		infos.insert(new BServiceInfo("TestBase", "2"));
+		infos.insert(new BServiceInfo("TestBase", "1", 0));
+		infos.insert(new BServiceInfo("TestBase", "3", 0));
+		infos.insert(new BServiceInfo("TestBase", "2", 0));
 		Assert.assertEquals("TestBase[1,2,3,]", infos.toString());
 	}
 

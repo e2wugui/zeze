@@ -10,7 +10,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class BServiceInfos extends Bean {
-	private static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
+	public static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
 		String id1 = si1.getServiceIdentity();
 		String id2 = si2.getServiceIdentity();
 		return id1.compareTo(id2);
@@ -26,12 +26,6 @@ public final class BServiceInfos extends Bean {
 
 	public BServiceInfos(String serviceName) {
 		this.serviceName = serviceName;
-	}
-
-	public BServiceInfos(String serviceName, ServiceManagerServer.ServiceState state) {
-		this.serviceName = serviceName;
-		state.getServiceInfos(serviceInfoListSortedByIdentity);
-		serviceInfoListSortedByIdentity.sort(Comparer);
 	}
 
 	public String getServiceName() {
@@ -61,7 +55,7 @@ public final class BServiceInfos extends Bean {
 	}
 
 	public BServiceInfo findServiceInfoByIdentity(String identity) {
-		return findServiceInfo(new BServiceInfo(serviceName, identity));
+		return findServiceInfo(new BServiceInfo(serviceName, identity, 0));
 	}
 
 	public BServiceInfo findServiceInfoByServerId(int serverId) {

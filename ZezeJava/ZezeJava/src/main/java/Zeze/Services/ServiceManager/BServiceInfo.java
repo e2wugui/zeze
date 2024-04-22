@@ -12,6 +12,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	 * 服务名，比如"GameServer"
 	 */
 	public @NotNull String serviceName;
+	public long version;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
@@ -43,6 +44,10 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		return passiveIp;
 	}
 
+	public long getVersion() {
+		return version;
+	}
+
 	public void setPassiveIp(@NotNull String value) {
 		passiveIp = value;
 	}
@@ -64,25 +69,27 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	public BServiceInfo() {
-		this("", "", null, 0, null);
+		this("", "", 0,null, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip, int port) {
-		this(name, identity, ip, port, null);
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port) {
+		this(name, identity, version, ip, port, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip) {
-		this(name, identity, ip, 0, null);
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip) {
+		this(name, identity, version, ip, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity) {
-		this(name, identity, null, 0, null);
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version) {
+		this(name, identity, version, null, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, @Nullable String ip, int port,
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version,
+						@Nullable String ip, int port,
 						@Nullable Binary extraInfo) {
 		serviceName = name;
 		serviceIdentity = identity;
+		this.version = version;
 		if (ip != null)
 			passiveIp = ip;
 		passivePort = port;
@@ -97,6 +104,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		passiveIp = bb.ReadString();
 		passivePort = bb.ReadInt();
 		extraInfo = bb.ReadBinary();
+		this.version = bb.ReadLong();
 	}
 
 	@Override
@@ -106,6 +114,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		bb.WriteString(getPassiveIp());
 		bb.WriteInt(getPassivePort());
 		bb.WriteBinary(getExtraInfo());
+		bb.WriteLong(version);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -137,6 +146,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 
 		if (obj instanceof BServiceInfo) {
 			var other = (BServiceInfo)obj;
+			// 版本分类存储，同一个集合的版本肯定相等，这里不需要判断版本。
 			return getServiceName().equals(other.getServiceName())
 					&& getServiceIdentity().equals(other.getServiceIdentity());
 		}
@@ -154,7 +164,10 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 
 	@Override
 	public @NotNull String toString() {
-		return "BServiceInfo{" + "ServiceName='" + serviceName + '\'' + ", ServiceIdentity='" + serviceIdentity + '\'' +
-				", PassiveIp='" + passiveIp + '\'' + ", PassivePort=" + passivePort + ", ExtraInfo=" + extraInfo + '}';
+		return "BServiceInfo{" + "ServiceName='" + serviceName + '\''
+				+ ", ServiceIdentity='" + serviceIdentity + '\'' +
+				", Version=" + version +
+				", PassiveIp='" + passiveIp + '\'' + ", PassivePort=" + passivePort
+				+ ", ExtraInfo=" + extraInfo + '}';
 	}
 }

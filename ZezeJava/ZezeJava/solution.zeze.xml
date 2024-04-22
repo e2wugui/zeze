@@ -1148,9 +1148,11 @@
 				<variable id="4" name="PassivePort" type="int"/>
 				<variable id="5" name="ExtraInfo" type="binary"/>
 				<variable id="6" name="SessionName" type="string"/>
+				<variable id="7" name="Version" type="long"/>
 			</bean>
 			<bean name="BSubscribeInfoRocks" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="Version" type="long"/>
 			</bean>
 			<table name="tSession" key="string" value="BSession" kind="rocks"/>
 
@@ -1161,13 +1163,14 @@
 			<table name="tLoadObservers" key="string" value="BLoadObservers" kind="rocks"/>
 
 			<!-- service(server state) -->
+			<bean name="BServiceInfosVersionRocks" kind="rocks">
+				<variable id="1" name="ServiceInfos" type="map[string, BServiceInfoRocks]"/>
+			</bean>
 			<bean name="BServerState" kind="rocks">
 				<variable id="1" name="ServiceName" type="string"/>
-				<variable id="2" name="ServiceInfos" type="map[string, BServiceInfoRocks]"/>
-				<variable id="3" name="Simple" type="map[string, BSubscribeStateRocks]"/>
+				<variable id="2" name="ServiceInfosVersion" type="map[long, BServiceInfosVersionRocks]"/>
+				<variable id="3" name="Simple" type="map[string, BSubscribeInfoRocks]"/>
 				<variable id="5" name="SerialId" type="long"/>
-			</bean>
-			<bean name="BSubscribeStateRocks" kind="rocks">
 			</bean>
 			<table name="tServerState" key="string" value="BServerState" kind="rocks"/>
 		</module>

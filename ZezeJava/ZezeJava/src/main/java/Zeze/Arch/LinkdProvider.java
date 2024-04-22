@@ -258,8 +258,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.getConfigType());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-				var subState = distribute.zeze.getServiceManager().subscribeService(
-						serviceName, providerModuleState);
+				var subState = distribute.zeze.getServiceManager().subscribeService(serviceName, providerModuleState);
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
 				subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);
@@ -291,8 +290,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 					moduleId, module.getChoiceType(), module.getConfigType());
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-			var subState = distribute.zeze.getServiceManager().subscribeService(
-					serviceName, providerModuleState);
+			var subState = distribute.zeze.getServiceManager().subscribeService(serviceName, providerModuleState);
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
 			subState.setIdentityLocalState(providerInfo.getServiceIdentity(), providerModuleState);

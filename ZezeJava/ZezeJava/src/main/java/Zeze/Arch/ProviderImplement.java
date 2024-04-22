@@ -59,14 +59,17 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sm = providerApp.zeze.getServiceManager();
 		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		var edit = new BEditService();
+		var appVersion = providerApp.zeze.getSchemas().getAppVersion();
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
 			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+					appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
 		// 注册本provider的动态服务
 		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
 			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+					appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
 		sm.editService(edit);
@@ -75,9 +78,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sub = new BSubscribeArgument();
 		// 订阅provider直连发现服务
 		for (var it = providerApp.modules.iterator(); it.moveToNext(); )
-			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key()));
+			sub.subs.add(new BSubscribeInfo(providerApp.serverServiceNamePrefix + it.key(), appVersion));
 		// 订阅linkd发现服务。
-		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName));
+		sub.subs.add(new BSubscribeInfo(providerApp.linkdServiceName, appVersion));
 		sm.subscribeServices(sub);
 	}
 

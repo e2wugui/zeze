@@ -19,6 +19,7 @@ import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.Server;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
+import Zeze.Services.ServiceManager.BServiceInfosVersion;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Action0;
@@ -141,11 +142,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 	}
 
+	/*
 	private static BSubscribeInfo fromRocks(BSubscribeInfoRocks rocks) {
-		var r = new BSubscribeInfo();
-		r.setServiceName(rocks.getServiceName());
-		return r;
+		return new BSubscribeInfo(rocks.getServiceName(), rocks.getVersion());
 	}
+	*/
 
 	public class Session {
 		private final String name;
@@ -191,11 +192,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				for (var unReg : session.getRegisters().values()) {
 					var state = tableServerState.get(unReg.getServiceName());
 					if (state != null) {
-						var exist = state.getServiceInfos().get(unReg.getServiceIdentity());
-						state.getServiceInfos().remove(unReg.getServiceIdentity());
-						if (exist != null && exist.getSessionName().equals(name)) {
-							// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-							collectRemoveNotify(state, fromRocks(exist), notifies);
+						var versions = state.getServiceInfosVersion().get(unReg.getVersion());
+						if (null != versions) {
+							var exist = versions.getServiceInfos().get(unReg.getServiceIdentity());
+							versions.getServiceInfos().remove(unReg.getServiceIdentity());
+							if (exist != null && exist.getSessionName().equals(name)) {
+								// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+								collectRemoveNotify(state, fromRocks(exist), notifies);
+							}
 						}
 					}
 				}
@@ -377,7 +381,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private static BServiceInfoRocks toRocks(BServiceInfo serverInfo, String sessionName) {
 		return new BServiceInfoRocks(serverInfo.getServiceName(), serverInfo.getServiceIdentity(),
 				serverInfo.getPassiveIp(), serverInfo.getPassivePort(), serverInfo.getExtraInfo(),
-				sessionName);
+				sessionName, serverInfo.getVersion());
 	}
 
 	private static BServiceInfoKeyRocks toRocksKey(BServiceInfo serverInfo) {
@@ -385,7 +389,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	private static BSubscribeInfoRocks toRocks(BSubscribeInfo si) {
-		return new BSubscribeInfoRocks(si.getServiceName());
+		return new BSubscribeInfoRocks(si.getServiceName(), si.getVersion());
 	}
 
 	private static void sendNotifies(HashMap<AsyncSocket, Edit> notifies) {
@@ -404,11 +408,14 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		for (var unReg : r.Argument.remove) {
 			var state = tableServerState.get(unReg.getServiceName());
 			if (state != null) {
-				var exist = state.getServiceInfos().get(unReg.getServiceIdentity());
-				state.getServiceInfos().remove(unReg.getServiceIdentity());
-				if (exist != null && exist.getSessionName().equals(netSession.name)) {
-					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-					collectRemoveNotify(state, fromRocks(exist), notifies);
+				var versions = state.getServiceInfosVersion().get(unReg.getVersion());
+				if (null != versions) {
+					var exist = versions.getServiceInfos().get(unReg.getServiceIdentity());
+					versions.getServiceInfos().remove(unReg.getServiceIdentity());
+					if (exist != null && exist.getSessionName().equals(netSession.name)) {
+						// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
+						collectRemoveNotify(state, fromRocks(exist), notifies);
+					}
 				}
 			}
 			var session = tableSession.get(netSession.name);
@@ -423,8 +430,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var state = tableServerState.getOrAdd(reg.getServiceName());
 			if (!state.getServiceName().equals(reg.getServiceName()))
 				state.setServiceName(reg.getServiceName());
+			var versions = state.getServiceInfosVersion().get(reg.getVersion());
+			if (null == versions)
+				state.getServiceInfosVersion().put(reg.getVersion(), versions = new BServiceInfosVersionRocks());
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			state.getServiceInfos().put(reg.getServiceIdentity(), toRocks(reg, netSession.name));
+			versions.getServiceInfos().put(reg.getServiceIdentity(), toRocks(reg, netSession.name));
 			collectPutNotify(state, reg, notifies);
 		}
 
@@ -444,16 +454,20 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	private void collectPutNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
-		for (var sessionName : state.getSimple().keys()) {
-			var session = tableSession.get(sessionName);
-			if (null == session)
-				continue;
-			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-			if (null == peer)
-				continue;
+		for (var e : state.getSimple().entrySet()) {
+			var subVersion = e.getValue().getVersion();
+			if (subVersion == 0 || subVersion == info.getVersion()) {
+				var sessionName = e.getKey();
+				var session = tableSession.get(sessionName);
+				if (null == session)
+					continue;
+				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+				if (null == peer)
+					continue;
 
-			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-			notify.Argument.put.add(info);
+				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+				notify.Argument.put.add(info);
+			}
 		}
 	}
 
@@ -467,7 +481,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			var state = tableServerState.getOrAdd(info.getServiceName());
 			if (!state.getServiceName().equals(info.getServiceName()))
 				state.setServiceName(info.getServiceName());
-			subscribeAndCollect(state, r, netSession.name);
+			subscribeAndCollect(state, r, info, netSession.name);
 		}
 		r.SendResult();
 		return 0;
@@ -475,20 +489,25 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	private static BServiceInfo fromRocks(BServiceInfoRocks rocks) {
 		return new BServiceInfo(rocks.getServiceName(), rocks.getServiceIdentity(),
+				rocks.getVersion(),
 				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
 	}
 
 	public void collectRemoveNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
-		for (var sessionName : state.getSimple().keys()) {
-			var session = tableSession.get(sessionName);
-			if (null == session)
-				continue;
-			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-			if (null == peer)
-				continue;
+		for (var e : state.getSimple().entrySet()) {
+			var subVersion = e.getValue().getVersion();
+			if (subVersion == 0 || subVersion == info.getVersion()) {
+				var sessionName = e.getKey();
+				var session = tableSession.get(sessionName);
+				if (null == session)
+					continue;
+				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+				if (null == peer)
+					continue;
 
-			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-			notify.Argument.remove.add(info);
+				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+				notify.Argument.remove.add(info);
+			}
 		}
 	}
 
@@ -520,7 +539,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	public void collectUpdateNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
-		var current = state.getServiceInfos().get(info.getServiceIdentity());
+		var versions = state.getServiceInfosVersion().get(info.getVersion());
+		if (null == versions)
+			return;
+
+		var current = versions.getServiceInfos().get(info.getServiceIdentity());
 		if (current == null)
 			return;
 
@@ -529,37 +552,56 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		current.setExtraInfo(info.getExtraInfo());
 
 		// 简单广播。
-		for (var sessionName : state.getSimple().keys()) {
-			var session = tableSession.get(sessionName);
-			if (null == session)
-				continue;
-			var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-			if (null == peer)
-				continue;
+		for (var e : state.getSimple().entrySet()) {
+			var subVersion = e.getValue().getVersion();
+			if (subVersion == 0 || subVersion == info.getVersion()) {
+				var sessionName = e.getKey();
+				var session = tableSession.get(sessionName);
+				if (null == session)
+					continue;
+				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
+				if (null == peer)
+					continue;
 
-			var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-			notify.Argument.update.add(info);
+				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
+				notify.Argument.update.add(info);
+			}
 		}
 	}
 
-	private static BServiceInfos newSortedBServiceInfos(BServerState state) {
+	private static BServiceInfosVersion newServiceInfosVersion(long hopeVersion, BServerState state) {
+		var versions = new BServiceInfosVersion();
+		var serviceName = state.getServiceName();
+		if (hopeVersion > 0) {
+			var identityMap = state.getServiceInfosVersion().get(hopeVersion);
+			if (null != identityMap)
+				versions.getInfosVersion().put(hopeVersion, newSortedBServiceInfos(serviceName, identityMap));
+		} else {
+			for (var e : state.getServiceInfosVersion().entrySet())
+				versions.getInfosVersion().put(e.getKey(), newSortedBServiceInfos(serviceName, e.getValue()));
+		}
+		return versions;
+	}
+
+	private static BServiceInfos newSortedBServiceInfos(String serviceName, BServiceInfosVersionRocks identityMap) {
 		var result = new BServiceInfos();
-		result.serviceName = state.getServiceName();
+		result.serviceName = serviceName;
 		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
-		for (var info : state.getServiceInfos())
-			sortedMap.put(new BServiceInfoKeyRocks(state.getServiceName(), info.getKey()), info.getValue());
+		for (var info : identityMap.getServiceInfos().entrySet())
+			sortedMap.put(new BServiceInfoKeyRocks(serviceName, info.getKey()), info.getValue());
 		for (var sortedInfo : sortedMap.values())
 			result.getServiceInfoListSortedByIdentity().add(fromRocks(sortedInfo));
 		return result;
 	}
 
-	private void subscribeAndCollect(BServerState state, Subscribe r, String ssName) {
+	private void subscribeAndCollect(BServerState state, Subscribe r, BSubscribeInfo subInfo, String ssName) {
 		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
-		state.getSimple().put(ssName, new BSubscribeStateRocks());
-		r.Result.map.put(state.getServiceName(), newSortedBServiceInfos(state));
+		state.getSimple().put(ssName, toRocks(subInfo));
+		r.Result.map.put(state.getServiceName(), newServiceInfosVersion(subInfo.getVersion(), state));
 
 		var netSession = (Session)r.getSender().getUserState();
-		for (var info : state.getServiceInfos().values())
+		for (var versions : state.getServiceInfosVersion().values())
+		for (var info : versions.getServiceInfos().values())
 			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
 	}
 }
