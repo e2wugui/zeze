@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
+import Zeze.Transaction.Profiler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -130,11 +131,13 @@ public class TaskCompletionSource<R> implements Future<R> {
 			if ((r = result) != null)
 				unparkAll();
 			else {
-				do {
-					LockSupport.park();
-					if (Thread.interrupted())
-						throw new InterruptedException();
-				} while ((r = result) == null);
+				try (var ignored = Profiler.begin("TaskCompletionSource")) {
+					do {
+						LockSupport.park();
+						if (Thread.interrupted())
+							throw new InterruptedException();
+					} while ((r = result) == null);
+				}
 			}
 		}
 		return toResult(r);
@@ -153,14 +156,16 @@ public class TaskCompletionSource<R> implements Future<R> {
 			else {
 				timeout = unit.toNanos(timeout);
 				var deadline = System.nanoTime() + timeout;
-				do {
-					if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-						throw new TimeoutException();
-					LockSupport.parkNanos(timeout);
-					if (Thread.interrupted())
-						throw new InterruptedException();
-					timeout = deadline - System.nanoTime();
-				} while ((r = result) == null);
+				try (var ignored = Profiler.begin("TaskCompletionSource")) {
+					do {
+						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
+							throw new TimeoutException();
+						LockSupport.parkNanos(timeout);
+						if (Thread.interrupted())
+							throw new InterruptedException();
+						timeout = deadline - System.nanoTime();
+					} while ((r = result) == null);
+				}
 			}
 		}
 		return toResult(r);

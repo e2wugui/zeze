@@ -31,15 +31,13 @@ public class Profiler {
 	}
 
 	public static final class Context implements AutoCloseable {
-		private @Nullable String procedureName;
-		private @Nullable Object params;
+		private @Nullable Object name;
 		private @Nullable Throwable e; // only for stack
 		private long timeBegin;
 		private long timeEnd;
 
 		private void clearRef() {
-			procedureName = null;
-			params = null;
+			name = null;
 			e = null;
 		}
 
@@ -54,7 +52,7 @@ public class Profiler {
 
 	private final ArrayList<@NotNull Context> contexts = new ArrayList<>();
 	private int count; // 当前contexts的有效数量
-	private long startTime;
+	private long startTime; // 0表示没启动profile
 
 	Profiler() {
 	}
@@ -97,14 +95,15 @@ public class Profiler {
 				if (nextTime <= curTimeNs) {
 					if (!State.nextProfileTimeUpdater.compareAndSet(state, nextTime, curTimeNs + PROFILE_LOG_PERIOD))
 						continue;
-					PerfCounter.logger.info("profile procedure '{}':\n{}", procName, this);
+					PerfCounter.logger.info("profile procedure '{}' for {}ms:\n{}",
+							procName, runTimeNs / 1_000_000, this);
 				}
 				break;
 			}
 		}
 	}
 
-	private @Nullable Context beginContext(@NotNull String procedureName, @Nullable Object params) {
+	private @Nullable Context beginContext(@Nullable Object name) {
 		int n;
 		if (startTime == 0 || (n = count) >= MAX_CONTEXT)
 			return null;
@@ -114,32 +113,39 @@ public class Profiler {
 			cs.add(c = new Context());
 		else
 			c = cs.get(n);
-		c.procedureName = procedureName;
-		c.params = params;
+		c.name = name;
 		c.timeBegin = System.nanoTime();
 		count = n + 1;
 		return c;
 	}
 
-	public static @Nullable Context begin() {
-		return begin(null);
-	}
-
-	public static @Nullable Context begin(@Nullable Object params) {
+	public static @Nullable Context begin(@Nullable Object name) {
 		var t = Transaction.getCurrent();
 		if (t == null)
 			return null;
-		var ps = t.getProcedureStack();
-		var n = ps.size();
-		return t.profiler.beginContext(n > 0 ? ps.get(n - 1).getActionName() : "", params);
+		if (name == null) {
+			var p = t.getTopProcedure();
+			name = p != null ? p.getActionName() : "";
+		}
+		return t.profiler.beginContext(name);
+	}
+
+	public static @Nullable Context begin(Object... names) {
+		return begin((Object)names);
 	}
 
 	private void genInfo(@NotNull StringBuilder sb, int indent, int idx, @NotNull Context c) {
 		var timeEnd = c.timeEnd;
 		sb.append(Str.indent(indent)).append((c.timeBegin - startTime) / 1_000_000).append('-')
-				.append((timeEnd - startTime) / 1_000_000).append(' ').append(c.procedureName);
-		if (c.params != null)
-			sb.append(": ").append(c.params);
+				.append((timeEnd - startTime) / 1_000_000);
+		var name = c.name;
+		if (name != null) {
+			if (name instanceof Object[]) {
+				for (var s : (Object[])name)
+					sb.append(' ').append(s);
+			} else
+				sb.append(' ').append(name);
+		}
 		sb.append('\n');
 		if (c.e != null) {
 			var traces = c.e.getStackTrace();
@@ -168,11 +174,11 @@ public class Profiler {
 	public static void main(String[] args) throws InterruptedException {
 		var p = new Profiler();
 		p.startTime = System.nanoTime();
-		try (var ignored = p.beginContext("aaa", null)) {
-			try (var ignored1 = p.beginContext("bbb", null)) {
+		try (var ignored = p.beginContext("aaa")) {
+			try (var ignored1 = p.beginContext("bbb")) {
 				Thread.sleep(3000);
 			}
-			try (var ignored2 = p.beginContext("ccc", null)) {
+			try (var ignored2 = p.beginContext("ccc")) {
 				Thread.sleep(500);
 			}
 		}

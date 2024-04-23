@@ -36,7 +36,12 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数. java 没有这个，那么每次访问都统计。
 		PerfCounter.instance.getOrAddTableInfo(tableKey.getId()).readLock.increment();
 		// logger.debug("EnterReadLock {}", TableKey);
-		rwLock.readLock().lock();
+		var readLock = rwLock.readLock();
+		if (readLock.tryLock())
+			return;
+		try (var ignored = Profiler.begin("LockeyWaitReadLock", tableKey)) {
+			readLock.lock();
+		}
 	}
 
 	public void exitReadLock() {
@@ -48,7 +53,12 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
 			PerfCounter.instance.getOrAddTableInfo(tableKey.getId()).writeLock.increment();
 		// logger.debug("EnterWriteLock {}", TableKey);
-		rwLock.writeLock().lock();
+		var writeLock = rwLock.writeLock();
+		if (writeLock.tryLock())
+			return;
+		try (var ignored = Profiler.begin("LockeyWaitWriteLock", tableKey)) {
+			writeLock.lock();
+		}
 	}
 
 	public void exitWriteLock() {

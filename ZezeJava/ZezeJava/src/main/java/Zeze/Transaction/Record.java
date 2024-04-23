@@ -67,7 +67,12 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final void enterFairLock() {
-		lock();
+		if (tryLock())
+			return;
+		var r = (Record1<?, ?>)this;
+		try (var ignored = Profiler.begin("RecordWaitFairLock", r.getTable().getName(), r.getObjectKey())) {
+			lock();
+		}
 	}
 
 	final boolean tryEnterFairLock() {
