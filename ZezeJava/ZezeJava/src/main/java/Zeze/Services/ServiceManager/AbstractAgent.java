@@ -105,7 +105,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
 				// 触发回调前修正集合之间的关系。
 				// 删除后来又加入的。
-				edit.remove.removeIf(edit.put::contains);
+				edit.getRemove().removeIf(edit.getPut()::contains);
 
 				try {
 					onChanged.run(edit);
@@ -228,7 +228,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				serviceInfos = infos;
 				for (var identityMap : infos.getInfosVersion().values()) {
 					var edit = new BEditService();
-					edit.put.addAll(identityMap.getServiceInfoListSortedByIdentity());
+					edit.getPut().addAll(identityMap.getServiceInfoListSortedByIdentity());
 					edits.add(edit);
 				}
 			} finally {

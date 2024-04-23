@@ -102,7 +102,7 @@ public class ProviderApp extends ReentrantLock {
 
 	void applyOnChanged(@NotNull BEditService edit) {
 		var refresh = false;
-		for (var r : edit.remove) {
+		for (var r : edit.getRemove()) {
 			if (r.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyRemove(r);
 			else if (r.getServiceName().startsWith(serverServiceNamePrefix)) {
@@ -110,7 +110,7 @@ public class ProviderApp extends ReentrantLock {
 				distribute.removeServer(r);
 			}
 		}
-		for (var p : edit.put) {
+		for (var p : edit.getPut()) {
 			if (p.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyPut(p);
 			else if (p.getServiceName().startsWith(serverServiceNamePrefix)) {

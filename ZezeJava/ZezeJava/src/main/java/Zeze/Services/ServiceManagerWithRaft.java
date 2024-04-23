@@ -405,7 +405,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		var notifies = new HashMap<AsyncSocket, Edit>();
 
 		// step 1: remove
-		for (var unReg : r.Argument.remove) {
+		for (var unReg : r.Argument.getRemove()) {
 			var state = tableServerState.get(unReg.getServiceName());
 			if (state != null) {
 				var versions = state.getServiceInfosVersion().get(unReg.getVersion());
@@ -423,7 +423,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		// step 2: put
-		for (var reg : r.Argument.put) {
+		for (var reg : r.Argument.getPut()) {
 			var session = tableSession.get(netSession.name);
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			session.getRegisters().put(toRocksKey(reg), toRocks(reg, netSession.name));
@@ -439,7 +439,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		// step 3: update
-		for (var upd : r.Argument.update) {
+		for (var upd : r.Argument.getUpdate()) {
 			var session = tableSession.get(netSession.name);
 			if (!session.getRegisters().containsKey(toRocksKey(upd)))
 				continue;
@@ -466,7 +466,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					continue;
 
 				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.put.add(info);
+				notify.Argument.getPut().add(info);
 			}
 		}
 	}
@@ -506,7 +506,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					continue;
 
 				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.remove.add(info);
+				notify.Argument.getRemove().add(info);
 			}
 		}
 	}
@@ -564,7 +564,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					continue;
 
 				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.update.add(info);
+				notify.Argument.getUpdate().add(info);
 			}
 		}
 	}

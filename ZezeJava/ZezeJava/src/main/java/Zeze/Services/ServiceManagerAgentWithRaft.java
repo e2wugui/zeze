@@ -104,21 +104,21 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	protected long ProcessEditRequest(Edit r) {
 
-		for (var it = r.Argument.remove.iterator(); it.hasNext(); /**/) {
+		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
 			if (null == state || !state.onUnRegister(unReg))
 				it.remove();
 		}
 
-		for (var reg : r.Argument.put) {
+		for (var reg : r.Argument.getPut()) {
 			var state = subscribeStates.get(reg.getServiceName());
 			if (null == state)
 				continue; // 忽略本地没有订阅的。最好加个日志。
 			state.onRegister(reg);
 		}
 
-		for (var it = r.Argument.update.iterator(); it.hasNext(); /**/ ) {
+		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/ ) {
 			var upd = it.next();
 			var state = subscribeStates.get(upd.getServiceName());
 			if (null == state || !state.onUpdate(upd))
@@ -197,7 +197,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void editService(BEditService arg) {
-		for (var info : arg.put)
+		for (var info : arg.getPut())
 			verify(info.getServiceIdentity());
 		waitLoginReady();
 
@@ -210,7 +210,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public BServiceInfo registerService(BServiceInfo info) {
 		var edit = new BEditService();
-		edit.put.add(info);
+		edit.getPut().add(info);
 		editService(edit);
 		return info;
 	}
@@ -219,7 +219,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public BServiceInfo updateService(BServiceInfo info) {
 		var edit = new BEditService();
-		edit.update.add(info);
+		edit.getUpdate().add(info);
 		editService(edit);
 		return info;
 	}
@@ -228,7 +228,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public void unRegisterService(BServiceInfo info) {
 		var edit = new BEditService();
-		edit.remove.add(info);
+		edit.getRemove().add(info);
 		editService(edit);
 	}
 

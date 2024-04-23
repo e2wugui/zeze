@@ -215,7 +215,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					if (peer == null)
 						continue;
 					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.put.add(info);
+					notify.Argument.getPut().add(info);
 				}
 			}
 		}
@@ -237,7 +237,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							continue;
 
 						var notify = result.computeIfAbsent(peer, __ -> new EditService());
-						notify.Argument.remove.add(info);
+						notify.Argument.getRemove().add(info);
 					}
 				}
 			}
@@ -265,7 +265,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						continue;
 
 					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.update.add(info);
+					notify.Argument.getUpdate().add(info);
 				}
 			}
 		}
@@ -450,7 +450,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		editLock.lock();
 		try {
 			// step 1: remove
-			for (var unReg : r.Argument.remove) {
+			for (var unReg : r.Argument.getRemove()) {
 				var state = serviceStates.get(unReg.getServiceName());
 				if (state != null)
 					state.collectRemoveNotify(unReg, r.getSender().getSessionId(), notifies);
@@ -459,7 +459,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			// step 2: put
 			// 允许重复登录，断线重连Agent不好原子实现重发。
-			for (var reg : r.Argument.put) {
+			for (var reg : r.Argument.getPut()) {
 				if (session.registers.add(reg)) {
 					logger.info("{}: Register {} serverId={} ip={} port={}",
 							r.getSender(), reg.getServiceName(), reg.getServiceIdentity(),
@@ -482,7 +482,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 
 			// step 3: update
-			for (var update : r.Argument.update) {
+			for (var update : r.Argument.getUpdate()) {
 				if (!session.registers.containsKey(update))
 					continue;
 

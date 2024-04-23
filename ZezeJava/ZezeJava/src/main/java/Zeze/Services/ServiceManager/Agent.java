@@ -59,7 +59,7 @@ public final class Agent extends AbstractAgent {
 			return null;
 
 		var edit = new BEditService();
-		edit.update.add(info);
+		edit.getUpdate().add(info);
 		editService(edit);
 
 		return reg;
@@ -67,7 +67,7 @@ public final class Agent extends AbstractAgent {
 
 	@Override
 	public void editService(BEditService arg) {
-		for (var info : arg.put)
+		for (var info : arg.getPut())
 			verify(info.getServiceIdentity());
 		waitConnectorReady();
 
@@ -75,13 +75,13 @@ public final class Agent extends AbstractAgent {
 		edit.SendAndWaitCheckResultCode(client.getSocket());
 
 		// 成功以后更新本地信息。
-		for (var unReg : arg.remove)
+		for (var unReg : arg.getRemove())
 			registers.remove(unReg);
 
-		for (var reg : arg.put)
+		for (var reg : arg.getPut())
 			registers.put(reg, reg);
 
-		for (var upd : arg.update) {
+		for (var upd : arg.getUpdate()) {
 			registers.computeIfPresent(upd, (__, present) -> {
 				present.setPassiveIp(upd.getPassiveIp());
 				present.setPassivePort(upd.getPassivePort());
@@ -95,7 +95,7 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public BServiceInfo registerService(BServiceInfo info) {
 		var edit = new BEditService();
-		edit.put.add(info);
+		edit.getPut().add(info);
 		editService(edit);
 		return info;
 	}
@@ -104,7 +104,7 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public void unRegisterService(BServiceInfo info) {
 		var edit = new BEditService();
-		edit.remove.add(info);
+		edit.getRemove().add(info);
 		editService(edit);
 	}
 
@@ -180,7 +180,7 @@ public final class Agent extends AbstractAgent {
 
 	public void onConnected() {
 		var edit = new BEditService();
-		edit.put.addAll(registers.keySet());
+		edit.getPut().addAll(registers.keySet());
 		try {
 			editService(edit);
 		} catch (Throwable ex) { // logger.debug
@@ -197,21 +197,21 @@ public final class Agent extends AbstractAgent {
 
 	private long processEdit(EditService r) {
 
-		for (var it = r.Argument.remove.iterator(); it.hasNext(); /**/) {
+		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
 			if (null == state || !state.onUnRegister(unReg))
 				it.remove();
 		}
 
-		for (var reg : r.Argument.put) {
+		for (var reg : r.Argument.getPut()) {
 			var state = subscribeStates.get(reg.getServiceName());
 			if (null == state)
 				continue; // 忽略本地没有订阅的。最好加个日志。
 			state.onRegister(reg);
 		}
 
-		for (var it = r.Argument.update.iterator(); it.hasNext(); /**/) {
+		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/) {
 			var upd = it.next();
 			var state = subscribeStates.get(upd.getServiceName());
 			if (null == state || !state.onUpdate(upd))

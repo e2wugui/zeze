@@ -35,10 +35,10 @@ public class LogAgent extends AbstractLogAgent {
 	}
 
 	void applyOnChanged(@NotNull BEditService edit) {
-		for (var r : edit.remove) {
+		for (var r : edit.getRemove()) {
 			client.onSmRemoved(r);
 		}
-		for (var p : edit.put) {
+		for (var p : edit.getPut()) {
 			client.onSmUpdated(p);
 		}
 	}

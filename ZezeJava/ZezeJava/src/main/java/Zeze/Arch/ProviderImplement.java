@@ -62,13 +62,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var appVersion = providerApp.zeze.getSchemas().getAppVersion();
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
-			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+			edit.getPut().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
 					appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
 		// 注册本provider的动态服务
 		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
-			edit.put.add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
+			edit.getPut().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
 					appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}

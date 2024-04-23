@@ -84,10 +84,10 @@ public class LinkdApp {
 	}
 
 	void applyOnChanged(@NotNull BEditService edit) {
-		for (var r : edit.remove) {
+		for (var r : edit.getRemove()) {
 			linkdProvider.distribute.removeServer(r);
 		}
-		for (var p : edit.put) {
+		for (var p : edit.getPut()) {
 			linkdProvider.distribute.addServer(p);
 		}
 		// todo process update
@@ -113,7 +113,7 @@ public class LinkdApp {
 		var identity = "@" + providerIp + "_" + providerPort;
 		var edit = new BEditService();
 		// linkService 总是使用版本0，不开启AppVersion.
-		edit.put.add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, extra));
+		edit.getPut().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, extra));
 		zeze.getServiceManager().editService(edit);
 	}
 }
