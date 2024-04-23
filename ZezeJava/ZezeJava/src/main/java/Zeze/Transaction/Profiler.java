@@ -1,9 +1,9 @@
 package Zeze.Transaction;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
@@ -15,18 +15,26 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Profiler {
 	private static final long PROFILE_THRESHOLD = 3_000_000_000L; // 开启事务profile的事务执行时间阈值(纳秒)
-	private static final long PROFILE_TIME = 30_000_000_000L; // 每次开启事务profile的时长(纳秒)
+	private static final long PROFILE_TIME = 60_000_000_000L; // 每次开启事务profile的时长(纳秒)
 	private static final long PROFILE_LOG_PERIOD = 1_000_000_000L; // 每种事务的日志输出间隔(纳秒)
-	private static final long GET_STACK_THRESHOLD = 3_000_000_000L; // 获取栈信息的时长阈值(纳秒)
+	private static final long GET_STACK_THRESHOLD = 1_000_000_000L; // 获取栈信息的时长阈值(纳秒)
 	private static final int MAX_CONTEXT = 1000; // 一个Profile记录的Context数量上限
 
-	private static final Map<String, State> enableProcMap = new ConcurrentHashMap<>(); // <procName,State>
+	private static final ConcurrentHashMap<String, State> enableProcMap = new ConcurrentHashMap<>(); // <procName,State>
 
 	private static final class State {
-		private static final @NotNull AtomicLongFieldUpdater<State> nextProfileTimeUpdater =
-				AtomicLongFieldUpdater.newUpdater(State.class, "nextProfileTime");
+		private static final @NotNull VarHandle vhNextProfileTime;
+
+		static {
+			try {
+				vhNextProfileTime = MethodHandles.lookup().findVarHandle(State.class, "nextProfileTime", long.class);
+			} catch (ReflectiveOperationException e) {
+				throw new ExceptionInInitializerError(e);
+			}
+		}
 
 		private long timeEnd;
+		@SuppressWarnings("unused")
 		private volatile long nextProfileTime;
 	}
 
@@ -91,9 +99,9 @@ public class Profiler {
 		});
 		if (startTime != 0) {
 			for (; ; ) {
-				var nextTime = State.nextProfileTimeUpdater.get(state);
+				var nextTime = state.nextProfileTime;
 				if (nextTime <= curTimeNs) {
-					if (!State.nextProfileTimeUpdater.compareAndSet(state, nextTime, curTimeNs + PROFILE_LOG_PERIOD))
+					if (!State.vhNextProfileTime.compareAndSet(state, nextTime, curTimeNs + PROFILE_LOG_PERIOD))
 						continue;
 					PerfCounter.logger.info("profile procedure '{}' for {}ms:\n{}",
 							procName, runTimeNs / 1_000_000, this);

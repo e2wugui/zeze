@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gen", "Gen\Gen.csproj", "{B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GlobalCacheManager", "GlobalCacheManager\GlobalCacheManager.csproj", "{07181D66-3C2F-4598-9EA7-E1428AFB028E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceManager", "ServiceManager\ServiceManager.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRocksDB", "ServiceManager\TestRocksDB.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMain", "TestMain\TestMain.csproj", "{0CC4470A-AE3D-4238-98D0-3E65479271E7}"
 EndProject

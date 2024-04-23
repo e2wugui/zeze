@@ -77,7 +77,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	public BServiceInfo() {
-		this("", "", 0,null, 0, null);
+		this("", "", 0, null, 0, null);
 	}
 
 	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port) {
@@ -93,8 +93,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	public BServiceInfo(@NotNull String name, @NotNull String identity, long version,
-						@Nullable String ip, int port,
-						@Nullable Binary extraInfo) {
+						@Nullable String ip, int port, @Nullable Binary extraInfo) {
 		serviceName = name;
 		serviceIdentity = identity;
 		this.version = version;
@@ -117,11 +116,11 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteString(getServiceName());
-		bb.WriteString(getServiceIdentity());
-		bb.WriteString(getPassiveIp());
-		bb.WriteInt(getPassivePort());
-		bb.WriteBinary(getExtraInfo());
+		bb.WriteString(serviceName);
+		bb.WriteString(serviceIdentity);
+		bb.WriteString(passiveIp);
+		bb.WriteInt(passivePort);
+		bb.WriteBinary(extraInfo);
 		bb.WriteLong(version);
 	}
 
@@ -141,13 +140,13 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + getServiceName().hashCode();
-		result = prime * result + getServiceIdentity().hashCode();
+		result = prime * result + serviceName.hashCode();
+		result = prime * result + serviceIdentity.hashCode();
 		return result;
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (obj == this) {
 			return true;
 		}
@@ -155,27 +154,25 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		if (obj instanceof BServiceInfo) {
 			var other = (BServiceInfo)obj;
 			// 版本分类存储，同一个集合的版本肯定相等，这里不需要判断版本。
-			return getServiceName().equals(other.getServiceName())
-					&& getServiceIdentity().equals(other.getServiceIdentity());
+			return serviceName.equals(other.serviceName)
+					&& serviceIdentity.equals(other.serviceIdentity);
 		}
 		return false;
 	}
 
 	@Override
-	public int compareTo(BServiceInfo o) {
+	public int compareTo(@NotNull BServiceInfo o) {
 		int c = serviceName.compareTo(o.serviceName);
-		if (c != 0)
-			return c;
-
-		return serviceIdentity.compareTo(o.serviceIdentity);
+		return c != 0 ? c : serviceIdentity.compareTo(o.serviceIdentity);
 	}
 
 	@Override
 	public @NotNull String toString() {
-		return "BServiceInfo{" + "ServiceName='" + serviceName + '\''
-				+ ", ServiceIdentity='" + serviceIdentity + '\'' +
-				", Version=" + version +
-				", PassiveIp='" + passiveIp + '\'' + ", PassivePort=" + passivePort
-				+ ", ExtraInfo=" + extraInfo + '}';
+		return "BServiceInfo{serviceName='" + serviceName
+				+ "', serviceIdentity='" + serviceIdentity
+				+ "', version=" + version
+				+ ", passiveIp='" + passiveIp
+				+ "', passivePort=" + passivePort
+				+ ", extraInfo=" + extraInfo + '}';
 	}
 }
