@@ -126,11 +126,12 @@ public class Procedure {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return result = currentT.perform(this);
 			} finally {
-				Transaction.destroy();
 				var curTime = System.nanoTime();
 				var runTime = curTime - timeBegin;
-				if (currentT != null)
+				if (currentT != null) {
 					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
+					currentT.reuseTransaction();
+				}
 				if (PerfCounter.ENABLE_PERF) {
 					PerfCounter.instance.addProcedureInfo(actionName, result);
 					PerfCounter.instance.addRunInfo(actionName, runTime);

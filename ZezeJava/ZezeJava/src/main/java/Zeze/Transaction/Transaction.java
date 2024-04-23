@@ -109,7 +109,7 @@ public final class Transaction {
 		this.userState = userState;
 	}
 
-	private void reuseTransaction() {
+	void reuseTransaction() {
 		// holdLocks.Clear(); // 执行完肯定清理了。
 		procedureStack.clear();
 		logActions.clear();

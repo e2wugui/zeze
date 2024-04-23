@@ -17,6 +17,7 @@ public class Profiler {
 	private static final long PROFILE_THRESHOLD = 3_000_000_000L; // 开启事务profile的事务执行时间阈值(纳秒)
 	private static final long PROFILE_TIME = 30_000_000_000L; // 每次开启事务profile的时长(纳秒)
 	private static final long PROFILE_LOG_PERIOD = 1_000_000_000L; // 每种事务的日志输出间隔(纳秒)
+	private static final long GET_STACK_THRESHOLD = 3_000_000_000L; // 获取栈信息的时长阈值(纳秒)
 	private static final int MAX_CONTEXT = 1000; // 一个Profile记录的Context数量上限
 
 	private static final Map<String, State> enableProcMap = new ConcurrentHashMap<>(); // <procName,State>
@@ -33,14 +34,23 @@ public class Profiler {
 		private @Nullable String name;
 		private long timeBegin;
 		private long timeEnd;
+		private @Nullable Throwable e; // only for stack
 
 		private Context(@NotNull String name) {
 			this.name = name;
 		}
 
+		private void clearRef() {
+			name = null;
+			e = null;
+		}
+
 		@Override
 		public void close() {
-			timeEnd = System.nanoTime();
+			var t = System.nanoTime();
+			timeEnd = t;
+			if (t - timeBegin >= GET_STACK_THRESHOLD)
+				e = new Throwable();
 		}
 	}
 
@@ -54,7 +64,7 @@ public class Profiler {
 	public void reset() {
 		if (count != 0) {
 			for (int i = 0; i < count; i++)
-				contexts.get(i).name = null;
+				contexts.get(i).clearRef();
 			count = 0;
 			startTime = 0;
 		}
@@ -120,6 +130,14 @@ public class Profiler {
 		var timeEnd = c.timeEnd;
 		sb.append(Str.indent(indent)).append((c.timeBegin - startTime) / 1_000_000).append('-')
 				.append((timeEnd - startTime) / 1_000_000).append(' ').append(c.name).append('\n');
+		if (c.e != null) {
+			var traces = c.e.getStackTrace();
+			for (int i = 1, n = traces.length; i < n; i++) {
+				var strace = traces[i];
+				sb.append("\tat ").append(strace.getClassName()).append('.').append(strace.getMethodName()).append(':')
+						.append(strace.getLineNumber()).append('\n');
+			}
+		}
 		for (; ; ) {
 			if (++idx >= count || (c = contexts.get(idx)).timeBegin >= timeEnd)
 				return;
@@ -141,7 +159,7 @@ public class Profiler {
 		p.startTime = System.nanoTime();
 		try (var ignored = p.beginContext("aaa")) {
 			try (var ignored1 = p.beginContext("bbb")) {
-				Thread.sleep(1000);
+				Thread.sleep(3000);
 			}
 			try (var ignored2 = p.beginContext("ccc")) {
 				Thread.sleep(500);
