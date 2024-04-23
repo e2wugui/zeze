@@ -180,5 +180,11 @@ namespace Zeze.Gen.java
         public void Visit(TypeVector4 type)
         {
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + "if (" + Getter + ".signum() == -1)");
+            sw.WriteLine(prefix + "    return true;");
+        }
     }
 }

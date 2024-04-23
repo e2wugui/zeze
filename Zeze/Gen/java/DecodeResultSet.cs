@@ -223,5 +223,17 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector4(parents, {bb})")};");
             sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}{{");
+            sw.WriteLine($"{prefix}    var tmp = {bb}.getString({ParaneName}\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}    if (tmp == null)");
+            sw.WriteLine($"{prefix}        {AssignText("java.math.BigDecimal.ZERO")};");
+            sw.WriteLine($"{prefix}    else");
+            sw.WriteLine($"{prefix}        {AssignText($"new java.math.BigDecimal(tmp, java.math.MathContext.DECIMAL128)")};");
+            sw.WriteLine($"{prefix}}}");
+        }
     }
 }

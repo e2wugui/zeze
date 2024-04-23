@@ -58,6 +58,11 @@ namespace Zeze.Gen.python
             Name = "ByteBuffer.BYTES";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            Name = "ByteBuffer.BYTES";
+        }
+
         public void Visit(TypeList type)
         {
             Name = "ByteBuffer.LIST";

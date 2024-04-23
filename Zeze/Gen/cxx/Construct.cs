@@ -242,5 +242,12 @@ namespace Zeze.Gen.cxx
         {
             InitialVector(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            string value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine(prefix + variable.NameUpper1 + " = \"" + value + "\";");
+        }
     }
 }

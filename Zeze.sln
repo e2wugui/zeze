@@ -15,7 +15,7 @@ Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "TypeScript", "TypeScript\Ty
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfigEditor", "ConfigEditor\ConfigEditor.csproj", "{47A02627-AFEB-4322-B8BD-BF95FE7108C2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceManager", "ServiceManager\ServiceManager.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestRocksDB", "ServiceManager\TestRocksDB.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestMain", "TestMain\TestMain.csproj", "{9BFEC4FC-040A-4F40-853B-A462A074E86C}"
 EndProject

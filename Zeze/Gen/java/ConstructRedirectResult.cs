@@ -162,5 +162,14 @@ namespace Zeze.Gen.java
         {
             InitialVector(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            string value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine(prefix + varName + " = new java.math.BigDecimal(\"" + value + "\", java.math.MathContext.DECIMAL128);");
+            else
+                sw.WriteLine(prefix + varName + " = java.math.BigDecimal.ZERO;");
+        }
     }
 }

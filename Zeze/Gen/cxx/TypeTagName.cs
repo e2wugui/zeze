@@ -117,5 +117,10 @@ namespace Zeze.Gen.cxx
         {
             Name = "Zeze::ByteBuffer::VECTOR4";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Name = "Zeze::ByteBuffer::BYTES";
+        }
     }
 }

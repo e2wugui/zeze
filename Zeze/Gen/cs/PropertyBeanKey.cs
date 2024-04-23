@@ -132,5 +132,10 @@ namespace Zeze.Gen.cs
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

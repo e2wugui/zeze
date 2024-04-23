@@ -127,5 +127,10 @@ namespace Zeze.Gen.confcs
         {
             name = Project.MakingInstance.IsUnity ? "UnityEngine.Vector4" : "Zeze.Serialize.Vector4";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            name = "decimal";
+        }
     }
 }

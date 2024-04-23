@@ -98,6 +98,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", {Getter});");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}st.appendString({ParaneName}\"{ColumnName}\", {Getter}.toString());");
+        }
+
         public void Visit(TypeList type)
         {
             ensureParentsName();

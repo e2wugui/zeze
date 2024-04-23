@@ -117,5 +117,10 @@ namespace Zeze.Gen.java
         {
             Name = "ByteBuffer.VECTOR4";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Name = "ByteBuffer.BYTES";
+        }
     }
 }

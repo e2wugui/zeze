@@ -136,5 +136,10 @@ namespace Zeze.Gen.python
         {
             sw.WriteLine($"{prefix}self.{var.Name}.assign(other.{var.Name})");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine($"{prefix}self.{var.Name} = other.{var.Name}");
+        }
     }
 }

@@ -141,6 +141,11 @@ namespace Zeze.Gen.python
             formatSimple();
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            formatSimple();
+        }
+
         public void Visit(TypeList type)
         {
             sw.WriteLine($"{prefix}sb.append(indent(level))");

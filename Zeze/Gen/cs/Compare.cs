@@ -142,5 +142,10 @@ namespace Zeze.Gen.cs
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
+        }
     }
 }

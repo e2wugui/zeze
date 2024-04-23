@@ -229,5 +229,10 @@ namespace Zeze.Gen.rrjava
         {
             formatSimple();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            formatSimple();
+        }
     }
 }

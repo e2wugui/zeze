@@ -94,6 +94,11 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "this." + variable.Name + " = \"" + variable.Initial + "\";");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + "this." + variable.Name + " = \"" + variable.Initial + "\";");
+        }
+
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + "this." + variable.Name + " = [];");

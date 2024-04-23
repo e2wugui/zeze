@@ -145,5 +145,10 @@ namespace Zeze.Gen.cs
         {
             DefineNew(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            DefineStack(type);
+        }
     }
 }

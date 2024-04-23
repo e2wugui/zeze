@@ -146,5 +146,10 @@ namespace Zeze.Gen.cxx
         {
             WriteProperty(type, true);
         }
+        
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type, true);
+        }
     }
 }

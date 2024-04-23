@@ -158,5 +158,10 @@ namespace Zeze.Gen.cs
         {
             WriteLogValue(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteLogValue(type);
+        }
     }
 }

@@ -1,7 +1,7 @@
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 ------------------------------------------------------------------------------------------------------------------------------
-2024/4/26 v1.4.6 ServiceManager(incompatible); Profiler; 
+2024/4/26 v1.4.6 ServiceManager(incompatible); Profiler; decimal; 
 ------------------------------------------------------------------------------------------------------------------------------
 ServiceManager 删除启动延迟通知机制；【完成】
 ServiceManager 删除ReadyCommit订阅模式；【完成】

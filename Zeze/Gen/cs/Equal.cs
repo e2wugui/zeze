@@ -176,5 +176,10 @@ namespace Zeze.Gen.cs
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            CommonEquals();
+        }
     }
 }

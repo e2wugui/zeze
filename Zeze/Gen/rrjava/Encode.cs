@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Metrics;
 using System.IO;
 using Zeze.Gen.Types;
 using Type = Zeze.Gen.Types.Type;
@@ -377,6 +378,20 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeVector4 type)
         {
             VisitVector(type, "Vector4");
+        }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "String _x_ = " + varname + ".toString();");
+                sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ".toString());");
         }
     }
 }

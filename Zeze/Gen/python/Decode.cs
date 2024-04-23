@@ -378,5 +378,12 @@ namespace Zeze.Gen.python
         {
             sw.WriteLine(prefix + AssignText($"{bufName}.read_vector4({typeVarName})"));
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(id > 0
+                ? $"{prefix}self.{var.Name} = {bufName}.read_string_tag(_t_)"
+                : $"{prefix}self.{var.Name} = {bufName}.read_string()");
+        }
     }
 }

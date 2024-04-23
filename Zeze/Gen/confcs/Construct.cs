@@ -177,5 +177,10 @@ namespace Zeze.Gen.confcs
         {
             InitialNew(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Initial();
+        }
     }
 }

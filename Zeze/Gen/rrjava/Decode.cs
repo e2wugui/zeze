@@ -377,5 +377,13 @@ namespace Zeze.Gen.rrjava
         {
             sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4({GetVarName()})") + ';');
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(_t_), java.math.MathContext.DECIMAL128)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
+        }
     }
 }

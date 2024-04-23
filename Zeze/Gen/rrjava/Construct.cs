@@ -189,5 +189,14 @@ namespace Zeze.Gen.rrjava
         {
             InitialVector(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            string value = variable.Initial;
+            if (value.Length > 0)
+                sw.WriteLine(prefix + variable.NamePrivate + " = new java.math.BigDecimal(\"" + value + "\", java.math.MathContext.DECIMAL128);");
+            else
+                sw.WriteLine(prefix + variable.NamePrivate + " = java.math.BigDecimal.ZERO;");
+        }
     }
 }

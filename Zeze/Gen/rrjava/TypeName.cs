@@ -147,5 +147,10 @@ namespace Zeze.Gen.rrjava
         {
             name = "Zeze.Serialize.Vector4";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            name = "java.math.BigDecimal";
+        }
     }
 }

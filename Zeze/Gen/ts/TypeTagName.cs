@@ -58,6 +58,11 @@ namespace Zeze.Gen.ts
             Name = "Zeze.ByteBuffer.BYTES";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            Name = "Zeze.ByteBuffer.BYTES";
+        }
+
         public void Visit(TypeList type)
         {
             Name = "Zeze.ByteBuffer.LIST";

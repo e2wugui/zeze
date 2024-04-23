@@ -141,5 +141,10 @@ namespace Zeze.Gen.java
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            DefineStack(type);
+        }
     }
 }

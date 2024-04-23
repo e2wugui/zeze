@@ -269,5 +269,10 @@ namespace Zeze.Gen.cs
                 sw.Write($".Append('{sep}')");
             sw.WriteLine(".Append(Environment.NewLine);");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            FormatSimple();
+        }
     }
 }

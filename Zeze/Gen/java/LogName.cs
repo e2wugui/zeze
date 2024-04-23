@@ -117,6 +117,11 @@ namespace Zeze.Gen.java
             Name = "Zeze.Transaction.Logs.LogVector4";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            Name = "Zeze.Transaction.Logs.LogDecimal";
+        }
+
         public string Name { get; set; }
 
     }

@@ -157,5 +157,10 @@ namespace Zeze.Gen.cxx
         {
             name = "const Zeze::Vector4&";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            name = "const std::string&";
+        }
     }
 }

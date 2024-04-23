@@ -243,5 +243,10 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + var.Setter($"other.{transGetter}") + ";");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + var.Setter($"other.{transGetter}") + ";");
+        }
     }
 }

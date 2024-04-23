@@ -524,5 +524,20 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector4.EncodeNull({bufname});");
             }
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "int _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "if (_x_ != 0)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_.ToString());");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ".ToString());");
+        }
     }
 }

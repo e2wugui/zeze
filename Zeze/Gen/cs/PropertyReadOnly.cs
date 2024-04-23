@@ -150,5 +150,10 @@ namespace Zeze.Gen.cs
         public void Visit(TypeVector4 type)
         {
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type);
+        }
     }
 }

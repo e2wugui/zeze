@@ -96,6 +96,11 @@ namespace Zeze.Gen.python
             text = $"self.{var.Name}.__hash__()";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            text = $"self.{var.Name}.__hash__()";
+        }
+
         public void Visit(TypeList type)
         {
             text = $"hash_list(self.{var.Name})";

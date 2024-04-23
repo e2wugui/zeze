@@ -143,5 +143,10 @@ namespace Zeze.Gen.cxx
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            text = $"Zeze::String::Compare({variable.NameUpper1}, {another}.{variable.NameUpper1})";
+        }
     }
 }

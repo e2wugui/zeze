@@ -1233,7 +1233,7 @@ namespace Zeze.Serialize
             INTEGER = 0, // byte,short,int,long,bool
             FLOAT = 1, // float
             DOUBLE = 2, // double
-            BYTES = 3, // binary,string
+            BYTES = 3, // binary,string,decimal
             LIST = 4, // list,set
             MAP = 5, // map
             BEAN = 6, // bean

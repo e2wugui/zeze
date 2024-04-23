@@ -193,5 +193,10 @@ namespace Zeze.Gen.java
         {
             text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
+        }
     }
 }

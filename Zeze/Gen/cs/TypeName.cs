@@ -125,5 +125,10 @@ namespace Zeze.Gen.cs
         {
             name = "Zeze.Serialize.Vector4";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            name = "decimal";
+        }
     }
 }

@@ -552,5 +552,10 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"{prefix}{varname}.Decode({bufname});");
             }
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine($"{prefix}{varname} = decimal.Parse({bufname}.ReadString());");
+        }
     }
 }

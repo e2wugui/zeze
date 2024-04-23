@@ -237,5 +237,10 @@ namespace Zeze.Gen.rrcs
         {
             throw new System.NotImplementedException();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type);
+        }
     }
 }

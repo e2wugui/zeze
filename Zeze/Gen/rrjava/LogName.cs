@@ -61,6 +61,11 @@ namespace Zeze.Gen.rrjava
             Name = "Zeze.Raft.RocksRaft.Log1.LogString";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            Name = "Zeze.Raft.RocksRaft.Log1.LogDecimal";
+        }
+
         public void Visit(TypeList type)
         {
             throw new NotImplementedException();

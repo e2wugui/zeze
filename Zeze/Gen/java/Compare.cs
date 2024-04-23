@@ -151,5 +151,10 @@ namespace Zeze.Gen.java
         {
             text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
+        }
     }
 }

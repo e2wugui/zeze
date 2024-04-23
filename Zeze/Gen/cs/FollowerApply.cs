@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.cs
 {
@@ -141,6 +142,11 @@ namespace Zeze.Gen.cs
         }
 
         public void Visit(Types.TypeVector4 type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+        }
+
+        public void Visit(TypeDecimal type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }

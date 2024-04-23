@@ -209,5 +209,10 @@ namespace Zeze.Gen.cs
         {
             InitialVector(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Initial();
+        }
     }
 }

@@ -172,5 +172,10 @@ namespace Zeze.Gen.python
         {
             sw.Write($"Quaternion({variable.Initial})");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.Write($"\"{variable.Initial}\"");
+        }
     }
 }

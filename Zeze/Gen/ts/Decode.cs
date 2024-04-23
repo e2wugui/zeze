@@ -219,6 +219,14 @@ namespace Zeze.Gen.ts
                 sw.WriteLine(prefix + $"{varname} = {bufname}.ReadString();");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadStringT(_t_);");
+            else
+                sw.WriteLine(prefix + $"{varname} = {bufname}.ReadString();");
+        }
+
         private string DecodeElement(Types.Type type, string typeVar)
         {
             switch (type)

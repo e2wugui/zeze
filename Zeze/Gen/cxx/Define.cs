@@ -136,5 +136,10 @@ namespace Zeze.Gen.cxx
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            DefineStack(type);
+        }
     }
 }

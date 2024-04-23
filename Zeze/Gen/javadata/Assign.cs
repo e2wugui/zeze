@@ -231,5 +231,10 @@ namespace Zeze.Gen.javadata
         {
             sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine($"{prefix}{var.NamePrivate} = other.{transGetter};");
+        }
     }
 }

@@ -302,5 +302,10 @@ namespace Zeze.Gen.cs
         {
             WriteProperty(type, true);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type);
+        }
     }
 }

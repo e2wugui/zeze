@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.rrcs
 {
@@ -137,6 +138,11 @@ namespace Zeze.Gen.rrcs
         public void Visit(Types.TypeVector4 type)
         {
             throw new NotImplementedException();
+        }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
         public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)

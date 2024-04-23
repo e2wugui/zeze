@@ -165,5 +165,10 @@ namespace Zeze.Gen.javadata
         {
             WriteProperty(type, true);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type, true);
+        }
     }
 }

@@ -157,5 +157,10 @@ namespace Zeze.Gen.cs
         {
             InitialVector("0, 0, 0, 0");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Initial("0");
+        }
     }
 }

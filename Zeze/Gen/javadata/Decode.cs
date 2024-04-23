@@ -471,5 +471,13 @@ namespace Zeze.Gen.javadata
         {
             sw.WriteLine(prefix + AssignText($"{bufName}.ReadVector4({typeVarName})") + ';');
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufName}.ReadString(_t_), java.math.MathContext.DECIMAL128)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufName}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
+        }
     }
 }

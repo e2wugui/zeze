@@ -119,6 +119,11 @@ namespace Zeze.Gen.python
             CommonEquals();
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            CommonEquals();
+        }
+
         public void Visit(TypeList type)
         {
             CommonEquals();

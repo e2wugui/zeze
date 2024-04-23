@@ -165,5 +165,10 @@ namespace Zeze.Gen.java
         {
             text = getter + ".hashCode()";
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            text = getter + ".hashCode()";
+        }
     }
 }

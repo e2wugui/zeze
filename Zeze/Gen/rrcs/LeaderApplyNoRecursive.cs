@@ -135,6 +135,11 @@ namespace Zeze.Gen.rrcs
             throw new NotImplementedException();
         }
 
+        public void Visit(Types.TypeDecimal type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+        }
+
         public LeaderApplyNoRecursive(Types.Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

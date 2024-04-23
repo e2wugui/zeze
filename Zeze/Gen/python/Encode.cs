@@ -206,6 +206,19 @@ namespace Zeze.Gen.python
                 sw.WriteLine($"{prefix}{bufName}.write_string(self.{var.Name})");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
+                sw.WriteLine($"{prefix}if len(_x_) != 0:");
+                sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
+                sw.WriteLine($"{prefix}    {bufName}.write_string(_x_)");
+            }
+            else
+                sw.WriteLine($"{prefix}{bufName}.write_string(self.{var.Name})");
+        }
+
         void EncodeElement(Type type, string prefix, string varName)
         {
             switch (type)

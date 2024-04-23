@@ -148,5 +148,16 @@ namespace Zeze.Gen.java
         {
             ResetValue("Zeze.Serialize.Quaternion.ZERO");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            string value = var.Initial;
+            if (value.Length == 0)
+                value = "java.match.BigDecimal.ZERO";
+            if (isData)
+                sw.WriteLine(prefix + var.NamePrivate + " = " + value + ";");
+            else
+                sw.WriteLine(prefix + var.Setter(value) + ";");
+        }
     }
 }

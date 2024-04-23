@@ -151,5 +151,10 @@ namespace Zeze.Gen.lua
         {
             Type = ByteBuffer.VECTOR4;
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            Type = ByteBuffer.BYTES;
+        }
     }
 }

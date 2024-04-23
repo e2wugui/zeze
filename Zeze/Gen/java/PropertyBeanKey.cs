@@ -135,5 +135,13 @@ namespace Zeze.Gen.java
         {
             WriteProperty(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
     }
 }

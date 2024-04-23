@@ -72,6 +72,11 @@ namespace Zeze.Gen.ts
             DefineStack(type);
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            DefineStack(type);
+        }
+
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + "const " + varname + ": " + TypeName.GetName(type) + " = [];");

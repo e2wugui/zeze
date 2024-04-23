@@ -141,5 +141,10 @@ namespace Zeze.Gen.rrjava
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
+        }
     }
 }

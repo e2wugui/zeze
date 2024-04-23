@@ -186,5 +186,10 @@ namespace Zeze.Gen.java
         {
             WriteLogValue(type);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteLogValue(type);
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.rrjava
 {
@@ -147,6 +148,11 @@ namespace Zeze.Gen.rrjava
         }
 
         public void Visit(Types.TypeVector4 type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+        }
+
+        public void Visit(TypeDecimal type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
         }

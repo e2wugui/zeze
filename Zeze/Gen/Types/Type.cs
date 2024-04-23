@@ -108,6 +108,8 @@ namespace Zeze.Gen.Types
 			new TypeVector3(Types);
 			new TypeVector3Int(Types);
 			new TypeVector4(Types);
+
+			new TypeDecimal(Types);
 		}
 	}
 }

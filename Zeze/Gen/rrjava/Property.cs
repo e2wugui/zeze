@@ -271,5 +271,10 @@ namespace Zeze.Gen.rrjava
         {
             WriteProperty(type, true);
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            WriteProperty(type);
+        }
     }
 }

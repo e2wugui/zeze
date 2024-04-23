@@ -74,6 +74,11 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}self.{var.Name} = \"\"");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine($"{prefix}self.{var.Name} = \"\"");
+        }
+
         public void Visit(TypeList type)
         {
             sw.WriteLine($"{prefix}self.{var.Name}.clear()");

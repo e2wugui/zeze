@@ -24,5 +24,7 @@ namespace Zeze.Gen.Types
         public void Visit(TypeVector3Int type); // 序列化类型: 11
         public void Visit(TypeVector4 type);    // 序列化类型: 12
         public void Visit(TypeQuaternion type); // 序列化类型: 12
+
+        public void Visit(TypeDecimal type); // 序列化类型: 3 使用String系列化
     }
 }

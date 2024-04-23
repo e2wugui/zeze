@@ -271,5 +271,10 @@ namespace Zeze.Gen.java
         {
             formatSimple();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            formatSimple();
+        }
     }
 }

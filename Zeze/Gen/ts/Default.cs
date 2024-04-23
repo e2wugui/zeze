@@ -69,6 +69,11 @@ namespace Zeze.Gen.ts
             SetDefaultValue("\"\"");
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            SetDefaultValue("\"\"");
+        }
+
         public void Visit(TypeFloat type)
         {
             SetDefaultValue("0");

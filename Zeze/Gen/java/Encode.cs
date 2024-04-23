@@ -471,5 +471,19 @@ namespace Zeze.Gen.java
         {
             VisitVector(type, "Vector4");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "String _x_ = " + Getter + ".toString();");
+                sw.WriteLine(prefix + "if (!_x_.isEmpty()) {");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + bufname + ".WriteString(" + Getter + ".toString());");
+        }
     }
 }

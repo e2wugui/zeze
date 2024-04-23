@@ -7,6 +7,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Predicate;
@@ -65,6 +66,8 @@ public class Reflect {
 		stableNameMap.put(Quaternion.class, "quaternion");
 		stableNameMap.put(Vector2Int.class, "vector2int");
 		stableNameMap.put(Vector3Int.class, "vector3int");
+
+		stableNameMap.put(BigDecimal.class, "decimal");
 
 		boxClassMap.put(void.class, Void.class);
 		boxClassMap.put(boolean.class, Boolean.class);

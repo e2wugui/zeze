@@ -369,5 +369,14 @@ namespace Zeze.Gen.cxx
         {
             sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4({typeVarName})") + ';');
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadString(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()") + ';');
+
+        }
     }
 }

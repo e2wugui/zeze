@@ -356,5 +356,10 @@ namespace Zeze.Gen.rrcs
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            sw.WriteLine($"{prefix}{varname} = decimal.Parse({bufname}.ReadString());");
+        }
     }
 }

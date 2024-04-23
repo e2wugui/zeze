@@ -58,6 +58,11 @@ namespace Zeze.Gen.python
             name = "str";
         }
 
+        public virtual void Visit(TypeDecimal type)
+        {
+            name = "str";
+        }
+
         public virtual void Visit(TypeList type)
         {
             name = "list";

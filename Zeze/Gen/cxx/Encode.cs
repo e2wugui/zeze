@@ -348,5 +348,19 @@ namespace Zeze.Gen.cxx
         {
             VisitVector(type, "Vector4");
         }
+
+        public void Visit(TypeDecimal type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + $"const auto& _x_ = {NameUpper1OrTmp};");
+                sw.WriteLine(prefix + "if (!_x_.empty()) {");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + bufname + $".WriteString({NameUpper1OrTmp});");
+        }
     }
 }

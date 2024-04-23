@@ -59,6 +59,11 @@ namespace Zeze.Gen.ts
             name = "string";
         }
 
+        public void Visit(TypeDecimal type)
+        {
+            name = "string";
+        }
+
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
