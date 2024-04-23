@@ -31,17 +31,15 @@ public class Profiler {
 	}
 
 	public static final class Context implements AutoCloseable {
-		private @Nullable String name;
+		private @Nullable String procedureName;
+		private @Nullable Object params;
+		private @Nullable Throwable e; // only for stack
 		private long timeBegin;
 		private long timeEnd;
-		private @Nullable Throwable e; // only for stack
-
-		private Context(@NotNull String name) {
-			this.name = name;
-		}
 
 		private void clearRef() {
-			name = null;
+			procedureName = null;
+			params = null;
 			e = null;
 		}
 
@@ -106,30 +104,43 @@ public class Profiler {
 		}
 	}
 
-	private @Nullable Context beginContext(@NotNull String name) {
+	private @Nullable Context beginContext(@NotNull String procedureName, @Nullable Object params) {
 		int n;
 		if (startTime == 0 || (n = count) >= MAX_CONTEXT)
 			return null;
 		ArrayList<Context> cs;
 		Context c;
 		if (n >= (cs = contexts).size())
-			cs.add(c = new Context(name));
+			cs.add(c = new Context());
 		else
-			(c = cs.get(n)).name = name;
+			c = cs.get(n);
+		c.procedureName = procedureName;
+		c.params = params;
 		c.timeBegin = System.nanoTime();
 		count = n + 1;
 		return c;
 	}
 
-	public static @Nullable Context begin(@NotNull String name) {
+	public static @Nullable Context begin() {
+		return begin(null);
+	}
+
+	public static @Nullable Context begin(@Nullable Object params) {
 		var t = Transaction.getCurrent();
-		return t != null ? t.profiler.beginContext(name) : null;
+		if (t == null)
+			return null;
+		var ps = t.getProcedureStack();
+		var n = ps.size();
+		return t.profiler.beginContext(n > 0 ? ps.get(n - 1).getActionName() : "", params);
 	}
 
 	private void genInfo(@NotNull StringBuilder sb, int indent, int idx, @NotNull Context c) {
 		var timeEnd = c.timeEnd;
 		sb.append(Str.indent(indent)).append((c.timeBegin - startTime) / 1_000_000).append('-')
-				.append((timeEnd - startTime) / 1_000_000).append(' ').append(c.name).append('\n');
+				.append((timeEnd - startTime) / 1_000_000).append(' ').append(c.procedureName);
+		if (c.params != null)
+			sb.append(": ").append(c.params);
+		sb.append('\n');
 		if (c.e != null) {
 			var traces = c.e.getStackTrace();
 			for (int i = 1, n = traces.length; i < n; i++) {
@@ -157,11 +168,11 @@ public class Profiler {
 	public static void main(String[] args) throws InterruptedException {
 		var p = new Profiler();
 		p.startTime = System.nanoTime();
-		try (var ignored = p.beginContext("aaa")) {
-			try (var ignored1 = p.beginContext("bbb")) {
+		try (var ignored = p.beginContext("aaa", null)) {
+			try (var ignored1 = p.beginContext("bbb", null)) {
 				Thread.sleep(3000);
 			}
-			try (var ignored2 = p.beginContext("ccc")) {
+			try (var ignored2 = p.beginContext("ccc", null)) {
 				Thread.sleep(500);
 			}
 		}
