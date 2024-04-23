@@ -4,6 +4,7 @@ import Zeze.Util.OutLong;
 
 public class BenchStackWalker {
 	public static long stackHash1() {
+		/*
 		long r = 0;
 		for (var ste : new Throwable().getStackTrace()) {
 			r += ste.getClassName().hashCode()
@@ -11,6 +12,9 @@ public class BenchStackWalker {
 					+ ste.getLineNumber();
 		}
 		return r;
+		/*/
+		return new Throwable().hashCode();
+		// */
 	}
 
 	static final StackWalker sw = StackWalker.getInstance();
