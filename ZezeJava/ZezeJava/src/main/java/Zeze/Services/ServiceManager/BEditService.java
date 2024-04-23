@@ -17,15 +17,15 @@ public class BEditService extends Bean {
 	// 也就是说 put 等级更高，服务优先能找到。
 	// update处理是特殊的，放在put后面，使得可以一次注册同时马上更新。
 
-	public List<BServiceInfo> getRemove() {
+	public @NotNull List<BServiceInfo> getRemove() {
 		return remove;
 	}
 
-	public List<BServiceInfo> getPut() {
+	public @NotNull List<BServiceInfo> getPut() {
 		return put;
 	}
 
-	public List<BServiceInfo> getUpdate() {
+	public @NotNull List<BServiceInfo> getUpdate() {
 		return update;
 	}
 
