@@ -44,11 +44,11 @@ public final class TableKey implements Comparable<TableKey> {
 		return false;
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(TableKey other) {
 		int c = Integer.compare(id, other.id);
-		return c != 0 ? c : ((Comparable)key).compareTo(other.key);
+		return c != 0 ? c : ((Comparable<Object>)key).compareTo(other.key);
 	}
 
 	@Override

@@ -256,11 +256,12 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
+	@SuppressWarnings("unchecked")
 	public long handle(@NotNull Service service,
 					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
-			return handle.handleProtocol(this);
+			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
@@ -271,11 +272,12 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		return Procedure.NotImplement;
 	}
 
+	@SuppressWarnings("unchecked")
 	public long handle(@NotNull DatagramService service,
 					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
-			return handle.handleProtocol(this);
+			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {

@@ -64,8 +64,7 @@ public final class Changes extends Zeze.Raft.Log {
 		private final Set<LogBean> logBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
-		@SuppressWarnings("rawtypes")
-		public Table table;
+		public Table<?, ?> table;
 
 		public void setTableTemplateId(int value) {
 			tableTemplateId = value;
@@ -229,7 +228,7 @@ public final class Changes extends Zeze.Raft.Log {
 			// encode TableKey
 			r.getValue().setTableByName(this, r.getValue().tableTemplateName);
 			bb.WriteString(r.getKey().name);
-			r.getValue().table.encodeKey(bb, r.getKey().key);
+			((Table<Object, Bean>)r.getValue().table).encodeKey(bb, r.getKey().key);
 
 			// encode record
 			r.getValue().encode(bb);

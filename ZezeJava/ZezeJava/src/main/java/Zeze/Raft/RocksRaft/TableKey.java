@@ -33,13 +33,13 @@ public final class TableKey implements Comparable<TableKey> {
 		return false;
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
+	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(TableKey other) {
 		int c = name.compareTo(other.name);
 		if (c != 0)
 			return c;
-		return ((Comparable)key).compareTo(other.key);
+		return ((Comparable<Object>)key).compareTo(other.key);
 	}
 
 	@Override

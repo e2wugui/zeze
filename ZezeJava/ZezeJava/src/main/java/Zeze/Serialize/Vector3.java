@@ -39,7 +39,7 @@ public class Vector3 extends Vector2 {
 	}
 
 	@Override
-	public int compareTo(@NotNull Object o) {
+	public int compareTo(@NotNull Vector2 o) {
 		Vector3 v = (Vector3)o;
 		int c = Float.compare(x, v.x);
 		if (c != 0)

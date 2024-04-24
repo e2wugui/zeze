@@ -4,8 +4,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@SuppressWarnings("rawtypes")
-public class Vector2 implements Comparable, Cloneable {
+public class Vector2 implements Comparable<Vector2>, Cloneable {
 	public static final Vector2 ZERO = new Vector2(0, 0);
 
 	public final float x;
@@ -31,8 +30,7 @@ public class Vector2 implements Comparable, Cloneable {
 	}
 
 	@Override
-	public int compareTo(@NotNull Object o) {
-		Vector2 v = (Vector2)o;
+	public int compareTo(@NotNull Vector2 v) {
 		int c = Float.compare(x, v.x);
 		return c != 0 ? c : Float.compare(y, v.y);
 	}

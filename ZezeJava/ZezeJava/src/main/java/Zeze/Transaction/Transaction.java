@@ -110,7 +110,8 @@ public final class Transaction {
 	}
 
 	void reuseTransaction() {
-		// holdLocks.Clear(); // 执行完肯定清理了。
+		// holdLocks.forEach(Lockey::exitLock);
+		// holdLocks.clear(); // 执行完肯定清理了。
 		procedureStack.clear();
 		logActions.clear();
 		savepoints.clear();
@@ -125,6 +126,23 @@ public final class Transaction {
 		redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
+	}
+
+	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
+		if (checkResult == CheckResult.RedoAndReleaseLock) {
+			holdLocks.forEach(Lockey::exitLock);
+			holdLocks.clear();
+		}
+		// retry 可能保持已有的锁，清除记录和保存点。
+		procedureStack.clear();
+		logActions.clear(); // retry 中间的日志不记录。
+		savepoints.clear();
+		actions.clear();
+		accessedRecords.clear();
+		state = TransactionState.Running; // prepare to retry
+		redoBeans.clear();
+		redoActions.clear();
+		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 	}
 
 	public void begin() {
@@ -324,21 +342,7 @@ public final class Transaction {
 							triggerRedoActions();
 							// retry
 						} finally {
-							if (checkResult == CheckResult.RedoAndReleaseLock) {
-								holdLocks.forEach(Lockey::exitLock);
-								holdLocks.clear();
-							}
-							// retry 可能保持已有的锁，清除记录和保存点。
-							accessedRecords.clear();
-							savepoints.clear();
-							actions.clear();
-							redoBeans.clear();
-							redoActions.clear();
-							logActions.clear(); // retry 中间的日志不记录。
-							// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
-							procedureStack.clear();
-
-							state = TransactionState.Running; // prepare to retry
+							reuseTransactionForRedo(checkResult);
 						}
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {

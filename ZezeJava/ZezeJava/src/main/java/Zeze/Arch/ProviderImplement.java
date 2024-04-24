@@ -11,6 +11,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BEditService;
@@ -200,8 +201,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					if (isRpcResponse)
 						return processRpcResponse(outRpcContext, p3);
 					// protocol or rpc request
-					var handler = factoryHandle.Handle;
-					return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
+					@SuppressWarnings("unchecked")
+					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
+					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level, session), outProtocol, session::trySendResponse);
 				if (PerfCounter.ENABLE_PERF) {
 					PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
@@ -233,8 +235,9 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				if (isRpcResponse)
 					return processRpcResponse(outRpcContext, p3);
 				// protocol or rpc request
-				var handler = factoryHandle.Handle;
-				return handler != null ? handler.handleProtocol(p3) : Procedure.NotImplement;
+				@SuppressWarnings("unchecked")
+				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
+				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 			}, p3, session::trySendResponse);
 			if (PerfCounter.ENABLE_PERF) {
 				PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,

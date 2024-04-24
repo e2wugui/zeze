@@ -232,7 +232,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	public void followerApply(Changes changes) {
 		var rs = new ArrayList<Record<?>>();
 		for (var e : changes.getRecords().entrySet())
-			rs.add(e.getValue().table.followerApply(e.getKey().key, e.getValue()));
+			rs.add(((Table<Object, Bean>)e.getValue().table).followerApply(e.getKey().key, e.getValue()));
 		flush(rs, changes, true);
 	}
 

@@ -13,6 +13,7 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.OutObject;
@@ -246,13 +247,14 @@ public class ProviderService extends HandshakeClient {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (p instanceof Dispatch) {
 			//noinspection RedundantCast,DataFlowIssue
 			getZeze().getTaskOneByOneByKey().Execute(((Dispatch)p).Argument.getAccount(),
-					() -> Task.call(() -> factoryHandle.Handle.handleProtocol(p), p, Protocol::trySendResultCode),
-					factoryHandle.Mode);
+					() -> Task.call(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p),
+							p, Protocol::trySendResultCode), factoryHandle.Mode);
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}
