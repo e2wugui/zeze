@@ -84,21 +84,6 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected HttpSession httpSession;
 
-	protected volatile int httpSessionExpire = 15 * 60 * 1000;
-
-	public int getHttpSessionExpire() {
-		return httpSessionExpire;
-	}
-
-	public void setHttpSessionExpire(int httpSessionExpire) {
-		lock();
-		try {
-			this.httpSessionExpire = httpSessionExpire;
-		} finally {
-			unlock();
-		}
-	}
-
 	public @Nullable HttpSession getHttpSession() {
 		return httpSession;
 	}

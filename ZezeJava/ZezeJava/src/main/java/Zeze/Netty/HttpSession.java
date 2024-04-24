@@ -11,6 +11,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class HttpSession extends AbstractHttpSession {
+	public static final String ZEZESESSIONIDNAME = "ZEZESESSIONID";
+
 	public class CookieSession {
 		private final String cookieSessionId;
 
@@ -61,20 +63,37 @@ public class HttpSession extends AbstractHttpSession {
 		}
 	}
 
-	public CookieSession getCookieSession(@NotNull String cookieSessionId) {
-		return getCookieSession(cookieSessionId, 15 * 60 * 1000); // default expire 15 minutes.
+	protected volatile long httpSessionExpire = 15 * 60 * 1000; // default expire 15 minutes.
+
+	public long getHttpSessionExpire() {
+		return httpSessionExpire;
 	}
 
-	public CookieSession getCookieSession(@NotNull String cookieSessionId, int expire) {
+	public void setHttpSessionExpire(long httpSessionExpire) {
+		this.httpSessionExpire = httpSessionExpire;
+	}
+
+	private static @NotNull String makeSessionid() {
+		return "1"; // todo md5(time + autokey + ...) or uuid
+	}
+
+	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) {
 		// 这个不缓存了，也不共享，http请求结束就可以释放。
 		var isAdd = new OutObject<>(false);
+		var cookieSessionId = x.getCookieMap().get(ZEZESESSIONIDNAME);
+		if (cookieSessionId == null) {
+			cookieSessionId = makeSessionid();
+			isAdd.value = true;
+		}
 		var value = _tSession.getOrAdd(cookieSessionId, isAdd);
 		var now = System.currentTimeMillis();
+		var expire = httpSessionExpire;
 		if (isAdd.value || value.getExpireTime() <= now) {
 			// 初始化 HttpSession
 			value.setCreateTime(now);
 			value.setExpireTime(now + expire);
 			value.getProperties().clear();
+			x.setCookie(ZEZESESSIONIDNAME, cookieSessionId, null, null, expire);
 		}
 		return new CookieSession(cookieSessionId); // value 不能记住，每次访问重新从表中读取。
 	}

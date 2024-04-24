@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -72,8 +73,6 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("VulnerableCodeUsages")
 public class HttpExchange {
-	public static final String ZEZESESSIONIDNAME = "ZEZESESSIONID";
-
 	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
 	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
 	protected static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
@@ -104,7 +103,7 @@ public class HttpExchange {
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected @Nullable Object userState;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
-	protected @Nullable HashMap<CharSequence, Object> resHeaders;
+	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	protected @Nullable HttpSession.CookieSession cookieSession;
 
 	public @Nullable HttpSession.CookieSession getCookieSession() {
@@ -124,21 +123,14 @@ public class HttpExchange {
 		this.userState = userState;
 	}
 
-	public String makeSessionid() {
-		return "1"; // todo md5(time + autokey + ...) or uuid
-	}
-
 	/**
 	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
 	 */
 	public void addHeader(@NotNull CharSequence key, @NotNull Object value) {
-		if (resHeaders == null) {
-			resHeaders = new HashMap<>();
-			// 下面调用递归了，但能工作。
-			// todo resHeaders不是multiMap，多个setCookie会覆盖。
-			setCookie(ZEZESESSIONIDNAME, makeSessionid(), null, null, 0);
-		}
-		resHeaders.put(key, value);
+		if (resHeaders == null)
+			resHeaders = new ArrayList<>();
+		resHeaders.add(key);
+		resHeaders.add(value);
 	}
 
 	public void addCookie(@NotNull String name, @NotNull String value) {
@@ -342,13 +334,8 @@ public class HttpExchange {
 
 	public void initCookieSession() {
 		var httpSession = server.getHttpSession();
-		if (null != httpSession) {
-			var cookies = getCookieList();
-			for (var cookie : cookies) {
-				if (cookie.name().equals(ZEZESESSIONIDNAME))
-					cookieSession = httpSession.getCookieSession(cookie.value(), server.getHttpSessionExpire());
-			}
-		}
+		if (httpSession != null)
+			cookieSession = httpSession.getCookieSession(this);
 	}
 
 	protected void channelRead(@Nullable Object msg) throws Exception {
@@ -727,8 +714,8 @@ public class HttpExchange {
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
 		if (resHeaders != null) {
-			for (var e : resHeaders.entrySet())
-				headers.add(e.getKey(), e.getValue());
+			for (int i = 0, n = resHeaders.size(); i < n; i += 2)
+				headers.add((CharSequence)resHeaders.get(i), resHeaders.get(i + 1));
 		}
 		return context.writeAndFlush(res);
 	}
