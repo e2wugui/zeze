@@ -84,6 +84,21 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected HttpSession httpSession;
 
+	protected volatile int httpSessionExpire = 15 * 60 * 1000;
+
+	public int getHttpSessionExpire() {
+		return httpSessionExpire;
+	}
+
+	public void setHttpSessionExpire(int httpSessionExpire) {
+		lock();
+		try {
+			this.httpSessionExpire = httpSessionExpire;
+		} finally {
+			unlock();
+		}
+	}
+
 	public @Nullable HttpSession getHttpSession() {
 		return httpSession;
 	}
@@ -183,19 +198,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws ParseException {
 		return start(netty, null, port);
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws ParseException {
 		lock();
-		if (httpSession != null) {
-			try {
-				httpSession.start();
-			} catch (ParseException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		if (httpSession != null)
+			httpSession.start();
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");

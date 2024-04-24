@@ -72,6 +72,8 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("VulnerableCodeUsages")
 public class HttpExchange {
+	public static final String ZEZESESSIONIDNAME = "ZEZESESSIONID";
+
 	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
 	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
 	protected static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
@@ -103,7 +105,6 @@ public class HttpExchange {
 	protected @Nullable Object userState;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected @Nullable HashMap<CharSequence, Object> resHeaders;
-
 	protected @Nullable HttpSession.CookieSession cookieSession;
 
 	public @Nullable HttpSession.CookieSession getCookieSession() {
@@ -123,12 +124,20 @@ public class HttpExchange {
 		this.userState = userState;
 	}
 
+	public String makeSessionid() {
+		return "1"; // todo md5(time + autokey + ...) or uuid
+	}
+
 	/**
 	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
 	 */
 	public void addHeader(@NotNull CharSequence key, @NotNull Object value) {
-		if (resHeaders == null)
+		if (resHeaders == null) {
 			resHeaders = new HashMap<>();
+			// 下面调用递归了，但能工作。
+			// todo resHeaders不是multiMap，多个setCookie会覆盖。
+			setCookie(ZEZESESSIONIDNAME, makeSessionid(), null, null, 0);
+		}
 		resHeaders.put(key, value);
 	}
 
@@ -331,13 +340,13 @@ public class HttpExchange {
 		return path.substring(i);
 	}
 
-	protected void initCookieSession() {
-		if (null != server.getHttpSession()) {
-			assert request != null;
-			var cookie = request.headers().get(HttpHeaderNames.COOKIE);
-			if (null != cookie) {
-				var sessionId = ""; // todo 提取sessionId，看网上，是可能存在多个的，那这里的cookieSession要定义成Map？
-				cookieSession = server.getHttpSession().getCookieSession(sessionId);
+	public void initCookieSession() {
+		var httpSession = server.getHttpSession();
+		if (null != httpSession) {
+			var cookies = getCookieList();
+			for (var cookie : cookies) {
+				if (cookie.name().equals(ZEZESESSIONIDNAME))
+					cookieSession = httpSession.getCookieSession(cookie.value(), server.getHttpSessionExpire());
 			}
 		}
 	}
