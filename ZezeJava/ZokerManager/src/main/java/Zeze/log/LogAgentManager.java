@@ -1,5 +1,6 @@
 package Zeze.log;
 
+import java.text.ParseException;
 import Zeze.Config;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpServer;
@@ -34,7 +35,7 @@ public class LogAgentManager {
     }
 
 
-    private static void startHttpServer(){
+    private static void startHttpServer() throws ParseException {
         httpServer = new HttpServer(null, "web", 600);
         netty = new Netty();
 

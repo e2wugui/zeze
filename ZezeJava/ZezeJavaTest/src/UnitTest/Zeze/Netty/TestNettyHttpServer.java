@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -224,7 +225,7 @@ public class TestNettyHttpServer {
 		Assert.assertTrue(checked.get());
 	}
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, ParseException {
 		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 		Task.tryInitThreadPool();
 
