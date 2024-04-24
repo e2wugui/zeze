@@ -272,7 +272,19 @@ public class TestNettyHttpServer {
 						for (var header : req.headers())
 							sb.append(header.getKey()).append(": ").append(header.getValue()).append("\n");
 						sb.append("------\n");
+						for (var cookie : x.getCookieList()) {
+							sb.append(cookie.name()).append(": ").append(cookie.value())
+									.append(", domain=").append(cookie.domain())
+									.append(", path=").append(cookie.path())
+									.append(", maxAge=").append(cookie.maxAge())
+									.append(", wrap=").append(cookie.wrap())
+									.append(", isSecure=").append(cookie.isSecure())
+									.append(", isHttpOnly=").append(cookie.isHttpOnly())
+									.append('\n');
+						}
+						sb.append("------\n");
 						sb.append("content.readableBytes: ").append(x.content().readableBytes()).append('\n');
+						x.addCookie("SESSIONID", "1234"); // set-cookie: SESSIONID=1234
 						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
 					});
 			http.addHandler("/ex", // 抛异常

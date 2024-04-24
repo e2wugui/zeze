@@ -192,6 +192,8 @@ public class Profiler {
 		var sb = new StringBuilder();
 		for (int i = 0; i < count; )
 			i = genInfo(sb, 0, i, contexts.get(i));
+		if (count >= MAX_CONTEXT)
+			sb.append("... (exceed ").append(MAX_CONTEXT).append(" records, maybe more ignored)\n");
 		return sb.toString();
 	}
 

@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import Zeze.Serialize.ByteBuffer;
@@ -43,6 +45,10 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
+import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
@@ -96,6 +102,8 @@ public class HttpExchange {
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected @Nullable Object userState;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
+	protected @Nullable HashMap<CharSequence, Object> resHeaders;
+
 	protected @Nullable HttpSession.CookieSession cookieSession;
 
 	public @Nullable HttpSession.CookieSession getCookieSession() {
@@ -113,6 +121,63 @@ public class HttpExchange {
 
 	public void setUserState(@Nullable Object userState) {
 		this.userState = userState;
+	}
+
+	/**
+	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
+	 */
+	public void addHeader(@NotNull CharSequence key, @NotNull Object value) {
+		if (resHeaders == null)
+			resHeaders = new HashMap<>();
+		resHeaders.put(key, value);
+	}
+
+	public void addCookie(@NotNull String name, @NotNull String value) {
+		setCookie(name, value, null, null, -1);
+	}
+
+	public void removeCookie(@NotNull String name) {
+		setCookie(name, "", null, null, 0);
+	}
+
+	/**
+	 * @param domain 域名. 可以是全的,也可以是跨域的,如".example.com"
+	 * @param path   路径. 如"/","/path/"
+	 * @param maxAge 有效期. 小于0表示浏览器(内存)生命期(默认);0表示删除;大于0表示有效时长(秒)
+	 */
+	public void setCookie(@NotNull String name, @NotNull String value,
+						  @Nullable String domain, @Nullable String path, long maxAge) {
+		var cookie = new DefaultCookie(name, value);
+		if (domain != null)
+			cookie.setDomain(domain);
+		if (path != null)
+			cookie.setPath(path);
+		if (maxAge >= 0)
+			cookie.setMaxAge(maxAge);
+		addHeader(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.LAX.encode(cookie));
+	}
+
+	public @NotNull List<Cookie> getCookieList() {
+		var r = request;
+		if (r == null)
+			return List.of();
+		var cookieStr = r.headers().get(HttpHeaderNames.COOKIE);
+		if (cookieStr == null || cookieStr.isBlank())
+			return List.of();
+		return ServerCookieDecoder.LAX.decodeAll(cookieStr);
+	}
+
+	/**
+	 * @return cookie的name和value组成的map
+	 */
+	public @NotNull Map<String, String> getCookieMap() {
+		var cookies = getCookieList();
+		if (cookies.isEmpty())
+			return Map.of();
+		var map = new HashMap<String, String>();
+		for (var cookie : cookies)
+			map.put(cookie.name(), cookie.value());
+		return map;
 	}
 
 	public boolean isActive() {
@@ -652,6 +717,10 @@ public class HttpExchange {
 				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
 		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
+		if (resHeaders != null) {
+			for (var e : resHeaders.entrySet())
+				headers.add(e.getKey(), e.getValue());
+		}
 		return context.writeAndFlush(res);
 	}
 

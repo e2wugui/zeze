@@ -183,14 +183,19 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws ParseException {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
 		return start(netty, null, port);
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws ParseException {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
 		lock();
-		if (httpSession != null)
-			httpSession.start();
+		if (httpSession != null) {
+			try {
+				httpSession.start();
+			} catch (ParseException e) {
+				throw new RuntimeException(e);
+			}
+		}
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
