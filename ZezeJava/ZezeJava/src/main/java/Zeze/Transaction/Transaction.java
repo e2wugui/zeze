@@ -187,6 +187,7 @@ public final class Transaction {
 	}
 
 	private void triggerRedoActions() {
+		profiler.onRedo();
 		redoBeans.forEach(Bean::resetRootInfo);
 		// 确认问题：
 		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？

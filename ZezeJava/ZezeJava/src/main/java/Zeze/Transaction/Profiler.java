@@ -111,6 +111,21 @@ public class Profiler {
 		}
 	}
 
+	public void onRedo() {
+		int n;
+		if (startTime == 0 || (n = count) >= MAX_CONTEXT)
+			return;
+		ArrayList<Context> cs;
+		Context c;
+		if (n >= (cs = contexts).size())
+			cs.add(c = new Context());
+		else
+			c = cs.get(n);
+		c.name = "REDO";
+		c.timeBegin = System.nanoTime();
+		count = n + 1;
+	}
+
 	private @Nullable Context beginContext(@Nullable Object name) {
 		int n;
 		if (startTime == 0 || (n = count) >= MAX_CONTEXT)
@@ -142,8 +157,10 @@ public class Profiler {
 		return begin((Object)names);
 	}
 
-	private void genInfo(@NotNull StringBuilder sb, int indent, int idx, @NotNull Context c) {
+	private int genInfo(@NotNull StringBuilder sb, int indent, int idx, @NotNull Context c) {
 		var timeEnd = c.timeEnd;
+		if (timeEnd == 0)
+			timeEnd = c.timeBegin;
 		sb.append(Str.indent(indent)).append((c.timeBegin - startTime) / 1_000_000).append('-')
 				.append((timeEnd - startTime) / 1_000_000);
 		var name = c.name;
@@ -163,11 +180,9 @@ public class Profiler {
 						.append(strace.getLineNumber()).append('\n');
 			}
 		}
-		for (; ; ) {
-			if (++idx >= count || (c = contexts.get(idx)).timeBegin >= timeEnd)
-				return;
+		while (++idx < count && (c = contexts.get(idx)).timeBegin < timeEnd)
 			genInfo(sb, indent + 2, idx, c);
-		}
+		return idx;
 	}
 
 	@Override
@@ -175,20 +190,25 @@ public class Profiler {
 		if (count <= 0)
 			return "";
 		var sb = new StringBuilder();
-		genInfo(sb, 0, 0, contexts.get(0));
+		for (int i = 0; i < count; )
+			i = genInfo(sb, 0, i, contexts.get(i));
 		return sb.toString();
 	}
 
 	public static void main(String[] args) throws InterruptedException {
 		var p = new Profiler();
 		p.startTime = System.nanoTime();
-		try (var ignored = p.beginContext("aaa")) {
+		try (var ignored = p.beginContext("aa")) {
 			try (var ignored1 = p.beginContext("bbb")) {
 				Thread.sleep(3000);
 			}
+			p.onRedo();
 			try (var ignored2 = p.beginContext("ccc")) {
 				Thread.sleep(500);
 			}
+		}
+		//noinspection EmptyTryBlock
+		try (var ignored = p.beginContext("dd")) {
 		}
 		System.out.println(p);
 		p.reset();
