@@ -335,6 +335,8 @@ public final class Transaction {
 							redoBeans.clear();
 							redoActions.clear();
 							logActions.clear(); // retry 中间的日志不记录。
+							profiler.reset();
+							procedureStack.clear();
 
 							state = TransactionState.Running; // prepare to retry
 						}
