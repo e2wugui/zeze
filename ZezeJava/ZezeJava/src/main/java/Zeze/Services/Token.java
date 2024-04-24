@@ -82,13 +82,13 @@ public final class Token extends AbstractToken {
 	}
 
 	// 生成24个字符的Token字符串. 每个字符只会出现半角的数字和字母共62种. 24个半角字符的字符串正好对齐64位,内存利用率高.
-	private @NotNull String genToken() {
+	public static @NotNull String genToken(@NotNull Random random) {
 		var tokenBytes = new byte[24];
 		var v = System.currentTimeMillis() / 1000;
 		for (int i = 0; i < 5; i++, v /= TOKEN_CHAR_USED)
 			tokenBytes[4 - i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 前5字节用来存秒单位的时间戳,避免过期后生成重复token的风险,29年内不会重复
 		var tmp16 = new byte[16];
-		tokenRandom.nextBytes(tmp16); // 一次生成16字节的安全随机数,下面分成2个64位整数使用
+		random.nextBytes(tmp16); // 一次生成16字节的安全随机数,下面分成2个64位整数使用
 		v = ByteBuffer.ToLong(tmp16, 0) & Long.MAX_VALUE;
 		for (int i = 0; i < 10; i++, v /= TOKEN_CHAR_USED)
 			tokenBytes[5 + i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 接下来10字节存第1个64位整数
@@ -96,6 +96,10 @@ public final class Token extends AbstractToken {
 		for (int i = 0; i < 9; i++, v /= TOKEN_CHAR_USED)
 			tokenBytes[15 + i] = tokenCharTable[(int)(v % TOKEN_CHAR_USED)]; // 最后9字节存第2个64位整数
 		return new String(tokenBytes, StandardCharsets.ISO_8859_1);
+	}
+
+	private @NotNull String genToken() {
+		return genToken(tokenRandom);
 	}
 
 	public static class TokenClient extends HandshakeClient {

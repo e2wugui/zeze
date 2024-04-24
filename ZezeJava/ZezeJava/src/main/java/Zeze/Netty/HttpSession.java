@@ -1,11 +1,14 @@
 package Zeze.Netty;
 
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Random;
 import Zeze.Application;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Services.Token;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +66,8 @@ public class HttpSession extends AbstractHttpSession {
 		}
 	}
 
-	protected volatile long httpSessionExpire = 15 * 60 * 1000; // default expire 15 minutes.
+	private volatile long httpSessionExpire = 15 * 60 * 1000; // default expire 15 minutes.
+	private final Random tokenRandom = new SecureRandom();
 
 	public long getHttpSessionExpire() {
 		return httpSessionExpire;
@@ -73,8 +77,8 @@ public class HttpSession extends AbstractHttpSession {
 		this.httpSessionExpire = httpSessionExpire;
 	}
 
-	private static @NotNull String makeSessionid() {
-		return "1"; // todo md5(time + autokey + ...) or uuid
+	private @NotNull String makeSessionid() {
+		return Token.genToken(tokenRandom);
 	}
 
 	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) {
@@ -93,7 +97,7 @@ public class HttpSession extends AbstractHttpSession {
 			value.setCreateTime(now);
 			value.setExpireTime(now + expire);
 			value.getProperties().clear();
-			x.setCookie(ZEZESESSIONIDNAME, cookieSessionId, null, null, expire);
+			x.setCookie(ZEZESESSIONIDNAME, cookieSessionId, null, null, expire / 1000);
 		}
 		return new CookieSession(cookieSessionId); // value 不能记住，每次访问重新从表中读取。
 	}
