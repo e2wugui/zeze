@@ -28,11 +28,11 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 	}
 
 	public TaskOneByOneByKey(@Nullable Executor executor) {
-		this(1024, executor);
+		this(2048, executor);
 	}
 
 	public TaskOneByOneByKey() {
-		this(1024, null);
+		this(2048, null);
 	}
 
 	public TaskOneByOneByKey(int concurrencyLevel) {

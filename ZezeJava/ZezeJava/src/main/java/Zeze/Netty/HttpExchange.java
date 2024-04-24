@@ -96,6 +96,11 @@ public class HttpExchange {
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
 	protected @Nullable Object userState;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
+	protected @Nullable HttpSession.CookieSession cookieSession;
+
+	public @Nullable HttpSession.CookieSession getCookieSession() {
+		return cookieSession;
+	}
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -261,12 +266,24 @@ public class HttpExchange {
 		return path.substring(i);
 	}
 
+	protected void initCookieSession() {
+		if (null != server.getHttpSession()) {
+			assert request != null;
+			var cookie = request.headers().get(HttpHeaderNames.COOKIE);
+			if (null != cookie) {
+				var sessionId = ""; // todo 提取sessionId，看网上，是可能存在多个的，那这里的cookieSession要定义成Map？
+				cookieSession = server.getHttpSession().getCookieSession(sessionId);
+			}
+		}
+	}
+
 	protected void channelRead(@Nullable Object msg) throws Exception {
 		var channel = context.channel();
 		channel.attr(HttpServer.idleTimeKey).set(null);
 		if (msg instanceof HttpRequest) {
 			var req = ReferenceCountUtil.retain((HttpRequest)msg);
 			request = req;
+			initCookieSession();
 			var path = path();
 			handler = server.getHandler(path);
 			if (handler == null) {

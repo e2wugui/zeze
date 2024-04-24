@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -81,6 +82,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
+	protected HttpSession httpSession;
+
+	public @Nullable HttpSession getHttpSession() {
+		return httpSession;
+	}
 
 	public void lock() {
 		thisLock.lock();
@@ -133,6 +139,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this.fileCacheSeconds = fileCacheSeconds;
 	}
 
+	// before start
+	public void enableHttpSession() {
+		if (zeze == null)
+			throw new IllegalStateException("zeze is null.");
+		httpSession = new HttpSession(zeze);
+	}
+
 	public int getWritePendingLimit() {
 		return writePendingLimit;
 	}
@@ -170,12 +183,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws ParseException {
 		return start(netty, null, port);
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws ParseException {
 		lock();
+		if (httpSession != null)
+			httpSession.start();
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
@@ -206,6 +221,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 				if (ch != null)
 					ch.close();
 			}
+			if (httpSession != null)
+				httpSession.stop();
 		} finally {
 			unlock();
 		}

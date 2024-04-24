@@ -1832,13 +1832,27 @@
 			<rpc name="Checkpoint" handle="server"/>
 		</module>
 
+		<module name="HttpSession" id="11018">
+			<bean name="BSessionValue">
+				<variable id="1" name="CreateTime" type="long"/>
+				<variable id="2" name="ExpireTime" type="long"/>
+				<variable id="3" name="Properties" type="map[string, string]"/>
+			</bean>
+			<table name="tSession" key="string" value="BSessionValue"/> key is http sessionid from cookie
+		</module>
 		<!--
-		可用id范围 11018, 11031, 11032, [11039, 11100) [11102, 11999]
+		可用id范围 11031, 11032, [11039, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="HttpSession" gendir="src/main/java" genrelativedir="Zeze/Netty" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.HttpSession"/>
+		</service>
+	</component>
+
 	<component name="Onz" gendir="src/main/java" genrelativedir="Zeze/Onz" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Onz"/>

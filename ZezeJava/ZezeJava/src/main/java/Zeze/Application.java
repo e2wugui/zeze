@@ -64,7 +64,6 @@ public final class Application extends ReentrantLock {
 	private final HashMap<String, Database> databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
-	private final TaskOneByOneByKey taskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
 	private @Nullable AutoKey.Module autoKey;
@@ -798,18 +797,18 @@ public final class Application extends ReentrantLock {
 	}
 
 	public @NotNull TaskOneByOneByKey getTaskOneByOneByKey() {
-		return taskOneByOneByKey;
+		return Task.getOneByOne();
 	}
 
 	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		taskOneByOneByKey.Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
 	}
 }
