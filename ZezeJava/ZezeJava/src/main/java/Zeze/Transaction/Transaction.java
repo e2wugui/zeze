@@ -335,7 +335,7 @@ public final class Transaction {
 							redoBeans.clear();
 							redoActions.clear();
 							logActions.clear(); // retry 中间的日志不记录。
-							profiler.reset();
+							// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 							procedureStack.clear();
 
 							state = TransactionState.Running; // prepare to retry
