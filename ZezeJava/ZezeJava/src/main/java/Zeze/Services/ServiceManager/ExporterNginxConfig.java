@@ -75,7 +75,7 @@ public class ExporterNginxConfig implements IExporter {
 	 *
 	 * @param param 配置文件路径名字
 	 */
-	public ExporterNginxConfig(String param, @NotNull String param2) {
+	public ExporterNginxConfig(@NotNull String param, @NotNull String param2) {
 		this.file = param;
 		this.version = Long.parseLong(param2);
 	}

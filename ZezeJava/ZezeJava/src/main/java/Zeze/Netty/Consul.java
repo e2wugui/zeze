@@ -21,7 +21,7 @@ public class Consul {
 		client = new ConsulClient(consulHost);
 	}
 
-	public void register(HttpServer httpServer) throws Exception {
+	public void register(String serviceName, HttpServer httpServer) throws Exception {
 		httpServer.getChannelFuture().sync();
 		var addr = httpServer.getLocalAddress();
 		assert addr != null;
@@ -39,7 +39,7 @@ public class Consul {
 		newService.setAddress(host);
 		newService.setPort(port);
 		newService.setId(serviceId);
-		newService.setName(""); // todo
+		newService.setName(serviceName);
 		// todo ... 里面还有很多参数。
 
 		var checker = new NewService.Check();

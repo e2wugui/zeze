@@ -17,6 +17,7 @@ ServiceManager 增加服务多Version支持。
 app.taskonebyone 删除了。
 HttpSession 组件。
 SM.Exporter 独立进程服务，输出SM信息到其他系统。
+c# SM.agent 修改成适配新版SM协议。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/4/17 v1.4.5 ThreadDiagnosable；Service；StatLog; Raft; Dbh2; AppBase & Gen; ConcurrentHashMapOrdered; Hot;
