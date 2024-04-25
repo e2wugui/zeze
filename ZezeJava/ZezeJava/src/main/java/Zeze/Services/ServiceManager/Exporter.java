@@ -30,7 +30,7 @@ public class Exporter {
 		agent.waitReady();
 	}
 
-	private void onEdit(BEditService edit) {
+	private void onEdit(BEditService edit) throws Exception {
 		HashSet<String> serviceSet = null;
 		for (var ep : exports) {
 			switch (ep.getType()) {

@@ -7,7 +7,7 @@ public class ExporterNgnixHttp implements IExporter {
 	}
 
 	@Override
-	public void exportAll(String serviceName, BServiceInfosVersion all) {
+	public void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
 
 	}
 

@@ -7,11 +7,11 @@ public interface IExporter {
 	}
 	Type getType();
 
-	default void exportAll(String serviceName, BServiceInfosVersion all) {
+	default void exportAll(String serviceName, BServiceInfosVersion all) throws Exception {
 
 	}
 
-	default void exportEdit(BEditService edit) {
+	default void exportEdit(BEditService edit) throws Exception {
 
 	}
 }
