@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.util.Properties;
 import org.jetbrains.annotations.NotNull;
 
 public class ExporterPrint implements IExporter {
@@ -13,7 +14,7 @@ public class ExporterPrint implements IExporter {
 		System.out.println(edit);
 	}
 
-	public ExporterPrint(@NotNull String param, @NotNull String param2) {
+	public ExporterPrint(@NotNull ExporterConfig config) {
 
 	}
 }

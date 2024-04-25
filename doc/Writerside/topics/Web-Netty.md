@@ -43,11 +43,13 @@ public HttpEndStreamHandle EndStreamHandle;
 
 ### 主动注册到 Consul 中
 需要符合如下条件：
-* 使用Consul。
-* Nginx 编入模块 nginx-upsync-module。
-* 你的Web-Netty服务主动注册到Consul中。
+1. 使用Consul。
+2. Nginx 编入模块 nginx-upsync-module。
+3. 把你的Web-Netty服务主动注册到Consul中。
 
 Consul和nginx-upsync-module相关配置请查看相关文档。下面举例说明注册的操作。
+
+注册到Consule例子
 “”“
     // 启动初始化
     var netty = new Netty(nThreads);
@@ -66,48 +68,46 @@ Consul和nginx-upsync-module相关配置请查看相关文档。下面举例说�
 ### 修改Nginx配置并重新加载
 
 * 在每一个Nginx所在的服务器运行Exporter。
+* 你的Web-Netty服务主动注册到Zeze的ServiceManager中。
+* 如果Nginx网关服务器没有java环境，可以自行尝试把Exporter编成native程序。这样便于发布。
+
+运行Exporter例子
 """
 java -cp zeze.jar Zeze.Service.ServiceManager.Exporter -e Zeze.Services.ServiceManager.ExporterNginxConfig nginx.config.file 0 -s YourServiceName
 """
-* 你的Web-Netty服务主动注册到Zeze的ServiceManager中。
+
+注册服务例子
 “”“
     // 启动初始化
     var netty = new Netty(nThreads);
-    var agent = new Application.createServiceManager(Config.load(), "YourServiceManagerRaftName");
     var server = new HttpServer();
 
     server.start(netty, port).sync();
-    var edit = new BEditService();
-    var addr = server.getLocalAddress();
-    var host = addr.getAddress().isAnyLocalAddress()
-		? Helper.selectOneIpAddress(false)
-		: addr.getAddress().getHostAddress();
-    var identity = "@" + host + "_" + server.getPort();
-    var version = 0; // 服务版本号，没有启用多版本管理，使用0即可
-    edit.getPuts().add(new BServiceInfo("YourServiceName",  identity, version, host, server.getPort()));
-    agent.editService(edit); // 注册服务，这里的服务名字需要和Nginx配置一致。
+    server.publishService("YourServiceName"); // 注册，这需要Zeze.Application环境。还有另一个版本的publishService可用。
     
     // 停止程序
-    agent.stop(); 
     server.close();
     netty.close();
 ”“”
-* 如果Nginx网关服务器没有java环境，可以自行尝试把Exporter编成native程序。这样便于发布。
 
 ### 通过http接口直接修改Nginx内部服务列表
 需要符合如下条件：
-* Nginx 编入模块 nginx-http-dyups-module。配置请参考相关文档。
-* 你的Web-Netty服务主动注册到Zeze的ServiceManager中。注册方式同上一种方式。
-* 在每一个Nginx所在的服务器运行Exporter。
+1. Nginx 编入模块 nginx-http-dyups-module。配置请参考相关文档。
+2. 把你的Web-Netty服务主动注册到Zeze的ServiceManager中。注册方式同上一种方式。
+3. 在每一个Nginx所在的服务器运行Exporter。
+
+运行Exporter
 """
 java -cp zeze.jar Zeze.Service.ServiceManager.Exporter -e Zeze.Services.ServiceManager.ExporterNginxHttp url 0 -s YourServiceName
 """
-* 一般nginx-http-dyups-module的http网络接口是配置在127.0.0.1上，所以需要每Nginx运行一个Exporter。
+
+一般nginx-http-dyups-module的http网络接口是配置在127.0.0.1上，所以需要每Nginx运行一个Exporter。
 如果http网络配置在开放Ip上，可以只运行一个Exporter，通过重复指定"-e"参数广播服务列表。
 """
 java -cp Exporter -e ExporterNginxHttp url1 0 -e  ExporterNginxHttp url2 0 -s YourServiceName
 """
-* nginx-http-dyups-module接收到的服务器列表是保存在Nginx内存中的，重启会丢失。这样在Exporter输出前，
+
+nginx-http-dyups-module接收到的服务器列表是保存在Nginx内存中的，重启会丢失。这样在Exporter输出前，
 有一段时间Nginx的服务列表是空的。这是可以结合ExporterNginxConfig，同时把服务列表修改到Nginx的配置文件中。
 当然这种方式需要每Nginx运行一个Exporter。
 """

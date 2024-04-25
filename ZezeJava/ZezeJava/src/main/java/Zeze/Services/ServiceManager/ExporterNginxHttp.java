@@ -1,11 +1,14 @@
 package Zeze.Services.ServiceManager;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 import java.util.concurrent.Executors;
+import Zeze.Util.PropertiesHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -25,12 +28,11 @@ public class ExporterNginxHttp implements IExporter {
 	/**
 	 * 构造Nginx配置HTTP输出器。
 	 * 当SM信息发生变化，会把服务列表通过http接口，输出Nginx中。
-	 *
-	 * @param param http-url
 	 */
-	public ExporterNginxHttp(@NotNull String param, @NotNull String param2) {
+	public ExporterNginxHttp(@NotNull ExporterConfig config) {
+		var param = config.getUrl();
 		url = param.endsWith("/") ? param : param + "/";
-		version = Long.parseLong(param2);
+		version = config.getVersion();
 	}
 
 	@Override

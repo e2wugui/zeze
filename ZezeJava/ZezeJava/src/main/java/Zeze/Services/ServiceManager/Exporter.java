@@ -3,9 +3,12 @@ package Zeze.Services.ServiceManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Properties;
+import javax.validation.constraints.Null;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 【独立后台进程】
@@ -60,8 +63,9 @@ public class Exporter {
 		agent.close();
 	}
 
-	public void addExporter(String name, String param, String param2) throws Exception {
-		exports.add((IExporter)Class.forName(name).getConstructor(String.class, String.class).newInstance(param, param2));
+	public void addExporter(@NotNull String name, @NotNull Properties shared, @Null String param) throws Exception {
+		var config = new ExporterConfig(shared, param);
+		exports.add((IExporter)Class.forName(name).getConstructor(ExporterConfig.class).newInstance(config));
 	}
 
 	public void subscribeService(java.util.List<String> services) {
@@ -74,16 +78,28 @@ public class Exporter {
 	public static void main(String[] args) throws Exception {
 		Task.tryInitThreadPool();
 		var exporter = new Exporter();
+		var shared = new Properties();
 		var services = new ArrayList<String>();
 		for (var i = 0; i < args.length; ++i) {
-			if (args[i].equals("-e"))
-				exporter.addExporter(args[++i], args[++i], args[++i]);
-			else if (args[i].equals("-s"))
+			if (args[i].equals("-e")) {
+				var className = args[++i];
+				// 如果还有参数，看看是不是跟随的-private，如果是，读取私有参数。
+				String privateParam = null;
+				if (i < args.length - 1 && args[i + 1].equals("-private") /* peek */) {
+					privateParam = args[i+=2]; // move i to next 2
+				}
+				exporter.addExporter(className, shared, privateParam);
+			} else if (args[i].equals("-s")) {
 				services.add(args[++i]);
-			else if (args[i].equals("-d"))
-				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", "", "");
-			else
-				throw new IllegalArgumentException("Usage: -e class param version ... -s serviceName ...");
+			} else if (args[i].equals("-d")) {
+				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", shared, null);
+			} else {
+				System.out.println("Usage: [options] -e class ... -s service ... ");
+				System.out.println("    options: -version ver -file file -url url");
+				System.out.println("    private options sample: -e class -private \"-version ver -file file -url url\"");
+				System.out.println("    -private must follow \"-e class\", and will effect only for this instance.");
+				throw new IllegalArgumentException();
+			}
 		}
 		exporter.start();
 		exporter.subscribeService(services);

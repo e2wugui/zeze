@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,6 +51,7 @@ public class ExporterNginxConfig implements IExporter {
 				sb.append(line).append("\n");
 			//System.out.println(sb);
 			Files.writeString(Path.of(file), sb.toString(), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+			reload();
 		}
 	}
 
@@ -68,15 +70,23 @@ public class ExporterNginxConfig implements IExporter {
 
 	private final String file;
 	private final long version;
+	private final String reload;
+
+	@SuppressWarnings("deprecation")
+	private void reload() throws IOException {
+		if (null == reload)
+			return;
+
+		Runtime.getRuntime().exec(reload);
+	}
 
 	/**
 	 * 构造Ngnix配置文件输出器。
 	 * 当SM信息发生变化，会把服务列表输出到配置文件。
-	 *
-	 * @param param 配置文件路径名字
 	 */
-	public ExporterNginxConfig(@NotNull String param, @NotNull String param2) {
-		this.file = param;
-		this.version = Long.parseLong(param2);
+	public ExporterNginxConfig(@NotNull ExporterConfig config) {
+		this.file = config.getFile();
+		this.version = config.getVersion();
+		this.reload = config.getReload();
 	}
 }

@@ -26,15 +26,10 @@ public class Consul {
 	}
 
 	public void register(String serviceName, HttpServer httpServer) throws Exception {
-		httpServer.getChannelFuture().sync();
-		var addr = httpServer.getLocalAddress();
-		assert addr != null;
-		var host = addr.getAddress().isAnyLocalAddress()
-				? Helper.selectOneIpAddress(false)
-				: addr.getAddress().getHostAddress();
-		var port = addr.getPort();
+		var host = httpServer.getExportHost();
+		var port = httpServer.getPort();
 
-		var serviceId = serviceName + "@" + host + ":" + port; // see todo below
+		var serviceId = "@" + host + ":" + port + "@" + serviceName; // see todo below
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
 

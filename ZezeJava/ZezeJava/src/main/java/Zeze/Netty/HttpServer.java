@@ -18,6 +18,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
 import Zeze.Application;
+import Zeze.Net.Helper;
+import Zeze.Services.ServiceManager.AbstractAgent;
+import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
@@ -222,6 +225,21 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	/**
+	 * 输出ip地址或主机名。其他机器可以通过这个连接过来。
+	 *
+	 * @return host
+	 * @throws InterruptedException sync InterruptedException
+	 */
+	public @NotNull String getExportHost() throws InterruptedException {
+		channelFuture.sync();
+		var addr = getLocalAddress();
+		assert addr != null;
+		return addr.getAddress().isAnyLocalAddress()
+				? Helper.selectOneIpAddress(false)
+				: addr.getAddress().getHostAddress();
+	}
+
+	/**
 	 * 需要端口已在监听状态才能获取到, 即getChannelFuture().sync()等待后可获取
 	 *
 	 * @return 无法获取时返回小于0
@@ -229,6 +247,30 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public int getPort() {
 		var addr = getLocalAddress();
 		return addr != null ? addr.getPort() : -1;
+	}
+
+	public void publishService(String serviceName) throws InterruptedException {
+		if (null == zeze)
+			throw new IllegalStateException("without zeze env. use another publishService method with your special agent");
+		publishService(serviceName, 0L, zeze.getServiceManager());
+	}
+
+	/**
+	 * 发布HttpServer到指定agent。
+	 *
+	 * @param serviceName 服务名
+	 * @param version 服务版本
+	 * @param agent agent
+	 * @throws InterruptedException exception
+	 */
+	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent) throws InterruptedException {
+		var host = getExportHost();
+		var port = getPort();
+
+		var identity = "@" + host + ":" + port;
+		agent.registerService(new BServiceInfo(
+				serviceName, identity, version,
+				host, port, null));
 	}
 
 	@Override

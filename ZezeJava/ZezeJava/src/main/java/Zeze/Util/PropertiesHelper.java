@@ -15,6 +15,24 @@ public final class PropertiesHelper {
 	private PropertiesHelper() {
 	}
 
+	/**
+	 * props 格式为： -key value -key2 value ...
+	 * 1. -key不能重名，重复时，保留第一个，其他丢弃。
+	 * 2. 必须成双成对。
+	 *
+	 * @param props string
+	 * @return Properties
+	 */
+	public static Properties parsePair(@NotNull String props) {
+		var args = props.split(" ");
+		var result = new Properties();
+		for (var i = 0; i < args.length; ++i) {
+			if (args[i].startsWith("-"))
+				result.putIfAbsent(args[i], args[++i]);
+		}
+		return result;
+	}
+
 	public static int loadProperties(@NotNull String fileName) throws IOException {
 		var file = new File(fileName);
 		if (!file.isFile())
