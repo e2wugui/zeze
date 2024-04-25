@@ -10,7 +10,6 @@ import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,16 +98,13 @@ public class HttpExchange {
 	protected @Nullable HttpRequest request; // 收到完整HTTP header部分会赋值
 	protected @Nullable HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
 	protected @NotNull ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
+	protected @Nullable Object userState;
+	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
+	protected @Nullable List<Cookie> cookies;
+	protected @Nullable HttpSession.CookieSession cookieSession;
+	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
-	protected @Nullable Object userState;
-	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
-	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
-	protected @Nullable HttpSession.CookieSession cookieSession;
-
-	public @Nullable HttpSession.CookieSession getCookieSession() {
-		return cookieSession;
-	}
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -123,14 +119,19 @@ public class HttpExchange {
 		this.userState = userState;
 	}
 
+	public @Nullable HttpSession.CookieSession getCookieSession() {
+		return cookieSession;
+	}
+
 	/**
 	 * @param key 建议从Netty的HttpHeaderNames类里取字符串常量
 	 */
 	public void addHeader(@NotNull CharSequence key, @NotNull Object value) {
-		if (resHeaders == null)
-			resHeaders = new ArrayList<>();
-		resHeaders.add(key);
-		resHeaders.add(value);
+		var headers = resHeaders;
+		if (headers == null)
+			resHeaders = headers = new ArrayList<>();
+		headers.add(key);
+		headers.add(value);
 	}
 
 	public void addCookie(@NotNull String name, @NotNull String value) {
@@ -142,8 +143,8 @@ public class HttpExchange {
 	}
 
 	/**
-	 * @param domain 域名. 可以是全的,也可以是跨域的,如".example.com"
-	 * @param path   路径. 如"/","/path/"
+	 * @param domain 域名. 可以是全的,也可以是跨域的,如".example.com". 默认是当前请求的域名(HOST)
+	 * @param path   路径. 如"/","/path/". 默认是当前请求路径到最后一个"/"的部分
 	 * @param maxAge 有效期. 小于0表示浏览器(内存)生命期(默认);0表示删除;大于0表示有效时长(秒)
 	 */
 	public void setCookie(@NotNull String name, @NotNull String value,
@@ -158,27 +159,32 @@ public class HttpExchange {
 		addHeader(HttpHeaderNames.SET_COOKIE, ServerCookieEncoder.LAX.encode(cookie));
 	}
 
+	/**
+	 * @return 不可修改的Cookie容器
+	 */
 	public @NotNull List<Cookie> getCookieList() {
+		var cs = cookies;
+		if (cs != null)
+			return cs;
 		var r = request;
 		if (r == null)
 			return List.of();
 		var cookieStr = r.headers().get(HttpHeaderNames.COOKIE);
 		if (cookieStr == null || cookieStr.isBlank())
 			return List.of();
-		return ServerCookieDecoder.LAX.decodeAll(cookieStr);
+		cookies = cs = ServerCookieDecoder.LAX.decodeAll(cookieStr);
+		return cs;
 	}
 
-	/**
-	 * @return cookie的name和value组成的map
-	 */
-	public @NotNull Map<String, String> getCookieMap() {
+	public @Nullable String getCookie(@NotNull String name) {
 		var cookies = getCookieList();
-		if (cookies.isEmpty())
-			return Map.of();
-		var map = new HashMap<String, String>();
-		for (var cookie : cookies)
-			map.put(cookie.name(), cookie.value());
-		return map;
+		if (!cookies.isEmpty()) {
+			for (var cookie : cookies) {
+				if (cookie.name().equals(name))
+					return cookie.value();
+			}
+		}
+		return null;
 	}
 
 	public boolean isActive() {

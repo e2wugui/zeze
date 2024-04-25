@@ -82,19 +82,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable Future<?> scheduler;
 	protected @Nullable ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
-	protected HttpSession httpSession;
-
-	public @Nullable HttpSession getHttpSession() {
-		return httpSession;
-	}
-
-	public void lock() {
-		thisLock.lock();
-	}
-
-	public void unlock() {
-		thisLock.unlock();
-	}
+	protected @Nullable HttpSession httpSession;
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -139,11 +127,23 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this.fileCacheSeconds = fileCacheSeconds;
 	}
 
+	public void lock() {
+		thisLock.lock();
+	}
+
+	public void unlock() {
+		thisLock.unlock();
+	}
+
 	// before start
 	public void enableHttpSession() {
 		if (zeze == null)
 			throw new IllegalStateException("zeze is null.");
 		httpSession = new HttpSession(zeze);
+	}
+
+	public @Nullable HttpSession getHttpSession() {
+		return httpSession;
 	}
 
 	public int getWritePendingLimit() {

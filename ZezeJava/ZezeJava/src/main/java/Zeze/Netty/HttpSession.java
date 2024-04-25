@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class HttpSession extends AbstractHttpSession {
-	public static final String ZEZESESSIONIDNAME = "ZEZESESSIONID";
+	public static final String ZEZE_SESSION_ID_NAME = "ZEZESESSIONID";
 
 	public class CookieSession {
 		private final String cookieSessionId;
@@ -84,7 +84,7 @@ public class HttpSession extends AbstractHttpSession {
 	public @NotNull CookieSession getCookieSession(@NotNull HttpExchange x) {
 		// 这个不缓存了，也不共享，http请求结束就可以释放。
 		var isAdd = new OutObject<>(false);
-		var cookieSessionId = x.getCookieMap().get(ZEZESESSIONIDNAME);
+		var cookieSessionId = x.getCookie(ZEZE_SESSION_ID_NAME);
 		if (cookieSessionId == null) {
 			cookieSessionId = makeSessionid();
 			isAdd.value = true;
@@ -97,7 +97,7 @@ public class HttpSession extends AbstractHttpSession {
 			value.setCreateTime(now);
 			value.setExpireTime(now + expire);
 			value.getProperties().clear();
-			x.setCookie(ZEZESESSIONIDNAME, cookieSessionId, null, null, expire / 1000);
+			x.setCookie(ZEZE_SESSION_ID_NAME, cookieSessionId, null, null, expire / 1000);
 		}
 		return new CookieSession(cookieSessionId); // value 不能记住，每次访问重新从表中读取。
 	}
