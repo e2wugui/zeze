@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
+import Zeze.Net.Binary;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -259,10 +260,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return updateService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
 	}
 
-	public abstract BServiceInfo registerService(BServiceInfo info);
-
-	public abstract BServiceInfo updateService(BServiceInfo info);
-
 	protected static void verify(String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			//noinspection ResultOfMethodCallIgnored
@@ -271,8 +268,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public abstract void unRegisterService(@NotNull BServiceInfo info);
-
-	public abstract void unRegisterService(BServiceInfo info);
 
 	public SubscribeState subscribeService(String serviceName) {
 		return subscribeService(serviceName, 0,null);
