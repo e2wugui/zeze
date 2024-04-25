@@ -80,11 +80,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected int writeIdleTimeout = 60; // 服务端无发送的超时时间(秒)
 	protected @Nullable SslContext sslCtx;
 	protected @Nullable Future<?> scheduler;
-	protected @Nullable ChannelFuture channelFuture;
+	protected ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
-	protected int port;
-	protected @Nullable String host;
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -200,23 +198,34 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
 					() -> channels.keySet().forEach(this::checkTimeout),
 					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
-			channelFuture = netty.startServer(this, host, port);
-			// 为了得到真正的端口，这里实际上等待了。需要注意：channelFuture可以重复等待吗？即返回再执行一次。
-			var channel = channelFuture.sync().channel();
-			this.host = host;
-			this.port = ((InetSocketAddress)channel.localAddress()).getPort();
-			return channelFuture;
+			return channelFuture = netty.startServer(this, host, port);
 		} finally {
 			unlock();
 		}
 	}
 
+	public ChannelFuture getChannelFuture() {
+		return channelFuture;
+	}
+
 	public @Nullable String getHost() {
-		return host;
+		var cf = channelFuture;
+		if (cf == null)
+			return null;
+		var addr = cf.channel().localAddress();
+		if (!(addr instanceof InetSocketAddress))
+			return null;
+		return ((InetSocketAddress)addr).getHostName();
 	}
 
 	public int getPort() {
-		return port;
+		var cf = channelFuture;
+		if (cf == null)
+			return -1;
+		var addr = cf.channel().localAddress();
+		if (!(addr instanceof InetSocketAddress))
+			return -2;
+		return ((InetSocketAddress)addr).getPort();
 	}
 
 	@Override

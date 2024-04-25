@@ -22,6 +22,7 @@ public class Consul {
 	}
 
 	public void register(HttpServer httpServer) throws Exception {
+		httpServer.getChannelFuture().sync();
 		var host = httpServer.getHost();
 		var port = httpServer.getPort();
 		if (host == null)
