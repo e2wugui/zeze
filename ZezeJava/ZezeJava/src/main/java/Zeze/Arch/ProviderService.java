@@ -225,9 +225,9 @@ public class ProviderService extends HandshakeClient {
 			// 注册订阅服务。
 			var sm = providerApp.zeze.getServiceManager();
 			var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
-			sm.registerService(
-					providerApp.serverServiceNamePrefix + module.getId(), identity,
-					providerApp.directIp, providerApp.directPort);
+			sm.registerService(new BServiceInfo(
+					providerApp.serverServiceNamePrefix + module.getId(), identity, 0,
+					providerApp.directIp, providerApp.directPort));
 			sm.subscribeService(providerApp.serverServiceNamePrefix + module.getId());
 		}
 

@@ -5,7 +5,6 @@ import Zeze.Net.Binary;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
-import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.TaskCompletionSource;
 import demo.App;
 import org.junit.After;
@@ -44,7 +43,7 @@ public class TestServiceManager {
 		future = new TaskCompletionSource<>();
 
 		var agent = App.Instance.Zeze.getServiceManager();
-		agent.registerService(serviceName, "1", "127.0.0.1", 1234);
+		agent.registerService(new BServiceInfo(serviceName, "1", 0, "127.0.0.1", 1234));
 		agent.setOnChanged((state) -> {
 			System.out.println("OnChanged 1:" + state);
 			this.future.setResult(0);
@@ -67,13 +66,13 @@ public class TestServiceManager {
 			this.future.setResult(0);
 		});
 		System.out.println("WaitOnUpdate");
-		agent.updateService(serviceName, "1", "1.1.1.1", 1, new Binary("extra info".getBytes(StandardCharsets.UTF_8)));
+		agent.updateService(new BServiceInfo(serviceName, "1", 0, "1.1.1.1", 1, new Binary("extra info".getBytes(StandardCharsets.UTF_8))));
 		future.await();
 
 		System.out.println("RegisterService 2");
 		future = new TaskCompletionSource<>();
 		System.out.println("WaitOnChanged 2");
-		agent.registerService(serviceName, "2");
+		agent.registerService(new BServiceInfo(serviceName, "2"));
 		future.await();
 
 		var state = agent.getSubscribeStates().get(serviceName);
@@ -85,7 +84,7 @@ public class TestServiceManager {
 		System.out.println("RegisterService 3");
 		future = new TaskCompletionSource<>();
 		System.out.println("WaitOnChanged 3");
-		agent.registerService(serviceName, "3");
+		agent.registerService(new BServiceInfo(serviceName, "3"));
 		future.await();
 	}
 }

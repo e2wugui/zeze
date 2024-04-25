@@ -796,6 +796,7 @@ public final class Application extends ReentrantLock {
 		checkpoint.runOnce();
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public @NotNull TaskOneByOneByKey getTaskOneByOneByKey() {
 		return Task.getOneByOne();
 	}

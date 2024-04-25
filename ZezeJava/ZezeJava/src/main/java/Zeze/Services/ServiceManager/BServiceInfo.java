@@ -80,16 +80,20 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		this("", "", 0, null, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port) {
-		this(name, identity, version, ip, port, null);
+	public BServiceInfo(@NotNull String name, @NotNull String identity) {
+		this(name, identity, 0, null, 0, null);
+	}
+
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version) {
+		this(name, identity, version, null, 0, null);
 	}
 
 	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip) {
 		this(name, identity, version, ip, 0, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version) {
-		this(name, identity, version, null, 0, null);
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port) {
+		this(name, identity, version, ip, port, null);
 	}
 
 	public BServiceInfo(@NotNull String name, @NotNull String identity, long version,

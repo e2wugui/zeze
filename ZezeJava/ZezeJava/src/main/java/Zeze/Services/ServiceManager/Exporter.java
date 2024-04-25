@@ -9,7 +9,7 @@ import Zeze.Util.Task;
 
 /**
  * 【独立后台进程】
- *
+ * <p>
  * 订阅sm，并输出结果到其他系统。
  * 当前需求是：ngnix-config-file, ngnix-config-http
  */
@@ -37,7 +37,7 @@ public class Exporter {
 			case eAll:
 				if (null == serviceSet) {
 					// 收集不同的服务名字。
-					serviceSet = new HashSet<String>();
+					serviceSet = new HashSet<>();
 					for (var e : edit.getRemove())
 						serviceSet.add(e.getServiceName());
 					for (var e : edit.getPut())
@@ -71,7 +71,7 @@ public class Exporter {
 		agent.subscribeServices(sub);
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		Task.tryInitThreadPool();
 		var exporter = new Exporter();
 		var services = new ArrayList<String>();

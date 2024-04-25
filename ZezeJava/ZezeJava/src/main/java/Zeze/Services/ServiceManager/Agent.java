@@ -14,6 +14,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
@@ -50,9 +51,8 @@ public final class Agent extends AbstractAgent {
 		client.getConfig().forEachConnector(Connector::WaitReady);
 	}
 
-	@Deprecated
 	@Override
-	public BServiceInfo updateService(BServiceInfo info) {
+	public @Nullable BServiceInfo updateService(BServiceInfo info) {
 		waitConnectorReady();
 		var reg = registers.get(info);
 		if (reg == null)
@@ -91,18 +91,16 @@ public final class Agent extends AbstractAgent {
 		}
 	}
 
-	@Deprecated
 	@Override
-	public BServiceInfo registerService(BServiceInfo info) {
+	public @NotNull BServiceInfo registerService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getPut().add(info);
 		editService(edit);
 		return info;
 	}
 
-	@Deprecated
 	@Override
-	public void unRegisterService(BServiceInfo info) {
+	public void unRegisterService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getRemove().add(info);
 		editService(edit);

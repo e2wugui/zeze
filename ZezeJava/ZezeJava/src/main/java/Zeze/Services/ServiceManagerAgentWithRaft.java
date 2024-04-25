@@ -31,6 +31,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
@@ -118,7 +119,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			state.onRegister(reg);
 		}
 
-		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/ ) {
+		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/) {
 			var upd = it.next();
 			var state = subscribeStates.get(upd.getServiceName());
 			if (null == state || !state.onUpdate(upd))
@@ -196,7 +197,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void editService(BEditService arg) {
+	public void editService(@NotNull BEditService arg) {
 		for (var info : arg.getPut())
 			verify(info.getServiceIdentity());
 		waitLoginReady();
@@ -206,34 +207,31 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		logger.debug("EditService {}", arg);
 	}
 
-	@Deprecated
 	@Override
-	public BServiceInfo registerService(BServiceInfo info) {
+	public @NotNull BServiceInfo registerService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getPut().add(info);
 		editService(edit);
 		return info;
 	}
 
-	@Deprecated
 	@Override
-	public BServiceInfo updateService(BServiceInfo info) {
+	public @Nullable BServiceInfo updateService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getUpdate().add(info);
 		editService(edit);
 		return info;
 	}
 
-	@Deprecated
 	@Override
-	public void unRegisterService(BServiceInfo info) {
+	public void unRegisterService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
 		edit.getRemove().add(info);
 		editService(edit);
 	}
 
 	@Override
-	public SubscribeState subscribeService(BSubscribeInfo info) {
+	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
 		waitLoginReady();
 
 		var infos = new BSubscribeArgument();
@@ -244,7 +242,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void subscribeServicesAsync(BSubscribeArgument arg, @Nullable Action1<List<SubscribeState>> action) {
+	public void subscribeServicesAsync(@NotNull BSubscribeArgument arg, @Nullable Action1<List<SubscribeState>> action) {
 		waitLoginReady();
 		logger.debug("subscribeServicesAsync {}", arg);
 		var r = new Subscribe(arg);

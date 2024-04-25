@@ -12,8 +12,12 @@ public final class BSubscribeInfo extends Bean {
 	public BSubscribeInfo() {
 	}
 
+	public BSubscribeInfo(String name) {
+		serviceName = name;
+	}
+
 	public BSubscribeInfo(String name, long version) {
-		this.serviceName = name;
+		serviceName = name;
 		this.version = version;
 	}
 

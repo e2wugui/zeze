@@ -40,19 +40,22 @@ public class ExporterNginxHttp implements IExporter {
 
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
-		var sb = new StringBuilder();
 		var ver0 = all.getInfosVersion().get(version);
 		if (ver0 == null)
 			return;
 
+		var sb = new StringBuilder();
 		for (var info : ver0.getServiceInfoListSortedByIdentity()) {
 			if (info.getPassiveIp().isBlank())
 				continue;
 			sb.append("server ").append(info.getPassiveIp()).append(':').append(info.getPassivePort()).append(';');
 		}
+		var post = sb.toString();
+
+		logger.info("HttpRequest: url={}, serviceName={}, post={}", url, serviceName, post);
 		httpClient.sendAsync(HttpRequest.newBuilder().uri(URI.create(url + serviceName))
-				.POST(HttpRequest.BodyPublishers.ofString(sb.toString(), StandardCharsets.UTF_8)).build(), h -> {
-			logger.info("res: code={}", h.statusCode());
+				.POST(HttpRequest.BodyPublishers.ofString(post, StandardCharsets.UTF_8)).build(), h -> {
+			logger.info("HttpResponse: code={}", h.statusCode());
 			return HttpResponse.BodySubscribers.discarding();
 		});
 	}

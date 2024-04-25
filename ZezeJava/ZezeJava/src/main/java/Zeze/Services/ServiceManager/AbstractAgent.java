@@ -9,12 +9,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.Threading;
 import Zeze.Config;
-import Zeze.Net.Binary;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
@@ -115,7 +115,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			});
 		}
 	}
-
 
 	// 【警告】
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
@@ -239,69 +238,36 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract void editService(BEditService arg);
+	public abstract void editService(@NotNull BEditService arg);
 
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity) {
-		return registerService(name, identity, null, 0, null);
-	}
+	public abstract @NotNull BServiceInfo registerService(@NotNull BServiceInfo info);
 
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity, String ip) {
-		return registerService(name, identity, ip, 0, null);
-	}
+	public abstract @Nullable BServiceInfo updateService(@NotNull BServiceInfo info);
 
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity, String ip, int port) {
-		return registerService(name, identity, ip, port, null);
-	}
-
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return registerService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
-	}
-
-	@Deprecated
-	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return updateService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
-	}
-
-	@Deprecated
-	public abstract BServiceInfo registerService(BServiceInfo info);
-
-	@Deprecated
-	public abstract BServiceInfo updateService(BServiceInfo info);
-
-	protected static void verify(String identity) {
+	protected static void verify(@NotNull String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
 		}
 	}
 
-	@Deprecated
-	public void unRegisterService(String name, String identity) {
-		unRegisterService(new BServiceInfo(name, identity, 0));
+	public abstract void unRegisterService(@NotNull BServiceInfo info);
+
+	public @NotNull SubscribeState subscribeService(String serviceName) {
+		return subscribeService(serviceName, 0, null);
 	}
 
-	@Deprecated
-	public abstract void unRegisterService(BServiceInfo info);
-
-	public SubscribeState subscribeService(String serviceName) {
-		return subscribeService(serviceName, 0,null);
-	}
-
-	public SubscribeState subscribeService(String serviceName, Object state) {
+	public @NotNull SubscribeState subscribeService(String serviceName, Object state) {
 		var info = new BSubscribeInfo(serviceName, 0, state);
 		return subscribeService(info);
 	}
 
-	public SubscribeState subscribeService(String serviceName, long version, Object state) {
+	public @NotNull SubscribeState subscribeService(String serviceName, long version, Object state) {
 		var info = new BSubscribeInfo(serviceName, version, state);
 		return subscribeService(info);
 	}
 
-	public abstract SubscribeState subscribeService(BSubscribeInfo info);
+	public abstract @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info);
 
 	public List<SubscribeState> subscribeServices(BSubscribeArgument info) {
 		var future = new TaskCompletionSource<List<SubscribeState>>();
