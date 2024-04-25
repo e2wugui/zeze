@@ -1,6 +1,6 @@
 package Zeze.Services.ServiceManager;
 
-public class ExporterNgnixHttp implements IExporter {
+public class ExporterNginxHttp implements IExporter {
 	@Override
 	public Type getType() {
 		return Type.eAll;
@@ -19,7 +19,7 @@ public class ExporterNgnixHttp implements IExporter {
 	 *
 	 * @param param http-url
 	 */
-	public ExporterNgnixHttp(String param) {
+	public ExporterNginxHttp(String param) {
 		this.url = param;
 	}
 }

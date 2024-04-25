@@ -5,9 +5,10 @@ import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 
-public class ExporterNgnixConfig implements IExporter {
+public class ExporterNginxConfig implements IExporter {
 	@Override
 	public Type getType() {
 		return Type.eAll;
@@ -21,10 +22,15 @@ public class ExporterNgnixConfig implements IExporter {
 			String line;
 			var skipUntilUpstreamEnd = false;
 			while ((line = config.readLine()) != null) {
-				if (skipUntilUpstreamEnd && !line.trim().equals("}"))
-					continue;
+				var lineTrim = line.trim();
+				if (skipUntilUpstreamEnd) {
+					if (!lineTrim.equals("}"))
+						continue; // skip
+					skipUntilUpstreamEnd = false;
+					continue; // skip last "}"
+				}
 
-				if (line.trim().startsWith("upstream")) {
+				if (lineTrim.startsWith("upstream")) {
 					var sName = line.split(" ")[1];
 					if (sName.equals(serviceName)) {
 						skipUntilUpstreamEnd = true;
@@ -40,16 +46,20 @@ public class ExporterNgnixConfig implements IExporter {
 			var sb = new StringBuilder();
 			for (var line : lines)
 				sb.append(line).append("\n");
-			Files.writeString(Path.of(file), sb.toString());
+			//System.out.println(sb);
+			Files.writeString(Path.of(file), sb.toString(), StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
 		}
 	}
 
 	private static void exportToLines(ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
 		out.add("upstream " + serviceName + " {");
-		for (var info : all.getInfosVersion().get(0).getServiceInfoListSortedByIdentity()) {
-			if (info.getPassiveIp().isBlank())
-				continue;
-			out.add("    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");
+		var ver0  = all.getInfosVersion().get(0L);
+		if (null != ver0) {
+			for (var info : ver0.getServiceInfoListSortedByIdentity()){
+				if (info.getPassiveIp().isBlank())
+					continue;
+				out.add("    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");
+			}
 		}
 		out.add("}");
 	}
@@ -62,7 +72,7 @@ public class ExporterNgnixConfig implements IExporter {
 	 *
 	 * @param param 配置文件路径名字
 	 */
-	public ExporterNgnixConfig(String param) {
+	public ExporterNginxConfig(String param) {
 		this.file = param;
 	}
 }
