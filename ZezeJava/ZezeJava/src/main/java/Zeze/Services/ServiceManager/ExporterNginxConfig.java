@@ -31,10 +31,11 @@ public class ExporterNginxConfig implements IExporter {
 				}
 
 				if (lineTrim.startsWith("upstream")) {
-					var sName = line.split(" ")[1];
+					var prefix = line.substring(0, line.length() - lineTrim.length());
+					var sName = lineTrim.split(" ")[1];
 					if (sName.equals(serviceName)) {
 						skipUntilUpstreamEnd = true;
-						exportToLines(lines, serviceName, all);
+						exportToLines(prefix, lines, serviceName, all);
 						hasChanged = true;
 						continue;
 					}
@@ -51,17 +52,17 @@ public class ExporterNginxConfig implements IExporter {
 		}
 	}
 
-	private static void exportToLines(ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
-		out.add("upstream " + serviceName + " {");
+	private static void exportToLines(String prefix, ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
+		out.add(prefix + "upstream " + serviceName + " {");
 		var ver0  = all.getInfosVersion().get(0L);
 		if (null != ver0) {
 			for (var info : ver0.getServiceInfoListSortedByIdentity()){
 				if (info.getPassiveIp().isBlank())
 					continue;
-				out.add("    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");
+				out.add(prefix + "    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");
 			}
 		}
-		out.add("}");
+		out.add(prefix + "}");
 	}
 
 	private final String file;
