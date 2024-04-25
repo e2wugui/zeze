@@ -208,24 +208,27 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		return channelFuture;
 	}
 
-	public @Nullable String getHost() {
+	/**
+	 * 需要端口已在监听状态才能获取到, 即getChannelFuture().sync()等待后可获取
+	 *
+	 * @return 无法获取时返回null
+	 */
+	public @Nullable InetSocketAddress getLocalAddress() {
 		var cf = channelFuture;
 		if (cf == null)
 			return null;
 		var addr = cf.channel().localAddress();
-		if (!(addr instanceof InetSocketAddress))
-			return null;
-		return ((InetSocketAddress)addr).getHostName();
+		return addr instanceof InetSocketAddress ? (InetSocketAddress)addr : null;
 	}
 
+	/**
+	 * 需要端口已在监听状态才能获取到, 即getChannelFuture().sync()等待后可获取
+	 *
+	 * @return 无法获取时返回小于0
+	 */
 	public int getPort() {
-		var cf = channelFuture;
-		if (cf == null)
-			return -1;
-		var addr = cf.channel().localAddress();
-		if (!(addr instanceof InetSocketAddress))
-			return -2;
-		return ((InetSocketAddress)addr).getPort();
+		var addr = getLocalAddress();
+		return addr != null ? addr.getPort() : -1;
 	}
 
 	@Override

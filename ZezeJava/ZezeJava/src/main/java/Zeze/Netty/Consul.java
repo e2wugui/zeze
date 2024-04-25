@@ -23,10 +23,12 @@ public class Consul {
 
 	public void register(HttpServer httpServer) throws Exception {
 		httpServer.getChannelFuture().sync();
-		var host = httpServer.getHost();
-		var port = httpServer.getPort();
-		if (host == null)
-			host = Helper.selectOneIpAddress(false);
+		var addr = httpServer.getLocalAddress();
+		assert addr != null;
+		var host = addr.getAddress().isAnyLocalAddress()
+				? Helper.selectOneIpAddress(false)
+				: addr.getAddress().getHostAddress();
+		var port = addr.getPort();
 		var serviceId = host + ":" + port;
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
