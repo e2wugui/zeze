@@ -244,7 +244,26 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract @Nullable BServiceInfo updateService(@NotNull BServiceInfo info);
 
-	protected static void verify(@NotNull String identity) {
+	@Deprecated
+	public BServiceInfo registerService(String name, String identity, String ip, int port) {
+		return registerService(name, identity, ip, port, null);
+	}
+
+	@Deprecated
+	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return registerService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
+	}
+
+	@Deprecated
+	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
+		return updateService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
+	}
+
+	public abstract BServiceInfo registerService(BServiceInfo info);
+
+	public abstract BServiceInfo updateService(BServiceInfo info);
+
+	protected static void verify(String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
@@ -253,8 +272,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract void unRegisterService(@NotNull BServiceInfo info);
 
-	public @NotNull SubscribeState subscribeService(String serviceName) {
-		return subscribeService(serviceName, 0, null);
+	public abstract void unRegisterService(BServiceInfo info);
+
+	public SubscribeState subscribeService(String serviceName) {
+		return subscribeService(serviceName, 0,null);
 	}
 
 	public @NotNull SubscribeState subscribeService(String serviceName, Object state) {

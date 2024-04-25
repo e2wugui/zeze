@@ -21,6 +21,10 @@ public class Consul {
 		client = new ConsulClient(consulHost);
 	}
 
+	public ConsulClient getClient() {
+		return client;
+	}
+
 	public void register(String serviceName, HttpServer httpServer) throws Exception {
 		httpServer.getChannelFuture().sync();
 		var addr = httpServer.getLocalAddress();
@@ -29,7 +33,8 @@ public class Consul {
 				? Helper.selectOneIpAddress(false)
 				: addr.getAddress().getHostAddress();
 		var port = addr.getPort();
-		var serviceId = host + ":" + port;
+
+		var serviceId = serviceName + "@" + host + ":" + port; // see todo below
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
 
@@ -38,9 +43,8 @@ public class Consul {
 		var newService = new NewService();
 		newService.setAddress(host);
 		newService.setPort(port);
-		newService.setId(serviceId);
-		newService.setName(serviceName);
-		// todo ... 里面还有很多参数。
+		newService.setId(serviceId); // todo 估计需要唯一。
+		newService.setName(serviceName); // todo 这是服务名，一个服务名下有多个Id？
 
 		var checker = new NewService.Check();
 		checker.setHttp("http://" + serviceId + PassiveKeepAlivePath);
