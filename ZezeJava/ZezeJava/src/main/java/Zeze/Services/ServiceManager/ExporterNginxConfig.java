@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import org.jetbrains.annotations.NotNull;
 
 public class ExporterNginxConfig implements IExporter {
 	@Override
@@ -52,9 +53,9 @@ public class ExporterNginxConfig implements IExporter {
 		}
 	}
 
-	private static void exportToLines(String prefix, ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
+	private void exportToLines(String prefix, ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
 		out.add(prefix + "upstream " + serviceName + " {");
-		var ver0  = all.getInfosVersion().get(0L);
+		var ver0  = all.getInfosVersion().get(version);
 		if (null != ver0) {
 			for (var info : ver0.getServiceInfoListSortedByIdentity()){
 				if (info.getPassiveIp().isBlank())
@@ -66,6 +67,7 @@ public class ExporterNginxConfig implements IExporter {
 	}
 
 	private final String file;
+	private final long version;
 
 	/**
 	 * 构造Ngnix配置文件输出器。
@@ -73,7 +75,8 @@ public class ExporterNginxConfig implements IExporter {
 	 *
 	 * @param param 配置文件路径名字
 	 */
-	public ExporterNginxConfig(String param) {
+	public ExporterNginxConfig(String param, @NotNull String param2) {
 		this.file = param;
+		this.version = Long.parseLong(param2);
 	}
 }

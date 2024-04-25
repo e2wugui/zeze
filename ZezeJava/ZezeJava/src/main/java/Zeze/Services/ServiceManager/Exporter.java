@@ -60,8 +60,8 @@ public class Exporter {
 		agent.close();
 	}
 
-	public void addExporter(String name, String param) throws Exception {
-		exports.add((IExporter)Class.forName(name).getConstructor(String.class).newInstance(param));
+	public void addExporter(String name, String param, String param2) throws Exception {
+		exports.add((IExporter)Class.forName(name).getConstructor(String.class, String.class).newInstance(param, param2));
 	}
 
 	public void subscribeService(java.util.List<String> services) {
@@ -77,13 +77,13 @@ public class Exporter {
 		var services = new ArrayList<String>();
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].equals("-e"))
-				exporter.addExporter(args[++i], args[++i]);
+				exporter.addExporter(args[++i], args[++i], args[++i]);
 			else if (args[i].equals("-s"))
 				services.add(args[++i]);
 			else if (args[i].equals("-d"))
-				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", "");
+				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", "", "");
 			else
-				throw new IllegalArgumentException("Usage: -e exporterClass param1 ... -s serviceName ...");
+				throw new IllegalArgumentException("Usage: -e class param version ... -s serviceName ...");
 		}
 		exporter.start();
 		exporter.subscribeService(services);

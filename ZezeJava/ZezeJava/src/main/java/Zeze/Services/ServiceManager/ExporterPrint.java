@@ -1,5 +1,7 @@
 package Zeze.Services.ServiceManager;
 
+import org.jetbrains.annotations.NotNull;
+
 public class ExporterPrint implements IExporter {
 	@Override
 	public Type getType() {
@@ -11,7 +13,7 @@ public class ExporterPrint implements IExporter {
 		System.out.println(edit);
 	}
 
-	public ExporterPrint(String param) {
+	public ExporterPrint(@NotNull String param, @NotNull String param2) {
 
 	}
 }

@@ -20,6 +20,7 @@ public class ExporterNginxHttp implements IExporter {
 			.executor(Executors.newSingleThreadExecutor())
 			.build();
 	private final @NotNull String url;
+	private final long version;
 
 	/**
 	 * 构造Nginx配置HTTP输出器。
@@ -27,8 +28,9 @@ public class ExporterNginxHttp implements IExporter {
 	 *
 	 * @param param http-url
 	 */
-	public ExporterNginxHttp(@NotNull String param) {
-		url = param;
+	public ExporterNginxHttp(@NotNull String param, @NotNull String param2) {
+		url = param.endsWith("/") ? param : param + "/";
+		version = Long.parseLong(param2);
 	}
 
 	@Override
@@ -39,11 +41,16 @@ public class ExporterNginxHttp implements IExporter {
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
 		var sb = new StringBuilder();
-		for (var infos : all.getInfosVersion().values()) {
-			for (var info : infos.getServiceInfoListSortedByIdentity())
-				sb.append("server ").append(info.getPassiveIp()).append(':').append(info.getPassivePort()).append(';');
+		var ver0 = all.getInfosVersion().get(version);
+		if (ver0 == null)
+			return;
+
+		for (var info : ver0.getServiceInfoListSortedByIdentity()) {
+			if (info.getPassiveIp().isBlank())
+				continue;
+			sb.append("server ").append(info.getPassiveIp()).append(':').append(info.getPassivePort()).append(';');
 		}
-		httpClient.sendAsync(HttpRequest.newBuilder().uri(URI.create(url))
+		httpClient.sendAsync(HttpRequest.newBuilder().uri(URI.create(url + serviceName))
 				.POST(HttpRequest.BodyPublishers.ofString(sb.toString(), StandardCharsets.UTF_8)).build(), h -> {
 			logger.info("res: code={}", h.statusCode());
 			return HttpResponse.BodySubscribers.discarding();
