@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 向 Consul 注册 HttpServer 服务，便于第三方（比如Ngnix)发现。
- * todo 为了支持注册和管理，可能需要抽象一个接口。先不写。
+ * todo 为了支持更多注册和管理，可能需要抽象一个接口。先不写。
  */
 public class Consul {
 	// 这个path对所有的httpserver都一样。

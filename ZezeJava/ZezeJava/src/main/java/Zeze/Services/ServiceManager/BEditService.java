@@ -61,6 +61,15 @@ public class BEditService extends Bean {
 		}
 	}
 
+	@Override
+	public String toString() {
+		var sb = new StringBuilder();
+		sb.append("remove:").append(remove).append("\n");
+		sb.append("put:").append(put).append("\n");
+		sb.append("update:").append(update).append("\n");
+		return sb.toString();
+	}
+
 	private static int _PRE_ALLOC_SIZE_ = 64;
 
 	@Override
