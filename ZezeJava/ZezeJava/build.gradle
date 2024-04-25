@@ -43,6 +43,8 @@ dependencies {
 
     // for new Compress/Decompress Codec in Zeze.Net
     compileOnly 'com.github.luben:zstd-jni:1.5.5-6'
+
+    compileOnly 'com.ecwid.consul:consul-api:1.4.5'
 }
 
 tasks.withType(JavaCompile) {

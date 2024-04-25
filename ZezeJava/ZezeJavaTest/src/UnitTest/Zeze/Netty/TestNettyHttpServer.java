@@ -225,7 +225,7 @@ public class TestNettyHttpServer {
 		Assert.assertTrue(checked.get());
 	}
 
-	public static void main(String[] args) throws InterruptedException, ParseException {
+	public static void main(String[] args) throws Exception {
 		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
 		Task.tryInitThreadPool();
 

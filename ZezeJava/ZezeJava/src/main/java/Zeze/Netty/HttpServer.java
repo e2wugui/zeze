@@ -2,6 +2,7 @@ package Zeze.Netty;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -83,6 +84,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected @Nullable ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
+	protected int port;
+	protected @Nullable String host;
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -183,24 +186,38 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws ParseException {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws Exception {
 		return start(netty, null, port);
 	}
 
-	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws ParseException {
+	public @NotNull ChannelFuture start(@NotNull Netty netty, @Nullable String host, int port) throws Exception {
 		lock();
 		if (httpSession != null)
 			httpSession.start();
+
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
 			scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
 					() -> channels.keySet().forEach(this::checkTimeout),
 					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
-			return channelFuture = netty.startServer(this, host, port);
+			channelFuture = netty.startServer(this, host, port);
+			// 为了得到真正的端口，这里实际上等待了。需要注意：channelFuture可以重复等待吗？即返回再执行一次。
+			var channel = channelFuture.sync().channel();
+			this.host = host;
+			this.port = ((InetSocketAddress)channel.localAddress()).getPort();
+			return channelFuture;
 		} finally {
 			unlock();
 		}
+	}
+
+	public @Nullable String getHost() {
+		return host;
+	}
+
+	public int getPort() {
+		return port;
 	}
 
 	@Override

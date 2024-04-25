@@ -35,7 +35,7 @@ public class LogAgentManager {
     }
 
 
-    private static void startHttpServer() throws ParseException {
+    private static void startHttpServer() throws Exception {
         httpServer = new HttpServer(null, "web", 600);
         netty = new Netty();
 
