@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Net.Helper;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.agent.model.NewService;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -21,21 +22,25 @@ public class Consul {
 	}
 
 	public void register(HttpServer httpServer) throws Exception {
-		var serviceId = httpServer.getHost() + "_" + httpServer.getPort();
+		var host = httpServer.getHost();
+		var port = httpServer.getPort();
+		if (host == null)
+			host = Helper.selectOneIpAddress(false);
+		var serviceId = host + ":" + port;
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
 
 		httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
 
 		var newService = new NewService();
-		newService.setAddress(httpServer.getHost());
-		newService.setPort(httpServer.getPort());
+		newService.setAddress(host);
+		newService.setPort(port);
 		newService.setId(serviceId);
 		newService.setName(""); // todo
 		// todo ... 里面还有很多参数。
 
 		var checker = new NewService.Check();
-		checker.setHttp("http://" + newService.getAddress() + ":" + newService.getPort() + PassiveKeepAlivePath);
+		checker.setHttp("http://" + serviceId + PassiveKeepAlivePath);
 		newService.setCheck(checker);
 		/* checker 网上的配置，需要都设置？
 			{
