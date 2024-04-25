@@ -93,9 +93,17 @@ public class Exporter {
 				services.add(args[++i]);
 			} else if (args[i].equals("-d")) {
 				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", shared, null);
+			} else if (args[i].startsWith("-")) {
+				// shared options
+				// 先看有没有value。
+				var key = args[i++]; // eat key and next
+				String value = ""; // default for no value
+				if (i < args.length && !args[i].startsWith("-") /* peek next if is value */)
+					value = args[i++]; // eat value
+				shared.put(key, value);
 			} else {
 				System.out.println("Usage: [options] -e class ... -s service ... ");
-				System.out.println("    options: -version ver -file file -url url");
+				System.out.println("    options: -version ver -file file -url url -relead cmd");
 				System.out.println("    private options sample: -e class -private \"-version ver -file file -url url\"");
 				System.out.println("    -private must follow \"-e class\", and will effect only for this instance.");
 				throw new IllegalArgumentException();
