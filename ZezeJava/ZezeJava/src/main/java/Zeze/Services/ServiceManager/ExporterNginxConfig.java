@@ -74,7 +74,7 @@ public class ExporterNginxConfig implements IExporter {
 
 	@SuppressWarnings("deprecation")
 	private void reload() throws IOException {
-		if (null == reload)
+		if (null == reload || reload.isBlank())
 			return;
 
 		Runtime.getRuntime().exec(reload);
@@ -88,5 +88,7 @@ public class ExporterNginxConfig implements IExporter {
 		this.file = config.getFile();
 		this.version = config.getVersion();
 		this.reload = config.getReload();
+
+		//System.out.println("real file=" + this.file + " version=" + this.version + " reload=" + this.reload);
 	}
 }

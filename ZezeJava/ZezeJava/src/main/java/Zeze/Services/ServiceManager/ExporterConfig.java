@@ -39,7 +39,10 @@ public class ExporterConfig {
 
 	public ExporterConfig(@NotNull Properties share, @Nullable String privateParam) {
 		this.share = share;
-		this.privates = null == privateParam ? null : PropertiesHelper.parsePair(privateParam);
+		this.privates = null == privateParam ? null : PropertiesHelper.parse(privateParam);
+
+		//System.out.println("share: " + share);
+		//System.out.println("private: " + privates);
 	}
 
 	public String getString(String name, String def) {

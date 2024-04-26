@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,19 +17,29 @@ public final class PropertiesHelper {
 	}
 
 	/**
-	 * props 格式为： -key value -key2 value ...
+	 * props 格式为： -key [value] -key2 [value] ...
 	 * 1. -key不能重名，重复时，保留第一个，其他丢弃。
-	 * 2. 必须成双成对。
+	 * 2. value 不存在时，设为""写入Properties。
+	 * 3. 只支持按空格简单分割，不支持双引号括起来的值。
 	 *
 	 * @param props string
 	 * @return Properties
 	 */
-	public static Properties parsePair(@NotNull String props) {
+	public static Properties parse(@NotNull String props) {
 		var args = props.split(" ");
+		//System.out.println(Arrays.toString(args));
+
 		var result = new Properties();
 		for (var i = 0; i < args.length; ++i) {
-			if (args[i].startsWith("-"))
-				result.putIfAbsent(args[i], args[++i]);
+			if (args[i].startsWith("-")) {
+				var key = args[i]; // eat key
+				String value = ""; // default for no value
+				if (i + 1 < args.length && !args[i + 1].startsWith("-") /* peek next if is value */)
+					value = args[++i]; // eat value
+				result.putIfAbsent(key, value);
+				continue;
+			}
+			throw new IllegalArgumentException("value found without -key=" + args[i] + " props=" + props);
 		}
 		return result;
 	}

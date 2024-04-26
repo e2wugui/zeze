@@ -7,6 +7,7 @@ import java.util.Properties;
 import javax.validation.constraints.Null;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Util.KV;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,8 +65,11 @@ public class Exporter {
 	}
 
 	public void addExporter(@NotNull String name, @NotNull Properties shared, @Null String param) throws Exception {
-		var config = new ExporterConfig(shared, param);
-		exports.add((IExporter)Class.forName(name).getConstructor(ExporterConfig.class).newInstance(config));
+		switch (name) {
+		case "NginxConfig": exports.add(new ExporterNginxConfig(new ExporterConfig(shared, param))); break;
+		case "NginxHttp": exports.add(new ExporterNginxHttp(new ExporterConfig(shared, param))); break;
+		case "Print": exports.add(new ExporterPrint(null)); break;
+		}
 	}
 
 	public void subscribeService(java.util.List<String> services) {
@@ -80,6 +84,7 @@ public class Exporter {
 		var exporter = new Exporter();
 		var shared = new Properties();
 		var services = new ArrayList<String>();
+		var exporters = new ArrayList<KV<String, String>>();
 		for (var i = 0; i < args.length; ++i) {
 			if (args[i].equals("-e")) {
 				var className = args[++i];
@@ -88,27 +93,29 @@ public class Exporter {
 				if (i < args.length - 1 && args[i + 1].equals("-private") /* peek */) {
 					privateParam = args[i+=2]; // move i to next 2
 				}
-				exporter.addExporter(className, shared, privateParam);
+				exporters.add(KV.create(className, privateParam));
 			} else if (args[i].equals("-s")) {
 				services.add(args[++i]);
 			} else if (args[i].equals("-d")) {
-				exporter.addExporter("Zeze.Services.ServiceManager.ExporterPrint", shared, null);
+				exporter.addExporter("Print", shared, null);
 			} else if (args[i].startsWith("-")) {
 				// shared options
 				// 先看有没有value。
-				var key = args[i++]; // eat key and next
+				var key = args[i]; // eat key and next
 				String value = ""; // default for no value
-				if (i < args.length && !args[i].startsWith("-") /* peek next if is value */)
-					value = args[i++]; // eat value
+				if (i + 1 < args.length && !args[i + 1].startsWith("-") /* peek next if is value */)
+					value = args[++i]; // eat value
 				shared.put(key, value);
 			} else {
-				System.out.println("Usage: [options] -e class ... -s service ... ");
-				System.out.println("    options: -version ver -file file -url url -relead cmd");
-				System.out.println("    private options sample: -e class -private \"-version ver -file file -url url\"");
-				System.out.println("    -private must follow \"-e class\", and will effect only for this instance.");
+				System.out.println("Usage: [shared_options] -e class [-private options]... -s service ... ");
+				System.out.println("    shared_options: -version ver -file file -url url -reload cmd");
+				System.out.println("    -private options: same as shared_options, and will overwrite shared_options.");
+				System.out.println("    -private must follow \"-e class\", and only effect this class instance.");
 				throw new IllegalArgumentException();
 			}
 		}
+		for (var e : exporters)
+			exporter.addExporter(e.getKey(), shared, e.getValue());
 		exporter.start();
 		exporter.subscribeService(services);
 		try {
