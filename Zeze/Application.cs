@@ -314,6 +314,6 @@ namespace Zeze
             logger.Error(e, "UnhandledExceptionEventArgs");
         }
 
-        public TaskOneByOneByKey TaskOneByOneByKey { get; } = new TaskOneByOneByKey();
+        public TaskOneByOneByKey TaskOneByOneByKey => TaskOneByOneByKey.Instance;
     }
 }
