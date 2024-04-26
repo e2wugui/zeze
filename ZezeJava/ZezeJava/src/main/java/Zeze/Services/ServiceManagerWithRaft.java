@@ -423,7 +423,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		// step 2: put
-		for (var reg : r.Argument.getPut()) {
+		for (var reg : r.Argument.getAdd()) {
 			var session = tableSession.get(netSession.name);
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			session.getRegisters().put(toRocksKey(reg), toRocks(reg, netSession.name));
@@ -438,16 +438,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			collectPutNotify(state, reg, notifies);
 		}
 
-		// step 3: update
-		for (var upd : r.Argument.getUpdate()) {
-			var session = tableSession.get(netSession.name);
-			if (!session.getRegisters().containsKey(toRocksKey(upd)))
-				continue;
-			var state = tableServerState.get(upd.getServiceName());
-			if (state == null)
-				continue;
-			collectUpdateNotify(state, upd, notifies);
-		}
 		sendNotifies(notifies);
 		r.SendResult();
 		return 0;
@@ -466,7 +456,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					continue;
 
 				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.getPut().add(info);
+				notify.Argument.getAdd().add(info);
 			}
 		}
 	}
@@ -536,37 +526,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				return state;
 		}
 		return null;
-	}
-
-	public void collectUpdateNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
-		var versions = state.getServiceInfosVersion().get(info.getVersion());
-		if (null == versions)
-			return;
-
-		var current = versions.getServiceInfos().get(info.getServiceIdentity());
-		if (current == null)
-			return;
-
-		current.setPassiveIp(info.getPassiveIp());
-		current.setPassivePort(info.getPassivePort());
-		current.setExtraInfo(info.getExtraInfo());
-
-		// 简单广播。
-		for (var e : state.getSimple().entrySet()) {
-			var subVersion = e.getValue().getVersion();
-			if (subVersion == 0 || subVersion == info.getVersion()) {
-				var sessionName = e.getKey();
-				var session = tableSession.get(sessionName);
-				if (null == session)
-					continue;
-				var peer = rocks.getRaft().getServer().GetSocket(session.getSessionId());
-				if (null == peer)
-					continue;
-
-				var notify = notifies.computeIfAbsent(peer, __ -> new Edit());
-				notify.Argument.getUpdate().add(info);
-			}
-		}
 	}
 
 	private static BServiceInfosVersion newServiceInfosVersion(long hopeVersion, BServerState state) {

@@ -110,7 +110,7 @@ public class ProviderApp extends ReentrantLock {
 				distribute.removeServer(r);
 			}
 		}
-		for (var p : edit.getPut()) {
+		for (var p : edit.getAdd()) {
 			if (p.getServiceName().equals(linkdServiceName))
 				refresh |= providerService.applyPut(p);
 			else if (p.getServiceName().startsWith(serverServiceNamePrefix)) {

@@ -44,9 +44,7 @@ public class Exporter {
 					serviceSet = new HashSet<>();
 					for (var e : edit.getRemove())
 						serviceSet.add(e.getServiceName());
-					for (var e : edit.getPut())
-						serviceSet.add(e.getServiceName());
-					for (var e : edit.getUpdate())
+					for (var e : edit.getAdd())
 						serviceSet.add(e.getServiceName());
 				}
 				for (var serviceName : serviceSet) {

@@ -64,7 +64,7 @@ namespace Zeze.Arch
             {
                 LinkdProvider.Distribute.RemoveServer(r);
             }
-            foreach (var p in edit.Put)
+            foreach (var p in edit.Add)
             {
                 LinkdProvider.Distribute.AddServer(p);
             }

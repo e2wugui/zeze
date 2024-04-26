@@ -39,7 +39,7 @@ public class LogAgent extends AbstractLogAgent {
 		for (var r : edit.getRemove()) {
 			client.onSmRemoved(r);
 		}
-		for (var p : edit.getPut()) {
+		for (var p : edit.getAdd()) {
 			client.onSmUpdated(p);
 		}
 	}

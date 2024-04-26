@@ -105,7 +105,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
 				// 触发回调前修正集合之间的关系。
 				// 删除后来又加入的。
-				edit.getRemove().removeIf(edit.getPut()::contains);
+				edit.getRemove().removeIf(edit.getAdd()::contains);
 
 				try {
 					onChanged.run(edit);
@@ -201,25 +201,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public boolean onUpdate(BServiceInfo info) {
-			lock();
-			try {
-				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
-				if (null != versions) {
-					var exist = versions.findServiceInfo(info);
-					if (exist != null) {
-						exist.setPassiveIp(info.getPassiveIp());
-						exist.setPassivePort(info.getPassivePort());
-						exist.setExtraInfo(info.getExtraInfo());
-						return true;
-					}
-				}
-				return false;
-			} finally {
-				unlock();
-			}
-		}
-
 		public void onFirstCommit(BServiceInfosVersion infos) {
 			var edits = new ArrayList<BEditService>();
 			lock();
@@ -227,7 +208,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				serviceInfos = infos;
 				for (var it = infos.getInfosVersion().iterator(); it.moveToNext(); ) {
 					var edit = new BEditService();
-					edit.getPut().addAll(it.value().getServiceInfoListSortedByIdentity());
+					edit.getAdd().addAll(it.value().getServiceInfoListSortedByIdentity());
 					edits.add(edit);
 				}
 			} finally {
@@ -247,13 +228,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public void registerService(@NotNull BServiceInfo info) {
 		var edit = new BEditService();
-		edit.getPut().add(info);
-		editService(edit);
-	}
-
-	public void updateService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getUpdate().add(info);
+		edit.getAdd().add(info);
 		editService(edit);
 	}
 

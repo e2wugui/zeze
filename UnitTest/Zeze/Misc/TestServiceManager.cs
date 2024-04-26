@@ -75,15 +75,6 @@ namespace UnitTest.Zeze.Misc
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 
-            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            agent.OnChanged = (edit) =>
-            {
-                Console.WriteLine("OnUpdate: " + edit);
-                this.future.SetResult(0);
-            };
-            await agent.UpdateService(serviceName, "1", 0, "1.1.1.1", 1, new Binary(Encoding.UTF8.GetBytes("extra info")));
-            future.Task.Wait();
-
             Console.WriteLine("RegisterService 2");
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             await agent.RegisterService(serviceName, "2", 0);

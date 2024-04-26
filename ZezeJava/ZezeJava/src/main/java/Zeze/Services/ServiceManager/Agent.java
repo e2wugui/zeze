@@ -53,7 +53,7 @@ public final class Agent extends AbstractAgent {
 
 	@Override
 	public void editService(@NotNull BEditService arg) {
-		for (var info : arg.getPut())
+		for (var info : arg.getAdd())
 			verify(info.getServiceIdentity());
 		waitConnectorReady();
 
@@ -64,25 +64,8 @@ public final class Agent extends AbstractAgent {
 		for (var unReg : arg.getRemove())
 			registers.remove(unReg);
 
-		for (var reg : arg.getPut())
+		for (var reg : arg.getAdd())
 			registers.put(reg, reg);
-
-		for (var upd : arg.getUpdate()) {
-			registers.computeIfPresent(upd, (__, present) -> {
-				present.setPassiveIp(upd.getPassiveIp());
-				present.setPassivePort(upd.getPassivePort());
-				present.setExtraInfo(upd.getExtraInfo());
-				return present;
-			});
-		}
-	}
-
-	@Override
-	public void updateService(BServiceInfo info) {
-		waitConnectorReady();
-		var reg = registers.get(info);
-		if (reg != null)
-			super.updateService(info);
 	}
 
 	@Override
@@ -153,7 +136,7 @@ public final class Agent extends AbstractAgent {
 
 	public void onConnected() {
 		var edit = new BEditService();
-		edit.getPut().addAll(registers.keySet());
+		edit.getAdd().addAll(registers.keySet());
 		try {
 			editService(edit);
 		} catch (Throwable ex) { // logger.debug
@@ -177,18 +160,11 @@ public final class Agent extends AbstractAgent {
 				it.remove();
 		}
 
-		for (var reg : r.Argument.getPut()) {
+		for (var reg : r.Argument.getAdd()) {
 			var state = subscribeStates.get(reg.getServiceName());
 			if (null == state)
 				continue; // 忽略本地没有订阅的。最好加个日志。
 			state.onRegister(reg);
-		}
-
-		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/) {
-			var upd = it.next();
-			var state = subscribeStates.get(upd.getServiceName());
-			if (null == state || !state.onUpdate(upd))
-				it.remove();
 		}
 
 		r.SendResult();

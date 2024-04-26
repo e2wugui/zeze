@@ -61,15 +61,6 @@ public class TestServiceManager {
 		agent.setServerLoad(load);
 		future.await();
 
-		future = new TaskCompletionSource<>();
-		agent.setOnChanged((state) -> {
-			System.out.println("OnChanged 2:" + state);
-			this.future.setResult(0);
-		});
-		System.out.println("WaitOnUpdate");
-		agent.updateService(new BServiceInfo(serviceName, "1", 0, "1.1.1.1", 1, new Binary("extra info".getBytes(StandardCharsets.UTF_8))));
-		future.await();
-
 		System.out.println("RegisterService 2");
 		future = new TaskCompletionSource<>();
 		System.out.println("WaitOnChanged 2");

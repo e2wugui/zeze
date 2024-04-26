@@ -100,7 +100,7 @@ namespace Zeze.Arch
                     Distribute.RemoveServer(r);
                 }
             }
-            foreach (var p in edit.Put)
+            foreach (var p in edit.Add)
             {
 				if (p.ServiceName.Equals(LinkdServiceName))
 				{

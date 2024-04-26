@@ -111,18 +111,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 				it.remove();
 		}
 
-		for (var reg : r.Argument.getPut()) {
+		for (var reg : r.Argument.getAdd()) {
 			var state = subscribeStates.get(reg.getServiceName());
 			if (null == state)
 				continue; // 忽略本地没有订阅的。最好加个日志。
 			state.onRegister(reg);
-		}
-
-		for (var it = r.Argument.getUpdate().iterator(); it.hasNext(); /**/) {
-			var upd = it.next();
-			var state = subscribeStates.get(upd.getServiceName());
-			if (null == state || !state.onUpdate(upd))
-				it.remove();
 		}
 
 		r.SendResult();
@@ -197,7 +190,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	public void editService(@NotNull BEditService arg) {
-		for (var info : arg.getPut())
+		for (var info : arg.getAdd())
 			verify(info.getServiceIdentity());
 		waitLoginReady();
 

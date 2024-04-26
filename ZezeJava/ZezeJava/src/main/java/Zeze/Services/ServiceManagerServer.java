@@ -215,7 +215,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					if (peer == null)
 						continue;
 					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.getPut().add(info);
+					notify.Argument.getAdd().add(info);
 				}
 			}
 		}
@@ -239,33 +239,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						var notify = result.computeIfAbsent(peer, __ -> new EditService());
 						notify.Argument.getRemove().add(info);
 					}
-				}
-			}
-		}
-
-		public void collectUpdateNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
-			var versions = serviceInfos.get(info.getVersion());
-			if (null == versions)
-				return; // version not found
-
-			var current = versions.get(info.getServiceIdentity());
-			if (current == null)
-				return;
-
-			current.setPassiveIp(info.getPassiveIp());
-			current.setPassivePort(info.getPassivePort());
-			current.setExtraInfo(info.getExtraInfo());
-
-			for (var it = simple.iterator(); it.moveToNext(); ) {
-				var itVersion = it.value().getVersion();
-				if (itVersion == 0 || itVersion == info.getVersion()) {
-					var sessionId = it.key();
-					var peer = serviceManager.server.GetSocket(sessionId);
-					if (peer == null)
-						continue;
-
-					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.getUpdate().add(info);
 				}
 			}
 		}
@@ -466,7 +439,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			// step 2: put
 			// 允许重复登录，断线重连Agent不好原子实现重发。
-			for (var reg : r.Argument.getPut()) {
+			for (var reg : r.Argument.getAdd()) {
 				if (session.registers.remove(reg) == null) { // 先删除再加入,确保key也更新成新的
 					logger.info("{}: Register {} version={} serverId={} ip={} port={}",
 							r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
@@ -489,25 +462,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				state.collectPutNotify(reg, notifies);
 			}
 
-			// step 3: update
-			for (var update : r.Argument.getUpdate()) {
-				var info = session.registers.get(update);
-				if (info != null) {
-					logger.info("{}: Update {} version={} serverId={} ip={} port={}",
-							r.getSender(), update.getServiceName(), update.getVersion(), update.getServiceIdentity(),
-							update.getPassiveIp(), update.getPassivePort());
-					info.setPassiveIp(update.getPassiveIp());
-					info.setPassivePort(update.getPassivePort());
-					info.setExtraInfo(update.getExtraInfo());
-					var state = serviceStates.get(info.getServiceName());
-					if (state != null)
-						state.collectUpdateNotify(info, notifies);
-				} else {
-					logger.info("{}: Ignore Update {} version={} serverId={} ip={} port={}",
-							r.getSender(), update.getServiceName(), update.getVersion(), update.getServiceIdentity(),
-							update.getPassiveIp(), update.getPassivePort());
-				}
-			}
 			sendNotifies(notifies);
 			r.SendResult();
 		} finally {

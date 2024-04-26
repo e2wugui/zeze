@@ -82,25 +82,6 @@ namespace Zeze.Services.ServiceManager
                     LocalStates[identity] = state;
             }
 
-            internal bool OnUpdate(ServiceInfo info)
-            {
-                lock (this)
-                {
-                    if (false == ServiceInfosVersion.InfosVersion.TryGetValue(info.Version, out var versions))
-                        return false;
-
-                    var exist = versions.Find(info.ServiceIdentity);
-                    if (null == exist)
-                        return false;
-
-                    exist.PassiveIp = info.PassiveIp;
-                    exist.PassivePort = info.PassivePort;
-                    exist.ExtraInfo = info.ExtraInfo;
-
-                    return true;
-                }
-            }
-
             internal void OnRegister(ServiceInfo info)
             {
                 lock (this)
@@ -130,7 +111,7 @@ namespace Zeze.Services.ServiceManager
                     {
                         var edit = new BEditService();
                         foreach (var info in identityMap.SortedIdentity)
-                            edit.Put.Add(info);
+                            edit.Add.Add(info);
                         edits.Add(edit);
                     }
                 }
@@ -149,13 +130,6 @@ namespace Zeze.Services.ServiceManager
             return await RegisterService(new ServiceInfo(name, identity, version, ip, port, extrainfo));
         }
 
-        public async Task<ServiceInfo> UpdateService(
-            string name, string identity, long version,
-            string ip, int port, Binary extrainfo)
-        {
-            return await UpdateService(new ServiceInfo(name, identity, version, ip, port, extrainfo));
-        }
-
         public async Task WaitConnectorReadyAsync()
         {
             // 实际上只有一个连接，这样就不用查找了。
@@ -170,7 +144,7 @@ namespace Zeze.Services.ServiceManager
 
         public async Task<BEditService> EditService(BEditService arg)
         {
-            foreach (var info in arg.Put)
+            foreach (var info in arg.Add)
                 Verify(info.ServiceIdentity);
 
             await WaitConnectorReadyAsync();
@@ -182,30 +156,16 @@ namespace Zeze.Services.ServiceManager
             foreach (var unReg in arg.Remove)
                 Registers.Remove(unReg, out _);
 
-            foreach (var reg in arg.Put)
+            foreach (var reg in arg.Add)
                 Registers[reg] = reg;
-
-            foreach (var upd in arg.Update)
-                Registers.TryUpdate(upd, upd, upd); // upd只比较ServiceName和Identity，所以肯定相等。这里的实际逻辑是只要Key存在，就会更新。
 
             return arg;
         }
 
-        public async Task<ServiceInfo> UpdateService(ServiceInfo info)
-        {
-            if (false == Registers.TryGetValue(info, out var reg))
-                return null;
-
-            var edit = new BEditService();
-            edit.Update.Add(info);
-            await EditService(edit);
-            return info;
-        }
-
-        private async Task<ServiceInfo> RegisterService(ServiceInfo info)
+        public async Task<ServiceInfo> RegisterService(ServiceInfo info)
         {
             var edit = new BEditService();
-            edit.Put.Add(info);
+            edit.Add.Add(info);
             await EditService(edit);
             return info;
         }
@@ -363,7 +323,7 @@ namespace Zeze.Services.ServiceManager
         internal async Task OnConnected()
         {
             var edit = new BEditService();
-            edit.Put.AddAll(Registers.Keys);
+            edit.Add.AddAll(Registers.Keys);
             await EditService(edit);
 
             var sub = new SubscribeArgument();
@@ -384,19 +344,11 @@ namespace Zeze.Services.ServiceManager
             }
             r.Argument.Remove.RemoveAll(r => removing.Contains(r));
 
-            foreach (var reg in r.Argument.Put)
+            foreach (var reg in r.Argument.Add)
             {
                 if (SubscribeStates.TryGetValue(reg.ServiceName, out var state))
                     state.OnRegister(reg);
             }
-
-            removing.Clear();
-            foreach (var upd in r.Argument.Update)
-            {
-                if (SubscribeStates.TryGetValue(upd.ServiceName, out var state) && !state.OnUpdate(upd))
-                    removing.Add(upd);
-            }
-            r.Argument.Update.RemoveAll(r => removing.Contains(r));
 
             r.SendResult();
 
@@ -413,7 +365,7 @@ namespace Zeze.Services.ServiceManager
                 {
                     // 触发回调前修正集合之间的关系。
                     // 删除后来又加入的。
-                    edit.Remove.RemoveAll(r => edit.Put.Contains(r));
+                    edit.Remove.RemoveAll(r => edit.Add.Contains(r));
 
                     try
                     {
@@ -818,14 +770,12 @@ namespace Zeze.Services.ServiceManager
     public sealed class BEditService : Bean
     {
         public List<ServiceInfo> Remove { get; } = new();
-        public List<ServiceInfo> Put { get; } = new();
-        public List<ServiceInfo> Update { get; } = new();
+        public List<ServiceInfo> Add { get; } = new();
 
         public override void ClearParameters()
         {
             Remove.Clear();
-            Put.Clear();
-            Update.Clear();
+            Add.Clear();
         }
 
         public override void Decode(ByteBuffer bb)
@@ -840,13 +790,7 @@ namespace Zeze.Services.ServiceManager
             {
                 var r = new ServiceInfo();
                 r.Decode(bb);
-                Put.Add(r);
-            }
-            for (var i = bb.ReadUInt(); i > 0; --i)
-            {
-                var r = new ServiceInfo();
-                r.Decode(bb);
-                Update.Add(r);
+                Add.Add(r);
             }
         }
 
@@ -855,12 +799,9 @@ namespace Zeze.Services.ServiceManager
             bb.WriteUInt(Remove.Count);
             foreach (var r in Remove)
                 r.Encode(bb);
-            bb.WriteUInt(Put.Count);
-            foreach (var p in Put)
+            bb.WriteUInt(Add.Count);
+            foreach (var p in Add)
                 p.Encode(bb);
-            bb.WriteUInt(Update.Count);
-            foreach (var u in Update)
-                u.Encode(bb);
         }
     }
 

@@ -32,7 +32,7 @@ namespace Zeze.Arch
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
                 var identity = ProviderApp.Zeze.Config.ServerId.ToString();
-                edit.Put.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
+                edit.Add.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
                 services.Add(name, it.Value);
             }
             // 注册本provider的动态服务
@@ -40,7 +40,7 @@ namespace Zeze.Arch
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
                 var identity = ProviderApp.Zeze.Config.ServerId.ToString();
-                edit.Put.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
+                edit.Add.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
                 services.Add(name, it.Value);
             }
             await sm.EditService(edit);

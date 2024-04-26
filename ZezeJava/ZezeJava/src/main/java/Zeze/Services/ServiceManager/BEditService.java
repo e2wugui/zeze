@@ -11,8 +11,7 @@ public class BEditService extends Bean {
 	private static final List<BServiceInfo> empty = List.of();
 
 	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。
-	private @NotNull List<BServiceInfo> put = empty; // 注册，增加或替换。
-	private @NotNull List<BServiceInfo> update = empty; // 更新，忽略不存在的，只更新局部信息。
+	private @NotNull List<BServiceInfo> add = empty; // 注册，增加或替换。
 
 	// 处理顺序：remove,put,update。
 	// 当不同的集合中存在相同的服务时，要注意这个处理顺序。
@@ -23,12 +22,8 @@ public class BEditService extends Bean {
 		return remove == empty ? (remove = new ArrayList<>()) : remove;
 	}
 
-	public @NotNull List<BServiceInfo> getPut() {
-		return put == empty ? (put = new ArrayList<>()) : put;
-	}
-
-	public @NotNull List<BServiceInfo> getUpdate() {
-		return update == empty ? (update = new ArrayList<>()) : update;
+	public @NotNull List<BServiceInfo> getAdd() {
+		return add == empty ? (add = new ArrayList<>()) : add;
 	}
 
 	@Override
@@ -36,12 +31,9 @@ public class BEditService extends Bean {
 		bb.WriteUInt(remove.size());
 		for (var r : remove)
 			r.encode(bb);
-		bb.WriteUInt(put.size());
-		for (var p : put)
+		bb.WriteUInt(add.size());
+		for (var p : add)
 			p.encode(bb);
-		bb.WriteUInt(update.size());
-		for (var u : update)
-			u.encode(bb);
 	}
 
 	@Override
@@ -55,16 +47,9 @@ public class BEditService extends Bean {
 		}
 		i = bb.ReadUInt();
 		if (i > 0) {
-			var p = getPut();
+			var p = getAdd();
 			do
 				p.add(new BServiceInfo(bb));
-			while (--i > 0);
-		}
-		i = bb.ReadUInt();
-		if (i > 0) {
-			var u = getUpdate();
-			do
-				u.add(new BServiceInfo(bb));
 			while (--i > 0);
 		}
 	}
@@ -72,8 +57,7 @@ public class BEditService extends Bean {
 	@Override
 	public String toString() {
 		return "remove:" + remove + "\n" +
-				"put:" + put + "\n" +
-				"update:" + update + "\n";
+				"put:" + add + "\n";
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 64;
