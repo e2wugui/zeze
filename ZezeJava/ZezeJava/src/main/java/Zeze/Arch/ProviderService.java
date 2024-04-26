@@ -16,6 +16,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -228,7 +229,7 @@ public class ProviderService extends HandshakeClient {
 			sm.registerService(new BServiceInfo(
 					providerApp.serverServiceNamePrefix + module.getId(), identity, 0,
 					providerApp.directIp, providerApp.directPort));
-			sm.subscribeService(providerApp.serverServiceNamePrefix + module.getId());
+			sm.subscribeService(new BSubscribeInfo(providerApp.serverServiceNamePrefix + module.getId()));
 		}
 
 		// 并通知所有links。

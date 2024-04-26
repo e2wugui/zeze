@@ -3,25 +3,28 @@ package Zeze.Services.ServiceManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class BSubscribeInfo extends Bean {
-	private String serviceName;
+	private @NotNull String serviceName = "";
 	private long version;
-	private Object localState;
+	private @Nullable Object localState;
 
-	public BSubscribeInfo() {
+	public BSubscribeInfo(@NotNull IByteBuffer bb) {
+		decode(bb);
 	}
 
-	public BSubscribeInfo(String name) {
+	public BSubscribeInfo(@NotNull String name) {
 		serviceName = name;
 	}
 
-	public BSubscribeInfo(String name, long version) {
+	public BSubscribeInfo(@NotNull String name, long version) {
 		serviceName = name;
 		this.version = version;
 	}
 
-	public BSubscribeInfo(String name, long version, Object state) {
+	public BSubscribeInfo(@NotNull String name, long version, @Nullable Object state) {
 		serviceName = name;
 		this.version = version;
 		localState = state;
@@ -31,7 +34,7 @@ public final class BSubscribeInfo extends Bean {
 		return version;
 	}
 
-	public String getServiceName() {
+	public @NotNull String getServiceName() {
 		return serviceName;
 	}
 
@@ -39,29 +42,29 @@ public final class BSubscribeInfo extends Bean {
 		serviceName = value;
 	}
 
-	public Object getLocalState() {
+	public @Nullable Object getLocalState() {
 		return localState;
 	}
 
-	public void setLocalState(Object value) {
+	public void setLocalState(@Nullable Object value) {
 		localState = value;
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
-		setServiceName(bb.ReadString());
+	public void decode(@NotNull IByteBuffer bb) {
+		serviceName = bb.ReadString();
 		this.version = bb.ReadLong();
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		bb.WriteString(getServiceName());
+	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteString(serviceName);
 		bb.WriteLong(version);
 	}
 
 	@Override
-	public String toString() {
-		return getServiceName();
+	public @NotNull String toString() {
+		return serviceName;
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 32;

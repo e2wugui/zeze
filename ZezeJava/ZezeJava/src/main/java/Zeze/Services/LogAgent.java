@@ -13,6 +13,7 @@ import Zeze.Services.Log4jQuery.SessionAll;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.BEditService;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import org.jetbrains.annotations.NotNull;
 
 public class LogAgent extends AbstractLogAgent {
@@ -55,7 +56,7 @@ public class LogAgent extends AbstractLogAgent {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
 				serviceManager.waitReady();
 			}
-			serviceManager.subscribeService("Zeze.LogService");
+			serviceManager.subscribeService(new BSubscribeInfo("Zeze.LogService"));
 		}
 	}
 

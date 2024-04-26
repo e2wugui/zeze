@@ -92,7 +92,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 		@Override
 		public <P extends Protocol<?>> void dispatchRaftRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-																				 ProtocolFactoryHandle<?> factoryHandle) {
+																	ProtocolFactoryHandle<?> factoryHandle) {
 			lock();
 			try {
 				if (logger.isDebugEnabled())
@@ -106,7 +106,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 		@Override
 		public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel,
-													 DispatchMode mode) {
+										DispatchMode mode) {
 			lock();
 			try {
 				if (logger.isDebugEnabled()) {
@@ -584,8 +584,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	private static BServiceInfos newSortedBServiceInfos(String serviceName, BServiceInfosVersionRocks identityMap) {
-		var result = new BServiceInfos();
-		result.setServiceName(serviceName);
+		var result = new BServiceInfos(serviceName);
 		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
 		for (var info : identityMap.getServiceInfos().entrySet())
 			sortedMap.put(new BServiceInfoKeyRocks(serviceName, info.getKey()), info.getValue());
@@ -601,7 +600,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 		var netSession = (Session)r.getSender().getUserState();
 		for (var versions : state.getServiceInfosVersion().values())
-		for (var info : versions.getServiceInfos().values())
-			addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
+			for (var info : versions.getServiceInfos().values())
+				addLoadObserver(info.getPassiveIp(), info.getPassivePort(), netSession.name);
 	}
 }

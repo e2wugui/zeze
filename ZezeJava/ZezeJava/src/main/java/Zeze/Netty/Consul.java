@@ -1,7 +1,6 @@
 package Zeze.Netty;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Net.Helper;
 import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.agent.model.NewService;
 import io.netty.handler.codec.http.HttpResponseStatus;

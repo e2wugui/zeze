@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,7 +24,7 @@ public final class PropertiesHelper {
 	 * @param props string
 	 * @return Properties
 	 */
-	public static Properties parse(@NotNull String props) {
+	public static @NotNull Properties parse(@NotNull String props) {
 		var args = props.split(" ");
 		//System.out.println(Arrays.toString(args));
 

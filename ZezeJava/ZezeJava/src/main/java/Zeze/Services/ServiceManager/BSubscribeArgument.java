@@ -19,15 +19,12 @@ public class BSubscribeArgument extends Bean {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadUInt(); i > 0; --i) {
-			var sub = new BSubscribeInfo();
-			sub.decode(bb);
-			subs.add(sub);
-		}
+		for (var i = bb.ReadUInt(); i > 0; --i)
+			subs.add(new BSubscribeInfo(bb));
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return subs.toString();
 	}
 

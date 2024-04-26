@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BEditService extends Bean {
-	private final @NotNull List<BServiceInfo> remove = new ArrayList<>(); // 注销，删除，忽略不存在的。
-	private final @NotNull List<BServiceInfo> put = new ArrayList<>(); // 注册，增加或替换。
-	private final @NotNull List<BServiceInfo> update = new ArrayList<>(); // 更新，忽略不存在的，只更新局部信息。
+	private static final List<BServiceInfo> empty = List.of();
+
+	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。
+	private @NotNull List<BServiceInfo> put = empty; // 注册，增加或替换。
+	private @NotNull List<BServiceInfo> update = empty; // 更新，忽略不存在的，只更新局部信息。
 
 	// 处理顺序：remove,put,update。
 	// 当不同的集合中存在相同的服务时，要注意这个处理顺序。
@@ -18,15 +20,15 @@ public class BEditService extends Bean {
 	// update处理是特殊的，放在put后面，使得可以一次注册同时马上更新。
 
 	public @NotNull List<BServiceInfo> getRemove() {
-		return remove;
+		return remove == empty ? (remove = new ArrayList<>()) : remove;
 	}
 
 	public @NotNull List<BServiceInfo> getPut() {
-		return put;
+		return put == empty ? (put = new ArrayList<>()) : put;
 	}
 
 	public @NotNull List<BServiceInfo> getUpdate() {
-		return update;
+		return update == empty ? (update = new ArrayList<>()) : update;
 	}
 
 	@Override
@@ -44,20 +46,26 @@ public class BEditService extends Bean {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		for (var i = bb.ReadUInt(); i > 0; --i) {
-			var r = new BServiceInfo();
-			r.decode(bb);
-			remove.add(r);
+		var i = bb.ReadUInt();
+		if (i > 0) {
+			var r = getRemove();
+			do
+				r.add(new BServiceInfo(bb));
+			while (--i > 0);
 		}
-		for (var i = bb.ReadUInt(); i > 0; --i) {
-			var r = new BServiceInfo();
-			r.decode(bb);
-			put.add(r);
+		i = bb.ReadUInt();
+		if (i > 0) {
+			var p = getPut();
+			do
+				p.add(new BServiceInfo(bb));
+			while (--i > 0);
 		}
-		for (var i = bb.ReadUInt(); i > 0; --i) {
-			var r = new BServiceInfo();
-			r.decode(bb);
-			update.add(r);
+		i = bb.ReadUInt();
+		if (i > 0) {
+			var u = getUpdate();
+			do
+				u.add(new BServiceInfo(bb));
+			while (--i > 0);
 		}
 	}
 

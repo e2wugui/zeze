@@ -20,6 +20,7 @@ import Zeze.Net.Connector;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Data;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -112,7 +113,7 @@ public class OnzServer extends AbstractOnz {
 				// raft 版第一次等待由于选择leader原因肯定会失败一次。
 				serviceManager.waitReady();
 			}
-			serviceManager.subscribeService(Onz.eServiceName);
+			serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
 			this.zezes.put(zezeNameAndConfig[0], serviceManager);
 		}
 		this.sharedServiceManager = false;
@@ -273,7 +274,7 @@ public class OnzServer extends AbstractOnz {
 			this.zezes.put(zeze, serviceManager);
 		}
 		this.sharedServiceManager = true;
-		serviceManager.subscribeService(Onz.eServiceName);
+		serviceManager.subscribeService(new BSubscribeInfo(Onz.eServiceName));
 		service = new OnzServerService(myConfig);
 		onzAgent = new OnzAgent();
 		RegisterProtocols(service);

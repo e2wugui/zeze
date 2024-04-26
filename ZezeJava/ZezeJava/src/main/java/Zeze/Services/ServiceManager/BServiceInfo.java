@@ -11,14 +11,14 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	/**
 	 * 服务名，比如"GameServer"
 	 */
-	private @NotNull String serviceName;
+	private @NotNull String serviceName = "";
 	private long version;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
-	private @NotNull String serviceIdentity;
+	private @NotNull String serviceIdentity = "";
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
@@ -76,8 +76,8 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		extraInfo = value != null ? value : Binary.Empty;
 	}
 
-	public BServiceInfo() {
-		this("", "", 0, null, 0, null);
+	public BServiceInfo(@NotNull IByteBuffer bb) {
+		decode(bb);
 	}
 
 	public BServiceInfo(@NotNull String name, @NotNull String identity) {
@@ -96,8 +96,8 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		this(name, identity, version, ip, port, null);
 	}
 
-	public BServiceInfo(@NotNull String name, @NotNull String identity, long version,
-						@Nullable String ip, int port, @Nullable Binary extraInfo) {
+	public BServiceInfo(@NotNull String name, @NotNull String identity, long version, @Nullable String ip, int port,
+						@Nullable Binary extraInfo) {
 		serviceName = name;
 		serviceIdentity = identity;
 		this.version = version;
@@ -115,7 +115,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		passiveIp = bb.ReadString();
 		passivePort = bb.ReadInt();
 		extraInfo = bb.ReadBinary();
-		this.version = bb.ReadLong();
+		version = bb.ReadLong();
 	}
 
 	@Override

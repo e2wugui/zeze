@@ -17,7 +17,6 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
-import Zeze.Net.Binary;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
@@ -226,9 +225,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			lock();
 			try {
 				serviceInfos = infos;
-				for (var identityMap : infos.getInfosVersion().values()) {
+				for (var it = infos.getInfosVersion().iterator(); it.moveToNext(); ) {
 					var edit = new BEditService();
-					edit.getPut().addAll(identityMap.getServiceInfoListSortedByIdentity());
+					edit.getPut().addAll(it.value().getServiceInfoListSortedByIdentity());
 					edits.add(edit);
 				}
 			} finally {
@@ -239,53 +238,42 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract void editService(@NotNull BEditService arg);
-
-	public abstract @NotNull BServiceInfo registerService(@NotNull BServiceInfo info);
-
-	public abstract @Nullable BServiceInfo updateService(@NotNull BServiceInfo info);
-
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity, String ip, int port) {
-		return registerService(name, identity, ip, port, null);
-	}
-
-	@Deprecated
-	public BServiceInfo registerService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return registerService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
-	}
-
-	@Deprecated
-	public BServiceInfo updateService(String name, String identity, String ip, int port, Binary extraInfo) {
-		return updateService(new BServiceInfo(name, identity, 0, ip, port, extraInfo));
-	}
-
-	protected static void verify(String identity) {
+	protected static void verify(@NotNull String identity) {
 		if (!identity.startsWith("@") && !identity.startsWith("#")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
 		}
 	}
 
-	public abstract void unRegisterService(@NotNull BServiceInfo info);
-
-	public SubscribeState subscribeService(String serviceName) {
-		return subscribeService(serviceName, 0,null);
+	public void registerService(@NotNull BServiceInfo info) {
+		var edit = new BEditService();
+		edit.getPut().add(info);
+		editService(edit);
 	}
 
-	public @NotNull SubscribeState subscribeService(String serviceName, Object state) {
-		var info = new BSubscribeInfo(serviceName, 0, state);
-		return subscribeService(info);
+	public void updateService(@NotNull BServiceInfo info) {
+		var edit = new BEditService();
+		edit.getUpdate().add(info);
+		editService(edit);
 	}
 
-	public @NotNull SubscribeState subscribeService(String serviceName, long version, Object state) {
-		var info = new BSubscribeInfo(serviceName, version, state);
-		return subscribeService(info);
+	public void unRegisterService(@NotNull BServiceInfo info) {
+		var edit = new BEditService();
+		edit.getRemove().add(info);
+		editService(edit);
 	}
 
-	public abstract @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info);
+	public abstract void editService(@NotNull BEditService arg);
 
-	public List<SubscribeState> subscribeServices(BSubscribeArgument info) {
+	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
+		var infos = new BSubscribeArgument();
+		infos.subs.add(info);
+		var states = subscribeServices(infos);
+		logger.debug("SubscribeServices {}", infos);
+		return states.get(0);
+	}
+
+	public @NotNull List<SubscribeState> subscribeServices(@NotNull BSubscribeArgument info) {
 		var future = new TaskCompletionSource<List<SubscribeState>>();
 		subscribeServicesAsync(info, future::setResult);
 		try {
@@ -295,27 +283,28 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract void subscribeServicesAsync(BSubscribeArgument info, @Nullable Action1<List<SubscribeState>> action);
+	public abstract void subscribeServicesAsync(@NotNull BSubscribeArgument info,
+												@Nullable Action1<List<SubscribeState>> action);
 
-	public abstract void unSubscribeService(BUnSubscribeArgument arg);
-
-	public void unSubscribeService(String serviceName) {
+	public void unSubscribeService(@NotNull String serviceName) {
 		var arg = new BUnSubscribeArgument();
 		arg.serviceNames.add(serviceName);
 		unSubscribeService(arg);
 	}
 
-	public AutoKey getAutoKey(String name) {
+	public abstract void unSubscribeService(@NotNull BUnSubscribeArgument arg);
+
+	public @NotNull AutoKey getAutoKey(@NotNull String name) {
 		return autoKeys.computeIfAbsent(name, k -> new AutoKey(k, this));
 	}
 
-	public abstract boolean setServerLoad(BServerLoad load);
+	public abstract boolean setServerLoad(@NotNull BServerLoad load);
 
-	public abstract void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle);
+	public abstract void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle);
 
-	protected static void setCurrentAndCount(AutoKey autoKey, long current, int count) {
+	protected static void setCurrentAndCount(@NotNull AutoKey autoKey, long current, int count) {
 		autoKey.setCurrentAndCount(current, count);
 	}
 
-	public abstract Threading getThreading();
+	public abstract @NotNull Threading getThreading();
 }

@@ -5,6 +5,7 @@ import Zeze.Net.Binary;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
+import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.TaskCompletionSource;
 import demo.App;
 import org.junit.After;
@@ -52,7 +53,7 @@ public class TestServiceManager {
 			System.out.println("OnSetLoad " + load);
 			this.future.setResult(0);
 		});
-		agent.subscribeService(serviceName);
+		agent.subscribeService(new BSubscribeInfo(serviceName));
 		var load = new BServerLoad();
 		load.ip = "127.0.0.1";
 		load.port = 1234;

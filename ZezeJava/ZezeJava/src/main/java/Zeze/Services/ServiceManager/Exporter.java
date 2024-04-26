@@ -4,12 +4,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Properties;
-import javax.validation.constraints.Null;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 【独立后台进程】
@@ -64,7 +64,7 @@ public class Exporter {
 		agent.close();
 	}
 
-	public void addExporter(@NotNull String name, @NotNull Properties shared, @Null String param) throws Exception {
+	public void addExporter(@NotNull String name, @NotNull Properties shared, @Nullable String param) throws Exception {
 		switch (name) {
 		case "NginxConfig": exports.add(new ExporterNginxConfig(new ExporterConfig(shared, param))); break;
 		case "NginxHttp": exports.add(new ExporterNginxHttp(new ExporterConfig(shared, param))); break;

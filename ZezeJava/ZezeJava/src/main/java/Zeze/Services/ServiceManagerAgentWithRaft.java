@@ -21,7 +21,6 @@ import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
-import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
@@ -208,37 +207,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public @NotNull BServiceInfo registerService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getPut().add(info);
-		editService(edit);
-		return info;
-	}
-
-	@Override
-	public @Nullable BServiceInfo updateService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getUpdate().add(info);
-		editService(edit);
-		return info;
-	}
-
-	@Override
-	public void unRegisterService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getRemove().add(info);
-		editService(edit);
-	}
-
-	@Override
 	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
 		waitLoginReady();
-
-		var infos = new BSubscribeArgument();
-		infos.subs.add(info);
-		var states = subscribeServices(infos);
-		logger.debug("SubscribeService {}", info);
-		return states.get(0);
+		return super.subscribeService(info);
 	}
 
 	@Override
@@ -267,7 +238,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void unSubscribeService(BUnSubscribeArgument arg) {
+	public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
 		waitLoginReady();
 		logger.debug("UnSubscribeService {}", arg);
 		var r = new UnSubscribe(arg);
@@ -277,13 +248,13 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public boolean setServerLoad(BServerLoad load) {
+	public boolean setServerLoad(@NotNull BServerLoad load) {
 		raftClient.send(new SetServerLoad(load), p -> 0);
 		return true;
 	}
 
 	@Override
-	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
+	public void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle) {
 		waitLoginReady();
 		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
 		raftClient.sendForWait(new OfflineRegister(argument)).await();

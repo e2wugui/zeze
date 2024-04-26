@@ -52,21 +52,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public @Nullable BServiceInfo updateService(BServiceInfo info) {
-		waitConnectorReady();
-		var reg = registers.get(info);
-		if (reg == null)
-			return null;
-
-		var edit = new BEditService();
-		edit.getUpdate().add(info);
-		editService(edit);
-
-		return reg;
-	}
-
-	@Override
-	public void editService(BEditService arg) {
+	public void editService(@NotNull BEditService arg) {
 		for (var info : arg.getPut())
 			verify(info.getServiceIdentity());
 		waitConnectorReady();
@@ -92,22 +78,15 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public @NotNull BServiceInfo registerService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getPut().add(info);
-		editService(edit);
-		return info;
+	public void updateService(BServiceInfo info) {
+		waitConnectorReady();
+		var reg = registers.get(info);
+		if (reg != null)
+			super.updateService(info);
 	}
 
 	@Override
-	public void unRegisterService(@NotNull BServiceInfo info) {
-		var edit = new BEditService();
-		edit.getRemove().add(info);
-		editService(edit);
-	}
-
-	@Override
-	public void subscribeServicesAsync(BSubscribeArgument infos, @Nullable Action1<List<SubscribeState>> action) {
+	public void subscribeServicesAsync(@NotNull BSubscribeArgument infos, @Nullable Action1<List<SubscribeState>> action) {
 		waitConnectorReady();
 
 		var r = new Subscribe(infos);
@@ -133,17 +112,13 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public SubscribeState subscribeService(BSubscribeInfo info) {
+	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
 		waitConnectorReady();
-		var infos = new BSubscribeArgument();
-		infos.subs.add(info);
-		var states = subscribeServices(infos);
-		logger.debug("SubscribeServices {}", infos);
-		return states.get(0);
+		return super.subscribeService(info);
 	}
 
 	@Override
-	public void unSubscribeService(BUnSubscribeArgument arg) {
+	public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
 		waitConnectorReady();
 
 		var r = new UnSubscribe(arg);
@@ -154,19 +129,19 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void offlineRegister(BOfflineNotify argument, Action1<BOfflineNotify> handle) {
+	public void offlineRegister(@NotNull BOfflineNotify argument, @NotNull Action1<BOfflineNotify> handle) {
 		waitConnectorReady();
 		onOfflineNotifies.putIfAbsent(argument.notifyId, handle);
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
 	@Override
-	public boolean setServerLoad(BServerLoad load) {
+	public boolean setServerLoad(@NotNull BServerLoad load) {
 		return new SetServerLoad(load).Send(client.getSocket());
 	}
 
 	@Override
-	protected void allocate(AutoKey autoKey, int pool) {
+	protected void allocate(@NotNull AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
