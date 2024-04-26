@@ -160,11 +160,17 @@ public final class Agent extends AbstractAgent {
 				it.remove();
 		}
 
+		// 触发回调前修正集合之间的关系。
+		// 删除后来又加入的。
+		r.Argument.getRemove().removeIf(r.Argument.getAdd()::contains);
+
 		for (var reg : r.Argument.getAdd()) {
 			var state = subscribeStates.get(reg.getServiceName());
 			if (null == state)
 				continue; // 忽略本地没有订阅的。最好加个日志。
-			state.onRegister(reg);
+			var oldNotSame = state.onRegister(reg);
+			if (null != oldNotSame)
+				r.Argument.getRemove().add(oldNotSame);
 		}
 
 		r.SendResult();

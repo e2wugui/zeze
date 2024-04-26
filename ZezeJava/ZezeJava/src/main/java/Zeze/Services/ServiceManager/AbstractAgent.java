@@ -103,10 +103,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected void triggerOnChanged(BEditService edit) {
 		if (onChanged != null) {
 			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
-				// 触发回调前修正集合之间的关系。
-				// 删除后来又加入的。
-				edit.getRemove().removeIf(edit.getAdd()::contains);
-
 				try {
 					onChanged.run(edit);
 				} catch (Throwable e) { // logger.error
@@ -178,12 +174,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				localStates.put(identity, state);
 		}
 
-		public void onRegister(BServiceInfo info) {
+		public @Nullable BServiceInfo onRegister(BServiceInfo info) {
 			lock();
 			try {
 				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
-				if (null != versions)
-					versions.insert(info);
+				if (null != versions) {
+					var exist = versions.insert(info);
+					return null != exist && !exist.fullEquals(info) ? exist : null;
+				}
+				return null;
 			} finally {
 				unlock();
 			}

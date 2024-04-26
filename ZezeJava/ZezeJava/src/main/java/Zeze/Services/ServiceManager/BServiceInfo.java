@@ -149,6 +149,20 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		return result;
 	}
 
+	/**
+	 * 比较完整信息是否相等，
+	 * @param other other
+	 * @return true full equals else false
+	 */
+	public boolean fullEquals(BServiceInfo other) {
+		return serviceName.equals(other.serviceIdentity)
+				&& serviceIdentity.equals(other.serviceIdentity)
+				&& version == other.version
+				&& passiveIp.equals(other.passiveIp)
+				&& passivePort == other.passivePort
+				&& extraInfo.equals(other.extraInfo);
+	}
+
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (obj == this) {

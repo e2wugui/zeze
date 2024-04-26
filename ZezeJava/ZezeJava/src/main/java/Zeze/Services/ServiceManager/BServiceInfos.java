@@ -46,12 +46,15 @@ public final class BServiceInfos extends Bean {
 		return serviceInfoListSortedByIdentity;
 	}
 
-	public void insert(@NotNull BServiceInfo info) {
+	public BServiceInfo insert(@NotNull BServiceInfo info) {
 		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
-		if (index >= 0)
+		if (index >= 0) {
+			var exist = serviceInfoListSortedByIdentity.get(index);
 			serviceInfoListSortedByIdentity.set(index, info);
-		else
-			serviceInfoListSortedByIdentity.add(~index, info);
+			return exist;
+		}
+		serviceInfoListSortedByIdentity.add(~index, info);
+		return null;
 	}
 
 	public @Nullable BServiceInfo remove(@NotNull BServiceInfo info) {

@@ -82,12 +82,16 @@ namespace Zeze.Services.ServiceManager
                     LocalStates[identity] = state;
             }
 
-            internal void OnRegister(ServiceInfo info)
+            internal ServiceInfo OnRegister(ServiceInfo info)
             {
                 lock (this)
                 {
                     if (ServiceInfosVersion.InfosVersion.TryGetValue(info.Version, out var versions))
-                        info = versions.Insert(info);
+                    {
+                        var exist = versions.Insert(info);
+                        return null != exist && !exist.FullEquals(info) ? exist : null;
+                    }
+                    return null;
                 }
             }
 
@@ -344,10 +348,18 @@ namespace Zeze.Services.ServiceManager
             }
             r.Argument.Remove.RemoveAll(r => removing.Contains(r));
 
+            // 触发回调前修正集合之间的关系。
+            // 删除后来又加入的。
+            r.Argument.Remove.RemoveAll(o => r.Argument.Add.Contains(o));
+
             foreach (var reg in r.Argument.Add)
             {
                 if (SubscribeStates.TryGetValue(reg.ServiceName, out var state))
-                    state.OnRegister(reg);
+                {
+                    var oldNotSame = state.OnRegister(reg);
+                    if (null != oldNotSame)
+                        r.Argument.Remove.Add(oldNotSame);
+                }
             }
 
             r.SendResult();
@@ -361,21 +373,7 @@ namespace Zeze.Services.ServiceManager
         {
             if (OnChanged != null)
             {
-                TaskOneByOneByKey.Instance.Execute(SMCallbackOneByOneKey, () =>
-                {
-                    // 触发回调前修正集合之间的关系。
-                    // 删除后来又加入的。
-                    edit.Remove.RemoveAll(r => edit.Add.Contains(r));
-
-                    try
-                    {
-                        OnChanged.Invoke(edit);
-                    }
-                    catch (Exception e)
-                    { // logger.error
-                        logger.Error(e);
-                    }
-                });
+                TaskOneByOneByKey.Instance.Execute(SMCallbackOneByOneKey, () => OnChanged(edit));
             }
         }
 
@@ -748,6 +746,16 @@ namespace Zeze.Services.ServiceManager
             return result;
         }
 
+        public bool FullEquals(ServiceInfo other)
+        {
+            return ServiceName.Equals(other.ServiceName)
+                && ServiceIdentity.Equals(other.ServiceIdentity)
+                && Version.Equals(other.Version)
+                && PassiveIp.Equals(other.PassiveIp)
+                && PassivePort.Equals(other.PassivePort)
+                && ExtraInfo.Equals(other.ExtraInfo);
+        }
+
         public override bool Equals(object obj)
         {
             if (obj == this)
@@ -1018,13 +1026,12 @@ namespace Zeze.Services.ServiceManager
             var i = SortedIdentity_.BinarySearch(info, Comparer);
             if (i >= 0)
             {
+                var exist = SortedIdentity_[i];
                 SortedIdentity_[i] = info;
+                return exist;
             }
-            else
-            {
-                SortedIdentity_.Insert(~i, info);
-            }
-            return info;
+            SortedIdentity_.Insert(~i, info);
+            return null;
         }
 
         public ServiceInfo Remove(ServiceInfo info)
