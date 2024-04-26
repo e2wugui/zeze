@@ -228,12 +228,6 @@
 				<enum name="ConfigTypeDynamic" value="2"/>
 
 				<variable name="ConfigType" id="2" type="int"/>
-
-				<!-- SubscribeType
-				定义于： Zeze.Services.ServiceManager.SubscribeInfo.
-				静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
-				-->
-				<variable name="SubscribeType" id="3" type="int"/>
 			</bean>
 
 			<bean name="BBind">

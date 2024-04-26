@@ -3,7 +3,6 @@ using System;
 using System.Threading.Tasks;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
-using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using System.Collections.Generic;
 using Zeze.Util;
@@ -13,32 +12,6 @@ namespace Zeze.Arch
     public abstract class ProviderImplement : AbstractProviderImplement
     {
         public ProviderApp ProviderApp { get; set; }
-
-        internal void ApplyOnChanged(Agent.SubscribeState subState)
-        {
-            if (subState.ServiceName.Equals(ProviderApp.LinkdServiceName))
-            {
-                // Linkd info
-                ProviderApp.ProviderService.ApplyLinksChanged(subState.ServiceInfos);
-            }
-            else if (subState.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
-            {
-                // Provider info
-                // 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
-                // 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
-                if (subState.SubscribeType == SubscribeInfo.SubscribeTypeSimple)
-                    this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.ServiceInfos);
-            }
-        }
-
-        internal void ApplyOnPrepare(Agent.SubscribeState subState)
-        {
-            var pending = subState.ServiceInfosPending;
-            if (pending != null && pending.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
-            {
-                this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
-            }
-        }
 
         /**
          * 注册所有支持的模块服务。
@@ -52,13 +25,14 @@ namespace Zeze.Arch
         {
             var sm = ProviderApp.Zeze.ServiceManager;
             var services = new Dictionary<string, BModule>();
-
+            var appVersion = 0; // ProviderApp.Zeze.Schemas.AppVersion;
+            var edit = new BEditService();
             // 注册本provider的静态服务
             foreach (var it in ProviderApp.StaticBinds)
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
                 var identity = ProviderApp.Zeze.Config.ServerId.ToString();
-                await sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
+                edit.Put.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
                 services.Add(name, it.Value);
             }
             // 注册本provider的动态服务
@@ -66,18 +40,19 @@ namespace Zeze.Arch
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
                 var identity = ProviderApp.Zeze.Config.ServerId.ToString();
-                await sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
+                edit.Put.Add(new ServiceInfo(name, identity, appVersion, ProviderApp.DirectIp, ProviderApp.DirectPort));
                 services.Add(name, it.Value);
             }
+            await sm.EditService(edit);
 
+            var sub = new SubscribeArgument();
             // 订阅provider直连发现服务
             foreach (var e in services)
-            {
-                await sm.SubscribeService(e.Key, e.Value.SubscribeType);
-            }
-
+                sub.Subs.Add(new SubscribeInfo(e.Key, appVersion));
             // 订阅linkd发现服务。
-            await sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple);
+            sub.Subs.Add(new SubscribeInfo(ProviderApp.LinkdServiceName, 0)); // link without version
+
+            await sm.SubscribeServices(sub);
         }
 
 

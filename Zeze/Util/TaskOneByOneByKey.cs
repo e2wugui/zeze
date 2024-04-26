@@ -19,11 +19,13 @@ namespace Zeze.Util
 	/// </summary>
 	public sealed class TaskOneByOneByKey
     {
+		public static TaskOneByOneByKey Instance { get; } = new();
+
 		private static readonly ILogger logger = LogManager.GetLogger(typeof(TaskOneByOneByKey));
 
 		private readonly TaskOneByOne[] concurrency;
 
-		public TaskOneByOneByKey() : this(1024)
+		public TaskOneByOneByKey() : this(2048)
         {
         }
 

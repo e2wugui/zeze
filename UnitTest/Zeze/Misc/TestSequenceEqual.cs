@@ -15,11 +15,11 @@ namespace UnitTest.Zeze.Misc
         public void TestSequenceEqual1()
         {
             var infos1 = new Dictionary<string, ServiceInfo>();
-            var info1 = new ServiceInfo("gs", "1");
+            var info1 = new ServiceInfo("gs", "1", 0);
             infos1.Add("1", info1);
 
             var infos2 = new Dictionary<string, ServiceInfo>();
-            var info2 = new ServiceInfo("gs", "1");
+            var info2 = new ServiceInfo("gs", "1", 0);
             infos2.Add("1", info2);
 
             Assert.IsTrue(Enumerable.SequenceEqual(infos1.Values, infos2.Values));

@@ -13,7 +13,6 @@ public final class Subscribe extends Rpc<BSubscribeArgument, BSubscribeResult> {
 
 	public static final int Success = 0;
 	public static final int DuplicateSubscribe = 1;
-	public static final int UnknownSubscribeType = 2;
 
 	public Subscribe() {
 		Argument = new BSubscribeArgument();

@@ -30,9 +30,9 @@ namespace UnitTest.Zeze.Misc
         public void TestBase()
         {
             var infos = new ServiceInfos("TestBase");
-            infos.Insert(new ServiceInfo("TestBase", "1"));
-            infos.Insert(new ServiceInfo("TestBase", "3"));
-            infos.Insert(new ServiceInfo("TestBase", "2"));
+            infos.Insert(new ServiceInfo("TestBase", "1", 0));
+            infos.Insert(new ServiceInfo("TestBase", "3", 0));
+            infos.Insert(new ServiceInfo("TestBase", "2", 0));
             Assert.AreEqual("TestBase=[1,2,3,]", infos.ToString());
         }
 
@@ -40,7 +40,7 @@ namespace UnitTest.Zeze.Misc
         public async Task Test1()
         {
             string ip = "127.0.0.1";
-            int port = 7601;
+            int port = 5001; // c# 版本的Server已经删除，所以不能动态自建服务器测试，使用java版本的，需要先运行准备好。
 
             System.Net.IPAddress address =
                 string.IsNullOrEmpty(ip)
@@ -59,24 +59,13 @@ namespace UnitTest.Zeze.Misc
             agentConfig.AddConnector(new Connector(ip, port));
             using var agent = new Agent(demo.App.Instance.Zeze, agentName);
             agent.Client.Start();
-            await agent.RegisterService(serviceName, "1", "127.0.0.1", 1234);
+            await agent.RegisterService(serviceName, "1", 0, "127.0.0.1", 1234);
             agent.OnChanged = (state) =>
             {
-                Console.WriteLine("OnChanged: " + state.ServiceInfos);
+                Console.WriteLine("OnChanged: " + state);
                 this.future.SetResult(0);
             };
-            agent.OnPrepare = (state) =>
-            {
-                var pending = state.ServiceInfosPending;
-                if (null != pending)
-                {
-                    foreach (var service in pending.SortedIdentity)
-                    {
-                        state.SetServiceIdentityReadyState(service.ServiceIdentity, "");
-                    }
-                }
-            };
-            await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
+            await agent.SubscribeService(serviceName);
             var load = new ServerLoad()
             {
                 Ip = "127.0.0.1",
@@ -87,35 +76,35 @@ namespace UnitTest.Zeze.Misc
             future.Task.Wait();
 
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            agent.OnUpdate = (state, info) =>
+            agent.OnChanged = (edit) =>
             {
-                Console.WriteLine("OnUpdate: " + info.ExtraInfo);
+                Console.WriteLine("OnUpdate: " + edit);
                 this.future.SetResult(0);
             };
-            await agent.UpdateService(serviceName, "1", "1.1.1.1", 1, new Binary(Encoding.UTF8.GetBytes("extra info")));
+            await agent.UpdateService(serviceName, "1", 0, "1.1.1.1", 1, new Binary(Encoding.UTF8.GetBytes("extra info")));
             future.Task.Wait();
 
             Console.WriteLine("RegisterService 2");
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await agent.RegisterService(serviceName, "2");
+            await agent.RegisterService(serviceName, "2", 0);
             future.Task.Wait();
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
             await agent.UnSubscribeService(serviceName);
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeReadyCommit);
+            await agent.SubscribeService(serviceName);
             future.Task.Wait();
 
             agent.SubscribeStates.TryGetValue(serviceName, out var state);
             object anyState = this;
-            state.SetServiceIdentityReadyState("1", anyState);
-            state.SetServiceIdentityReadyState("2", anyState);
-            state.SetServiceIdentityReadyState("3", anyState);
+            state.SetIdentityLocalState("1", anyState);
+            state.SetIdentityLocalState("2", anyState);
+            state.SetIdentityLocalState("3", anyState);
 
             Console.WriteLine("RegisterService 3");
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            await agent.RegisterService(serviceName, "3");
+            await agent.RegisterService(serviceName, "3", 0);
             future.Task.Wait();
         }
     }

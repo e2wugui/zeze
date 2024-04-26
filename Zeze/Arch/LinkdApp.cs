@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Serialize;
+using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
@@ -42,10 +43,7 @@ namespace Zeze.Arch
 
             LinkdProvider.RegisterProtocols(LinkdProviderService);
 
-			Zeze.ServiceManager.OnChanged = LinkdProvider.Distribute.ApplyServers;
-			Zeze.ServiceManager.OnUpdate = LinkdProvider.Distribute.AddServer;
-			Zeze.ServiceManager.OnRemove = LinkdProvider.Distribute.RemoveServer;
-
+			Zeze.ServiceManager.OnChanged = ApplyChanged;
 			Zeze.ServiceManager.OnSetServerLoad = (serverLoad) =>
 			{
 				if (this.LinkdProviderService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
@@ -60,7 +58,21 @@ namespace Zeze.Arch
 			(ProviderIp, ProviderPort) = LinkdProviderService.GetOnePassiveAddress();
 		}
 
-		public string GetName()
+        void ApplyChanged(BEditService edit)
+		{
+            foreach (var r in edit.Remove)
+            {
+                LinkdProvider.Distribute.RemoveServer(r);
+            }
+            foreach (var p in edit.Put)
+            {
+                LinkdProvider.Distribute.AddServer(p);
+            }
+            // todo process update
+        }
+
+
+        public string GetName()
 		{
 			return LinkdServiceName + "." + ProviderIp + ":" + ProviderPort;
 		}
@@ -68,7 +80,7 @@ namespace Zeze.Arch
 		public async Task RegisterService(Zeze.Net.Binary extra)
 		{
 			var identity = "@" + ProviderIp + ":" + ProviderPort;
-			await Zeze.ServiceManager.RegisterService(LinkdServiceName, identity, ProviderIp, ProviderPort, extra);
+			await Zeze.ServiceManager.RegisterService(LinkdServiceName, identity, 0, ProviderIp, ProviderPort, extra);
 		}
 	}
 }

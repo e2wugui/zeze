@@ -39,7 +39,7 @@ namespace Zeze.Game
         {
             var name = ProviderDistribute.MakeServiceName(serviceNamePrefix, Id);
             var identity = App.Zeze.Config.ServerId.ToString();
-            await App.Zeze.ServiceManager.RegisterService(name, identity, providerDirectIp, providerDirectPort);
+            await App.Zeze.ServiceManager.RegisterService(name, identity, 0, providerDirectIp, providerDirectPort);
         }
 
         public override void UnRegister()

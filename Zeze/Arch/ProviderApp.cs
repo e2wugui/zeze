@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Builtin.Provider;
 using Zeze.Serialize;
+using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
@@ -80,27 +81,43 @@ namespace Zeze.Arch
 			this.Distribute.Zeze = Zeze;
 			this.Distribute.ProviderService = ProviderDirectService;
 
-			this.Zeze.ServiceManager.OnChanged = (ss) =>
-			{
-				ProviderImplement.ApplyOnChanged(ss);
-				Distribute.ApplyServers(ss);
-			};
-			this.Zeze.ServiceManager.OnPrepare = ProviderImplement.ApplyOnPrepare;
-			this.Zeze.ServiceManager.OnUpdate = (ss, si) =>
-			{
-				Distribute.AddServer(ss, si);
-				ProviderDirectService.AddServer(ss, si);
-			};
-			this.Zeze.ServiceManager.OnRemove = (ss, si) =>
-			{
-				Distribute.RemoveServer(ss, si);
-				ProviderDirectService.RemoveServer(ss, si);
-			};
-
+			this.Zeze.ServiceManager.OnChanged = ApplyChanged;
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}
 
-		public string MakeServiceName(IModule module)
+		private void ApplyChanged(BEditService edit)
+		{
+            var refresh = false;
+            foreach (var r in edit.Remove)
+            {
+                if (r.ServiceName.Equals(LinkdServiceName))
+				{
+                    refresh |= ProviderService.ApplyRemove(r);
+                }
+                else if (r.ServiceName.StartsWith(ServerServiceNamePrefix))
+                {
+                    ProviderDirectService.RemoveServer(r);
+                    Distribute.RemoveServer(r);
+                }
+            }
+            foreach (var p in edit.Put)
+            {
+				if (p.ServiceName.Equals(LinkdServiceName))
+				{
+					refresh |= ProviderService.ApplyPut(p);
+				}
+				else if (p.ServiceName.StartsWith(ServerServiceNamePrefix))
+				{
+					ProviderDirectService.AddServer(p);
+					Distribute.AddServer(p);
+				}
+            }
+
+            if (refresh)
+                ProviderService.RefreshLinkConnectors();
+        }
+
+        public string MakeServiceName(IModule module)
         {
 			return ProviderDistribute.MakeServiceName(ServerServiceNamePrefix, module.Id);
         }

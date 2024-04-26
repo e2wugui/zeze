@@ -24,33 +24,16 @@ namespace Zeze.Arch
 
         public ConcurrentDictionary<string, Zeze.Util.ConsistentHash<ServiceInfo>> ConsistentHashs = new();
 
-        public void AddServer(Agent.SubscribeState state, ServiceInfo s)
+        public void AddServer(ServiceInfo s)
         {
             var consistentHash = ConsistentHashs.GetOrAdd(s.ServiceName, key => new());
             consistentHash.Add(s.ServiceIdentity, s);
         }
 
-        public void RemoveServer(Agent.SubscribeState state, ServiceInfo s)
+        public void RemoveServer(ServiceInfo s)
         {
             if (ConsistentHashs.TryGetValue(s.ServiceName, out var consistentHash))
                 consistentHash.Remove(s);
-        }
-
-        public void ApplyServers(Agent.SubscribeState ass)
-        {
-            var consistentHash = ConsistentHashs.GetOrAdd(ass.ServiceName, key => new());
-            var nodes = consistentHash.Nodes;
-            var current = new HashSet<ServiceInfo>();
-            foreach (var node in ass.ServiceInfos.SortedIdentity)
-            {
-                consistentHash.Add(node.ServiceIdentity, node);
-                current.Add(node);
-            }
-            foreach (var node in nodes)
-            {
-                if (!current.Contains(node))
-                    consistentHash.Remove(node);
-            }
         }
 
         public ServiceInfo ChoiceDataIndex(Agent.SubscribeState providers, int dataIndex, int dataConcurrentLevel)

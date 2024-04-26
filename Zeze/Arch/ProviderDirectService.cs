@@ -23,9 +23,12 @@ namespace Zeze.Arch
 		{
 		}
 
-		public void RemoveServer(Agent.SubscribeState ss, ServiceInfo pm)
+		public void RemoveServer(ServiceInfo pm)
 		{
-			lock (this)
+            if (false == ProviderApp.Zeze.ServiceManager.SubscribeStates.TryGetValue(pm.ServiceIdentity, out var ss))
+                return;
+
+            lock (this)
 			{
 				var connName = pm.PassiveIp + ":" + pm.PassivePort;
 				var conn = Config.FindConnector(connName);
@@ -34,14 +37,17 @@ namespace Zeze.Arch
 					conn.Stop();
 					ProviderByLoadName.TryRemove(connName, out _);
 					ProviderByServerId.TryRemove(int.Parse(pm.ServiceIdentity), out _);
-					ss.SetServiceIdentityReadyState(pm.ServiceIdentity, null);
+					ss.SetIdentityLocalState(pm.ServiceIdentity, null);
 					Config.RemoveConnector(conn);
 				}
 			}
 		}
 
-		public void AddServer(Agent.SubscribeState ss, ServiceInfo pm)
+		public void AddServer(ServiceInfo pm)
 		{
+			if (false == ProviderApp.Zeze.ServiceManager.SubscribeStates.TryGetValue(pm.ServiceIdentity, out var ss))
+				return;
+
 			lock (this)
 			{
 				var connName = pm.PassiveIp + ":" + pm.PassivePort;
@@ -76,21 +82,6 @@ namespace Zeze.Arch
 					newAdd.UserState = psPeer;
 					newAdd.Start();
 				}
-			}
-		}
-
-		public void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos)
-		{
-			var current = new Dictionary<string, ServiceInfo>(); 
-			foreach (var pm in infos.SortedIdentity)
-			{
-				AddServer(ss, pm);
-				current[pm.PassiveIp + ":" + pm.PassivePort] = pm;
-			}
-			Config.ForEachConnector((c) => current.Remove(c.Name, out _));
-			foreach (var pm in current.Values)
-			{
-				RemoveServer(ss, pm);
 			}
 		}
 
@@ -188,7 +179,7 @@ namespace Zeze.Arch
 				{
 					if (ss.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
 					{
-						var infos = ss.ServiceInfosPending;
+						var infos = ss.ServiceInfos;
 						if (null == infos)
 							continue;
 						var mid = int.Parse(ss.ServiceName.Split('#')[1]);
@@ -214,7 +205,7 @@ namespace Zeze.Arch
 			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
 			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
-			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);
+			ss.SetIdentityLocalState(server.ServiceIdentity, pms);
 		}
 
 		public override void OnSocketClose(AsyncSocket socket, Exception ex)
@@ -228,7 +219,7 @@ namespace Zeze.Arch
                     {
 						foreach (var identity in service.Value.Keys)
 						{
-							subs.SetServiceIdentityReadyState(identity, null);
+							subs.SetIdentityLocalState(identity, null);
 						}
 					}
 				}

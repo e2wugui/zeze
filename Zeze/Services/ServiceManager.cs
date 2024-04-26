@@ -1,4 +1,4 @@
-﻿using RocksDbSharp;
+﻿
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,97 +18,14 @@ using System.Xml.Linq;
 using System.Collections;
 using DotNext.Threading;
 using System.Threading;
+using DotNext.Collections.Generic;
 
 namespace Zeze.Services.ServiceManager
 {
-    public class BOfflineNotify : Bean
-    {
-        public int ServerId { get; set; }
-        public string NotifyId { get; set; }
-        public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
-        public byte[] NotifyContext { get; set; } // context 扩展context。
-
-        public override void ClearParameters()
-        {
-            ServerId = 0;
-            NotifyId = null;
-            NotifySerialId = 0;
-            NotifyContext = null;
-        }
-
-        public BOfflineNotify() { }
-
-        public BOfflineNotify(int serverId, string notifyId)
-        {
-            ServerId = serverId;
-            NotifyId = notifyId;
-            NotifySerialId = (long)Convert.ToDouble(NotifyId);
-            {
-                var bb = ByteBuffer.Allocate();
-                bb.WriteString(NotifyId);
-                NotifyContext = bb.Copy();
-            }
-        }
-
-        public override void Decode(ByteBuffer bb)
-        {
-            ServerId = bb.ReadInt();
-            NotifyId = bb.ReadString();
-            NotifySerialId = bb.ReadLong();
-            NotifyContext = bb.ReadBytes();
-        }
-
-        public override void Encode(ByteBuffer bb)
-        {
-            bb.WriteInt(ServerId);
-            bb.WriteString((string)NotifyId);
-            bb.WriteLong(NotifySerialId);
-            bb.WriteBytes(NotifyContext);
-        }
-    }
-
-    public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-
-        public OfflineNotify()
-        {
-            Argument = new BOfflineNotify();
-            Result = EmptyBean.Instance;
-        }
-
-        public OfflineNotify(BOfflineNotify bOfflineNotify)
-        {
-            Argument = bOfflineNotify;
-            Result = EmptyBean.Instance;
-        }
-    }
-
-    public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-
-        public OfflineRegister()
-        {
-            Argument = new BOfflineNotify();
-            Result = EmptyBean.Instance;
-        }
-
-        public OfflineRegister(BOfflineNotify bOfflineNotify)
-        {
-            Argument = bOfflineNotify;
-            Result = EmptyBean.Instance;
-        }
-    }
-
     public sealed class Agent : IDisposable
     {
+        public const string SMCallbackOneByOneKey = "SMCallbackOneByOneKey";
+
         // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
         // ServiceName ->
         public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; } = new();
@@ -119,10 +36,7 @@ namespace Zeze.Services.ServiceManager
         /// 订阅服务状态发生变化时回调。
         /// 如果需要处理这个事件，请在订阅前设置回调。
         /// </summary>
-        public Action<SubscribeState> OnChanged { get; set; }
-        public Action<SubscribeState, ServiceInfo> OnUpdate { get; set; }
-        public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
-        public Action<SubscribeState> OnPrepare { get; set; }
+        public Action<BEditService> OnChanged { get; set; }
         public Action<ServerLoad> OnSetServerLoad { get; set; }
         public Func<BOfflineNotify, bool> OnOfflineNotify { get; set; }
 
@@ -141,22 +55,13 @@ namespace Zeze.Services.ServiceManager
         {
             public Agent Agent { get; }
             public SubscribeInfo SubscribeInfo { get; }
-            public int SubscribeType => SubscribeInfo.SubscribeType;
             public string ServiceName => SubscribeInfo.ServiceName;
-
-            public ServiceInfos ServiceInfos { get; private set; }
-            public ServiceInfos ServiceInfosPending { get; private set; }
-
-            /// <summary>
-            /// 刚初始化时为false，任何修改ServiceInfos都会设置成true。
-            /// 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
-            /// 目前的实现不会发生乱序。
-            /// </summary>
-            public bool Committed { get; internal set; } = false;
+            public ServiceInfosVersion ServiceInfosVersion { get; private set; }
+            public ServiceInfos ServiceInfos => ServiceInfosVersion.InfosVersion[0]; // 兼容
 
             public override string ToString()
             {
-                return ServiceInfos.ToString();
+                return ServiceInfosVersion.ToString();
             }
 
             // 服务准备好。
@@ -166,67 +71,33 @@ namespace Zeze.Services.ServiceManager
             {
                 Agent = ag;
                 SubscribeInfo = info;
-                ServiceInfos = new ServiceInfos(info.ServiceName);
+                ServiceInfosVersion = new ServiceInfosVersion();
             }
 
-            // NOT UNDER LOCK
-            private bool TrySendReadyServiceList()
-            {
-                var p = ServiceInfosPending;
-                if (null == p)
-                    return false;
-
-                foreach (var pending in p.SortedIdentity)
-                {
-                    if (!LocalStates.ContainsKey(pending.ServiceIdentity))
-                        return false;
-                }
-                var r = new ReadyServiceList();
-                r.Argument.ServiceName = p.ServiceName;
-                r.Argument.SerialId = p.SerialId;
-                Agent.Client.Socket?.Send(r);
-                return true;
-            }
-
-            public void SetServiceIdentityReadyState(string identity, object state)
+            public void SetIdentityLocalState(string identity, object state)
             {
                 if (null == state)
-                {
                     LocalStates.TryRemove(identity, out var _);
-                }
                 else
-                {
                     LocalStates[identity] = state;
-                }
-
-                lock (this)
-                {
-                    // 尝试发送Ready，如果有pending.
-                    TrySendReadyServiceList();
-                }
             }
 
-            private void PrepareAndTriggerOnChanged()
-            {
-                Task.Run(() => Agent.OnChanged?.Invoke(this));
-            }
-
-            internal void OnUpdate(ServiceInfo info)
+            internal bool OnUpdate(ServiceInfo info)
             {
                 lock (this)
                 {
-                    var exist = ServiceInfos.Find(info.ServiceIdentity);
+                    if (false == ServiceInfosVersion.InfosVersion.TryGetValue(info.Version, out var versions))
+                        return false;
+
+                    var exist = versions.Find(info.ServiceIdentity);
                     if (null == exist)
-                        return;
+                        return false;
 
                     exist.PassiveIp = info.PassiveIp;
                     exist.PassivePort = info.PassivePort;
                     exist.ExtraInfo = info.ExtraInfo;
 
-                    if (Agent.OnUpdate != null)
-                        Task.Run(() => Agent.OnUpdate.Invoke(this, exist));
-                    else
-                        Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
+                    return true;
                 }
             }
 
@@ -234,102 +105,55 @@ namespace Zeze.Services.ServiceManager
             {
                 lock (this)
                 {
-                    info = ServiceInfos.Insert(info);
-                    if (Agent.OnUpdate != null)
-                        Task.Run(() => Agent.OnUpdate.Invoke(this, info));
-                    else
-                        Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
+                    if (ServiceInfosVersion.InfosVersion.TryGetValue(info.Version, out var versions))
+                        info = versions.Insert(info);
                 }
             }
 
-            internal void OnUnRegister(ServiceInfo info)
+            internal bool OnUnRegister(ServiceInfo info)
             {
                 lock (this)
                 {
-                    info = ServiceInfos.Remove(info);
-                    if (null != info)
+                    if (false == ServiceInfosVersion.InfosVersion.TryGetValue(info.Version, out var versions))
+                        return false;
+                    return null != versions.Remove(info);
+                }
+            }
+
+            internal void OnFirstCommit(ServiceInfosVersion infos)
+            {
+                var edits = new List<BEditService>();
+                lock (this)
+                {
+                    ServiceInfosVersion = infos;
+                    foreach (var identityMap in infos.InfosVersion.Values)
                     {
-                        if (null != Agent.OnRemove)
-                            Task.Run(() => Agent.OnRemove.Invoke(this, info));
-                        else
-                            Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
+                        var edit = new BEditService();
+                        foreach (var info in identityMap.SortedIdentity)
+                            edit.Put.Add(info);
+                        edits.Add(edit);
                     }
                 }
-            }
-
-            internal void OnNotify(ServiceInfos infos)
-            {
-                lock (this)
-                {
-                    switch (SubscribeType)
-                    {
-                        case SubscribeInfo.SubscribeTypeSimple:
-                            ServiceInfos = infos;
-                            Committed = true;
-                            PrepareAndTriggerOnChanged();
-                            break;
-
-                        case SubscribeInfo.SubscribeTypeReadyCommit:
-                            if (null == ServiceInfosPending
-                                // 忽略过期的Notify，防止乱序。long不可能溢出，不做回绕处理了。
-                                || infos.SerialId > ServiceInfosPending.SerialId
-                                )
-                            {
-                                ServiceInfosPending = infos;
-                                Task.Run(() => Agent.OnPrepare?.Invoke(this));
-                                TrySendReadyServiceList();
-                            }
-                            break;
-                    }
-                }
-            }
-
-            internal void OnCommit(CommitServiceList r)
-            {
-                lock (this)
-                {
-                    if (ServiceInfosPending == null)
-                        return; // 并发过来的Commit，只需要处理一个。
-
-                    if (r.Argument.SerialId != ServiceInfosPending.SerialId)
-                        Agent.logger.Warn($"OnCommit {ServiceName} {r.Argument.SerialId} != {ServiceInfosPending.SerialId}");
-
-                    ServiceInfos = ServiceInfosPending;
-                    ServiceInfosPending = null;
-                    Committed = true;
-                    PrepareAndTriggerOnChanged();
-                }
-            }
-
-            internal void OnFirstCommit(ServiceInfos infos)
-            {
-                lock (this)
-                {
-                    if (Committed)
-                        return;
-                    Committed = true;
-                    ServiceInfos = infos;
-                    ServiceInfosPending = null;
-                    PrepareAndTriggerOnChanged();
-                }
+                foreach (var edit in edits)
+                    Agent.TriggerOnChanged(edit);
             }
         }
 
         private static readonly ILogger logger = LogManager.GetLogger(typeof(Agent));
 
         public async Task<ServiceInfo> RegisterService(
-            string name, string identity,
+            string name, string identity, long version,
             string ip = null, int port = 0,
             Binary extrainfo = null)
         {
-            return await RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
+            return await RegisterService(new ServiceInfo(name, identity, version, ip, port, extrainfo));
         }
 
         public async Task<ServiceInfo> UpdateService(
-            string name, string identity,
+            string name, string identity, long version,
             string ip, int port, Binary extrainfo)
         {
-            return await UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
+            return await UpdateService(new ServiceInfo(name, identity, version, ip, port, extrainfo));
         }
 
         public async Task WaitConnectorReadyAsync()
@@ -338,113 +162,99 @@ namespace Zeze.Services.ServiceManager
             await Client.Config.ForEachConnectorAsync(async (c) => await c.GetReadySocketAsync());
         }
 
-        private async Task<ServiceInfo> UpdateService(ServiceInfo info)
+        public static void Verify(string identity)
         {
+            if (!identity.StartsWith("@") && !identity.StartsWith("#"))
+                long.Parse(identity);
+        }
+
+        public async Task<BEditService> EditService(BEditService arg)
+        {
+            foreach (var info in arg.Put)
+                Verify(info.ServiceIdentity);
+
             await WaitConnectorReadyAsync();
+
+            var edit = new EditService() { Argument = arg };
+            await edit.SendAndCheckResultCodeAsync(Client.Socket);
+
+            // 成功以后更新本地信息。
+            foreach (var unReg in arg.Remove)
+                Registers.Remove(unReg, out _);
+
+            foreach (var reg in arg.Put)
+                Registers[reg] = reg;
+
+            foreach (var upd in arg.Update)
+                Registers.TryUpdate(upd, upd, upd); // upd只比较ServiceName和Identity，所以肯定相等。这里的实际逻辑是只要Key存在，就会更新。
+
+            return arg;
+        }
+
+        public async Task<ServiceInfo> UpdateService(ServiceInfo info)
+        {
             if (false == Registers.TryGetValue(info, out var reg))
                 return null;
 
-            var r = new Update() { Argument = info };
-            await r.SendAndCheckResultCodeAsync(Client.Socket);
-
-            reg.PassiveIp = info.PassiveIp;
-            reg.PassivePort = info.PassivePort;
-            reg.ExtraInfo = info.ExtraInfo;
-
-            return reg;
-        }
-
-        private static void Verify(string identity)
-        {
-            if (false == identity.StartsWith("@"))
-                int.Parse(identity);
+            var edit = new BEditService();
+            edit.Update.Add(info);
+            await EditService(edit);
+            return info;
         }
 
         private async Task<ServiceInfo> RegisterService(ServiceInfo info)
         {
-            Verify(info.ServiceIdentity);
-            await WaitConnectorReadyAsync();
-
-            bool regNew = false;
-            var regServInfo = Registers.GetOrAdd(info,
-                (key) =>
-                {
-                    regNew = true;
-                    return info;
-                });
-
-            if (regNew)
-            {
-                try
-                {
-                    var r = new Register() { Argument = info };
-                    await r.SendAndCheckResultCodeAsync(Client.Socket);
-                }
-                catch (Exception)
-                {
-                    Registers.TryRemove(KeyValuePair.Create(info, info)); // rollback
-                    throw;
-                }
-            }
-            return regServInfo;
+            var edit = new BEditService();
+            edit.Put.Add(info);
+            await EditService(edit);
+            return info;
         }
 
         public async Task UnRegisterService(string name, string identity)
         {
-            await UnRegisterService(new ServiceInfo(name, identity));
+            await UnRegisterService(new ServiceInfo(name, identity, 0));
         }
 
         private async Task UnRegisterService(ServiceInfo info)
         {
-            await WaitConnectorReadyAsync();
-
-            if (Registers.TryRemove(info, out var exist))
-            {
-                try
-                {
-                    var r = new UnRegister() { Argument = info };
-                    await r.SendAndCheckResultCodeAsync(Client.Socket);
-                }
-                catch (Exception)
-                {
-                    Registers.TryAdd(exist, exist); // rollback
-                    throw;
-                }
-            }
+            var edit = new BEditService();
+            edit.Remove.Add(info);
+            await EditService(edit);
         }
 
-        public async Task<SubscribeState> SubscribeService(string serviceName, int type, object state = null)
+        public async Task<SubscribeState> SubscribeService(string serviceName, object state = null)
         {
-            if (type != SubscribeInfo.SubscribeTypeSimple
-                && type != SubscribeInfo.SubscribeTypeReadyCommit)
-                throw new Exception("Unknown SubscribeType");
-
             return await SubscribeService(new SubscribeInfo()
             {
                 ServiceName = serviceName,
-                SubscribeType = type,
                 LocalState = state
             });
         }
 
-        private async Task<SubscribeState> SubscribeService(SubscribeInfo info)
+        public async Task<SubscribeState> SubscribeService(SubscribeInfo info)
+        {
+            var infos = new SubscribeArgument();
+            infos.Subs.Add(info);
+            var states = await SubscribeServices(infos);
+            return states[0];
+        }
+
+        public async Task<List<SubscribeState>> SubscribeServices(SubscribeArgument infos)
         {
             await WaitConnectorReadyAsync();
 
-            bool newAdd = false;
-            var subState = SubscribeStates.GetOrAdd(info.ServiceName,
-                (_) =>
-                {
-                    newAdd = true;
-                    return new SubscribeState(this, info);
-                });
+            var r = new Subscribe() { Argument = infos };
+            await r.SendAsync(Client.Socket);
 
-            if (newAdd)
+            var states = new List<SubscribeState>();
+            foreach (var info in r.Argument.Subs)
             {
-                var r = new Subscribe() { Argument = info };
-                await r.SendAndCheckResultCodeAsync(Client.Socket);
+                var state = SubscribeStates.GetOrAdd(info.ServiceName, _ => new SubscribeState(this, info));
+                states.Add(state);
+                if (r.Result.Map.TryGetValue(info.ServiceName, out var result))
+                    state.OnFirstCommit(result);
             }
-            return subState;
+            return states;
         }
 
         public bool SetServerLoad(ServerLoad load)
@@ -462,94 +272,24 @@ namespace Zeze.Services.ServiceManager
             _ = new OfflineRegister(arg).SendAndCheckResultCodeAsync(Client.GetSocket());
         }
 
-        private Task<long> ProcessSubscribeFirstCommit(Protocol p)
-        {
-            var r = p as SubscribeFirstCommit;
-            if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-            {
-                state.OnFirstCommit(r.Argument);
-            }
-            return Task.FromResult(ResultCode.Success);
-        }
-
         public async Task UnSubscribeService(string serviceName)
         {
             await WaitConnectorReadyAsync();
 
-            if (SubscribeStates.TryRemove(serviceName, out var state))
-            {
-                try
-                {
-                    var r = new UnSubscribe() { Argument = state.SubscribeInfo };
-                    await r.SendAndCheckResultCodeAsync(Client.Socket);
-                }
-                catch (Exception)
-                {
-                    SubscribeStates.TryAdd(serviceName, state); // rollback
-                    throw;
-                }
-            }
+            var arg = new UnSubscribeArgument();
+            arg.ServiceNames.Add(serviceName);
+            await UnSubscribeService(arg);
         }
 
-        private Task<long> ProcessUpdate(Protocol p)
+        public async Task UnSubscribeService(UnSubscribeArgument arg)
         {
-            var r = p as Update;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-                return Task.FromResult((long)Update.ServiceNotSubscribe);
+            await WaitConnectorReadyAsync();
 
-            state.OnUpdate(r.Argument);
-            r.SendResult();
-            return Task.FromResult(0L);
-        }
+            var r = new UnSubscribe() { Argument = arg };
+            await r.SendAndCheckResultCodeAsync(Client.Socket);
 
-        private Task<long> ProcessRegister(Protocol p)
-        {
-            var r = p as Register;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-                return Task.FromResult((long)Update.ServiceNotSubscribe);
-
-            state.OnRegister(r.Argument);
-            r.SendResult();
-            return Task.FromResult(0L);
-        }
-
-        private Task<long> ProcessUnRegister(Protocol p)
-        {
-            var r = p as UnRegister;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-                return Task.FromResult((long)Update.ServiceNotSubscribe);
-
-            state.OnUnRegister(r.Argument);
-            r.SendResult();
-            return Task.FromResult(0L);
-        }
-
-        private Task<long> ProcessNotifyServiceList(Protocol p)
-        {
-            var r = p as NotifyServiceList;
-            if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-            {
-                state.OnNotify(r.Argument);
-            }
-            else
-            {
-                Agent.logger.Warn("NotifyServiceList But SubscribeState Not Found.");
-            }
-            return Task.FromResult(ResultCode.Success);
-        }
-
-        private Task<long> ProcessCommitServiceList(Protocol p)
-        {
-            var r = p as CommitServiceList;
-            if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
-            {
-                state.OnCommit(r);
-            }
-            else
-            {
-                Agent.logger.Warn("CommitServiceList But SubscribeState Not Found.");
-            }
-            return Task.FromResult(ResultCode.Success);
+            foreach (var serviceName in arg.ServiceNames)
+                SubscribeStates.Remove(serviceName, out _);
         }
 
         private Task<long> ProcessKeepAlive(Protocol p)
@@ -622,30 +362,68 @@ namespace Zeze.Services.ServiceManager
 
         internal async Task OnConnected()
         {
-            foreach (var e in Registers)
-            {
-                try
-                {
-                    var r = new Register() { Argument = e.Value };
-                    await r.SendAndCheckResultCodeAsync(Client.Socket);
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex, "OnConnected.Register={0}", e.Value);
-                }
-            }
+            var edit = new BEditService();
+            edit.Put.AddAll(Registers.Keys);
+            await EditService(edit);
+
+            var sub = new SubscribeArgument();
             foreach (var e in SubscribeStates)
+                sub.Subs.Add(e.Value.SubscribeInfo);
+
+            await SubscribeServices(sub);
+        }
+
+        private Task<long> ProcessEditService(Protocol _p)
+        {
+            var r = _p as EditService;
+            var removing = new List<ServiceInfo>();
+            foreach (var unReg in r.Argument.Remove)
             {
-                try
+                if (SubscribeStates.TryGetValue(unReg.ServiceName, out var state) && !state.OnUnRegister(unReg))
+                    removing.Add(unReg);
+            }
+            r.Argument.Remove.RemoveAll(r => removing.Contains(r));
+
+            foreach (var reg in r.Argument.Put)
+            {
+                if (SubscribeStates.TryGetValue(reg.ServiceName, out var state))
+                    state.OnRegister(reg);
+            }
+
+            removing.Clear();
+            foreach (var upd in r.Argument.Update)
+            {
+                if (SubscribeStates.TryGetValue(upd.ServiceName, out var state) && !state.OnUpdate(upd))
+                    removing.Add(upd);
+            }
+            r.Argument.Update.RemoveAll(r => removing.Contains(r));
+
+            r.SendResult();
+
+            TriggerOnChanged(r.Argument);
+
+            return Task.FromResult(ResultCode.Success);
+        }
+
+        void TriggerOnChanged(BEditService edit)
+        {
+            if (OnChanged != null)
+            {
+                TaskOneByOneByKey.Instance.Execute(SMCallbackOneByOneKey, () =>
                 {
-                    e.Value.Committed = false;
-                    var r = new Subscribe() { Argument = e.Value.SubscribeInfo };
-                    await r.SendAndCheckResultCodeAsync(Client.Socket);
-                }
-                catch (Exception ex)
-                {
-                    logger.Debug(ex, "OnConnected.Subscribe={0}", e.Value.SubscribeInfo);
-                }
+                    // 触发回调前修正集合之间的关系。
+                    // 删除后来又加入的。
+                    edit.Remove.RemoveAll(r => edit.Put.Contains(r));
+
+                    try
+                    {
+                        OnChanged.Invoke(edit);
+                    }
+                    catch (Exception e)
+                    { // logger.error
+                        logger.Error(e);
+                    }
+                });
             }
         }
 
@@ -663,22 +441,10 @@ namespace Zeze.Services.ServiceManager
             Client = string.IsNullOrEmpty(netServiceName)
                 ? new NetClient(this, config) : new NetClient(this, config, netServiceName);
 
-            Client.AddFactoryHandle(new Register().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new EditService().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Register(),
-                Handle = ProcessRegister,
-            });
-
-            Client.AddFactoryHandle(new Update().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new Update(),
-                Handle = ProcessUpdate,
-            });
-
-            Client.AddFactoryHandle(new UnRegister().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new UnRegister(),
-                Handle = ProcessUnRegister,
+                Factory = () => new EditService(),
+                Handle = ProcessEditService,
             });
 
             Client.AddFactoryHandle(new Subscribe().TypeId, new Service.ProtocolFactoryHandle()
@@ -691,28 +457,10 @@ namespace Zeze.Services.ServiceManager
                 Factory = () => new UnSubscribe(),
             });
 
-            Client.AddFactoryHandle(new NotifyServiceList().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new NotifyServiceList(),
-                Handle = ProcessNotifyServiceList,
-            });
-
-            Client.AddFactoryHandle(new CommitServiceList().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new CommitServiceList(),
-                Handle = ProcessCommitServiceList,
-            });
-
             Client.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new KeepAlive(),
                 Handle = ProcessKeepAlive,
-            });
-
-            Client.AddFactoryHandle(new SubscribeFirstCommit().TypeId, new Service.ProtocolFactoryHandle()
-            {
-                Factory = () => new SubscribeFirstCommit(),
-                Handle = ProcessSubscribeFirstCommit,
             });
 
             Client.AddFactoryHandle(new AllocateId().TypeId, new Service.ProtocolFactoryHandle()
@@ -842,6 +590,92 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
+    public class BOfflineNotify : Bean
+    {
+        public int ServerId { get; set; }
+        public string NotifyId { get; set; }
+        public long NotifySerialId { get; set; } // context 如果够用就直接用这个，
+        public byte[] NotifyContext { get; set; } // context 扩展context。
+
+        public override void ClearParameters()
+        {
+            ServerId = 0;
+            NotifyId = null;
+            NotifySerialId = 0;
+            NotifyContext = null;
+        }
+
+        public BOfflineNotify() { }
+
+        public BOfflineNotify(int serverId, string notifyId)
+        {
+            ServerId = serverId;
+            NotifyId = notifyId;
+            NotifySerialId = (long)Convert.ToDouble(NotifyId);
+            {
+                var bb = ByteBuffer.Allocate();
+                bb.WriteString(NotifyId);
+                NotifyContext = bb.Copy();
+            }
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            ServerId = bb.ReadInt();
+            NotifyId = bb.ReadString();
+            NotifySerialId = bb.ReadLong();
+            NotifyContext = bb.ReadBytes();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(ServerId);
+            bb.WriteString((string)NotifyId);
+            bb.WriteLong(NotifySerialId);
+            bb.WriteBytes(NotifyContext);
+        }
+    }
+
+    public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public OfflineNotify()
+        {
+            Argument = new BOfflineNotify();
+            Result = EmptyBean.Instance;
+        }
+
+        public OfflineNotify(BOfflineNotify bOfflineNotify)
+        {
+            Argument = bOfflineNotify;
+            Result = EmptyBean.Instance;
+        }
+    }
+
+    public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
+    {
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+
+        public OfflineRegister()
+        {
+            Argument = new BOfflineNotify();
+            Result = EmptyBean.Instance;
+        }
+
+        public OfflineRegister(BOfflineNotify bOfflineNotify)
+        {
+            Argument = bOfflineNotify;
+            Result = EmptyBean.Instance;
+        }
+    }
+
     public sealed class ServerLoad : Bean
     {
         public string Ip { get; set; }
@@ -883,6 +717,7 @@ namespace Zeze.Services.ServiceManager
         /// 服务名，比如"GameServer"
         /// </summary>
         public string ServiceName { get; private set; }
+        public long Version { get; private set; }
 
         /// <summary>
         /// 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
@@ -908,12 +743,13 @@ namespace Zeze.Services.ServiceManager
         }
 
         public ServiceInfo(
-            string name, string identity,
+            string name, string identity, long version,
             string ip = null, int port = 0,
             Binary extrainfo = null)
         {
             ServiceName = name;
             ServiceIdentity = identity;
+            Version = version;
             if (null != ip)
                 PassiveIp = ip;
             PassivePort = port;
@@ -928,6 +764,7 @@ namespace Zeze.Services.ServiceManager
             PassiveIp = bb.ReadString();
             PassivePort = bb.ReadInt();
             ExtraInfo = bb.ReadBinary();
+            Version = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -937,6 +774,7 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
             bb.WriteBinary(ExtraInfo);
+            bb.WriteLong(Version);
         }
 
         public override void ClearParameters()
@@ -946,6 +784,7 @@ namespace Zeze.Services.ServiceManager
             PassiveIp = "";
             PassivePort = 0;
             ExtraInfo = Binary.Empty;
+            Version = 0;
         }
 
         public override int GetHashCode()
@@ -976,87 +815,200 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
+    public sealed class BEditService : Bean
+    {
+        public List<ServiceInfo> Remove { get; } = new();
+        public List<ServiceInfo> Put { get; } = new();
+        public List<ServiceInfo> Update { get; } = new();
+
+        public override void ClearParameters()
+        {
+            Remove.Clear();
+            Put.Clear();
+            Update.Clear();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            for (var i = bb.ReadUInt(); i > 0; --i)
+            {
+                var r = new ServiceInfo();
+                r.Decode(bb);
+                Remove.Add(r);
+            }
+            for (var i = bb.ReadUInt(); i > 0; --i)
+            {
+                var r = new ServiceInfo();
+                r.Decode(bb);
+                Put.Add(r);
+            }
+            for (var i = bb.ReadUInt(); i > 0; --i)
+            {
+                var r = new ServiceInfo();
+                r.Decode(bb);
+                Update.Add(r);
+            }
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(Remove.Count);
+            foreach (var r in Remove)
+                r.Encode(bb);
+            bb.WriteUInt(Put.Count);
+            foreach (var p in Put)
+                p.Encode(bb);
+            bb.WriteUInt(Update.Count);
+            foreach (var u in Update)
+                u.Encode(bb);
+        }
+    }
+
     /// <summary>
     /// 动态服务启动时通过这个rpc注册自己。
     /// </summary>
-    public sealed class Register : Rpc<ServiceInfo, EmptyBean>
+    public sealed class EditService : Rpc<BEditService, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Register).FullName);
-
-        public const int Success = 0;
-        public const int DuplicateRegister = 1;
+        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(EditService).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
 
-    }
-
-    public sealed class Update : Rpc<ServiceInfo, EmptyBean>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Update).FullName);
-
-        public const int Success = 0;
-        public const int ServiceNotRetister = 1;
-        public const int ServerStateError = 2;
-        public const int ServiceIndentityNotExist = 3;
-        public const int ServiceNotSubscribe = 4;
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-    }
-
-    /// <summary>
-    /// 动态服务关闭时，注销自己，当与本服务器的连接关闭时，默认也会注销。
-    /// 最好主动注销，方便以后错误处理。
-    /// </summary>
-    public sealed class UnRegister : Rpc<ServiceInfo, EmptyBean>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(UnRegister).FullName);
-
-        public const int Success = 0;
-        public const int NotExist = 1;
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
     }
 
     public sealed class SubscribeInfo : Bean
     {
-        public const int SubscribeTypeSimple = 0;
-        public const int SubscribeTypeReadyCommit = 1;
-
         public string ServiceName { get; set; }
-        public int SubscribeType { get; set; }
+        public long Version { get; set; }
 
         // 目前这个用来给LinkdApp用来保存订阅的状态，不系列化。
         public object LocalState { get; set; }
 
+        public SubscribeInfo()
+        {
+
+        }
+
+        public SubscribeInfo(string name, long ver)
+        {
+            ServiceName = name;
+            Version = ver;
+        }
 
         public override void ClearParameters()
         {
             ServiceName = null;
-            SubscribeType = 0;
+            Version = 0;
         }
 
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
-            SubscribeType = bb.ReadInt();
+            Version = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteString(ServiceName);
-            bb.WriteInt(SubscribeType);
+            bb.WriteLong(Version);
         }
 
         public override string ToString()
         {
-            return $"{ServiceName}:{SubscribeType}";
+            return ServiceName;
         }
     }
 
-    public sealed class Subscribe : Rpc<SubscribeInfo, EmptyBean>
+    public sealed class SubscribeArgument : Bean
+    {
+        public List<SubscribeInfo> Subs { get; } = new();
+
+        public override void ClearParameters()
+        {
+            Subs.Clear();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            for (var i = bb.ReadUInt(); i > 0; --i)
+            {
+                var sub = new SubscribeInfo();
+                sub.Decode(bb);
+                Subs.Add(sub);
+            }
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(Subs.Count);
+            foreach (var sub in Subs)
+                sub.Encode(bb);
+        }
+    }
+
+    public sealed class ServiceInfosVersion : Bean
+    {
+        public Dictionary<long, ServiceInfos> InfosVersion { get; } = new();
+
+        public override void ClearParameters()
+        {
+            InfosVersion.Clear();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            for (var i = bb.ReadInt(); i > 0; --i)
+            {
+                var version = bb.ReadLong();
+                var infos = new ServiceInfos();
+                infos.Decode(bb);
+                InfosVersion[version] = infos;
+            }
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(InfosVersion.Count);
+            foreach (var e in InfosVersion)
+            {
+                bb.WriteLong(e.Key);
+                e.Value.Encode(bb);
+            }
+        }
+    }
+
+    public sealed class SubscribeResult : Bean
+    {
+        public Dictionary<string, ServiceInfosVersion> Map { get; } = new();
+
+        public override void ClearParameters()
+        {
+            Map.Clear();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            for (var i = bb.ReadUInt(); i > 0; --i)
+            {
+                var serviceName = bb.ReadString();
+                var infos = new ServiceInfosVersion();
+                infos.Decode(bb);
+                Map[serviceName] = infos;
+            }
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(Map.Count);
+            foreach (var e in Map)
+            {
+                bb.WriteString(e.Key);
+                e.Value.Encode(bb);
+            }
+        }
+    }
+
+    public sealed class Subscribe : Rpc<SubscribeArgument, SubscribeResult>
     {
         public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Subscribe).FullName);
 
@@ -1068,7 +1020,30 @@ namespace Zeze.Services.ServiceManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class UnSubscribe : Rpc<SubscribeInfo, EmptyBean>
+    public sealed class UnSubscribeArgument : Bean
+    {
+        public List<string> ServiceNames { get; } = new();
+
+        public override void ClearParameters()
+        {
+            ServiceNames.Clear();
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            for (var i = bb.ReadUInt(); i > 0; --i)
+                ServiceNames.Add(bb.ReadString());
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(ServiceNames.Count);
+            foreach (var serviceName in ServiceNames)
+                bb.WriteString(serviceName);
+        }
+    }
+
+    public sealed class UnSubscribe : Rpc<UnSubscribeArgument, EmptyBean>
     {
         public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(UnSubscribe).FullName);
 
@@ -1125,7 +1100,7 @@ namespace Zeze.Services.ServiceManager
 
         public ServiceInfo Find(string identity)
         {
-            var i = SortedIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), Comparer);
+            var i = SortedIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity, 0), Comparer);
             if (i >= 0)
                 return SortedIdentity_[i];
             return null;
@@ -1147,7 +1122,7 @@ namespace Zeze.Services.ServiceManager
 
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)
         {
-            var cur = new ServiceInfo(ServiceName, identity);
+            var cur = new ServiceInfo(ServiceName, identity, 0);
             int index = SortedIdentity_.BinarySearch(cur, Comparer);
             if (index >= 0)
             {
@@ -1157,6 +1132,7 @@ namespace Zeze.Services.ServiceManager
             info = null;
             return false;
         }
+
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
@@ -1196,54 +1172,6 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
-    public sealed class NotifyServiceList : Protocol<ServiceInfos>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(NotifyServiceList).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-    }
-
-    public sealed class ServiceListVersion: Bean
-    {
-        public string ServiceName { get; set; }
-        public long SerialId { get; set; }
-
-        public override void ClearParameters()
-        {
-            ServiceName = null;
-            SerialId = 0;
-        }
-
-        public override void Decode(ByteBuffer bb)
-        {
-            ServiceName = bb.ReadString();
-            SerialId = bb.ReadLong();
-        }
-
-        public override void Encode(ByteBuffer bb)
-        {
-            bb.WriteString(ServiceName);
-            bb.WriteLong(SerialId);
-        }
-    }
-
-    public sealed class ReadyServiceList : Protocol<ServiceListVersion>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(ReadyServiceList).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-    }
-
-    public sealed class CommitServiceList : Protocol<ServiceListVersion>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(CommitServiceList).FullName);
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-    }
-
     // 实际上可以不用这个类，为了保持以后ServiceInfo的比较可能改变，写一个这个类。
     public sealed class ServiceInfoEqualityComparer : IEqualityComparer<ServiceInfo>
     {
@@ -1274,14 +1202,6 @@ namespace Zeze.Services.ServiceManager
         public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(KeepAlive).FullName);
 
         public const int Success = 0;
-
-        public override int ModuleId => 0;
-        public override int ProtocolId => ProtocolId_;
-    }
-
-    public sealed class SubscribeFirstCommit : Protocol<ServiceInfos>
-    {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(SubscribeFirstCommit).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

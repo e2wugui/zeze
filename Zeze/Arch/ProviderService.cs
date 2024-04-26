@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Builtin.Provider;
+using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
@@ -49,32 +50,36 @@ namespace Zeze.Arch
             LinkConnectors = Links.ToArray();
         }
 
-        public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
+        public bool ApplyPut(ServiceInfo link)
         {
-            var current = new HashSet<string>();
-            foreach (var link in serviceInfos.SortedIdentity)
+            var linkName = GetLinkName(link);
+            var isNew = false;
+            Links.GetOrAdd(linkName, __ =>
             {
-                var linkName = GetLinkName(link);
-                current.Add(Links.GetOrAdd(linkName, (key) =>
+                if (Config.TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, out var outC))
                 {
-                    if (Config.TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, out var c))
-                    {
-                        c.Start();
-                    }
-                    return c;
-                }).Name);
-            }
-            // 删除多余的连接器。
-            foreach (var linkName in Links.Keys)
-            {
-                if (current.Contains(linkName))
-                    continue;
-                if (Links.TryRemove(linkName, out var removed))
-                {
-                    Config.RemoveConnector(removed);
-                    removed.Stop();
+                    outC.Start();
+                    isNew = true;
                 }
+                return outC;
+            });
+            return isNew;
+        }
+
+        public bool ApplyRemove(ServiceInfo link)
+        {
+            var linkName = GetLinkName(link);
+            if (Links.TryRemove(linkName, out var removed))
+            {
+                Config.RemoveConnector(removed);
+                removed.Stop();
+                return true;
             }
+            return false;
+        }
+
+        public void RefreshLinkConnectors()
+        {
             LinkConnectors = Links.ToArray();
         }
 
@@ -126,7 +131,7 @@ namespace Zeze.Arch
             var rpc = new Bind();
             rpc.Argument.Modules.AddRange(ProviderApp.StaticBinds);
             rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.SetResult(true); return Task.FromResult(0L); });
-            var sub = new Subscribe();
+            var sub = new Builtin.Provider.Subscribe();
             sub.Argument.Modules.AddRange(ProviderApp.DynamicModules);
             sub.Send(sender, (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return Task.FromResult(0L); });
         }

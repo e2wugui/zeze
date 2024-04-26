@@ -58,7 +58,6 @@ namespace Zeze.Arch
                     var tempVar = new BModule();
                     tempVar.ChoiceType = cm.ChoiceType;
                     tempVar.ConfigType = BModule.ConfigTypeDynamic;
-                    tempVar.SubscribeType = cm.SubscribeType;
                     result.Add(m.Value.Id, tempVar);
                 }
             }
@@ -97,7 +96,6 @@ namespace Zeze.Arch
                     {
                         ChoiceType = GetModuleChoiceType(bind.Key),
                         ConfigType = bind.Value,
-                        SubscribeType = SubscribeInfo.SubscribeTypeSimple,
                     });
             }
         }
@@ -108,7 +106,6 @@ namespace Zeze.Arch
             public int ChoiceType { get; }
             public HashSet<int> Providers { get; } = new HashSet<int>();
 
-            public int SubscribeType { get; }
             public int ConfigType { get; }
 
             private int GetChoiceType(XmlElement self)
@@ -126,25 +123,10 @@ namespace Zeze.Arch
                 }
             }
 
-            // 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
-            private int GetSubscribeType(XmlElement self)
-            {
-                switch (self.GetAttribute("SubscribeType"))
-                {
-                    case "SubscribeTypeReadyCommit":
-                        return SubscribeInfo.SubscribeTypeReadyCommit;
-                    //case "SubscribeTypeSimple":
-                    //	return SubscribeInfo.SubscribeTypeSimple;
-                    default:
-                        return SubscribeInfo.SubscribeTypeSimple;
-                }
-            }
-
             public Module(XmlElement self)
             {
                 FullName = self.GetAttribute("name");
                 ChoiceType = GetChoiceType(self);
-                SubscribeType = GetSubscribeType(self);
 
                 ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), Providers);
 
