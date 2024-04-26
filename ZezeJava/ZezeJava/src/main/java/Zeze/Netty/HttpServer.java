@@ -212,7 +212,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	/**
-	 * 需要端口已在监听状态才能获取到, 即getChannelFuture().sync()等待后可获取
+	 * 需要端口已在监听状态才能获取到, 可能会同步等待监听的启动
 	 *
 	 * @return 无法获取时返回null
 	 */
@@ -220,57 +220,58 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		var cf = channelFuture;
 		if (cf == null)
 			return null;
+		try {
+			cf.sync();
+		} catch (InterruptedException e) {
+			return null;
+		}
 		var addr = cf.channel().localAddress();
 		return addr instanceof InetSocketAddress ? (InetSocketAddress)addr : null;
 	}
 
 	/**
-	 * 输出ip地址或主机名。其他机器可以通过这个连接过来。
+	 * 获取实际监听的IP地址, 其他机器可以通过这个连接过来. 可能会同步等待监听的启动
 	 *
-	 * @return host
-	 * @throws InterruptedException sync InterruptedException
+	 * @throws IllegalStateException 无法获取时会抛出
 	 */
-	public @NotNull String getExportHost() throws InterruptedException {
-		channelFuture.sync();
+	public @NotNull String getExportIp() {
 		var addr = getLocalAddress();
-		assert addr != null;
+		if (addr == null)
+			throw new IllegalStateException();
 		return addr.getAddress().isAnyLocalAddress()
 				? Helper.selectOneIpAddress(false)
 				: addr.getAddress().getHostAddress();
 	}
 
 	/**
-	 * 需要端口已在监听状态才能获取到, 即getChannelFuture().sync()等待后可获取
+	 * 获取实际监听的端口. 可能会同步等待监听的启动
 	 *
-	 * @return 无法获取时返回小于0
+	 * @throws IllegalStateException 无法获取时会抛出
 	 */
 	public int getPort() {
 		var addr = getLocalAddress();
-		return addr != null ? addr.getPort() : -1;
+		if (addr == null)
+			throw new IllegalStateException();
+		return addr.getPort();
 	}
 
 	public void publishService(String serviceName) throws InterruptedException {
 		if (null == zeze)
 			throw new IllegalStateException("without zeze env. use another publishService method with your special agent");
-		publishService(serviceName, 0L, zeze.getServiceManager());
+		publishService(serviceName, 0, zeze.getServiceManager());
 	}
 
 	/**
 	 * 发布HttpServer到指定agent。
 	 *
 	 * @param serviceName 服务名
-	 * @param version 服务版本
-	 * @param agent agent
-	 * @throws InterruptedException exception
+	 * @param version     服务版本
 	 */
-	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent) throws InterruptedException {
-		var host = getExportHost();
-		var port = getPort();
-
-		var identity = "@" + host + ":" + port;
-		agent.registerService(new BServiceInfo(
-				serviceName, identity, version,
-				host, port, null));
+	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent)
+			throws InterruptedException {
+		var ip = getExportIp();
+		int port = getPort();
+		agent.registerService(new BServiceInfo(serviceName, "@" + ip + ":" + port, version, ip, port));
 	}
 
 	@Override

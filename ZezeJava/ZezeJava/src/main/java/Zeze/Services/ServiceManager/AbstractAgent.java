@@ -20,7 +20,7 @@ import java.util.List;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
- * Edit			给订阅者广播Edit				onChanged
+ * EditService	给订阅者广播Edit				onChanged
  * Subscribe	给发起者回复BSubscribeResult	onChanged
  * UnSubscribe	无							无
  */

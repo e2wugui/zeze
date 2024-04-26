@@ -210,8 +210,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	public final void SendAndWaitCheckResultCode(@Nullable AsyncSocket so, int millisecondsTimeout) {
 		SendForWait(so, millisecondsTimeout).await();
-		if (getResultCode() != 0)
-			throw new IllegalStateException(String.format("Rpc Invalid ResultCode=%d %s", getResultCode(), this));
+		if (resultCode != 0)
+			throw new IllegalStateException(String.format("Rpc Invalid ResultCode=%d %s", resultCode, this));
 	}
 
 	@Override

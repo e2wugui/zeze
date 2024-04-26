@@ -188,7 +188,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private final @NotNull String serviceName;
 		// version -> map<identity, serviceInfo>
 		// 记录一下SessionId，方便以后找到服务所在的连接。
-		private final HashMap<Long, HashMap<String, BServiceInfo>> serviceInfos = new HashMap<>(); // key:serverId
+		private final HashMap<Long, HashMap<String, BServiceInfo>> serviceInfos = new HashMap<>(); // <version,<serverId,info>>
 		private final LongHashMap<BSubscribeInfo> simple = new LongHashMap<>(); // key:sessionId
 
 		public ServiceState(@NotNull ServiceManagerServer sm, @NotNull String serviceName) {
@@ -329,7 +329,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			if (keepAliveTimerTask != null)
 				keepAliveTimerTask.cancel(false);
 
-
 			var notifies = new HashMap<AsyncSocket, EditService>();
 			serviceManager.editLock.lock();
 			for (var info : subscribes.values())
@@ -443,7 +442,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private long processEdit(@NotNull EditService r) {
+	private long processEditService(@NotNull EditService r) {
 		var session = (Session)r.getSender().getUserState();
 		var notifies = new HashMap<AsyncSocket, EditService>();
 		// 原子的完成所有编辑的修改和通知。
@@ -451,24 +450,33 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		try {
 			// step 1: remove
 			for (var unReg : r.Argument.getRemove()) {
-				var state = serviceStates.get(unReg.getServiceName());
-				if (state != null)
-					state.collectRemoveNotify(unReg, r.getSender().getSessionId(), notifies);
-				session.registers.remove(unReg);
+				var info = session.registers.remove(unReg);
+				if (info != null) {
+					logger.info("{}: UnRegister {} version={} serverId={} ip={} port={}",
+							r.getSender(), info.getServiceName(), info.getVersion(), info.getServiceIdentity(),
+							info.getPassiveIp(), info.getPassivePort());
+					var state = serviceStates.get(info.getServiceName());
+					if (state != null)
+						state.collectRemoveNotify(info, r.getSender().getSessionId(), notifies);
+				} else {
+					logger.info("{}: Ignore UnRegister {} serverId={}",
+							r.getSender(), unReg.getServiceName(), unReg.getServiceIdentity());
+				}
 			}
 
 			// step 2: put
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			for (var reg : r.Argument.getPut()) {
-				if (session.registers.add(reg)) {
-					logger.info("{}: Register {} serverId={} ip={} port={}",
-							r.getSender(), reg.getServiceName(), reg.getServiceIdentity(),
+				if (session.registers.remove(reg) == null) { // 先删除再加入,确保key也更新成新的
+					logger.info("{}: Register {} version={} serverId={} ip={} port={}",
+							r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
 							reg.getPassiveIp(), reg.getPassivePort());
 				} else {
-					logger.info("{}: Already Registered {} serverId={} ip={} port={}",
-							r.getSender(), reg.getServiceName(), reg.getServiceIdentity(),
+					logger.info("{}: Overwrite Registered {} version={} serverId={} ip={} port={}",
+							r.getSender(), reg.getServiceName(), reg.getVersion(), reg.getServiceIdentity(),
 							reg.getPassiveIp(), reg.getPassivePort());
 				}
+				session.registers.add(reg);
 				var state = serviceStates.computeIfAbsent(reg.getServiceName(), name -> new ServiceState(this, name));
 
 				// 【警告】
@@ -483,18 +491,28 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 			// step 3: update
 			for (var update : r.Argument.getUpdate()) {
-				if (!session.registers.containsKey(update))
-					continue;
-
-				var state = serviceStates.get(update.getServiceName());
-				if (state != null)
-					state.collectUpdateNotify(update, notifies);
+				var info = session.registers.get(update);
+				if (info != null) {
+					logger.info("{}: Update {} version={} serverId={} ip={} port={}",
+							r.getSender(), update.getServiceName(), update.getVersion(), update.getServiceIdentity(),
+							update.getPassiveIp(), update.getPassivePort());
+					info.setPassiveIp(update.getPassiveIp());
+					info.setPassivePort(update.getPassivePort());
+					info.setExtraInfo(update.getExtraInfo());
+					var state = serviceStates.get(info.getServiceName());
+					if (state != null)
+						state.collectUpdateNotify(info, notifies);
+				} else {
+					logger.info("{}: Ignore Update {} version={} serverId={} ip={} port={}",
+							r.getSender(), update.getServiceName(), update.getVersion(), update.getServiceIdentity(),
+							update.getPassiveIp(), update.getPassivePort());
+				}
 			}
 			sendNotifies(notifies);
+			r.SendResult();
 		} finally {
 			editLock.unlock();
 		}
-		r.SendResult();
 		return Procedure.Success;
 	}
 
@@ -510,10 +528,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						.subscribeAndCollectResult(r, info, session.sessionId);
 			}
 			r.SendResult();
-			return 0;
 		} finally {
 			editLock.unlock();
 		}
+		return Procedure.Success;
 	}
 
 	private void unSubscribeNow(long sessionId, String serviceName) {
@@ -534,10 +552,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				unSubscribeNow(sessionId, serviceName);
 			}
 			r.SendResult();
-			return Procedure.Success;
 		} finally {
 			editLock.unlock();
 		}
+		return Procedure.Success;
 	}
 
 	private long processSetLoad(@NotNull SetServerLoad setServerLoad) {
@@ -605,7 +623,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		server = new NetServer(this, config);
 
 		server.AddFactoryHandle(EditService.TypeId_, new Service.ProtocolFactoryHandle<>(
-				EditService::new, this::processEdit, TransactionLevel.None, DispatchMode.Critical));
+				EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
 				Subscribe::new, this::processSubscribe, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(

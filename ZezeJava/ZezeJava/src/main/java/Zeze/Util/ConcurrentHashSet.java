@@ -5,11 +5,9 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 
-public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, Object> implements Iterable<T> {
-	private static final Object PRESENT = new Object();
-
+public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Iterable<T> {
 	public boolean add(@NotNull T e) {
-		return putIfAbsent(e, PRESENT) == null;
+		return putIfAbsent(e, e) == null;
 	}
 
 	/*

@@ -13,29 +13,29 @@ import org.jetbrains.annotations.NotNull;
 public class Consul {
 	// 这个path对所有的httpserver都一样。
 	private static final String PassiveKeepAlivePath = "/Zeze_Netty_Consul_PassiveKeepAlivePath";
-	private final ConsulClient client;
+	private final @NotNull ConsulClient client;
 	private final ConcurrentHashMap<HttpServer, String> services = new ConcurrentHashMap<>();
 
 	public Consul(String consulHost) {
 		client = new ConsulClient(consulHost);
 	}
 
-	public ConsulClient getClient() {
+	public @NotNull ConsulClient getClient() {
 		return client;
 	}
 
-	public void register(String serviceName, HttpServer httpServer) throws Exception {
-		var host = httpServer.getExportHost();
+	public void register(@NotNull String serviceName, @NotNull HttpServer httpServer) throws Exception {
+		var ip = httpServer.getExportIp();
 		var port = httpServer.getPort();
 
-		var serviceId = "@" + host + ":" + port + "@" + serviceName; // see todo below
+		var serviceId = "@" + ip + ":" + port + "@" + serviceName; // see todo below
 		if (null != services.putIfAbsent(httpServer, serviceId))
 			throw new IllegalStateException("duplicate register " + serviceId);
 
 		httpServer.addHandler(PassiveKeepAlivePath, 1024, null, null, Consul::passiveKeepAlive);
 
 		var newService = new NewService();
-		newService.setAddress(host);
+		newService.setAddress(ip);
 		newService.setPort(port);
 		newService.setId(serviceId); // todo 估计需要唯一。
 		newService.setName(serviceName); // todo 这是服务名，一个服务名下有多个Id？
