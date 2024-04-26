@@ -5,10 +5,9 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
-import java.util.List;
 
 public class BSubscribeArgument extends Bean {
-	public final List<BSubscribeInfo> subs = new ArrayList<>();
+	public final ArrayList<BSubscribeInfo> subs = new ArrayList<>();
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {

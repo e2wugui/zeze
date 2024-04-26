@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 public final class BSubscribeInfo extends Bean {
 	private @NotNull String serviceName = "";
 	private long version;
-	private @Nullable Object localState;
+	private transient @Nullable Object localState;
 
 	public BSubscribeInfo(@NotNull IByteBuffer bb) {
 		decode(bb);
@@ -30,16 +30,12 @@ public final class BSubscribeInfo extends Bean {
 		localState = state;
 	}
 
-	public long getVersion() {
-		return version;
-	}
-
 	public @NotNull String getServiceName() {
 		return serviceName;
 	}
 
-	public void setServiceName(String value) {
-		serviceName = value;
+	public long getVersion() {
+		return version;
 	}
 
 	public @Nullable Object getLocalState() {
@@ -63,8 +59,24 @@ public final class BSubscribeInfo extends Bean {
 	}
 
 	@Override
+	public int hashCode() {
+		return serviceName.hashCode() * 31 + Long.hashCode(version);
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+
+		var that = (BSubscribeInfo)o;
+		return version == that.version && serviceName.equals(that.serviceName);
+	}
+
+	@Override
 	public @NotNull String toString() {
-		return serviceName;
+		return serviceName + ':' + version;
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 32;

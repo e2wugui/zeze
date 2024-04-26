@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.util.List;
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -8,7 +7,7 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 
 public class BUnSubscribeArgument extends Bean {
-	public final List<String> serviceNames = new ArrayList<>();
+	public final ArrayList<String> serviceNames = new ArrayList<>();
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {

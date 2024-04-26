@@ -270,7 +270,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			}
 		}
 
-		public void subscribeAndCollectResult(@NotNull Subscribe r, BSubscribeInfo subInfo, long sessionId) {
+		public void subscribeAndCollectResult(@NotNull Subscribe r, @NotNull BSubscribeInfo subInfo, long sessionId) {
 			// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 			simple.put(sessionId, subInfo);
 			r.Result.map.put(serviceName, new BServiceInfosVersion(subInfo.getVersion(), this));
@@ -522,10 +522,10 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		var session = (Session)r.getSender().getUserState();
 		editLock.lock();
 		try {
-			for (var info : r.Argument.subs) {
-				session.subscribes.putIfAbsent(info.getServiceName(), info);
-				serviceStates.computeIfAbsent(info.getServiceName(), name -> new ServiceState(this, name))
-						.subscribeAndCollectResult(r, info, session.sessionId);
+			for (var sub : r.Argument.subs) {
+				session.subscribes.put(sub.getServiceName(), sub);
+				serviceStates.computeIfAbsent(sub.getServiceName(), name -> new ServiceState(this, name))
+						.subscribeAndCollectResult(r, sub, session.sessionId);
 			}
 			r.SendResult();
 		} finally {
