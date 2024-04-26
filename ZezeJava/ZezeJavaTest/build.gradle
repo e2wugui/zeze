@@ -12,10 +12,10 @@ dependencies {
     // for tikv
     implementation 'org.tikv:tikv-client-java:3.3.5'
     // runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
-    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.0'
+    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.1'
 
     // for jdbc(mysql,sqlserver,tidb)
-    implementation 'com.alibaba:druid:1.2.21'
+    implementation 'com.alibaba:druid:1.2.22'
     implementation 'com.mysql:mysql-connector-j:8.3.0'
 
     // for websocket
@@ -36,7 +36,7 @@ dependencies {
     implementation 'org.glassfish:javax.json:1.1.4'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    implementation 'com.github.luben:zstd-jni:1.5.5-6'
+    implementation 'com.github.luben:zstd-jni:1.5.6-3'
 
     // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
 }

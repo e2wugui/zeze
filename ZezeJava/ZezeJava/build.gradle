@@ -2,17 +2,17 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.23.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.23.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.23.1'
+    implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
     implementation 'org.jetbrains:annotations:24.1.0'
-    implementation 'org.pcollections:pcollections:4.0.1'
-    implementation 'org.rocksdb:rocksdbjni:8.11.3'
+    implementation 'org.pcollections:pcollections:4.0.2'
+    implementation 'org.rocksdb:rocksdbjni:9.1.1'
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.105.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.105.Final:linux-x86_64'
-    implementation 'org.slf4j:slf4j-api:2.0.12'
-    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.23.0'
+    implementation 'io.netty:netty-codec-http:4.1.109.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.109.Final:linux-x86_64'
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.23.1'
 
     // optional dependencies
     // for tikv
@@ -21,7 +21,7 @@ dependencies {
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.21'
+    compileOnly 'com.alibaba:druid:1.2.22'
     compileOnly 'com.mysql:mysql-connector-j:8.3.0'
 
     // for redis(kvrocks,pika,tendis)
@@ -42,8 +42,9 @@ dependencies {
     compileOnly 'com.opencsv:opencsv:5.9'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.5-6'
+    compileOnly 'com.github.luben:zstd-jni:1.5.6-3'
 
+    // for Consul in Zeze.Netty
     compileOnly 'com.ecwid.consul:consul-api:1.4.5'
 }
 
