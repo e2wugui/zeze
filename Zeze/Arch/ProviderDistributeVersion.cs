@@ -26,8 +26,9 @@ namespace Zeze.Arch
             if (DistributeVersions.TryGetValue(info.Version, out var versions))
             {
                 versions.RemoveServer(info);
-                if (DistributeVersions.Count == 0)
-                    DistributeVersions.Remove(info.Version);
+                // 有线程问题，干脆不删除，保留空的在里面吧。
+                //if (DistributeVersions.Count == 0)
+                //    DistributeVersions.Remove(info.Version);
             }
         }
 
