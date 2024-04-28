@@ -1,9 +1,9 @@
 package Zeze.Services.ServiceManager;
 
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,7 +11,6 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -116,7 +115,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
-	public final class SubscribeState extends ReentrantLock {
+	public static final class SubscribeState extends ReentrantLock {
 		private final BSubscribeInfo subscribeInfo;
 		private volatile BServiceInfosVersion serviceInfos;
 
@@ -174,7 +173,10 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 				localStates.put(identity, state);
 		}
 
-		public @Nullable BServiceInfo onRegister(BServiceInfo info) {
+		/**
+		 * @return 被替换的旧BServiceInfo; 无更新或无变化则返回null
+		 */
+		public @Nullable BServiceInfo onRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
 				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
@@ -200,21 +202,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public void onFirstCommit(BServiceInfosVersion infos) {
-			var edits = new ArrayList<BEditService>();
+		public void onFirstCommit(@NotNull BServiceInfosVersion infos, @NotNull BEditService edits) {
+			for (var it = infos.getInfosVersion().iterator(); it.moveToNext(); )
+				edits.getAdd().addAll(it.value().getServiceInfoListSortedByIdentity());
 			lock();
 			try {
 				serviceInfos = infos;
-				for (var it = infos.getInfosVersion().iterator(); it.moveToNext(); ) {
-					var edit = new BEditService();
-					edit.getAdd().addAll(it.value().getServiceInfoListSortedByIdentity());
-					edits.add(edit);
-				}
 			} finally {
 				unlock();
 			}
-			for (var edit : edits)
-				triggerOnChanged(edit);
 		}
 	}
 
@@ -242,23 +238,19 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	public @NotNull SubscribeState subscribeService(@NotNull BSubscribeInfo info) {
 		var infos = new BSubscribeArgument();
 		infos.subs.add(info);
-		var states = subscribeServices(infos);
-		logger.debug("SubscribeServices {}", infos);
-		return states.get(0);
+		return subscribeServices(infos).get(0);
 	}
 
-	public @NotNull List<SubscribeState> subscribeServices(@NotNull BSubscribeArgument info) {
-		var future = new TaskCompletionSource<List<SubscribeState>>();
-		subscribeServicesAsync(info, future::setResult);
+	public @NotNull List<SubscribeState> subscribeServices(@NotNull BSubscribeArgument infos) {
 		try {
-			return future.get();
+			return subscribeServicesAsync(infos).get();
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
 		}
 	}
 
-	public abstract void subscribeServicesAsync(@NotNull BSubscribeArgument info,
-												@Nullable Action1<List<SubscribeState>> action);
+	public abstract CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info);
 
 	public void unSubscribeService(@NotNull String serviceName) {
 		var arg = new BUnSubscribeArgument();

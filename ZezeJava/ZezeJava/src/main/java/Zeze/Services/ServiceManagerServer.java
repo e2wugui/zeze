@@ -203,24 +203,21 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			return serviceInfos;
 		}
 
-		public void collectPutNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
+		public void addAndCollectNotify(@NotNull BServiceInfo info, @NotNull HashMap<AsyncSocket, EditService> result) {
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-			var versions = serviceInfos.computeIfAbsent(info.getVersion(), (key) -> new HashMap<>());
-			versions.put(info.getServiceIdentity(), info);
+			serviceInfos.computeIfAbsent(info.getVersion(), __ -> new HashMap<>()).put(info.getServiceIdentity(), info);
 			for (var it = simple.iterator(); it.moveToNext(); ) {
 				var itVersion = it.value().getVersion();
 				if (itVersion == 0 || itVersion == info.getVersion()) {
-					var sessionId = it.key();
-					var peer = serviceManager.server.GetSocket(sessionId);
-					if (peer == null)
-						continue;
-					var notify = result.computeIfAbsent(peer, __ -> new EditService());
-					notify.Argument.getAdd().add(info);
+					var peer = serviceManager.server.GetSocket(it.key());
+					if (peer != null)
+						result.computeIfAbsent(peer, __ -> new EditService()).Argument.getAdd().add(info);
 				}
 			}
 		}
 
-		public void collectRemoveNotify(@NotNull BServiceInfo info, long sessionId, @NotNull HashMap<AsyncSocket, EditService> result) {
+		public void removeAndCollectNotify(@NotNull BServiceInfo info, long sessionId,
+										   @NotNull HashMap<AsyncSocket, EditService> result) {
 			var versions = serviceInfos.get(info.getVersion());
 			if (null == versions)
 				return; // version not found
@@ -231,13 +228,9 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				for (var it = simple.iterator(); it.moveToNext(); ) {
 					var itVersion = it.value().getVersion();
 					if (itVersion == 0 || itVersion == info.getVersion()) {
-						var peerSessionId = it.key();
-						var peer = serviceManager.server.GetSocket(peerSessionId);
-						if (peer == null)
-							continue;
-
-						var notify = result.computeIfAbsent(peer, __ -> new EditService());
-						notify.Argument.getRemove().add(info);
+						var peer = serviceManager.server.GetSocket(it.key());
+						if (peer != null)
+							result.computeIfAbsent(peer, __ -> new EditService()).Argument.getRemove().add(info);
 					}
 				}
 			}
@@ -311,7 +304,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				for (var unReg : registers) {
 					var state = serviceManager.serviceStates.get(unReg.getServiceName());
 					if (state != null)
-						state.collectRemoveNotify(unReg, sessionId, notifies);
+						state.removeAndCollectNotify(unReg, sessionId, notifies);
 				}
 				ServiceManagerServer.sendNotifies(notifies);
 			} finally {
@@ -430,14 +423,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							info.getPassiveIp(), info.getPassivePort());
 					var state = serviceStates.get(info.getServiceName());
 					if (state != null)
-						state.collectRemoveNotify(info, r.getSender().getSessionId(), notifies);
+						state.removeAndCollectNotify(info, r.getSender().getSessionId(), notifies);
 				} else {
 					logger.info("{}: Ignore UnRegister {} serverId={}",
 							r.getSender(), unReg.getServiceName(), unReg.getServiceIdentity());
 				}
 			}
 
-			// step 2: put
+			// step 2: add
 			// 允许重复登录，断线重连Agent不好原子实现重发。
 			for (var reg : r.Argument.getAdd()) {
 				if (session.registers.remove(reg) == null) { // 先删除再加入,确保key也更新成新的
@@ -459,7 +452,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				// 另外它也被Session引用（用于连接关闭时，自动注销）。
 				// 这是专用程序，不是一个库，以后有修改时，小心就是了。
 				reg.setSessionId(r.getSender().getSessionId());
-				state.collectPutNotify(reg, notifies);
+				state.addAndCollectNotify(reg, notifies);
 			}
 
 			sendNotifies(notifies);
@@ -472,8 +465,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private long processSubscribe(@NotNull Subscribe r) {
 		logger.info("{}: Subscribe {}", r.getSender(), r.Argument);
-
 		var session = (Session)r.getSender().getUserState();
+
 		editLock.lock();
 		try {
 			for (var sub : r.Argument.subs) {
@@ -488,7 +481,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		return Procedure.Success;
 	}
 
-	private void unSubscribeNow(long sessionId, String serviceName) {
+	private void unSubscribeNow(long sessionId, @NotNull String serviceName) {
 		var state = serviceStates.get(serviceName);
 		if (state != null)
 			state.simple.remove(sessionId);
@@ -497,13 +490,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private long processUnSubscribe(@NotNull UnSubscribe r) {
 		logger.info("{}: UnSubscribe {}", r.getSender(), r.Argument);
 		var session = (Session)r.getSender().getUserState();
-		var sessionId = r.getSender().getSessionId();
 
 		editLock.lock();
 		try {
 			for (var serviceName : r.Argument.serviceNames) {
 				session.subscribes.remove(serviceName); // continue if not exist
-				unSubscribeNow(sessionId, serviceName);
+				unSubscribeNow(session.sessionId, serviceName);
 			}
 			r.SendResult();
 		} finally {

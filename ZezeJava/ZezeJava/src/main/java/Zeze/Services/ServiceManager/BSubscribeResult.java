@@ -7,7 +7,7 @@ import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 
 public class BSubscribeResult extends Bean {
-	public final HashMap<String, BServiceInfosVersion> map = new HashMap<>();
+	public final HashMap<String, BServiceInfosVersion> map = new HashMap<>(); // key:serviceName
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {

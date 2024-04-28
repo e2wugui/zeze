@@ -10,13 +10,12 @@ import java.util.List;
 public class BEditService extends Bean {
 	private static final List<BServiceInfo> empty = List.of();
 
-	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。
-	private @NotNull List<BServiceInfo> add = empty; // 注册，增加或替换。
+	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。只以name和id为准
+	private @NotNull List<BServiceInfo> add = empty; // 注册，增加或更新。更新时以name和id为key
 
-	// 处理顺序：remove,put,update。
+	// 处理顺序：remove,add。
 	// 当不同的集合中存在相同的服务时，要注意这个处理顺序。
-	// 也就是说 put 等级更高，服务优先能找到。
-	// update处理是特殊的，放在put后面，使得可以一次注册同时马上更新。
+	// 也就是说 add 等级更高，服务优先能找到。
 
 	public @NotNull List<BServiceInfo> getRemove() {
 		return remove == empty ? (remove = new ArrayList<>()) : remove;
@@ -56,8 +55,7 @@ public class BEditService extends Bean {
 
 	@Override
 	public String toString() {
-		return "remove:" + remove + "\n" +
-				"put:" + add + "\n";
+		return "{remove:" + remove + ",add:" + add + "}\n";
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 64;

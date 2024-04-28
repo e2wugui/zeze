@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Component.Threading;
 import Zeze.Config;
@@ -15,7 +16,6 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class Agent extends AbstractAgent {
@@ -69,29 +69,38 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public void subscribeServicesAsync(@NotNull BSubscribeArgument infos, @Nullable Action1<List<SubscribeState>> action) {
+	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument infos) {
 		waitConnectorReady();
-
-		var r = new Subscribe(infos);
-		r.Send(client.getSocket(), __ -> {
-			var states = new ArrayList<SubscribeState>();
-			for (var info : r.Argument.subs) {
-				var state = subscribeStates.computeIfAbsent(info.getServiceName(), (key) -> new SubscribeState(info));
-				states.add(state);
-				var result = r.Result.map.get(info.getServiceName());
-				if (null != result)
-					state.onFirstCommit(result);
-			}
-			if (null != action) {
-				try {
-					action.run(states);
-				} catch (Exception ex) {
-					logger.warn("", ex);
+		logger.debug("subscribeServicesAsync: {}", infos);
+		var cf = new CompletableFuture<List<SubscribeState>>();
+		if (!new Subscribe(infos).Send(client.getSocket(), r -> {
+			var rc = r.getResultCode();
+			if (rc == 0) {
+				var edits = new BEditService();
+				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
+				for (var info : r.Argument.subs) {
+					var state = subscribeStates.computeIfAbsent(info.getServiceName(), __ -> new SubscribeState(info));
+					states.add(state);
+					var result = r.Result.map.get(info.getServiceName());
+					if (result != null)
+						state.onFirstCommit(result, edits);
 				}
+				try {
+					triggerOnChanged(edits);
+				} catch (Throwable e) { // logger.error
+					logger.error("subscribeServicesAsync: triggerOnChanged exception:", e);
+				}
+				cf.complete(states);
+			} else {
+				logger.error("subscribeServicesAsync: resultCode={}", rc);
+				cf.completeExceptionally(new IllegalStateException("Subscribe resultCode=" + rc));
 			}
 			return 0;
-		});
-		logger.debug("subscribeServicesAsync {}", infos);
+		})) {
+			logger.error("subscribeServicesAsync: send Subscribe failed");
+			cf.completeExceptionally(new IllegalStateException("send Subscribe failed"));
+		}
+		return cf;
 	}
 
 	@Override
@@ -103,10 +112,8 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public void unSubscribeService(@NotNull BUnSubscribeArgument arg) {
 		waitConnectorReady();
-
-		var r = new UnSubscribe(arg);
-		r.SendAndWaitCheckResultCode(client.getSocket());
-		logger.debug("UnSubscribeService {}", arg);
+		new UnSubscribe(arg).SendAndWaitCheckResultCode(client.getSocket());
+		logger.debug("unSubscribeService: {}", arg);
 		for (var serviceName : arg.serviceNames)
 			subscribeStates.remove(serviceName);
 	}
@@ -148,7 +155,7 @@ public final class Agent extends AbstractAgent {
 		for (var e : subscribeStates.values())
 			subArg.subs.add(e.getSubscribeInfo());
 
-		subscribeServicesAsync(subArg, null);
+		subscribeServicesAsync(subArg);
 	}
 
 	private long processEdit(EditService r) {

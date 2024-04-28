@@ -12,13 +12,13 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	 * 服务名，比如"GameServer"
 	 */
 	private @NotNull String serviceName = "";
-	private long version;
 
 	/**
 	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 * 这里使用类型 string 是为了更好的支持扩展。
 	 */
 	private @NotNull String serviceIdentity = "";
+	private long version;
 
 	/**
 	 * 服务ip-port，如果没有，保持空和0.
@@ -30,7 +30,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	private @NotNull Binary extraInfo = Binary.Empty;
 
 	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
-	private @Nullable Long sessionId;
+	private transient @Nullable Long sessionId;
 
 	public @NotNull String getServiceName() {
 		return serviceName;
@@ -112,20 +112,20 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	public void decode(@NotNull IByteBuffer bb) {
 		serviceName = bb.ReadString();
 		serviceIdentity = bb.ReadString();
+		version = bb.ReadLong();
 		passiveIp = bb.ReadString();
 		passivePort = bb.ReadInt();
 		extraInfo = bb.ReadBinary();
-		version = bb.ReadLong();
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteString(serviceName);
 		bb.WriteString(serviceIdentity);
+		bb.WriteLong(version);
 		bb.WriteString(passiveIp);
 		bb.WriteInt(passivePort);
 		bb.WriteBinary(extraInfo);
-		bb.WriteLong(version);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -150,12 +150,10 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 	}
 
 	/**
-	 * 比较完整信息是否相等，
-	 * @param other other
-	 * @return true full equals else false
+	 * 比较完整信息是否相等(除了sessionId)
 	 */
 	public boolean fullEquals(BServiceInfo other) {
-		return serviceName.equals(other.serviceIdentity)
+		return serviceName.equals(other.serviceName)
 				&& serviceIdentity.equals(other.serviceIdentity)
 				&& version == other.version
 				&& passiveIp.equals(other.passiveIp)

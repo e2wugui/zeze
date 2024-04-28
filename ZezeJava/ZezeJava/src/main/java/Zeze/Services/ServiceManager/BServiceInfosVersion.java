@@ -9,7 +9,7 @@ import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 
 public class BServiceInfosVersion extends Bean {
-	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>();
+	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
 
 	public @NotNull LongHashMap<BServiceInfos> getInfosVersion() {
 		return infosVersion;
@@ -21,12 +21,12 @@ public class BServiceInfosVersion extends Bean {
 	private void copyAndSortIdentityMap(long version, @NotNull HashMap<String, BServiceInfo> identityMap) {
 		var infos = new BServiceInfos();
 		infos.getServiceInfoListSortedByIdentity().addAll(identityMap.values());
-		infos.getServiceInfoListSortedByIdentity().sort(BServiceInfos.Comparer);
+		infos.getServiceInfoListSortedByIdentity().sort(BServiceInfos.comparer);
 		infosVersion.put(version, infos);
 	}
 
 	public BServiceInfosVersion(long hopeVersion, @NotNull ServiceManagerServer.ServiceState state) {
-		if (hopeVersion > 0) {
+		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfos().get(hopeVersion);
 			if (null != identityMap)
 				copyAndSortIdentityMap(hopeVersion, identityMap);

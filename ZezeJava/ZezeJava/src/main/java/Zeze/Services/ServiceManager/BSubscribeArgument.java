@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 
 public class BSubscribeArgument extends Bean {
-	public final ArrayList<BSubscribeInfo> subs = new ArrayList<>();
+	public final ArrayList<BSubscribeInfo> subs = new ArrayList<>(); // 每个serviceName只能订阅一次,覆盖之前的
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {

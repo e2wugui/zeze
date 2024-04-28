@@ -11,15 +11,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class BServiceInfos extends Bean {
-	public static final Comparator<BServiceInfo> Comparer = (si1, si2) -> {
-		String id1 = si1.getServiceIdentity();
-		if (id1.startsWith("@")) {
-			String id2 = si2.getServiceIdentity();
+	public static final Comparator<BServiceInfo> comparer = (si1, si2) -> {
+		var id1 = si1.getServiceIdentity();
+		var id2 = si2.getServiceIdentity();
+		if (id1.isEmpty() || id1.charAt(0) == '@' || id2.isEmpty() || id2.charAt(0) == '@')
 			return id1.compareTo(id2);
-		}
-		var long1 = Long.parseLong(id1);
-		var long2 = Long.parseLong(si2.getServiceIdentity());
-		return Long.compare(long1, long2);
+		return Long.compare(Long.parseLong(id1), Long.parseLong(id2));
 	};
 
 	// ServiceList maybe empty. need a ServiceName
@@ -46,8 +43,11 @@ public final class BServiceInfos extends Bean {
 		return serviceInfoListSortedByIdentity;
 	}
 
-	public BServiceInfo insert(@NotNull BServiceInfo info) {
-		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
+	/**
+	 * @return old BServiceInfo
+	 */
+	public @Nullable BServiceInfo insert(@NotNull BServiceInfo info) {
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, comparer);
 		if (index >= 0) {
 			var exist = serviceInfoListSortedByIdentity.get(index);
 			serviceInfoListSortedByIdentity.set(index, info);
@@ -58,12 +58,12 @@ public final class BServiceInfos extends Bean {
 	}
 
 	public @Nullable BServiceInfo remove(@NotNull BServiceInfo info) {
-		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, comparer);
 		return index >= 0 ? serviceInfoListSortedByIdentity.remove(index) : null;
 	}
 
 	public @Nullable BServiceInfo findServiceInfo(@NotNull BServiceInfo info) {
-		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, Comparer);
+		int index = Collections.binarySearch(serviceInfoListSortedByIdentity, info, comparer);
 		return index >= 0 ? serviceInfoListSortedByIdentity.get(index) : null;
 	}
 

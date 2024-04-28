@@ -7,21 +7,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class BSubscribeInfo extends Bean {
-	private @NotNull String serviceName = "";
+	private @NotNull String serviceName;
 	private long version;
 	private transient @Nullable Object localState;
 
 	public BSubscribeInfo(@NotNull IByteBuffer bb) {
+		serviceName = "";
 		decode(bb);
 	}
 
 	public BSubscribeInfo(@NotNull String name) {
-		serviceName = name;
+		this(name, 0, null);
 	}
 
 	public BSubscribeInfo(@NotNull String name, long version) {
-		serviceName = name;
-		this.version = version;
+		this(name, version, null);
 	}
 
 	public BSubscribeInfo(@NotNull String name, long version, @Nullable Object state) {
@@ -49,7 +49,7 @@ public final class BSubscribeInfo extends Bean {
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		serviceName = bb.ReadString();
-		this.version = bb.ReadLong();
+		version = bb.ReadLong();
 	}
 
 	@Override

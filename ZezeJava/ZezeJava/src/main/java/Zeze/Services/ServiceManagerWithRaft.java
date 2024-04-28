@@ -198,7 +198,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 							versions.getServiceInfos().remove(unReg.getServiceIdentity());
 							if (exist != null && exist.getSessionName().equals(name)) {
 								// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-								collectRemoveNotify(state, fromRocks(exist), notifies);
+								removeAndCollectNotify(state, fromRocks(exist), notifies);
 							}
 						}
 					}
@@ -414,7 +414,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					versions.getServiceInfos().remove(unReg.getServiceIdentity());
 					if (exist != null && exist.getSessionName().equals(netSession.name)) {
 						// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-						collectRemoveNotify(state, fromRocks(exist), notifies);
+						removeAndCollectNotify(state, fromRocks(exist), notifies);
 					}
 				}
 			}
@@ -422,7 +422,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			session.getRegisters().remove(toRocksKey(unReg)); // ignore remove failed
 		}
 
-		// step 2: put
+		// step 2: add
 		for (var reg : r.Argument.getAdd()) {
 			var session = tableSession.get(netSession.name);
 			// 允许重复登录，断线重连Agent不好原子实现重发。
@@ -435,7 +435,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				state.getServiceInfosVersion().put(reg.getVersion(), versions = new BServiceInfosVersionRocks());
 			// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 			versions.getServiceInfos().put(reg.getServiceIdentity(), toRocks(reg, netSession.name));
-			collectPutNotify(state, reg, notifies);
+			addAndCollectNotify(state, reg, notifies);
 		}
 
 		sendNotifies(notifies);
@@ -443,7 +443,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return 0;
 	}
 
-	private void collectPutNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
+	private void addAndCollectNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
 		for (var e : state.getSimple().entrySet()) {
 			var subVersion = e.getValue().getVersion();
 			if (subVersion == 0 || subVersion == info.getVersion()) {
@@ -483,7 +483,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo());
 	}
 
-	public void collectRemoveNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
+	public void removeAndCollectNotify(BServerState state, BServiceInfo info, HashMap<AsyncSocket, Edit> notifies) {
 		for (var e : state.getSimple().entrySet()) {
 			var subVersion = e.getValue().getVersion();
 			if (subVersion == 0 || subVersion == info.getVersion()) {
@@ -531,7 +531,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private static BServiceInfosVersion newServiceInfosVersion(long hopeVersion, BServerState state) {
 		var versions = new BServiceInfosVersion();
 		var serviceName = state.getServiceName();
-		if (hopeVersion > 0) {
+		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfosVersion().get(hopeVersion);
 			if (null != identityMap)
 				versions.getInfosVersion().put(hopeVersion, newSortedBServiceInfos(serviceName, identityMap));

@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
@@ -31,7 +32,6 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
 	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
@@ -212,28 +212,36 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public void subscribeServicesAsync(@NotNull BSubscribeArgument arg, @Nullable Action1<List<SubscribeState>> action) {
+	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument arg) {
 		waitLoginReady();
-		logger.debug("subscribeServicesAsync {}", arg);
+		logger.debug("subscribeServicesAsync: {}", arg);
+		var cf = new CompletableFuture<List<SubscribeState>>();
 		var r = new Subscribe(arg);
 		raftClient.send(r, __ -> {
-			var states = new ArrayList<SubscribeState>();
-			for (var info : r.Argument.subs) {
-				var state = subscribeStates.computeIfAbsent(info.getServiceName(), (key) -> new SubscribeState(info));
-				states.add(state);
-				var result = r.Result.map.get(info.getServiceName());
-				if (null != result)
-					state.onFirstCommit(result);
-			}
-			if (null != action) {
-				try {
-					action.run(states);
-				} catch (Exception ex) {
-					logger.warn("", ex);
+			var rc = r.getResultCode();
+			if (rc == 0) {
+				var edits = new BEditService();
+				var states = new ArrayList<SubscribeState>(r.Argument.subs.size());
+				for (var info : r.Argument.subs) {
+					var state = subscribeStates.computeIfAbsent(info.getServiceName(), ___ -> new SubscribeState(info));
+					states.add(state);
+					var result = r.Result.map.get(info.getServiceName());
+					if (result != null)
+						state.onFirstCommit(result, edits);
 				}
+				try {
+					triggerOnChanged(edits);
+				} catch (Throwable e) { // logger.error
+					logger.error("subscribeServicesAsync: triggerOnChanged exception:", e);
+				}
+				cf.complete(states);
+			} else {
+				logger.error("subscribeServicesAsync: resultCode={}", rc);
+				cf.completeExceptionally(new IllegalStateException("Subscribe resultCode=" + rc));
 			}
 			return 0;
 		});
+		return cf;
 	}
 
 	@Override
