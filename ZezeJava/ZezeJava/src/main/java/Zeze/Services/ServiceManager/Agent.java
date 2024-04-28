@@ -16,10 +16,11 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public final class Agent extends AbstractAgent {
-	static final Logger logger = LogManager.getLogger(Agent.class);
+	static final @NotNull Logger logger = LogManager.getLogger(Agent.class);
 
 	/**
 	 * 使用Config配置连接信息，可以配置是否支持重连。
@@ -27,7 +28,7 @@ public final class Agent extends AbstractAgent {
 	 */
 	public static final String defaultServiceName = "Zeze.Services.ServiceManager.Agent";
 
-	private final AgentClient client;
+	private final @NotNull AgentClient client;
 	private final ConcurrentHashMap<BServiceInfo, BServiceInfo> registers = new ConcurrentHashMap<>();
 
 	private Threading threading;
@@ -69,7 +70,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument infos) {
+	public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument infos) {
 		waitConnectorReady();
 		logger.debug("subscribeServicesAsync: {}", infos);
 		var cf = new CompletableFuture<List<SubscribeState>>();
@@ -158,9 +159,8 @@ public final class Agent extends AbstractAgent {
 		subscribeServicesAsync(subArg);
 	}
 
-	private long processEdit(EditService r) {
-
-		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
+	private long processEditService(@NotNull EditService r) {
+		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); ) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
 			if (null == state || !state.onUnRegister(unReg))
@@ -181,18 +181,22 @@ public final class Agent extends AbstractAgent {
 		}
 
 		r.SendResult();
-		triggerOnChanged(r.Argument);
+		try {
+			triggerOnChanged(r.Argument);
+		} catch (Throwable e) { // logger.error
+			logger.error("processEditService: triggerOnChanged exception:", e);
+		}
 		return 0;
 	}
 
-	private long processKeepAlive(KeepAlive r) {
+	private long processKeepAlive(@NotNull KeepAlive r) {
 		if (onKeepAlive != null)
 			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
 	}
 
-	private long processSetServerLoad(SetServerLoad setServerLoad) {
+	private long processSetServerLoad(@NotNull SetServerLoad setServerLoad) {
 		loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
@@ -207,7 +211,7 @@ public final class Agent extends AbstractAgent {
 		return Procedure.Success;
 	}
 
-	private long processOfflineNotify(OfflineNotify r) {
+	private long processOfflineNotify(@NotNull OfflineNotify r) {
 		try {
 			if (triggerOfflineNotify(r.Argument)) {
 				r.SendResult();
@@ -221,11 +225,11 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(Config config) {
+	public Agent(@NotNull Config config) {
 		this(config, null);
 	}
 
-	public Agent(Config config, String netServiceName) {
+	public Agent(@NotNull Config config, @Nullable String netServiceName) {
 		super.config = config;
 
 		client = (null == netServiceName || netServiceName.isEmpty())
@@ -233,7 +237,7 @@ public final class Agent extends AbstractAgent {
 				: new AgentClient(this, config, netServiceName);
 
 		client.AddFactoryHandle(EditService.TypeId_, new ProtocolFactoryHandle<>(
-				EditService::new, this::processEdit, TransactionLevel.None, DispatchMode.Direct));
+				EditService::new, this::processEditService, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
 				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
 		client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
@@ -264,13 +268,11 @@ public final class Agent extends AbstractAgent {
 	public void stop() throws Exception {
 		lock();
 		try {
-			if (client != null) {
-				var so = client.getSocket();
-				if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
-					new NormalClose().SendAndWaitCheckResultCode(so);
-				client.stop();
-			}
-			if (null != threading) {
+			var so = client.getSocket();
+			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
+				new NormalClose().SendAndWaitCheckResultCode(so);
+			client.stop();
+			if (threading != null) {
 				threading.close();
 				threading = null;
 			}

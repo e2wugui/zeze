@@ -26,11 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ProviderService extends HandshakeClient {
-	private static final Logger logger = LogManager.getLogger(ProviderService.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ProviderService.class);
 
 	protected ProviderApp providerApp;
 	private final ConcurrentHashMap<String, Connector> links = new ConcurrentHashMap<>();
-	private volatile @NotNull Connector[] linkConnectors = new Connector[0];
+	private volatile @NotNull Connector @NotNull [] linkConnectors = new Connector[0];
 	private final AtomicInteger linkRandomIndex = new AtomicInteger();
 
 	// 用来同步等待Provider的静态绑定完成。
@@ -149,12 +149,12 @@ public class ProviderService extends HandshakeClient {
 			trySetLinkChoice(link);
 	}
 
-	private void trySetLinkChoice(Connector link) {
+	private void trySetLinkChoice(@NotNull Connector link) {
 		if (providerApp.isOnlineReady())
 			sendDisableChoiceToLink(link, providerApp.isUserDisableChoice());
 	}
 
-	private static void sendDisableChoiceToLink(Connector link, boolean value) {
+	private static void sendDisableChoiceToLink(@NotNull Connector link, boolean value) {
 		var r = new SetDisableChoice();
 		r.Argument.setDisableChoice(value);
 		r.Send(link.getSocket(), (p) -> {
@@ -210,13 +210,15 @@ public class ProviderService extends HandshakeClient {
 			return 0;
 		});
 
-		trySetLinkChoice(so.getConnector());
+		var c = so.getConnector();
+		if (c != null)
+			trySetLinkChoice(c);
 	}
 
 	// 热更新增模块。
 	// 1. 热更才会调用；
 	// 2. 只有新增模块才会调用；
-	public void addHotModule(IModule module, BModule.Data config) {
+	public void addHotModule(@NotNull IModule module, @NotNull BModule.Data config) {
 		{
 			// 全局数据更新
 			providerApp.zeze.getAppBase().addModule(module);
@@ -227,9 +229,11 @@ public class ProviderService extends HandshakeClient {
 			var sm = providerApp.zeze.getServiceManager();
 			var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 			sm.registerService(new BServiceInfo(
-					providerApp.serverServiceNamePrefix + module.getId(), identity, 0,
+					providerApp.serverServiceNamePrefix + module.getId(), identity,
+					providerApp.zeze.getConfig().getAppVersion(),
 					providerApp.directIp, providerApp.directPort));
-			sm.subscribeService(new BSubscribeInfo(providerApp.serverServiceNamePrefix + module.getId()));
+			sm.subscribeService(new BSubscribeInfo(providerApp.serverServiceNamePrefix + module.getId(),
+					providerApp.zeze.getConfig().getAppVersion()));
 		}
 
 		// 并通知所有links。
@@ -250,7 +254,8 @@ public class ProviderService extends HandshakeClient {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		if (p instanceof Dispatch) {
 			//noinspection RedundantCast,DataFlowIssue
 			getZeze().getTaskOneByOneByKey().Execute(((Dispatch)p).Argument.getAccount(),

@@ -35,7 +35,7 @@ import org.rocksdb.WriteOptions;
 
 /**
  * 开发onz服务器基础
- *
+ * <p>
  * 包装网络和onz协议，
  * 允许多个server实例，
  * 不同的server实例功能可以交叉也可以完全不同，
@@ -270,7 +270,7 @@ public class OnzServer extends AbstractOnz {
 		var zezeArray = specialZezeNames.split(";");
 		for (var zeze : zezeArray) {
 			if (this.zezes.containsKey(zeze))
-				throw new RuntimeException("duplicate zeze=" + zeze+ " zezes=" + specialZezeNames);
+				throw new RuntimeException("duplicate zeze=" + zeze + " zezes=" + specialZezeNames);
 			this.zezes.put(zeze, serviceManager);
 		}
 		this.sharedServiceManager = true;
@@ -303,17 +303,20 @@ public class OnzServer extends AbstractOnz {
 		if (null == onzServices)
 			throw new RuntimeException("serviceManager subscribe not found. " + zezeName);
 
-		for (var onzService : onzServices.getServiceInfos().getServiceInfoListSortedByIdentity()) {
-			var ip = onzService.getPassiveIp();
-			var port = onzService.getPassivePort();
-			if (null != connector && connector.getName().equals(ip + "_" + port))
-				continue; // 跳过当前的
+		var serviceInfos = onzServices.getServiceInfos(0);
+		if (serviceInfos != null) {
+			for (var onzService : serviceInfos.getServiceInfoListSortedByIdentity()) {
+				var ip = onzService.getPassiveIp();
+				var port = onzService.getPassivePort();
+				if (null != connector && connector.getName().equals(ip + "_" + port))
+					continue; // 跳过当前的
 
-			connector = new Connector(ip, port);
-			connector.SetService(onzAgent.getService());
-			connector.start();
-			instances.put(zezeName, connector);
-			break;
+				connector = new Connector(ip, port);
+				connector.SetService(onzAgent.getService());
+				connector.start();
+				instances.put(zezeName, connector);
+				break;
+			}
 		}
 		if (null == connector)
 			throw new RuntimeException("create connector fail. " + zezeName);
@@ -350,7 +353,7 @@ public class OnzServer extends AbstractOnz {
 
 	/**
 	 * 执行onz分布式事务。
-	 *
+	 * <p>
 	 * 1. 自行决定txn的创建和初始化。
 	 * 2. 可以不通过A,R结构传递参数和结果，完全自定义实现。
 	 * 3. 设置其他onz事务的控制参数。如flushMode,flushTimeout等。

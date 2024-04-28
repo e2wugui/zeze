@@ -42,7 +42,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		throw new UnsupportedOperationException();
 	}
 
-	public ServiceManagerAgentWithRaft(Config config) throws Exception {
+	public ServiceManagerAgentWithRaft(@NotNull Config config) throws Exception {
 		super.config = config;
 
 		var raftConf = RaftConfig.load(config.getServiceManagerConf().getRaftXml());
@@ -103,7 +103,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	@Override
 	protected long ProcessEditRequest(Edit r) {
-
 		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
@@ -125,8 +124,11 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		}
 
 		r.SendResult();
-		triggerOnChanged(r.Argument);
-
+		try {
+			triggerOnChanged(r.Argument);
+		} catch (Throwable e) { // logger.error
+			logger.error("ProcessEditRequest: triggerOnChanged exception:", e);
+		}
 		return 0;
 	}
 

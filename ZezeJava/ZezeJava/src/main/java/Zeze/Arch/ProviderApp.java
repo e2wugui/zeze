@@ -95,7 +95,8 @@ public class ProviderApp extends ReentrantLock {
 			}
 		});
 
-		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService);
+		this.distribute = new ProviderDistribute(zeze, loadConfig, toOtherProviderService,
+				zeze.getConfig().getAppVersion());
 		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
 		this.providerDirect.RegisterProtocols(providerDirectService);
 	}
@@ -121,7 +122,6 @@ public class ProviderApp extends ReentrantLock {
 		if (refresh)
 			providerService.refreshLinkConnectors();
 	}
-
 
 	/**
 	 * 这是为了发布打包的时候，用来构建模块配置，所有的变量都不需要使用。
@@ -181,10 +181,8 @@ public class ProviderApp extends ReentrantLock {
 			zeze.getTimer().start();
 			zeze.getAppBase().startLastModules();
 
-			if (providerImplement instanceof ProviderWithOnline) {
-				var game = (ProviderWithOnline)providerImplement;
-				game.getOnline().startAfter();
-			}
+			if (providerImplement instanceof ProviderWithOnline)
+				((ProviderWithOnline)providerImplement).getOnline().startAfter();
 			// 这个应该在Online.Start里面设置更合理。
 			// 但是Online有多个版本，而且跨包设置需要方法，就这里直接设置了。
 			// 是启动流程的一部分。

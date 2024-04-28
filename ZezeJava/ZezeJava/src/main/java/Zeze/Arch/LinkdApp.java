@@ -14,23 +14,24 @@ import Zeze.Util.CommandConsoleService;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LinkdApp {
-	public final String linkdServiceName;
-	public final Application zeze;
-	public final LinkdProvider linkdProvider;
-	public final LinkdProviderService linkdProviderService;
-	public final LinkdService linkdService;
+	public final @NotNull String linkdServiceName;
+	public final @NotNull Application zeze;
+	public final @NotNull LinkdProvider linkdProvider;
+	public final @NotNull LinkdProviderService linkdProviderService;
+	public final @NotNull LinkdService linkdService;
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public final String providerIp;
+	public final @NotNull String providerIp;
 	public int providerPort;
-	public Action1<ServerSocket> onServerSocketBindAction;
+	public @Nullable Action1<ServerSocket> onServerSocketBindAction;
 
 	public interface DiscardAction {
-		boolean call(AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
+		boolean call(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
 	}
 
-	public DiscardAction discardAction;
+	public @Nullable DiscardAction discardAction;
 
 	/**
 	 * 自动创建，自动启动。
@@ -45,10 +46,14 @@ public class LinkdApp {
 	 * 这个在最好在调用 LinkdApp.registerService 之前设置，这样命令行服务就准备好。
 	 * 也可以任意时候设置，但是新设置的命令处理仅在新接受的连接中生效。
 	 */
-	public final CommandConsoleService commandConsoleService;
+	public final @NotNull CommandConsoleService commandConsoleService;
 
-	public LinkdApp(String linkdServiceName, Application zeze, LinkdProvider linkdProvider,
-					LinkdProviderService linkdProviderService, LinkdService linkdService, LoadConfig loadConfig) {
+	public LinkdApp(@NotNull String linkdServiceName,
+					@NotNull Application zeze,
+					@NotNull LinkdProvider linkdProvider,
+					@NotNull LinkdProviderService linkdProviderService,
+					@NotNull LinkdService linkdService,
+					@NotNull LoadConfig loadConfig) {
 		this.linkdServiceName = linkdServiceName;
 		this.zeze = zeze;
 		this.linkdProvider = linkdProvider;
@@ -58,7 +63,7 @@ public class LinkdApp {
 		this.linkdService = linkdService;
 		this.linkdService.linkdApp = this;
 
-		this.linkdProvider.distribute = new ProviderDistribute(zeze, loadConfig, linkdProviderService);
+		this.linkdProvider.distributes = new ProviderDistributeVersion(zeze, loadConfig, linkdProviderService);
 		this.linkdProvider.RegisterProtocols(this.linkdProviderService);
 
 		this.zeze.getServiceManager().setOnChanged(this::applyOnChanged);
@@ -77,7 +82,7 @@ public class LinkdApp {
 		providerIp = kv.getKey();
 		providerPort = kv.getValue();
 
-		this.commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
+		commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
 
 		var checkPeriod = PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000);
 		Task.scheduleUnsafe(checkPeriod, checkPeriod, this::keepAliveCheckTimer);
@@ -85,10 +90,10 @@ public class LinkdApp {
 
 	void applyOnChanged(@NotNull BEditService edit) {
 		for (var r : edit.getRemove()) {
-			linkdProvider.distribute.removeServer(r);
+			linkdProvider.distributes.removeServer(r);
 		}
 		for (var p : edit.getAdd()) {
-			linkdProvider.distribute.addServer(p);
+			linkdProvider.distributes.addServer(p);
 		}
 	}
 
@@ -102,12 +107,12 @@ public class LinkdApp {
 		});
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return linkdServiceName + "." + providerIp + "_" + providerPort;
 	}
 
-	public void registerService(Binary extra) throws Exception {
-		this.commandConsoleService.start();
+	public void registerService(@Nullable Binary extra) throws Exception {
+		commandConsoleService.start();
 
 		var identity = "@" + providerIp + "_" + providerPort;
 		var edit = new BEditService();

@@ -35,15 +35,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	protected Action1<BEditService> onChanged;
-	protected Action1<BServerLoad> onSetServerLoad;
+	protected @Nullable Action1<BEditService> onChanged;
+	protected @Nullable Action1<BServerLoad> onSetServerLoad;
 
 	// 返回是否处理成功且不需要其它notifier继续处理
 	protected final ConcurrentHashMap<String, Action1<BOfflineNotify>> onOfflineNotifies = new ConcurrentHashMap<>();
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
-	protected Runnable onKeepAlive;
+	protected @Nullable Runnable onKeepAlive;
 
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
@@ -53,23 +53,23 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return subscribeStates;
 	}
 
-	public Config getConfig() {
+	public @NotNull Config getConfig() {
 		return config;
 	}
 
-	public Action1<BEditService> getOnChanged() {
+	public @Nullable Action1<BEditService> getOnChanged() {
 		return onChanged;
 	}
 
-	public void setOnChanged(Action1<BEditService> value) {
+	public void setOnChanged(@Nullable Action1<BEditService> value) {
 		onChanged = value;
 	}
 
-	public void setOnSetServerLoad(Action1<BServerLoad> value) {
+	public void setOnSetServerLoad(@Nullable Action1<BServerLoad> value) {
 		onSetServerLoad = value;
 	}
 
-	protected boolean triggerOfflineNotify(BOfflineNotify notify) {
+	protected boolean triggerOfflineNotify(@NotNull BOfflineNotify notify) {
 		var handle = onOfflineNotifies.get(notify.notifyId);
 		if (null == handle)
 			return false;
@@ -83,15 +83,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public Runnable getOnKeepAlive() {
+	public @Nullable Runnable getOnKeepAlive() {
 		return onKeepAlive;
 	}
 
-	public void setOnKeepAlive(Runnable value) {
+	public void setOnKeepAlive(@Nullable Runnable value) {
 		onKeepAlive = value;
 	}
 
-	protected abstract void allocate(AutoKey autoKey, int pool);
+	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
 
 	public abstract void start() throws Exception;
 
@@ -99,7 +99,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	private static final String SMCallbackOneByOneKey = "SMCallbackOneByOneKey";
 
-	protected void triggerOnChanged(BEditService edit) {
+	protected void triggerOnChanged(@NotNull BEditService edit) {
 		if (onChanged != null) {
 			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
 				try {
@@ -116,8 +116,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 维护这些状态数据都是先更新本地再发送远程请求，在失败的时候rollback。
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public static final class SubscribeState extends ReentrantLock {
-		private final BSubscribeInfo subscribeInfo;
-		private volatile BServiceInfosVersion serviceInfos;
+		private final @NotNull BSubscribeInfo subscribeInfo;
+		private volatile @NotNull BServiceInfosVersion serviceInfos;
 
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
@@ -135,7 +135,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return serviceInfos.toString();
 		}
 
@@ -143,30 +143,30 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			return subscribeInfo;
 		}
 
-		public String getServiceName() {
+		public @NotNull String getServiceName() {
 			return subscribeInfo.getServiceName();
 		}
 
-		public BServiceInfos getServiceInfos() {
-			return serviceInfos.getInfosVersion().get(0L);
+		public @Nullable BServiceInfos getServiceInfos(long version) {
+			return serviceInfos.getInfosVersion().get(version);
 		}
 
-		public BServiceInfosVersion getServiceInfosVersion() {
+		public @NotNull BServiceInfosVersion getServiceInfosVersion() {
 			return serviceInfos;
 		}
 
-		public SubscribeState(BSubscribeInfo info) {
+		public SubscribeState(@NotNull BSubscribeInfo info) {
 			subscribeInfo = info;
 			serviceInfos = new BServiceInfosVersion();
 		}
 
 		// NOT UNDER LOCK
 
-		public ConcurrentHashMap<String, Object> getLocalStates() {
+		public @NotNull ConcurrentHashMap<String, Object> getLocalStates() {
 			return localStates;
 		}
 
-		public void setIdentityLocalState(String identity, Object state) {
+		public void setIdentityLocalState(@NotNull String identity, @Nullable Object state) {
 			if (state == null)
 				localStates.remove(identity);
 			else
@@ -190,7 +190,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			}
 		}
 
-		public boolean onUnRegister(BServiceInfo info) {
+		public boolean onUnRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
 				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
@@ -250,7 +250,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public abstract CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument info);
+	public abstract @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(
+			@NotNull BSubscribeArgument info);
 
 	public void unSubscribeService(@NotNull String serviceName) {
 		var arg = new BUnSubscribeArgument();

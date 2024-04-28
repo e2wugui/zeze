@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * Provider之间直连网络管理服务。
  */
 public class ProviderDirectService extends HandshakeBoth {
-	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
 	protected ProviderApp providerApp;
 	public final ConcurrentHashMap<String, ProviderSession> providerByLoadName = new ConcurrentHashMap<>();
@@ -231,7 +231,7 @@ public class ProviderDirectService extends HandshakeBoth {
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 				if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-					var infos = ss.getServiceInfos();
+					var infos = ss.getServiceInfos(ps.appVersion);
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
@@ -289,7 +289,8 @@ public class ProviderDirectService extends HandshakeBoth {
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
+			throws Exception {
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
@@ -312,7 +313,8 @@ public class ProviderDirectService extends HandshakeBoth {
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null,
+				factoryHandle.Mode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 

@@ -29,39 +29,42 @@ import Zeze.Util.OutLong;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Linkd上处理Provider协议的模块。
  */
 public class LinkdProvider extends AbstractLinkdProvider {
-	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
-	protected static final String dumpFilename = System.getProperty("dumpLinkdOutput");
+	private static final @NotNull Logger logger = LogManager.getLogger(LinkdProvider.class);
+	protected static final @Nullable String dumpFilename = System.getProperty("dumpLinkdOutput");
 	protected static final boolean enableDump = dumpFilename != null;
 	protected static final IOException sendException = new IOException("LinkdProvider send failed");
 
 	protected LinkdApp linkdApp;
-	protected ProviderDistribute distribute;
+	protected ProviderDistributeVersion distributes;
 	private int firstModuleWithConfigTypeDefault;
 
 	// 用于客户端选择Provider，只支持一种Provider。如果要支持多种，需要客户端增加参数，这个不考虑了。
 	// 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
 	// 内部的Provider可以支持完全不同的solution，不过这个仅仅保留给未来扩展用，
 	// 不建议在一个项目里面使用多个Prefix。
-	private String serverServiceNamePrefix = "";
+	private @NotNull String serverServiceNamePrefix = "";
 
-	protected FileOutputStream dumpFile;
-	protected AsyncSocket dumpSocket;
+	protected @Nullable FileOutputStream dumpFile;
+	protected @Nullable AsyncSocket dumpSocket;
 
-	public ProviderDistribute getDistribute() {
-		return distribute;
+	public ProviderDistributeVersion getDistributes() {
+		return distributes;
 	}
 
-	public String getServerServiceNamePrefix() {
+	public @NotNull String getServerServiceNamePrefix() {
 		return serverServiceNamePrefix;
 	}
 
-	public boolean choiceProvider(AsyncSocket link, int moduleId, Predicate<AsyncSocket> onSend) {
-		var providerSessionId = ((LinkdUserSession)link.getUserState()).tryGetProvider(moduleId);
+	public boolean choiceProvider(@NotNull AsyncSocket link, int moduleId, @NotNull Predicate<AsyncSocket> onSend) {
+		var userSession = (LinkdUserSession)link.getUserState();
+		var providerSessionId = userSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
 			if (socket != null && onSend.test(socket))
@@ -71,7 +74,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		}
 
 		var provider = new OutLong();
-		if (choiceProviderAndBind(moduleId, link, provider)) {
+		if (choiceProviderAndBind(moduleId, userSession.clientAppVersion, link, provider)) {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 			//noinspection RedundantIfStatement
 			if (providerSocket != null && onSend.test(providerSocket)) // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
@@ -82,26 +85,31 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
-	public boolean choiceHashWithoutBind(int moduleId, int hash, OutLong provider) {
-		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
+	public boolean choiceHashWithoutBind(int moduleId, long version, int hash, @NotNull OutLong provider) {
 		provider.value = 0L;
+		var distribute = distributes.selectDistribute(version);
+		if (distribute == null)
+			return false;
+		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		return providers != null && distribute.choiceHash(providers, hash, provider);
 	}
 
-	public String makeServiceName(int moduleId) {
+	public @NotNull String makeServiceName(int moduleId) {
 		return ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
 	}
 
-	public ProviderModuleState getProviderModuleState(int moduleId) {
-		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
-		if (providers == null)
-			return null;
-		return (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
+	public @Nullable ProviderModuleState getProviderModuleState(int moduleId) {
+		var providers = distributes.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
+		return providers != null ? (ProviderModuleState)providers.getSubscribeInfo().getLocalState() : null;
 	}
 
-	public boolean choiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
+	public boolean choiceProviderAndBind(int moduleId, long clientVersion, @NotNull AsyncSocket link,
+										 @NotNull OutLong provider) {
 		provider.value = 0L;
+		var distribute = distributes.selectDistribute(clientVersion);
+		if (distribute == null)
+			return false;
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
 			return false;
@@ -111,6 +119,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 这里仅使用里面的ChoiceType和ConfigType。这两个参数对于相同的moduleId都是一样的。
 		// 如果需要某个provider.SessionId，需要查询 ServiceInfoListSortedByIdentity 里的ServiceInfo.LocalState。
 		var providerModuleState = (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
+		assert providerModuleState != null;
 		switch (providerModuleState.choiceType) {
 		case BModule.ChoiceTypeHashAccount:
 			if (!distribute.choiceHash(providers, Bean.hash32(linkSession.getAccount()), provider))
@@ -124,7 +133,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
-			if (!distribute.choiceFeedFullOneByOne(providers, provider, linkSession.clientAppVersion))
+			if (!distribute.choiceFeedFullOneByOne(providers, provider))
 				return false;
 			break; // bind static later
 
@@ -137,14 +146,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			break; // bind static later
 
 		case BModule.ChoiceTypeLoad:
-			if (!distribute.choiceLoad(providers, provider, linkSession.clientAppVersion))
+			if (!distribute.choiceLoad(providers, provider))
 				return false;
 			break; // bind static later
 
 		case BModule.ChoiceTypeRequest:
 			// fall down
 		default:
-			if (!distribute.choiceRequest(providers, provider, linkSession.clientAppVersion))
+			if (!distribute.choiceRequest(providers, provider))
 				return false;
 			break; // bind static later
 		}
@@ -155,7 +164,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerSocket == null
 				|| providerSocket.isClosed()
 				|| (ps = (ProviderSession)providerSocket.getUserState()).isDisableChoice()
-				|| !ProviderDistribute.checkAppVersion(ps.appVersion, linkSession.clientAppVersion)) {
+				|| !ProviderDistribute.checkAppVersion(ps.appVersion, clientVersion)) {
 			// 版本不匹配，继续尝试查找。
 			providerSocket = null; // clear first.
 
@@ -174,7 +183,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 					ps = (ProviderSession)providerSocket.getUserState();
 					if (!ps.isDisableChoice()
-							&& ProviderDistribute.checkAppVersion(ps.appVersion, linkSession.clientAppVersion)) {
+							&& ProviderDistribute.checkAppVersion(ps.appVersion, clientVersion)) {
 						provider.value = sessionId;
 						break;
 					}
@@ -207,7 +216,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return true;
 	}
 
-	public void onProviderClose(AsyncSocket provider) {
+	public void onProviderClose(@NotNull AsyncSocket provider) {
 		var providerSession = (LinkdProviderSession)provider.getUserState();
 		if (providerSession == null)
 			return;
@@ -244,7 +253,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	public long ProcessBindRequest(Bind rpc) {
+	public long ProcessBindRequest(@NotNull Bind rpc) {
 		var bind = rpc.Argument;
 		if (bind.getLinkSids().isEmpty()) {
 			var providerSession = (LinkdProviderSession)rpc.getSender().getUserState();
@@ -259,7 +268,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.getConfigType());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-				var subState = distribute.zeze.getServiceManager().subscribeService(
+				var subState = distributes.zeze.getServiceManager().subscribeService(
 						new BSubscribeInfo(serviceName, 0, providerModuleState));
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 				// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -283,7 +292,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessSubscribeRequest(Subscribe rpc) {
+	protected long ProcessSubscribeRequest(@NotNull Subscribe rpc) {
 		var providerSession = (LinkdProviderSession)rpc.getSender().getUserState();
 		var providerInfo = providerSession.getInfo();
 		for (var e : rpc.Argument.getModules().entrySet()) {
@@ -292,7 +301,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 					moduleId, module.getChoiceType(), module.getConfigType());
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-			var subState = distribute.zeze.getServiceManager().subscribeService(
+			var subState = distributes.zeze.getServiceManager().subscribeService(
 					new BSubscribeInfo(serviceName, 0, providerModuleState));
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
 			// 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
@@ -303,18 +312,19 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
-	private void unBindModules(AsyncSocket provider, Iterable<Integer> modules) {
+	private void unBindModules(@NotNull AsyncSocket provider, @NotNull Iterable<Integer> modules) {
 		unBindModules(provider, modules, false);
 	}
 
-	private void unBindModules(AsyncSocket provider, Iterable<Integer> modules, boolean isOnProviderClose) {
+	private void unBindModules(@NotNull AsyncSocket provider, @NotNull Iterable<Integer> modules,
+							   boolean isOnProviderClose) {
 		var providerSession = (LinkdProviderSession)provider.getUserState();
 		var providerInfo = providerSession.getInfo();
 		for (var moduleId : modules) {
 			if (!isOnProviderClose)
 				providerSession.getStaticBinds().remove(moduleId);
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
-			var volatileProviders = distribute.zeze.getServiceManager().getSubscribeStates().get(serviceName);
+			var volatileProviders = distributes.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
 				// 这里仅仅设置该moduleId对应的服务的状态不可用。
@@ -324,7 +334,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessUnBindRequest(UnBind rpc) {
+	protected long ProcessUnBindRequest(@NotNull UnBind rpc) {
 		if (rpc.Argument.getLinkSids().isEmpty())
 			unBindModules(rpc.getSender(), rpc.Argument.getModules().keySet());
 		else {
@@ -341,8 +351,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
-	protected void tryDump(AsyncSocket s, Binary pdata) throws IOException {
+	protected void tryDump(@NotNull AsyncSocket s, @NotNull Binary pdata) throws IOException {
 		if (dumpFile == null) {
+			assert dumpFilename != null;
 			dumpFile = new FileOutputStream(dumpFilename);
 			dumpSocket = s;
 		}
@@ -350,11 +361,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			dumpFile.write(pdata.bytesUnsafe(), pdata.getOffset(), pdata.size());
 	}
 
-	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Send.TypeId_);
+	private static final boolean canLogSend = AsyncSocket.ENABLE_PROTOCOL_LOG
+			&& AsyncSocket.canLogProtocol(Send.TypeId_);
 //	private final TaskOneByOneByKey oneByOneSender = new TaskOneByOneByKey();
 
 	@Override
-	protected long ProcessSendRequest(Send r) throws Exception {
+	protected long ProcessSendRequest(@NotNull Send r) throws Exception {
 		var pdata = r.Argument.getProtocolWholeData();
 		var linkSids = r.Argument.getLinkSids();
 		int sidCount = linkSids.size();
@@ -402,7 +414,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				if (enableDump)
 					tryDump(link, pdata);
 			} else {
-				synchr_onized (r) {
+				synchronized (r) {
 					r.Result.getErrorLinkSids().add(linkSid);
 				}
 			}
@@ -411,10 +423,11 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
-	private static final boolean canLogBroadcast = AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(Broadcast.TypeId_);
+	private static final boolean canLogBroadcast = AsyncSocket.ENABLE_PROTOCOL_LOG
+			&& AsyncSocket.canLogProtocol(Broadcast.TypeId_);
 
 	@Override
-	protected long ProcessBroadcast(Broadcast protocol) throws Exception {
+	protected long ProcessBroadcast(@NotNull Broadcast protocol) throws Exception {
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (canLogBroadcast) {
 			var bb = ByteBuffer.Wrap(pdata);
@@ -436,13 +449,13 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessCheckLinkSession(CheckLinkSession p) throws Exception {
+	protected long ProcessCheckLinkSession(@NotNull CheckLinkSession p) throws Exception {
 		// see ProcessSend，这里不需要处理。
 		return 0;
 	}
 
 	@Override
-	protected long ProcessKick(Kick protocol) {
+	protected long ProcessKick(@NotNull Kick protocol) {
 		linkdApp.linkdService.reportError(
 				protocol.Argument.getLinksid(),
 				BReportError.FromProvider,
@@ -453,7 +466,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessSetUserState(SetUserState protocol) {
+	protected long ProcessSetUserState(@NotNull SetUserState protocol) {
 		var socket = linkdApp.linkdService.GetSocket(protocol.Argument.getLinkSid());
 		if (socket != null) {
 			var linkSession = (LinkdUserSession)socket.getUserState();
@@ -466,7 +479,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessAnnounceProviderInfo(AnnounceProviderInfo protocol) {
+	protected long ProcessAnnounceProviderInfo(@NotNull AnnounceProviderInfo protocol) {
 		var arg = protocol.Argument;
 		var sender = protocol.getSender();
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
@@ -491,7 +504,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessSetDisableChoiceRequest(Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
+	protected long ProcessSetDisableChoiceRequest(@NotNull Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
 		var session = (LinkdProviderSession)r.getSender().getUserState();
 		session.setDisableChoice(r.Argument.isDisableChoice());
 		r.SendResultCode(0);

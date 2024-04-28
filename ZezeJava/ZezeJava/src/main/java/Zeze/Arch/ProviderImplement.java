@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
-	protected static final Logger logger = LogManager.getLogger(ProviderImplement.class);
+	protected static final @NotNull Logger logger = LogManager.getLogger(ProviderImplement.class);
 	private static final ThreadLocal<Dispatch> localDispatch = new ThreadLocal<>();
 
 	protected ProviderApp providerApp;
@@ -60,17 +60,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sm = providerApp.zeze.getServiceManager();
 		var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		var edit = new BEditService();
-		var appVersion = providerApp.zeze.getSchemas().getAppVersion();
+		var appVersion = providerApp.zeze.getConfig().getAppVersion();
 		// 注册本provider的静态服务
 		for (var it = providerApp.staticBinds.iterator(); it.moveToNext(); ) {
-			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
-					appVersion,
+			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
 		// 注册本provider的动态服务
 		for (var it = providerApp.dynamicModules.iterator(); it.moveToNext(); ) {
-			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity,
-					appVersion,
+			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
 		sm.editService(edit);
@@ -99,11 +97,11 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
-	public ProviderUserSession newSession(@NotNull Dispatch p) {
+	public @NotNull ProviderUserSession newSession(@NotNull Dispatch p) {
 		return new ProviderUserSession(p);
 	}
 
-	private String getAuthFlags(String account, long typeId) {
+	private @Nullable String getAuthFlags(@NotNull String account, long typeId) {
 		var auth = providerApp.zeze.getAuth();
 		if (null == auth)
 			return "";
@@ -112,7 +110,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessDispatch(Dispatch p) {
+	protected long ProcessDispatch(@NotNull Dispatch p) {
 		var sender = p.getSender();
 		var arg = p.Argument;
 		var linkSid = arg.getLinkSid();
@@ -271,7 +269,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	@Override
-	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
+	protected long ProcessAnnounceLinkInfo(@NotNull AnnounceLinkInfo protocol) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			logger.info("AnnounceLinkInfo[{}]: {}",
 					protocol.getSender().getSessionId(), AsyncSocket.toStr(protocol.Argument));
