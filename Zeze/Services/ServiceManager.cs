@@ -57,7 +57,7 @@ namespace Zeze.Services.ServiceManager
             public SubscribeInfo SubscribeInfo { get; }
             public string ServiceName => SubscribeInfo.ServiceName;
             public ServiceInfosVersion ServiceInfosVersion { get; private set; }
-            public ServiceInfos ServiceInfos => ServiceInfosVersion.InfosVersion[0]; // 兼容
+            //public ServiceInfos ServiceInfos => ServiceInfosVersion.InfosVersion[0]; // 兼容
 
             public override string ToString()
             {
@@ -902,6 +902,13 @@ namespace Zeze.Services.ServiceManager
         public override void ClearParameters()
         {
             InfosVersion.Clear();
+        }
+
+        public bool IsServiceEmpty(long version)
+        {
+            if (InfosVersion.TryGetValue(version, out var infos))
+                return infos.SortedIdentity.Count == 0;
+            return true;
         }
 
         public override void Decode(ByteBuffer bb)

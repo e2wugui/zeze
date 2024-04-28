@@ -113,9 +113,9 @@ namespace Zeze.Arch
 			miss.Argument.SessionId = req.Argument.SessionId;
 			miss.Argument.ServerId = 0; // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
 			miss.ResultCode = ModuleRedirect.ResultCodeLinkdNoProvider;
-
+            
 			if (false == ProviderApp.Distribute.TryGetProviders(req.Argument.ServiceNamePrefix, req.Argument.ModuleId, out var providers)
-				|| providers.ServiceInfos.SortedIdentity.Count == 0)
+				|| providers.ServiceInfosVersion.IsServiceEmpty(ProviderApp.Distribute.Version))
 			{
 				// 全部miss。
 				for (int i = 0; i < req.Argument.HashCodeConcurrentLevel; ++i)

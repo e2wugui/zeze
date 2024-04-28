@@ -34,7 +34,7 @@ namespace Zeze.Arch
 			LinkdService = linkdService;
 			LinkdService.LinkdApp = this;
 
-            LinkdProvider.Distribute = new ProviderDistribute
+            LinkdProvider.Distribute = new ProviderDistributeVersion
             {
                 ProviderService = LinkdProviderService,
                 Zeze = Zeze,

@@ -76,11 +76,8 @@ namespace Zeze.Arch
 					ps.Load = load;
 				}
 			};
-			this.Distribute = new ProviderDistribute();
-			this.Distribute.LoadConfig = loadConfig;
-			this.Distribute.Zeze = Zeze;
-			this.Distribute.ProviderService = ProviderDirectService;
-
+			var appVersion = 0; // TODO app version
+			this.Distribute = new ProviderDistribute(appVersion, Zeze, ProviderDirectService, loadConfig);
 			this.Zeze.ServiceManager.OnChanged = ApplyChanged;
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}

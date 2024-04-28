@@ -179,9 +179,9 @@ namespace Zeze.Arch
 				{
 					if (ss.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
 					{
-						var infos = ss.ServiceInfos;
-						if (null == infos)
+						if (false == ss.ServiceInfosVersion.InfosVersion.TryGetValue(0, out var infos))
 							continue;
+
 						var mid = int.Parse(ss.ServiceName.Split('#')[1]);
 						if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
 							throw new Exception($"Module Not Found {mid}");
