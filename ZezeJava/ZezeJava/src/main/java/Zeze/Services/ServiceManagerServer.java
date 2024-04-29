@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.ThreadingServer;
 import Zeze.Config;
@@ -601,7 +602,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private static final class AutoKey extends FastLock {
 		private final @NotNull ServiceManagerServer sms;
 		private final byte @NotNull [] key;
-		private long current;
+		private final AtomicLong current = new AtomicLong();
+		private volatile long max;
 
 		public AutoKey(@NotNull String name, @NotNull ServiceManagerServer sms) {
 			this.sms = sms;
@@ -612,38 +614,45 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			try {
 				byte[] value = this.sms.autoKeysDb.get(RocksDatabase.getDefaultReadOptions(), key);
 				if (value != null)
-					current = ByteBuffer.Wrap(value).ReadLong();
+					current.set(max = ByteBuffer.Wrap(value).ReadLong());
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
 		}
 
 		public void allocate(@NotNull AllocateId rpc) {
-			lock();
-			try {
-				rpc.Result.setStartId(current);
-
-				var count = rpc.Argument.getCount();
-
-				// 随便修正一下分配数量。
-				if (count < 256)
-					count = 256;
-				else if (count > 10000)
-					count = 10000;
-
-				long current = this.current + count;
-				this.current = current;
-				var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(current));
-				bb.WriteLong(current);
-				try {
-					sms.autoKeysDb.put(RocksDatabase.getDefaultWriteOptions(), key, bb.Bytes);
-				} catch (RocksDBException e) {
-					Task.forceThrow(e);
+			var count = rpc.Argument.getCount();
+			if (count < 0)
+				count = 0;
+			else if (count > 10000) // 随便修正一下分配数量
+				count = 10000;
+			for (; ; ) {
+				var c = current.get();
+				if (c + count <= max) {
+					if (current.compareAndSet(c, c + count)) {
+						rpc.Result.setStartId(c);
+						rpc.Result.setCount(count);
+						return;
+					}
+				} else {
+					lock();
+					try {
+						var m = max;
+						if (c + count > m) { // retry
+							m += 10000; //TODO: 先随便用一个增量
+							var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
+							bb.WriteLong(m);
+							try {
+								sms.autoKeysDb.put(RocksDatabase.getDefaultWriteOptions(), key, bb.Bytes);
+							} catch (RocksDBException e) {
+								Task.forceThrow(e);
+							}
+							max = m;
+						}
+					} finally {
+						unlock();
+					}
 				}
-
-				rpc.Result.setCount(count);
-			} finally {
-				unlock();
 			}
 		}
 	}

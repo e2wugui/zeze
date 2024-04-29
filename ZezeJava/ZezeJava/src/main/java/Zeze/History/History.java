@@ -1,7 +1,6 @@
 package Zeze.History;
 
 import Zeze.Builtin.HistoryModule.BLogChanges;
-import Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;

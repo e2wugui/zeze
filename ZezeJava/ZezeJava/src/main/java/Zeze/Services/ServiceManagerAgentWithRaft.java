@@ -20,7 +20,6 @@ import Zeze.IModule;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
-import Zeze.Services.ServiceManager.BAllocateIdResult;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
