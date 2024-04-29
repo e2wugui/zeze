@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,7 +12,6 @@ import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.CallableNoneThrow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,7 +122,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-									   @NotNull CallableNoneThrow<BLogChanges.Data> collectChanges) {
+									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
 
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:

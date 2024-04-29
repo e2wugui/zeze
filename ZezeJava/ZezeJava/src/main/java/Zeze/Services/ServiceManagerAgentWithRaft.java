@@ -16,9 +16,11 @@ import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Services.ServiceManager.BAllocateIdResult;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
@@ -158,6 +160,24 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		raftClient.sendForWait(r).await();
 		if (r.getResultCode() == 0) // setCurrentAndCount is in super.
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
+	}
+
+	@Override
+	public TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName) {
+		// 实际上使用原来带缓冲的AutoKey实现。使用pool==1。
+		// globalName原则上和AutoKey应该互斥，如果一样也能工作。
+		var r = new AllocateId();
+		r.Argument.setName(globalName);
+		r.Argument.setCount(1);
+		var future = new TaskCompletionSource<Long>();
+		raftClient.send(r, (rpc) -> {
+			if (r.getResultCode() == 0)
+				future.setResult(r.Result.getStartId());
+			else
+				future.setException(new Exception("allocate error " + IModule.getModuleId(r.getResultCode())));
+			return 0;
+		});
+		return future;
 	}
 
 	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();

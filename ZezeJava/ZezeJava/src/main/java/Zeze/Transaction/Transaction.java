@@ -269,7 +269,21 @@ public final class Transaction {
 								checkResult = lockAndCheck(procedure.getTransactionLevel());
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
-										finalCommit(procedure);
+										try {
+											finalCommit(procedure);
+										} catch (Exception ex) {
+											// final Commit 不能抛出异常。否则就halt。
+
+											// 首先释放锁
+											holdLocks.forEach(Lockey::exitLock);
+											holdLocks.clear();
+
+											// halt process.
+											procedure.getZeze().checkpointRun();
+											LogManager.shutdown();
+											Runtime.getRuntime().halt(543543);
+											return 0;
+										}
 										return Procedure.Success;
 									}
 									finalRollback(procedure, true);
@@ -409,8 +423,9 @@ public final class Transaction {
 		this.onzProcedure = onzProcedure;
 	}
 
-	private void finalCommit(@NotNull Procedure procedure) {
-		var globalSerialId = 0L; // todo sm.allocateGlobalSerial(); 异步获取。
+	public final static String eHistoryGlobalSerialName = "Zeze.History.eHistoryGlobalSerialName";
+	private void finalCommit(@NotNull Procedure procedure) throws Exception {
+		var globalSerialIdFuture = procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(eHistoryGlobalSerialName);
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
@@ -469,9 +484,12 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
-			if (procedure.getZeze().getConfig().isHistory())
+			if (procedure.getZeze().getConfig().isHistory()) {
+				// 系列号分配失败会导致halt。
+				Long globalSerialId = globalSerialIdFuture.get();
 				return History.buildLogChanges(globalSerialId, cc,
 						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
+			}
 			return null;
 		}); // onz patch: 新增参数
 

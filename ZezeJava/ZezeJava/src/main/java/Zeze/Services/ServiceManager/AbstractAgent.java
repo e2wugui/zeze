@@ -11,6 +11,7 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -92,6 +93,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
+
+	public abstract TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
 
 	public abstract void start() throws Exception;
 
