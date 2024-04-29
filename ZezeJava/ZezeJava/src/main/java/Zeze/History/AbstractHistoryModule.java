@@ -34,4 +34,14 @@ public abstract class AbstractHistoryModule implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
+        var _reflect = new Zeze.Util.Reflect(getClass());
+        httpServer.addHandler("/Zeze/Builtin/HistoryModule/WalkPage", 8192,
+                _reflect.getTransactionLevel("OnServletWalkPage", Zeze.Transaction.TransactionLevel.Serializable),
+                _reflect.getDispatchMode("OnServletWalkPage", Zeze.Transaction.DispatchMode.Normal),
+                this::OnServletWalkPage);
+    }
+
+    protected abstract void OnServletWalkPage(Zeze.Netty.HttpExchange x) throws Exception;
 }

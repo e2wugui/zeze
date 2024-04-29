@@ -1849,6 +1849,9 @@
 				<variable id="4" name="Changes" type="binary"/>
 			</bean>
 			<table name="ZezeHistoryTable_m_a_g_i_c" key="long" value="BLogChanges"/>
+
+			<!-- 查询分析 servlet -->
+			<servlet name="WalkPage"/>
 		</module>
 
 		<!--
@@ -1859,7 +1862,7 @@
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
 	<component name="HistoryModule" gendir="src/main/java" genrelativedir="Zeze/History" platform="zeze+java">
-		<service name="" handle="server">
+		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.HistoryModule"/>
 		</service>
 	</component>
