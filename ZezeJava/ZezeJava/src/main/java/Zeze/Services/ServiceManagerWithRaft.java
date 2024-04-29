@@ -3,7 +3,6 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.TreeMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
@@ -18,7 +17,6 @@ import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.Server;
 import Zeze.Services.ServiceManager.BServiceInfo;
-import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BServiceInfosVersion;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.DispatchMode;
@@ -528,34 +526,10 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		return null;
 	}
 
-	private static BServiceInfosVersion newServiceInfosVersion(long hopeVersion, BServerState state) {
-		var versions = new BServiceInfosVersion();
-		var serviceName = state.getServiceName();
-		if (hopeVersion != 0) {
-			var identityMap = state.getServiceInfosVersion().get(hopeVersion);
-			if (null != identityMap)
-				versions.getInfosVersion().put(hopeVersion, newSortedBServiceInfos(serviceName, identityMap));
-		} else {
-			for (var e : state.getServiceInfosVersion().entrySet())
-				versions.getInfosVersion().put(e.getKey(), newSortedBServiceInfos(serviceName, e.getValue()));
-		}
-		return versions;
-	}
-
-	private static BServiceInfos newSortedBServiceInfos(String serviceName, BServiceInfosVersionRocks identityMap) {
-		var result = new BServiceInfos(serviceName);
-		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
-		for (var info : identityMap.getServiceInfos().entrySet())
-			sortedMap.put(new BServiceInfoKeyRocks(serviceName, info.getKey()), info.getValue());
-		for (var sortedInfo : sortedMap.values())
-			result.getServiceInfoListSortedByIdentity().add(fromRocks(sortedInfo));
-		return result;
-	}
-
 	private void subscribeAndCollect(BServerState state, Subscribe r, BSubscribeInfo subInfo, String ssName) {
 		// 外面会话的 TryAdd 加入成功，下面TryAdd肯定也成功。
 		state.getSimple().put(ssName, toRocks(subInfo));
-		r.Result.map.put(state.getServiceName(), newServiceInfosVersion(subInfo.getVersion(), state));
+		r.Result.map.put(state.getServiceName(), new BServiceInfosVersion(subInfo.getVersion(), state));
 
 		var netSession = (Session)r.getSender().getUserState();
 		for (var versions : state.getServiceInfosVersion().values())

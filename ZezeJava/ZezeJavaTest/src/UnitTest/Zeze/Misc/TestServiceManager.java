@@ -1,7 +1,5 @@
 package UnitTest.Zeze.Misc;
 
-import java.nio.charset.StandardCharsets;
-import Zeze.Net.Binary;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BServiceInfos;
@@ -16,7 +14,7 @@ import org.junit.Test;
 public class TestServiceManager {
 	@Test
 	public void testServiceInfos() {
-		var infos = new BServiceInfos("TestBase");
+		var infos = new BServiceInfos();
 		infos.insert(new BServiceInfo("TestBase", "1", 0));
 		infos.insert(new BServiceInfo("TestBase", "3", 0));
 		infos.insert(new BServiceInfo("TestBase", "2", 0));

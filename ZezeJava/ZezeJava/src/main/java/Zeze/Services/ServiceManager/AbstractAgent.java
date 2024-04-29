@@ -24,7 +24,7 @@ import java.util.List;
  * UnSubscribe	无							无
  */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
-	static final Logger logger = LogManager.getLogger(AbstractAgent.class);
+	static final @NotNull Logger logger = LogManager.getLogger(AbstractAgent.class);
 
 	// key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
 	// ServiceName ->
@@ -117,11 +117,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 当同一个Key(比如ServiceName)存在并发时，现在处理所有情况，但不保证都是合理的。
 	public static final class SubscribeState extends ReentrantLock {
 		private final @NotNull BSubscribeInfo subscribeInfo;
-		private volatile @NotNull BServiceInfosVersion serviceInfos;
+		private volatile @NotNull BServiceInfosVersion serviceInfos = new BServiceInfosVersion();
 
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> localStates = new ConcurrentHashMap<>();
 		private @Nullable Iterator<Map.Entry<String, Object>> localStatesIterator;
+
+		public SubscribeState(@NotNull BSubscribeInfo info) {
+			subscribeInfo = info;
+		}
 
 		public @Nullable Map.Entry<String, Object> getNextStateEntry() {
 			lock();
@@ -147,17 +151,32 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			return subscribeInfo.getServiceName();
 		}
 
+		/**
+		 * @return 只读, 禁止修改
+		 */
 		public @Nullable BServiceInfos getServiceInfos(long version) {
-			return serviceInfos.getInfosVersion().get(version);
+			return serviceInfos.getInfos(version);
 		}
 
-		public @NotNull BServiceInfosVersion getServiceInfosVersion() {
+		/**
+		 * @return 只读, 禁止修改
+		 */
+		@NotNull
+		BServiceInfosVersion getServiceInfosVersion() {
 			return serviceInfos;
 		}
 
-		public SubscribeState(@NotNull BSubscribeInfo info) {
-			subscribeInfo = info;
-			serviceInfos = new BServiceInfosVersion();
+		public @Nullable BServiceInfo findServiceInfoByIdentity(@NotNull String identity) {
+			for (var it = serviceInfos.getInfosIterator(); it.moveToNext(); ) {
+				var info = it.value().findServiceInfoByIdentity(identity);
+				if (info != null)
+					return info;
+			}
+			return null;
+		}
+
+		public @Nullable BServiceInfo findServiceInfoByServerId(int serverId) {
+			return findServiceInfoByIdentity(String.valueOf(serverId));
 		}
 
 		// NOT UNDER LOCK
@@ -179,7 +198,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public @Nullable BServiceInfo onRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
-				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
+				var versions = serviceInfos.getInfos(info.getVersion());
 				if (null != versions) {
 					var exist = versions.insert(info);
 					return null != exist && !exist.fullEquals(info) ? exist : null;
@@ -193,7 +212,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public boolean onUnRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
-				var versions = serviceInfos.getInfosVersion().get(info.getVersion());
+				var versions = serviceInfos.getInfos(info.getVersion());
 				if (null != versions)
 					return (null != versions.remove(info));
 				return false;
@@ -203,8 +222,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		}
 
 		public void onFirstCommit(@NotNull BServiceInfosVersion infos, @NotNull BEditService edits) {
-			for (var it = infos.getInfosVersion().iterator(); it.moveToNext(); )
-				edits.getAdd().addAll(it.value().getServiceInfoListSortedByIdentity());
+			for (var it = infos.getInfosIterator(); it.moveToNext(); )
+				edits.getAdd().addAll(it.value().getSortedIdentities());
 			lock();
 			try {
 				serviceInfos = infos;

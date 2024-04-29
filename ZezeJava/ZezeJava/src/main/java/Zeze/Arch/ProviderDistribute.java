@@ -136,7 +136,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (serviceInfos == null)
 			return false;
 
-		var list = serviceInfos.getServiceInfoListSortedByIdentity();
+		var list = serviceInfos.getSortedIdentities();
 		var frees = new ArrayList<KV<ProviderSession, Integer>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
 		int TotalWeight = 0;
@@ -201,7 +201,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (serviceInfos == null)
 			return false;
 
-		var list = serviceInfos.getServiceInfoListSortedByIdentity();
+		var list = serviceInfos.getSortedIdentities();
 		var frees = new ArrayList<KV<ProviderSession, Long>>(list.size());
 		var all = new ArrayList<ProviderSession>(list.size());
 		long TotalWeight = 0;
@@ -268,7 +268,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (serviceInfos == null)
 				return false;
 
-			var list = serviceInfos.getServiceInfoListSortedByIdentity();
+			var list = serviceInfos.getSortedIdentities();
 			// 最多遍历一次。循环里面 continue 时，需要递增索引。
 			for (int i = 0; i < list.size(); ++i, feedFullOneByOneIndex.incrementAndGet()) {
 				var index = Integer.remainderUnsigned(feedFullOneByOneIndex.get(), list.size()); // current

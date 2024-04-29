@@ -246,4 +246,9 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	public FewModifyMap<K, V> clone() throws CloneNotSupportedException {
 		throw new CloneNotSupportedException();
 	}
+
+	@Override
+	public String toString() {
+		return prepareRead().toString();
+	}
 }

@@ -305,7 +305,7 @@ public class OnzServer extends AbstractOnz {
 
 		var serviceInfos = onzServices.getServiceInfos(0);
 		if (serviceInfos != null) {
-			for (var onzService : serviceInfos.getServiceInfoListSortedByIdentity()) {
+			for (var onzService : serviceInfos.getSortedIdentities()) {
 				var ip = onzService.getPassiveIp();
 				var port = onzService.getPassivePort();
 				if (null != connector && connector.getName().equals(ip + "_" + port))

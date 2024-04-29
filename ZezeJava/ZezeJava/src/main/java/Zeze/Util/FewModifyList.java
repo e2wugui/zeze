@@ -273,4 +273,9 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 		}
 		throw new CloneNotSupportedException();
 	}
+
+	@Override
+	public String toString() {
+		return prepareRead().toString();
+	}
 }

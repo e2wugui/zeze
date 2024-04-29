@@ -282,4 +282,9 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	public FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
 		throw new CloneNotSupportedException();
 	}
+
+	@Override
+	public String toString() {
+		return prepareRead().toString();
+	}
 }

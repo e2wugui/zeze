@@ -57,9 +57,9 @@ public class ExporterNginxConfig implements IExporter {
 
 	private void exportToLines(String prefix, ArrayList<String> out, String serviceName, BServiceInfosVersion all) {
 		out.add(prefix + "upstream " + serviceName + " {");
-		var ver0  = all.getInfosVersion().get(version);
+		var ver0 = all.getInfos(version);
 		if (null != ver0) {
-			for (var info : ver0.getServiceInfoListSortedByIdentity()){
+			for (var info : ver0.getSortedIdentities()){
 				if (info.getPassiveIp().isBlank())
 					continue;
 				out.add(prefix + "    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");

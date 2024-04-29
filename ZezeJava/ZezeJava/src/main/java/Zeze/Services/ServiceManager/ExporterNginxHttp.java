@@ -39,12 +39,12 @@ public class ExporterNginxHttp implements IExporter {
 
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
-		var ver0 = all.getInfosVersion().get(version);
+		var ver0 = all.getInfos(version);
 		if (ver0 == null)
 			return;
 
 		var sb = new StringBuilder();
-		for (var info : ver0.getServiceInfoListSortedByIdentity()) {
+		for (var info : ver0.getSortedIdentities()) {
 			if (info.getPassiveIp().isBlank())
 				continue;
 			sb.append("server ").append(info.getPassiveIp()).append(':').append(info.getPassivePort()).append(';');

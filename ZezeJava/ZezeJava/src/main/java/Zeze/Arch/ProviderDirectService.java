@@ -240,7 +240,7 @@ public class ProviderDirectService extends HandshakeBoth {
 						logger.error("setRelativeServiceReady: not found module: {}", ss.getServiceName());
 						continue;
 					}
-					for (var server : infos.getServiceInfoListSortedByIdentity()) {
+					for (var server : infos.getSortedIdentities()) {
 						// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 						if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
 							setReady(ss.getServiceName(), server, ps, mid, m);
