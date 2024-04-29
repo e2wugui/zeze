@@ -2,9 +2,9 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public class BAchillesHeel extends Bean {
+public class BAchillesHeel implements Serializable {
 	public int serverId; // 必须的。
 	public String secureKey; // 安全验证
 	public int globalCacheManagerHashIndex; // 安全验证
@@ -37,7 +37,7 @@ public class BAchillesHeel extends Bean {
 
 	@Override
 	public String toString() {
-		return "BAchillesHeel{" + "ServerId=" + serverId + ", SecureKey='" + secureKey + '\'' +
-				", GlobalCacheManagerHashIndex=" + globalCacheManagerHashIndex + '}';
+		return "BAchillesHeel{serverId=" + serverId + ",secureKey='" + secureKey +
+				"',globalCacheManagerHashIndex=" + globalCacheManagerHashIndex + '}';
 	}
 }

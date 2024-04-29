@@ -3,9 +3,9 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public class BOfflineNotify extends Bean {
+public class BOfflineNotify implements Serializable {
 	public int serverId;
 	public String notifyId;
 	public long notifySerialId; // context 如果够用就直接用这个，
@@ -25,5 +25,23 @@ public class BOfflineNotify extends Bean {
 		notifyId = bb.ReadString();
 		notifySerialId = bb.ReadLong();
 		notifyContext = bb.ReadBinary();
+	}
+
+	private static int _PRE_ALLOC_SIZE_ = 16;
+
+	@Override
+	public int preAllocSize() {
+		return _PRE_ALLOC_SIZE_;
+	}
+
+	@Override
+	public void preAllocSize(int size) {
+		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "BOfflineNotify{serverId=" + serverId + ",notifyId='" + notifyId +
+				"',notifySerialId=" + notifySerialId + ",notifyContext=" + notifyContext + '}';
 	}
 }

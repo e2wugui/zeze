@@ -3,10 +3,10 @@ package Zeze.Services.ServiceManager;
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
-public class BUnSubscribeArgument extends Bean {
+public class BUnSubscribeArgument implements Serializable {
 	public final ArrayList<String> serviceNames = new ArrayList<>();
 
 	@Override
@@ -22,11 +22,6 @@ public class BUnSubscribeArgument extends Bean {
 			serviceNames.add(bb.ReadString());
 	}
 
-	@Override
-	public String toString() {
-		return serviceNames.toString();
-	}
-
 	private static int _PRE_ALLOC_SIZE_ = 128;
 
 	@Override
@@ -37,5 +32,10 @@ public class BUnSubscribeArgument extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "BUnSubscribeArgument" + serviceNames;
 	}
 }

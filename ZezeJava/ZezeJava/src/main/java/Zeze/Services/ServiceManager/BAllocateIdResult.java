@@ -2,9 +2,9 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public final class BAllocateIdResult extends Bean {
+public final class BAllocateIdResult implements Serializable {
 	private String name;
 	private long startId;
 	private int count;
@@ -35,16 +35,16 @@ public final class BAllocateIdResult extends Bean {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		setName(bb.ReadString());
-		setStartId(bb.ReadLong());
-		setCount(bb.ReadInt());
+		name = bb.ReadString();
+		startId = bb.ReadLong();
+		count = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(getName());
-		bb.WriteLong(getStartId());
-		bb.WriteInt(getCount());
+		bb.WriteString(name);
+		bb.WriteLong(startId);
+		bb.WriteInt(count);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -61,6 +61,6 @@ public final class BAllocateIdResult extends Bean {
 
 	@Override
 	public String toString() {
-		return "BAllocateIdResult{" + "Name='" + name + '\'' + ", StartId=" + startId + ", Count=" + count + '}';
+		return "BAllocateIdResult{name='" + name + "',startId=" + startId + ",count=" + count + '}';
 	}
 }

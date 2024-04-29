@@ -3,11 +3,11 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class BServiceInfo extends Bean implements Comparable<BServiceInfo> {
+public final class BServiceInfo implements Serializable, Comparable<BServiceInfo> {
 	/**
 	 * 服务名，比如"GameServer"
 	 */
@@ -128,7 +128,7 @@ public final class BServiceInfo extends Bean implements Comparable<BServiceInfo>
 		bb.WriteBinary(extraInfo);
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
+	private static int _PRE_ALLOC_SIZE_ = 32;
 
 	@Override
 	public int preAllocSize() {

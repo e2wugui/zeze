@@ -4,13 +4,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Record;
+import Zeze.Serialize.Serializable;
 import Zeze.Util.FewModifyList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class BServiceInfos extends Bean {
+public final class BServiceInfos implements Serializable {
 	public static final Comparator<BServiceInfo> comparer = (si1, si2) -> {
 		var id1 = si1.getServiceIdentity();
 		var id2 = si2.getServiceIdentity();
@@ -72,7 +71,7 @@ public final class BServiceInfos extends Bean {
 		}
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
+	private static int _PRE_ALLOC_SIZE_ = 32;
 
 	@Override
 	public int preAllocSize() {
@@ -85,17 +84,7 @@ public final class BServiceInfos extends Bean {
 	}
 
 	@Override
-	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public @NotNull String toString() {
-		return sortedIdentities.toString();
+		return "BServiceInfos" + sortedIdentities;
 	}
 }

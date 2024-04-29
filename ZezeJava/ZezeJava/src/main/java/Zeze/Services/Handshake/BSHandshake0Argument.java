@@ -3,9 +3,9 @@ package Zeze.Services.Handshake;
 import java.util.ArrayList;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public class BSHandshake0Argument extends Bean {
+public class BSHandshake0Argument implements Serializable {
 	public int encryptType; // 推荐的加密算法。旧版是boolean
 	public ArrayList<Integer> supportedEncryptList = new ArrayList<>();
 	public int compressS2c; // 推荐的压缩算法。
@@ -59,10 +59,9 @@ public class BSHandshake0Argument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshake0Argument {encryptType=" + encryptType
-				+ ", supportedEncryptList=" + supportedEncryptList
-				+ ", compress S2c/C2s" + compressS2c + "/" + compressC2s
-				+ ", supportedCompressList=" + supportedCompressList
-				+ "}";
+		return "BSHandshake0Argument{encryptType=" + encryptType
+				+ ",supportedEncryptList=" + supportedEncryptList
+				+ ",compressS2c/C2s" + compressS2c + '/' + compressC2s
+				+ ",supportedCompressList=" + supportedCompressList + '}';
 	}
 }

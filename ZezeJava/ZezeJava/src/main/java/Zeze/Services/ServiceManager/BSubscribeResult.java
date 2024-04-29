@@ -3,10 +3,10 @@ package Zeze.Services.ServiceManager;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 
-public class BSubscribeResult extends Bean {
+public class BSubscribeResult implements Serializable {
 	public final HashMap<String, BServiceInfosVersion> map = new HashMap<>(); // key:serviceName
 
 	@Override
@@ -28,12 +28,7 @@ public class BSubscribeResult extends Bean {
 		}
 	}
 
-	@Override
-	public String toString() {
-		return map.toString();
-	}
-
-	private static int _PRE_ALLOC_SIZE_ = 100 * 1024;
+	private static int _PRE_ALLOC_SIZE_ = 256;
 
 	@Override
 	public int preAllocSize() {
@@ -43,5 +38,10 @@ public class BSubscribeResult extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "BSubscribeResult" + map;
 	}
 }

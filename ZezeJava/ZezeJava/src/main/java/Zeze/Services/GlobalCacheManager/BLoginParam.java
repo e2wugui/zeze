@@ -2,9 +2,9 @@ package Zeze.Services.GlobalCacheManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public class BLoginParam extends Bean {
+public class BLoginParam implements Serializable {
 	public int serverId;
 
 	// GlobalCacheManager 本身没有编号。
@@ -30,12 +30,12 @@ public class BLoginParam extends Bean {
 
 	@Override
 	public int preAllocSize() {
-		return 5 + 5;
+		return 5 + 5 + 1;
 	}
 
 	@Override
 	public String toString() {
-		return "BLoginParam{" + "ServerId=" + serverId + ", GlobalCacheManagerHashIndex=" + globalCacheManagerHashIndex
-				+ ", DebugMode=" + debugMode + '}';
+		return "BLoginParam{serverId=" + serverId + ",globalCacheManagerHashIndex=" + globalCacheManagerHashIndex
+				+ ",debugMode=" + debugMode + '}';
 	}
 }

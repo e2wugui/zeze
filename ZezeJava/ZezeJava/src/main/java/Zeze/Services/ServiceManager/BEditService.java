@@ -2,12 +2,12 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BEditService extends Bean {
+public class BEditService implements Serializable {
 	private static final List<BServiceInfo> empty = List.of();
 
 	private @NotNull List<BServiceInfo> remove = empty; // 注销，删除，忽略不存在的。只以name和id为准
@@ -53,11 +53,6 @@ public class BEditService extends Bean {
 		}
 	}
 
-	@Override
-	public String toString() {
-		return "{remove:" + remove + ",add:" + add + "}\n";
-	}
-
 	private static int _PRE_ALLOC_SIZE_ = 64;
 
 	@Override
@@ -68,5 +63,10 @@ public class BEditService extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "BEditService{remove:" + remove + ",add:" + add + "}\n";
 	}
 }

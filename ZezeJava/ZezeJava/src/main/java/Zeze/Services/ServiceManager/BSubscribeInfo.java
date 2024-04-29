@@ -2,11 +2,11 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class BSubscribeInfo extends Bean {
+public final class BSubscribeInfo implements Serializable {
 	private @NotNull String serviceName;
 	private long version;
 	private transient @Nullable Object localState;
@@ -74,11 +74,6 @@ public final class BSubscribeInfo extends Bean {
 		return version == that.version && serviceName.equals(that.serviceName);
 	}
 
-	@Override
-	public @NotNull String toString() {
-		return serviceName + ':' + version;
-	}
-
 	private static int _PRE_ALLOC_SIZE_ = 32;
 
 	@Override
@@ -89,5 +84,10 @@ public final class BSubscribeInfo extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public @NotNull String toString() {
+		return serviceName + ':' + version;
 	}
 }

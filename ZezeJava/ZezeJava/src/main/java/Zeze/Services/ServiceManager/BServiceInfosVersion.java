@@ -5,15 +5,15 @@ import Zeze.Builtin.ServiceManagerWithRaft.BServerState;
 import Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManagerServer;
-import Zeze.Transaction.Bean;
 import Zeze.Util.LongHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class BServiceInfosVersion extends Bean {
+public class BServiceInfosVersion implements Serializable {
 	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
-	private final @Nullable BServiceInfos newestInfos;
+	private transient final @Nullable BServiceInfos newestInfos;
 
 	public BServiceInfosVersion() {
 		newestInfos = null;
@@ -113,7 +113,7 @@ public class BServiceInfosVersion extends Bean {
 		}
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 2048;
+	private static int _PRE_ALLOC_SIZE_ = 64;
 
 	@Override
 	public int preAllocSize() {
@@ -123,5 +123,10 @@ public class BServiceInfosVersion extends Bean {
 	@Override
 	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public @NotNull String toString() {
+		return "BServiceInfosVersion" + infosVersion;
 	}
 }

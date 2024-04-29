@@ -3,9 +3,9 @@ package Zeze.Services.ServiceManager;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public final class BServerLoad extends Bean {
+public final class BServerLoad implements Serializable {
 	public String ip;
 	public int port;
 	public Binary param = Binary.Empty;
@@ -42,6 +42,6 @@ public final class BServerLoad extends Bean {
 
 	@Override
 	public String toString() {
-		return "BServerLoad{" + "Ip='" + ip + '\'' + ", Port=" + port + ", Param=" + param + '}';
+		return "BServerLoad{ip='" + ip + "',port=" + port + ",param=" + param + '}';
 	}
 }

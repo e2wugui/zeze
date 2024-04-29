@@ -2,12 +2,11 @@ package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public final class BCHandshakeArgument extends Bean {
+public final class BCHandshakeArgument implements Serializable {
 	public int encryptType;
 	public byte[] encryptParam = ByteBuffer.Empty;
-
 	public int compressS2c = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
 	public int compressC2s = Constant.eCompressTypeDisable; // 默认的时候由服务器决定是否压缩。
 
@@ -48,8 +47,8 @@ public final class BCHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BCHandshakeArgument {encryptType=" + encryptType
-				+ ", encryptParam=[" + (encryptParam != null ? encryptParam.length : -1)
-				+ "], compress S2c/C2s=" + compressS2c + "/" + compressC2s + "}";
+		return "BCHandshakeArgument{encryptType=" + encryptType
+				+ ",encryptParam=[" + (encryptParam != null ? encryptParam.length : -1)
+				+ "],compressS2c/C2s=" + compressS2c + '/' + compressC2s + '}';
 	}
 }

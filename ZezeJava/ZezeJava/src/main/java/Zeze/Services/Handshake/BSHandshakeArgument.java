@@ -2,9 +2,9 @@ package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.Bean;
+import Zeze.Serialize.Serializable;
 
-public final class BSHandshakeArgument extends Bean {
+public final class BSHandshakeArgument implements Serializable {
 	public byte[] encryptParam = ByteBuffer.Empty;
 	public int compressS2c;
 	public int compressC2s;
@@ -45,7 +45,7 @@ public final class BSHandshakeArgument extends Bean {
 
 	@Override
 	public String toString() {
-		return "BSHandshakeArgument {encryptParam=[" + (encryptParam != null ? encryptParam.length : -1) +
-				"], compressS2c=" + compressS2c + ", compressC2s=" + compressC2s + ", encryptType=" + encryptType + '}';
+		return "BSHandshakeArgument{encryptParam=[" + (encryptParam != null ? encryptParam.length : -1) +
+				"],compressS2c/C2s=" + compressS2c + '/' + compressC2s + ",encryptType=" + encryptType + '}';
 	}
 }
