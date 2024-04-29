@@ -16,12 +16,24 @@ public class History {
 
 	public void encodeN() {
 		// rrs 锁外,XXX 不好实现啊！！！
-		/*
 		var changes = logChanges; // volatile
 		if (null != changes) {
+			changes.forEach((v) -> {
+				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
+				encoded.computeIfAbsent(v.getGlobalSerialId(), (key) -> {
+					var bb = ByteBuffer.Allocate();
+					v.encode(bb);
+					v.setEncoded(new Binary(bb));
+					return v;
+				});
+				// changes.remove(); // see below.
+			});
+			// encodeN跟merge并发，它本身的执行不会并发，由Checkpoint调度。
+			// 所以remove前后无所谓。集中clear效率更高?
+			changes.clear();
 
+			// 写来卸去发现和encode0一样，这里肯定有问题了吧。
 		}
-		*/
 	}
 
 	public void encode0() {
@@ -36,6 +48,7 @@ public class History {
 					return v;
 				});
 			});
+			changes.clear();
 		}
 	}
 
