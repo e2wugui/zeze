@@ -94,7 +94,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
 
-	public abstract TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
+	public abstract @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
 
 	public abstract void start() throws Exception;
 

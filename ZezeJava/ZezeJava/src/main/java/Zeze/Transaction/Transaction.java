@@ -425,7 +425,9 @@ public final class Transaction {
 
 	public final static String eHistoryGlobalSerialName = "Zeze.History.eHistoryGlobalSerialName";
 	private void finalCommit(@NotNull Procedure procedure) throws Exception {
-		var globalSerialIdFuture = procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(eHistoryGlobalSerialName);
+		var globalSerialIdFuture = procedure.getZeze().getConfig().isHistory()
+				? procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(eHistoryGlobalSerialName)
+				: null;
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
@@ -484,7 +486,7 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
-			if (procedure.getZeze().getConfig().isHistory()) {
+			if (globalSerialIdFuture != null) {
 				// 系列号分配失败会导致halt。
 				Long globalSerialId = globalSerialIdFuture.get();
 				return History.buildLogChanges(globalSerialId, cc,

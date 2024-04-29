@@ -163,7 +163,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName) {
+	public @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName) {
 		// 实际上使用原来带缓冲的AutoKey实现。使用pool==1。
 		// globalName原则上和AutoKey应该互斥，如果一样也能工作。
 		var r = new AllocateId();
