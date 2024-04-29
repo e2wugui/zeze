@@ -456,6 +456,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
+
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {

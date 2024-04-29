@@ -12,6 +12,8 @@ namespace Zeze.Gen.java
             var hasParentName = new bool[1];
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
                 v.VariableType.Accept(new DecodeResultSet(v, v.Id, "rs", sw, $"{prefix}    ", hasParentName, false));
             }
             sw.WriteLine(prefix + "}");
@@ -25,6 +27,8 @@ namespace Zeze.Gen.java
             var hasParentName = new bool[1];
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
                 v.VariableType.Accept(new DecodeResultSet(v, v.Id, "rs", sw, $"{prefix}    ", hasParentName, true));
             }
             sw.WriteLine(prefix + "}");

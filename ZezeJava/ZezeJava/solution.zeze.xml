@@ -1840,13 +1840,29 @@
 			</bean>
 			<table name="tSession" key="string" value="BSessionValue"/> key is http sessionid from cookie
 		</module>
+		
+		<module name="HistoryModule" id="11031">
+			<bean name="BLogChanges">
+				<variable id="1" name="GlobalSerialId" type="long"/>
+				<variable id="2" name="Encoded" type="binary" transient="true"/>
+
+				<variable id="3" name="ProtocolArgument" type="binary"/>
+			</bean>
+		</module>
+
 		<!--
-		可用id范围 11031, 11032, [11039, 11100) [11102, 11999]
+		可用id范围 11032, [11039, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="HistoryModule" gendir="src/main/java" genrelativedir="Zeze/History" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.HistoryModule"/>
+		</service>
+	</component>
+
 	<component name="HttpSession" gendir="src/main/java" genrelativedir="Zeze/Netty" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.HttpSession"/>
