@@ -1851,7 +1851,7 @@
 			<table name="ZezeHistoryTable_m_a_g_i_c" key="long" value="BLogChanges"/>
 
 			<!-- 查询分析 servlet -->
-			<servlet name="WalkPage"/>
+			<servlet name="WalkPage" TransactionLevel="None"/>
 		</module>
 
 		<!--

@@ -38,7 +38,7 @@ public abstract class AbstractHistoryModule implements Zeze.IModule {
     public void RegisterHttpServlet(Zeze.Netty.HttpServer httpServer) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         httpServer.addHandler("/Zeze/Builtin/HistoryModule/WalkPage", 8192,
-                _reflect.getTransactionLevel("OnServletWalkPage", Zeze.Transaction.TransactionLevel.Serializable),
+                _reflect.getTransactionLevel("OnServletWalkPage", Zeze.Transaction.TransactionLevel.None),
                 _reflect.getDispatchMode("OnServletWalkPage", Zeze.Transaction.DispatchMode.Normal),
                 this::OnServletWalkPage);
     }
