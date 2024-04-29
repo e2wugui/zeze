@@ -3,19 +3,35 @@ package Zeze.History;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Changes;
 import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class History {
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
-	private volatile LongConcurrentHashMap<BLogChanges> logChanges;
+	private volatile LongConcurrentHashMap<BLogChanges.Data> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
 	private final LongConcurrentHashMap<Binary> encoded = new LongConcurrentHashMap<>();
 
+	public History() {
+
+	}
+
+	public History(BLogChanges.Data firstData) {
+		addLogChanges(firstData);
+	}
+
+	public void addLogChanges(BLogChanges.Data _logChanges) {
+		if (null == logChanges)
+			logChanges = new LongConcurrentHashMap<>();
+		logChanges.put(_logChanges.getGlobalSerialId(), _logChanges);
+	}
+
 	public void encodeN() {
-		// rrs 锁外,XXX 不好实现啊！！！
+		// rrs 锁外
 		var changes = logChanges; // volatile
 		if (null != changes) {
 			changes.forEach((v) -> {
@@ -33,6 +49,7 @@ public class History {
 	}
 
 	public void encode0() {
+		// 锁内
 		var changes = logChanges;
 		if (null != changes) {
 			changes.forEach((v) -> {
@@ -49,10 +66,12 @@ public class History {
 
 	public void flush() {
 		// 锁外，但仅仅Checkpoint访问，不需要加锁。
+
+		// todo flush 实现
 	}
 
-	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges> to,
-							  @NotNull LongConcurrentHashMap<BLogChanges> other) {
+	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges.Data> to,
+							  @NotNull LongConcurrentHashMap<BLogChanges.Data> other) {
 		other.forEach((v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
 	}
 
@@ -64,6 +83,7 @@ public class History {
 
 	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
 	public static History merge(History to, History from) {
+		// rrs 锁内
 		// 整体查看
 		if (null == to)
 			return from; // still maybe null. 直接全部接管。需要确认from不会再被修改。
@@ -84,5 +104,31 @@ public class History {
 			putLogChangesAll(to.logChanges, from.logChanges);
 
 		return to;
+	}
+
+	public static BLogChanges.Data buildLogChanges(long globalSerialId,
+												   Changes changes,
+												   @Nullable String protocolClassName,
+												   @Nullable Binary protocolArgument) {
+		var logChanges = new BLogChanges.Data();
+
+		logChanges.setGlobalSerialId(globalSerialId);
+		if (null != protocolClassName)
+			logChanges.setProtocolClassName(protocolClassName);
+		if (null != protocolArgument)
+			logChanges.setProtocolArgument(protocolArgument);
+
+		// changes
+		var bb = ByteBuffer.Allocate(logChanges.preAllocSize());
+		bb.WriteInt(changes.getRecords().size());
+		for (var e : changes.getRecords().entrySet()) {
+			var tableKey = e.getKey();
+			bb.WriteInt(tableKey.getId());
+			bb.WriteByteBuffer(e.getValue().getTable().encodeKey(tableKey.getKey()));
+			e.getValue().encode(bb);
+		}
+		logChanges.setChanges(new Binary(bb));
+
+		return logChanges;
 	}
 }

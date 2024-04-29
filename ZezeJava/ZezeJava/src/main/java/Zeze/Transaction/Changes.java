@@ -79,6 +79,10 @@ public final class Changes {
 			return state;
 		}
 
+		public Table getTable() {
+			return table;
+		}
+
 		public void collect(@NotNull RecordAccessed ar) {
 			if (ar.committedPutLog != null) { // put or remove
 				var put = ar.committedPutLog.getValue();

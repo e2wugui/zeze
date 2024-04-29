@@ -7,8 +7,11 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Builtin.HistoryModule.BLogChanges;
+import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.CallableNoneThrow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,9 +30,20 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private HashSet<Record> recordSet;
 	private volatile @Nullable RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 	private @Nullable Set<OnzProcedure> onzProcedures;
+	private volatile @Nullable History history;
 
 	RelativeRecordSet() {
 		super(true);
+	}
+
+	public History getHistory() {
+		return history;
+	}
+
+	void addLogChanges(BLogChanges.Data logChanges) {
+		if (null == history)
+			history = new History();
+		history.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
 	}
 
 	@Nullable HashSet<Record> getRecordSet() {
@@ -70,6 +84,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (rrs == this) // 这个方法仅用于合并其他rrs
 			throw new IllegalStateException("Merge Self! " + rrs);
 
+		history = History.merge(history, rrs.history);
+
 		if (rrs.recordSet == null) {
 			return; // 孤立记录，后面单独合并。
 		}
@@ -105,13 +121,16 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
-									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure) {
+									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
+									   @NotNull CallableNoneThrow<BLogChanges.Data> collectChanges) {
+
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
+			var logChanges = collectChanges.call();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure);
+				checkpoint.flush(trans, onzProcedure, new History(logChanges));// todo options
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
 
@@ -119,6 +138,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			if (null != onzProcedure)
 				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
 			commit.run();
+			collectChanges.call(); // skip result, 这个模式不支持History.
 			return; // done
 
 		default:
@@ -156,9 +176,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 			// CheckpointMode.Period上面已经处理了，此时不会是它。
 			// 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
 			commit.run();
+			var logChanges = collectChanges.call();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure);
+				checkpoint.flush(trans, onzProcedure, new History(logChanges)); // todo options
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
@@ -170,7 +191,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 			if (!locked.isEmpty()) {
 				var mergedSet = _merge_(locked, trans, allRead);
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
+				var logChanges = collectChanges.call();
 				mergedSet.addOnzProcedures(onzProcedure);
+				mergedSet.addLogChanges(logChanges); // History 存在rrs则加入。// todo options
+
 				if (needFlushNow) {
 					var checkpoint = procedure.getZeze().getCheckpoint();
 					if (checkpoint != null)
@@ -415,10 +439,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				var nr = 0;
+				History history = null; // todo options
 				for (var rrs : sortedRrs.values()) {
 					rrs.lock();
 					locks.add(rrs);
 					nr += rrs.recordSet.size();
+					history = History.merge(history, rrs.getHistory());
 				}
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
@@ -435,7 +461,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 				Checkpoint.logger.info(debug.toString() + sortedRrs.keySet());
 				*/
 
-				checkpoint.flush(rs, onzProcedures);
+				checkpoint.flush(rs, onzProcedures, history);
 				for (var r : rs)
 					r.setDirty(false);
 				for (var rrs : sortedRrs.values()) {

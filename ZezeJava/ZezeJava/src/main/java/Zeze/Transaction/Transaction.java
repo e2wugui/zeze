@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
@@ -409,6 +410,7 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure procedure) {
+		var globalSerialId = 0L; // todo sm.allocateGlobalSerial(); 异步获取。
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
@@ -419,8 +421,10 @@ public final class Transaction {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
 		procedure.getZeze().getProcedureLockWatcher().doWatch(procedure, accessedRecords);
-
 		var lastSp = savepoints.get(savepoints.size() - 1);
+
+		// collect logs and notify listeners
+		var cc = new Changes(this);
 		RelativeRecordSet.tryUpdateAndCheckpoint(this, procedure, () -> {
 			try {
 				lastSp.mergeCommitActions(actions);
@@ -447,19 +451,7 @@ public final class Transaction {
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
-		}, flushMode); // onz patch: 新增参数
-
-		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
-		// 不再支持在回调中再次执行事务。
-		// 在Notify之前设置的。
-		state = TransactionState.Completed;
-
-		try {
-			for (var act : logActions)
-				act.run();
-
-			// collect logs and notify listeners
-			var cc = new Changes(this);
+		}, flushMode, () -> {
 			var it = lastSp.logIterator();
 			if (it != null) {
 				while (it.moveToNext()) {
@@ -477,8 +469,21 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
-			cc.notifyListener();
+			// todo procedure.getProtocolClassName();
+			// procedure.getProtocolRawArgument();
+			// todo 这个调用可以在不需要开启的时候优化掉，需要调整点代码。
+			return History.buildLogChanges(globalSerialId, cc, null, null);
+		}); // onz patch: 新增参数
 
+		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
+		// 不再支持在回调中再次执行事务。
+		// 在Notify之前设置的。
+		state = TransactionState.Completed;
+
+		try {
+			for (var act : logActions)
+				act.run();
+			cc.notifyListener();
 			triggerCommitActions(procedure);
 		} catch (Throwable ex) { // logger.error
 			logger.error("finalCommit({}) exception:", procedure, ex);

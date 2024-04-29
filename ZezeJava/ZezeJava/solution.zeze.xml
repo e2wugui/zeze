@@ -1841,10 +1841,12 @@
 			<table name="tSession" key="string" value="BSessionValue"/> key is http sessionid from cookie
 		</module>
 		
-		<module name="HistoryModule" id="11031">
+		<module name="HistoryModule" id="11031" UseData="true">
 			<bean name="BLogChanges">
 				<variable id="1" name="GlobalSerialId" type="long"/>
-				<variable id="2" name="ProtocolArgument" type="binary"/>
+				<variable id="2" name="ProtocolClassName" type="string"/>
+				<variable id="3" name="ProtocolArgument" type="binary"/>
+				<variable id="4" name="Changes" type="binary"/>
 			</bean>
 		</module>
 

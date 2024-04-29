@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
 
 public final class TableKey implements Comparable<TableKey> {
