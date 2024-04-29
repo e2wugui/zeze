@@ -469,10 +469,10 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
-			// todo procedure.getProtocolClassName();
-			// procedure.getProtocolRawArgument();
-			// todo 这个调用可以在不需要开启的时候优化掉，需要调整点代码。
-			return History.buildLogChanges(globalSerialId, cc, null, null);
+			if (procedure.getZeze().getConfig().isHistory())
+				return History.buildLogChanges(globalSerialId, cc,
+						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
+			return null;
 		}); // onz patch: 新增参数
 
 		// 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。

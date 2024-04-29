@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.IModule;
+import Zeze.Net.Binary;
 import Zeze.Util.FuncLong;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskCanceledException;
@@ -34,6 +35,25 @@ public class Procedure {
 	public static final long Busy = -19;
 	public static final long AuthFail = -20;
 	// >0 用户自定义。
+
+	private @Nullable String protocolClassName;
+	private @Nullable Binary protocolRawArgument;
+
+	public @Nullable Binary getProtocolRawArgument() {
+		return protocolRawArgument;
+	}
+
+	public @Nullable String getProtocolClassName() {
+		return protocolClassName;
+	}
+
+	public void setProtocolClassName(String protocolClassName) {
+		this.protocolClassName = protocolClassName;
+	}
+
+	public void setProtocolRawArgument(Binary protocolRawArgument) {
+		this.protocolRawArgument = protocolRawArgument;
+	}
 
 	public interface ILogAction {
 		void run(@Nullable Throwable ex, long result, @NotNull Procedure p, @NotNull String message);

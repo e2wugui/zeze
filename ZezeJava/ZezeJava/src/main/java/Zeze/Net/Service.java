@@ -497,9 +497,10 @@ public class Service extends ReentrantLock {
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
-			Task.executeUnsafe(zeze.newProcedure(() -> p.handle(this, factoryHandle), p.getClass().getName(),
-							factoryHandle.Level, null != p.getSender() ? p.getSender().getUserState() : null),
-					p, Protocol::trySendResultCode, factoryHandle.Mode);
+			var protocolClassName = p.getClass().getName();
+			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName,
+					factoryHandle.Level, null != p.getSender() ? p.getSender().getUserState() : null);
+			Task.executeUnsafe(proc, p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
 					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
@@ -518,16 +519,20 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
-			var bbCopy = ByteBuffer.Wrap(bb.Copy());
+			var protocolRawArgument = new Binary(bb.Copy());
+			var bbCopy = ByteBuffer.Wrap(protocolRawArgument);
 			var outProtocol = new OutObject<Protocol<?>>();
-			Task.executeUnsafe(zeze.newProcedure(() -> {
-						var needLog = bbCopy.ReadIndex == 0;
-						bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
-						var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
-						outProtocol.value = p;
-						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), factoryHandle.Level, so != null ? so.getUserState() : null),
-					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
+			var protocolClassName = factoryHandle.Class.getName();
+			var proc = zeze.newProcedure(() -> {
+				var needLog = bbCopy.ReadIndex == 0;
+				bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
+				var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
+				outProtocol.value = p;
+				return p.handle(this, factoryHandle);
+			}, protocolClassName, factoryHandle.Level, so != null ? so.getUserState() : null);
+			proc.setProtocolClassName(protocolClassName);
+			proc.setProtocolRawArgument(protocolRawArgument);
+			Task.executeUnsafe(proc, outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 其他协议或者rpc，马上在io线程继续派发。

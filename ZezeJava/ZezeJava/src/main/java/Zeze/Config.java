@@ -106,6 +106,15 @@ public final class Config {
 
 	private int procedureLockWatcherMin = 25;
 	private long appVersion;
+	private boolean history = false;
+
+	public boolean isHistory() {
+		return history;
+	}
+
+	public void setHistory(boolean history) {
+		this.history = history;
+	}
 
 	public int getProcedureLockWatcherMin() {
 		return procedureLockWatcherMin;
@@ -633,6 +642,10 @@ public final class Config {
 		attr = self.getAttribute("AppVersion");
 		if (!attr.isBlank())
 			appVersion = Str.parseVersion(attr);
+
+		attr = self.getAttribute("History");
+		if (!attr.isBlank())
+			history = Boolean.parseBoolean(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {

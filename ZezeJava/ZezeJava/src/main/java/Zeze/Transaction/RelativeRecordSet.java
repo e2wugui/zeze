@@ -130,7 +130,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var logChanges = collectChanges.call();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure, new History(logChanges));// todo options
+				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
 
@@ -179,7 +179,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var logChanges = collectChanges.call();
 			var checkpoint = procedure.getZeze().getCheckpoint();
 			if (checkpoint != null)
-				checkpoint.flush(trans, onzProcedure, new History(logChanges)); // todo options
+				checkpoint.flush(trans, onzProcedure, logChanges != null ? new History(logChanges) : null);
 			// 这种情况下 RelativeRecordSet 都是空的。
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
@@ -193,7 +193,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				var logChanges = collectChanges.call();
 				mergedSet.addOnzProcedures(onzProcedure);
-				mergedSet.addLogChanges(logChanges); // History 存在rrs则加入。// todo options
+				if (null != logChanges)
+					mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
 				if (needFlushNow) {
 					var checkpoint = procedure.getZeze().getCheckpoint();
@@ -439,12 +440,20 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				var nr = 0;
-				History history = null; // todo options
-				for (var rrs : sortedRrs.values()) {
-					rrs.lock();
-					locks.add(rrs);
-					nr += rrs.recordSet.size();
-					history = History.merge(history, rrs.getHistory());
+				History history = null;
+				if (checkpoint.zeze.getConfig().isHistory()) {
+					for (var rrs : sortedRrs.values()) {
+						rrs.lock();
+						locks.add(rrs);
+						nr += rrs.recordSet.size();
+						history = History.merge(history, rrs.getHistory());
+					}
+				} else {
+					for (var rrs : sortedRrs.values()) {
+						rrs.lock();
+						locks.add(rrs);
+						nr += rrs.recordSet.size();
+					}
 				}
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
