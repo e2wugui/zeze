@@ -286,7 +286,7 @@ public final class Checkpoint {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
-		// todo logChanges原子的和数据一起flush。
+		// history.logChanges原子的和数据一起flush。
 		try {
 			// prepare: 编码并且为每一个数据库创建一个数据库事务。
 			for (var r : rs) {
@@ -299,7 +299,15 @@ public final class Checkpoint {
 					}
 				}
 			}
+			var historyTable = zeze.getHistoryModule().getTable();
+			var historyTransaction = history != null
+					? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
+					: null;
+
 			// 编码
+			if (null != history)
+				history.encode0();
+
 			for (var r : rs) {
 				r.encode0();
 			}
@@ -307,6 +315,11 @@ public final class Checkpoint {
 			// 保存到数据库中
 			for (var r : rs) {
 				r.flush(r.getDatabaseTransactionTmp(), localCacheTransaction);
+			}
+			if (null != history) {
+				var storage = ((Table)historyTable).getStorage();
+				assert storage != null;
+				history.flush(storage.getDatabaseTable(), historyTransaction);
 			}
 			// 提交。
 			for (var t : dts.values()) {

@@ -16,6 +16,8 @@ public abstract class AbstractHistoryModule implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
+    protected final Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c _ZezeHistoryTable_m_a_g_i_c = new Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
@@ -23,9 +25,11 @@ public abstract class AbstractHistoryModule implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.addTable(zeze.getConfig().getTableConf(_ZezeHistoryTable_m_a_g_i_c.getName()).getDatabaseName(), _ZezeHistoryTable_m_a_g_i_c);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.removeTable(zeze.getConfig().getTableConf(_ZezeHistoryTable_m_a_g_i_c.getName()).getDatabaseName(), _ZezeHistoryTable_m_a_g_i_c);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

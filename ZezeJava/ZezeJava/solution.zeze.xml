@@ -1848,6 +1848,7 @@
 				<variable id="3" name="ProtocolArgument" type="binary"/>
 				<variable id="4" name="Changes" type="binary"/>
 			</bean>
+			<table name="ZezeHistoryTable_m_a_g_i_c" key="long" value="BLogChanges"/>
 		</module>
 
 		<!--

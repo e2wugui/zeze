@@ -18,6 +18,7 @@ import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
+import Zeze.History.HistoryModule;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
@@ -72,6 +73,7 @@ public final class Application extends ReentrantLock {
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
+	private HistoryModule historyModule;
 	private IGlobalAgent globalAgent;
 	private AchillesHeelDaemon achillesHeelDaemon;
 	private DeadlockBreaker deadlockBreaker;
@@ -199,6 +201,7 @@ public final class Application extends ReentrantLock {
 			autoKey = new AutoKey.Module(this);
 			autoKeyOld = new AutoKeyOld.Module(this);
 			queueModule = new Zeze.Collections.Queue.Module(this);
+			historyModule = new HistoryModule(this);
 			delayRemove = new DelayRemove(this);
 
 			onz = new Onz(this);
@@ -436,6 +439,10 @@ public final class Application extends ReentrantLock {
 
 	public Zeze.Collections.Queue.Module getQueueModule() {
 		return queueModule;
+	}
+
+	public HistoryModule getHistoryModule() {
+		return historyModule;
 	}
 
 	public DelayRemove getDelayRemove() {
@@ -767,6 +774,10 @@ public final class Application extends ReentrantLock {
 			if (queueModule != null) {
 				queueModule.UnRegisterZezeTables(this);
 				queueModule = null;
+			}
+			if (historyModule != null) {
+				historyModule.UnRegisterZezeTables(this);
+				historyModule = null;
 			}
 			if (autoKey != null) {
 				autoKey.UnRegister();

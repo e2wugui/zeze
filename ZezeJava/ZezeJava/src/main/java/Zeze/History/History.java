@@ -1,9 +1,11 @@
 package Zeze.History;
 
 import Zeze.Builtin.HistoryModule.BLogChanges;
+import Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
+import Zeze.Transaction.Database;
 import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,10 +66,15 @@ public class History {
 		}
 	}
 
-	public void flush() {
-		// 锁外，但仅仅Checkpoint访问，不需要加锁。
-
-		// todo flush 实现
+	public void flush(Database.Table table, Database.Transaction txn) {
+		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
+		for (var it = encoded.entryIterator(); it.moveToNext(); /**/) {
+			var key = ByteBuffer.Allocate();
+			key.WriteLong(it.key());
+			var value = ByteBuffer.Wrap(it.value());
+			table.replace(txn, key, value);
+		}
+		encoded.clear();
 	}
 
 	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges.Data> to,

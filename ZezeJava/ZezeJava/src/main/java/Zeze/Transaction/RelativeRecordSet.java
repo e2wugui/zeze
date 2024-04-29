@@ -492,6 +492,13 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void flush(@NotNull Checkpoint checkpoint, @NotNull RelativeRecordSet rrs) {
 
+		if (rrs.mergeTo == null) {
+			// 多线程，未保护访问变量，可以不是很准确。
+			var history = rrs.getHistory();
+			if (null != history)
+				history.encodeN(); // 锁外尝试编码。
+		}
+
 		rrs.lock();
 		try {
 			if (rrs.mergeTo == null) {
