@@ -9,7 +9,6 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     public static final long TYPEID = 395935719895809559L;
 
     private long _GlobalSerialId;
-    private Zeze.Net.Binary _Encoded;
     private Zeze.Net.Binary _ProtocolArgument;
 
     @Override
@@ -33,35 +32,13 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     }
 
     @Override
-    public Zeze.Net.Binary getEncoded() {
-        if (!isManaged())
-            return _Encoded;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
-            return _Encoded;
-        var log = (Log__Encoded)txn.getLog(objectId() + 2);
-        return log != null ? log.value : _Encoded;
-    }
-
-    public void setEncoded(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _Encoded = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Encoded(this, 2, value));
-    }
-
-    @Override
     public Zeze.Net.Binary getProtocolArgument() {
         if (!isManaged())
             return _ProtocolArgument;
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ProtocolArgument;
-        var log = (Log__ProtocolArgument)txn.getLog(objectId() + 3);
+        var log = (Log__ProtocolArgument)txn.getLog(objectId() + 2);
         return log != null ? log.value : _ProtocolArgument;
     }
 
@@ -73,21 +50,17 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ProtocolArgument(this, 3, value));
+        txn.putLog(new Log__ProtocolArgument(this, 2, value));
     }
 
     @SuppressWarnings("deprecation")
     public BLogChanges() {
-        _Encoded = Zeze.Net.Binary.Empty;
         _ProtocolArgument = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BLogChanges(long _GlobalSerialId_, Zeze.Net.Binary _Encoded_, Zeze.Net.Binary _ProtocolArgument_) {
+    public BLogChanges(long _GlobalSerialId_, Zeze.Net.Binary _ProtocolArgument_) {
         _GlobalSerialId = _GlobalSerialId_;
-        if (_Encoded_ == null)
-            _Encoded_ = Zeze.Net.Binary.Empty;
-        _Encoded = _Encoded_;
         if (_ProtocolArgument_ == null)
             _ProtocolArgument_ = Zeze.Net.Binary.Empty;
         _ProtocolArgument = _ProtocolArgument_;
@@ -96,14 +69,12 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     @Override
     public void reset() {
         setGlobalSerialId(0);
-        setEncoded(Zeze.Net.Binary.Empty);
         setProtocolArgument(Zeze.Net.Binary.Empty);
         _unknown_ = null;
     }
 
     public void assign(BLogChanges other) {
         setGlobalSerialId(other.getGlobalSerialId());
-        setEncoded(other.getEncoded());
         setProtocolArgument(other.getProtocolArgument());
         _unknown_ = other._unknown_;
     }
@@ -137,13 +108,6 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
         public void commit() { ((BLogChanges)getBelong())._GlobalSerialId = value; }
     }
 
-    private static final class Log__Encoded extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Encoded(BLogChanges bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
-        @Override
-        public void commit() { ((BLogChanges)getBelong())._Encoded = value; }
-    }
-
     private static final class Log__ProtocolArgument extends Zeze.Transaction.Logs.LogBinary {
         public Log__ProtocolArgument(BLogChanges bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
@@ -163,7 +127,6 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HistoryModule.BLogChanges: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalSerialId=").append(getGlobalSerialId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Encoded=").append(getEncoded()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProtocolArgument=").append(getProtocolArgument()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -204,14 +167,10 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
                 _o_.WriteLong(_x_);
             }
         }
-        while (_ui_ < 3) {
-            _i_ = _o_.writeUnknownField(_i_, _ui_, _u_);
-            _ui_ = _u_.readUnknownIndex();
-        }
         {
             var _x_ = getProtocolArgument();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -228,11 +187,7 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
             setGlobalSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while ((_t_ & 0xff) > 1 && _i_ < 3) {
-            _u_ = _o_.readUnknownField(_i_, _t_, _u_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             setProtocolArgument(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -257,7 +212,7 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _ProtocolArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _ProtocolArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -280,8 +235,7 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalSerialId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Encoded", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ProtocolArgument", "binary", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProtocolArgument", "binary", "", ""));
         return vars;
     }
 }

@@ -12,7 +12,7 @@ public class History {
 	private volatile LongConcurrentHashMap<BLogChanges> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
-	private final LongConcurrentHashMap<BLogChanges> encoded = new LongConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Binary> encoded = new LongConcurrentHashMap<>();
 
 	public void encodeN() {
 		// rrs 锁外,XXX 不好实现啊！！！
@@ -23,8 +23,7 @@ public class History {
 				encoded.computeIfAbsent(v.getGlobalSerialId(), (key) -> {
 					var bb = ByteBuffer.Allocate();
 					v.encode(bb);
-					v.setEncoded(new Binary(bb));
-					return v;
+					return new Binary(bb);
 				});
 				// encodeN跟merge并发，它本身的执行不会并发，由Checkpoint调度。
 				// 所以remove前后无所谓。
@@ -41,8 +40,7 @@ public class History {
 				encoded.computeIfAbsent(v.getGlobalSerialId(), (key) -> {
 					var bb = ByteBuffer.Allocate();
 					v.encode(bb);
-					v.setEncoded(new Binary(bb));
-					return v;
+					return new Binary(bb);
 				});
 			});
 			changes.clear();
@@ -53,9 +51,15 @@ public class History {
 		// 锁外，但仅仅Checkpoint访问，不需要加锁。
 	}
 
-	public static void putAll(@NotNull LongConcurrentHashMap<BLogChanges> to,
+	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges> to,
 							  @NotNull LongConcurrentHashMap<BLogChanges> other) {
 		other.forEach((v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
+	}
+
+	public static void putEncodedAll(@NotNull LongConcurrentHashMap<Binary> to,
+							  @NotNull LongConcurrentHashMap<Binary> other) {
+		for (var it = other.entryIterator(); it.moveToNext(); /**/)
+			to.putIfAbsent(it.key(), it.value());
 	}
 
 	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
@@ -66,7 +70,7 @@ public class History {
 
 		// 合并encoded
 		if (null != from)
-			putAll(to.encoded, from.encoded);
+			putEncodedAll(to.encoded, from.encoded);
 
 		// 合并logChanges
 		if (null == to.logChanges) {
@@ -77,7 +81,7 @@ public class History {
 		}
 
 		if (null != from && null != from.logChanges)
-			putAll(to.logChanges, from.logChanges);
+			putLogChangesAll(to.logChanges, from.logChanges);
 
 		return to;
 	}

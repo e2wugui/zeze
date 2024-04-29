@@ -1844,9 +1844,7 @@
 		<module name="HistoryModule" id="11031">
 			<bean name="BLogChanges">
 				<variable id="1" name="GlobalSerialId" type="long"/>
-				<variable id="2" name="Encoded" type="binary" transient="true"/>
-
-				<variable id="3" name="ProtocolArgument" type="binary"/>
+				<variable id="2" name="ProtocolArgument" type="binary"/>
 			</bean>
 		</module>
 

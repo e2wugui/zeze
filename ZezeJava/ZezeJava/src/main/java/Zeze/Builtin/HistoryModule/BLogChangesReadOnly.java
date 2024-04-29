@@ -8,6 +8,5 @@ public interface BLogChangesReadOnly {
     BLogChanges copy();
 
     long getGlobalSerialId();
-    Zeze.Net.Binary getEncoded();
     Zeze.Net.Binary getProtocolArgument();
 }
