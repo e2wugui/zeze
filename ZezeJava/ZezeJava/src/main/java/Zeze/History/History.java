@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 public class History {
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
-	private LongConcurrentHashMap<BLogChanges> logChanges;
+	private volatile LongConcurrentHashMap<BLogChanges> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
 	private final LongConcurrentHashMap<BLogChanges> encoded = new LongConcurrentHashMap<>();
