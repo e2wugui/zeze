@@ -154,6 +154,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		/**
 		 * @return 只读, 禁止修改
 		 */
+		public @NotNull BServiceInfosVersion getServiceInfosVersion() {
+			return serviceInfos;
+		}
+
+		/**
+		 * @return 只读, 禁止修改
+		 */
 		public @Nullable BServiceInfos getServiceInfos(long version) {
 			return serviceInfos.getInfos(version);
 		}
@@ -161,9 +168,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		/**
 		 * @return 只读, 禁止修改
 		 */
-		@NotNull
-		BServiceInfosVersion getServiceInfosVersion() {
-			return serviceInfos;
+		public @Nullable BServiceInfos findNewestInfos() {
+			return serviceInfos.getNewestInfos();
 		}
 
 		public @Nullable BServiceInfo findServiceInfoByIdentity(@NotNull String identity) {

@@ -1,10 +1,7 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.HashMap;
-import java.util.TreeMap;
 import Zeze.Builtin.ServiceManagerWithRaft.BServerState;
-import Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks;
-import Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks;
 import Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -16,51 +13,72 @@ import org.jetbrains.annotations.Nullable;
 
 public class BServiceInfosVersion extends Bean {
 	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
+	private final @Nullable BServiceInfos newestInfos;
 
 	public BServiceInfosVersion() {
+		newestInfos = null;
 	}
 
-	private void copyAndSortIdentityMap(long version, @NotNull HashMap<String, BServiceInfo> identityMap) {
-		var infos = new BServiceInfos();
-		infos.getSortedIdentities().addAll(identityMap.values());
-		infos.getSortedIdentities().sort(BServiceInfos.comparer);
-		infosVersion.put(version, infos);
+	public BServiceInfosVersion(@NotNull ByteBuffer bb) {
+		decode(bb);
+		newestInfos = findNewestInfos();
 	}
 
 	public BServiceInfosVersion(long hopeVersion, @NotNull ServiceManagerServer.ServiceState state) {
 		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfos().get(hopeVersion);
-			if (null != identityMap)
+			if (identityMap != null)
 				copyAndSortIdentityMap(hopeVersion, identityMap);
 		} else {
-			for (var e : state.getServiceInfos().entrySet()) {
+			for (var e : state.getServiceInfos().entrySet())
 				copyAndSortIdentityMap(e.getKey(), e.getValue());
-			}
 		}
+		newestInfos = findNewestInfos();
 	}
 
-	private static BServiceInfos newSortedBServiceInfos(String serviceName, BServiceInfosVersionRocks identityMap) {
-		var result = new BServiceInfos();
-		var sortedMap = new TreeMap<BServiceInfoKeyRocks, BServiceInfoRocks>();
-		for (var info : identityMap.getServiceInfos().entrySet())
-			sortedMap.put(new BServiceInfoKeyRocks(serviceName, info.getKey()), info.getValue());
-		for (var rocks : sortedMap.values()) {
-			result.getSortedIdentities().add(new BServiceInfo(rocks.getServiceName(), rocks.getServiceIdentity(),
-					rocks.getVersion(), rocks.getPassiveIp(), rocks.getPassivePort(), rocks.getExtraInfo()));
-		}
-		return result;
-	}
-
-	public BServiceInfosVersion(long hopeVersion, BServerState state) {
-		var serviceName = state.getServiceName();
+	public BServiceInfosVersion(long hopeVersion, @NotNull BServerState state) {
 		if (hopeVersion != 0) {
 			var identityMap = state.getServiceInfosVersion().get(hopeVersion);
 			if (identityMap != null)
-				infosVersion.put(hopeVersion, newSortedBServiceInfos(serviceName, identityMap));
+				copyAndSortIdentityMap(hopeVersion, identityMap);
 		} else {
 			for (var e : state.getServiceInfosVersion().entrySet())
-				infosVersion.put(e.getKey(), newSortedBServiceInfos(serviceName, e.getValue()));
+				copyAndSortIdentityMap(e.getKey(), e.getValue());
 		}
+		newestInfos = findNewestInfos();
+	}
+
+	private void copyAndSortIdentityMap(long version, @NotNull HashMap<String, BServiceInfo> identityMap) {
+		if (!identityMap.isEmpty()) {
+			var infos = new BServiceInfos();
+			infos.getSortedIdentities().addAll(identityMap.values());
+			infos.getSortedIdentities().sort(BServiceInfos.comparer);
+			infosVersion.put(version, infos);
+		}
+	}
+
+	private void copyAndSortIdentityMap(long version, @NotNull BServiceInfosVersionRocks identityMap) {
+		if (identityMap.getServiceInfos().size() > 0) {
+			var infos = new BServiceInfos();
+			for (var info : identityMap.getServiceInfos().values()) {
+				infos.getSortedIdentities().add(new BServiceInfo(info.getServiceName(), info.getServiceIdentity(),
+						info.getVersion(), info.getPassiveIp(), info.getPassivePort(), info.getExtraInfo()));
+			}
+			infos.getSortedIdentities().sort(BServiceInfos.comparer);
+			infosVersion.put(version, infos);
+		}
+	}
+
+	private @Nullable BServiceInfos findNewestInfos() {
+		BServiceInfos resultInfos = null;
+		var maxVersion = Long.MIN_VALUE;
+		for (var it = infosVersion.iterator(); it.moveToNext(); ) {
+			if (maxVersion <= it.key()) {
+				maxVersion = it.key();
+				resultInfos = it.value();
+			}
+		}
+		return resultInfos;
 	}
 
 	public @Nullable BServiceInfos getInfos(long version) {
@@ -69,6 +87,10 @@ public class BServiceInfosVersion extends Bean {
 
 	public @NotNull LongHashMap<BServiceInfos>.Iterator getInfosIterator() {
 		return infosVersion.iterator();
+	}
+
+	public @Nullable BServiceInfos getNewestInfos() {
+		return newestInfos;
 	}
 
 	@Override
@@ -86,7 +108,8 @@ public class BServiceInfosVersion extends Bean {
 			var version = bb.ReadLong();
 			var infos = new BServiceInfos();
 			infos.decode(bb);
-			infosVersion.put(version, infos);
+			if (!infos.getSortedIdentities().isEmpty())
+				infosVersion.put(version, infos);
 		}
 	}
 

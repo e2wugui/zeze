@@ -84,8 +84,11 @@ public class DelayRemove extends AbstractDelayRemove {
 		var bJob = new BJob();
 		var jobId = jobIdAutoKey.nextString();
 		bJob.setJobHandleName(handleName);
-		var bb = ByteBuffer.Allocate();
+		var preAllocSize = state.preAllocSize();
+		var bb = ByteBuffer.Allocate(preAllocSize);
 		state.encode(bb);
+		if (bb.WriteIndex > preAllocSize)
+			state.preAllocSize(bb.WriteIndex);
 		bJob.setJobState(new Binary(bb));
 		var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 		jobs.getJobs().put(jobId, bJob);
@@ -105,8 +108,11 @@ public class DelayRemove extends AbstractDelayRemove {
 			var jobs = _tJobs.getOrAdd(zeze.getConfig().getServerId());
 			var bJob = jobs.getJobs().get(jobId);
 			if (bJob != null) {
-				var bb = ByteBuffer.Allocate();
+				var preAllocSize = state.preAllocSize();
+				var bb = ByteBuffer.Allocate(preAllocSize);
 				state.encode(bb);
+				if (bb.WriteIndex > preAllocSize)
+					state.preAllocSize(bb.WriteIndex);
 				bJob.setJobState(new Binary(bb));
 			}
 			return;

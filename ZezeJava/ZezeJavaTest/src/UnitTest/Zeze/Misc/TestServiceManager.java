@@ -18,7 +18,14 @@ public class TestServiceManager {
 		infos.insert(new BServiceInfo("TestBase", "1", 0));
 		infos.insert(new BServiceInfo("TestBase", "3", 0));
 		infos.insert(new BServiceInfo("TestBase", "2", 0));
-		Assert.assertEquals("TestBase[1,2,3,]", infos.toString());
+		var it = infos.getSortedIdentities().iterator();
+		Assert.assertTrue(it.hasNext());
+		Assert.assertEquals("1", it.next().getServiceIdentity());
+		Assert.assertTrue(it.hasNext());
+		Assert.assertEquals("2", it.next().getServiceIdentity());
+		Assert.assertTrue(it.hasNext());
+		Assert.assertEquals("3", it.next().getServiceIdentity());
+		Assert.assertFalse(it.hasNext());
 	}
 
 	@Before
