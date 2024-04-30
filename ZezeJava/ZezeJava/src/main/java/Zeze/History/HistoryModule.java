@@ -28,8 +28,10 @@ public class HistoryModule extends AbstractHistoryModule {
 	public void stop() {
 		lock();
 		try {
-			httpServer.close();
-			httpServer = null;
+			if (null != httpServer) {
+				httpServer.close();
+				httpServer = null;
+			}
 		} finally {
 			unlock();
 		}
@@ -37,6 +39,7 @@ public class HistoryModule extends AbstractHistoryModule {
 
 	public HistoryModule(Application zeze) {
 		this.zeze = zeze;
+		RegisterZezeTables(zeze);
 	}
 
 	public Application getZeze() {
