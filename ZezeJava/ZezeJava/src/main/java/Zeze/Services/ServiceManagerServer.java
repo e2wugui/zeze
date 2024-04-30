@@ -710,9 +710,14 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
 									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so) {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
-			oneByOneByKey.Execute(p.getSender(),
-					() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode),
-					factoryHandle.Mode);
+			if (factoryHandle.Mode == DispatchMode.Direct) {
+				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
+				Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode);
+			} else {
+				oneByOneByKey.Execute(p.getSender(),
+						() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode),
+						factoryHandle.Mode);
+			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}
 		/*
