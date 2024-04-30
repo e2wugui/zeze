@@ -578,7 +578,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
 				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
-				AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Critical));
+				AllocateId::new, this::processAllocateId, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
 				SetServerLoad::new, this::processSetLoad, TransactionLevel.None, DispatchMode.Critical));
 		server.AddFactoryHandle(OfflineRegister.TypeId_, new Service.ProtocolFactoryHandle<>(
@@ -603,18 +603,17 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		private final @NotNull ServiceManagerServer sms;
 		private final byte @NotNull [] key;
 		private final AtomicLong current = new AtomicLong();
-		private volatile long max;
+		private volatile long max; // 当前可分配的上限(不含)
 
 		public AutoKey(@NotNull String name, @NotNull ServiceManagerServer sms) {
 			this.sms = sms;
-			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+			var nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			var bb = ByteBuffer.Allocate(ByteBuffer.WriteUIntSize(nameBytes.length) + nameBytes.length);
 			bb.WriteBytes(nameBytes);
 			key = bb.Bytes;
 			try {
-				byte[] value = this.sms.autoKeysDb.get(RocksDatabase.getDefaultReadOptions(), key);
-				if (value != null)
-					current.set(max = ByteBuffer.Wrap(value).ReadLong());
+				var value = sms.autoKeysDb.get(RocksDatabase.getDefaultReadOptions(), key);
+				current.set(max = (value != null ? ByteBuffer.Wrap(value).ReadLong() : 1)); // 默认从1开始
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
@@ -624,12 +623,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var count = rpc.Argument.getCount();
 			if (count < 0)
 				count = 0;
-			else if (count > 10000) // 随便修正一下分配数量
+			else if (count > 10000) //TODO: 随便修正一下分配数量
 				count = 10000;
 			for (; ; ) {
 				var c = current.get();
 				if (c + count <= max) {
-					if (current.compareAndSet(c, c + count)) {
+					if (current.compareAndSet(c, c + count)) { // 乐观分配,失败重试
 						rpc.Result.setStartId(c);
 						rpc.Result.setCount(count);
 						return;
@@ -637,8 +636,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				} else {
 					lock();
 					try {
-						var m = max;
-						if (c + count > m) { // retry
+						var m = max; // 只有这里的锁范围才能修改max,所以这里缓存max也是稳定的
+						if (c + count > m) { // 重试,也许刚刚提升了max,不够再真正去提升
 							m += 10000; //TODO: 先随便用一个增量
 							var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
 							bb.WriteLong(m);
@@ -647,7 +646,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							} catch (RocksDBException e) {
 								Task.forceThrow(e);
 							}
-							max = m;
+							max = m; // 确保数据库记下了再更新max,此时其它并发的allocate就可以分配了
 						}
 					} finally {
 						unlock();
