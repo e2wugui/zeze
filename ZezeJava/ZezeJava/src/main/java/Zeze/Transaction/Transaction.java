@@ -423,11 +423,12 @@ public final class Transaction {
 		this.onzProcedure = onzProcedure;
 	}
 
-	public final static String eHistoryGlobalSerialName = "Zeze.History.eHistoryGlobalSerialName";
 	private void finalCommit(@NotNull Procedure procedure) throws Exception {
-		var globalSerialIdFuture = procedure.getZeze().getConfig().isHistory()
-				? procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(eHistoryGlobalSerialName)
+		var history = procedure.getZeze().getConfig().getHistory();
+		var globalSerialIdFuture = !history.isEmpty()
+				? procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(history)
 				: null;
+
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
