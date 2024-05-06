@@ -31,6 +31,7 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
@@ -464,6 +465,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
+				var reduceTid = new OutLong();
 				if (cs.modify != null) {
 					if (cs.modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
@@ -481,7 +483,12 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
-						reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
+						if (r.isTimeout()) {
+							reduceResultState.value = StateReduceRpcTimeout;
+						}else {
+							reduceResultState.value = r.Result.state;
+							reduceTid.value = r.Result.reducedTid;
+						}
 						cs.lock();
 						try {
 							cs.signalAll(); //notify
@@ -537,6 +544,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("6 {} {} {}", sender, StateShare, cs);
+					rpc.Result.reducedTid = reduceTid.value;
 					rpc.SendResultCode(0);
 					return 0;
 				}
@@ -547,6 +555,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				cs.signalAll(); //notify
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateShare, cs);
+				rpc.Result.reducedTid = reduceTid.value;
 				rpc.SendResultCode(0);
 				return 0;
 			} finally {
@@ -606,6 +615,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
+				var reduceTid = new OutLong();
 				if (cs.modify != null) {
 					if (cs.modify == sender) {
 						if (isDebugEnabled)
@@ -623,7 +633,12 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					if (cs.modify.reduce(gKey, rpc.getResultCode(), r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
-						reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
+						if (r.isTimeout()) {
+							reduceResultState.value = StateReduceRpcTimeout;
+						}else {
+							reduceResultState.value = r.Result.state;
+							reduceTid.value = r.Result.reducedTid;
+						}
 						cs.lock();
 						try {
 							cs.signalAll(); //notify
@@ -673,6 +688,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("6 {} {} {}", sender, StateModify, cs);
+					rpc.Result.reducedTid = reduceTid.value;
 					rpc.SendResultCode(0);
 					return 0;
 				}
@@ -769,6 +785,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					cs.signalAll(); //notify
 					if (isDebugEnabled)
 						logger.debug("8 {} {} {}", sender, StateModify, cs);
+					rpc.Result.reducedTid = reduceTid.value;
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。

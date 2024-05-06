@@ -499,6 +499,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
+			long reduceTid;
 		};
 		cs.lock.enter(() -> {
 			if (state.stage == 0) {
@@ -579,7 +580,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					if (cs.modify.reduceWaitLater(gKey, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
-						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
+						if (r.isTimeout()) {
+							state.reduceResultState = StateReduceRpcTimeout;
+						} else {
+							state.reduceResultState = r.Result.state;
+							state.reduceTid = r.Result.reducedTid;
+						}
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
 					}) != null) {
@@ -639,6 +645,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				cs.lock.notifyAllWait();
+				rpc.Result.reducedTid = state.reduceTid;
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateShare);
@@ -651,6 +658,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			if (isDebugEnabled)
 				logger.debug("7 {} {} {}", sender, StateShare, cs);
 			cs.lock.notifyAllWait();
+			rpc.Result.reducedTid = state.reduceTid;
 			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, StateShare);
@@ -662,6 +670,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
+			long reduceTid;
 		};
 		cs.lock.enter(() -> {
 			if (state.stage == 0) {
@@ -745,7 +754,12 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					if (cs.modify.reduceWaitLater(gKey, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
-						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.state;
+						if (r.isTimeout()) {
+							state.reduceResultState = StateReduceRpcTimeout;
+						} else {
+							state.reduceResultState = r.Result.state;
+							state.reduceTid = r.Result.reducedTid;
+						}
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
 					}) != null) {
@@ -797,6 +811,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateModify, cs);
 				cs.lock.notifyAllWait();
+				rpc.Result.reducedTid = state.reduceTid;
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateModify);
@@ -857,6 +872,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					if (isDebugEnabled)
 						logger.debug("8 {} {} {}", sender, StateModify, cs);
 					cs.lock.notifyAllWait();
+					rpc.Result.reducedTid = state.reduceTid;
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。

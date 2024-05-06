@@ -99,8 +99,6 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
 
-	public abstract @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
-
 	public TaskCompletionSource<TidCache> getLastTidCacheFuture() {
 		return lastTidCacheFuture;
 	}

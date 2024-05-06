@@ -183,24 +183,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
 
-	@Override
-	public @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName) {
-		// 实际上使用原来带缓冲的AutoKey实现。使用pool==1。
-		// globalName原则上和AutoKey应该互斥，如果一样也能工作。
-		var r = new AllocateId();
-		r.Argument.setName(globalName);
-		r.Argument.setCount(1);
-		var future = new TaskCompletionSource<Long>();
-		raftClient.send(r, (rpc) -> {
-			if (r.getResultCode() == 0)
-				future.setResult(r.Result.getStartId());
-			else
-				future.setException(new Exception("allocate error " + IModule.getModuleId(r.getResultCode())));
-			return 0;
-		});
-		return future;
-	}
-
 	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 
 	private void waitLoginReady() {

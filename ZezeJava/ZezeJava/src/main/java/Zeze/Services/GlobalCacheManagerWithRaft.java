@@ -291,6 +291,7 @@ public class GlobalCacheManagerWithRaft
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var reduceTid = new OutLong();
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
 					// 已经是Modify又申请，可能是sender异常关闭，
@@ -308,7 +309,12 @@ public class GlobalCacheManagerWithRaft
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
-					reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.getState();
+					if (r.isTimeout()) {
+						reduceResultState.value = StateReduceRpcTimeout;
+					} else {
+						reduceResultState.value = r.Result.getState();
+						reduceTid.value = r.Result.getReduceTid();
+					}
 					lockey.enter();
 					try {
 						lockey.pulseAll();
@@ -364,6 +370,7 @@ public class GlobalCacheManagerWithRaft
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				lockey.pulseAll();
+				rpc.Result.setReduceTid(reduceTid.value);
 				return 0; // 成功也会自动发送结果.
 			}
 
@@ -373,6 +380,7 @@ public class GlobalCacheManagerWithRaft
 			if (isDebugEnabled)
 				logger.debug("7 {} {} {}", sender, StateShare, cs);
 			lockey.pulseAll();
+			rpc.Result.setReduceTid(reduceTid.value);
 			return 0; // 成功也会自动发送结果.
 		}
 	}
@@ -431,6 +439,7 @@ public class GlobalCacheManagerWithRaft
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
+			var reduceTid = new OutLong();
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
 					// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
@@ -448,7 +457,12 @@ public class GlobalCacheManagerWithRaft
 				if (CacheHolder.reduce(sessions, cs.getModify(), globalTableKey, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
-					reduceResultState.value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.getState();
+					if (r.isTimeout()) {
+						reduceResultState.value = StateReduceRpcTimeout;
+					} else {
+						reduceResultState.value = r.Result.getState();
+						reduceTid.value = r.Result.getReduceTid();
+					}
 					lockey.enter();
 					try {
 						lockey.pulseAll();
@@ -498,6 +512,7 @@ public class GlobalCacheManagerWithRaft
 
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateModify, cs);
+				rpc.Result.setReduceTid(reduceTid.value);
 				return 0;
 			}
 
@@ -612,6 +627,7 @@ public class GlobalCacheManagerWithRaft
 				rpc.setResultCode(errorFreshAcquire.value
 						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
 						: AcquireModifyFailed); // 这个错误码导致Server事务失败。
+				rpc.Result.setReduceTid(reduceTid.value);
 				return 0; // 可能存在部分reduce成功，需要提交事务。
 			}
 
@@ -621,6 +637,7 @@ public class GlobalCacheManagerWithRaft
 			if (isDebugEnabled)
 				logger.debug("8 {} {} {}", sender, StateModify, cs);
 			lockey.pulseAll();
+			rpc.Result.setReduceTid(reduceTid.value);
 			return 0; // 成功也会自动发送结果.
 		}
 	}

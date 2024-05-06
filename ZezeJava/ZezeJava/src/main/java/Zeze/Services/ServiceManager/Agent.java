@@ -157,25 +157,6 @@ public final class Agent extends AbstractAgent {
 		autoKey.setCurrentAndCount(r.Result.getStartId(), r.Result.getCount());
 	}
 
-	@Override
-	public @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName) {
-		// 实际上使用原来带缓冲的AutoKey实现。使用pool==1。
-		// globalName原则上和AutoKey应该互斥，如果一样也能工作。
-		var r = new AllocateId();
-		r.Argument.setName(globalName);
-		r.Argument.setCount(1);
-		var future = new TaskCompletionSource<Long>();
-		if (!r.Send(client.getSocket(), (rpc) -> {
-			if (rpc.getResultCode() == 0)
-				future.setResult(rpc.Result.getStartId());
-			else
-				future.setException(new Exception("allocate error " + IModule.getModuleId(rpc.getResultCode())));
-			return 0;
-		}))
-			future.setException(new Exception("allocate send error."));
-		return future;
-	}
-
 	public void onConnected() {
 		var edit = new BEditService();
 		edit.getAdd().addAll(registers.keySet());

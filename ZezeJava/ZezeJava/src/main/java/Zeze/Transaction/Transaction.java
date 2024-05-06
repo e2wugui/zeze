@@ -71,7 +71,6 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
-	private RecordAccessed lastAcquireModifyRecord;
 	private TaskCompletionSource<TidCache> tidCacheFuture;
 	private long tid;
 
@@ -133,7 +132,6 @@ public final class Transaction {
 		redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
-		lastAcquireModifyRecord = null;
 		tidCacheFuture = null;
 		tid = 0;
 	}
@@ -153,7 +151,6 @@ public final class Transaction {
 		redoBeans.clear();
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
-		lastAcquireModifyRecord = null;
 		tidCacheFuture = null;
 		tid = 0;
 	}
@@ -436,12 +433,12 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure procedure) throws Exception {
-		/*
-		var history = procedure.getZeze().getConfig().getHistory();
-		var globalSerialIdFuture = !history.isEmpty()
-				? procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(history)
-				: null;
-		*/
+		if (tidCacheFuture != null) {
+			if (tid == 0)
+				tid = tidCacheFuture.get().next();
+			for (var e : accessedRecords.entrySet())
+				e.getValue().atomicTupleRecord.record.setTid(tid);
+		}
 
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
@@ -501,20 +498,16 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
-			/*
-			if (globalSerialIdFuture != null) {
-				// 系列号分配失败会导致halt。
-				Long globalSerialId = globalSerialIdFuture.get();
-				return History.buildLogChanges(globalSerialId, cc,
+
+			// >>>>>>>>
+			// for debug. remove later.
+			if (!cc.getRecords().isEmpty() && tidCacheFuture == null)
+				logger.fatal("history lost. ++++++++");
+			// <<<<<<<<
+
+			if (tidCacheFuture != null)
+				return History.buildLogChanges(tid, cc,
 						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
-			}
-			/*/
-			if (tidCacheFuture != null) {
-				var globalSerialId = tid == 0 ? tidCacheFuture.get().next() : tid;
-				return History.buildLogChanges(globalSerialId, cc,
-						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
-			}
-			// */
 			return null;
 		}); // onz patch: 新增参数
 
@@ -634,37 +627,28 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-					if (e == lastAcquireModifyRecord && tidCacheFuture == null) {
+					if (tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
 						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
-					}
-					/* todo 没有lastAcquireModifyRecord优化的版本，使用下面的代码。
-					if (tidCacheFuture == null) {
-						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
-					}
-					*/
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					if (e == lastAcquireModifyRecord) // todo 没有这个优化，则去掉这个if检查
+					tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+							procedure.getZeze().getConfig().getHistory());
+					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
+							e.atomicTupleRecord.record.isFresh(), false);
+					tid = tidCacheFuture.get().next(); // acquire 比 allocate 慢，此时future结果应已返回。
+
+					//noinspection DataFlowIssue
+					if (acquire.reducedTid > tid) {
+						// 重置！see finalCommit!
+						// 重新再次申请tid。
+						tid = 0;
 						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
 								procedure.getZeze().getConfig().getHistory()
 						);
-					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
-							e.atomicTupleRecord.record.isFresh(), false);
-					if (e == lastAcquireModifyRecord) { // todo 没有这个优化，则去掉这个if检查。
-						tid = tidCacheFuture.get().next(); // acquire 比 allocate 慢，此时future结果应已返回。
-						//noinspection DataFlowIssue
-						if (acquire.reducedTid > tid) {
-							// 重置！see finalCommit!
-							// 重新再次申请tid。
-							tid = 0;
-							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
-									procedure.getZeze().getConfig().getHistory()
-							);
-						}
 					}
 
 					//noinspection DataFlowIssue
@@ -743,22 +727,6 @@ public final class Transaction {
 
 		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
 			return CheckResult.Success; // 使用一个新的enum表示一下？
-
-		// 看看是不是需要分配新的TidCache。
-		// todo 没有lastAcquireModifyRecord优化，去掉下面if整块代码。
-		if (!allRead && procedure.getZeze().getConfig().isHistory()) {
-			// 如果发现有modify并且开启了记账历史
-			// 查找最后一个需要申请modify的记录。此时需要建立新的 tidCacheFuture。
-			for (Map.Entry<TableKey, RecordAccessed> e : accessedRecords.descendingMap().entrySet()) {
-				var r = e.getValue();
-				if (r.dirty && r.atomicTupleRecord.record.getState() == GlobalCacheManagerConst.StateShare) {
-					lastAcquireModifyRecord = e.getValue();
-				}
-			}
-			// 有修改，全部modify命中，使用当前的tidCacheFuture.
-			if (lastAcquireModifyRecord == null)
-				tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
-		}
 
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
