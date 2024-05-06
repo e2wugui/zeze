@@ -2,10 +2,12 @@ package Zeze.Util;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.sql.Time;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import Zeze.Transaction.Profiler;
 import org.jetbrains.annotations.NotNull;
@@ -142,7 +144,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	}
 
 	@Override
-	public R get(long timeout, @NotNull TimeUnit unit) {
+	public R get(long timeout, @NotNull TimeUnit unit) throws TimeoutException {
 		var r = result;
 		if (r == null) {
 			var ct = Thread.currentThread();
@@ -156,7 +158,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 				try (var ignored = Profiler.begin("TaskCompletionSource")) {
 					do {
 						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-							throw new RuntimeException("timeout");
+							throw new TimeoutException();
 						LockSupport.parkNanos(timeout);
 						if (Thread.interrupted())
 							throw new RuntimeException("Interrupted");
@@ -208,7 +210,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		try {
 			get(timeout, TimeUnit.MILLISECONDS);
 			return true;
-		} catch (CancellationException e) {
+		} catch (TimeoutException | CancellationException e) {
 			return false;
 		}
 	}

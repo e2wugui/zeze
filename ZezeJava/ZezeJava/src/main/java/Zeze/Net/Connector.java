@@ -155,7 +155,11 @@ public class Connector extends ReentrantLock {
 	}
 
 	public final @NotNull AsyncSocket GetReadySocket() {
-		return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
+		try {
+			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
+		} catch (TimeoutException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public final @Nullable AsyncSocket TryGetReadySocket() {
