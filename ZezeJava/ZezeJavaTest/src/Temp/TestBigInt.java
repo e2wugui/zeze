@@ -13,8 +13,7 @@ public class TestBigInt {
 				throw new IllegalArgumentException("num < 0"); // 能直接支持减法更好。先避免掉。
 			low += num;
 			if (low < 0) {
-				low += Long.MAX_VALUE;
-				low += 1;
+				low += Long.MIN_VALUE;
 				high += 1;
 				if (high < 0)
 					throw new IllegalStateException("overflow");
