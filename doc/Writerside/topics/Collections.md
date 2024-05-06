@@ -1,4 +1,4 @@
-# 第十六章 Collections
+# Collections
 
 Collections是Zeze的内建模块。
 

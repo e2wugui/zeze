@@ -1,4 +1,4 @@
-# 第九章 Bean
+# Bean
 
 ## Tree & Managed
 Bean变量可以是一个Bean，Bean的变量可以是一个容器，容器内可以放入Bean。Bean通

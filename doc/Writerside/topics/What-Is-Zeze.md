@@ -1,4 +1,4 @@
-# 第一章 What Is Zeze
+# What Is Zeze
 
 Zeze是一个基于一致性缓存的分布式事务并发应用框架。Zeze也是一个Key-Value数据库。
 分布式是Zeze的特性，并发是Zeze的要求。一个分布式并发银行系统有一万个窗口，

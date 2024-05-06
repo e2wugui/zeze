@@ -9,6 +9,7 @@
     <toc-element topic="What-Is-Zeze.md">
     </toc-element>
     <toc-element topic="Why-Zeze.md"/>
+    <toc-element topic="Theory.md"/>
     <toc-element topic="Quick-Start.md"/>
     <toc-element topic="Transaction.md"/>
     <toc-element topic="Solution-xml.md"/>

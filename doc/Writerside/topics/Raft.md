@@ -1,4 +1,4 @@
-# 第十三章 Raft
+# Raft
 
 ## 什么是Raft
 请阅读 zeze/Zeze/Raft/下的Raft.mhtml，raft.pdf，OngaroPhD.pdf。

@@ -1,4 +1,4 @@
-# 第十五章 Component
+# Component
 
 Component是Zeze内建模块；
 

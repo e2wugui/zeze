@@ -1,4 +1,4 @@
-# 第二十七章 Inside Zeze
+# Inside Zeze
 
 ## 协议基础
 zeze框架所用的协议是为TCP payload的流特性而设计的，一条协议紧接下一条协议在流

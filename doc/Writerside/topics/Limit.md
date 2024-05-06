@@ -1,4 +1,4 @@
-# 第二十章 Limit
+# Limit
 
 ## Database
 * Zeze.Transaction.Database.eMaxKeyLength

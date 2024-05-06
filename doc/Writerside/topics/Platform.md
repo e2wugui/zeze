@@ -1,4 +1,4 @@
-# 第十四章 Platform
+# Platform
 
 Zeze支持多个开发平台。platform是project属性，需要明确指定。
 

@@ -1,4 +1,4 @@
-# 第十七章 Game
+# Game
 
 Game是Zeze内建模块。
 
