@@ -8,8 +8,10 @@ import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Services.ServiceManager.TidCache;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -69,6 +71,10 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
+	private RecordAccessed lastAcquireModifyRecord;
+	private TaskCompletionSource<TidCache> tidCacheFuture;
+	private long tid;
+
 
 	private Transaction() {
 	}
@@ -127,6 +133,9 @@ public final class Transaction {
 		redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
+		lastAcquireModifyRecord = null;
+		tidCacheFuture = null;
+		tid = 0;
 	}
 
 	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
@@ -144,6 +153,9 @@ public final class Transaction {
 		redoBeans.clear();
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
+		lastAcquireModifyRecord = null;
+		tidCacheFuture = null;
+		tid = 0;
 	}
 
 	public void begin() {
@@ -266,7 +278,7 @@ public final class Transaction {
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
-								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure);
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
 										try {
@@ -326,7 +338,7 @@ public final class Transaction {
 									finalRollback(procedure);
 									throw (AssertionError)e;
 								}
-								checkResult = lockAndCheck(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure);
 								if (checkResult == CheckResult.Success) {
 									finalRollback(procedure, true);
 									return Procedure.Exception;
@@ -424,10 +436,12 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure procedure) throws Exception {
+		/*
 		var history = procedure.getZeze().getConfig().getHistory();
 		var globalSerialIdFuture = !history.isEmpty()
 				? procedure.getZeze().getServiceManager().allocateGlobalSerialAsync(history)
 				: null;
+		*/
 
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
@@ -487,12 +501,20 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
+			/*
 			if (globalSerialIdFuture != null) {
 				// 系列号分配失败会导致halt。
 				Long globalSerialId = globalSerialIdFuture.get();
 				return History.buildLogChanges(globalSerialId, cc,
 						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
 			}
+			/*/
+			if (tidCacheFuture != null) {
+				var globalSerialId = tid == 0 ? tidCacheFuture.get().next() : tid;
+				return History.buildLogChanges(globalSerialId, cc,
+						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
+			}
+			// */
 			return null;
 		}); // onz patch: 新增参数
 
@@ -599,7 +621,7 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private static @NotNull CheckResult _check_(boolean writeLock, @NotNull RecordAccessed e) {
+	private @NotNull CheckResult _check_(Procedure procedure, boolean writeLock, @NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {
@@ -612,13 +634,39 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+					if (e == lastAcquireModifyRecord && tidCacheFuture == null) {
+						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
+					}
+					/* todo 没有lastAcquireModifyRecord优化的版本，使用下面的代码。
+					if (tidCacheFuture == null) {
+						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
+					}
+					*/
+					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+							? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
+					if (e == lastAcquireModifyRecord) // todo 没有这个优化，则去掉这个if检查
+						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+								procedure.getZeze().getConfig().getHistory()
+						);
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
+					if (e == lastAcquireModifyRecord) { // todo 没有这个优化，则去掉这个if检查。
+						tid = tidCacheFuture.get().next(); // acquire 比 allocate 慢，此时future结果应已返回。
+						//noinspection DataFlowIssue
+						if (acquire.reducedTid > tid) {
+							// 重置！see finalCommit!
+							// 重新再次申请tid。
+							tid = 0;
+							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+									procedure.getZeze().getConfig().getHistory()
+							);
+						}
+					}
+
 					//noinspection DataFlowIssue
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
@@ -628,9 +676,11 @@ public final class Transaction {
 						return CheckResult.RedoAndReleaseLock;
 					}
 					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
-					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+							? CheckResult.Redo : CheckResult.Success;
 				}
-				return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
+				return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+						? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 			switch (e.atomicTupleRecord.record.getState()) {
 			case GlobalCacheManagerConst.StateRemoved:
@@ -640,7 +690,8 @@ public final class Transaction {
 			case GlobalCacheManagerConst.StateInvalid:
 				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 			}
-			return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+			return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+					? CheckResult.Redo : CheckResult.Success;
 		} finally {
 			e.atomicTupleRecord.record.exitFairLock();
 		}
@@ -651,15 +702,16 @@ public final class Transaction {
 		return locks.get(key);
 	}
 
-	private @NotNull CheckResult lockAndCheck(@NotNull Map.Entry<TableKey, RecordAccessed> e) {
+	private @NotNull CheckResult lockAndCheck(Procedure procedure, @NotNull Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
 		holdLocks.add(lockey);
-		return _check_(writeLock, e.getValue());
+		return _check_(procedure, writeLock, e.getValue());
 	}
 
-	private @NotNull CheckResult lockAndCheck(TransactionLevel level) {
+	private @NotNull CheckResult lockAndCheck(Procedure procedure) {
+		var level = procedure.getTransactionLevel();
 		boolean allRead = true;
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {
@@ -692,10 +744,26 @@ public final class Transaction {
 		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
 			return CheckResult.Success; // 使用一个新的enum表示一下？
 
+		// 看看是不是需要分配新的TidCache。
+		// todo 没有lastAcquireModifyRecord优化，去掉下面if整块代码。
+		if (!allRead && procedure.getZeze().getConfig().isHistory()) {
+			// 如果发现有modify并且开启了记账历史
+			// 查找最后一个需要申请modify的记录。此时需要建立新的 tidCacheFuture。
+			for (Map.Entry<TableKey, RecordAccessed> e : accessedRecords.descendingMap().entrySet()) {
+				var r = e.getValue();
+				if (r.dirty && r.atomicTupleRecord.record.getState() == GlobalCacheManagerConst.StateShare) {
+					lastAcquireModifyRecord = e.getValue();
+				}
+			}
+			// 有修改，全部modify命中，使用当前的tidCacheFuture.
+			if (lastAcquireModifyRecord == null)
+				tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
+		}
+
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
 			for (var e : accessedRecords.entrySet()) {
-				var r = lockAndCheck(e);
+				var r = lockAndCheck(procedure, e);
 				switch (r) {
 				case Success:
 					break;
@@ -716,7 +784,7 @@ public final class Transaction {
 		while (null != e) {
 			// 如果 holdLocks 全部被对比完毕，直接锁定它
 			if (index >= n) {
-				var r = lockAndCheck(e);
+				var r = lockAndCheck(procedure, e);
 				switch (r) {
 				case Success:
 					break;
@@ -746,7 +814,7 @@ public final class Transaction {
 					continue;
 				}
 				// BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
-				var r = _check_(e.getValue().dirty, e.getValue());
+				var r = _check_(procedure, e.getValue().dirty, e.getValue());
 				switch (r) {
 				case Success:
 					// 已经锁内，所以肯定不会冲突，多数情况是这个。

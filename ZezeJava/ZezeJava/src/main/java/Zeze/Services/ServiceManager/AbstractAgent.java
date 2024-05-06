@@ -48,6 +48,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	protected @Nullable Runnable onKeepAlive;
+	private volatile TaskCompletionSource<TidCache> lastTidCacheFuture;
+
 
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
@@ -99,18 +101,20 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public abstract @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
 
-	private volatile TidCache lastTidCache;
+	public TaskCompletionSource<TidCache> getLastTidCacheFuture() {
+		return lastTidCacheFuture;
+	}
 
 	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(String globalName) {
 		var future = new TaskCompletionSource<TidCache>();
-		var tmp = lastTidCache;
-		var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.allocateCount();
+		var tmp = lastTidCacheFuture;
+		var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
 		var sent = allocateAsync(globalName, allocateCount, (rpc) -> {
 			lock();
 			try {
 				if (rpc.getResultCode() == 0) {
-					lastTidCache = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
-					future.setResult(lastTidCache);
+					var newest = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
+					future.setResult(newest);
 				} else {
 					future.setException(new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode())));
 				}
@@ -121,6 +125,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		});
 		if (!sent)
 			future.setException(new Exception("AllocatedId send fail."));
+
+		lock();
+		try {
+			lastTidCacheFuture = future;
+		} finally {
+			unlock();
+		}
 		return future;
 	}
 

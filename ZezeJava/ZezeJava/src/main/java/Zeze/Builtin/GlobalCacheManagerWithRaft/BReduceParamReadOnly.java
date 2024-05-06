@@ -9,4 +9,5 @@ public interface BReduceParamReadOnly {
 
     Zeze.Net.Binary getGlobalKey();
     int getState();
+    long getReduceTid();
 }

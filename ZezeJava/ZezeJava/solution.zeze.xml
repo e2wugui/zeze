@@ -42,6 +42,7 @@
 			<bean name="BReduceParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="ReduceTid" type="long"/>
 			</bean>
 
 			<bean name="BLoginParam">

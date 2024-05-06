@@ -233,7 +233,8 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 		var rc = rpc.getResultCode();
 		state = rpc.Result.state;
-		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
+		return //rc == 0 ? AcquireResult.getSuccessResult(state) :
+				new AcquireResult(rc, state, rpc.Result.reducedTid);
 	}
 
 	public int processReduceRequest(Reduce rpc) {

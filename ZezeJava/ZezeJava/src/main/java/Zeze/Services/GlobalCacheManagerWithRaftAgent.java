@@ -228,7 +228,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 		var rc = rpc.getResultCode();
 		state = rpc.Result.getState();
-		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
+		return //rc == 0 ? AcquireResult.getSuccessResult(state) :
+				new AcquireResult(rc, state, rpc.Result.getReduceTid());
 	}
 
 	// 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。

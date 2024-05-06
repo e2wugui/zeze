@@ -10,6 +10,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
 
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
+    private long _ReduceTid;
 
     @Override
     public Zeze.Net.Binary getGlobalKey() {
@@ -53,29 +54,52 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         txn.putLog(new Log__State(this, 2, value));
     }
 
+    @Override
+    public long getReduceTid() {
+        if (!isManaged())
+            return _ReduceTid;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _ReduceTid;
+        var log = (Log__ReduceTid)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _ReduceTid;
+    }
+
+    public void setReduceTid(long value) {
+        if (!isManaged()) {
+            _ReduceTid = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__ReduceTid(this, 3, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BReduceParam() {
         _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+    public BReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_, long _ReduceTid_) {
         if (_GlobalKey_ == null)
             _GlobalKey_ = Zeze.Net.Binary.Empty;
         _GlobalKey = _GlobalKey_;
         _State = _State_;
+        _ReduceTid = _ReduceTid_;
     }
 
     @Override
     public void reset() {
         setGlobalKey(Zeze.Net.Binary.Empty);
         setState(0);
+        setReduceTid(0);
         _unknown_ = null;
     }
 
     public void assign(BReduceParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());
+        setReduceTid(other.getReduceTid());
         _unknown_ = other._unknown_;
     }
 
@@ -115,6 +139,13 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         public void commit() { ((BReduceParam)getBelong())._State = value; }
     }
 
+    private static final class Log__ReduceTid extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReduceTid(BReduceParam bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BReduceParam)getBelong())._ReduceTid = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -127,7 +158,8 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BReduceParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey=").append(getGlobalKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ReduceTid=").append(getReduceTid()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -174,6 +206,13 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            long _x_ = getReduceTid();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -191,6 +230,10 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
             setState(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setReduceTid(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -198,6 +241,8 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     @Override
     public boolean negativeCheck() {
         if (getState() < 0)
+            return true;
+        if (getReduceTid() < 0)
             return true;
         return false;
     }
@@ -213,6 +258,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
             switch (vlog.getVariableId()) {
                 case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
                 case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _ReduceTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
             }
         }
     }
@@ -222,6 +268,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         setGlobalKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "GlobalKey")));
         setState(rs.getInt(_parents_name_ + "State"));
+        setReduceTid(rs.getLong(_parents_name_ + "ReduceTid"));
     }
 
     @Override
@@ -229,6 +276,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendBinary(_parents_name_ + "GlobalKey", getGlobalKey());
         st.appendInt(_parents_name_ + "State", getState());
+        st.appendLong(_parents_name_ + "ReduceTid", getReduceTid());
     }
 
     @Override
@@ -236,6 +284,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalKey", "binary", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ReduceTid", "long", "", ""));
         return vars;
     }
 }
