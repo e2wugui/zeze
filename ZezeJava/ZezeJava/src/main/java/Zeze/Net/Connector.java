@@ -1,10 +1,8 @@
 package Zeze.Net;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -155,11 +153,7 @@ public class Connector extends ReentrantLock {
 	}
 
 	public final @NotNull AsyncSocket GetReadySocket() {
-		try {
-			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
-		} catch (TimeoutException e) {
-			throw new RuntimeException(e);
-		}
+		return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
 	public final @Nullable AsyncSocket TryGetReadySocket() {

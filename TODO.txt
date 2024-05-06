@@ -11,7 +11,7 @@ History 专门的Tid(使用Id128)分配服务器（基于udp）和Agent。
 History TidCache 完成。
 Histroy 数据库变更历史记账系统。
 SM 删除updateService及相关。
-检测内存占用，比如80%，做一次checkpoint。@张路
+检测内存占用，比如80%，做一次checkpoint。@zl
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/4/26 v1.4.6 ServiceManager(incompatible); Profiler; decimal; HttpSession; SM.Exporter; 

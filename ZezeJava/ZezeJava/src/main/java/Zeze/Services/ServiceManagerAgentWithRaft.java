@@ -15,7 +15,6 @@ import Zeze.Builtin.ServiceManagerWithRaft.UnSubscribe;
 import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
 import Zeze.Config;
-import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Raft.Agent;

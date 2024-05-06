@@ -41,16 +41,19 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	void addLogChanges(BLogChanges.Data logChanges) {
-		if (null == history)
-			history = new History();
-		history.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
+		var h = history;
+		if (h == null)
+			history = h = new History();
+		h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
 	}
 
-	@Nullable HashSet<Record> getRecordSet() {
+	@Nullable
+	HashSet<Record> getRecordSet() {
 		return recordSet;
 	}
 
-	@Nullable RelativeRecordSet getMergeTo() {
+	@Nullable
+	RelativeRecordSet getMergeTo() {
 		return mergeTo;
 	}
 

@@ -8,9 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Services.ServiceManager.TidCache;
 import Zeze.Util.PerfCounter;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -59,7 +57,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return getSoftValue() != null || !getDirty() && table.getLocalRocksCacheTable().containsKey(table, key);
 	}
 
-	@Nullable V copyValue() {
+	@Nullable
+	V copyValue() {
 		var v = getSoftValue();
 		if (v != null) {
 			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
@@ -79,7 +78,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return table.getLocalRocksCacheTable().find(table, key);
 	}
 
-	@Nullable V loadValue() {
+	@Nullable
+	V loadValue() {
 		@SuppressWarnings("unchecked")
 		var v = (V)getSoftValue();
 		if (v == null && !getDirty()) {
@@ -106,7 +106,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		existInBackDatabase = value;
 	}
 
-	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
+	@Nullable
+	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
 	}
 
@@ -115,7 +116,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+	@Nullable
+	ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
 		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 

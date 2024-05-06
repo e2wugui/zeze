@@ -28,7 +28,8 @@ import org.w3c.dom.NodeList;
 
 public final class Config {
 	public interface ICustomize {
-		@NotNull String getName();
+		@NotNull
+		String getName();
 
 		void parse(@NotNull Element self);
 	}
@@ -100,24 +101,24 @@ public final class Config {
 
 	private long procedureStatisticsReportPeriod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
-	private String hotWorkingDir = "";
-	private String hotDistributeDir = "distributes";
+	private @NotNull String hotWorkingDir = "";
+	private @NotNull String hotDistributeDir = "distributes";
 	private int deadLockBreakerPeriod = 60000;
 
 	private int procedureLockWatcherMin = 25;
 	private long appVersion;
-	private String history;
+	private @NotNull String history = "";
 
 	public boolean isHistory() {
 		return !history.isEmpty();
 	}
 
-	public String getHistory() {
+	public @NotNull String getHistory() {
 		return history;
 	}
 
-	public void setHistory(String history) {
-		this.history = history;
+	public void setHistory(@Nullable String history) {
+		this.history = history != null ? history : "";
 	}
 
 	public int getProcedureLockWatcherMin() {
@@ -128,20 +129,20 @@ public final class Config {
 		this.procedureLockWatcherMin = procedureLockWatcherMin;
 	}
 
-	public String getHotWorkingDir() {
+	public @NotNull String getHotWorkingDir() {
 		return hotWorkingDir;
 	}
 
-	public String getHotDistributeDir() {
+	public @NotNull String getHotDistributeDir() {
 		return hotDistributeDir;
 	}
 
-	public void setHotWorkingDir(String value) {
-		hotWorkingDir = value;
+	public void setHotWorkingDir(@Nullable String value) {
+		hotWorkingDir = value != null ? value : "";
 	}
 
-	public void setHotDistributeDir(String value) {
-		hotDistributeDir = value;
+	public void setHotDistributeDir(@Nullable String value) {
+		hotDistributeDir = value != null ? value : "";
 	}
 
 	public int getDeadLockBreakerPeriod() {
