@@ -88,10 +88,10 @@ public class TestBigInt {
 
 		@Override
 		public int compareTo(@NotNull Id128 o) {
-			var c = Long.compare(high, o.high);
+			var c = Long.compareUnsigned(high, o.high);
 			if (c != 0)
 				return c;
-			return Long.compare(low, o.low);
+			return Long.compareUnsigned(low, o.low);
 		}
 	}
 
