@@ -11,19 +11,19 @@ public class Id128 implements Comparable<Id128>, Serializable {
 	private long low; // unsigned
 
 	// 非常快，但是low只用了63位，为了对接gcc的__int128，废弃。
-		/*
-		public void add(long num) {
-			if (num < 0)
-				throw new IllegalArgumentException("num < 0"); // 能直接支持减法更好。先避免掉。
-			low += num;
-			if (low < 0) {
-				low += Long.MIN_VALUE;
-				high += 1;
-				if (high < 0)
-					throw new IllegalStateException("overflow");
-			}
+	/*
+	public void add(long num) {
+		if (num < 0)
+			throw new IllegalArgumentException("num < 0"); // 能直接支持减法更好。先避免掉。
+		low += num;
+		if (low < 0) {
+			low += Long.MIN_VALUE;
+			high += 1;
+			if (high < 0)
+				throw new IllegalStateException("overflow");
 		}
-		*/
+	}
+	*/
 
 	public Id128() {
 
