@@ -10,7 +10,6 @@
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GlobalCacheManager\GlobalCacheManager.csproj" />
     <ProjectReference Include="..\Zeze\Zeze.csproj" />
   </ItemGroup>
 </Project>

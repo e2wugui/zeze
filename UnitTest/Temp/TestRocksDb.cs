@@ -1,18 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 
-namespace TestRocksDB
+namespace UnitTest.Temp
 {
-    public class Program
+    public class TestRocksDb
     {
-        public static void Main(string[] args)
-        {
-            TestRocksDb();
-            //TestServiceManager();
-        }
-
-        public static void TestRocksDb()
+        public void Test()
         {
             string temp = System.IO.Path.GetTempPath();
             var options = new RocksDbSharp.DbOptions().SetCreateIfMissing(true);
@@ -57,5 +53,4 @@ namespace TestRocksDB
             }
         }
     }
-
 }
