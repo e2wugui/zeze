@@ -14,6 +14,7 @@ public class TestBigInt {
 			low += num;
 			if (low < 0) {
 				low += Long.MAX_VALUE;
+				low += 1;
 				high += 1;
 				if (high < 0)
 					throw new IllegalStateException("overflow");
@@ -45,7 +46,6 @@ public class TestBigInt {
 			for (var i = 0; i < count; ++i) {
 				int128.add(102400000000L);
 			}
-			// todo 问题，int128 sum不正确，差了1，toString不对？
 			b.report("int128 sum=" + int128, count); // 这个效率杠杠的。
 		}
 		System.out.println(Long.MAX_VALUE);
