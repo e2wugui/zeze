@@ -23,7 +23,7 @@ public class TestBigInt {
 		@Override
 		public String toString() {
 			var bi = new BigInteger(String.valueOf(high));
-			bi = bi.shiftLeft(64);
+			bi = bi.shiftLeft(63); // low 实际用了63位。
 			bi = bi.add(new BigInteger(String.valueOf(low)));
 			return bi.toString();
 		}
@@ -35,7 +35,7 @@ public class TestBigInt {
 			var bi = new BigInteger("0");
 			var b = new Benchmark();
 			for (var i = 0; i < count; ++i) {
-				bi = bi.add(new BigInteger("1024"));
+				bi = bi.add(new BigInteger("102400000000")); // bi我主要消耗在new操作和构造的解析上，主要它的longcanshu的构造没有暴露。
 			}
 			b.report("BigInteger sum=" + bi, count);
 		}
@@ -43,9 +43,11 @@ public class TestBigInt {
 			var int128 = new Int128();
 			var b = new Benchmark();
 			for (var i = 0; i < count; ++i) {
-				int128.add(1024);
+				int128.add(102400000000L);
 			}
-			b.report("int128 sum=" + int128, count);
+			// todo 问题，int128 sum不正确，差了1，toString不对？
+			b.report("int128 sum=" + int128, count); // 这个效率杠杠的。
 		}
+		System.out.println(Long.MAX_VALUE);
 	}
 }
