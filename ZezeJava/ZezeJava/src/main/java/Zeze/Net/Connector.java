@@ -155,17 +155,13 @@ public class Connector extends ReentrantLock {
 	}
 
 	public final @NotNull AsyncSocket GetReadySocket() {
-		try {
-			return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new IllegalStateException(getName(), e);
-		}
+		return futureSocket.get(READY_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 
 	public final @Nullable AsyncSocket TryGetReadySocket() {
 		try {
 			return futureSocket.getNow();
-		} catch (ExecutionException e) {
+		} catch (Exception e) {
 			return null;
 		}
 	}

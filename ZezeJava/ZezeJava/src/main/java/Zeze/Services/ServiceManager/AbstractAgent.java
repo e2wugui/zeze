@@ -9,6 +9,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Component.Threading;
 import Zeze.Config;
+import Zeze.IModule;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -95,6 +98,34 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
 
 	public abstract @NotNull TaskCompletionSource<Long> allocateGlobalSerialAsync(String globalName);
+
+	private volatile TidCache lastTidCache;
+
+	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(String globalName) {
+		var future = new TaskCompletionSource<TidCache>();
+		var tmp = lastTidCache;
+		var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.allocateCount();
+		var sent = allocateAsync(globalName, allocateCount, (rpc) -> {
+			lock();
+			try {
+				if (rpc.getResultCode() == 0) {
+					lastTidCache = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
+					future.setResult(lastTidCache);
+				} else {
+					future.setException(new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode())));
+				}
+			} finally {
+				unlock();
+			}
+			return 0;
+		});
+		if (!sent)
+			future.setException(new Exception("AllocatedId send fail."));
+		return future;
+	}
+
+	protected abstract boolean allocateAsync(String globalName, int allocCount,
+											 ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
 
 	public abstract void start() throws Exception;
 

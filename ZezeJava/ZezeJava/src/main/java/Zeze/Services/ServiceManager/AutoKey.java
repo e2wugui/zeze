@@ -1,9 +1,9 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Util.FastLock;
 
-public final class AutoKey extends ReentrantLock {
+public final class AutoKey extends FastLock {
 	private final String name;
 	private final AbstractAgent agent;
 	private final AtomicLong current = new AtomicLong();

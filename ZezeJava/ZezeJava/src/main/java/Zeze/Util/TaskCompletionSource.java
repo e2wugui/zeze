@@ -4,10 +4,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.LockSupport;
 import Zeze.Transaction.Profiler;
 import org.jetbrains.annotations.NotNull;
@@ -122,7 +120,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	}
 
 	@Override
-	public R get() throws InterruptedException, ExecutionException {
+	public R get() {
 		var r = result;
 		if (r == null) {
 			var ct = Thread.currentThread();
@@ -135,7 +133,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 					do {
 						LockSupport.park();
 						if (Thread.interrupted())
-							throw new InterruptedException();
+							throw new RuntimeException("Interrupted");
 					} while ((r = result) == null);
 				}
 			}
@@ -144,8 +142,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	}
 
 	@Override
-	public R get(long timeout, @NotNull TimeUnit unit)
-			throws InterruptedException, ExecutionException, TimeoutException {
+	public R get(long timeout, @NotNull TimeUnit unit) {
 		var r = result;
 		if (r == null) {
 			var ct = Thread.currentThread();
@@ -159,10 +156,10 @@ public class TaskCompletionSource<R> implements Future<R> {
 				try (var ignored = Profiler.begin("TaskCompletionSource")) {
 					do {
 						if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
-							throw new TimeoutException();
+							throw new RuntimeException("timeout");
 						LockSupport.parkNanos(timeout);
 						if (Thread.interrupted())
-							throw new InterruptedException();
+							throw new RuntimeException("Interrupted");
 						timeout = deadline - System.nanoTime();
 					} while ((r = result) == null);
 				}
@@ -171,7 +168,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return toResult(r);
 	}
 
-	protected @Nullable R toResult(@NotNull Object o) throws ExecutionException {
+	protected @Nullable R toResult(@NotNull Object o) {
 		if (o instanceof AltResult) {
 			var e = ((AltResult)o).e;
 			if (e == null)
@@ -181,37 +178,29 @@ public class TaskCompletionSource<R> implements Future<R> {
 			Throwable c;
 			if ((e instanceof CompletionException) && (c = e.getCause()) != null)
 				e = c;
-			throw new ExecutionException(e);
+			throw new RuntimeException(e);
 		}
 		@SuppressWarnings("unchecked")
 		R r = (R)o;
 		return r;
 	}
 
-	public @Nullable R getNow() throws ExecutionException {
+	public @Nullable R getNow() {
 		Object r = result;
 		return r != null ? toResult(r) : null;
 	}
 
-	public R getNow(R valueIfAbsent) throws ExecutionException {
+	public R getNow(R valueIfAbsent) {
 		Object r = result;
 		return r != null ? toResult(r) : valueIfAbsent;
 	}
 
 	public R join() {
-		try {
-			return get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new CompletionException(e);
-		}
+		return get();
 	}
 
 	public @NotNull TaskCompletionSource<R> await() {
-		try {
-			get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new CompletionException(e);
-		}
+		get();
 		return this;
 	}
 
@@ -219,10 +208,8 @@ public class TaskCompletionSource<R> implements Future<R> {
 		try {
 			get(timeout, TimeUnit.MILLISECONDS);
 			return true;
-		} catch (TimeoutException | CancellationException e) {
+		} catch (CancellationException e) {
 			return false;
-		} catch (InterruptedException | ExecutionException e) {
-			throw new CompletionException(e);
 		}
 	}
 }

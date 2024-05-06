@@ -3,7 +3,6 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import Zeze.Builtin.ServiceManagerWithRaft.AllocateId;
 import Zeze.Builtin.ServiceManagerWithRaft.KeepAlive;
 import Zeze.Builtin.ServiceManagerWithRaft.Login;
@@ -17,9 +16,13 @@ import Zeze.Builtin.ServiceManagerWithRaft.Edit;
 import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.IModule;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Raft.Agent;
 import Zeze.Raft.RaftConfig;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Services.ServiceManager.BAllocateIdArgument;
+import Zeze.Services.ServiceManager.BAllocateIdResult;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Services.ServiceManager.BServerLoad;
@@ -150,6 +153,25 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
+	protected boolean allocateAsync(String globalName, int allocCount,
+									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		if (allocCount < 1)
+			throw new IllegalArgumentException();
+		var r = new AllocateId();
+		r.Argument.setName(globalName);
+		r.Argument.setCount(allocCount);
+		raftClient.send(r, (p) -> {
+			try {
+				return callback.handle(r);
+			} catch (Exception ex) {
+				Task.forceThrow(ex);
+			}
+			return 0;
+		});
+		return true;
+	}
+
+	@Override
 	protected void allocate(AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
@@ -184,23 +206,15 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	private void waitLoginReady() {
 		var volatileTmp = loginFuture;
 		if (volatileTmp.isDone()) {
-			try {
-				if (volatileTmp.get())
-					return;
-			} catch (InterruptedException | ExecutionException e) {
-				Task.forceThrow(e);
-			}
+			if (volatileTmp.get())
+				return;
 			throw new IllegalStateException("login fail.");
 		}
 		if (!volatileTmp.await(super.config.getServiceManagerConf().getLoginTimeout()))
 			throw new IllegalStateException("login timeout.");
 		// 再次查看结果。
-		try {
-			if (volatileTmp.isDone() && volatileTmp.get())
-				return;
-		} catch (InterruptedException | ExecutionException e) {
-			Task.forceThrow(e);
-		}
+		if (volatileTmp.isDone() && volatileTmp.get())
+			return;
 		// 只等待一次，不成功则失败。
 		throw new IllegalStateException("login timeout.");
 	}

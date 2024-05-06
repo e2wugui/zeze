@@ -5,7 +5,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.Onz.BSavedCommits;
@@ -148,7 +147,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		for (var saga : zezeSagas.values()) {
 			try {
 				saga.get();
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (Exception e) {
 				logger.error("await saga result.", e);
 			}
 		}
@@ -160,14 +159,14 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 					r.Argument.setCancel(true);
 					futures.add(r.SendForWait(e.getKey()));
 				}
-			} catch (InterruptedException | ExecutionException ex) {
+			} catch (Exception ex) {
 				logger.error("cancel if saga success.", ex);
 			}
 		}
 		for (var future : futures) {
 			try {
 				future.get();
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (Exception e) {
 				logger.error("await cancel result.", e);
 			}
 		}
@@ -232,7 +231,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		if (flushMode == Onz.eFlushImmediately) {
 			try {
 				flushDone.get(flushTimeout, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			} catch (Exception e) {
 				logger.warn("waitFlushDone", e);
 				// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
 				for (var ready : flushReadies)

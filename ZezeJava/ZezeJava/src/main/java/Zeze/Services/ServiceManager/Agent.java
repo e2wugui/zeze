@@ -8,6 +8,8 @@ import Zeze.Component.Threading;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -131,6 +133,17 @@ public final class Agent extends AbstractAgent {
 	@Override
 	public boolean setServerLoad(@NotNull BServerLoad load) {
 		return new SetServerLoad(load).Send(client.getSocket());
+	}
+
+	@Override
+	protected boolean allocateAsync(String globalName, int allocCount,
+									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+		if (allocCount < 1)
+			throw new IllegalArgumentException();
+		var r = new AllocateId();
+		r.Argument.setName(globalName);
+		r.Argument.setCount(allocCount);
+		return r.Send(client.getSocket(), callback);
 	}
 
 	@Override
