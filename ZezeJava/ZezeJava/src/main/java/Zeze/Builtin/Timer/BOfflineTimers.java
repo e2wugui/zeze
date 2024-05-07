@@ -157,6 +157,19 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOfflineTimers))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOfflineTimers)_o_;
+        if (!_OfflineTimers.equals(_b_._OfflineTimers))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _OfflineTimers.initRootInfo(root, this);
     }

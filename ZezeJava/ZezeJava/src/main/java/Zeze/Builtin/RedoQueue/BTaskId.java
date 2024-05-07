@@ -148,6 +148,19 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTaskId))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTaskId)_o_;
+        if (getTaskId() != _b_.getTaskId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTaskId() < 0)
             return true;

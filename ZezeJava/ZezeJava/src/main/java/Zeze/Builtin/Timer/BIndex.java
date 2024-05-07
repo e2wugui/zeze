@@ -234,6 +234,23 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BIndex))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BIndex)_o_;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (getNodeId() != _b_.getNodeId())
+            return false;
+        if (getSerialId() != _b_.getSerialId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;

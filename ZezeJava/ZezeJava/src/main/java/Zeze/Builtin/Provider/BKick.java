@@ -314,6 +314,25 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BKick))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BKick)_o_;
+        if (getLinksid() != _b_.getLinksid())
+            return false;
+        if (getCode() != _b_.getCode())
+            return false;
+        if (!getDesc().equals(_b_.getDesc()))
+            return false;
+        if (getControl() != _b_.getControl())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLinksid() < 0)
             return true;

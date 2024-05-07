@@ -169,6 +169,19 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BRegister))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BRegister)_o_;
+        if (!getZokerName().equals(_b_.getZokerName()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

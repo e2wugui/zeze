@@ -258,6 +258,23 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BFuncSagaEnd))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BFuncSagaEnd)_o_;
+        if (getOnzTid() != _b_.getOnzTid())
+            return false;
+        if (isCancel() != _b_.isCancel())
+            return false;
+        if (!getFuncArgument().equals(_b_.getFuncArgument()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOnzTid() < 0)
             return true;

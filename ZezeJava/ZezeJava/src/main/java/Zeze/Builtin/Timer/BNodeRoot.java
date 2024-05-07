@@ -234,6 +234,23 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BNodeRoot))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BNodeRoot)_o_;
+        if (getHeadNodeId() != _b_.getHeadNodeId())
+            return false;
+        if (getTailNodeId() != _b_.getTailNodeId())
+            return false;
+        if (getLoadSerialNo() != _b_.getLoadSerialNo())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

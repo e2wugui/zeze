@@ -229,7 +229,7 @@ namespace Zeze.Gen.cxx
             Encode.MakeHpp(bean, sw, "    ");
             Decode.MakeHpp(bean, sw, "    ");
             /*
-            if (bean.Equalable)
+            if (bean.GenEquals)
             {
                 sw.WriteLine();
                 java.Equal.Make(bean, sw, "    ", true);

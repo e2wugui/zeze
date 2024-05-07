@@ -366,6 +366,27 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransmit))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransmit)_o_;
+        if (!getActionName().equals(_b_.getActionName()))
+            return false;
+        if (!_Roles.equals(_b_._Roles))
+            return false;
+        if (getSender() != _b_.getSender())
+            return false;
+        if (!getParameter().equals(_b_.getParameter()))
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Roles.initRootInfo(root, this);
     }

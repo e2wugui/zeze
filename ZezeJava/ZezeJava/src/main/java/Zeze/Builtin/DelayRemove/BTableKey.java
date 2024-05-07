@@ -244,6 +244,23 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTableKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTableKey)_o_;
+        if (!getTableName().equals(_b_.getTableName()))
+            return false;
+        if (!getEncodedKey().equals(_b_.getEncodedKey()))
+            return false;
+        if (getEnqueueTime() != _b_.getEnqueueTime())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getEnqueueTime() < 0)
             return true;

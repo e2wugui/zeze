@@ -161,6 +161,19 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOnlineTimers))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOnlineTimers)_o_;
+        if (!_TimerIds.equals(_b_._TimerIds))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TimerIds.initRootInfo(root, this);
     }

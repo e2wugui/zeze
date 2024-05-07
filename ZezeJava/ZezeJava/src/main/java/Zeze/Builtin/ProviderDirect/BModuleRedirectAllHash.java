@@ -226,6 +226,21 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModuleRedirectAllHash))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModuleRedirectAllHash)_o_;
+        if (getReturnCode() != _b_.getReturnCode())
+            return false;
+        if (!getParams().equals(_b_.getParams()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getReturnCode() < 0)
             return true;

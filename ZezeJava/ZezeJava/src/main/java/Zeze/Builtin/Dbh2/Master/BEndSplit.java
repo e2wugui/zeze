@@ -193,6 +193,21 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BEndSplit))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BEndSplit)_o_;
+        if (!_From.equals(_b_._From))
+            return false;
+        if (!_To.equals(_b_._To))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _From.initRootInfo(root, this);
         _To.initRootInfo(root, this);

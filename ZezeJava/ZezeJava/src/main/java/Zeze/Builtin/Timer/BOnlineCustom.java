@@ -153,6 +153,19 @@ public final class BOnlineCustom extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOnlineCustom))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOnlineCustom)_o_;
+        if (!_CustomData.equals(_b_._CustomData))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _CustomData.initRootInfo(root, this);
     }

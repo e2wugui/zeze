@@ -300,6 +300,25 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLinkBroken))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkBroken)_o_;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (getLinkSid() != _b_.getLinkSid())
+            return false;
+        if (getReason() != _b_.getReason())
+            return false;
+        if (!_userState.equals(_b_._userState))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _userState.initRootInfo(root, this);
     }

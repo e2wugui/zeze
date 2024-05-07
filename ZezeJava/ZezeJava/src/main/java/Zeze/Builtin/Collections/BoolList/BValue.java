@@ -449,6 +449,33 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BValue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BValue)_o_;
+        if (getItem0() != _b_.getItem0())
+            return false;
+        if (getItem1() != _b_.getItem1())
+            return false;
+        if (getItem2() != _b_.getItem2())
+            return false;
+        if (getItem3() != _b_.getItem3())
+            return false;
+        if (getItem4() != _b_.getItem4())
+            return false;
+        if (getItem5() != _b_.getItem5())
+            return false;
+        if (getItem6() != _b_.getItem6())
+            return false;
+        if (getItem7() != _b_.getItem7())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getItem0() < 0)
             return true;

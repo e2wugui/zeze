@@ -197,6 +197,21 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAcquireParam))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAcquireParam)_o_;
+        if (!getGlobalKey().equals(_b_.getGlobalKey()))
+            return false;
+        if (getState() != _b_.getState())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getState() < 0)
             return true;

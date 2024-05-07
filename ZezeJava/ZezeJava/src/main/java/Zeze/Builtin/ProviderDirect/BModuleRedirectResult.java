@@ -258,6 +258,23 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModuleRedirectResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModuleRedirectResult)_o_;
+        if (getModuleId() != _b_.getModuleId())
+            return false;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (!getParams().equals(_b_.getParams()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getModuleId() < 0)
             return true;

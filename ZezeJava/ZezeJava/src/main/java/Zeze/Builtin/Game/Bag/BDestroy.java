@@ -196,6 +196,21 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDestroy))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDestroy)_o_;
+        if (!getBagName().equals(_b_.getBagName()))
+            return false;
+        if (getPosition() != _b_.getPosition())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getPosition() < 0)
             return true;

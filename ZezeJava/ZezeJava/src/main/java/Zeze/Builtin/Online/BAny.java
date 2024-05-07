@@ -152,6 +152,19 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAny))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAny)_o_;
+        if (!_Any.equals(_b_._Any))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Any.initRootInfo(root, this);
     }

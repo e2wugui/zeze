@@ -176,6 +176,19 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BListServiceResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BListServiceResult)_o_;
+        if (!_Services.equals(_b_._Services))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Services.initRootInfo(root, this);
     }

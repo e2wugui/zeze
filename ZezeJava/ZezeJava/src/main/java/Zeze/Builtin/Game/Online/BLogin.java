@@ -197,6 +197,21 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLogin))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLogin)_o_;
+        if (getRoleId() != _b_.getRoleId())
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

@@ -169,6 +169,19 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSendResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSendResult)_o_;
+        if (!_ErrorLinkSids.equals(_b_._ErrorLinkSids))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _ErrorLinkSids.initRootInfo(root, this);
     }

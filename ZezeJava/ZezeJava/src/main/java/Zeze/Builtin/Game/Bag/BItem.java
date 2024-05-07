@@ -243,6 +243,23 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BItem))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BItem)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        if (getNumber() != _b_.getNumber())
+            return false;
+        if (!_Item.equals(_b_._Item))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Item.initRootInfo(root, this);
     }

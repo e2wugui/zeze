@@ -369,6 +369,27 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLogChanges))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLogChanges)_o_;
+        if (getGlobalSerialId() != _b_.getGlobalSerialId())
+            return false;
+        if (!getProtocolClassName().equals(_b_.getProtocolClassName()))
+            return false;
+        if (!getProtocolArgument().equals(_b_.getProtocolArgument()))
+            return false;
+        if (!_Changes.equals(_b_._Changes))
+            return false;
+        if (getTimestamp() != _b_.getTimestamp())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Changes.initRootInfo(root, this);
     }

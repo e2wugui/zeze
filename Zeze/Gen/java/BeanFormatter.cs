@@ -249,11 +249,9 @@ namespace Zeze.Gen.java
             Tostring.Make(bean, sw, "    ", false);
             Encode.Make(bean, sw, "    ", bean.Base == "");
             Decode.Make(bean, sw, "    ", bean.Base == "");
-            if (bean.Equalable)
-            {
-                Equal.Make(bean, sw, "    ", false);
+            Equal.Make(bean, sw, "    ", false); // 对Java项目来说因Zeze.History需要,所以必须生成
+            if (bean.GenEquals)
                 HashCode.Make(bean, sw, "    ", false);
-            }
             InitChildrenTableKey.Make(bean, sw, "    ");
             // InitChildrenTableKey.MakeReset(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");

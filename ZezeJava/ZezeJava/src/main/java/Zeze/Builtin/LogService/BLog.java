@@ -214,6 +214,21 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLog))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLog)_o_;
+        if (getTime() != _b_.getTime())
+            return false;
+        if (!getLog().equals(_b_.getLog()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTime() < 0)
             return true;

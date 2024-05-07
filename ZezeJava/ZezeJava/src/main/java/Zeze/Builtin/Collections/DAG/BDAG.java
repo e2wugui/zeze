@@ -287,6 +287,25 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDAG))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDAG)_o_;
+        if (getNodeSum() != _b_.getNodeSum())
+            return false;
+        if (getEdgeSum() != _b_.getEdgeSum())
+            return false;
+        if (!getStartNode().equals(_b_.getStartNode()))
+            return false;
+        if (!getEndNode().equals(_b_.getEndNode()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNodeSum() < 0)
             return true;

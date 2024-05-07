@@ -221,6 +221,21 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLocal))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLocal)_o_;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (!_Datas.equals(_b_._Datas))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Datas.initRootInfo(root, this);
     }

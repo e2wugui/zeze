@@ -214,6 +214,21 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetTokenArg))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetTokenArg)_o_;
+        if (!getToken().equals(_b_.getToken()))
+            return false;
+        if (getMaxCount() != _b_.getMaxCount())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getMaxCount() < 0)
             return true;

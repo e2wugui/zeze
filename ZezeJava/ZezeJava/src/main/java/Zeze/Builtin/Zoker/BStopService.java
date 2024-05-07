@@ -213,6 +213,21 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BStopService))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BStopService)_o_;
+        if (!getServiceName().equals(_b_.getServiceName()))
+            return false;
+        if (isForce() != _b_.isForce())
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

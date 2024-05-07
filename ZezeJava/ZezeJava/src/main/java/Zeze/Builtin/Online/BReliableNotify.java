@@ -200,6 +200,21 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReliableNotify))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReliableNotify)_o_;
+        if (!_Notifies.equals(_b_._Notifies))
+            return false;
+        if (getReliableNotifyIndex() != _b_.getReliableNotifyIndex())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Notifies.initRootInfo(root, this);
     }

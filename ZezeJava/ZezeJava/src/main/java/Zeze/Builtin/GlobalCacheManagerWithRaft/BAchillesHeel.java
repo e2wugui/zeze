@@ -239,6 +239,23 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAchillesHeel))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAchillesHeel)_o_;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (!getSecureKey().equals(_b_.getSecureKey()))
+            return false;
+        if (getGlobalCacheManagerHashIndex() != _b_.getGlobalCacheManagerHashIndex())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;

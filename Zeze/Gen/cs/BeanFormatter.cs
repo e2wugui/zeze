@@ -176,7 +176,7 @@ namespace Zeze.Gen.cs
             Tostring.Make(bean, sw, "        ");
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
-            if (bean.Equalable)
+            if (bean.GenEquals)
             {
                 Equal.Make(bean, sw, "        ");
                 HashCode.Make(bean, sw, "        ");

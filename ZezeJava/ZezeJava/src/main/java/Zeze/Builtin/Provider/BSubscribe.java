@@ -182,6 +182,19 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSubscribe))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSubscribe)_o_;
+        if (!_modules.equals(_b_._modules))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _modules.initRootInfo(root, this);
     }

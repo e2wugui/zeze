@@ -523,6 +523,35 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOnline))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOnline)_o_;
+        if (!getLink().equals(_b_.getLink()))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (!_ReliableNotifyMark.equals(_b_._ReliableNotifyMark))
+            return false;
+        if (getReliableNotifyConfirmIndex() != _b_.getReliableNotifyConfirmIndex())
+            return false;
+        if (getReliableNotifyIndex() != _b_.getReliableNotifyIndex())
+            return false;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (getLogoutVersion() != _b_.getLogoutVersion())
+            return false;
+        if (!_UserData.equals(_b_._UserData))
+            return false;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _ReliableNotifyMark.initRootInfo(root, this);
         _UserData.initRootInfo(root, this);

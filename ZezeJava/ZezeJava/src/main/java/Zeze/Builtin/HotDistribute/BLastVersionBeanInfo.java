@@ -231,6 +231,21 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLastVersionBeanInfo))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLastVersionBeanInfo)_o_;
+        if (!getName().equals(_b_.getName()))
+            return false;
+        if (!_Variables.equals(_b_._Variables))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Variables.initRootInfo(root, this);
     }

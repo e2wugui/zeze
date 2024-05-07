@@ -212,6 +212,21 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BJob))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BJob)_o_;
+        if (!getJobHandleName().equals(_b_.getJobHandleName()))
+            return false;
+        if (!getJobState().equals(_b_.getJobState()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

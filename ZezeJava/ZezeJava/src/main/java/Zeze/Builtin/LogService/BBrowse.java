@@ -337,6 +337,27 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBrowse))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBrowse)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        if (getLimit() != _b_.getLimit())
+            return false;
+        if (getOffsetFactor() != _b_.getOffsetFactor())
+            return false;
+        if (isReset() != _b_.isReset())
+            return false;
+        if (!_Condition.equals(_b_._Condition))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Condition.initRootInfo(root, this);
     }

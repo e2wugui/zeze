@@ -218,6 +218,21 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCloseFile))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCloseFile)_o_;
+        if (!getFileName().equals(_b_.getFileName()))
+            return false;
+        if (!getMd5().equals(_b_.getMd5()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

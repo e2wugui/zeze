@@ -371,6 +371,27 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransmitAccount))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransmitAccount)_o_;
+        if (!getActionName().equals(_b_.getActionName()))
+            return false;
+        if (!getParameter().equals(_b_.getParameter()))
+            return false;
+        if (!_TargetAccounts.equals(_b_._TargetAccounts))
+            return false;
+        if (!getSenderAccount().equals(_b_.getSenderAccount()))
+            return false;
+        if (!getSenderClientId().equals(_b_.getSenderClientId()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TargetAccounts.initRootInfo(root, this);
     }

@@ -455,6 +455,31 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDispatch))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDispatch)_o_;
+        if (getLinkSid() != _b_.getLinkSid())
+            return false;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (getProtocolType() != _b_.getProtocolType())
+            return false;
+        if (!getProtocolData().equals(_b_.getProtocolData()))
+            return false;
+        if (!getContext().equals(_b_.getContext()))
+            return false;
+        if (!getContextx().equals(_b_.getContextx()))
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLinkSid() < 0)
             return true;

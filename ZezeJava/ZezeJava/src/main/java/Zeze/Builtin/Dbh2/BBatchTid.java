@@ -165,6 +165,19 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBatchTid))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBatchTid)_o_;
+        if (getTid() != _b_.getTid())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTid() < 0)
             return true;

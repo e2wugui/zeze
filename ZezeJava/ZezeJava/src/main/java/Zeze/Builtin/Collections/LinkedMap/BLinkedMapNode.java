@@ -247,6 +247,23 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLinkedMapNode))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkedMapNode)_o_;
+        if (getPrevNodeId() != _b_.getPrevNodeId())
+            return false;
+        if (getNextNodeId() != _b_.getNextNodeId())
+            return false;
+        if (!_Values.equals(_b_._Values))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Values.initRootInfo(root, this);
     }

@@ -249,6 +249,23 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSessionValue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSessionValue)_o_;
+        if (getCreateTime() != _b_.getCreateTime())
+            return false;
+        if (getExpireTime() != _b_.getExpireTime())
+            return false;
+        if (!_Properties.equals(_b_._Properties))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Properties.initRootInfo(root, this);
     }

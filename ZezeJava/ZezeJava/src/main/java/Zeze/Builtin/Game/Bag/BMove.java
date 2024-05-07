@@ -282,6 +282,25 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BMove))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BMove)_o_;
+        if (!getBagName().equals(_b_.getBagName()))
+            return false;
+        if (getPositionFrom() != _b_.getPositionFrom())
+            return false;
+        if (getPositionTo() != _b_.getPositionTo())
+            return false;
+        if (getNumber() != _b_.getNumber())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getPositionFrom() < 0)
             return true;

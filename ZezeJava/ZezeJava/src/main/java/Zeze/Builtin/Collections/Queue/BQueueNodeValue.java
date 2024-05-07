@@ -188,6 +188,21 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BQueueNodeValue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BQueueNodeValue)_o_;
+        if (getTimestamp() != _b_.getTimestamp())
+            return false;
+        if (!_Value.equals(_b_._Value))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Value.initRootInfo(root, this);
     }

@@ -182,6 +182,19 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BPrepareBatches))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BPrepareBatches)_o_;
+        if (!_Datas.equals(_b_._Datas))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Datas.initRootInfo(root, this);
     }

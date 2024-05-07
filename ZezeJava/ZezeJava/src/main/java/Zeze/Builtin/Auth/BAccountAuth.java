@@ -151,6 +151,19 @@ public final class BAccountAuth extends Zeze.Transaction.Bean implements BAccoun
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAccountAuth))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAccountAuth)_o_;
+        if (!_Roles.equals(_b_._Roles))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Roles.initRootInfo(root, this);
     }

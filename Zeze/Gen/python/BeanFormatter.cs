@@ -185,7 +185,7 @@ namespace Zeze.Gen.python
             Assign.Make(bean, sw, "    ");
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
-            if (bean.Equalable)
+            if (bean.GenEquals)
             {
                 HashCode.Make(bean, sw, "    ");
                 Equal.Make(bean, sw, "    ");

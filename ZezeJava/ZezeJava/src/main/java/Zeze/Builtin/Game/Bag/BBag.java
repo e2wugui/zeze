@@ -209,6 +209,21 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBag))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBag)_o_;
+        if (getCapacity() != _b_.getCapacity())
+            return false;
+        if (!_Items.equals(_b_._Items))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Items.initRootInfo(root, this);
     }

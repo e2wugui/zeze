@@ -268,6 +268,23 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSend))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSend)_o_;
+        if (!_linkSids.equals(_b_._linkSids))
+            return false;
+        if (getProtocolType() != _b_.getProtocolType())
+            return false;
+        if (!getProtocolWholeData().equals(_b_.getProtocolWholeData()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _linkSids.initRootInfo(root, this);
     }

@@ -263,6 +263,23 @@ public final class BReadWriteLock extends Zeze.Transaction.Bean implements BRead
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReadWriteLock))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReadWriteLock)_o_;
+        if (!getLockName().equals(_b_.getLockName()))
+            return false;
+        if (getOperateType() != _b_.getOperateType())
+            return false;
+        if (getTimeoutMs() != _b_.getTimeoutMs())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLockName().negativeCheck())
             return true;

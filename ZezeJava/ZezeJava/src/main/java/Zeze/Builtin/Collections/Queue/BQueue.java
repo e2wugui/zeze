@@ -445,6 +445,31 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BQueue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BQueue)_o_;
+        if (getHeadNodeId() != _b_.getHeadNodeId())
+            return false;
+        if (getTailNodeId() != _b_.getTailNodeId())
+            return false;
+        if (getCount() != _b_.getCount())
+            return false;
+        if (getLastNodeId() != _b_.getLastNodeId())
+            return false;
+        if (getLoadSerialNo() != _b_.getLoadSerialNo())
+            return false;
+        if (!getHeadNodeKey().equals(_b_.getHeadNodeKey()))
+            return false;
+        if (!getTailNodeKey().equals(_b_.getTailNodeKey()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

@@ -218,6 +218,21 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BClearInUse))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BClearInUse)_o_;
+        if (getLocalId() != _b_.getLocalId())
+            return false;
+        if (!getGlobal().equals(_b_.getGlobal()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLocalId() < 0)
             return true;

@@ -257,6 +257,23 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOnlines))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOnlines)_o_;
+        if (!_Logins.equals(_b_._Logins))
+            return false;
+        if (getLastLoginVersion() != _b_.getLastLoginVersion())
+            return false;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Logins.initRootInfo(root, this);
     }

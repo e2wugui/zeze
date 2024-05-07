@@ -239,6 +239,23 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReliableNotifyConfirm))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReliableNotifyConfirm)_o_;
+        if (!getClientId().equals(_b_.getClientId()))
+            return false;
+        if (getReliableNotifyConfirmIndex() != _b_.getReliableNotifyConfirmIndex())
+            return false;
+        if (isSync() != _b_.isSync())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getReliableNotifyConfirmIndex() < 0)
             return true;

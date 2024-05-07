@@ -312,6 +312,25 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAppendFile))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAppendFile)_o_;
+        if (!getServiceName().equals(_b_.getServiceName()))
+            return false;
+        if (!getFileName().equals(_b_.getFileName()))
+            return false;
+        if (getOffset() != _b_.getOffset())
+            return false;
+        if (!getChunk().equals(_b_.getChunk()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOffset() < 0)
             return true;

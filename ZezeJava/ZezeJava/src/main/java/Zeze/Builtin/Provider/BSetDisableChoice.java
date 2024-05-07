@@ -164,6 +164,19 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSetDisableChoice))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSetDisableChoice)_o_;
+        if (isDisableChoice() != _b_.isDisableChoice())
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

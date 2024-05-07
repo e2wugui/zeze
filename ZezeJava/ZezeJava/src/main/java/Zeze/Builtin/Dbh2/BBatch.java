@@ -384,6 +384,27 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBatch))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBatch)_o_;
+        if (!_Puts.equals(_b_._Puts))
+            return false;
+        if (!_Deletes.equals(_b_._Deletes))
+            return false;
+        if (!getQueryIp().equals(_b_.getQueryIp()))
+            return false;
+        if (getQueryPort() != _b_.getQueryPort())
+            return false;
+        if (getTid() != _b_.getTid())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Puts.initRootInfo(root, this);
         _Deletes.initRootInfo(root, this);

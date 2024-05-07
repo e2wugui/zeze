@@ -214,6 +214,21 @@ public final class BGetDataWithVersionResult extends Zeze.Transaction.Bean imple
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetDataWithVersionResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetDataWithVersionResult)_o_;
+        if (!getData().equals(_b_.getData()))
+            return false;
+        if (getVersion() != _b_.getVersion())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getVersion() < 0)
             return true;

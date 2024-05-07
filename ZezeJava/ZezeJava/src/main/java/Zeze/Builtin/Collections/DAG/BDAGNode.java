@@ -141,6 +141,19 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDAGNode))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDAGNode)_o_;
+        if (!_Value.equals(_b_._Value))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Value.initRootInfo(root, this);
     }

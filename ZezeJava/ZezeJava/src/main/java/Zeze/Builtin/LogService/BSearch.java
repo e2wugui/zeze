@@ -293,6 +293,25 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSearch))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSearch)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        if (getLimit() != _b_.getLimit())
+            return false;
+        if (isReset() != _b_.isReset())
+            return false;
+        if (!_Condition.equals(_b_._Condition))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Condition.initRootInfo(root, this);
     }

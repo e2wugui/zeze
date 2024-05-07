@@ -218,6 +218,21 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCommitService))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCommitService)_o_;
+        if (!getServiceName().equals(_b_.getServiceName()))
+            return false;
+        if (!getVersionNo().equals(_b_.getVersionNo()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

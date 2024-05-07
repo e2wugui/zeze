@@ -378,6 +378,29 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOfflineRoleCustom))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOfflineRoleCustom)_o_;
+        if (!getTimerName().equals(_b_.getTimerName()))
+            return false;
+        if (getRoleId() != _b_.getRoleId())
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (!getHandleName().equals(_b_.getHandleName()))
+            return false;
+        if (!_CustomData.equals(_b_._CustomData))
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _CustomData.initRootInfo(root, this);
     }

@@ -258,6 +258,23 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BRegister))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BRegister)_o_;
+        if (!getDbh2RaftAcceptorName().equals(_b_.getDbh2RaftAcceptorName()))
+            return false;
+        if (getPort() != _b_.getPort())
+            return false;
+        if (getBucketCount() != _b_.getBucketCount())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getPort() < 0)
             return true;

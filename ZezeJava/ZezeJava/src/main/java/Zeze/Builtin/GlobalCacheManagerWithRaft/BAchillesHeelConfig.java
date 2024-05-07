@@ -234,6 +234,23 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAchillesHeelConfig))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAchillesHeelConfig)_o_;
+        if (getMaxNetPing() != _b_.getMaxNetPing())
+            return false;
+        if (getServerProcessTime() != _b_.getServerProcessTime())
+            return false;
+        if (getServerReleaseTimeout() != _b_.getServerReleaseTimeout())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getMaxNetPing() < 0)
             return true;

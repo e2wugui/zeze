@@ -459,6 +459,33 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCronTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCronTimer)_o_;
+        if (!getCronExpression().equals(_b_.getCronExpression()))
+            return false;
+        if (getNextExpectedTime() != _b_.getNextExpectedTime())
+            return false;
+        if (getExpectedTime() != _b_.getExpectedTime())
+            return false;
+        if (getHappenTime() != _b_.getHappenTime())
+            return false;
+        if (getRemainTimes() != _b_.getRemainTimes())
+            return false;
+        if (getEndTime() != _b_.getEndTime())
+            return false;
+        if (getMissfirePolicy() != _b_.getMissfirePolicy())
+            return false;
+        if (!getOneByOneKey().equals(_b_.getOneByOneKey()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNextExpectedTime() < 0)
             return true;

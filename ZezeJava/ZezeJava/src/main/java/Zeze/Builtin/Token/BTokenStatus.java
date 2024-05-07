@@ -302,6 +302,25 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTokenStatus))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTokenStatus)_o_;
+        if (getNewCount() != _b_.getNewCount())
+            return false;
+        if (getCurCount() != _b_.getCurCount())
+            return false;
+        if (getConnectCount() != _b_.getConnectCount())
+            return false;
+        if (!getPerfLog().equals(_b_.getPerfLog()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNewCount() < 0)
             return true;

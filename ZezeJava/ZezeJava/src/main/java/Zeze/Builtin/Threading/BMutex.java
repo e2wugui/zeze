@@ -219,6 +219,21 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BMutex))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BMutex)_o_;
+        if (!getLockName().equals(_b_.getLockName()))
+            return false;
+        if (getTimeoutMs() != _b_.getTimeoutMs())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLockName().negativeCheck())
             return true;

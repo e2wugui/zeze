@@ -258,6 +258,23 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBroadcast))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBroadcast)_o_;
+        if (getProtocolType() != _b_.getProtocolType())
+            return false;
+        if (!getProtocolWholeData().equals(_b_.getProtocolWholeData()))
+            return false;
+        if (getTime() != _b_.getTime())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getProtocolType() < 0)
             return true;

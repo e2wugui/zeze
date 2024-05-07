@@ -401,6 +401,29 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAnnounceProviderInfo))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAnnounceProviderInfo)_o_;
+        if (!getServiceNamePrefix().equals(_b_.getServiceNamePrefix()))
+            return false;
+        if (!getServiceIdentity().equals(_b_.getServiceIdentity()))
+            return false;
+        if (!getProviderDirectIp().equals(_b_.getProviderDirectIp()))
+            return false;
+        if (getProviderDirectPort() != _b_.getProviderDirectPort())
+            return false;
+        if (getAppVersion() != _b_.getAppVersion())
+            return false;
+        if (isDisableChoice() != _b_.isDisableChoice())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getProviderDirectPort() < 0)
             return true;

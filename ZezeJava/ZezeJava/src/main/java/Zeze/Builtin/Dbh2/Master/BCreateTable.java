@@ -218,6 +218,21 @@ public final class BCreateTable extends Zeze.Transaction.Bean implements BCreate
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCreateTable))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCreateTable)_o_;
+        if (!getDatabase().equals(_b_.getDatabase()))
+            return false;
+        if (!getTable().equals(_b_.getTable()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

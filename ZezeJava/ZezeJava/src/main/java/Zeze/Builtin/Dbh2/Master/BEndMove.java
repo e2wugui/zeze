@@ -155,6 +155,19 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BEndMove))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BEndMove)_o_;
+        if (!_To.equals(_b_._To))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _To.initRootInfo(root, this);
     }

@@ -369,6 +369,27 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDepartmentTreeNode))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDepartmentTreeNode)_o_;
+        if (getParentDepartment() != _b_.getParentDepartment())
+            return false;
+        if (!_Childs.equals(_b_._Childs))
+            return false;
+        if (!getName().equals(_b_.getName()))
+            return false;
+        if (!_Managers.equals(_b_._Managers))
+            return false;
+        if (!_Data.equals(_b_._Data))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Childs.initRootInfo(root, this);
         _Managers.initRootInfo(root, this);

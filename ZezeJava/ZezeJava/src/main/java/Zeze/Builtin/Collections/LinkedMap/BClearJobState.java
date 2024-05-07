@@ -239,6 +239,23 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BClearJobState))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BClearJobState)_o_;
+        if (getHeadNodeId() != _b_.getHeadNodeId())
+            return false;
+        if (getTailNodeId() != _b_.getTailNodeId())
+            return false;
+        if (!getLinkedMapName().equals(_b_.getLinkedMapName()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

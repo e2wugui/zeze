@@ -383,6 +383,29 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOfflineAccountCustom))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOfflineAccountCustom)_o_;
+        if (!getTimerName().equals(_b_.getTimerName()))
+            return false;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (!getClientId().equals(_b_.getClientId()))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (!getHandleName().equals(_b_.getHandleName()))
+            return false;
+        if (!_CustomData.equals(_b_._CustomData))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _CustomData.initRootInfo(root, this);
     }

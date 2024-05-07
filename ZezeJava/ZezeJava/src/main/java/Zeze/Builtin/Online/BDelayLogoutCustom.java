@@ -244,6 +244,23 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDelayLogoutCustom))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDelayLogoutCustom)_o_;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (!getClientId().equals(_b_.getClientId()))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLoginVersion() < 0)
             return true;

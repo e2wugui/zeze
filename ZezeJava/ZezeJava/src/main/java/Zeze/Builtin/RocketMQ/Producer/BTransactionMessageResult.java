@@ -191,6 +191,21 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransactionMessageResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransactionMessageResult)_o_;
+        if (isResult() != _b_.isResult())
+            return false;
+        if (getTimestamp() != _b_.getTimestamp())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTimestamp() < 0)
             return true;

@@ -160,6 +160,19 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BJobs))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BJobs)_o_;
+        if (!_Jobs.equals(_b_._Jobs))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Jobs.initRootInfo(root, this);
     }

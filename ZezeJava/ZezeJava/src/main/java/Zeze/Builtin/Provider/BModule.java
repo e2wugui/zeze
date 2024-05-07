@@ -233,6 +233,21 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModule))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModule)_o_;
+        if (getChoiceType() != _b_.getChoiceType())
+            return false;
+        if (getConfigType() != _b_.getConfigType())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getChoiceType() < 0)
             return true;

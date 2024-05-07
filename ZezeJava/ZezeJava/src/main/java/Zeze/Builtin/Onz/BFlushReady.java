@@ -166,6 +166,19 @@ public final class BFlushReady extends Zeze.Transaction.Bean implements BFlushRe
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BFlushReady))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BFlushReady)_o_;
+        if (getOnzTid() != _b_.getOnzTid())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOnzTid() < 0)
             return true;

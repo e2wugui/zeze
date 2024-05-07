@@ -193,6 +193,21 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLinkedMapNodeValue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkedMapNodeValue)_o_;
+        if (!getId().equals(_b_.getId()))
+            return false;
+        if (!_Value.equals(_b_._Value))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Value.initRootInfo(root, this);
     }

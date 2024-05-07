@@ -370,6 +370,27 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BArchOnlineTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BArchOnlineTimer)_o_;
+        if (!getAccount().equals(_b_.getAccount()))
+            return false;
+        if (!getClientId().equals(_b_.getClientId()))
+            return false;
+        if (!_TimerObj.equals(_b_._TimerObj))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (getSerialId() != _b_.getSerialId())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TimerObj.initRootInfo(root, this);
     }

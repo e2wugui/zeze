@@ -164,6 +164,19 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLoad))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLoad)_o_;
+        if (getLoad() != _b_.getLoad())
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

@@ -542,6 +542,35 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModuleRedirectAllRequest))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModuleRedirectAllRequest)_o_;
+        if (getModuleId() != _b_.getModuleId())
+            return false;
+        if (getHashCodeConcurrentLevel() != _b_.getHashCodeConcurrentLevel())
+            return false;
+        if (!_HashCodes.equals(_b_._HashCodes))
+            return false;
+        if (getSourceProvider() != _b_.getSourceProvider())
+            return false;
+        if (getSessionId() != _b_.getSessionId())
+            return false;
+        if (!getMethodFullName().equals(_b_.getMethodFullName()))
+            return false;
+        if (!getParams().equals(_b_.getParams()))
+            return false;
+        if (!getServiceNamePrefix().equals(_b_.getServiceNamePrefix()))
+            return false;
+        if (getVersion() != _b_.getVersion())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _HashCodes.initRootInfo(root, this);
     }

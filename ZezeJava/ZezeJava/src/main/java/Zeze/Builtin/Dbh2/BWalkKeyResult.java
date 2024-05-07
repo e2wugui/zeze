@@ -263,6 +263,23 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BWalkKeyResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BWalkKeyResult)_o_;
+        if (!_Keys.equals(_b_._Keys))
+            return false;
+        if (isBucketEnd() != _b_.isBucketEnd())
+            return false;
+        if (isBucketRefuse() != _b_.isBucketRefuse())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Keys.initRootInfo(root, this);
     }

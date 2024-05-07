@@ -165,6 +165,19 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BDistributeId))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BDistributeId)_o_;
+        if (getDistributeId() != _b_.getDistributeId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getDistributeId() < 0)
             return true;

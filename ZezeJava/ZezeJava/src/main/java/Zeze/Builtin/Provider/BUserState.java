@@ -267,6 +267,23 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BUserState))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BUserState)_o_;
+        if (!getContext().equals(_b_.getContext()))
+            return false;
+        if (!getContextx().equals(_b_.getContextx()))
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

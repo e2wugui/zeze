@@ -110,6 +110,11 @@ public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCl
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        return _o_ instanceof BCloseFileResult;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

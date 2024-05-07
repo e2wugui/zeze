@@ -277,6 +277,25 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLinkedMap))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkedMap)_o_;
+        if (getHeadNodeId() != _b_.getHeadNodeId())
+            return false;
+        if (getTailNodeId() != _b_.getTailNodeId())
+            return false;
+        if (getCount() != _b_.getCount())
+            return false;
+        if (getLastNodeId() != _b_.getLastNodeId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

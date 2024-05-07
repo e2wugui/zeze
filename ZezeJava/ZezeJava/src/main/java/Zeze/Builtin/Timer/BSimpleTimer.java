@@ -583,6 +583,39 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSimpleTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSimpleTimer)_o_;
+        if (getDelay() != _b_.getDelay())
+            return false;
+        if (getPeriod() != _b_.getPeriod())
+            return false;
+        if (getRemainTimes() != _b_.getRemainTimes())
+            return false;
+        if (getHappenTimes() != _b_.getHappenTimes())
+            return false;
+        if (getStartTime() != _b_.getStartTime())
+            return false;
+        if (getEndTime() != _b_.getEndTime())
+            return false;
+        if (getNextExpectedTime() != _b_.getNextExpectedTime())
+            return false;
+        if (getExpectedTime() != _b_.getExpectedTime())
+            return false;
+        if (getHappenTime() != _b_.getHappenTime())
+            return false;
+        if (getMissfirePolicy() != _b_.getMissfirePolicy())
+            return false;
+        if (!getOneByOneKey().equals(_b_.getOneByOneKey()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getDelay() < 0)
             return true;

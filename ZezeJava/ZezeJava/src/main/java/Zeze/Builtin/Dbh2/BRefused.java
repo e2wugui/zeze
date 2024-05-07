@@ -182,6 +182,19 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BRefused))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BRefused)_o_;
+        if (!_Refused.equals(_b_._Refused))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Refused.initRootInfo(root, this);
     }

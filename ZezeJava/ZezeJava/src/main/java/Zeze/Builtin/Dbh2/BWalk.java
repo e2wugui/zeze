@@ -307,6 +307,25 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BWalk))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BWalk)_o_;
+        if (!getExclusiveStartKey().equals(_b_.getExclusiveStartKey()))
+            return false;
+        if (getProposeLimit() != _b_.getProposeLimit())
+            return false;
+        if (isDesc() != _b_.isDesc())
+            return false;
+        if (!getPrefix().equals(_b_.getPrefix()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getProposeLimit() < 0)
             return true;

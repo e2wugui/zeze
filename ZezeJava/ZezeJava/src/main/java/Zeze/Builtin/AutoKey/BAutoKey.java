@@ -148,6 +148,19 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAutoKey))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAutoKey)_o_;
+        if (getNextId() != _b_.getNextId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNextId() < 0)
             return true;

@@ -226,6 +226,21 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BResult)_o_;
+        if (!_Logs.equals(_b_._Logs))
+            return false;
+        if (isRemain() != _b_.isRemain())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Logs.initRootInfo(root, this);
     }

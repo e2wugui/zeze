@@ -148,6 +148,19 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLinkedMapNodeId))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLinkedMapNodeId)_o_;
+        if (getNodeId() != _b_.getNodeId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getNodeId() < 0)
             return true;

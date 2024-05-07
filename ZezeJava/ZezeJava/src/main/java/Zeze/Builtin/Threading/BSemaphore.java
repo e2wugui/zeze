@@ -263,6 +263,23 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSemaphore))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSemaphore)_o_;
+        if (!getLockName().equals(_b_.getLockName()))
+            return false;
+        if (getPermits() != _b_.getPermits())
+            return false;
+        if (getTimeoutMs() != _b_.getTimeoutMs())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getLockName().negativeCheck())
             return true;

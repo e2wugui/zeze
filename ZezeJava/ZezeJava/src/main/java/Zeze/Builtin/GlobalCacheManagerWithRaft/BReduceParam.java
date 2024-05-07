@@ -239,6 +239,23 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReduceParam))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReduceParam)_o_;
+        if (!getGlobalKey().equals(_b_.getGlobalKey()))
+            return false;
+        if (getState() != _b_.getState())
+            return false;
+        if (getReduceTid() != _b_.getReduceTid())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getState() < 0)
             return true;

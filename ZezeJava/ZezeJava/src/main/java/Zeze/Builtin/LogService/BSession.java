@@ -165,6 +165,19 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSession))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSession)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getId() < 0)
             return true;

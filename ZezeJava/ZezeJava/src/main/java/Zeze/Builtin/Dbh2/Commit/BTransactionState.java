@@ -219,6 +219,21 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransactionState))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransactionState)_o_;
+        if (getState() != _b_.getState())
+            return false;
+        if (!_Buckets.equals(_b_._Buckets))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Buckets.initRootInfo(root, this);
     }

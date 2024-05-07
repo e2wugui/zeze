@@ -214,6 +214,21 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BNewTokenArg))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BNewTokenArg)_o_;
+        if (!getContext().equals(_b_.getContext()))
+            return false;
+        if (getTtl() != _b_.getTtl())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTtl() < 0)
             return true;

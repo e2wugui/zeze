@@ -239,6 +239,23 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BRankValue))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BRankValue)_o_;
+        if (getRoleId() != _b_.getRoleId())
+            return false;
+        if (getValue() != _b_.getValue())
+            return false;
+        if (!getValueEx().equals(_b_.getValueEx()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

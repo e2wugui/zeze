@@ -268,6 +268,23 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReportError))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReportError)_o_;
+        if (getFrom() != _b_.getFrom())
+            return false;
+        if (getCode() != _b_.getCode())
+            return false;
+        if (!getDesc().equals(_b_.getDesc()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getFrom() < 0)
             return true;

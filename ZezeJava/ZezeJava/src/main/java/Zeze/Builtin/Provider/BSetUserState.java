@@ -205,6 +205,21 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSetUserState))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSetUserState)_o_;
+        if (getLinkSid() != _b_.getLinkSid())
+            return false;
+        if (!_userState.equals(_b_._userState))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _userState.initRootInfo(root, this);
     }

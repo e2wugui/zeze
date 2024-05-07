@@ -352,6 +352,27 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BFuncProcedure))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BFuncProcedure)_o_;
+        if (getOnzTid() != _b_.getOnzTid())
+            return false;
+        if (!getFuncName().equals(_b_.getFuncName()))
+            return false;
+        if (!getFuncArgument().equals(_b_.getFuncArgument()))
+            return false;
+        if (getFlushMode() != _b_.getFlushMode())
+            return false;
+        if (getFlushTimeout() != _b_.getFlushTimeout())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOnzTid() < 0)
             return true;

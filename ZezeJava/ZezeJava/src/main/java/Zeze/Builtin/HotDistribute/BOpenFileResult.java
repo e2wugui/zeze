@@ -165,6 +165,19 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BOpenFileResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BOpenFileResult)_o_;
+        if (getOffset() != _b_.getOffset())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOffset() < 0)
             return true;

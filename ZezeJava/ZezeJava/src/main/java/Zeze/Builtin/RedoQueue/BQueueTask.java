@@ -330,6 +330,27 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BQueueTask))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BQueueTask)_o_;
+        if (!getQueueName().equals(_b_.getQueueName()))
+            return false;
+        if (getTaskType() != _b_.getTaskType())
+            return false;
+        if (getTaskId() != _b_.getTaskId())
+            return false;
+        if (!getTaskParam().equals(_b_.getTaskParam()))
+            return false;
+        if (getPrevTaskId() != _b_.getPrevTaskId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getTaskType() < 0)
             return true;

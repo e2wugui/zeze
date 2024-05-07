@@ -365,6 +365,27 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBucketMeta))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBucketMeta)_o_;
+        if (!getDatabaseName().equals(_b_.getDatabaseName()))
+            return false;
+        if (!getTableName().equals(_b_.getTableName()))
+            return false;
+        if (!getKeyFirst().equals(_b_.getKeyFirst()))
+            return false;
+        if (!getKeyLast().equals(_b_.getKeyLast()))
+            return false;
+        if (!getRaftConfig().equals(_b_.getRaftConfig()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

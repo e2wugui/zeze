@@ -170,7 +170,7 @@ namespace Zeze.Gen.javadata
             java.Tostring.Make(bean, sw, "    ", true);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
-            if (bean.Equalable)
+            if (bean.GenEquals)
             {
                 sw.WriteLine();
                 java.Equal.Make(bean, sw, "    ", !bean.OnlyData);

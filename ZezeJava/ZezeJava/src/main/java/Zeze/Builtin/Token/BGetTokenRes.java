@@ -307,6 +307,25 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetTokenRes))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetTokenRes)_o_;
+        if (!getContext().equals(_b_.getContext()))
+            return false;
+        if (getCount() != _b_.getCount())
+            return false;
+        if (getTime() != _b_.getTime())
+            return false;
+        if (!getAddr().equals(_b_.getAddr()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getCount() < 0)
             return true;

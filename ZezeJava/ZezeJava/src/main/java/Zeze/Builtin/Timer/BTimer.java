@@ -379,6 +379,27 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTimer)_o_;
+        if (!getTimerName().equals(_b_.getTimerName()))
+            return false;
+        if (!getHandleName().equals(_b_.getHandleName()))
+            return false;
+        if (!_TimerObj.equals(_b_._TimerObj))
+            return false;
+        if (!_CustomData.equals(_b_._CustomData))
+            return false;
+        if (getConcurrentFireSerialNo() != _b_.getConcurrentFireSerialNo())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TimerObj.initRootInfo(root, this);
         _CustomData.initRootInfo(root, this);

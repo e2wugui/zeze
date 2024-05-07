@@ -301,6 +301,25 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLoad))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLoad)_o_;
+        if (getOnline() != _b_.getOnline())
+            return false;
+        if (getProposeMaxOnline() != _b_.getProposeMaxOnline())
+            return false;
+        if (getOnlineNew() != _b_.getOnlineNew())
+            return false;
+        if (getOverload() != _b_.getOverload())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getOnline() < 0)
             return true;

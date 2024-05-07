@@ -225,6 +225,21 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSplitPut))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSplitPut)_o_;
+        if (isFromTransaction() != _b_.isFromTransaction())
+            return false;
+        if (!_Puts.equals(_b_._Puts))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Puts.initRootInfo(root, this);
     }

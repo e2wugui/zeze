@@ -239,6 +239,23 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReLogin))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReLogin)_o_;
+        if (getRoleId() != _b_.getRoleId())
+            return false;
+        if (getReliableNotifyConfirmIndex() != _b_.getReliableNotifyConfirmIndex())
+            return false;
+        if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getRoleId() < 0)
             return true;

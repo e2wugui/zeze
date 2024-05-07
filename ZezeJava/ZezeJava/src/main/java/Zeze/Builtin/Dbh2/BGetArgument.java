@@ -267,6 +267,23 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetArgument))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetArgument)_o_;
+        if (!getDatabase().equals(_b_.getDatabase()))
+            return false;
+        if (!getTable().equals(_b_.getTable()))
+            return false;
+        if (!getKey().equals(_b_.getKey()))
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

@@ -165,6 +165,19 @@ public final class BSaveDataWithSameVersionResult extends Zeze.Transaction.Bean 
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSaveDataWithSameVersionResult))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSaveDataWithSameVersionResult)_o_;
+        if (getVersion() != _b_.getVersion())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getVersion() < 0)
             return true;

@@ -420,6 +420,31 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransmitCronTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransmitCronTimer)_o_;
+        if (!getTimerId().equals(_b_.getTimerId()))
+            return false;
+        if (!_CronTimer.equals(_b_._CronTimer))
+            return false;
+        if (!getHandleClass().equals(_b_.getHandleClass()))
+            return false;
+        if (!getCustomClass().equals(_b_.getCustomClass()))
+            return false;
+        if (!getCustomBean().equals(_b_.getCustomBean()))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (isHot() != _b_.isHot())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _CronTimer.initRootInfo(root, this);
     }

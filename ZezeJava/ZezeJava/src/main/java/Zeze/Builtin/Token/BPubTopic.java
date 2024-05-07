@@ -262,6 +262,23 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
 
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BPubTopic))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BPubTopic)_o_;
+        if (!getTopic().equals(_b_.getTopic()))
+            return false;
+        if (!getContent().equals(_b_.getContent()))
+            return false;
+        if (isBroadcast() != _b_.isBroadcast())
+            return false;
+        return true;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public void followerApply(Zeze.Transaction.Log log) {

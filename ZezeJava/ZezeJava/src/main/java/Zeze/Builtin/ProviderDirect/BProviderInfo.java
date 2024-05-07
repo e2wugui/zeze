@@ -258,6 +258,23 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BProviderInfo))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BProviderInfo)_o_;
+        if (!getIp().equals(_b_.getIp()))
+            return false;
+        if (getPort() != _b_.getPort())
+            return false;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getPort() < 0)
             return true;

@@ -209,6 +209,21 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTryDistribute))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTryDistribute)_o_;
+        if (getDistributeId() != _b_.getDistributeId())
+            return false;
+        if (isAtomicAll() != _b_.isAtomicAll())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getDistributeId() < 0)
             return true;

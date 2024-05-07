@@ -234,6 +234,23 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLoginParam))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLoginParam)_o_;
+        if (getServerId() != _b_.getServerId())
+            return false;
+        if (getGlobalCacheManagerHashIndex() != _b_.getGlobalCacheManagerHashIndex())
+            return false;
+        if (isDebugMode() != _b_.isDebugMode())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getServerId() < 0)
             return true;

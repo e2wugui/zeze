@@ -360,6 +360,27 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCondition))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCondition)_o_;
+        if (getBeginTime() != _b_.getBeginTime())
+            return false;
+        if (getEndTime() != _b_.getEndTime())
+            return false;
+        if (!_Words.equals(_b_._Words))
+            return false;
+        if (getContainsType() != _b_.getContainsType())
+            return false;
+        if (!getPattern().equals(_b_.getPattern()))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Words.initRootInfo(root, this);
     }

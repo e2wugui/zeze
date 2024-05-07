@@ -154,6 +154,19 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BRankList))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BRankList)_o_;
+        if (!_RankList.equals(_b_._RankList))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _RankList.initRootInfo(root, this);
     }

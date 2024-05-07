@@ -165,6 +165,19 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BBucketCount))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BBucketCount)_o_;
+        if (getCount() != _b_.getCount())
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getCount() < 0)
             return true;

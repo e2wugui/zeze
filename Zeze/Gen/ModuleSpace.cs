@@ -13,7 +13,7 @@ namespace Zeze.Gen
         public ModuleSpace Parent { get; private set; }
         public Util.Ranges ProtocolIdRanges { get; } = new Util.Ranges();
         public string DefaultTransactionLevel { get; private set; }
-        public bool Equalable { get; private set; }
+        public bool GenEquals { get; private set; }
         public int Id { get; }
         public bool UseData { get; private set; }
         public bool OnlyData { get; private set; }
@@ -147,7 +147,7 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             Program.CheckReserveName(Name, parent?.Path());
             DefaultTransactionLevel = self.GetAttribute("DefaultTransactionLevel").Trim();
-            Equalable = parent != null && parent.Equalable || self.GetAttribute("equals") == "true";
+            GenEquals = parent != null && parent.GenEquals || self.GetAttribute("equals") == "true";
             switch (self.GetAttribute("UseData"))
             {
                 case "true":

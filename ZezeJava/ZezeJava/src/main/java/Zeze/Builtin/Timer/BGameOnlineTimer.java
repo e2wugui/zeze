@@ -317,6 +317,25 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGameOnlineTimer))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGameOnlineTimer)_o_;
+        if (getRoleId() != _b_.getRoleId())
+            return false;
+        if (!_TimerObj.equals(_b_._TimerObj))
+            return false;
+        if (getLoginVersion() != _b_.getLoginVersion())
+            return false;
+        if (getSerialId() != _b_.getSerialId())
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _TimerObj.initRootInfo(root, this);
     }

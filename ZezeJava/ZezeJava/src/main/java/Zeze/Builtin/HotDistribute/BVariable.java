@@ -361,6 +361,27 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BVariable))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BVariable)_o_;
+        if (getId() != _b_.getId())
+            return false;
+        if (!getName().equals(_b_.getName()))
+            return false;
+        if (!getType().equals(_b_.getType()))
+            return false;
+        if (!getKey().equals(_b_.getKey()))
+            return false;
+        if (!getValue().equals(_b_.getValue()))
+            return false;
+        return true;
+    }
+
+    @Override
     public boolean negativeCheck() {
         if (getId() < 0)
             return true;

@@ -219,6 +219,21 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
     }
 
     @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSavedCommits))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSavedCommits)_o_;
+        if (getState() != _b_.getState())
+            return false;
+        if (!_Onzs.equals(_b_._Onzs))
+            return false;
+        return true;
+    }
+
+    @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Onzs.initRootInfo(root, this);
     }
