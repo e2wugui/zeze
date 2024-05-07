@@ -139,7 +139,7 @@ public abstract class Table {
 
 	public abstract @NotNull Object decodeKey(@NotNull ByteBuffer bb);
 
-	public abstract Class<? extends Comparable<?>> getKeyClass();
+	public abstract @NotNull Class<? extends Comparable<?>> getKeyClass();
 
-	public abstract Class<? extends Bean> getValueClass();
+	public abstract @NotNull Class<? extends Bean> getValueClass();
 }
