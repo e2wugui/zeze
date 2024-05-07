@@ -214,7 +214,7 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Services", "list", "", "BService"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Services", "list", "", "Zeze.Builtin.Zoker.BService"));
         return vars;
     }
 

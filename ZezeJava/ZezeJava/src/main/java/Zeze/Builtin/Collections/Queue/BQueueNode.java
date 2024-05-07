@@ -319,8 +319,8 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NextNodeId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Values", "list", "", "BQueueNodeValue"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "NextNodeKey", "BQueueNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Values", "list", "", "Zeze.Builtin.Collections.Queue.BQueueNodeValue"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "NextNodeKey", "Zeze.Builtin.Collections.Queue.BQueueNodeKey", "", ""));
         return vars;
     }
 }

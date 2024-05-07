@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
@@ -659,6 +660,8 @@ public final class Transaction {
 				return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 						? CheckResult.Redo : CheckResult.Success; // impossible
 			}
+
+			// read lock
 			switch (e.atomicTupleRecord.record.getState()) {
 			case GlobalCacheManagerConst.StateRemoved:
 				// 被从cache中清除，不持有该记录的Global锁，简单重做即可。

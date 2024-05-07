@@ -276,7 +276,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "BLog"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "Zeze.Builtin.LogService.BLog"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remain", "bool", "", ""));
         return vars;
     }

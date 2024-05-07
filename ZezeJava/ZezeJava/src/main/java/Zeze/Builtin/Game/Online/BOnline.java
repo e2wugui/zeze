@@ -610,7 +610,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Link", "BLink", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Link", "Zeze.Builtin.Game.Online.BLink", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LoginVersion", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ReliableNotifyMark", "set", "", "string"));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ReliableNotifyConfirmIndex", "long", "", ""));

@@ -496,7 +496,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerId", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "SimpleTimer", "BSimpleTimer", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "SimpleTimer", "Zeze.Builtin.Timer.BSimpleTimer", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HandleClass", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomClass", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "CustomBean", "binary", "", ""));

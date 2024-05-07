@@ -229,7 +229,7 @@ public final class BRefused extends Zeze.Transaction.Bean implements BRefusedRea
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Refused", "map", "string", "BBatch"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Refused", "map", "string", "Zeze.Builtin.Dbh2.BBatch"));
         return vars;
     }
 

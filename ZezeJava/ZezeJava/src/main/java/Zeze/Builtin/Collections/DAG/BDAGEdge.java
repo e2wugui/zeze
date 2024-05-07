@@ -249,8 +249,8 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "BDAGNodeKey", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "BDAGNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
         return vars;
     }
 }

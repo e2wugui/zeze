@@ -262,7 +262,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Capacity", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Items", "map", "int", "BItem"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Items", "map", "int", "Zeze.Builtin.Game.Bag.BItem"));
         return vars;
     }
 }

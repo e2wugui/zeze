@@ -365,7 +365,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "account", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "linkSid", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "reason", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "userState", "BUserState", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "userState", "Zeze.Builtin.Provider.BUserState", "", ""));
         return vars;
     }
 

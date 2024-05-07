@@ -207,7 +207,7 @@ public final class BLocals extends Zeze.Transaction.Bean implements BLocalsReadO
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logins", "map", "string", "BLocal"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logins", "map", "string", "Zeze.Builtin.Online.BLocal"));
         return vars;
     }
 }

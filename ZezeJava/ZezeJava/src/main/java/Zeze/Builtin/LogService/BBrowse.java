@@ -406,7 +406,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Limit", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OffsetFactor", "float", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Reset", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Condition", "BCondition", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Condition", "Zeze.Builtin.LogService.BCondition", "", ""));
         return vars;
     }
 

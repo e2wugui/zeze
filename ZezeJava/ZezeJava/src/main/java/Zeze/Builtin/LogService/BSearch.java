@@ -358,7 +358,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Limit", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Reset", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Condition", "BCondition", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Condition", "Zeze.Builtin.LogService.BCondition", "", ""));
         return vars;
     }
 

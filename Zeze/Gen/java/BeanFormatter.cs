@@ -272,7 +272,38 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
                 sw.WriteLine($"{prefix}    var vars = super.variables();");
                 foreach (var v in bean.VariablesIdOrder)
-                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{v.Type}\", \"{v.Key}\", \"{v.Value}\"));");
+                {
+                    string type = v.Type;
+                    string key = v.Key;
+                    string value = v.Value;
+
+                    var vType = v.VariableType;
+                    if (vType.IsBean)
+                    {
+                        type = Variable.GetBeanFullName(vType);
+                    }
+                    else if (vType.IsCollection)
+                    {
+                        if (vType is TypeMap map)
+                        {
+                            if (map.KeyType.IsBean)
+                                key = Variable.GetBeanFullName(map.KeyType);
+                            if (map.ValueType.IsBean)
+                                value = Variable.GetBeanFullName(map.ValueType);
+                        }
+                        else if (vType is TypeList list)
+                        {
+                            if (list.ValueType.IsBean)
+                                value = Variable.GetBeanFullName(list.ValueType);
+                        }
+                        else if (vType is TypeSet set)
+                        {
+                            if (set.ValueType.IsBean)
+                                value = Variable.GetBeanFullName(set.ValueType);
+                        }
+                    }
+                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
+                }
                 sw.WriteLine($"{prefix}    return vars;");
                 sw.WriteLine($"{prefix}}}");
             }

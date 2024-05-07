@@ -496,7 +496,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerId", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "CronTimer", "BCronTimer", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "CronTimer", "Zeze.Builtin.Timer.BCronTimer", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HandleClass", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "CustomClass", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "CustomBean", "binary", "", ""));

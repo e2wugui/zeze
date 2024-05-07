@@ -76,6 +76,7 @@ public class Helper {
 			registerLogSet1(set1Class);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void dependsBean(Class<?> beanClass, DependsResult result) throws Exception {
 		if (result.allBeans.add(beanClass)) {
 			var obj = beanClass.getConstructor().newInstance();
@@ -93,7 +94,7 @@ public class Helper {
 				for (var v : bean.variables()) {
 					var type = v.getType();
 					switch (type) {
-					case "list":
+					case "list": case "array":
 						dependsList(v.getValue(), result);
 						break;
 					case "map":
@@ -112,6 +113,7 @@ public class Helper {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void dependsList(String valueType, DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (null != valueClass) {
@@ -123,6 +125,7 @@ public class Helper {
 		result.list2.add((Class<? extends Bean>)valueClass);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static void dependsMap(String keyType, String valueType, DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (null == keyClass) {

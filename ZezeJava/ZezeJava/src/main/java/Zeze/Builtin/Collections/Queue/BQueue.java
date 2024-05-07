@@ -523,8 +523,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Count", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastNodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "LoadSerialNo", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "HeadNodeKey", "BQueueNodeKey", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TailNodeKey", "BQueueNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "HeadNodeKey", "Zeze.Builtin.Collections.Queue.BQueueNodeKey", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "TailNodeKey", "Zeze.Builtin.Collections.Queue.BQueueNodeKey", "", ""));
         return vars;
     }
 }

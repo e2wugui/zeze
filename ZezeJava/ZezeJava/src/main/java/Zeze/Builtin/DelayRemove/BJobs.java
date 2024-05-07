@@ -198,7 +198,7 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Jobs", "map", "string", "BJob"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Jobs", "map", "string", "Zeze.Builtin.DelayRemove.BJob"));
         return vars;
     }
 }

@@ -387,7 +387,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Master", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Database", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Table", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Batch", "BBatch", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Batch", "Zeze.Builtin.Dbh2.BBatch", "", ""));
         return vars;
     }
 

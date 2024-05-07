@@ -201,7 +201,7 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RankList", "list", "", "BRankValue"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RankList", "list", "", "Zeze.Builtin.Game.Rank.BRankValue"));
         return vars;
     }
 }

@@ -490,7 +490,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SourceProvider", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "MethodFullName", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Hashs", "map", "int", "BModuleRedirectAllHash"));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Hashs", "map", "int", "Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash"));
         return vars;
     }
 
