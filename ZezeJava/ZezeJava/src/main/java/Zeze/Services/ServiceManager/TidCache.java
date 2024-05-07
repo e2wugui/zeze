@@ -29,6 +29,10 @@ public class TidCache {
 		return current.get();
 	}
 
+	public long getStart() {
+		return start;
+	}
+
 	public static final int ALLOCATE_COUNT_MIN = 64;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 

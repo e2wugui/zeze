@@ -72,8 +72,6 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private TaskCompletionSource<TidCache> tidCacheFuture;
-	private long tid;
-
 
 	private Transaction() {
 	}
@@ -133,7 +131,6 @@ public final class Transaction {
 		onzProcedure = null;
 		profiler.reset();
 		tidCacheFuture = null;
-		tid = 0;
 	}
 
 	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
@@ -152,7 +149,6 @@ public final class Transaction {
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 		tidCacheFuture = null;
-		tid = 0;
 	}
 
 	public void begin() {
@@ -433,11 +429,13 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure procedure) throws Exception {
+		final long tid;
 		if (tidCacheFuture != null) {
-			if (tid == 0)
-				tid = tidCacheFuture.get().next();
+			tid = tidCacheFuture.get().next();
 			for (var e : accessedRecords.entrySet())
 				e.getValue().atomicTupleRecord.record.setTid(tid);
+		} else {
+			tid = 0;
 		}
 
 		// onz patch: onz事务执行阶段的2段式同步等待。
@@ -639,19 +637,14 @@ public final class Transaction {
 							procedure.getZeze().getConfig().getHistory());
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
-					tid = tidCacheFuture.get().next(); // acquire 比 allocate 慢，此时future结果应已返回。
-
+					// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
+					var startTid = tidCacheFuture.get().getStart();
 					//noinspection DataFlowIssue
-					if (acquire.reducedTid > tid) {
-						// 重置！see finalCommit!
-						// 重新再次申请tid。
-						tid = 0;
+					if (acquire.reducedTid > startTid) {
 						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
 								procedure.getZeze().getConfig().getHistory()
 						);
 					}
-
-					//noinspection DataFlowIssue
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",
