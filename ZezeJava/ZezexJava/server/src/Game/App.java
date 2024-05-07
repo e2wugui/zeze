@@ -19,13 +19,9 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public final class App extends Zeze.AppBase {
-	private static final Logger logger = LogManager.getLogger(App.class);
-
 	public static final App Instance = new App();
 
 	public static App getInstance() {
@@ -37,7 +33,6 @@ public final class App extends Zeze.AppBase {
 	public ProviderDirectWithTransmit ProviderDirect;
 	public LinkedMap.Module LinkedMapModule;
 	public DepartmentTree.Module DepartmentTreeModule;
-
 
 	public ProviderWithOnline getProvider() {
 		return Provider;
@@ -80,10 +75,8 @@ public final class App extends Zeze.AppBase {
 			config.setServerId(serverId); // replace from args
 		}
 		var commitService = config.getServiceConf("Zeze.Dbh2.Commit");
-		if (null != commitService) {
-			commitService.forEachAcceptor((a) -> {
-				a.setPort(a.getPort() + config.getServerId());
-			});
+		if (commitService != null) {
+			commitService.forEachAcceptor(a -> a.setPort(a.getPort() + config.getServerId()));
 		}
 		if (providerDirectPort != -1) {
 			final int port = providerDirectPort;
@@ -102,11 +95,6 @@ public final class App extends Zeze.AppBase {
 		Provider.create(this);
 
 		createModules();
-		if (GenModule.instance.genFileSrcRoot != null) {
-			System.out.println("---------------");
-			System.out.println("New Source File Has Generate. Re-Compile Need.");
-			System.exit(0);
-		}
 		LinkedMapModule = new LinkedMap.Module(Zeze);
 		DepartmentTreeModule = new DepartmentTree.Module(Zeze, LinkedMapModule);
 

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Net.ServiceConf;
 import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Transaction.CheckpointMode;
@@ -402,7 +403,7 @@ public final class Config {
 	}
 
 	public static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
-		switch (conf.databaseType) {
+		switch (GenModule.instance.genFileSrcRoot == null ? conf.databaseType : DbType.Memory) {
 		case Memory:
 			return new DatabaseMemory(zeze, conf);
 		case MySql:
