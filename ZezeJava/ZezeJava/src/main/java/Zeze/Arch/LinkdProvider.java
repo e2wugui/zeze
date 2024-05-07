@@ -85,9 +85,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
-	public boolean choiceHashWithoutBind(int moduleId, long version, int hash, @NotNull OutLong provider) {
+	public boolean choiceHashWithoutBind(int moduleId, long clientVersion, int hash, @NotNull OutLong provider) {
 		provider.value = 0L;
-		var distribute = distributes.selectDistribute(version);
+		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
 			return false;
 		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
@@ -107,7 +107,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	public boolean choiceProviderAndBind(int moduleId, long clientVersion, @NotNull AsyncSocket link,
 										 @NotNull OutLong provider) {
 		provider.value = 0L;
-		var distribute = distributes.selectDistribute(clientVersion);
+		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
 			return false;
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));

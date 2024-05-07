@@ -21,7 +21,7 @@ public class ProviderDistributeVersion {
 
 	public void addServer(@NotNull BServiceInfo info) {
 		providerDistributes.computeIfAbsent(info.getVersion(),
-				k -> new ProviderDistribute(zeze, loadConfig, providerService, k)).addServer(info);
+				k -> new ProviderDistribute(zeze, loadConfig, providerService, k << 48)).addServer(info);
 	}
 
 	public void removeServer(@NotNull BServiceInfo info) {

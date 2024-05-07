@@ -145,5 +145,6 @@ public abstract class Table {
 
 	public abstract @NotNull Class<? extends Bean> getValueClass();
 
-	public abstract <K extends Comparable<K>, V extends Bean> ApplyTable<K, V> createApplyTable(IApplyDatabase applyDb);
+	public abstract <K extends Comparable<K>, V extends Bean> @NotNull ApplyTable<K, V> createApplyTable(
+			@NotNull IApplyDatabase applyDb);
 }

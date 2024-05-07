@@ -230,10 +230,10 @@ public class ProviderService extends HandshakeClient {
 			var identity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 			sm.registerService(new BServiceInfo(
 					providerApp.serverServiceNamePrefix + module.getId(), identity,
-					providerApp.zeze.getConfig().getAppVersion(),
+					providerApp.zeze.getConfig().getAppMainVersion(),
 					providerApp.directIp, providerApp.directPort));
 			sm.subscribeService(new BSubscribeInfo(providerApp.serverServiceNamePrefix + module.getId(),
-					providerApp.zeze.getConfig().getAppVersion()));
+					providerApp.zeze.getConfig().getAppMainVersion()));
 		}
 
 		// 并通知所有links。

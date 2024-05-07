@@ -371,6 +371,10 @@ public final class Config {
 		fastRedoWhenConflict = value;
 	}
 
+	public long getAppMainVersion() {
+		return appVersion >>> 48;
+	}
+
 	public long getAppVersion() {
 		return appVersion;
 	}
@@ -646,8 +650,7 @@ public final class Config {
 			procedureLockWatcherMin = Integer.parseInt(attr);
 
 		attr = self.getAttribute("AppVersion");
-		if (!attr.isBlank())
-			appVersion = Str.parseVersion(attr);
+		appVersion = Str.parseVersion(attr);
 
 		history = self.getAttribute("History").trim();
 

@@ -10,24 +10,26 @@ import Zeze.Transaction.Table;
 import Zeze.Transaction.TableX;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger();
 	private final LinkedHashMap<K, V> lru = new LinkedHashMap<>();
-	private final IApplyTable table;
-	private final TableX<K, V> originTable;
+	private final @NotNull IApplyTable table;
+	private final @NotNull TableX<K, V> originTable;
 
-	public ApplyTable(TableX<K, V> originTable, IApplyDatabase db) {
+	public ApplyTable(@NotNull TableX<K, V> originTable, @NotNull IApplyDatabase db) {
 		this.originTable = originTable;
 		var tableName = originTable.getName();
-		this.table = db.open(tableName);
+		table = db.open(tableName);
 	}
 
-	public Table getOriginTable() {
+	public @NotNull Table getOriginTable() {
 		return originTable;
 	}
 
-	public V get(K key) {
+	public @Nullable V get(@NotNull K key) {
 		var value = lru.get(key);
 		if (null != value)
 			return value;
@@ -42,7 +44,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void apply(BTableKey tableKey, Binary changes) {
+	public void apply(@NotNull BTableKey tableKey, @NotNull Binary changes) {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
 		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded()));
@@ -68,7 +70,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	public void put(K key, V value) {
+	public void put(@NotNull K key, @NotNull V value) {
 		var bbKey = originTable.encodeKey(key);
 		var bbValue = ByteBuffer.Allocate();
 		value.encode(bbValue);
@@ -76,7 +78,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.put(bbKey.Bytes, bbKey.ReadIndex, bbKey.size(), bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
 	}
 
-	public void remove(K key) {
+	public void remove(@NotNull K key) {
 		lru.remove(key);
 		var bbKey = originTable.encodeKey(key);
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());

@@ -2,12 +2,22 @@ package Zeze.History;
 
 import Zeze.Net.Binary;
 import Zeze.Transaction.TableWalkHandleRaw;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface IApplyTable {
+	@NotNull
 	String getTableName();
-	Binary get(byte[] key, int offset, int length);
-	void put(byte[] key, int keyOffset, int keyLength, byte[] value, int valueOffset, int valueLength);
-	void remove(byte[] key, int offset, int length);
+
+	@Nullable
+	Binary get(byte @NotNull [] key, int offset, int length);
+
+	void put(byte @NotNull [] key, int keyOffset, int keyLength,
+			 byte @NotNull [] value, int valueOffset, int valueLength);
+
+	void remove(byte @NotNull [] key, int offset, int length);
+
 	boolean isEmpty();
-	void walk(TableWalkHandleRaw walker);
+
+	void walk(@NotNull TableWalkHandleRaw walker);
 }

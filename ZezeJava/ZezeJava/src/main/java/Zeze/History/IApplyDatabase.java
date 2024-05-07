@@ -1,5 +1,8 @@
 package Zeze.History;
 
+import org.jetbrains.annotations.NotNull;
+
 public interface IApplyDatabase {
-	IApplyTable open(String tableName);
+	@NotNull
+	IApplyTable open(@NotNull String tableName);
 }

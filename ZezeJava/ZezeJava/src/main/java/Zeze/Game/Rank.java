@@ -60,7 +60,7 @@ public class Rank extends AbstractRank {
 		var name = ProviderDistribute.makeServiceName(serviceNamePrefix, getId());
 		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
 		app.getZeze().getServiceManager().registerService(new BServiceInfo(
-				name, identity, app.getZeze().getConfig().getAppVersion(), providerDirectIp, providerDirectPort));
+				name, identity, app.getZeze().getConfig().getAppMainVersion(), providerDirectIp, providerDirectPort));
 	}
 
 	public static BConcurrentKey newRankKey(int rankType, int timeType) {

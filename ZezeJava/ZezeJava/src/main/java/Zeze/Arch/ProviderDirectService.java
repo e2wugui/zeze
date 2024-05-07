@@ -231,7 +231,7 @@ public class ProviderDirectService extends HandshakeBoth {
 			// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 			for (var ss : getZeze().getServiceManager().getSubscribeStates().values()) {
 				if (ss.getServiceName().startsWith(providerApp.serverServiceNamePrefix)) {
-					var infos = ss.getServiceInfos(ps.appVersion);
+					var infos = ss.getServiceInfos(ps.getAppMainVersion());
 					if (infos == null)
 						continue;
 					var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);

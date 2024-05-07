@@ -23,12 +23,16 @@ public class ProviderSession {
 	protected final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
 	public @NotNull String getServerLoadName() {
-		return serverLoadIp + "_" + serverLoadPort;
+		return serverLoadIp + '_' + serverLoadPort;
 	}
 
 	@Override
 	public @NotNull String toString() {
-		return "(" + serverLoadIp + "," + serverLoadPort + "," + sessionId + ")";
+		return '(' + serverLoadIp + ',' + serverLoadPort + ',' + sessionId + ',' + appVersion + ')';
+	}
+
+	public long getAppMainVersion() {
+		return appVersion >>> 48;
 	}
 
 	public long getSessionId() {

@@ -27,19 +27,23 @@ public class ProviderDistribute extends ReentrantLock {
 	public final Application zeze;
 	public final LoadConfig loadConfig;
 	private final Service providerService;
-	private final long version;
+	private final long appVersion;
 	private final AtomicInteger feedFullOneByOneIndex = new AtomicInteger();
 	private final ConcurrentHashMap<String, ConsistentHash<BServiceInfo>> consistentHashes = new ConcurrentHashMap<>(); // key:serviceName
 
-	public ProviderDistribute(Application zeze, LoadConfig loadConfig, Service providerService, long version) {
+	public ProviderDistribute(Application zeze, LoadConfig loadConfig, Service providerService, long appVersion) {
 		this.zeze = zeze;
 		this.loadConfig = loadConfig;
 		this.providerService = providerService;
-		this.version = version;
+		this.appVersion = appVersion;
 	}
 
-	public long getVersion() {
-		return version;
+	public long getAppVersion() {
+		return appVersion;
+	}
+
+	public long getAppMainVersion() {
+		return appVersion >>> 48;
 	}
 
 	private static final @NotNull SortedMap.HashFunc<Integer, BServiceInfo> hashFunc = (key, value, index) ->
@@ -125,14 +129,13 @@ public class ProviderDistribute extends ReentrantLock {
 	public static boolean checkAppVersion(long serverAppVersion, long clientAppVersion) {
 		if (clientAppVersion == 0) // 表示按以前的默认行为,不判断版本号
 			return true;
-		return serverAppVersion == clientAppVersion; // 暂时严格判断版本
-//		return (serverAppVersion >>> 48) == (clientAppVersion >>> 48) && // 主版本必须一致
-//				(serverAppVersion >>> 32) >= (clientAppVersion >>> 32); // 次版本不小于客户端次版本
+		return (serverAppVersion >>> 48) == (clientAppVersion >>> 48); // 主版本必须一致
+		// && (serverAppVersion >>> 32) >= (clientAppVersion >>> 32); // 次版本不小于客户端次版本(因为ServiceManager暂时只支持管理主版本,没有其它版本号信息,所以先不考虑了)
 	}
 
 	public boolean choiceLoad(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
 		provider.value = 0L;
-		var serviceInfos = providers.getServiceInfos(version);
+		var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 		if (serviceInfos == null)
 			return false;
 
@@ -160,7 +163,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps.load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
-			if (!checkAppVersion(ps.appVersion, version))
+			if (!checkAppVersion(ps.appVersion, appVersion))
 				continue;
 
 			all.add(ps);
@@ -197,7 +200,7 @@ public class ProviderDistribute extends ReentrantLock {
 
 	public boolean choiceRequest(@NotNull Agent.SubscribeState providers, @NotNull OutLong provider) {
 		provider.value = 0L;
-		var serviceInfos = providers.getServiceInfos(version);
+		var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 		if (serviceInfos == null)
 			return false;
 
@@ -226,7 +229,7 @@ public class ProviderDistribute extends ReentrantLock {
 			if (ps.load.getOverload() == BLoad.eOverload)
 				continue; // 忽略过载的服务器
 
-			if (!checkAppVersion(ps.appVersion, version))
+			if (!checkAppVersion(ps.appVersion, appVersion))
 				continue;
 
 			all.add(ps);
@@ -264,7 +267,7 @@ public class ProviderDistribute extends ReentrantLock {
 		lock();
 		try {
 			provider.value = 0L;
-			var serviceInfos = providers.getServiceInfos(version);
+			var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 			if (serviceInfos == null)
 				return false;
 
@@ -293,7 +296,7 @@ public class ProviderDistribute extends ReentrantLock {
 				if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
 					continue;
 
-				if (!checkAppVersion(ps.appVersion, version))
+				if (!checkAppVersion(ps.appVersion, appVersion))
 					continue;
 
 				provider.value = ps.getSessionId();
@@ -314,7 +317,7 @@ public class ProviderDistribute extends ReentrantLock {
 		var providers = zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		if (providers == null)
 			return false;
-		var serviceInfos = providers.getServiceInfos(version);
+		var serviceInfos = providers.getServiceInfos(getAppMainVersion());
 		if (serviceInfos == null)
 			return false;
 		var si = serviceInfos.findServiceInfoByServerId(serverId);

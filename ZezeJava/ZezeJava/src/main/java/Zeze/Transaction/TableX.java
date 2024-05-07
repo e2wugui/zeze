@@ -289,7 +289,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = rpc.Argument.state;
 		if (isTraceEnabled)
-			logger.trace("Reduce NewState={}", rpc);
+			logger.trace("reduceShare NewState={}", rpc);
 
 		K key = decodeKey(bbKey);
 		var lockey = getZeze().getLocks().get(new TableKey(getId(), key));
@@ -297,11 +297,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			var r = cache.get(key);
 			if (isTraceEnabled)
-				logger.trace("Reduce NewState={} {}", rpc.Argument.state, r);
+				logger.trace("reduceShare NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
 				rpc.Result.state = StateInvalid;
 				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 1 r=null");
+					logger.trace("reduceShare SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
@@ -309,7 +309,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult fresh {}", r);
+						logger.trace("reduceShare SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -326,7 +326,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 2 {}", r);
+						logger.trace("reduceShare SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -338,7 +338,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 3 {}", r);
+						logger.trace("reduceShare SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -350,7 +350,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult * {}", r);
+						logger.trace("reduceShare SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
@@ -358,7 +358,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
 				flushWhenReduce(r);
 				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 4 {}", r);
+					logger.trace("reduceShare SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
@@ -404,11 +404,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			var r = cache.get(key);
 			if (isTraceEnabled)
-				logger.trace("Reduce NewState={} {}", rpc.Argument.state, r);
+				logger.trace("reduceInvalid NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
 				rpc.Result.state = StateInvalid;
 				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 1 r=null");
+					logger.trace("reduceInvalid SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
@@ -422,7 +422,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult fresh {}", r);
+						logger.trace("reduceInvalid SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -438,7 +438,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 2 {}", r);
+						logger.trace("reduceInvalid SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -451,7 +451,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult 3 {}", r);
+						logger.trace("reduceInvalid SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -463,7 +463,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
-						logger.trace("Reduce SendResult * {}", r);
+						logger.trace("reduceInvalid SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
@@ -472,7 +472,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.Result.state = StateInvalid;
 				flushWhenReduce(r);
 				if (isTraceEnabled)
-					logger.trace("Reduce SendResult 4 {}", r);
+					logger.trace("reduceInvalid SendResult 4 {}", r);
 				rpc.SendResult();
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
@@ -1293,9 +1293,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		cache = new TableCache<>(getZeze(), this);
 	}
 
-	@Override
 	@SuppressWarnings("unchecked")
-	public ApplyTable<K, V> createApplyTable(IApplyDatabase applyDb) {
+	@Override
+	public @NotNull ApplyTable<K, V> createApplyTable(@NotNull IApplyDatabase applyDb) {
 		return new ApplyTable<>(this, applyDb);
 	}
 }
