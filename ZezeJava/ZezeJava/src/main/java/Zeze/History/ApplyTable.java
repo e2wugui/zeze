@@ -1,7 +1,7 @@
 package Zeze.History;
 
 import java.util.LinkedHashMap;
-import Zeze.Builtin.DelayRemove.BTableKey;
+import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
@@ -45,7 +45,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	public void apply(BTableKey tableKey, Binary changes) {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
-		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getEncodedKey()));
+		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded()));
 
 		switch (logRecord.getState()) {
 		case Changes.Record.Remove:

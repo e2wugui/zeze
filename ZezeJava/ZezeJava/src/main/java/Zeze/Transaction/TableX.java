@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import Zeze.Application;
+import Zeze.History.ApplyTable;
+import Zeze.History.IApplyDatabase;
 import Zeze.Net.Binary;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
@@ -1289,5 +1291,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//System.out.println(getName() + " __ClearTableCacheUnsafe__");
 		// 直接new一个更加干净。
 		cache = new TableCache<>(getZeze(), this);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public ApplyTable<K, V> createApplyTable(IApplyDatabase applyDb) {
+		return new ApplyTable<>(this, applyDb);
 	}
 }
