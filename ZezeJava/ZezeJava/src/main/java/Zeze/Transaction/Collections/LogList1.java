@@ -36,8 +36,12 @@ public class LogList1<V> extends LogList<V> {
 	protected final @NotNull Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	LogList1(@NotNull Meta1<V> meta) {
+	public LogList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
+	}
+
+	public LogList1(@NotNull Class<V> valueClass) {
+		meta = Meta1.getList1Meta(valueClass);
 	}
 
 	@Override
@@ -124,7 +128,6 @@ public class LogList1<V> extends LogList<V> {
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
 				if (opLog.op < OpLog.OP_REMOVE) {
-					//noinspection DataFlowIssue
 					encoder.accept(bb, opLog.value);
 				}
 			}
@@ -138,7 +141,6 @@ public class LogList1<V> extends LogList<V> {
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-			//noinspection DataFlowIssue
 			opLogs.add(new OpLog<>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
 	}

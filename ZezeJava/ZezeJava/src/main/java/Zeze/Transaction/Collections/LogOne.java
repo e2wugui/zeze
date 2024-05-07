@@ -6,14 +6,21 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogOne<V extends Bean> extends LogBean {
-	public @NotNull V value;
+	public V value;
 	public LogBean logBean;
+	public final Meta1<V> meta;
 
-	LogOne(@NotNull V value) {
+	public LogOne(@NotNull V value) {
 		this.value = value;
+		meta = null; // 事务使用不需要动态创建，decode。
+	}
+
+	public LogOne(@NotNull Class<V> beanClass) {
+		meta = Meta1.getBeanMeta(beanClass); // for decode
 	}
 
 	public void setValue(@NotNull V value) {
@@ -44,10 +51,8 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		//noinspection ConstantValue
 		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			((CollOne<V>)getThis())._Value = value;
 		}
@@ -55,7 +60,6 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		//noinspection ConstantValue
 		if (null != value) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			bb.WriteBool(true);
 			value.encode(bb);
@@ -72,20 +76,21 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		throw new UnsupportedOperationException();
-        /*
         var hasValue = bb.ReadBool();
         if (hasValue) {
-            Value = new V();
-            Value.decode(bb);
+			try {
+				value = (V)meta.valueFactory.invoke();
+			} catch (Throwable e) {
+				Task.forceThrow(e);
+			}
+			value.decode(bb);
         } else {
             var hasLogBean = bb.ReadBool();
             if (hasLogBean) {
-                LogBean = new LogBean();
-                LogBean.decode(bb);
+                logBean = new LogBean();
+                logBean.decode(bb);
             }
         }
-        */
 	}
 
 	@Override

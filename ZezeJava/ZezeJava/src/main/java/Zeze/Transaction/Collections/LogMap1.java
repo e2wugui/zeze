@@ -17,9 +17,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	LogMap1(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
+	public LogMap1(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
 		super(value);
 		this.meta = meta;
+	}
+
+	public LogMap1(@NotNull Class<K> keyClass, Class<V> valueClass) {
+		super(Empty.map()); // not used
+		this.meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
 	@Override

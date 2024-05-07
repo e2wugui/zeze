@@ -8,7 +8,7 @@ import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
 
-public abstract class LogBeanKey<T extends Serializable> extends Log {
+public class LogBeanKey<T extends Serializable> extends Log {
 	protected final Meta1<T> meta;
 	public T value;
 
@@ -20,9 +20,18 @@ public abstract class LogBeanKey<T extends Serializable> extends Log {
 		this.value = value;
 	}
 
+	public LogBeanKey(Class<T> beanClass) {
+		meta = Meta1.getBeanMeta(beanClass);
+	}
+
 	@Override
 	public int getTypeId() {
 		return meta.logTypeId;
+	}
+
+	@Override
+	public void commit() {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -13,8 +13,12 @@ import org.jetbrains.annotations.NotNull;
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 
-	LogList2(@NotNull Meta1<V> meta) {
+	public LogList2(@NotNull Meta1<V> meta) {
 		super(meta);
+	}
+
+	public LogList2(@NotNull Class<V> valueClass) {
+		super(Meta1.getList1Meta(valueClass));
 	}
 
 	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
@@ -69,7 +73,6 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();

@@ -15,8 +15,12 @@ public class LogSet1<V> extends LogSet<V> {
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	LogSet1(@NotNull Meta1<V> meta) {
+	public LogSet1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
+	}
+
+	public LogSet1(@NotNull Class<V> valueClass) {
+		this.meta = Meta1.getSet1Meta(valueClass);
 	}
 
 	@Override

@@ -7,7 +7,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
-public abstract class LogDecimal extends Log {
+public class LogDecimal extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<decimal>");
 
 	public BigDecimal value;
@@ -18,9 +18,18 @@ public abstract class LogDecimal extends Log {
 		this.value = value;
 	}
 
+	public LogDecimal() {
+
+	}
+
 	@Override
 	public int getTypeId() {
 		return TYPE_ID;
+	}
+
+	@Override
+	public void commit() {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -6,7 +6,7 @@ import Zeze.Serialize.Vector3Int;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 
-public abstract class LogVector3Int extends Log {
+public class LogVector3Int extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<vector3int>");
 
 	public Vector3Int value;
@@ -17,9 +17,18 @@ public abstract class LogVector3Int extends Log {
 		this.value = value;
 	}
 
+	public LogVector3Int() {
+
+	}
+
 	@Override
 	public int getTypeId() {
 		return TYPE_ID;
+	}
+
+	@Override
+	public void commit() {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

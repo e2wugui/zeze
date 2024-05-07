@@ -5,7 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
 
-public abstract class LogInt extends Log {
+public class LogInt extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<int>");
 
 	public int value;
@@ -16,9 +16,18 @@ public abstract class LogInt extends Log {
 		this.value = value;
 	}
 
+	public LogInt() {
+
+	}
+
 	@Override
 	public int getTypeId() {
 		return TYPE_ID;
+	}
+
+	@Override
+	public void commit() {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -361,30 +361,32 @@ namespace Zeze.Gen
                     new confcs.Maker(this).Make();
                     break;
                 case "conf+cs+net":
-                    var dependsFollowerApplyTables = new HashSet<Types.Type>();
-                    if (FollowerApplyTablesSelf != null)
                     {
-                        string parent = Program.Debug ? "Project(" + Name + ')' : null;
-                        var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
-                        foreach (var tFullName in followerApplyTables)
+                        var dependsFollowerApplyTables = new HashSet<Types.Type>();
+                        if (FollowerApplyTablesSelf != null)
                         {
-                            var table = Program.GetNamedObject<Table>(tFullName);
-                            table.Depends(dependsFollowerApplyTables, parent);
+                            string parent = Program.Debug ? "Project(" + Name + ')' : null;
+                            var followerApplyTables = Program.Refs(FollowerApplyTablesSelf, "table", "name");
+                            foreach (var tFullName in followerApplyTables)
+                            {
+                                var table = Program.GetNamedObject<Table>(tFullName);
+                                table.Depends(dependsFollowerApplyTables, parent);
+                            }
+                            var refBeans = Program.Refs(FollowerApplyTablesSelf, "bean", "ref");
+                            foreach (var refBean in refBeans)
+                            {
+                                var bean = Program.GetNamedObject<Bean>(refBean);
+                                bean.Depends(dependsFollowerApplyTables, parent);
+                            }
                         }
-                        var refBeans = Program.Refs(FollowerApplyTablesSelf, "bean", "ref");
-                        foreach (var refBean in refBeans)
-                        {
-                            var bean = Program.GetNamedObject<Bean>(refBean);
-                            bean.Depends(dependsFollowerApplyTables, parent);
-                        }
+
+                        // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
+                        // 会导致自己实现代码被删除，所以不能直接使用confcs.Maker。
+                        // 这个platform有网络协议以及模块。需要重新写一份MakeConfCsNet，
+                        // 选择需要生成的内容以及重新定义生成目录。
+
+                        new cs.Maker(this).MakeConfCsNet(dependsFollowerApplyTables);
                     }
-
-                    // 警告，confcs.Maker为了简化，没有生成Gen目录，而是直接放到ProjectName下，这样和需要实现的代码混在一起，
-                    // 会导致自己实现代码被删除，所以不能直接使用confcs.Maker。
-                    // 这个platform有网络协议以及模块。需要重新写一份MakeConfCsNet，
-                    // 选择需要生成的内容以及重新定义生成目录。
-
-                    new cs.Maker(this).MakeConfCsNet(dependsFollowerApplyTables);
                     break;
                 case "python":
                     new python.Maker(this).Make();
