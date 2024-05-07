@@ -1,6 +1,7 @@
 package Zeze.History;
 
 import Zeze.Builtin.HistoryModule.BLogChanges;
+import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
@@ -12,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class History {
-	private static final Logger logger = LogManager.getLogger(History.class);
+	private static final Logger logger = LogManager.getLogger();
 
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
@@ -122,7 +123,7 @@ public class History {
 												   @Nullable String protocolClassName,
 												   @Nullable Binary protocolArgument) {
 		var logChanges = new BLogChanges.Data();
-
+		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);
 		if (null != protocolClassName)
 			logChanges.setProtocolClassName(protocolClassName);
@@ -130,16 +131,14 @@ public class History {
 			logChanges.setProtocolArgument(protocolArgument);
 
 		// changes
-		var bb = ByteBuffer.Allocate(logChanges.preAllocSize());
-		bb.WriteInt(changes.getRecords().size());
 		for (var e : changes.getRecords().entrySet()) {
-			var tableKey = e.getKey();
-			bb.WriteInt(tableKey.getId());
-			bb.WriteByteBuffer(e.getValue().getTable().encodeKey(tableKey.getKey()));
+			var tableKey = new BTableKey(
+					e.getKey().getId(),
+					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
+			var bb = ByteBuffer.Allocate();
 			e.getValue().encode(bb);
+			logChanges.getChanges().put(tableKey, new Binary(bb));
 		}
-		logChanges.setChanges(new Binary(bb));
-
 		return logChanges;
 	}
 }

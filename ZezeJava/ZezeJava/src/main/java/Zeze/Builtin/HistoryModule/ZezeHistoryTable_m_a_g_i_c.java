@@ -30,6 +30,7 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
     public static final int VAR_ProtocolClassName = 2;
     public static final int VAR_ProtocolArgument = 3;
     public static final int VAR_Changes = 4;
+    public static final int VAR_Timestamp = 5;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

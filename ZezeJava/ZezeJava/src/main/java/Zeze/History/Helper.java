@@ -155,7 +155,8 @@ public class Helper {
 			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0)) + v.getName().substring(1)).invoke(null);
+							+ Character.toUpperCase(v.getName().charAt(0))
+							+ v.getName().substring(1)).invoke(null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);

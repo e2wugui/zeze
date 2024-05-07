@@ -10,5 +10,6 @@ public interface BLogChangesReadOnly {
     long getGlobalSerialId();
     String getProtocolClassName();
     Zeze.Net.Binary getProtocolArgument();
-    Zeze.Net.Binary getChanges();
+    Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> getChangesReadOnly();
+    long getTimestamp();
 }

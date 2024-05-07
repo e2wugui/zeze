@@ -1843,11 +1843,16 @@
 		</module>
 		
 		<module name="HistoryModule" id="11031" UseData="true">
+			<beankey name="BTableKey">
+				<variable id="1" name="TableId" type="int"/>
+				<variable id="2" name="KeyEncoded" type="binary"/>
+			</beankey>
 			<bean name="BLogChanges">
 				<variable id="1" name="GlobalSerialId" type="long"/>
 				<variable id="2" name="ProtocolClassName" type="string"/>
 				<variable id="3" name="ProtocolArgument" type="binary"/>
-				<variable id="4" name="Changes" type="binary"/>
+				<variable id="4" name="Changes" type="map[BTableKey, binary]"/>
+				<variable id="5" name="Timestamp" type="long"/>
 			</bean>
 			<table name="ZezeHistoryTable_m_a_g_i_c" key="long" value="BLogChanges"/>
 
