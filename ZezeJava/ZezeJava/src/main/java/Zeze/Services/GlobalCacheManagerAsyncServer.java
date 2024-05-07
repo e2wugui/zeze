@@ -453,7 +453,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 				case StateShare:
 				case StateModify:
 					if (isDebugEnabled)
-						logger.debug("Release 0 {} {} {}", sender, gKey, cs);
+						logger.debug("Release 1 {} {} {}", sender, gKey, cs);
 					rpc.Result.state = cs.getSenderCacheState(sender);
 					rpc.SendResultCode(0);
 					if (ENABLE_PERF)

@@ -48,7 +48,7 @@ public final class GlobalClient extends Service {
 						so.getConnector().start();
 					});
 				} else {
-					logger.debug("GlobalClient Recv Login");
+					logger.debug("GlobalClient Recv Login 1");
 					agent.getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
@@ -67,7 +67,7 @@ public final class GlobalClient extends Service {
 							login.isTimeout(), login.getResultCode());
 					so.close(loginException);
 				} else {
-					logger.debug("GlobalClient Recv Login");
+					logger.debug("GlobalClient Recv Login 2");
 					agent.setActiveTime(System.currentTimeMillis());
 					agent.getLoginTimes().getAndIncrement();
 					agent.initialize(login.Result.maxNetPing,

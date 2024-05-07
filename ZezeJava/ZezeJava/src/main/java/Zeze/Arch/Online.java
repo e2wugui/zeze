@@ -857,20 +857,22 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
 				if (!trySend)
-					logger.info("sendDirect: not found account={} in _tonline", account);
+					logger.info("sendDirects: not found account={} in _tonline", account);
 				continue;
 			}
 			var login = online.getLogins().get(clientId);
 			if (login == null) {
 				if (!trySend)
-					logger.info("sendDirect: not found login for clientId={} account={}", clientId, account);
+					logger.info("sendDirects: not found login for clientId={} account={}", clientId, account);
 				continue;
 			}
 			var link = login.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
-				if (!trySend)
-					logger.info("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
+				if (!trySend) {
+					logger.info("sendDirects: state={} != eLogined for clientId={} account={}",
+							state, clientId, account);
+				}
 				continue;
 			}
 			var linkName = link.getLinkName();

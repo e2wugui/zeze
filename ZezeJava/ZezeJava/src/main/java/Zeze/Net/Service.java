@@ -95,23 +95,22 @@ public class Service extends ReentrantLock {
 	}
 
 	public Service(@NotNull String name) {
-		this(name, (Config)null);
+		this(name, null, null);
 	}
 
 	public Service(@NotNull String name, @Nullable Config config) {
-		this.name = name;
-		zeze = null;
-		this.config = initConfig(config);
-		socketOptions = this.config.getSocketOptions();
-		logger.info("start: {}", name);
-		tryStartStatisticLog();
+		this(name, null, config);
 	}
 
 	public Service(@NotNull String name, @Nullable Application app) {
+		this(name, app, app != null ? app.getConfig() : null);
+	}
+
+	public Service(@NotNull String name, @Nullable Application app, @Nullable Config config) {
 		this.name = name;
 		zeze = app;
-		config = initConfig(app != null ? app.getConfig() : null);
-		socketOptions = config.getSocketOptions();
+		this.config = initConfig(config);
+		socketOptions = this.config.getSocketOptions();
 		logger.info("start: {}", name);
 		tryStartStatisticLog();
 	}

@@ -399,7 +399,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				agent.send(relogin, p -> {
 					var rpc = (ReLogin)p;
 					if (rpc.isTimeout() || rpc.getResultCode() != 0) {
-						logger.error("Login Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
+						logger.error("ReLogin Timeout Or ResultCode != 0. Code={}", rpc.getResultCode());
 						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
 					} else {
 						setActiveTime(System.currentTimeMillis());

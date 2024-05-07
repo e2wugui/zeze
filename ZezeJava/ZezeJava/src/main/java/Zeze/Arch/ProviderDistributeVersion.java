@@ -11,7 +11,7 @@ public class ProviderDistributeVersion {
 	public final Application zeze;
 	public final LoadConfig loadConfig;
 	private final Service providerService;
-	private final FewModifyMap<Long, ProviderDistribute> providerDistributes = new FewModifyMap<>();
+	private final FewModifyMap<Long, ProviderDistribute> providerDistributes = new FewModifyMap<>(); // key:主版本
 
 	public ProviderDistributeVersion(Application zeze, LoadConfig loadConfig, Service providerService) {
 		this.zeze = zeze;

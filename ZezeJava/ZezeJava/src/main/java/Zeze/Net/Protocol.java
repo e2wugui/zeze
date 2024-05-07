@@ -279,7 +279,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 		if (handle != null)
 			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
 
-		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
+		logger.warn("handleDatagram({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
 			((DatagramSession)sender).close();
 			return 0;

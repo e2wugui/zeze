@@ -180,7 +180,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	public static @NotNull RocksDB open(@NotNull DbType dbType, @NotNull DBOptions options, @NotNull String path,
 										@NotNull List<ColumnFamilyDescriptor> cfds,
 										@NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
-		logger.info("RocksDB.open: '{}'", path);
+		logger.info("RocksDB.open: '{}', {}", path, dbType);
 		var file = new File(path);
 		if (!file.isDirectory()) {
 			//noinspection ResultOfMethodCallIgnored
@@ -289,7 +289,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	}
 
 	public @NotNull Table @NotNull [] getOrAddTables(String @NotNull [] names,
-																  boolean @Nullable [] isNews) throws RocksDBException {
+													 boolean @Nullable [] isNews) throws RocksDBException {
 		lock();
 		try {
 			var n = names.length;

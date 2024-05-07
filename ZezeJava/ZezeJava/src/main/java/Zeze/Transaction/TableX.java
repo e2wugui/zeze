@@ -1293,7 +1293,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		cache = new TableCache<>(getZeze(), this);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public @NotNull ApplyTable<K, V> createApplyTable(@NotNull IApplyDatabase applyDb) {
 		return new ApplyTable<>(this, applyDb);
