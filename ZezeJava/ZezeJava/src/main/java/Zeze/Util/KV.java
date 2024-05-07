@@ -42,7 +42,7 @@ public class KV<K, V> {
 		if (obj == this)
 			return true;
 		if (obj instanceof KV) {
-			var kv = (KV)obj;
+			var kv = (KV<?, ?>)obj;
 			return key.equals(kv.key) && value.equals(kv.value);
 		}
 		return false;

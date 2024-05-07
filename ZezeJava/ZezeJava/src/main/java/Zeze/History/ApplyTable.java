@@ -98,7 +98,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			// dump
 			logger.info("remain records in apply table:");
 			table.walk((key, value) -> {
-				logger.info(originTable.decodeKey(key) + "->" + originTable.decodeValue(value));
+				logger.info("{}->{}", originTable.decodeKey(key), originTable.decodeValue(value));
 				return true;
 			});
 			throw new RuntimeException("apply remain record.");

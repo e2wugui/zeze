@@ -27,4 +27,13 @@ public final class TestStr extends TestCase {
 		Assert.assertEquals("begin_0_127.0.0.1_80_end", f);
 		System.out.println(f);
 	}
+
+	public void testParseVersion() {
+		Assert.assertEquals(0x0001_0002_0003_0004L, Str.parseVersion("1.2.3.4"));
+		Assert.assertEquals(0x0000_0005_0006_0000L, Str.parseVersion("0.5.6"));
+		Assert.assertEquals(0x0000_0007_0008_0009L, Str.parseVersion(".7.8.9.12"));
+		Assert.assertEquals(0x0000_0000_0013_0000L, Str.parseVersion("..19..1.2"));
+		Assert.assertEquals(0x0000_0000_0000_0000L, Str.parseVersion(""));
+		Assert.assertEquals(0x0000_0000_0000_0000L, Str.parseVersion(".."));
+	}
 }
