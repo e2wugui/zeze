@@ -567,8 +567,8 @@ public final class Application extends ReentrantLock {
 			try {
 				// 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
 				schemasCompatible();
-				//if (conf.isHistory())
-				//	Zeze.History.Helper.registerAllTableLogs(this);
+				if (conf.isHistory())
+					Zeze.History.Helper.registerAllTableLogs(this);
 
 				// Open Databases
 				for (var e : databases.entrySet()) {

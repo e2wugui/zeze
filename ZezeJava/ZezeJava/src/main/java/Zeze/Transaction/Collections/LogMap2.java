@@ -3,6 +3,8 @@ package Zeze.Transaction.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -23,6 +25,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	public LogMap2(@NotNull Class<K> keyClass, Class<V> valueClass) {
 		super(Meta2.getMap2Meta(keyClass, valueClass), Empty.map());
+	}
+
+	// for dynamic
+	public LogMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
+		super(Meta2.createDynamicMapMeta(keyClass, get, create), Empty.map());
 	}
 
 	public final @NotNull Set<LogBean> getChanged() {

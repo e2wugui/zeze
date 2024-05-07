@@ -1,8 +1,12 @@
 package Zeze.History;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Application;
+import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.BeanKey;
@@ -13,6 +17,7 @@ import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSet1;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Logs.LogBeanKey;
@@ -45,6 +50,8 @@ public class Helper {
 		public final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
+		public final HashMap<KV<Class<?>, Class<? extends Bean>>,
+				KV<ToLongFunction<Bean>, LongFunction<Bean>>> map2Dynamic = new HashMap<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 	}
 	public static void registerAllTableLogs(Application zeze) throws Exception {
@@ -72,6 +79,8 @@ public class Helper {
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
+		for (var e : result.map2Dynamic.entrySet())
+			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
 	}
@@ -98,7 +107,7 @@ public class Helper {
 						dependsList(v.getValue(), result);
 						break;
 					case "map":
-						dependsMap(v.getKey(), v.getValue(), result);
+						dependsMap(bean, v, v.getKey(), v.getValue(), result);
 						break;
 					case "set":
 						dependsSet(v.getValue(), result);
@@ -126,7 +135,9 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsMap(String keyType, String valueType, DependsResult result) throws Exception {
+	public static void dependsMap(Bean bean, BVariable.Data v,
+								  String keyType, String valueType,
+								  DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (null == keyClass) {
 			keyClass = Class.forName(keyType); // must be BeanKey.
@@ -138,6 +149,18 @@ public class Helper {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
 			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+		} else if (valueClass == DynamicBean.class){
+			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
+				/*
+				BValue::getSpecialTypeIdFromBean_26;
+				{bean.getClass().getName()}::getSpecialTypeIdFromBean_{v.getId()}; get
+				BValue::createBeanFromSpecialTypeId_26
+				{bean.getClass().getName()}::createBeanFromSpecialTypeId_{v.getId()}; create
+				*/
+				ToLongFunction<Bean> get = null;
+				LongFunction<Bean> create = null;
+				return KV.create(get, create);
+			});
 		} else {
 			result.map1.add(KV.create(keyClass, valueClass));
 		}
@@ -197,6 +220,13 @@ public class Helper {
 
 	public static <K, V extends Bean> void registerLogMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		Log.register(() -> new LogMap2<>(keyClass, valueClass));
+	}
+
+	public static <K, V extends Bean> void registerLogMap2Dynamic(
+			@NotNull Class<K> keyClass,
+			@NotNull ToLongFunction<Bean> get,
+			@NotNull LongFunction<Bean> create) {
+		Log.register(() -> new LogMap2<>(keyClass, get, create));
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
