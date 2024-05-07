@@ -54,6 +54,7 @@ public class Helper {
 				KV<ToLongFunction<Bean>, LongFunction<Bean>>> map2Dynamic = new HashMap<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 	}
+
 	public static void registerAllTableLogs(Application zeze) throws Exception {
 		var result = new DependsResult();
 		for (var db : zeze.getDatabases().values()) {
@@ -103,11 +104,12 @@ public class Helper {
 				for (var v : bean.variables()) {
 					var type = v.getType();
 					switch (type) {
-					case "list": case "array":
+					case "list":
+					case "array":
 						dependsList(v.getValue(), result);
 						break;
 					case "map":
-						dependsMap(bean, v, v.getKey(), v.getValue(), result);
+						dependsMap(beanClass, v, v.getKey(), v.getValue(), result);
 						break;
 					case "set":
 						dependsSet(v.getValue(), result);
@@ -135,7 +137,7 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsMap(Bean bean, BVariable.Data v,
+	public static void dependsMap(Class<?> beanClass, BVariable.Data v,
 								  String keyType, String valueType,
 								  DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
@@ -149,17 +151,15 @@ public class Helper {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
 			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
-		} else if (valueClass == DynamicBean.class){
+		} else if (valueClass == DynamicBean.class) {
 			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
-				/*
-				BValue::getSpecialTypeIdFromBean_26;
-				{bean.getClass().getName()}::getSpecialTypeIdFromBean_{v.getId()}; get
-				BValue::createBeanFromSpecialTypeId_26
-				{bean.getClass().getName()}::createBeanFromSpecialTypeId_{v.getId()}; create
-				*/
-				ToLongFunction<Bean> get = null;
-				LongFunction<Bean> create = null;
-				return KV.create(get, create);
+				try {
+					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
+							+ Character.toUpperCase(v.getName().charAt(0)) + v.getName().substring(1)).invoke(null);
+					return KV.create(db.getGetBean(), db.getCreateBean());
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
 			});
 		} else {
 			result.map1.add(KV.create(keyClass, valueClass));
@@ -177,6 +177,7 @@ public class Helper {
 
 	public static Class<?> getBuiltinBoxingClass(String type) {
 		switch (type) {
+		//@formatter:off
 		case "binary": return Zeze.Net.Binary.class;
 		case "bool": return Boolean.class;
 		case "byte": return Byte.class;
@@ -194,6 +195,7 @@ public class Helper {
 		case "vector3int": return Zeze.Serialize.Vector3Int.class;
 		case "vector4": return Zeze.Serialize.Vector4.class;
 		case "dynamic": return Zeze.Transaction.DynamicBean.class;
+		//@formatter:on
 		}
 		return null;
 	}
