@@ -51,6 +51,7 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
 		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
@@ -74,6 +75,7 @@ public class LogOne<V extends Bean> extends LogBean {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
         var hasValue = bb.ReadBool();

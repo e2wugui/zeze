@@ -101,7 +101,6 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueEncoder = meta.valueEncoder;
 		for (var p : replaced.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
-			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, p.getValue());
 		}
 
@@ -117,7 +116,6 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
-			//noinspection DataFlowIssue
 			var value = valueDecoder.apply(bb);
 			replaced.put(key, value);
 		}

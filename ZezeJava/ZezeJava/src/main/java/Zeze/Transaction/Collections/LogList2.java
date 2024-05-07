@@ -73,6 +73,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();

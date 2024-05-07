@@ -90,7 +90,6 @@ public class LogSet1<V> extends LogSet<V> {
 		setValue(Empty.set());
 	}
 
-	@SuppressWarnings("DataFlowIssue")
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var encoder = meta.valueEncoder;
@@ -104,7 +103,6 @@ public class LogSet1<V> extends LogSet<V> {
 			encoder.accept(bb, e);
 	}
 
-	@SuppressWarnings("DataFlowIssue")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		var decoder = meta.valueDecoder;
