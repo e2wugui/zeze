@@ -41,7 +41,8 @@ namespace Zeze.Gen.java
                 string final = v.VariableType is BeanKey ? "final " : "";
                 sw.WriteLine($"    private {final}{TypeName.GetName(v.VariableType)} {v.NamePrivate};{v.Comment}");
             }
-            sw.WriteLine();
+            if (beanKey.Variables.Count > 0)
+                sw.WriteLine();
 
             Construct.Make(beanKey, sw, "    ");
             // params construct

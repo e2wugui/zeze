@@ -271,7 +271,7 @@ public abstract class Bean implements Serializable {
 		return this;
 	}
 
-	public ArrayList<BVariable.Data> variables() {
+	public @NotNull ArrayList<BVariable.Data> variables() {
 		return new ArrayList<>();
 	}
 }

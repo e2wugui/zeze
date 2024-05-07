@@ -17,12 +17,12 @@ public final class tlocalTempalte extends TableX<Long, Zeze.Builtin.Game.Online.
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Long> getKeyClass() {
         return Long.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Game.Online.BLocal> getValueClass() {
         return Zeze.Builtin.Game.Online.BLocal.class;
     }
 

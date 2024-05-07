@@ -18,12 +18,12 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Long> getKeyClass() {
         return Long.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Game.Online.BOnline> getValueClass() {
         return Zeze.Builtin.Game.Online.BOnline.class;
     }
 

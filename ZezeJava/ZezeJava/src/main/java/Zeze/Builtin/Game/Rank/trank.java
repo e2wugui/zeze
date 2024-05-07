@@ -17,12 +17,12 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Game.Rank.BConcurrentKey> getKeyClass() {
         return Zeze.Builtin.Game.Rank.BConcurrentKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Game.Rank.BRankList> getValueClass() {
         return Zeze.Builtin.Game.Rank.BRankList.class;
     }
 

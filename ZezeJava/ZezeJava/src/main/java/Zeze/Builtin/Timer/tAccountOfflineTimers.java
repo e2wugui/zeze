@@ -17,12 +17,12 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Timer.BAccountClientId> getKeyClass() {
         return Zeze.Builtin.Timer.BAccountClientId.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Timer.BOfflineTimers> getValueClass() {
         return Zeze.Builtin.Timer.BOfflineTimers.class;
     }
 

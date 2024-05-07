@@ -17,12 +17,12 @@ public final class tAccountAuth extends TableX<String, Zeze.Builtin.Auth.BAccoun
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Auth.BAccountAuth> getValueClass() {
         return Zeze.Builtin.Auth.BAccountAuth.class;
     }
 

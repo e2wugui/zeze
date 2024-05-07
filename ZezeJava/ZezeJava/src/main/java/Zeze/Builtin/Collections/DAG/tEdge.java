@@ -18,12 +18,12 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.DAG.BDAGEdgeKey> getKeyClass() {
         return Zeze.Builtin.Collections.DAG.BDAGEdgeKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.DAG.BDAGEdge> getValueClass() {
         return Zeze.Builtin.Collections.DAG.BDAGEdge.class;
     }
 

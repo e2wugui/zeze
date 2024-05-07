@@ -17,12 +17,12 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult> getValueClass() {
         return Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult.class;
     }
 

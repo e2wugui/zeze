@@ -17,12 +17,12 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.RedoQueue.BTaskId> getValueClass() {
         return Zeze.Builtin.RedoQueue.BTaskId.class;
     }
 

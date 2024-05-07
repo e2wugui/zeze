@@ -43,12 +43,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public Class<?> getKeyClass() {");
+            sw.WriteLine($"    public Class<{BoxingName.GetBoxingName(table.KeyType)}> getKeyClass() {{");
             sw.WriteLine($"        return {BoxingName.GetBoxingName(table.KeyType)}.class;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public Class<?> getValueClass() {");
+            sw.WriteLine($"    public Class<{TypeName.GetName(table.ValueType)}> getValueClass() {{");
             sw.WriteLine($"        return {TypeName.GetName(table.ValueType)}.class;");
             sw.WriteLine("    }");
             if (table.IsMemory) // 需要保证基类返回false

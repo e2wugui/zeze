@@ -17,12 +17,12 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.Queue.BQueueNodeKey> getKeyClass() {
         return Zeze.Builtin.Collections.Queue.BQueueNodeKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.Queue.BQueueNode> getValueClass() {
         return Zeze.Builtin.Collections.Queue.BQueueNode.class;
     }
 

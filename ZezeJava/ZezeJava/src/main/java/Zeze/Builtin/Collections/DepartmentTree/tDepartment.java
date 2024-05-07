@@ -18,12 +18,12 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot> getValueClass() {
         return Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot.class;
     }
 

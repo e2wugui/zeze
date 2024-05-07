@@ -17,12 +17,12 @@ public final class tDepartmentTree extends TableX<Zeze.Builtin.Collections.Depar
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey> getKeyClass() {
         return Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode> getValueClass() {
         return Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode.class;
     }
 

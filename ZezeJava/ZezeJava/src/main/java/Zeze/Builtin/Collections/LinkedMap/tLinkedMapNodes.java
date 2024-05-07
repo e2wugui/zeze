@@ -17,12 +17,12 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey> getKeyClass() {
         return Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode> getValueClass() {
         return Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode.class;
     }
 

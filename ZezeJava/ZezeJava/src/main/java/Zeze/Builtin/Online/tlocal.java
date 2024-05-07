@@ -17,12 +17,12 @@ public final class tlocal extends TableX<String, Zeze.Builtin.Online.BLocals>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Online.BLocals> getValueClass() {
         return Zeze.Builtin.Online.BLocals.class;
     }
 

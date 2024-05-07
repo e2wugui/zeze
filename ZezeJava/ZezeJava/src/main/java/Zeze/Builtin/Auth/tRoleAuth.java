@@ -17,12 +17,12 @@ public final class tRoleAuth extends TableX<String, Zeze.Builtin.Auth.BRoleAuth>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Auth.BRoleAuth> getValueClass() {
         return Zeze.Builtin.Auth.BRoleAuth.class;
     }
 

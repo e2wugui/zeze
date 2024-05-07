@@ -17,12 +17,12 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKey.BSeedKey, Zeze.
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.AutoKey.BSeedKey> getKeyClass() {
         return Zeze.Builtin.AutoKey.BSeedKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.AutoKey.BAutoKey> getValueClass() {
         return Zeze.Builtin.AutoKey.BAutoKey.class;
     }
 

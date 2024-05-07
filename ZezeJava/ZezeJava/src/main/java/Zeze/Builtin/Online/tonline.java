@@ -17,12 +17,12 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Online.BOnlines> getValueClass() {
         return Zeze.Builtin.Online.BOnlines.class;
     }
 

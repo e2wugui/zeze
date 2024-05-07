@@ -17,12 +17,12 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Long> getKeyClass() {
         return Long.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.HistoryModule.BLogChanges> getValueClass() {
         return Zeze.Builtin.HistoryModule.BLogChanges.class;
     }
 

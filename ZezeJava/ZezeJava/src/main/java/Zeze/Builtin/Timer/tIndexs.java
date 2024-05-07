@@ -17,12 +17,12 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Timer.BIndex> getValueClass() {
         return Zeze.Builtin.Timer.BIndex.class;
     }
 

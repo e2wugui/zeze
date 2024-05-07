@@ -17,12 +17,12 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Long> getKeyClass() {
         return Long.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Timer.BNode> getValueClass() {
         return Zeze.Builtin.Timer.BNode.class;
     }
 

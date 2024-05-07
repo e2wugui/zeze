@@ -17,12 +17,12 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Long> getKeyClass() {
         return Long.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Timer.BOfflineTimers> getValueClass() {
         return Zeze.Builtin.Timer.BOfflineTimers.class;
     }
 

@@ -18,12 +18,12 @@ public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoo
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Integer> getKeyClass() {
         return Integer.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Timer.BNodeRoot> getValueClass() {
         return Zeze.Builtin.Timer.BNodeRoot.class;
     }
 

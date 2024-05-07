@@ -18,12 +18,12 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Game.Bag.BBag> getValueClass() {
         return Zeze.Builtin.Game.Bag.BBag.class;
     }
 

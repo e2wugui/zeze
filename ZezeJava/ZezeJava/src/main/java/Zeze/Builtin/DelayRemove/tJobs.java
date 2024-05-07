@@ -17,12 +17,12 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Integer> getKeyClass() {
         return Integer.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.DelayRemove.BJobs> getValueClass() {
         return Zeze.Builtin.DelayRemove.BJobs.class;
     }
 

@@ -17,12 +17,12 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.BoolList.BKey> getKeyClass() {
         return Zeze.Builtin.Collections.BoolList.BKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.BoolList.BValue> getValueClass() {
         return Zeze.Builtin.Collections.BoolList.BValue.class;
     }
 

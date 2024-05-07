@@ -18,12 +18,12 @@ public final class tSession extends TableX<String, Zeze.Builtin.HttpSession.BSes
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.HttpSession.BSessionValue> getValueClass() {
         return Zeze.Builtin.HttpSession.BSessionValue.class;
     }
 

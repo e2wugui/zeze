@@ -10,21 +10,17 @@ import Zeze.Serialize.ByteBuffer;
 
 /**
  * 具体做法是正常定义母表，然后动态表使用相同的 K,V 创建。
- *
- * @param <K>
- * @param <V>
  */
 public class TableDynamic<K extends Comparable<K>, V extends Bean> extends TableX<K, V> {
 	private final Function<K, ByteBuffer> keyEncoder;
 	private final Function<ByteBuffer, K> keyDecoder;
 	private final Factory<V> valueFactory;
 	private final boolean isAutoKey;
-	private final Class<?> keyClass;
-	private final Class<?> valueClass;
+	private final Class<? extends Comparable<?>> keyClass;
+	private final Class<? extends Bean> valueClass;
 
 	public TableDynamic(Application zeze, String tableName,
-						TableX<K, V> template
-						) {
+						TableX<K, V> template) {
 		this(zeze, tableName,
 				template::encodeKey,
 				template::decodeKey,
@@ -53,8 +49,8 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 						Factory<V> valueFactory,
 						boolean isAutoKey,
 						String confTableName,
-						Class<?> keyClass,
-						Class<?> valueClass) {
+						Class<? extends Comparable<?>> keyClass,
+						Class<? extends Bean> valueClass) {
 		super(Bean.hash32(tableName), tableName);
 
 		this.keyEncoder = keyEncoder;
@@ -69,12 +65,12 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	}
 
 	@Override
-	public Class<?> getKeyClass() {
+	public Class<? extends Comparable<?>> getKeyClass() {
 		return keyClass;
 	}
 
 	@Override
-	public Class<?> getValueClass() {
+	public Class<? extends Bean> getValueClass() {
 		return valueClass;
 	}
 

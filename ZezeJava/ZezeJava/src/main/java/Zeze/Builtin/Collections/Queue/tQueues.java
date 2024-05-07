@@ -18,12 +18,12 @@ public final class tQueues extends TableX<String, Zeze.Builtin.Collections.Queue
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.Queue.BQueue> getValueClass() {
         return Zeze.Builtin.Collections.Queue.BQueue.class;
     }
 

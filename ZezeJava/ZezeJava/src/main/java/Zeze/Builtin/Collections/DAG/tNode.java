@@ -18,12 +18,12 @@ public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<Zeze.Builtin.Collections.DAG.BDAGNodeKey> getKeyClass() {
         return Zeze.Builtin.Collections.DAG.BDAGNodeKey.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.DAG.BDAGNode> getValueClass() {
         return Zeze.Builtin.Collections.DAG.BDAGNode.class;
     }
 

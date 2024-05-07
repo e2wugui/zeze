@@ -18,12 +18,12 @@ public final class tDAGs extends TableX<String, Zeze.Builtin.Collections.DAG.BDA
     }
 
     @Override
-    public Class<?> getKeyClass() {
+    public Class<String> getKeyClass() {
         return String.class;
     }
 
     @Override
-    public Class<?> getValueClass() {
+    public Class<Zeze.Builtin.Collections.DAG.BDAG> getValueClass() {
         return Zeze.Builtin.Collections.DAG.BDAG.class;
     }
 
