@@ -16,6 +16,16 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
         super(1535934961, "Zeze_Builtin_Collections_BoolList_tBoolList", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.Collections.BoolList.BKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.BoolList.BValue.class;
+    }
+
     public static final int VAR_Item0 = 1;
     public static final int VAR_Item1 = 2;
     public static final int VAR_Item2 = 3;

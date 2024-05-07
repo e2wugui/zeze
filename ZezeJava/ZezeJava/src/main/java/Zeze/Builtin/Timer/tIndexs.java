@@ -16,6 +16,16 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         super(833718, "Zeze_Builtin_Timer_tIndexs", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Timer.BIndex.class;
+    }
+
     public static final int VAR_ServerId = 1;
     public static final int VAR_NodeId = 2;
     public static final int VAR_SerialId = 3;

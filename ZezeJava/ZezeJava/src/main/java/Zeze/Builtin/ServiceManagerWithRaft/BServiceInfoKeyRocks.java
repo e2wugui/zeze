@@ -165,4 +165,12 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
         st.appendString(_parents_name_ + "ServiceName", _ServiceName);
         st.appendString(_parents_name_ + "ServiceIdentity", _ServiceIdentity);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIdentity", "string", "", ""));
+        return vars;
+    }
 }

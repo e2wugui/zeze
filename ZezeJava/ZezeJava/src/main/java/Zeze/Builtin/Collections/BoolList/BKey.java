@@ -160,4 +160,12 @@ public final class BKey implements Zeze.Transaction.BeanKey, Comparable<BKey> {
         st.appendString(_parents_name_ + "Name", _Name);
         st.appendInt(_parents_name_ + "Index", _Index);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Name", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Index", "int", "", ""));
+        return vars;
+    }
 }

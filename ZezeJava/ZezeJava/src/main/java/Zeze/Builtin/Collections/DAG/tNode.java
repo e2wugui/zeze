@@ -17,6 +17,16 @@ public final class tNode extends TableX<Zeze.Builtin.Collections.DAG.BDAGNodeKey
         super(-1059152625, "Zeze_Builtin_Collections_DAG_tNode", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.Collections.DAG.BDAGNodeKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.DAG.BDAGNode.class;
+    }
+
     public static final int VAR_Value = 1;
 
     @Override

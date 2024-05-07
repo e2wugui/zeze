@@ -16,6 +16,16 @@ public final class tlocalTempalte extends TableX<Long, Zeze.Builtin.Game.Online.
         super(429884625, "Zeze_Builtin_Game_Online_tlocalTempalte", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Long.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Game.Online.BLocal.class;
+    }
+
     public static final int VAR_LoginVersion = 1;
     public static final int VAR_Datas = 2;
     public static final int VAR_Link = 3;

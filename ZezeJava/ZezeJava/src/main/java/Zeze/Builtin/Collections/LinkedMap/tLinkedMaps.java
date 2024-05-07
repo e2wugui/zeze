@@ -17,6 +17,16 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
         super(-72689413, "Zeze_Builtin_Collections_LinkedMap_tLinkedMaps", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.LinkedMap.BLinkedMap.class;
+    }
+
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_Count = 3;

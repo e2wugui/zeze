@@ -160,4 +160,12 @@ public final class BSeedKey implements Zeze.Transaction.BeanKey, Comparable<BSee
         st.appendInt(_parents_name_ + "ServerId", _ServerId);
         st.appendString(_parents_name_ + "KeyName", _KeyName);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "KeyName", "string", "", ""));
+        return vars;
+    }
 }

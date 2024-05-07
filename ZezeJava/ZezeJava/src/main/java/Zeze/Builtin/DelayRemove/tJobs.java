@@ -16,6 +16,16 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         super(-582299608, "Zeze_Builtin_DelayRemove_tJobs", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Integer.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.DelayRemove.BJobs.class;
+    }
+
     public static final int VAR_Jobs = 1;
 
     @Override

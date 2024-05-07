@@ -17,6 +17,16 @@ public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoo
         super(1952520306, "Zeze_Builtin_Timer_tNodeRoot", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Integer.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Timer.BNodeRoot.class;
+    }
+
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_LoadSerialNo = 3;

@@ -16,6 +16,16 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
         super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Long.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.HistoryModule.BLogChanges.class;
+    }
+
     public static final int VAR_GlobalSerialId = 1;
     public static final int VAR_ProtocolClassName = 2;
     public static final int VAR_ProtocolArgument = 3;

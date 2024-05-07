@@ -554,7 +554,7 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	private void atomicOpenDatabase() throws InterruptedException {
+	private void atomicOpenDatabase() throws Exception {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		while (true) {
 			if (!defaultDb.getDirectOperates().tryLock()) {
@@ -567,6 +567,8 @@ public final class Application extends ReentrantLock {
 			try {
 				// 由于有了flag，这里实际上就不再会并发了。当然原有的支持并发的代码可以保留。
 				schemasCompatible();
+				if (conf.isHistory())
+					Zeze.History.Helper.registerAllTableLogs(this);
 
 				// Open Databases
 				for (var e : databases.entrySet()) {
@@ -586,6 +588,8 @@ public final class Application extends ReentrantLock {
 						table.tryAlter();
 					}
 				}
+			} catch (NoSuchMethodException e) {
+				throw new RuntimeException(e);
 			} finally {
 				defaultDb.getDirectOperates().unlock();
 			}

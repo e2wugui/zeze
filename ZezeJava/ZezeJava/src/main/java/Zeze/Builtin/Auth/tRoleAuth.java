@@ -16,6 +16,16 @@ public final class tRoleAuth extends TableX<String, Zeze.Builtin.Auth.BRoleAuth>
         super(85148051, "Zeze_Builtin_Auth_tRoleAuth", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Auth.BRoleAuth.class;
+    }
+
     public static final int VAR_Auths = 1;
 
     @Override

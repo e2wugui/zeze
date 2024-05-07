@@ -17,6 +17,16 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         super(-1571889602, "Zeze_Builtin_Game_Online_tonline", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Long.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Game.Online.BOnline.class;
+    }
+
     public static final int VAR_Link = 3;
     public static final int VAR_LoginVersion = 4;
     public static final int VAR_ReliableNotifyMark = 5;

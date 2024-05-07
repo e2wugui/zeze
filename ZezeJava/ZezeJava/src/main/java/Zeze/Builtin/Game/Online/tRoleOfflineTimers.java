@@ -16,6 +16,16 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
         super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Long.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Timer.BOfflineTimers.class;
+    }
+
     public static final int VAR_OfflineTimers = 1;
 
     @Override

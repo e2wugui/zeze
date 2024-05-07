@@ -172,4 +172,12 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Name", _Name);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalThreadId", "BGlobalThreadId", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Name", "string", "", ""));
+        return vars;
+    }
 }

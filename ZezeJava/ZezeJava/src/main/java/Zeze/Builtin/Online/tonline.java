@@ -16,6 +16,16 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
         super(-2094601796, "Zeze_Builtin_Online_tonline", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Online.BOnlines.class;
+    }
+
     public static final int VAR_Logins = 1;
     public static final int VAR_LastLoginVersion = 2;
     public static final int VAR_Account = 3;

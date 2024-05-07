@@ -79,7 +79,23 @@ namespace Zeze.Gen.java
             NegativeCheck.Make(beanKey, sw, "    ");
             DecodeResultSet.Make(beanKey, sw, "    ");
             EncodeSQLStatement.Make(beanKey, sw, "    ");
+            GenVariables(beanKey, sw, "    ");
             sw.WriteLine("}");
+        }
+
+        public void GenVariables(BeanKey bean, StreamWriter sw, string prefix)
+        {
+            if (bean.VariablesIdOrder.Count > 0)
+            {
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
+                sw.WriteLine($"{prefix}    var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();");
+                foreach (var v in bean.VariablesIdOrder)
+                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{v.Type}\", \"{v.Key}\", \"{v.Value}\"));");
+                sw.WriteLine($"{prefix}    return vars;");
+                sw.WriteLine($"{prefix}}}");
+            }
         }
     }
 }

@@ -31,4 +31,20 @@ public class KV<K, V> {
 	public String toString() {
 		return "(" + key + ',' + value + ')';
 	}
+
+	@Override
+	public int hashCode() {
+		return key.hashCode() ^ value.hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == this)
+			return true;
+		if (obj instanceof KV) {
+			var kv = (KV)obj;
+			return key.equals(kv.key) && value.equals(kv.value);
+		}
+		return false;
+	}
 }

@@ -16,6 +16,16 @@ public final class tLinkedMapNodes extends TableX<Zeze.Builtin.Collections.Linke
         super(-1295098614, "Zeze_Builtin_Collections_LinkedMap_tLinkedMapNodes", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode.class;
+    }
+
     public static final int VAR_PrevNodeId = 1;
     public static final int VAR_NextNodeId = 2;
     public static final int VAR_Values = 3;

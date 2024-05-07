@@ -19,6 +19,8 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	private final Function<ByteBuffer, K> keyDecoder;
 	private final Factory<V> valueFactory;
 	private final boolean isAutoKey;
+	private final Class<?> keyClass;
+	private final Class<?> valueClass;
 
 	public TableDynamic(Application zeze, String tableName,
 						TableX<K, V> template
@@ -28,7 +30,9 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 				template::decodeKey,
 				template::newValue,
 				template.isAutoKey(),
-				template.getName());
+				template.getName(),
+				template.getKeyClass(),
+				template.getValueClass());
 	}
 
 	/**
@@ -48,16 +52,30 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 						Function<ByteBuffer, K> keyDecoder,
 						Factory<V> valueFactory,
 						boolean isAutoKey,
-						String confTableName) {
+						String confTableName,
+						Class<?> keyClass,
+						Class<?> valueClass) {
 		super(Bean.hash32(tableName), tableName);
 
 		this.keyEncoder = keyEncoder;
 		this.keyDecoder = keyDecoder;
 		this.valueFactory = valueFactory;
 		this.isAutoKey = isAutoKey;
+		this.keyClass = keyClass;
+		this.valueClass = valueClass;
 
 		confTableName = confTableName == null ? tableName : confTableName;
 		zeze.openDynamicTable(zeze.getConfig().getTableConf(confTableName).getDatabaseName(), this);
+	}
+
+	@Override
+	public Class<?> getKeyClass() {
+		return keyClass;
+	}
+
+	@Override
+	public Class<?> getValueClass() {
+		return valueClass;
 	}
 
 	@Override

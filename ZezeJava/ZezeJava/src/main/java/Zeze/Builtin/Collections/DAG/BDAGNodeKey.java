@@ -166,4 +166,12 @@ public final class BDAGNodeKey implements Zeze.Transaction.BeanKey, Comparable<B
         st.appendString(_parents_name_ + "Name", _Name);
         st.appendString(_parents_name_ + "ValueId", _ValueId);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Name", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ValueId", "string", "", ""));
+        return vars;
+    }
 }

@@ -246,4 +246,15 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
         st.appendInt(_parents_name_ + "Year", _Year);
         st.appendLong(_parents_name_ + "Offset", _Offset);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RankType", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ConcurrentId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeType", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Year", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Offset", "long", "", ""));
+        return vars;
+    }
 }

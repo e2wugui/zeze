@@ -189,4 +189,13 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
         st.appendLong(_parents_name_ + "LinkSid", _LinkSid);
         st.appendInt(_parents_name_ + "State", _State);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LinkName", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LinkSid", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "State", "int", "", ""));
+        return vars;
+    }
 }

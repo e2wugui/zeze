@@ -16,6 +16,16 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         super(453698467, "Zeze_Builtin_Timer_tNodes", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Long.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Timer.BNode.class;
+    }
+
     public static final int VAR_PrevNodeId = 1;
     public static final int VAR_NextNodeId = 2;
     public static final int VAR_Timers = 3;

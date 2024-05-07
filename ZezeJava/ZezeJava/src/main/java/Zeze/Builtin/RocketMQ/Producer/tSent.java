@@ -16,6 +16,16 @@ public final class tSent extends TableX<String, Zeze.Builtin.RocketMQ.Producer.B
         super(1695098005, "Zeze_Builtin_RocketMQ_Producer_tSent", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult.class;
+    }
+
     public static final int VAR_Result = 1;
     public static final int VAR_Timestamp = 2;
 

@@ -17,6 +17,16 @@ public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOn
     }
 
     @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Timer.BGameOnlineTimer.class;
+    }
+
+    @Override
     public boolean isMemory() {
         return true;
     }

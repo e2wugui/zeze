@@ -17,6 +17,16 @@ public final class tbag extends TableX<String, Zeze.Builtin.Game.Bag.BBag>
         super(863603985, "Zeze_Builtin_Game_Bag_tbag", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Game.Bag.BBag.class;
+    }
+
     public static final int VAR_Capacity = 1;
     public static final int VAR_Items = 2;
 

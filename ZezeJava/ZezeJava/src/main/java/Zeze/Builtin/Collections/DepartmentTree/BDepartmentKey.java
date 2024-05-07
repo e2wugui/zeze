@@ -160,4 +160,12 @@ public final class BDepartmentKey implements Zeze.Transaction.BeanKey, Comparabl
         st.appendString(_parents_name_ + "Owner", _Owner);
         st.appendLong(_parents_name_ + "DepartmentId", _DepartmentId);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Owner", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "DepartmentId", "long", "", ""));
+        return vars;
+    }
 }

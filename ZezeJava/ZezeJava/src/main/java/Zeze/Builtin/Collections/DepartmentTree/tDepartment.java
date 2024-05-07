@@ -17,6 +17,16 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
         super(-1108948075, "Zeze_Builtin_Collections_DepartmentTree_tDepartment", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot.class;
+    }
+
     public static final int VAR_Root = 1;
     public static final int VAR_Managers = 2;
     public static final int VAR_NextDepartmentId = 3;

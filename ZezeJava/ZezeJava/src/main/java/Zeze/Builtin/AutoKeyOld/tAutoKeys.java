@@ -16,6 +16,16 @@ public final class tAutoKeys extends TableX<Zeze.Builtin.AutoKeyOld.BSeedKey, Ze
         super(739941246, "Zeze_Builtin_AutoKeyOld_tAutoKeys", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.AutoKeyOld.BSeedKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.AutoKeyOld.BAutoKey.class;
+    }
+
     public static final int VAR_NextId = 1;
 
     @Override

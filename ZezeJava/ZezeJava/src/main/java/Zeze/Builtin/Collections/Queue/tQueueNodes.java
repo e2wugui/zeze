@@ -16,6 +16,16 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
         super(-117984600, "Zeze_Builtin_Collections_Queue_tQueueNodes", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.Collections.Queue.BQueueNodeKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Collections.Queue.BQueueNode.class;
+    }
+
     public static final int VAR_NextNodeId = 1;
     public static final int VAR_Values = 2;
     public static final int VAR_NextNodeKey = 3;

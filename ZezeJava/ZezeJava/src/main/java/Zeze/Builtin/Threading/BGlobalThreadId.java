@@ -155,4 +155,12 @@ public final class BGlobalThreadId implements Zeze.Transaction.BeanKey, Comparab
         st.appendInt(_parents_name_ + "ServerId", _ServerId);
         st.appendLong(_parents_name_ + "ThreadId", _ThreadId);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ThreadId", "long", "", ""));
+        return vars;
+    }
 }

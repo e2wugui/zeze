@@ -165,4 +165,12 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
         st.appendString(_parents_name_ + "Account", _Account);
         st.appendString(_parents_name_ + "ClientId", _ClientId);
     }
+
+    @Override
+    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
+        var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Account", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ClientId", "string", "", ""));
+        return vars;
+    }
 }

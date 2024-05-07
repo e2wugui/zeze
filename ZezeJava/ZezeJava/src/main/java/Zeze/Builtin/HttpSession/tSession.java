@@ -17,6 +17,16 @@ public final class tSession extends TableX<String, Zeze.Builtin.HttpSession.BSes
         super(223888315, "Zeze_Builtin_HttpSession_tSession", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return String.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.HttpSession.BSessionValue.class;
+    }
+
     public static final int VAR_CreateTime = 1;
     public static final int VAR_ExpireTime = 2;
     public static final int VAR_Properties = 3;

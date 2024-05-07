@@ -16,6 +16,16 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
         super(-2043108039, "Zeze_Builtin_Game_Rank_trank", suffix);
     }
 
+    @Override
+    public Class<?> getKeyClass() {
+        return Zeze.Builtin.Game.Rank.BConcurrentKey.class;
+    }
+
+    @Override
+    public Class<?> getValueClass() {
+        return Zeze.Builtin.Game.Rank.BRankList.class;
+    }
+
     public static final int VAR_RankList = 1;
 
     @Override
