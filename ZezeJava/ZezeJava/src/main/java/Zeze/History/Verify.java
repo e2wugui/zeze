@@ -23,7 +23,7 @@ public class Verify {
 					var tableName = TableKey.tables.get(r.getKey().getTableId());
 					if (null == tableName)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
-					logger.info("apply table " + tableName);
+					logger.info("history apply table " + tableName);
 					var originTable = defaultDb.getTable(tableName);
 					if (null == originTable)
 						throw new RuntimeException("table not found. name=" + tableName);
