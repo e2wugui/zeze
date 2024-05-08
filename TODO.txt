@@ -3,6 +3,7 @@ DatabaseDynamoDb 还需测试。
 
 History 使用 Id128。
 History 专门的Tid(使用Id128)分配服务器（基于udp）和Agent。
+Bean.followerApply 直接修改私有变量，可能需要修改成使用setter。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/5/17 v1.4.7 Histroy; ServiceManager; Id128; 

@@ -66,7 +66,8 @@ public class LogBean extends Log {
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
-				//System.out.println("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
+				//if (log.getTypeId() == -1120993624)
+				//	System.out.println("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
 			}
 		} else
 			bb.WriteUInt(0);
@@ -95,7 +96,7 @@ public class LogBean extends Log {
 	// 仅发生在事务执行期间。decode-Apply不会执行到这里。
 	@Override
 	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
-		if (getVariablesOrNew().put(vlog.getVariableId(), vlog) == null)
+		if (getVariablesOrNew().putIfAbsent(vlog.getVariableId(), vlog) == null)
 			changes.collect(recent, this); // 向上传递
 	}
 

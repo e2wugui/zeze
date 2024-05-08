@@ -20,8 +20,10 @@ public final class Changes {
 	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final IdentityHashMap<@NotNull Table, @NotNull Set<@NotNull ChangeListener>> listeners = new IdentityHashMap<>();
 	// private Transaction transaction;
+	private final boolean isHistory;
 
-	public Changes(@NotNull Transaction t) {
+	public Changes(@NotNull Transaction t, Procedure proc) {
+		isHistory = proc.getZeze().getConfig().isHistory();
 		// transaction = t;
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
@@ -148,7 +150,7 @@ public final class Changes {
 	public void collect(@NotNull Bean recent, @NotNull Log log) {
 		// is table has listener
 		//noinspection DataFlowIssue
-		if (null == listeners.get(recent.rootInfo.getRecord().getTable()))
+		if (!isHistory && null == listeners.get(recent.rootInfo.getRecord().getTable()))
 			return;
 
 		Bean belong = log.getBelong();
@@ -156,6 +158,7 @@ public final class Changes {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 			var r = records.get(recent.tableKey());
 			if (r == null) {
+				assert recent.rootInfo != null;
 				r = new Record(recent.rootInfo.getRecord().getTable());
 				//noinspection DataFlowIssue
 				records.put(recent.tableKey(), r);
@@ -181,7 +184,7 @@ public final class Changes {
 
 	public void collectRecord(@NotNull RecordAccessed ar) {
 		// is table has listener
-		if (null == listeners.get(ar.atomicTupleRecord.record.getTable()))
+		if (!isHistory && null == listeners.get(ar.atomicTupleRecord.record.getTable()))
 			return;
 
 		var tkey = ar.tableKey();
@@ -217,8 +220,8 @@ public final class Changes {
 						logger.error("NotifyListener exception:", ex);
 					}
 				}
-			} else
-				logger.error("Impossible! Record Log Exist But No Listener");
+			}// else // 由于现在有了History，所以这个变成可能了。
+			//	logger.error("Impossible! Record Log Exist But No Listener");
 		}
 	}
 }

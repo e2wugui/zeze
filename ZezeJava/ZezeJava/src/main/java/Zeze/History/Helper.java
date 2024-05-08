@@ -84,6 +84,7 @@ public class Helper {
 			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
+		registerLogs();
 	}
 
 	@SuppressWarnings("unchecked")

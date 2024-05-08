@@ -451,7 +451,7 @@ public final class Transaction {
 		var lastSp = savepoints.get(savepoints.size() - 1);
 
 		// collect logs and notify listeners
-		var cc = new Changes(this);
+		var cc = new Changes(this, proc);
 		RelativeRecordSet.tryUpdateAndCheckpoint(this, proc, () -> {
 			try {
 				lastSp.mergeCommitActions(actions);

@@ -58,8 +58,9 @@ public class LogList1<V> extends LogList<V> {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
+		var index = list.size();
 		setValue(list.plus(item));
-		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));
+		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 		return true;
 	}
 

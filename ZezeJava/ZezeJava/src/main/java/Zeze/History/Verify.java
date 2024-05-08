@@ -14,18 +14,19 @@ public class Verify {
 		var applyDb = new ApplyDatabaseMemory();
 		var defaultDb = zeze.getDatabase("");
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();
-		zeze.checkpointRun();
+		zeze.checkpointRun(); // 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
 		var counter = new AtomicLong();
 		var total = new AtomicLong();
 		zeze.getHistoryModule().getTable().walkDatabase((key, value) -> {
 			for (var r : value.getChanges().entrySet()) {
 				var applyTable = applyTables.computeIfAbsent(r.getKey().getTableId(), __ -> {
-					var taleName = TableKey.tables.get(r.getKey().getTableId());
-					if (null == taleName)
+					var tableName = TableKey.tables.get(r.getKey().getTableId());
+					if (null == tableName)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
-					var originTable = defaultDb.getTable(taleName);
+					logger.info("apply table " + tableName);
+					var originTable = defaultDb.getTable(tableName);
 					if (null == originTable)
-						throw new RuntimeException("table not found. name=" + taleName);
+						throw new RuntimeException("table not found. name=" + tableName);
 					return originTable.createApplyTable(applyDb);
 				});
 				applyTable.apply(r.getKey(), r.getValue());

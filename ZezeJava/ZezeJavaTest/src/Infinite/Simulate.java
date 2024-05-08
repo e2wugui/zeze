@@ -87,8 +87,11 @@ public final class Simulate {
 			do {
 				++BatchNumber;
 				logger.fatal("Run {}", BatchNumber);
-				for (var app : Apps)
+				for (var app : Apps) {
+					if (!app.app.Zeze.getConfig().isHistory())
+						logger.info("app " + app.app.Zeze.getConfig().getServerId() + " history disable.");
 					app.startTest();
+				}
 				for (int i = 0; i < BatchTaskCount; i++)
 					Tasks.randCreateTask().Run();
 				logger.fatal("Wait {}", BatchNumber);
@@ -97,6 +100,9 @@ public final class Simulate {
 					logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
 				}
 				logger.fatal("Verify {}", BatchNumber);
+				// history verify
+				for (var app : Apps)
+					app.app.Zeze.checkpointRun();
 				Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
 				//noinspection BusyWait
 				Thread.sleep(4000);

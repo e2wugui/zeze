@@ -18,7 +18,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	public LogList2(@NotNull Class<V> valueClass) {
-		super(Meta1.getList1Meta(valueClass));
+		super(Meta1.getList2Meta(valueClass));
 	}
 
 	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
@@ -104,7 +104,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
-		if (changed.put((LogBean)vlog, new OutInt()) == null)
+		if (changed.putIfAbsent((LogBean)vlog, new OutInt()) == null)
 			changes.collect(recent, this);
 	}
 
