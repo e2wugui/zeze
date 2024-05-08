@@ -10,9 +10,11 @@ import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Util.BitConverter;
 import Zeze.Util.Random;
 import demo.Bean1;
+import demo.Module1.BItem;
 import demo.Module1.Key;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
@@ -632,28 +634,52 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(nbb, nbb2);
 	}
 
+	@SuppressWarnings("AssertBetweenInconvertibleTypes")
 	public void testUnknown() {
 		var a = new BValue();
 		a.setInt_1(123);
 		a.setShort5((short)456);
 		var bb1 = ByteBuffer.Allocate();
-		a.encode(bb1);
+		a.encode(bb1); // a:{1=123,5=456}
+
 		var nbb1 = NioByteBuffer.Wrap(bb1.Bytes, bb1.WriteIndex);
 		var b = new Bean1();
-		b.decode(bb1);
+		b.decode(bb1); // b:{1=123,unknown:5=456}
 		bb1.ReadIndex = 0;
 		assertEquals(123, b.getV1());
+		assertNotNull(b.unknown());
+		assertTrue(b.unknown().length > 0);
+
 		var bb2 = ByteBuffer.Allocate();
 		b.encode(bb2);
 		var nbb2 = NioByteBuffer.Wrap(bb2.Bytes, bb2.WriteIndex);
-		assertEquals(bb1, bb2);
 
 		b = new Bean1();
 		b.decode(nbb1);
 		nbb1.setReadIndex(0);
 		assertEquals(123, b.getV1());
 
+		a = new BValue();
+		a.decode(nbb2);
+		nbb2.setReadIndex(0);
+		assertEquals(123, a.getInt_1());
+		assertEquals(456, a.getShort5());
 		assertEquals(nbb1, nbb2);
+
+		var c = new BItem();
+		c.decode(bb2);
+		bb2.ReadIndex = 0;
+		assertNotNull(c.unknown());
+		assertTrue(c.unknown().length > 0);
+		assertNotNull(c.getSubclass());
+		assertEquals(0, c.getSubclass().getTypeId());
+		assertTrue(c.getSubclass().getBean() instanceof EmptyBean);
+		var bb3 = ByteBuffer.Allocate();
+		c.encode(bb3);
+		assertEquals(bb1, bb2);
+		assertEquals(bb1, bb3);
+		assertEquals(bb1, nbb1);
+		assertEquals(bb1, nbb2);
 	}
 
 	public void testCollections() {
