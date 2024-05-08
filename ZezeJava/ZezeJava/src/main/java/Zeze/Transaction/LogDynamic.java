@@ -90,7 +90,7 @@ public class LogDynamic extends LogBean {
 			specialTypeId = bb.ReadLong();
 			try {
 				var parentType = Class.forName(parentTypeName);
-				var factory = parentType.getMethod("CreateBeanFromSpecialTypeId_" + varId, Long.class);
+				var factory = parentType.getMethod("createBeanFromSpecialTypeId_" + varId, long.class);
 				var bean = (Bean)factory.invoke(null, new Object[]{specialTypeId});
 				if (bean instanceof DynamicBean)
 					bean = ((DynamicBean)bean).getBean();

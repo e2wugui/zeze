@@ -16,11 +16,13 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Meta1<V> {
 	private static final long beanHeadHash = Bean.hash64("Zeze.Transaction.Log<");
+	private static final long logOneHeadHash = Bean.hash64("Zeze.Transaction.Collections.LogOne<");
 	private static final long list1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogList1<");
 	private static final long list2HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogList2<");
 	private static final long set1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogSet1<");
 	private static final int dynamicBeanTypeId = Bean.hash32("Zeze.Transaction.Collections.LogList2<Zeze.Transaction.DynamicBean>");
 	private static final ConcurrentHashMap<Class<?>, Meta1<?>> beanMetas = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Class<?>, Meta1<?>> logOneMetas = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Class<?>, Meta1<?>> list1Metas = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Class<?>, Meta1<?>> list2Metas = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Class<?>, Meta1<?>> set1Metas = new ConcurrentHashMap<>();
@@ -43,6 +45,11 @@ public final class Meta1<V> {
 		valueEncoder = null;
 		valueDecoder = null;
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <V extends Bean> @NotNull Meta1<V> getLogOneMeta(@NotNull Class<V> beanClass) {
+		return (Meta1<V>)logOneMetas.computeIfAbsent(beanClass, vc -> new Meta1<>(logOneHeadHash, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")

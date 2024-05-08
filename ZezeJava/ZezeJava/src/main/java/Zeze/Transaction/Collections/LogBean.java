@@ -7,9 +7,12 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class LogBean extends Log {
+	private static final Logger logger = LogManager.getLogger();
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
 	private IntHashMap<Log> variables;
@@ -58,7 +61,7 @@ public class LogBean extends Log {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var vars = variables;
-		//System.out.println("LogBean.this=" + getThis().getClass().getName());
+		//logger.info("LogBean.this=" + getThis().getClass().getName());
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
@@ -66,8 +69,7 @@ public class LogBean extends Log {
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
-				//if (log.getTypeId() == -1120993624)
-				//	System.out.println("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
+				//logger.info("key=" + it.key() + " typeId=" + log.getTypeId() + " varId=" + log.getVariableId() + " name=" + log.getClass().getName());
 			}
 		} else
 			bb.WriteUInt(0);

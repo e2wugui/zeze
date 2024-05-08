@@ -14,17 +14,23 @@ public class LogOne<V extends Bean> extends LogBean {
 	public LogBean logBean;
 	public final Meta1<V> meta;
 
+	@SuppressWarnings("unchecked")
 	public LogOne(@NotNull V value) {
 		this.value = value;
-		meta = null; // 事务使用不需要动态创建，decode。
+		meta = Meta1.getLogOneMeta((Class<V>)value.getClass()); // 事务本来使用不需要动态创建，但是getTypeId需要。
 	}
 
 	public LogOne(@NotNull Class<V> beanClass) {
-		meta = Meta1.getBeanMeta(beanClass); // for decode
+		meta = Meta1.getLogOneMeta(beanClass); // for decode
 	}
 
 	public void setValue(@NotNull V value) {
 		this.value = value;
+	}
+
+	@Override
+	public int getTypeId() {
+		return meta.logTypeId;
 	}
 
 	@Override
