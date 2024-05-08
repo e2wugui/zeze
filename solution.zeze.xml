@@ -879,12 +879,6 @@
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaft" genrelativedir="Zeze/Services" platform="zeze+cs">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
-		</service>
-	</component>
-
 	<component name="GlobalCacheManagerWithRaftAgent" genrelativedir="Zeze/Services" platform="zeze+cs" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>

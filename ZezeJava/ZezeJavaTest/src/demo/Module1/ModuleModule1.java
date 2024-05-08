@@ -64,6 +64,9 @@ public class ModuleModule1 extends AbstractModule {
 	public Table1 getTable1() {
 		return _Table1;
 	}
+	public tCoverHistory getTableCoverHistory() {
+		return _tCoverHistory;
+	}
 
 	public Table2 getTable2() {
 		return _Table2;

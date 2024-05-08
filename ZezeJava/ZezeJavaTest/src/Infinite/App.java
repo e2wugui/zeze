@@ -1,6 +1,7 @@
 package Infinite;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Transaction.DispatchMode;
@@ -11,6 +12,7 @@ public class App {
 	final demo.App app = new demo.App();
 	private final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
 	private final Config config;
+	private final CoverHistory coverHistory;
 
 	public App(int serverId) {
 		config = Config.load("zeze.xml");
@@ -38,6 +40,7 @@ public class App {
 		tflush.setCacheFactor(1.0f);
 
 		config.getServiceConfMap().remove("TestServer");
+		coverHistory = new CoverHistory(this.app);
 	}
 
 	public int getServerId() {
@@ -72,8 +75,13 @@ public class App {
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
 	}
 
-	public void WaitAllRunningTasksAndClear() {
+	public void startTest() {
+		coverHistory.submitTasks();
+	}
+
+	public void WaitAllRunningTasksAndClear() throws ExecutionException, InterruptedException {
 		Task.waitAll(RunningTasks);
 		RunningTasks.clear();
+		coverHistory.join();
 	}
 }

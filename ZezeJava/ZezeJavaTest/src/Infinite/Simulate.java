@@ -16,7 +16,7 @@ public final class Simulate {
 				"org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
 	}
 
-	static final Logger logger = LogManager.getLogger(Simulate.class);
+	static final Logger logger = LogManager.getLogger();
 
 	public final static int AppCount = 10;
 	public final static int BatchTaskCount = 50000;
@@ -87,6 +87,8 @@ public final class Simulate {
 			do {
 				++BatchNumber;
 				logger.fatal("Run {}", BatchNumber);
+				for (var app : Apps)
+					app.startTest();
 				for (int i = 0; i < BatchTaskCount; i++)
 					Tasks.randCreateTask().Run();
 				logger.fatal("Wait {}", BatchNumber);
@@ -95,6 +97,7 @@ public final class Simulate {
 					logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
 				}
 				logger.fatal("Verify {}", BatchNumber);
+				Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
 				//noinspection BusyWait
 				Thread.sleep(4000);
 				Tasks.verify();

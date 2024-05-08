@@ -170,6 +170,8 @@
 		<protocol name="ProtocolOnlyData" argument="BOnlyData" handle="server"/>
 		<rpc name="RpcOnlyUseData" argument="BOnlyData" UseData="true" handle="server"/>
 		<rpc name="RpcOnlyData" result="BOnlyData" handle="server"/>
+
+		<table name="tCoverHistory" key="long" value="BValue" memory="false"/>
 	</module>
 
 	<!-- module的注释 -->

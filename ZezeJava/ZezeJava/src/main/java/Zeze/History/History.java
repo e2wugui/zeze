@@ -72,7 +72,7 @@ public class History {
 
 	public void flush(Database.Table table, Database.Transaction txn) {
 		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
-		logger.debug("flush: {}", encoded.size());
+		//logger.debug("flush: {}", encoded.size());
 		for (var it = encoded.entryIterator(); it.moveToNext(); /**/) {
 			var key = ByteBuffer.Allocate();
 			key.WriteLong(it.key());
