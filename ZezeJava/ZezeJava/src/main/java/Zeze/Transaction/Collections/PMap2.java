@@ -64,14 +64,15 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 
-		value.mapKey(key);
 		if (isManaged()) {
 			value.initRootInfoWithRedo(rootInfo, this);
+			value.mapKey(key);
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
 		}
+		value.mapKey(key);
 		var oldV = map.get(key);
 		map = map.plus(key, value);
 		return oldV;
@@ -86,19 +87,23 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var v = p.getValue();
 			if (v == null)
 				throw new IllegalArgumentException("null value");
-			if (!v.isManaged())
-				v.mapKey(k);
 		}
 
 		if (isManaged()) {
-			for (var v : m.values())
+			for (var p : m.entrySet()) {
+				var v = p.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
+				v.mapKey(p.getKey());
+			}
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
-		} else
+		} else {
+			for (var p : m.entrySet())
+				p.getValue().mapKey(p.getKey());
 			map = map.plusAll(m);
+		}
 	}
 
 	@SuppressWarnings("unchecked")

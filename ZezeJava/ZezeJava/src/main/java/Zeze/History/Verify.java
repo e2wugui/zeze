@@ -23,7 +23,7 @@ public class Verify {
 					var tableName = TableKey.tables.get(r.getKey().getTableId());
 					if (null == tableName)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
-					logger.info("history apply table " + tableName);
+					logger.info("history apply table {}", tableName);
 					var originTable = defaultDb.getTable(tableName);
 					if (null == originTable)
 						throw new RuntimeException("table not found. name=" + tableName);
@@ -33,13 +33,13 @@ public class Verify {
 			}
 			var process = counter.incrementAndGet();
 			if (process >= 50000) {
-				logger.info("history applying ................. " + total.addAndGet(process));
+				logger.info("history applying ................. {}", total.addAndGet(process));
 				counter.set(0);
 			}
 			return true;
 		});
 		var process = counter.incrementAndGet();
-		logger.info("history apply end! +++++++++++++++++ " + total.addAndGet(process));
+		logger.info("history apply end! +++++++++++++++++ {}", total.addAndGet(process));
 		for (var applyTable : applyTables.values())
 			applyTable.verifyAndClear();
 		logger.info("history verify success!!!!!!!!!!!!!!!!!!!!!!");

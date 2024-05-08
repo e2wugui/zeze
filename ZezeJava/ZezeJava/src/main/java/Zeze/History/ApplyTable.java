@@ -86,8 +86,8 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	public static String diff(String strA, String strB) {
-		var a = strA.split(System.lineSeparator());
-		var b = strB.split(System.lineSeparator());
+		var a = strA.split("\r?\n");
+		var b = strB.split("\r?\n");
 
 		var i = 0;
 		// skip same line at head.
@@ -95,28 +95,22 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			if (!a[i].equals(b[i]))
 				break;
 		}
-		var aEnd = a.length;
-		var bEnd = b.length;
-		if (aEnd == bEnd) {
-			// skip same line at tail.
-			var tail = aEnd - 1;
-			for (; tail > i; --tail) {
-				if (!a[tail].equals(b[tail]) && !a[tail].startsWith("    version="))
-					break;
-			}
-			aEnd = tail;
-			bEnd = tail;
+		var aEnd = a.length - 1;
+		var bEnd = b.length - 1;
+		for (; aEnd > i && bEnd > i; aEnd--, bEnd--) {
+			if (!a[aEnd].equals(b[bEnd]))
+				break;
 		}
 
 		var sb = new StringBuilder();
-		for (; i < aEnd && i < bEnd; ++i)
-			sb.append(a[i]).append(Str.indent(50 - a[i].length())).append(b[i]).append("\n");
+		for (; i <= aEnd && i <= bEnd; ++i)
+			sb.append(a[i]).append(Str.indent(50 - a[i].length())).append(b[i]).append('\n');
 		if (aEnd > bEnd) {
-			for (; i < aEnd; ++i)
-				sb.append(a[i]).append("\n");
+			for (; i <= aEnd; ++i)
+				sb.append(a[i]).append('\n');
 		} else {
-			for (; i < bEnd; ++i)
-				sb.append(Str.indent(50)).append(b[i]).append("\n");
+			for (; i <= bEnd; ++i)
+				sb.append(Str.indent(50)).append(b[i]).append('\n');
 		}
 		return sb.toString();
 	}
@@ -145,5 +139,11 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			});
 			throw new RuntimeException("apply remain record.");
 		}
+	}
+
+	public static void main(String[] args) {
+		System.out.println("---");
+		System.out.println(diff("abc\r\ndef\n123", "abc\nde\nghi\r\n123"));
+		System.out.println("---");
 	}
 }
