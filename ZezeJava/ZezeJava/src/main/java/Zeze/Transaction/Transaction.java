@@ -428,7 +428,7 @@ public final class Transaction {
 		this.onzProcedure = onzProcedure;
 	}
 
-	private void finalCommit(@NotNull Procedure procedure) throws Exception {
+	private void finalCommit(@NotNull Procedure proc) throws Exception {
 		final long tid;
 		if (tidCacheFuture != null) {
 			tid = tidCacheFuture.get().next();
@@ -447,12 +447,12 @@ public final class Transaction {
 		}
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
-		procedure.getZeze().getProcedureLockWatcher().doWatch(procedure, accessedRecords);
+		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);
 		var lastSp = savepoints.get(savepoints.size() - 1);
 
 		// collect logs and notify listeners
 		var cc = new Changes(this);
-		RelativeRecordSet.tryUpdateAndCheckpoint(this, procedure, () -> {
+		RelativeRecordSet.tryUpdateAndCheckpoint(this, proc, () -> {
 			try {
 				lastSp.mergeCommitActions(actions);
 				lastSp.commit();
@@ -474,7 +474,7 @@ public final class Transaction {
 					}
 				}
 			} catch (Throwable e) { // halt
-				logger.fatal("finalCommit({}) exception:", procedure, e);
+				logger.fatal("finalCommit({}) exception:", proc, e);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
@@ -499,13 +499,12 @@ public final class Transaction {
 
 			// >>>>>>>>
 			// for debug. remove later.
-			if (!cc.getRecords().isEmpty() && tidCacheFuture == null)
+			if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty() && tidCacheFuture == null)
 				logger.fatal("history lost. ++++++++");
 			// <<<<<<<<
 
-			if (tidCacheFuture != null)
-				return History.buildLogChanges(tid, cc,
-						procedure.getProtocolClassName(), procedure.getProtocolRawArgument());
+			if (tidCacheFuture != null) // always null if !isHistory
+				return History.buildLogChanges(tid, cc, proc.getProtocolClassName(), proc.getProtocolRawArgument());
 			return null;
 		}); // onz patch: 新增参数
 
@@ -518,9 +517,9 @@ public final class Transaction {
 			for (var act : logActions)
 				act.run();
 			cc.notifyListener();
-			triggerCommitActions(procedure);
+			triggerCommitActions(proc);
 		} catch (Throwable ex) { // logger.error
-			logger.error("finalCommit({}) exception:", procedure, ex);
+			logger.error("finalCommit({}) exception:", proc, ex);
 		}
 	}
 
@@ -625,7 +624,7 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-					if (tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
+					if (procedure.getZeze().getConfig().isHistory() && tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
 						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
@@ -633,24 +632,28 @@ public final class Transaction {
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
-							procedure.getZeze().getConfig().getHistory());
+					var isHistory = procedure.getZeze().getConfig().isHistory();
+					if (isHistory)
+						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+								procedure.getZeze().getConfig().getHistory());
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
-					// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
-					var startTid = tidCacheFuture.get().getStart();
 					//noinspection DataFlowIssue
-					if (acquire.reducedTid > startTid) {
-						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
-								procedure.getZeze().getConfig().getHistory()
-						);
-					}
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",
 								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp);
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
+					}
+					if (isHistory) {
+						// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
+						var startTid = tidCacheFuture.get().getStart();
+						if (acquire.reducedTid > startTid) {
+							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+									procedure.getZeze().getConfig().getHistory()
+							);
+						}
 					}
 					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
