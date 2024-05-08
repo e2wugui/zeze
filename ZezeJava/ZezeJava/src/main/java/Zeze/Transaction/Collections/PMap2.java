@@ -64,8 +64,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (value == null)
 			throw new IllegalArgumentException("null value");
 
-		if (!value.isManaged())
-			value.mapKey(key);
+		value.mapKey(key);
 		if (isManaged()) {
 			value.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
