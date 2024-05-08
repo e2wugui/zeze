@@ -10,6 +10,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.IntHashMap;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,7 +29,8 @@ public class LinkdUserSession {
 
 	@Override
 	public String toString() {
-		return "(account=" + account + ",roleId=" + userState.getContext() + ",online=" + userState.getOnlineSetName() + ")";
+		return "(account=" + account + ",roleId=" + userState.getContext() + ",online=" + userState.getOnlineSetName()
+				+ ",version=" + Str.toVersionStr(clientAppVersion) + ')';
 	}
 
 	public LinkdUserSession(long sessionId) {

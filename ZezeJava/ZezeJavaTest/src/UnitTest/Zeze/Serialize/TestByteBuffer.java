@@ -645,6 +645,7 @@ public class TestByteBuffer extends TestCase {
 		var nbb1 = NioByteBuffer.Wrap(bb1.Bytes, bb1.WriteIndex);
 		var b = new Bean1();
 		b.decode(bb1); // b:{1=123,unknown:5=456}
+		assertEquals(bb1.WriteIndex, bb1.ReadIndex);
 		bb1.ReadIndex = 0;
 		assertEquals(123, b.getV1());
 		assertNotNull(b.unknown());
@@ -656,11 +657,13 @@ public class TestByteBuffer extends TestCase {
 
 		b = new Bean1();
 		b.decode(nbb1);
+		assertEquals(nbb1.getWriteIndex(), nbb1.getReadIndex());
 		nbb1.setReadIndex(0);
 		assertEquals(123, b.getV1());
 
 		a = new BValue();
 		a.decode(nbb2);
+		assertEquals(nbb2.getWriteIndex(), nbb2.getReadIndex());
 		nbb2.setReadIndex(0);
 		assertEquals(123, a.getInt_1());
 		assertEquals(456, a.getShort5());
@@ -668,6 +671,7 @@ public class TestByteBuffer extends TestCase {
 
 		var c = new BItem();
 		c.decode(bb2);
+		assertEquals(bb2.WriteIndex, bb2.ReadIndex);
 		bb2.ReadIndex = 0;
 		assertNotNull(c.unknown());
 		assertTrue(c.unknown().length > 0);

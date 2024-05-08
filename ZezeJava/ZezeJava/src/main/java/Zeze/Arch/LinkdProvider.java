@@ -203,15 +203,17 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (providerModuleState.configType == BModule.ConfigTypeDefault) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
-			logger.info("static bind: account={}, moduleIds.size={}, provider={}, configType={}, choiceType={}",
+			logger.info("static bind: account={}, moduleIds.size={}, provider={}, configType={}, choiceType={}," +
+							" clientVersion={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
-					providerModuleState.configType, providerModuleState.choiceType);
+					providerModuleState.configType, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {
 			// special 不跟随大部队，单独bind。
 			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);
-			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}",
+			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}," +
+							" clientVersion={}",
 					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
-					providerModuleState.configType, providerModuleState.choiceType);
+					providerModuleState.configType, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		}
 		return true;
 	}

@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Util.Str;
 import Zeze.Util.TimeCounter;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,7 +29,7 @@ public class ProviderSession {
 
 	@Override
 	public @NotNull String toString() {
-		return '(' + serverLoadIp + ',' + serverLoadPort + ',' + sessionId + ',' + appVersion + ')';
+		return '(' + serverLoadIp + ',' + serverLoadPort + ',' + sessionId + ',' + Str.toVersionStr(appVersion) + ')';
 	}
 
 	public long getAppMainVersion() {

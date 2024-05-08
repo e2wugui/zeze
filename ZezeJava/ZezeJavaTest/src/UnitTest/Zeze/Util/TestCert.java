@@ -99,8 +99,12 @@ public class TestCert extends TestCase {
 
 		var aesKey = generateAesKey();
 		var aesKeyData = aesKey.getEncoded();
+		var t = System.nanoTime();
 		var aesKeyEnc = encryptRsa(publicKey, aesKeyData);
+		System.out.println("RSA encrypt " + (System.nanoTime() - t) + " ns");
+		t = System.nanoTime();
 		var aesKeyDec = decryptRsa(privateKey, aesKeyEnc);
+		System.out.println("RSA decrypt " + (System.nanoTime() - t) + " ns");
 		Assert.assertEquals(RSA_BLOCK_SIZE, aesKeyEnc.length);
 		Assert.assertEquals(AES_KEY_SIZE, aesKeyDec.length);
 		Assert.assertArrayEquals(aesKeyData, aesKeyDec);
@@ -123,7 +127,7 @@ public class TestCert extends TestCase {
 //		var publicKeyData = ((RSAKey)publicKey).getModulus().toByteArray();
 //		System.out.println("rsa modulus = [" + publicKeyData.length + "] " + BitConverter.toString(publicKeyData));
 
-		var t = System.currentTimeMillis();
+		t = System.currentTimeMillis();
 		var keyPair = generateRsaKeyPair();
 		System.out.println("generateRsaKeyPair: " + (System.currentTimeMillis() - t) + " ms");
 		var encodedPublicKey = keyPair.getPublic().getEncoded();
@@ -163,5 +167,10 @@ public class TestCert extends TestCase {
 		System.out.println("EC  sign.length=" + signature2.length);
 		verify2 = verifySignEc(publicKey, data, signature2);
 		Assert.assertTrue(verify2);
+	}
+
+	public static void main(String[] args) throws Exception {
+		for (int i = 0; i < 100; i++)
+			new TestCert().testAll();
 	}
 }
