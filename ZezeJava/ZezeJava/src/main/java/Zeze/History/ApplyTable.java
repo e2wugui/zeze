@@ -8,6 +8,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableX;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -84,14 +85,53 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 	}
 
+	public static String diff(String strA, String strB) {
+		var a = strA.split(System.lineSeparator());
+		var b = strB.split(System.lineSeparator());
+
+		var i = 0;
+		// skip same line at head.
+		for (; i < a.length && i < b.length; ++i) {
+			if (!a[i].equals(b[i]))
+				break;
+		}
+		var aEnd = a.length;
+		var bEnd = b.length;
+		if (aEnd == bEnd) {
+			// skip same line at tail.
+			var tail = aEnd - 1;
+			for (; tail > i; --tail) {
+				if (!a[tail].equals(b[tail]) && !a[tail].startsWith("    version="))
+					break;
+			}
+			aEnd = tail;
+			bEnd = tail;
+		}
+
+		var sb = new StringBuilder();
+		for (; i < aEnd && i < bEnd; ++i)
+			sb.append(a[i]).append(Str.indent(50 - a[i].length())).append(b[i]).append("\n");
+		if (aEnd > bEnd) {
+			for (; i < aEnd; ++i)
+				sb.append(a[i]).append("\n");
+		} else {
+			for (; i < bEnd; ++i)
+				sb.append(Str.indent(50)).append(b[i]).append("\n");
+		}
+		return sb.toString();
+	}
+
 	public void verifyAndClear() {
 		originTable.walk((key, value) -> {
 			var applyValue = get(key);
 			if (null == applyValue)
 				throw new RuntimeException("record miss. key=" + key);
-			if (!applyValue.equals(value))
-				throw new RuntimeException("record not equals. key=" + key + "\norigin:"
-						+ value + "\napply: " + applyValue + "\n");
+			if (!applyValue.equals(value)) {
+				var originText = value.toString();
+				var applyText = applyValue.toString();
+
+				throw new RuntimeException("record not equals. key=" + key + "\n" + diff(originText, applyText));
+			}
 			remove(key);
 			return true;
 		});
