@@ -92,8 +92,9 @@ public final class Tasks {
 			if (tooManyTry != 0)
 				Simulate.logger.warn("  tooManyTry({})={}", name, tooManyTry);
 			if (runCount != successCount + abortCount + tooManyTry) {
-				Simulate.logger.error("verify failed({}): {} != {} = {} + {} + {}",
-						name, runCount, successCount + abortCount + tooManyTry, successCount, abortCount, tooManyTry);
+				Simulate.logger.error("verify failed({}): {} != {} = {} + {} + {}\n{}",
+						name, runCount, successCount + abortCount + tooManyTry, successCount, abortCount, tooManyTry,
+						stats.toString(false));
 				Assert.fail();
 			}
 		}

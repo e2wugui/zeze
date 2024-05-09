@@ -1,7 +1,9 @@
 package Infinite;
 
 import java.util.ArrayList;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.Task;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -83,8 +85,12 @@ public final class Simulate {
 	public void testMain() throws Exception {
 		logger.fatal("Prepare");
 		try {
+			var perfScheduled = PerfCounter.instance.cancelScheduledLog();
+			var taskDefTimeout = Task.defaultTimeout;
+			Task.defaultTimeout = 86400_000;
 			Tasks.prepare();
 			do {
+				PerfCounter.instance.resetCounter();
 				++BatchNumber;
 				logger.fatal("Run {}", BatchNumber);
 				for (var app : Apps) {
@@ -108,6 +114,9 @@ public final class Simulate {
 				Thread.sleep(4000);
 				Tasks.verify();
 			} while (Infinite);
+			Task.defaultTimeout = taskDefTimeout;
+			if (perfScheduled)
+				PerfCounter.instance.tryStartScheduledLog();
 		} catch (Exception ex) {
 			logger.error("", ex);
 			throw ex;

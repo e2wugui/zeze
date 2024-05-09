@@ -82,13 +82,17 @@ public final class PerfCounter extends FastLock {
 			return resultMap.computeIfAbsent(resultCode, __ -> new LongAdder());
 		}
 
-		@Override
-		public String toString() {
+		public @NotNull String toString(boolean last) {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
-			for (var it = resultMapLast.entryIterator(); it.moveToNext(); )
-				sb.append(',').append(' ').append(it.key()).append(':').append(it.value());
+			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
+				sb.append(',').append(' ').append(it.key()).append(':').append(it.value().sum());
 			return sb.toString();
+		}
+
+		@Override
+		public @NotNull String toString() {
+			return toString(true);
 		}
 	}
 
