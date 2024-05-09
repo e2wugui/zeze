@@ -179,6 +179,8 @@ public class LogList1<V> extends LogList<V> {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);
+			if (from.addSet != null && addSet != null)
+				addSet.addAll(from.addSet);
 		}
 	}
 

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Transactions;
 using Zeze.Serialize;
 using Zeze.Util;
 
@@ -29,8 +31,14 @@ namespace Zeze.Transaction.Collections
 
         public readonly Dictionary<LogBean, OutInt> Changed = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
 
+
 #if !USE_CONFCS
-		internal override Log BeginSavepoint()
+        public LogList2()
+        {
+            AddSet = new IdentityHashSet<E>();
+        }
+
+        internal override Log BeginSavepoint()
 		{
 			var dup = new LogList2<E>();
             dup.This = This;
@@ -61,7 +69,7 @@ namespace Zeze.Transaction.Collections
 				{
 					var logBean = e.Key;
 					var idxExist = Value.IndexOf((E)logBean.This);
-					if (idxExist < 0)
+					if (idxExist < 0 || AddSet.Contains(Value[idxExist]))
 						miss.Add(logBean);
 					else
 						e.Value.Value = idxExist;

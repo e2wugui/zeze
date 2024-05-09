@@ -37,6 +37,7 @@ namespace Zeze.Transaction.Collections
 		}
 
 		public readonly List<OpLog> OpLogs = new List<OpLog>();
+		protected IdentityHashSet<E> AddSet; // 用于LogList2，由它初始化。
 
 #if !USE_CONFCS
 		public override void Collect(Changes changes, Bean recent, Log vlog)
@@ -50,6 +51,7 @@ namespace Zeze.Transaction.Collections
 				throw new System.ArgumentNullException("value is null");
 			Value = Value.Add(item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
+			AddSet?.Add(item);
 		}
 
 		public void AddRange(IEnumerable<E> items)
@@ -59,7 +61,8 @@ namespace Zeze.Transaction.Collections
 			foreach (var item in items)
 			{
 				OpLogs.Add(new OpLog(OpLog.OP_ADD, start++, item));
-			}
+                AddSet?.Add(item);
+            }
         }
 
 		public bool Remove(E item)
@@ -68,6 +71,7 @@ namespace Zeze.Transaction.Collections
 			if (index < 0)
 				return false;
 			RemoveAt(index);
+			AddSet?.Remove(item);
 			return true;
 		}
 
@@ -76,33 +80,45 @@ namespace Zeze.Transaction.Collections
 			Value = System.Collections.Immutable.ImmutableList<E>.Empty;
 			OpLogs.Clear();
 			OpLogs.Add(new OpLog(OpLog.OP_CLEAR, 0, default));
+			AddSet?.Clear();
 		}
 
 		public void Insert(int index, E item)
 		{
 			Value = Value.Insert(index, item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, index, item));
+			AddSet?.Add(item);
 		}
 
 		public void SetItem(int index, E item)
 		{
 			Value = Value.SetItem(index, item);
 			OpLogs.Add(new OpLog(OpLog.OP_MODIFY, index, item));
+			AddSet?.Add(item);
 		}
 
 		public void RemoveAt(int index)
 		{
+			var Old = Value[index];
 			Value = Value.RemoveAt(index);
 			OpLogs.Add(new OpLog(OpLog.OP_REMOVE, index, default));
+			AddSet?.Remove(Old);
 		}
 
 		public void RemoveRange(int index, int count)
         {
-			Value = Value.RemoveRange(index, count);
-			var end = index + count;
+            var end = index + count;
+            var oldItems = new E[count];
 			for (int i = index; i < end; ++i)
-				OpLogs.Add(new OpLog(OpLog.OP_REMOVE, i, default));
-		}
+                oldItems[i - index] = Value[i];
+
+            Value = Value.RemoveRange(index, count);
+			for (int i = index; i < end; ++i)
+			{
+                OpLogs.Add(new OpLog(OpLog.OP_REMOVE, i, default));
+				AddSet?.Remove(oldItems[i - index]);
+            }
+        }
 
 		internal override void EndSavepoint(Savepoint currentSp)
 		{
@@ -125,7 +141,13 @@ namespace Zeze.Transaction.Collections
 				if (from.OpLogs[0].op == OpLog.OP_CLEAR)
 					OpLogs.Clear();
 				OpLogs.AddRange(from.OpLogs);
-			}
+
+				if (AddSet != null && from.AddSet != null)
+				{
+					foreach (var item in from.AddSet)
+						AddSet.Add(item);
+                }
+            }
 		}
 
 		internal override Log BeginSavepoint()
