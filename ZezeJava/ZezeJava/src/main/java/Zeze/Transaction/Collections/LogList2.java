@@ -44,7 +44,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 				var logBean = e.getKey();
 				//noinspection SuspiciousMethodCalls
 				var idxExist = curList.indexOf(logBean.getThis());
-				if (idxExist < 0)
+				if (idxExist < 0 || addSet.contains(curList.get(idxExist)))
 					it.remove();
 				else
 					e.getValue().value = idxExist;

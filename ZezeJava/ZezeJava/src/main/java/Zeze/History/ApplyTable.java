@@ -144,7 +144,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 	public static void main(String[] args) {
 		System.out.println("---");
-		System.out.println(diff("abc\r\ndef\n123", "abc\nde\nghi\r\n123", null));
+		System.out.println(diff("abc\r\ndef\n123\nversion=1", "abc\nde\nghi\r\n123\nversion=2", "version="));
 		System.out.println("---");
 	}
 }

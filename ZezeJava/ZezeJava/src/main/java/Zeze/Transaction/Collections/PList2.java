@@ -222,18 +222,15 @@ public class PList2<V extends Bean> extends PList<V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = list;
-		var newest = new IntHashSet();
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
 				opLog.value.initRootInfo(rootInfo, this);
 				tmp = tmp.with(opLog.index, opLog.value);
-				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_ADD:
 				opLog.value.initRootInfo(rootInfo, this);
 				tmp = tmp.plus(opLog.index, opLog.value);
-				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_REMOVE:
 				tmp = tmp.minus(opLog.index);
@@ -246,9 +243,8 @@ public class PList2<V extends Bean> extends PList<V> {
 
 		// apply changed
 		for (var e : log.getChanged().entrySet()) {
-			if (newest.contains(e.getValue().value))
-				continue;
-			list.get(e.getValue().value).followerApply(e.getKey());
+			var item = list.get(e.getValue().value);
+			item.followerApply(e.getKey());
 		}
 	}
 
