@@ -92,10 +92,15 @@ namespace Zeze.Transaction.Collections
 
 		public void SetItem(int index, E item)
 		{
+			var old = Value[index];
 			Value = Value.SetItem(index, item);
 			OpLogs.Add(new OpLog(OpLog.OP_MODIFY, index, item));
-			AddSet?.Add(item);
-		}
+			if (null != AddSet)
+			{
+                AddSet.Add(item);
+				AddSet.Remove(old);
+            }
+        }
 
 		public void RemoveAt(int index)
 		{

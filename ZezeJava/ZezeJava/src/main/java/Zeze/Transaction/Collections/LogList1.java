@@ -121,8 +121,10 @@ public class LogList1<V> extends LogList<V> {
 		var old = list.get(index);
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
-		if (null != addSet)
+		if (null != addSet) {
 			addSet.add(item);
+			addSet.remove(old);
+		}
 		return old;
 	}
 
