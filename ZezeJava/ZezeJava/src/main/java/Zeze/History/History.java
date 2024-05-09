@@ -7,13 +7,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
 import Zeze.Util.LongConcurrentHashMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class History {
-	private static final Logger logger = LogManager.getLogger();
+	// private static final Logger logger = LogManager.getLogger(History.class);
 
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
@@ -23,7 +21,6 @@ public class History {
 	private final LongConcurrentHashMap<Binary> encoded = new LongConcurrentHashMap<>();
 
 	public History() {
-
 	}
 
 	public History(BLogChanges.Data firstData) {
@@ -83,12 +80,12 @@ public class History {
 	}
 
 	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges.Data> to,
-							  @NotNull LongConcurrentHashMap<BLogChanges.Data> other) {
+										@NotNull LongConcurrentHashMap<BLogChanges.Data> other) {
 		other.forEach((v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
 	}
 
 	public static void putEncodedAll(@NotNull LongConcurrentHashMap<Binary> to,
-							  @NotNull LongConcurrentHashMap<Binary> other) {
+									 @NotNull LongConcurrentHashMap<Binary> other) {
 		for (var it = other.entryIterator(); it.moveToNext(); /**/)
 			to.putIfAbsent(it.key(), it.value());
 	}

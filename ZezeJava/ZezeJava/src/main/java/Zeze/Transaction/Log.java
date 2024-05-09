@@ -78,11 +78,11 @@ public abstract class Log implements Serializable {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 }

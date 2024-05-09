@@ -277,6 +277,7 @@ public final class Transaction {
 										try {
 											finalCommit(procedure);
 										} catch (Exception ex) {
+											logger.fatal("", ex);
 											// final Commit 不能抛出异常。否则就halt。
 
 											// 首先释放锁
@@ -633,9 +634,10 @@ public final class Transaction {
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var isHistory = procedure.getZeze().getConfig().isHistory();
-					if (isHistory)
+					if (isHistory) {
 						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
 								procedure.getZeze().getConfig().getHistory());
+					}
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
 					//noinspection DataFlowIssue
