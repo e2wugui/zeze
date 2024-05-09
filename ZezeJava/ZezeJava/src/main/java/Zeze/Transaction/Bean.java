@@ -251,7 +251,10 @@ public abstract class Bean implements Serializable {
 	public long version() {
 		return 0;
 	}
-	public String versionVarName() { return ""; }
+
+	public @NotNull String versionVarName() {
+		return "";
+	}
 
 	// package use in Transaction.finalCommit
 	protected void version(long newVersion) {

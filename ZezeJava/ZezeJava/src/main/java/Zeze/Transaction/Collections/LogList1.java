@@ -13,10 +13,10 @@ import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
 	public static final class OpLog<V> {
-		public static final int OP_MODIFY = 0;
-		public static final int OP_ADD = 1;
-		public static final int OP_REMOVE = 2;
-		public static final int OP_CLEAR = 3;
+		public static final int OP_MODIFY = 0; // op+index+value
+		public static final int OP_ADD = 1;    // op+index+value
+		public static final int OP_REMOVE = 2; // op+index
+		public static final int OP_CLEAR = 3;  // op
 
 		public final int op;
 		public final int index;
@@ -122,8 +122,8 @@ public class LogList1<V> extends LogList<V> {
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
 		if (null != addSet) {
-			addSet.add(item);
 			addSet.remove(old);
+			addSet.add(item);
 		}
 		return old;
 	}

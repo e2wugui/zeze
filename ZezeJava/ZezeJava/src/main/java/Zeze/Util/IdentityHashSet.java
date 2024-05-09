@@ -1,6 +1,8 @@
 package Zeze.Util;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.function.Consumer;
 
 public class IdentityHashSet<T> implements Cloneable {
@@ -29,7 +31,12 @@ public class IdentityHashSet<T> implements Cloneable {
 		keyTable = (T[])new Object[tableSize];
 	}
 
-	public IdentityHashSet(IdentityHashSet<T> set) {
+	public IdentityHashSet(Collection<? extends T> c) {
+		this(c.size());
+		addAll(c);
+	}
+
+	public IdentityHashSet(IdentityHashSet<? extends T> set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -42,7 +49,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		return 1 << 32 - Integer.numberOfLeadingZeros(cap - 1);
 	}
 
-	private int hash(T key) {
+	private int hash(Object key) {
 		return (int)(System.identityHashCode(key) * 0x9E3779B97F4A7C15L >>> shift);
 	}
 
@@ -66,12 +73,26 @@ public class IdentityHashSet<T> implements Cloneable {
 		return size == 0;
 	}
 
-	public boolean contains(T key) {
+	public boolean contains(Object key) {
 		T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
 		for (T k; (k = kt[i]) != key; i = (i + 1) & m)
 			if (k == null)
+				return false;
+		return true;
+	}
+
+	public boolean containsAll(Collection<?> c) {
+		for (Object e : c)
+			if (e != null && !contains(e))
+				return false;
+		return true;
+	}
+
+	public boolean containsAll(IdentityHashSet<?> set) {
+		for (Object e : set.keyTable)
+			if (e != null && !contains(e))
 				return false;
 		return true;
 	}
@@ -91,29 +112,52 @@ public class IdentityHashSet<T> implements Cloneable {
 		}
 	}
 
-	public void addAll(IdentityHashSet<T> set) {
+	public void addAll(Collection<? extends T> c) {
+		for (T k : c)
+			if (k != null)
+				add(k);
+	}
+
+	public void addAll(IdentityHashSet<? extends T> set) {
 		for (T k : set.keyTable)
 			if (k != null)
 				add(k);
 	}
 
-	public boolean remove(T key) {
+	public boolean remove(Object key) {
 		T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
 		for (T k; (k = kt[i]) != key; i = (i + 1) & m)
 			if (k == null)
 				return false;
-		for (int j = (i + 1) & m; (key = kt[j]) != null; j = (j + 1) & m) {
-			int h = hash(key);
+		T k;
+		for (int j = (i + 1) & m; (k = kt[j]) != null; j = (j + 1) & m) {
+			int h = hash(k);
 			if (((j - h) & m) > ((i - h) & m)) {
-				kt[i] = key;
+				kt[i] = k;
 				i = j;
 			}
 		}
 		kt[i] = null;
 		size--;
 		return true;
+	}
+
+	public boolean removeAll(Collection<?> c) {
+		boolean r = false;
+		for (Object k : c)
+			if (k != null)
+				r |= remove(k);
+		return r;
+	}
+
+	public boolean removeAll(IdentityHashSet<?> set) {
+		boolean r = false;
+		for (Object k : set.keyTable)
+			if (k != null)
+				r |= remove(k);
+		return r;
 	}
 
 	public void clear() {
@@ -164,6 +208,27 @@ public class IdentityHashSet<T> implements Cloneable {
 			}
 		}
 		keyTable = kt;
+	}
+
+	public Object[] toArray() {
+		Object[] a = new Object[size];
+		int i = 0;
+		for (T k : keyTable)
+			if (k != null)
+				a[i++] = k;
+		return a;
+	}
+
+	@SuppressWarnings("unchecked")
+	public <A> A[] toArray(A[] a) {
+		int size = this.size;
+		if (a.length < size)
+			a = (A[])Array.newInstance(a.getClass().getComponentType(), size);
+		int i = 0;
+		for (T k : keyTable)
+			if (k != null)
+				a[i++] = (A)k;
+		return a;
 	}
 
 	public void foreach(Consumer<T> consumer) {
