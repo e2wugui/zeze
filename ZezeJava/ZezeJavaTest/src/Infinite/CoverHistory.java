@@ -6,6 +6,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Net.Binary;
+import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Collections.PSet1;
 import Zeze.Util.Task;
@@ -15,6 +16,7 @@ import demo.Module1.BItem;
 import demo.Module1.BRemoved2;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
+import demo.Module1.Key;
 import org.jetbrains.annotations.Nullable;
 
 public class CoverHistory {
@@ -42,6 +44,14 @@ public class CoverHistory {
 		jobs.add(new Bean12());
 		jobs.add(new Byte13());
 		jobs.add(new Dynamic14());
+		jobs.add(new Map15());
+		jobs.add(new Map16());
+		jobs.add(new Vector2());
+		jobs.add(new Vector3Int());
+		jobs.add(new Vector3());
+		jobs.add(new Vector3Int());
+		jobs.add(new Vector4());
+		jobs.add(new Quaternion());
 	}
 
 	public void submitTasks() {
@@ -212,7 +222,7 @@ public class CoverHistory {
 			var map11 = value.getMap11(); // key is 0,1,2
 			var forceRemove = map11.size() >= 3;
 			if (forceRemove) {
-				map11.remove(random.nextLong(map11.size()));
+				map11.remove(random.nextLong(3));
 			} else {
 				switch (random.nextInt(3)) {
 				case 0: // put, maybe replace.
@@ -328,6 +338,113 @@ public class CoverHistory {
 				}
 				break;
 			}
+		}
+	}
+
+	public class Map15 implements Job {
+		@Override
+		public void run(BValue value) {
+			var map15 = value.getMap15(); // key is 0,1,2
+			var forceRemove = map15.size() >= 3;
+			if (forceRemove) {
+				map15.remove(random.nextLong(3)); // maybe remove nothing.
+			} else {
+				switch (random.nextInt(2)) {
+				case 0: // put, maybe replace.
+					map15.put(random.nextLong(3), random.nextLong());
+					break;
+
+				case 1: // remove, maybe remove nothing
+					map15.remove(random.nextLong(3));
+					break;
+				}
+			}
+		}
+	}
+
+	public class Map16 implements Job {
+		private Key randKey() {
+			return new Key((short)random.nextInt(3), "");
+		}
+
+		@Override
+		public void run(BValue value) {
+			var map16 = value.getMap16(); // see randKey
+			var forceRemove = map16.size() >= 3;
+			if (forceRemove) {
+				map16.remove(randKey());
+			} else {
+				switch (random.nextInt(3)) {
+				case 0: // put, maybe replace.
+					map16.put(randKey(), new BSimple());
+					break;
+
+				case 1: // remove, maybe remove nothing
+					map16.remove(randKey());
+					break;
+
+				case 2: // modify.
+					if (map16.isEmpty())
+						map16.put(randKey(), new BSimple()); // ensure modify
+					var randItem = getRandItem(map16);
+					assert randItem != null;
+					randItem.setInt_1(random.nextInt());
+					break;
+				}
+			}
+		}
+
+		private BSimple getRandItem(PMap2<Key, BSimple> map2) {
+			if (map2.isEmpty())
+				return null;
+			var index = random.nextInt(map2.size());
+			for (var cur : map2) {
+				if (index-- == 0)
+					return cur.getValue();
+			}
+			return null;
+		}
+	}
+
+	public class Vector2 implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setVector2(new Zeze.Serialize.Vector2(random.nextInt(), random.nextInt()));
+		}
+	}
+
+	public class Vector2Int implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setVector2Int(new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+		}
+	}
+
+	public class Vector3 implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setVector3(new Zeze.Serialize.Vector3(random.nextInt(), random.nextInt(), random.nextInt()));
+		}
+	}
+
+	public class Vector3Int implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setVector3Int(new Zeze.Serialize.Vector3Int(random.nextInt(), random.nextInt(), random.nextInt()));
+		}
+	}
+
+	public class Vector4 implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setVector4(new Zeze.Serialize.Vector4(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
+		}
+	}
+
+	public class Quaternion implements Job {
+		@Override
+		public void run(BValue value) {
+			value.setQuaternion(new Zeze.Serialize.Quaternion(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
 		}
 	}
 }
