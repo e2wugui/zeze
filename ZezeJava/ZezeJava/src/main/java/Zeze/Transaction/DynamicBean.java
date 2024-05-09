@@ -15,6 +15,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	long typeId = EmptyBean.TYPEID;
 	private transient final @NotNull ToLongFunction<Bean> getBean;
 	private transient final @NotNull LongFunction<Bean> createBean;
+	private transient Object mapKey;
 
 	public DynamicBean(int variableId, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		super(variableId);
@@ -183,8 +184,13 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
+	public Object mapKey() {
+		return mapKey;
+	}
+
+	@Override
 	public void mapKey(@NotNull Object mapKey) {
-		getBean().mapKey(mapKey);
+		this.mapKey = mapKey;
 	}
 
 	@Override

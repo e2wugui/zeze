@@ -11,6 +11,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.BeanKey;
 import Zeze.Util.Reflect;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,7 +38,8 @@ public final class Meta1<V> {
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;
-		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
+		valueFactory = BeanKey.class.isAssignableFrom(valueClass) || Bean.class.isAssignableFrom(valueClass)
+				? Reflect.getDefaultConstructor(valueClass) : null;
 	}
 
 	private Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
