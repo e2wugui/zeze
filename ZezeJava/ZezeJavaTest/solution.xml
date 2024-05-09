@@ -124,6 +124,7 @@
 			<variable id="39" name="set39"  type="set[long]"         javaType="LongHashSet"/>
 			<variable id="40" name="map40"  type="map[int,int]"      javaType="IntHashMap"/>
 			<variable id="41" name="map41"  type="map[long,BSimple]" javaType="LongHashMap"/>
+			<variable id="42" name="map42Recursive" type="map[long, BValue]"/>
 
 			<variable id="50" name="version" type="long"/>
 
