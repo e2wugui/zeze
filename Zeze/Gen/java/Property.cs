@@ -47,6 +47,11 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
                     sw.WriteLine($"{prefix}@Override");
+                    sw.WriteLine($"{prefix}public String versionVarName() {{");
+                    sw.WriteLine($"{prefix}    return \"{var.Name}\";");
+                    sw.WriteLine($"{prefix}}}");
+                    sw.WriteLine();
+                    sw.WriteLine($"{prefix}@Override");
                     sw.WriteLine($"{prefix}protected void version(long newValue) {{");
                     sw.WriteLine($"{prefix}    {var.NamePrivate} = newValue;");
                     sw.WriteLine($"{prefix}}}");

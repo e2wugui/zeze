@@ -85,20 +85,20 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
 	}
 
-	public static String diff(String strA, String strB) {
+	public static String diff(String strA, String strB, String skipIfContains) {
 		var a = strA.split("\r?\n");
 		var b = strB.split("\r?\n");
 
 		var i = 0;
 		// skip same line at head.
 		for (; i < a.length && i < b.length; ++i) {
-			if (!a[i].equals(b[i]))
+			if (!a[i].equals(b[i]) && (null == skipIfContains || !a[i].contains(skipIfContains)))
 				break;
 		}
 		var aEnd = a.length - 1;
 		var bEnd = b.length - 1;
 		for (; aEnd > i && bEnd > i; aEnd--, bEnd--) {
-			if (!a[aEnd].equals(b[bEnd]))
+			if (!a[aEnd].equals(b[bEnd]) && (null == skipIfContains || !a[aEnd].contains(skipIfContains)))
 				break;
 		}
 
@@ -124,7 +124,8 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 				var originText = value.toString();
 				var applyText = applyValue.toString();
 
-				throw new RuntimeException("record not equals. key=" + key + "\n" + diff(originText, applyText));
+				throw new RuntimeException("record not equals. key=" + key + "\n"
+						+ diff(originText, applyText, applyValue.versionVarName() + "="));
 			}
 			remove(key);
 			return true;
@@ -143,7 +144,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 	public static void main(String[] args) {
 		System.out.println("---");
-		System.out.println(diff("abc\r\ndef\n123", "abc\nde\nghi\r\n123"));
+		System.out.println(diff("abc\r\ndef\n123", "abc\nde\nghi\r\n123", null));
 		System.out.println("---");
 	}
 }

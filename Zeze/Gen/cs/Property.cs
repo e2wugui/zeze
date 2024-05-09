@@ -43,6 +43,11 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"{prefix}    return {var.NamePrivate};");
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
+                    sw.WriteLine($"{prefix}public override string GetVersionVarName()");
+                    sw.WriteLine($"{prefix}{{");
+                    sw.WriteLine($"{prefix}    return \"{var.NameUpper1}\";");
+                    sw.WriteLine($"{prefix}}}");
+                    sw.WriteLine();
                     sw.WriteLine($"{prefix}protected override void SetVersion(long newValue)");
                     sw.WriteLine($"{prefix}{{");
                     sw.WriteLine($"{prefix}    {var.NamePrivate} = newValue;");

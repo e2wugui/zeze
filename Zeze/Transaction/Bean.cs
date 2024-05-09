@@ -141,6 +141,11 @@ namespace Zeze.Transaction
             return 0;
         }
 
+        public virtual string GetVersionVarName()
+        {
+            return "";
+        }
+
         protected virtual void SetVersion(long newValue)
         {
             // 子类重载
