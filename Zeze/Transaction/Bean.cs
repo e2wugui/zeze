@@ -467,8 +467,15 @@ namespace Zeze.Transaction
         {
             // encode Value & SpecialTypeId. Value maybe null.
             var self = (DynamicBean)This;
-            bb.WriteString(self.Parent.GetType().FullName); // use in decode reflect
-            bb.WriteInt(self.VariableId);
+            var parent = self.Parent;
+            var varId = self.VariableId;
+            if (parent is Collection) {
+                if (varId == 0)
+                    varId = parent.VariableId;
+                parent = parent.Parent;
+            }
+            bb.WriteString(parent.GetType().FullName); // use in decode reflect
+            bb.WriteInt(varId);
             if (null != Value)
             {
                 bb.WriteBool(true);

@@ -61,9 +61,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 					+ " " + e.getKey().getThis().getClass().getName()
 					+ " typeId=" + e.getKey().getTypeId());
 			// */
-			var k = e.getKey();
-			bb.WriteBool(k instanceof LogDynamic);
-			k.encode(bb);
+			LogMap2.encodeLogBean(bb, e.getKey());
 			bb.WriteUInt(e.getValue().value);
 		}
 
@@ -84,8 +82,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var value = bb.ReadBool() ? new LogDynamic() : new LogBean();
-			value.decode(bb);
+			var value = LogMap2.decodeLogBean(bb);
 			var index = bb.ReadUInt();
 			changed.put(value, new OutInt(index));
 		}

@@ -5,6 +5,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -107,5 +108,27 @@ public class LogBean extends Log {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildSortedString(sb, variables);
 		return sb.toString();
+	}
+
+	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
+		// 使用byte，未来可能扩展其他LogBean子类。
+		if (logBean instanceof LogDynamic)
+			bb.WriteByte(1);
+		else // 全部都是LogBean子类，只能else。
+			bb.WriteByte(0);
+		logBean.encode(bb);
+	}
+
+	public static LogBean decodeLogBean(IByteBuffer bb) {
+		var type = bb.ReadByte();
+		LogBean logBean;
+		switch (type) {
+		case 1: logBean = new LogDynamic();break;
+		case 0: logBean = new LogBean();break;
+		default:
+			throw new RuntimeException("unknown logbean subclass type=" + type);
+		}
+		logBean.decode(bb);
+		return logBean;
 	}
 }

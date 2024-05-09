@@ -81,9 +81,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyEncoder = meta.keyEncoder;
 		for (var e : changedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			var v = e.getValue();
-			bb.WriteBool(v instanceof LogDynamic);
-			v.encode(bb);
+			encodeLogBean(bb, e.getValue());
 		}
 
 		// super.encode(bb);
@@ -104,9 +102,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			var value = bb.ReadBool() ? new LogDynamic() : new LogBean();
-			value.decode(bb);
-			changedWithKey.put(key, value);
+			changedWithKey.put(key, decodeLogBean(bb));
 		}
 
 		// super.decode(bb);

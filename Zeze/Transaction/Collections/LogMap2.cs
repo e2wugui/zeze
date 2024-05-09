@@ -84,13 +84,14 @@ namespace Zeze.Transaction.Collections
         }
 
 #endif
+
         public override void Decode(ByteBuffer bb)
         {
             ChangedWithKey.Clear();
             for (int i = bb.ReadUInt(); i > 0; --i)
             {
                 var key = SerializeHelper<K>.Decode(bb);
-                var value = SerializeHelper<LogBean>.Decode(bb);
+                var value = DecodeLogBean(bb);
                 ChangedWithKey.Add(key, value);
             }
             base.Decode(bb);
@@ -108,7 +109,7 @@ namespace Zeze.Transaction.Collections
             foreach (var e in ChangedWithKey)
             {
                 SerializeHelper<K>.Encode(bb, e.Key);
-                SerializeHelper<LogBean>.Encode(bb, e.Value);
+                EncodeLogBean(bb, e.Value);
             }
             base.Encode(bb);
 #endif

@@ -81,7 +81,7 @@ namespace Zeze.Transaction.Collections
 			bb.WriteUInt(Changed.Count);
 			foreach (var e in Changed)
 			{
-				e.Key.Encode(bb);
+                EncodeLogBean(bb, e.Key);
 				bb.WriteUInt(e.Value.Value);
 			}
 			// encode opLogs
@@ -94,8 +94,7 @@ namespace Zeze.Transaction.Collections
             Changed.Clear();
             for (int i = bb.ReadUInt(); i > 0; i--)
             {
-                var value = new LogBean();
-                value.Decode(bb);
+                var value = DecodeLogBean(bb);
                 var index = bb.ReadUInt();
                 Changed[value] = new OutInt { Value = index };
             }
