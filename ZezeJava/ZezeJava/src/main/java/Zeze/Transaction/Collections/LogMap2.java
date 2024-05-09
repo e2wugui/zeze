@@ -10,6 +10,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.LogDynamic;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
@@ -80,7 +81,9 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyEncoder = meta.keyEncoder;
 		for (var e : changedWithKey.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
-			e.getValue().encode(bb);
+			var v = e.getValue();
+			bb.WriteBool(v instanceof LogDynamic);
+			v.encode(bb);
 		}
 
 		// super.encode(bb);
@@ -101,7 +104,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			var value = new LogBean();
+			var value = bb.ReadBool() ? new LogDynamic() : new LogBean();
 			value.decode(bb);
 			changedWithKey.put(key, value);
 		}

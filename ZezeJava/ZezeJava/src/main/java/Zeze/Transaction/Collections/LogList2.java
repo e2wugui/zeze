@@ -6,6 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.LogDynamic;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
@@ -60,7 +61,9 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 					+ " " + e.getKey().getThis().getClass().getName()
 					+ " typeId=" + e.getKey().getTypeId());
 			// */
-			e.getKey().encode(bb);
+			var k = e.getKey();
+			bb.WriteBool(k instanceof LogDynamic);
+			k.encode(bb);
 			bb.WriteUInt(e.getValue().value);
 		}
 
@@ -81,7 +84,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var value = new LogBean();
+			var value = bb.ReadBool() ? new LogDynamic() : new LogBean();
 			value.decode(bb);
 			var index = bb.ReadUInt();
 			changed.put(value, new OutInt(index));
