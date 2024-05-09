@@ -6,6 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -15,10 +16,12 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	public LogList2(@NotNull Meta1<V> meta) {
 		super(meta);
+		addSet = new IdentityHashSet<>();
 	}
 
 	public LogList2(@NotNull Class<V> valueClass) {
 		super(Meta1.getList2Meta(valueClass));
+		// addSet not need.
 	}
 
 	public final @NotNull HashMap<LogBean, OutInt> getChanged() {

@@ -36,7 +36,7 @@ public class LogList1<V> extends LogList<V> {
 
 	protected final @NotNull Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
-	protected final IdentityHashSet<V> addSet = new IdentityHashSet<>();
+	protected IdentityHashSet<V> addSet; // 用于LogList2，也由它初始化。
 
 	public LogList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
@@ -63,7 +63,8 @@ public class LogList1<V> extends LogList<V> {
 		var index = list.size();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-		addSet.add(item);
+		if (null != addSet)
+			addSet.add(item);
 		return true;
 	}
 
@@ -75,7 +76,8 @@ public class LogList1<V> extends LogList<V> {
 		setValue(list);
 		for (var item : items) {
 			opLogs.add(new OpLog<>(OpLog.OP_ADD, addindex++, item));
-			addSet.add(item);
+			if (null != addSet)
+				addSet.add(item);
 		}
 		return true;
 	}
@@ -94,7 +96,8 @@ public class LogList1<V> extends LogList<V> {
 		if (index < 0)
 			return false;
 		remove(index);
-		addSet.remove(item);
+		if (null != addSet)
+			addSet.remove(item);
 		return true;
 	}
 
@@ -102,13 +105,15 @@ public class LogList1<V> extends LogList<V> {
 		setValue(Empty.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
-		addSet.clear();
+		if (null != addSet)
+			addSet.clear();
 	}
 
 	public final void add(int index, @NotNull V item) {
 		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-		addSet.add(item);
+		if (null != addSet)
+			addSet.add(item);
 	}
 
 	public final @Nullable V set(int index, @NotNull V item) {
@@ -116,7 +121,8 @@ public class LogList1<V> extends LogList<V> {
 		var old = list.get(index);
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
-		addSet.add(item);
+		if (null != addSet)
+			addSet.add(item);
 		return old;
 	}
 
@@ -125,7 +131,8 @@ public class LogList1<V> extends LogList<V> {
 		var old = list.get(index);
 		setValue(list.minus(index));
 		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, old));
-		addSet.remove(old);
+		if (null != addSet)
+			addSet.remove(old);
 		return old;
 	}
 
