@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongConcurrentHashMap;
 
 /**
@@ -15,7 +16,9 @@ public abstract class Log implements Serializable {
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
 
 	public static void register(Supplier<Log> s) {
-		factorys.put(s.get().getTypeId(), s);
+		var ins = s.get();
+		if (null == factorys.putIfAbsent(ins.getTypeId(), s))
+			LogBean.logger.debug("register log {} {}", ins.getTypeId(), ins.getClass().getName());
 	}
 
 	public static Log create(int typeId) {

@@ -219,6 +219,8 @@ namespace Zeze.Transaction
             }
         }
 
+        public object _zeze_map_key_ { get; set; } // 支持直接作为map的value。是一种优化！
+
         public Bean Bean
         {
             get

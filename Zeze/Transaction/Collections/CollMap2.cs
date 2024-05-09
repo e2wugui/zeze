@@ -38,7 +38,11 @@ namespace Zeze.Transaction.Collections
 
         static CollMap2()
 		{
-			PropertyMapKey = typeof(V).GetProperty($"_zeze_map_key_{Util.Reflect.GetStableName(typeof(K))}_");
+			var typeofV = typeof(V);
+
+            PropertyMapKey = typeofV == typeof(DynamicBean) 
+				? typeofV.GetProperty("_zeze_map_key_")
+				: typeofV.GetProperty($"_zeze_map_key_{Util.Reflect.GetStableName(typeof(K))}_");
 		}
 
         public override void ClearParameters()

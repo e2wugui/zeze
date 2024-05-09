@@ -7,10 +7,12 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class LogBean extends Log {
-	// private static final Logger logger = LogManager.getLogger(LogBean.class);
+	public static final Logger logger = LogManager.getLogger();
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
 	private IntHashMap<Log> variables;
