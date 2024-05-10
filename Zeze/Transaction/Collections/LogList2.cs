@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Transactions;
 using Zeze.Serialize;
 using Zeze.Util;
 
@@ -30,7 +28,6 @@ namespace Zeze.Transaction.Collections
         }
 
         public readonly Dictionary<LogBean, OutInt> Changed = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
-
 
 #if !USE_CONFCS
         public LogList2()

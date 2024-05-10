@@ -33,6 +33,9 @@ namespace Zeze.Serialize
             if (type == typeof(float))
                 return (Func<ByteBuffer, T>)(Delegate)new Func<ByteBuffer, float>(bb => bb.ReadFloat());
 
+            if (type == typeof(decimal))
+                return (Func<ByteBuffer, T>)(Delegate)new Func<ByteBuffer, decimal>(bb => decimal.Parse(bb.ReadString()));
+
             if (type == typeof(Binary))
                 return (Func<ByteBuffer, T>)(Delegate)new Func<ByteBuffer, Binary>(bb => bb.ReadBinary());
 
@@ -82,6 +85,9 @@ namespace Zeze.Serialize
 
             if (type == typeof(float))
                 return (Action<ByteBuffer, T>)(Delegate)new Action<ByteBuffer, float>((buf, x) => buf.WriteFloat(x));
+
+            if (type == typeof(decimal))
+                return (Action<ByteBuffer, T>)(Delegate)new Action<ByteBuffer, decimal>((buf, x) => buf.WriteString(x.ToString()));
 
             if (type == typeof(Binary))
                 return (Action<ByteBuffer, T>)(Delegate)new Action<ByteBuffer, Binary>((buf, x) => buf.WriteBinary(x));

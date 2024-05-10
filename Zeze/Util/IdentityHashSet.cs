@@ -7,6 +7,11 @@ namespace Zeze.Util
     {
         private readonly IdentityHashMap<E, E> Impl = new IdentityHashMap<E, E>();
 
+        public bool Contains(E e)
+        {
+            return Impl.ContainsKey(e);
+        }
+
         public bool Add(E e)
         {
             return Impl.TryAdd(e, e);

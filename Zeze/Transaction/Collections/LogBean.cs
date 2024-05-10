@@ -61,15 +61,22 @@ namespace Zeze.Transaction.Collections
             LogBean logBean;
             switch (type)
             {
-                case 1: logBean = new LogDynamic(); break;
-                case 0: logBean = new LogBean(); break;
+                case 0:
+                    logBean = new LogBean();
+                    break;
+                case 1:
+#if USE_CONFCS
+                    logBean = new LogConfDynamic();
+#else
+                    logBean = new LogDynamic();
+#endif
+                    break;
                 default:
-                    throw new System.Exception("unknown logbean subclass type=" + type);
+                    throw new System.Exception("unknown logBean subclass type=" + type);
             }
             logBean.Decode(bb);
             return logBean;
         }
-
 
         public override void Decode(ByteBuffer bb)
         {
