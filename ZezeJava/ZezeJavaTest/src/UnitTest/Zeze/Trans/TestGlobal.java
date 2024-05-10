@@ -10,13 +10,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log1;
+import Zeze.Transaction.LogSpecial;
 import Zeze.Transaction.Procedure;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
 public class TestGlobal extends TestCase {
-	public static class PrintLog extends Log1<BValue, BValue> {
+	public static class PrintLog extends LogSpecial<BValue, BValue> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
 
 		private static volatile int lastInt = -1;

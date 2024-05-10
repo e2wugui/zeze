@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class RecordAccessed extends Bean {
-	static final class PutLog extends Log1<RecordAccessed, Bean> {
+	static final class PutLog extends LogSpecial<RecordAccessed, Bean> {
 		PutLog(@NotNull RecordAccessed bean, @Nullable Bean putValue) {
 			super(bean, 0, putValue);
 		}
