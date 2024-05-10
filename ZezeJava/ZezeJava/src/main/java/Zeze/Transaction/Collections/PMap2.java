@@ -12,16 +12,12 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
 public class PMap2<K, V extends Bean> extends PMap<K, V> {
-	private static final @NotNull Logger logger = LogManager.getLogger(PMap2.class);
-
 	protected final @NotNull Meta2<K, V> meta;
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
@@ -160,10 +156,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
-			if (value != null)
-				value.followerApply(e.getValue());
-			else
-				logger.error("Not Exist! Key={} Value={}", e.getKey(), e.getValue());
+			value.followerApply(e.getValue()); // value NullPointerException if not exist.
 		}
 		map = tmp;
 	}
