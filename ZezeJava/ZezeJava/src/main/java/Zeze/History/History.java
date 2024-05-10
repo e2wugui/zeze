@@ -1,11 +1,13 @@
 package Zeze.History;
 
+import java.util.HashMap;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
+import Zeze.Transaction.TableKey;
 import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +17,7 @@ public class History {
 
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
-	private volatile LongConcurrentHashMap<BLogChanges.Data> logChanges;
+	private volatile LongConcurrentHashMap<LogChangesRaw> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
 	private final LongConcurrentHashMap<Binary> encoded = new LongConcurrentHashMap<>();
@@ -23,11 +25,11 @@ public class History {
 	public History() {
 	}
 
-	public History(BLogChanges.Data firstData) {
+	public History(LogChangesRaw firstData) {
 		addLogChanges(firstData);
 	}
 
-	public void addLogChanges(BLogChanges.Data _logChanges) {
+	public void addLogChanges(LogChangesRaw _logChanges) {
 		if (null == logChanges)
 			logChanges = new LongConcurrentHashMap<>();
 		logChanges.put(_logChanges.getGlobalSerialId(), _logChanges);
@@ -79,8 +81,8 @@ public class History {
 		encoded.clear();
 	}
 
-	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<BLogChanges.Data> to,
-										@NotNull LongConcurrentHashMap<BLogChanges.Data> other) {
+	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<LogChangesRaw> to,
+										@NotNull LongConcurrentHashMap<LogChangesRaw> other) {
 		other.forEach((v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
 	}
 
@@ -115,27 +117,39 @@ public class History {
 		return to;
 	}
 
-	public static BLogChanges.Data buildLogChanges(long globalSerialId,
+	public static final class LogChangesRaw extends BLogChanges.Data {
+		private final HashMap<TableKey, Changes.Record> records;
+
+		public LogChangesRaw(HashMap<TableKey, Changes.Record> records) {
+			this.records = records;
+		}
+
+		@Override
+		public void encode(ByteBuffer bb) {
+			for (var e : records.entrySet()) {
+				var tableKey = new BTableKey(
+						e.getKey().getId(),
+						new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
+				var bbValue = ByteBuffer.Allocate();
+				e.getValue().encode(bbValue);
+				getChanges().put(tableKey, new Binary(bbValue));
+			}
+			records.clear();
+			super.encode(bb);
+		}
+	}
+
+	public static LogChangesRaw buildLogChanges(long globalSerialId,
 												   Changes changes,
 												   @Nullable String protocolClassName,
 												   @Nullable Binary protocolArgument) {
-		var logChanges = new BLogChanges.Data();
+		var logChanges = new LogChangesRaw(changes.getRecords());
 		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);
 		if (null != protocolClassName)
 			logChanges.setProtocolClassName(protocolClassName);
 		if (null != protocolArgument)
 			logChanges.setProtocolArgument(protocolArgument);
-
-		// changes
-		for (var e : changes.getRecords().entrySet()) {
-			var tableKey = new BTableKey(
-					e.getKey().getId(),
-					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
-			var bb = ByteBuffer.Allocate();
-			e.getValue().encode(bb);
-			logChanges.getChanges().put(tableKey, new Binary(bb));
-		}
 		return logChanges;
 	}
 }

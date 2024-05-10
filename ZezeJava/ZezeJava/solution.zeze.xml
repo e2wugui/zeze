@@ -1847,7 +1847,7 @@
 				<variable id="1" name="TableId" type="int"/>
 				<variable id="2" name="KeyEncoded" type="binary"/>
 			</beankey>
-			<bean name="BLogChanges">
+			<bean name="BLogChanges" extendable="true">
 				<variable id="1" name="GlobalSerialId" type="long"/>
 				<variable id="2" name="ProtocolClassName" type="string"/>
 				<variable id="3" name="ProtocolArgument" type="binary"/>

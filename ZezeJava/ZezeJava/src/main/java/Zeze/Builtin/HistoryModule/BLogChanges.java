@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesReadOnly {
+public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesReadOnly {
     public static final long TYPEID = 395935719895809559L;
 
     private long _GlobalSerialId;
@@ -460,7 +460,7 @@ public final class BLogChanges extends Zeze.Transaction.Bean implements BLogChan
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
-public static final class Data extends Zeze.Transaction.Data {
+public static class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 395935719895809559L;
 
     private long _GlobalSerialId;

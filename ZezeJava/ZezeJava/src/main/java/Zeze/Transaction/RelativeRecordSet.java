@@ -40,7 +40,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return history;
 	}
 
-	void addLogChanges(BLogChanges.Data logChanges) {
+	void addLogChanges(History.LogChangesRaw logChanges) {
 		var h = history;
 		if (h == null)
 			history = h = new History();
@@ -125,7 +125,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
+									   @NotNull Callable<History.LogChangesRaw> collectChanges) throws Exception {
 
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
