@@ -443,13 +443,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				var nr = 0;
-				History history = null;
 				if (checkpoint.zeze.getConfig().isHistory()) {
 					for (var rrs : sortedRrs.values()) {
 						rrs.lock();
 						locks.add(rrs);
 						nr += rrs.recordSet.size();
-						history = History.merge(history, rrs.getHistory());
 					}
 				} else {
 					for (var rrs : sortedRrs.values()) {
@@ -460,10 +458,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 				}
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
+				History history = null;
 				for (var rrs : sortedRrs.values()) {
 					if (rrs.mergeTo != null)
 						continue; // merged or deleted
 					rs.addAll(rrs.recordSet);
+					history = History.merge(history, rrs.getHistory());
 					//onzProcedures.addAll(rrs.getOnzProcedures());
 				}
 				/*
