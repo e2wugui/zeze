@@ -222,6 +222,12 @@ public final class Changes {
 				}
 			}// else // 由于现在有了History，所以这个变成可能了。
 			//	logger.error("Impossible! Record Log Exist But No Listener");
+
+			// 这里面记录的日志量可能比较多，超过实际使用，包含了废弃的。
+			// 通知完以后不再需要。
+			// 【注意】history引用了其他部分，不能清除。
+			// help gc
+			v.logBeans.clear();
 		}
 	}
 }
