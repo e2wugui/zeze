@@ -22,6 +22,11 @@ public class LogVector2Int extends Log {
 	}
 
 	@Override
+	public Category category() {
+		return Category.eHistory;
+	}
+
+	@Override
 	public int getTypeId() {
 		return TYPE_ID;
 	}

@@ -207,6 +207,11 @@ public final class AutoKeyOld {
 		}
 
 		@Override
+		public Category category() {
+			return Category.eSpecial;
+		}
+
+		@Override
 		public int getTypeId() {
 			return 0; // null: 特殊日志，不关联Bean。
 		}

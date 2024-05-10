@@ -12,6 +12,11 @@ public abstract class Log1<TBean extends Bean, TValue> extends Log {
 		this.value = value;
 	}
 
+	@Override
+	public Category category() {
+		return Category.eSpecial;
+	}
+
 	public final @Nullable TValue getValue() {
 		return value;
 	}

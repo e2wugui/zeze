@@ -13,7 +13,15 @@ import Zeze.Util.LongConcurrentHashMap;
  * 用于其他非 bean 的日志时，也需要构造一个 bean，用来包装日志。
  */
 public abstract class Log implements Serializable {
+	public enum Category {
+		eHistory, // 只有这个类被会被收集到增量日志里面
+		eUser, // 用户自定义
+		eSpecial, // zeze内部特殊定义的log，也可能是用户自定义的。
+	}
+
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
+
+	public abstract Category category();
 
 	public static void register(Supplier<Log> s) {
 		var ins = s.get();

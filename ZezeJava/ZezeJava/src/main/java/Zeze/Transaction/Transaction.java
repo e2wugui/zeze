@@ -484,6 +484,8 @@ public final class Transaction {
 			if (it != null) {
 				while (it.moveToNext()) {
 					var log = it.value();
+					if (log.category() != Log.Category.eHistory)
+						continue; // 
 					var logBelong = log.getBelong();
 					// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
 					if (logBelong != null && logBelong.isManaged()) {

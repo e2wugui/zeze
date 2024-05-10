@@ -22,6 +22,11 @@ public class LogQuaternion extends Log {
 	}
 
 	@Override
+	public Category category() {
+		return Category.eHistory;
+	}
+
+	@Override
 	public int getTypeId() {
 		return TYPE_ID;
 	}

@@ -23,6 +23,11 @@ public class LogDecimal extends Log {
 	}
 
 	@Override
+	public Category category() {
+		return Category.eHistory;
+	}
+
+	@Override
 	public int getTypeId() {
 		return TYPE_ID;
 	}

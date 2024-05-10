@@ -20,6 +20,11 @@ public class LogBean extends Log {
 	private Bean self;
 
 	@Override
+	public Category category() {
+		return Category.eHistory;
+	}
+
+	@Override
 	public int getTypeId() {
 		return TYPE_ID;
 	}

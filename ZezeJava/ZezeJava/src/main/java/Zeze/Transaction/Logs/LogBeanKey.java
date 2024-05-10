@@ -25,6 +25,11 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	}
 
 	@Override
+	public Category category() {
+		return Category.eHistory;
+	}
+
+	@Override
 	public int getTypeId() {
 		return meta.logTypeId;
 	}
