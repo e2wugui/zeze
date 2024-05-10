@@ -17,7 +17,7 @@ public class Verify {
 		zeze.checkpointRun(); // 【注意】如果存在多个app，需要所有app都checkpoint，这里只保证当前app提交。
 		var counter = new AtomicLong();
 		var total = new AtomicLong();
-		zeze.getHistoryModule().getTable().walkDatabase((key, value) -> {
+		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
 			for (var r : value.getChanges().entrySet()) {
 				var applyTable = applyTables.computeIfAbsent(r.getKey().getTableId(), __ -> {
 					var tableName = TableKey.tables.get(r.getKey().getTableId());

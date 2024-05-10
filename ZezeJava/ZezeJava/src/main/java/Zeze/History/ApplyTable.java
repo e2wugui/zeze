@@ -45,7 +45,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void apply(@NotNull BTableKey tableKey, @NotNull Binary changes) throws Exception {
+	public K apply(@NotNull BTableKey tableKey, @NotNull Binary changes) throws Exception {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
 		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded()));
@@ -69,6 +69,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			put(key, value);
 			break;
 		}
+		return key;
 	}
 
 	public void put(@NotNull K key, @NotNull V value) throws Exception {

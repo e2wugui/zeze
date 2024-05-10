@@ -9,6 +9,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class HistoryModule extends AbstractHistoryModule {
 	private final Application zeze;
 	private HttpServer httpServer;
+	private final ApplyHelper applyHelper;
 
 	// 需要应用调用一下开启分析服务。
 	public void startHttpServer(Netty netty, int port) throws Exception {
@@ -25,6 +26,7 @@ public class HistoryModule extends AbstractHistoryModule {
 		}
 	}
 
+
 	public void stop() {
 		lock();
 		try {
@@ -40,30 +42,31 @@ public class HistoryModule extends AbstractHistoryModule {
 	public HistoryModule(Application zeze) {
 		this.zeze = zeze;
 		RegisterZezeTables(zeze);
+
+		// todo 怎么指定这么名字，采用一个默认的？否则指定再配置有点重复了。
+		//var dbApplied = new ApplyDatabaseZeze(zeze, "_history_applied_db_");
+		var dbApplied = new ApplyDatabaseMemory();
+		// todo dbApplied 如果是持久化的，applyHelper.exclusiveStartKey也需要持久化。
+		applyHelper = new ApplyHelper(zeze, _ZezeHistoryTable_m_a_g_i_c, dbApplied, 20_000);
 	}
 
 	public Application getZeze() {
 		return zeze;
 	}
 
-	public ZezeHistoryTable_m_a_g_i_c getTable() {
+	public ZezeHistoryTable_m_a_g_i_c getHistoryTable() {
 		return _ZezeHistoryTable_m_a_g_i_c;
 	}
 
 	@Override
 	protected void OnServletWalkPage(Zeze.Netty.HttpExchange x) throws Exception {
 		var queryMap = x.queryMap();
-		var start = queryMap.get("start");
-		var limit = queryMap.get("limit");
+		var count = queryMap.get("count");
 
-		Long exclusiveStartKey = start != null ? Long.parseLong(start) : null;
-		var proposeLimit = limit != null ? Integer.parseInt(limit) : 20;
+		// todo 结果丢失了类型；
+		//  根据需求，调整 ApplyHelper 吧。
+		var affects = applyHelper.apply(count != null ? Integer.parseInt(count) : 1);
 
-		var text = new StringBuilder();
-		getTable().walkDatabase(exclusiveStartKey, proposeLimit, (key, value) -> {
-			text.append(key.toString()).append("->").append(value.toString()).append("\n");
-			return true;
-		});
-		x.sendPlainText(HttpResponseStatus.OK, text.toString());
+		x.sendPlainText(HttpResponseStatus.OK, "OK");
 	}
 }

@@ -299,7 +299,7 @@ public final class Checkpoint {
 					}
 				}
 			}
-			var historyTable = zeze.getHistoryModule().getTable();
+			var historyTable = zeze.getHistoryModule().getHistoryTable();
 			var historyTransaction = history != null
 					? dts.computeIfAbsent(historyTable.getDatabase(), Database::beginTransaction)
 					: null;
