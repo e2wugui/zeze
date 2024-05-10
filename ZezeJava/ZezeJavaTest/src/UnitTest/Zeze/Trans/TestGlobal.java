@@ -5,6 +5,7 @@ import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Services.ServiceManager.EditService;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.Transaction;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -138,11 +139,9 @@ public class TestGlobal extends TestCase {
 			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt_1(b.getInt_1() + 1);
-/* PrintLog会被History.buildLogChanges中序列化导致异常,暂时注释掉
 				PrintLog log = new PrintLog(b, b, appId);
 				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);
-*/
 				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), DispatchMode.Normal);
 		}
