@@ -123,7 +123,8 @@
 		<druid.version>1.2.22</druid.version>
 		<mysql-connector-j.version>8.4.0</mysql-connector-j.version>
 		<jedis.version>5.1.2</jedis.version>
-		<aws-java-sdk-dynamodb.version>1.12.568</aws-java-sdk-dynamodb.version>
+		<aws-java-sdk-dynamodb.version>1.12.663</aws-java-sdk-dynamodb.version>
+		<fdb-java.version>7.3.33</fdb-java.version>
 		<rocketmq-client.version>4.9.8</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
 		<jgrapht-core.version>1.5.2</jgrapht-core.version>
@@ -233,6 +234,13 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-dynamodb</artifactId>
 			<version>${aws-java-sdk-dynamodb.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.foundationdb</groupId>
+			<artifactId>fdb-java</artifactId>
+			<version>${fdb-java.version}</version>
 			<scope>provided</scope>
 		</dependency>
 

@@ -10,7 +10,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.LogDynamic;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
