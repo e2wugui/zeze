@@ -102,7 +102,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	@Override
-	public void upgrade(Function<Bean, Bean> retreatFunc) {
+	public void upgrade(Function<Bean, Bean> retreatFunc) throws Exception {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walkMemory((account, locals) -> {
@@ -265,7 +265,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return _tlocal.getCacheSize();
 	}
 
-	public long walkLocal(@NotNull TableWalkHandle<String, BLocals> walker) {
+	public long walkLocal(@NotNull TableWalkHandle<String, BLocals> walker) throws Exception {
 		return _tlocal.walkMemory(walker);
 	}
 
@@ -1514,7 +1514,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 	}
 
-	private void verifyLocal() {
+	private void verifyLocal() throws Exception {
 		var batch = new VerifyBatch();
 		// 锁外执行事务
 		_tlocal.walkMemory((k, v) -> {
@@ -1749,7 +1749,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private int reliableNotifySync(@NotNull String account, @NotNull String clientId,
-								   @NotNull ProviderUserSession session, long index, boolean sync) {
+								   @NotNull ProviderUserSession session, long index, boolean sync) throws Exception {
 		var online = getOrAddOnline(account);
 		var queue = openQueue(account, clientId);
 		var loginOnline = online.getLogins().getOrAdd(clientId);

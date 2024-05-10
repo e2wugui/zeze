@@ -45,7 +45,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void apply(@NotNull BTableKey tableKey, @NotNull Binary changes) {
+	public void apply(@NotNull BTableKey tableKey, @NotNull Binary changes) throws Exception {
 		var logRecord = new Changes.Record(originTable);
 		logRecord.decode(ByteBuffer.Wrap(changes));
 		var key = originTable.decodeKey(ByteBuffer.Wrap(tableKey.getKeyEncoded()));
@@ -71,7 +71,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		}
 	}
 
-	public void put(@NotNull K key, @NotNull V value) {
+	public void put(@NotNull K key, @NotNull V value) throws Exception {
 		var bbKey = originTable.encodeKey(key);
 		var bbValue = ByteBuffer.Allocate();
 		value.encode(bbValue);
@@ -79,7 +79,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		table.put(bbKey.Bytes, bbKey.ReadIndex, bbKey.size(), bbValue.Bytes, bbValue.ReadIndex, bbValue.size());
 	}
 
-	public void remove(@NotNull K key) {
+	public void remove(@NotNull K key) throws Exception {
 		lru.remove(key);
 		var bbKey = originTable.encodeKey(key);
 		table.remove(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
@@ -115,7 +115,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		return sb.toString();
 	}
 
-	public void verifyAndClear() {
+	public void verifyAndClear() throws Exception {
 		originTable.walk((key, value) -> {
 			var applyValue = get(key);
 			if (null == applyValue)

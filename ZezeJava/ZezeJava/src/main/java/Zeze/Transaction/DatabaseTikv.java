@@ -195,7 +195,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);
@@ -218,7 +218,7 @@ public class DatabaseTikv extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			long countWalked = 0;
 			int keyPrefixSize = keyPrefix.length;
 			var startKey = ByteString.copyFrom(keyPrefix);

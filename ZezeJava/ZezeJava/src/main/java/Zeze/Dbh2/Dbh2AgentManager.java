@@ -316,7 +316,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 					 String masterName, String databaseName, String tableName,
 					 TableWalkHandleRaw callback,
 					 boolean desc,
-					 @Nullable byte[] prefix) {
+					 @Nullable byte[] prefix) throws Exception {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -355,7 +355,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 						   ByteBuffer exclusiveStartKey, int proposeLimit,
 						   TableWalkHandleRaw callback,
 						   boolean desc,
-						   @Nullable byte[] prefix) {
+						   @Nullable byte[] prefix) throws Exception {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())
@@ -390,7 +390,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 						String masterName, String databaseName, String tableName,
 						TableWalkKeyRaw callback,
 						boolean desc,
-						@Nullable byte[] prefix) {
+						@Nullable byte[] prefix) throws Exception {
 		var table = buckets.get(masterName).get(databaseName).get(tableName);
 		var count = 0L;
 		for (var bucketIt = table.buckets().iterator(); bucketIt.hasNext(); /* nothing */) {
@@ -429,7 +429,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 							  ByteBuffer exclusiveStartKey, int proposeLimit,
 							  TableWalkKeyRaw callback,
 							  boolean desc,
-							  @Nullable byte[] prefix) {
+							  @Nullable byte[] prefix) throws Exception {
 		var exclusiveKey = exclusiveStartKey != null ? new Binary(exclusiveStartKey) : Binary.Empty;
 		var bucketIt = locateBucketIterator(masterAgent, masterName, databaseName, tableName, exclusiveKey);
 		if (!bucketIt.hasNext())

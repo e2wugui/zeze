@@ -817,28 +817,28 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return storage.getDatabaseTable().getSizeApproximation();
 	}
 
-	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
+	public final K walk(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walk(this, exclusiveStartKey, proposeLimit, callback);
 	}
 
-	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) {
+	public final K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDesc(this, exclusiveStartKey, proposeLimit, callback);
 	}
 
-	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
+	public final K walkKey(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKey(this, exclusiveStartKey, proposeLimit, callback);
 	}
 
-	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) {
+	public final K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit, @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -854,35 +854,35 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walk(@NotNull TableWalkHandle<K, V> callback) {
+	public final long walk(@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walk(this, callback);
 	}
 
-	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback) {
+	public final long walkDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDesc(this, callback);
 	}
 
-	public final long walkKey(@NotNull TableWalkKey<K> callback) {
+	public final long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKey(this, callback);
 	}
 
-	public final long walkKeyDesc(@NotNull TableWalkKey<K> callback) {
+	public final long walkKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkKeyDesc(this, callback);
 	}
 
-	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) {
+	public final long walkCacheKey(@NotNull TableWalkKey<K> callback) throws Exception {
 		return cache.walkKey(callback);
 	}
 
@@ -893,7 +893,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRaw(@NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -902,7 +902,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) {
+	public final long walkDatabaseRawDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -911,7 +911,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawKey(@NotNull TableWalkKeyRaw callback) {
+	public final long walkDatabaseRawKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -920,7 +920,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		throw new UnsupportedOperationException("Not A KV Table.");
 	}
 
-	public final long walkDatabaseRawKeyDesc(@NotNull TableWalkKeyRaw callback) {
+	public final long walkDatabaseRawKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -930,7 +930,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											@NotNull TableWalkHandleRaw callback) {
+											@NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -941,7 +941,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												@NotNull TableWalkHandleRaw callback) {
+												@NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -952,7 +952,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-											   @NotNull TableWalkKeyRaw callback) {
+											   @NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -963,7 +963,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												   @NotNull TableWalkKeyRaw callback) {
+												   @NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -980,28 +980,28 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param callback walk callback
 	 * @return count
 	 */
-	public final long walkDatabase(@NotNull TableWalkHandle<K, V> callback) {
+	public final long walkDatabase(@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabase(this, callback);
 	}
 
-	public final long walkDatabaseDesc(@NotNull TableWalkHandle<K, V> callback) {
+	public final long walkDatabaseDesc(@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseDesc(this, callback);
 	}
 
-	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) {
+	public final long walkDatabaseKey(@NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
 		return storage.getDatabaseTable().walkDatabaseKey(this, callback);
 	}
 
-	public final long walkDatabaseKeyDesc(@NotNull TableWalkKey<K> callback) {
+	public final long walkDatabaseKeyDesc(@NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1009,7 +1009,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
-								@NotNull TableWalkHandle<K, V> callback) {
+								@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1017,7 +1017,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-									@NotNull TableWalkHandle<K, V> callback) {
+									@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1025,7 +1025,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
-								   @NotNull TableWalkKey<K> callback) {
+								   @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1033,7 +1033,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-									   @NotNull TableWalkKey<K> callback) {
+									   @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1041,7 +1041,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) {
+	public long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception {
 		return walkMemory(handle::handle);
 	}
 
@@ -1065,7 +1065,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 *
 	 * @return count
 	 */
-	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback) {
+	public final long walkMemory(@NotNull TableWalkHandle<K, V> callback) throws Exception {
 		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
 		// 还是先不限制，可以用于特殊地方。

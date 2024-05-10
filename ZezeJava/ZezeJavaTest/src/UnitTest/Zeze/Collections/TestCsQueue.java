@@ -15,7 +15,7 @@ public class TestCsQueue {
 		demo.App.getInstance().Start();
 	}
 
-	private static List<Integer> walk(CsQueue<BEquipExtra> csq) {
+	private static List<Integer> walk(CsQueue<BEquipExtra> csq) throws Exception {
 		//System.out.println(csq.getInnerName());
 		var out = new ArrayList<Integer>();
 		csq.walk((k, v) -> {
@@ -36,7 +36,7 @@ public class TestCsQueue {
 	}
 
 	@Test
-	public void testCsQueue() {
+	public void testCsQueue() throws Exception {
 		var qm = demo.App.getInstance().Zeze.getQueueModule();
 		var csq0 = new CsQueue<>(qm, "TestCsQueue", 0, BEquipExtra.class, 100);
 		// clear

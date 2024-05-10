@@ -169,7 +169,7 @@ public class BoolList {
 	 * clearAll，使用walkDatabaseKey并且删除所有记录的方式清除当前name的所有Bools。
 	 * 事务外调用.
 	 */
-	public void clearAll() {
+	public void clearAll() throws Exception {
 		var table = module._tBoolList;
 		var curKey = new BKey(name, 0);
 		var curKeyFinal = curKey;

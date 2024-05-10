@@ -367,7 +367,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")
-	public long walk(TableWalkHandle<BQueueNodeKey, V> func) {
+	public long walk(TableWalkHandle<BQueueNodeKey, V> func) throws Exception {
 		long count = 0L;
 		while (true) {
 			var root = compatibleDirty(module._tQueues.selectDirty(name), name);

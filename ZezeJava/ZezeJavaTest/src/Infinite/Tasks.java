@@ -77,7 +77,7 @@ public final class Tasks {
 
 		abstract long process();
 
-		void verify() {
+		void verify() throws Exception {
 			// default verify
 			var name = getClass().getName();
 			var runCount = getRunCounter(name).sum();
@@ -198,7 +198,7 @@ public final class Tasks {
 		}
 
 		@Override
-		void verify() {
+		void verify() throws Exception {
 			super.verify();
 
 			// verify 时，所有任务都执行完毕，不需要考虑并发。
@@ -313,7 +313,7 @@ public final class Tasks {
 		}
 
 		@Override
-		void verify() {
+		void verify() throws Exception {
 			super.verify();
 
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。

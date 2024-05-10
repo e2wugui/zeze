@@ -133,7 +133,7 @@ public class DbWeb extends AbstractDbWeb {
 
 	@SuppressWarnings("unchecked")
 	public static <K extends Comparable<K>, V extends Bean> K walkKey(TableX<?, ?> table, Object exclusiveStartKey,
-																	  int proposeLimit, TableWalkKey<?> callback) {
+																	  int proposeLimit, TableWalkKey<?> callback) throws Exception {
 		return ((TableX<K, V>)table).walkKey((K)exclusiveStartKey, proposeLimit, (TableWalkKey<K>)callback);
 	}
 
@@ -267,7 +267,7 @@ public class DbWeb extends AbstractDbWeb {
 		}
 	}
 
-	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, Predicate<K> batchCallback) {
+	public <K extends Comparable<K>, V extends Bean> void clearTable(TableX<K, V> table, Predicate<K> batchCallback) throws Exception {
 		final var DELETE_BATCH_COUNT = 100;
 		var keys = new ArrayList<K>();
 		K lastKey = null;

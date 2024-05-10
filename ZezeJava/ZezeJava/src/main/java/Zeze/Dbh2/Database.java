@@ -238,25 +238,25 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) {
+		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName,
 					table.getName(), callback, false, prefix);
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) {
+		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName,
 					table.getName(), callback, false, prefix);
 		}
 
 		@Override
-		public long walkDesc(@NotNull TableWalkHandleRaw callback) {
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName,
 					table.getName(), callback, true, prefix);
 		}
 
 		@Override
-		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) {
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName,
 					table.getName(), callback, true, prefix);
 		}
@@ -268,28 +268,28 @@ public class Database extends Zeze.Transaction.Database {
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey,
-										 int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+										 int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
 					addPrefix(exclusiveStartKey), proposeLimit, callback, false, prefix));
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey,
-											int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+											int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
 					addPrefix(exclusiveStartKey), proposeLimit, callback, false, prefix));
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey,
-											 int proposeLimit, @NotNull TableWalkHandleRaw callback) {
+											 int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			return removePrefix(dbh2AgentManager.walk(masterAgent, masterName, databaseName, table.getName(),
 					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey,
-												int proposeLimit, @NotNull TableWalkKeyRaw callback) {
+												int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			return removePrefix(dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, table.getName(),
 					addPrefix(exclusiveStartKey), proposeLimit, callback, true, prefix));
 		}
@@ -427,45 +427,45 @@ public class Database extends Zeze.Transaction.Database {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, false, null);
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, false, null);
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name, callback, true, null);
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name, callback, true, null);
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
 					exclusiveStartKey, proposeLimit, callback, false, null);
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
 					exclusiveStartKey, proposeLimit, callback, false, null);
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			return dbh2AgentManager.walk(masterAgent, masterName, databaseName, name,
 					exclusiveStartKey, proposeLimit, callback, true, null);
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			return dbh2AgentManager.walkKey(masterAgent, masterName, databaseName, name,
 					exclusiveStartKey, proposeLimit, callback, true, null);
 		}

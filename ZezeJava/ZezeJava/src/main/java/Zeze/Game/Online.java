@@ -187,7 +187,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	public void upgrade(Function<Bean, Bean> retreatFunc) {
+	public void upgrade(Function<Bean, Bean> retreatFunc) throws Exception {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walk((roleId, locals) -> {
@@ -409,7 +409,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// default online 负责所有的online set。
 		if (defaultInstance == this) {
 			getProviderWithOnline().foreachOnline(
-					online -> online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true)));
+					online -> {
+						try {
+							online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true));
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					});
 		}
 	}
 
@@ -422,7 +428,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (defaultInstance == this) {
 			providerApp.providerService.setDisableChoiceFromLinks(true);
 			getProviderWithOnline().foreachOnline(
-					online -> online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false)));
+					online -> {
+						try {
+							online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false));
+						} catch (Exception e) {
+							throw new RuntimeException(e);
+						}
+					});
 		}
 	}
 
@@ -504,7 +516,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return (int)_tlocal.getDatabaseSizeApproximation();
 	}
 
-	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) {
+	public long walkLocal(@NotNull TableWalkHandle<Long, BLocal> walker) throws Exception {
 		return _tlocal.walk(walker);
 	}
 
@@ -1785,7 +1797,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	private void verifyLocal() {
+	private void verifyLocal() throws Exception {
 		var batch = new VerifyBatch();
 		// 锁外执行事务
 		_tlocal.walk((k, v) -> {
@@ -2073,11 +2085,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) {
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long reliableNotifyConfirmCount) throws Exception {
 		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long index, boolean sync) {
+	private int reliableNotifySync(long roleId, @NotNull ProviderUserSession session, long index, boolean sync) throws Exception {
 		var online = getOrAddOnline(roleId);
 		var queue = openQueue(roleId);
 		if (index < online.getReliableNotifyConfirmIndex()
@@ -2103,7 +2115,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
+	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		if (null == onlineSet) {
@@ -2113,7 +2125,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReliableNotifyConfirmRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReliableNotifyConfirmRequestOnlineSet(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
+	protected long ProcessReliableNotifyConfirmRequestOnlineSet(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var roleId = session.getRoleId();

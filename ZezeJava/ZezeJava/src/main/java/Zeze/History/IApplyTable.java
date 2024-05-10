@@ -21,7 +21,7 @@ public interface IApplyTable {
 	 * 注意这个操作可能很慢，谨慎使用。
 	 * @return true if empty.
 	 */
-	boolean isEmpty();
+	boolean isEmpty() throws Exception;
 
-	void walk(@NotNull TableWalkHandleRaw walker);
+	void walk(@NotNull TableWalkHandleRaw walker) throws Exception;
 }

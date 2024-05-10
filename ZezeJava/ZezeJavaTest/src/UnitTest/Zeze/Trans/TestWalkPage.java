@@ -191,7 +191,7 @@ public class TestWalkPage {
 	}
 
 	@Test
-	public void testWalkDatabaseRaw() {
+	public void testWalkDatabaseRaw() throws Exception {
 		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
@@ -213,7 +213,7 @@ public class TestWalkPage {
 	}
 
 	@Test
-	public void testWalkDatabaseDescRaw() {
+	public void testWalkDatabaseDescRaw() throws Exception {
 		var t = TestWalkPage.prepareTableDesc();
 		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
 			return;
@@ -235,7 +235,7 @@ public class TestWalkPage {
 	}
 
 	@Test
-	public void testWalkDatabase() {
+	public void testWalkDatabase() throws Exception {
 		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
@@ -255,7 +255,7 @@ public class TestWalkPage {
 	}
 
 	@Test
-	public void testWalkDatabaseDesc() {
+	public void testWalkDatabaseDesc() throws Exception {
 		var t = TestWalkPage.prepareTableDesc();
 		if (t.getDatabase() instanceof DatabaseRedis) // unsupported
 			return;
@@ -275,7 +275,7 @@ public class TestWalkPage {
 	}
 
 	@Test
-	public void testWalkCache() {
+	public void testWalkCache() throws Exception {
 		var t = TestWalkPage.prepareTable();
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);

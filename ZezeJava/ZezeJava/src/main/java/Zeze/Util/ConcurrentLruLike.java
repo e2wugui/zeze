@@ -142,7 +142,7 @@ public class ConcurrentLruLike<K, V> {
 		Task.schedule(this.cleanPeriod, this.cleanPeriod, this::cleanNow);
 	}
 
-	public long walkKey(@NotNull TableWalkKey<K> callback) {
+	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))

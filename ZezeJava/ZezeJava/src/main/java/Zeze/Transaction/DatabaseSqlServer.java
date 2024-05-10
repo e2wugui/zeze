@@ -404,26 +404,26 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, true);
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, true);
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			return walk(callback, false);
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			return walkKey(callback, false);
 		}
 
-		private long walk(TableWalkHandleRaw callback, boolean asc) {
+		private long walk(TableWalkHandleRaw callback, boolean asc) throws Exception {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -454,7 +454,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			}
 		}
 
-		private long walkKey(TableWalkKeyRaw callback, boolean asc) {
+		private long walkKey(TableWalkKeyRaw callback, boolean asc) throws Exception {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -484,7 +484,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 
@@ -516,7 +516,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 
@@ -548,7 +548,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 
@@ -580,7 +580,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 

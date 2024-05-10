@@ -10,7 +10,7 @@ import org.apache.logging.log4j.Logger;
 public class Verify {
 	private static final Logger logger = LogManager.getLogger();
 
-	public static void run(Application zeze) {
+	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();
 		var defaultDb = zeze.getDatabase("");
 		var applyTables = new ConcurrentHashMap<Integer, ApplyTable<?, ?>>();

@@ -443,7 +443,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	@SuppressWarnings("unchecked")
-	public long walk(@NotNull TableWalkHandle<String, V> func) {
+	public long walk(@NotNull TableWalkHandle<String, V> func) throws Exception {
 		long count = 0L;
 		var root = module._tLinkedMaps.selectDirty(name);
 		if (null == root)

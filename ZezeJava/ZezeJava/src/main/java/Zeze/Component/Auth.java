@@ -28,7 +28,7 @@ public class Auth extends AbstractAuth {
 		return _tRoleAuth.selectDirty(role);
 	}
 
-	public void walkRoles(TableWalkHandle<String, BRoleAuth> handle) {
+	public void walkRoles(TableWalkHandle<String, BRoleAuth> handle) throws Exception {
 		_tRoleAuth.walk(handle);
 	}
 

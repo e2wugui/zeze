@@ -49,7 +49,7 @@ public class ApplyDatabaseMemory implements IApplyDatabase {
 		}
 
 		@Override
-		public void walk(@NotNull TableWalkHandleRaw walker) {
+		public void walk(@NotNull TableWalkHandleRaw walker) throws Exception {
 			for (var e : dataMap.entrySet()) {
 				if (!walker.handle(e.getKey().copyIf(), e.getValue().copyIf()))
 					break;

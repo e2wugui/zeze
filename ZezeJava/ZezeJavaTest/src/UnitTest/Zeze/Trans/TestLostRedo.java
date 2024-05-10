@@ -85,7 +85,7 @@ public class TestLostRedo {
 	}
 
 	@Test
-	public void teatAutoKeyWithInsert() throws ExecutionException, InterruptedException {
+	public void teatAutoKeyWithInsert() throws Exception {
 		runTimes.set(0);
 
 		var keys = new ArrayList<Long>();

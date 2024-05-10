@@ -194,7 +194,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			attributesToGet.add("value");
@@ -221,7 +221,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			var attributesToGet = new ArrayList<String>();
 			attributesToGet.add("key");
 			var req = new ScanRequest();
@@ -266,7 +266,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 
@@ -287,7 +287,7 @@ public class DatabaseDynamoDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 

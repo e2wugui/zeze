@@ -257,7 +257,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -270,7 +270,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
@@ -283,7 +283,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
@@ -296,7 +296,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			try (var it = table.iterator()) {
 				long countWalked = 0;
 				for (it.seekToLast(); it.isValid(); it.prev()) {
@@ -309,7 +309,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -335,7 +335,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -361,7 +361,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {
@@ -387,7 +387,7 @@ public class DatabaseRocksDb extends Database {
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			try (var it = table.iterator()) {

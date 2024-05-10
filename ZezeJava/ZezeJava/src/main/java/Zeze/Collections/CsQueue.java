@@ -142,7 +142,7 @@ public class CsQueue<V extends Bean> {
 		return queue.pop();
 	}
 
-	public long walk(TableWalkHandle<BQueueNodeKey, V> func) {
+	public long walk(TableWalkHandle<BQueueNodeKey, V> func) throws Exception {
 		return queue.walk(func);
 	}
 }

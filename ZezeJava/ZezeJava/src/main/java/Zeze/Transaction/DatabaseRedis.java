@@ -145,7 +145,7 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public long walk(@NotNull TableWalkHandleRaw callback) {
+		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			var count = 0L;
 			var cursor = ScanParams.SCAN_POINTER_START_BINARY;
 			try (var jedis = pool.getResource()) {
@@ -164,7 +164,7 @@ public class DatabaseRedis extends Database {
 		}
 
 		@Override
-		public long walkKey(@NotNull TableWalkKeyRaw callback) {
+		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			return walk((key, value) -> callback.handle(key));
 		}
 

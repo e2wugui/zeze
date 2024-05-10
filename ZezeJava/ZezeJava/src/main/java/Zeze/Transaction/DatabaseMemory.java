@@ -260,7 +260,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) {
+		public long walk(TableWalkHandleRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			byte[][] values;
 			int i = 0, n;
@@ -286,7 +286,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) {
+		public long walkKey(TableWalkKeyRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
@@ -304,7 +304,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) {
+		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			byte[][] values;
 			int i = 0, n;
@@ -330,7 +330,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) {
+		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
@@ -348,7 +348,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -384,7 +384,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -415,7 +415,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) {
+		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -451,7 +451,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) {
+		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();

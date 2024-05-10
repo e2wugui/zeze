@@ -17,7 +17,7 @@ public class HotUpgradeMemoryTable {
 		this.cur = cur;
 	}
 
-	public void upgrade() {
+	public void upgrade() throws Exception {
 		var first = new OutObject<>(true);
 		try {
 			old.walkMemoryAny((k, v) -> {

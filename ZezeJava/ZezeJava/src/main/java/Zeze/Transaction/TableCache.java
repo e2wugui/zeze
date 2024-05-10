@@ -60,7 +60,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Math.max(table.getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	public long walkKey(TableWalkKey<K> callback) {
+	public long walkKey(TableWalkKey<K> callback) throws Exception {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))

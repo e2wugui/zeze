@@ -232,60 +232,60 @@ public abstract class Database extends ReentrantLock {
 		void remove(@NotNull Transaction t, @NotNull Object key);
 
 		<K extends Comparable<K>, V extends Bean>
-		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+		long walkDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+		long walkKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-			   @NotNull TableWalkHandle<K, V> callback);
+			   @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-				   @NotNull TableWalkHandle<K, V> callback);
+				   @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-				  @NotNull TableWalkKey<K> callback);
+				  @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-					  @NotNull TableWalkKey<K> callback);
+					  @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback);
+		long walkDatabaseDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback);
+		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-					   @NotNull TableWalkHandle<K, V> callback);
+					   @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkDatabaseDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-						   @NotNull TableWalkHandle<K, V> callback);
+						   @NotNull TableWalkHandle<K, V> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-						  @NotNull TableWalkKey<K> callback);
+						  @NotNull TableWalkKey<K> callback) throws Exception;
 
 		<K extends Comparable<K>, V extends Bean>
 		K walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
-							  @NotNull TableWalkKey<K> callback);
+							  @NotNull TableWalkKey<K> callback) throws Exception;
 
 		void close();
 
@@ -321,25 +321,25 @@ public abstract class Database extends ReentrantLock {
 		 *
 		 * @return 返回已经遍历的数量
 		 */
-		public abstract long walk(@NotNull TableWalkHandleRaw callback);
+		public abstract long walk(@NotNull TableWalkHandleRaw callback) throws Exception;
 
-		public abstract long walkKey(@NotNull TableWalkKeyRaw callback);
+		public abstract long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception;
 
-		public abstract long walkDesc(@NotNull TableWalkHandleRaw callback);
+		public abstract long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception;
 
-		public abstract long walkKeyDesc(@NotNull TableWalkKeyRaw callback);
+		public abstract long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception;
 
 		public abstract @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-												  @NotNull TableWalkHandleRaw callback);
+												  @NotNull TableWalkHandleRaw callback) throws Exception;
 
 		public abstract @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-													 @NotNull TableWalkKeyRaw callback);
+													 @NotNull TableWalkKeyRaw callback) throws Exception;
 
 		public abstract @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-													  @NotNull TableWalkHandleRaw callback);
+													  @NotNull TableWalkHandleRaw callback) throws Exception;
 
 		public abstract @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-														 @NotNull TableWalkKeyRaw callback);
+														 @NotNull TableWalkKeyRaw callback) throws Exception;
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean> V find(@NotNull TableX<K, V> table, @NotNull Object key) {
@@ -369,7 +369,7 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
+		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) throws Exception {
 			K k = table.decodeKey(key);
 			V v = null;
 			var r = table.getCache().get(k);
@@ -393,7 +393,7 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) {
+		boolean invokeCallback(TableX<K, V> table, byte[] key, TableWalkKey<K> callback) throws Exception {
 			K k = table.decodeKey(key);
 			var r = table.getCache().get(k);
 			if (r != null) {
@@ -416,7 +416,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+		long walk(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -425,7 +425,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+		long walkDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -434,7 +434,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkKey(TableX<K, V> table, TableWalkKey<K> callback) {
+		long walkKey(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -443,7 +443,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+		long walkKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -452,7 +452,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -465,7 +465,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -478,7 +478,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -491,7 +491,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -504,7 +504,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+		long walkDatabase(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walk((key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
@@ -514,7 +514,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) {
+		long walkDatabaseDesc(TableX<K, V> table, TableWalkHandle<K, V> callback) throws Exception {
 			return walkDesc((key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
@@ -524,19 +524,19 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) {
+		long walkDatabaseKey(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkKey(key -> callback.handle(table.decodeKey(key)));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) {
+		long walkDatabaseKeyDesc(TableX<K, V> table, TableWalkKey<K> callback) throws Exception {
 			return walkKeyDesc(key -> callback.handle(table.decodeKey(key)));
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) {
+		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
 				K k = table.decodeKey(key);
@@ -549,7 +549,7 @@ public abstract class Database extends ReentrantLock {
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		K walkDatabaseDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
-						   TableWalkHandle<K, V> callback) {
+						   TableWalkHandle<K, V> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
 				K k = table.decodeKey(key);
@@ -561,7 +561,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
@@ -570,7 +570,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) {
+		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
