@@ -6,7 +6,6 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import org.jetbrains.annotations.NotNull;
 
 public class PersistentAtomicLong {
@@ -86,7 +85,7 @@ public class PersistentAtomicLong {
 		for (; ; ) {
 			var current = currentId.get();
 			if (current >= allocatedEnd) {
-				allocate();
+				allocate(count);
 				continue;
 			}
 			var next = current + count;
@@ -96,7 +95,7 @@ public class PersistentAtomicLong {
 	}
 
 	public static class FileWithLock extends RandomAccessFile {
-		public final ReentrantLock thisLock = new ReentrantLock();
+		public final FastLock thisLock = new FastLock();
 		public FileWithLock(String name, String mode) throws FileNotFoundException {
 			super(name, mode);
 		}
@@ -122,11 +121,10 @@ public class PersistentAtomicLong {
 		});
 	}
 
-	private void allocate() {
+	private void allocate(int count) {
 		try {
-			// 应该尽量减少allocate的次数，所以这里文件就不保持打开了。
 			var fs = open(fileName);
-			fs.lock();
+			fs.lock(); // 文件锁线程不安全，所以本进程需要保护一次。
 			try {
 				var lock = fs.getChannel().lock();
 				try {
@@ -136,6 +134,8 @@ public class PersistentAtomicLong {
 					var line = fs.readLine();
 					var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
 					var allocateSize = fund.next();
+					if (allocateSize < count)
+						allocateSize += count;
 					var newLast = last + allocateSize;
 					var reset = newLast < 0;
 					if (reset)
