@@ -287,7 +287,6 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	@Override
 	protected long ProcessAllocateIdRequest(AllocateId r) {
-		r.Result.setName(r.Argument.getName());
 		var autoKey = tableAutoKey.getOrAdd(r.Argument.getName());
 
 		r.Result.setStartId(autoKey.getCurrent());

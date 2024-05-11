@@ -45,6 +45,10 @@ public class Id128 implements Comparable<Id128>, Serializable {
 		return result;
 	}
 
+	public Id128 copy() {
+		return new Id128(high, low);
+	}
+
 	@Override
 	public String toString() {
 		var bi = new BigInteger(Long.toUnsignedString(high));
@@ -71,5 +75,10 @@ public class Id128 implements Comparable<Id128>, Serializable {
 		if (c != 0)
 			return c;
 		return Long.compareUnsigned(low, o.low);
+	}
+
+	public long substract(Id128 o) {
+		// todo 剑法实现。
+		return 0;
 	}
 }

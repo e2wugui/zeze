@@ -28,6 +28,7 @@ import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Services.ServiceManager.BSubscribeArgument;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Services.ServiceManager.BUnSubscribeArgument;
+import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.Task;
@@ -53,6 +54,9 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		raftClient.dispatchProtocolToInternalThreadPool = true;
 		RegisterProtocols(raftClient.getClient());
+
+		// todo raft版本先不支持Id128分配了.
+		// super.tid128UdpClient = new Id128UdpClient(0, raftClient.getClient());
 	}
 
 	private void raftOnSetLeader(Agent agent) {

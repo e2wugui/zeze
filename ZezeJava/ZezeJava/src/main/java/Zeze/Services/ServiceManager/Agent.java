@@ -238,11 +238,11 @@ public final class Agent extends AbstractAgent {
 		return 0;
 	}
 
-	public Agent(@NotNull Config config) {
+	public Agent(@NotNull Config config) throws Exception {
 		this(config, null);
 	}
 
-	public Agent(@NotNull Config config, @Nullable String netServiceName) {
+	public Agent(@NotNull Config config, @Nullable String netServiceName) throws Exception {
 		super.config = config;
 
 		client = (null == netServiceName || netServiceName.isEmpty())
@@ -271,6 +271,10 @@ public final class Agent extends AbstractAgent {
 
 		threading = new Threading(client, config.getServerId());
 		threading.RegisterProtocols(client);
+
+		// todo 使用老的协议得到服务器的Id128UdpServer的port。
+		//  现在的方式使用和tcp.port一样.
+		super.tid128UdpClient = new Id128UdpClient(0, client);
 	}
 
 	@Override

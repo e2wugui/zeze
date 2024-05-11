@@ -658,7 +658,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	private long processAllocateId(@NotNull AllocateId r) {
 		var name = r.Argument.getName();
-		r.Result.setName(name);
 		autoKeys.computeIfAbsent(name, key -> new AutoKey(key, this)).allocate(r);
 		r.SendResult();
 		return 0;

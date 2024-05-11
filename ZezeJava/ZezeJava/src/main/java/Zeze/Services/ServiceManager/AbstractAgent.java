@@ -49,6 +49,8 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	protected @Nullable Runnable onKeepAlive;
 	private volatile TaskCompletionSource<TidCache> lastTidCacheFuture;
+	private volatile TaskCompletionSource<Tid128Cache> lastTid128CacheFuture;
+	protected Id128UdpClient tid128UdpClient; // 子类初始化。
 
 
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
@@ -131,6 +133,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			unlock();
 		}
 		return future;
+	}
+
+	public TaskCompletionSource<Tid128Cache> getLastTid128CacheFuture() {
+		return lastTid128CacheFuture;
+	}
+
+	public @NotNull TaskCompletionSource<Tid128Cache> allocateTid128CacheFuture(String globalName) {
+		return tid128UdpClient.allocateFuture(globalName);
 	}
 
 	protected abstract boolean allocateAsync(String globalName, int allocCount,

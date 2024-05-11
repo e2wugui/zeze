@@ -5,17 +5,8 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public final class BAllocateIdResult implements Serializable {
-	private String name;
 	private long startId;
 	private int count;
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String value) {
-		name = value;
-	}
 
 	public long getStartId() {
 		return startId;
@@ -35,14 +26,12 @@ public final class BAllocateIdResult implements Serializable {
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		name = bb.ReadString();
 		startId = bb.ReadLong();
 		count = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		bb.WriteString(name);
 		bb.WriteLong(startId);
 		bb.WriteInt(count);
 	}
@@ -61,6 +50,6 @@ public final class BAllocateIdResult implements Serializable {
 
 	@Override
 	public String toString() {
-		return "BAllocateIdResult{name='" + name + "',startId=" + startId + ",count=" + count + '}';
+		return "BAllocateIdResult{'" + "',startId=" + startId + ",count=" + count + '}';
 	}
 }
