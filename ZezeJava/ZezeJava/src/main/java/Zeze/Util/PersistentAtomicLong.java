@@ -14,7 +14,7 @@ public class PersistentAtomicLong {
 
 	private final @NotNull String name;
 	private final @NotNull String fileName;
-	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
+	private final @NotNull TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	private static final ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
@@ -97,7 +97,7 @@ public class PersistentAtomicLong {
 	public static class FileWithLock extends RandomAccessFile {
 		public final FastLock thisLock = new FastLock();
 
-		public FileWithLock(String name, String mode) throws FileNotFoundException {
+		public FileWithLock(@NotNull String name, @NotNull String mode) throws FileNotFoundException {
 			super(name, mode);
 		}
 
@@ -113,7 +113,7 @@ public class PersistentAtomicLong {
 	private static final ConcurrentHashMap<String, FileWithLock> allocFiles = new ConcurrentHashMap<>();
 
 	private static @NotNull FileWithLock open(@NotNull String fileName) {
-		return allocFiles.computeIfAbsent(fileName, (k) -> {
+		return allocFiles.computeIfAbsent(fileName, k -> {
 			try {
 				return new FileWithLock(k, "rw");
 			} catch (FileNotFoundException e) {

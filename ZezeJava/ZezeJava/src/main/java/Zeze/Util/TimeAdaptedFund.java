@@ -1,32 +1,33 @@
 package Zeze.Util;
 
-public class TimeAdaptedFund {
-	private long lastTime;
-	private int fund;
+import org.jetbrains.annotations.NotNull;
 
+public class TimeAdaptedFund {
 	// config
 	private final int fundMin;
 	private final int doublyMs;
 	private final int halveMs;
 
+	private int fund;
+	private long lastTime = System.currentTimeMillis();
+
 	/**
 	 * 先不公开，当需要自定义参数的时候再说。
 	 */
-	private TimeAdaptedFund(int funMin, int doublyMs, int halveMs) {
-		this.fundMin = funMin;
+	private TimeAdaptedFund(int fundMin, int doublyMs, int halveMs) {
+		this.fundMin = fundMin;
 		this.doublyMs = doublyMs;
 		this.halveMs = halveMs;
-
 		this.fund = fundMin;
-		this.lastTime = System.currentTimeMillis();
 	}
 
 	/**
 	 * 返回默认配置的实例。
 	 * 可能增加配置能力。使用Properties？
+	 *
 	 * @return 一个新的实例
 	 */
-	public static TimeAdaptedFund getDefaultFund() {
+	public static @NotNull TimeAdaptedFund getDefaultFund() {
 		return new TimeAdaptedFund(16, 30_000, 120_000);
 	}
 

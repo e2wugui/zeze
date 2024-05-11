@@ -93,18 +93,20 @@ public class Id128UdpServer {
 				udp.receive(packet);
 				bbRecv.ReadIndex = packet.getOffset();
 				bbRecv.WriteIndex = bbRecv.ReadIndex + packet.getLength();
+				bbSend.Reset();
 				try {
-					bbSend.Reset();
 					while (!bbRecv.isEmpty()) {
 						rpc.decode(bbRecv);
 						process(rpc, bytes16);
 						rpc.setRequest(false);
 						rpc.encode(bbSend);
 					}
-					packet.setData(bbSend.Bytes, 0, bbSend.WriteIndex);
-					udp.send(packet);
 				} catch (Exception e) {
 					logger.error("process exception:", e);
+				}
+				if (bbSend.WriteIndex > 0) {
+					packet.setData(bbSend.Bytes, 0, bbSend.WriteIndex);
+					udp.send(packet);
 				}
 			} catch (Throwable e) { // logger.error
 				if (udp.isClosed()) {
