@@ -96,6 +96,7 @@ public class PersistentAtomicLong {
 
 	public static class FileWithLock extends RandomAccessFile {
 		public final FastLock thisLock = new FastLock();
+
 		public FileWithLock(String name, String mode) throws FileNotFoundException {
 			super(name, mode);
 		}
@@ -108,6 +109,7 @@ public class PersistentAtomicLong {
 			thisLock.unlock();
 		}
 	}
+
 	private static final ConcurrentHashMap<String, FileWithLock> allocFiles = new ConcurrentHashMap<>();
 
 	private static @NotNull FileWithLock open(@NotNull String fileName) {
@@ -123,35 +125,40 @@ public class PersistentAtomicLong {
 
 	private void allocate(int count) {
 		try {
-			var fs = open(fileName);
-			fs.lock(); // 文件锁线程不安全，所以本进程需要保护一次。
-			try {
-				var lock = fs.getChannel().lock();
+			for (; ; ) {
+				var fs = open(fileName);
+				fs.lock(); // 文件锁线程不安全，所以本进程需要保护一次。
 				try {
-					if (currentId.get() < allocatedEnd)
-						return; // has allocated. concurrent.
-					fs.seek(0);
-					var line = fs.readLine();
-					var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
-					var allocateSize = fund.next();
-					if (allocateSize < count)
-						allocateSize += count;
-					var newLast = last + allocateSize;
-					var reset = newLast < 0;
-					if (reset)
-						newLast = allocateSize;
-					fs.setLength(0);
-					fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
-					allocatedEnd = newLast; // first
-					if (reset)
-						currentId.set(0); // second
+					var channel = fs.getChannel();
+					if (!channel.isOpen()) {
+						allocFiles.remove(fileName, fs);
+						continue;
+					}
+					try (var ignored = channel.lock()) {
+						if (currentId.get() < allocatedEnd)
+							return; // has allocated. concurrent.
+						fs.seek(0);
+						var line = fs.readLine();
+						var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
+						var allocateSize = fund.next();
+						if (allocateSize < count)
+							allocateSize += count;
+						var newLast = last + allocateSize;
+						var reset = newLast < 0;
+						if (reset)
+							newLast = allocateSize;
+						fs.setLength(0);
+						fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
+						allocatedEnd = newLast; // first
+						if (reset)
+							currentId.set(0); // second
+					}
 				} finally {
-					lock.release();
+					fs.unlock();
 				}
-			} finally {
-				fs.unlock();
+				break;
 			}
-		} catch (Exception e) {
+		} catch (IOException e) {
 			Task.forceThrow(e);
 		}
 	}
