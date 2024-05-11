@@ -10,6 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.TimeAdaptedFund;
 
 @Deprecated // 暂时保留
 public final class AutoKeyOld {
@@ -36,15 +37,11 @@ public final class AutoKeyOld {
 		}
 	}
 
-	private static final int ALLOCATE_COUNT_MIN = 64;
-	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
-
 	private final Module module;
 	private final String name;
 	private final long logKey;
 	private volatile Range range;
-	private int allocateCount = ALLOCATE_COUNT_MIN;
-	private long lastAllocateTime = System.currentTimeMillis();
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	private AutoKeyOld(Module module, String name) {
 		this.module = module;
@@ -54,7 +51,7 @@ public final class AutoKeyOld {
 	}
 
 	public int getAllocateCount() {
-		return allocateCount;
+		return fund.get();
 	}
 
 	public long nextId() {
@@ -142,21 +139,9 @@ public final class AutoKeyOld {
 				return next; // allocate in range success
 		}
 
-		Transaction.whileCommit(() -> {
-			// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
-			// 这里可能有并发问题, 不过影响可以忽略
-			var now = System.currentTimeMillis();
-			var diff = now - lastAllocateTime;
-			lastAllocateTime = now;
-			long newCount = allocateCount;
-			if (diff < 30 * 1000) // 30 seconds
-				newCount <<= 1;
-			else if (diff > 120 * 1000) // 120 seconds
-				newCount >>= 1;
-			else
-				return;
-			allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
-		});
+		// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
+		// 这里可能有并发问题, 不过影响可以忽略
+		Transaction.whileCommit(fund::next);
 
 		var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 		var txn = Transaction.getCurrent();
@@ -167,7 +152,7 @@ public final class AutoKeyOld {
 				// allocate: 多线程，多事务，多服务器（缓存同步）由zeze保证。
 				var key = module._tAutoKeys.getOrAdd(seedKey);
 				var start = key.getNextId();
-				var end = start + allocateCount; // allocateCount == 0 会死循环。
+				var end = start + fund.get(); // allocateCount == 0 会死循环。
 				key.setNextId(end);
 				// create log，本事务可见，
 				log = new RangeLog(new Range(start, end));

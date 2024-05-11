@@ -96,8 +96,6 @@ public class LogList1<V> extends LogList<V> {
 		if (index < 0)
 			return false;
 		remove(index);
-		if (null != addSet)
-			addSet.remove(item);
 		return true;
 	}
 

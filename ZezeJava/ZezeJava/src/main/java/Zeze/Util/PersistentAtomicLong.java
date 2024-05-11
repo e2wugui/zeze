@@ -11,11 +11,11 @@ import org.jetbrains.annotations.NotNull;
 
 public class PersistentAtomicLong {
 	private final AtomicLong currentId = new AtomicLong();
-	private volatile long allocated;
+	private volatile long allocatedEnd;
 
 	private final @NotNull String name;
 	private final @NotNull String fileName;
-	private final int allocateSize;
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	private static final ConcurrentHashMap<String, PersistentAtomicLong> pals = new ConcurrentHashMap<>();
 
@@ -27,23 +27,15 @@ public class PersistentAtomicLong {
 	 *                            有多个实例时，需要另一个Id区分，这里不能使用进程id（pid），需要稳定的。
 	 *                            对于网络程序，可以使用"进程名+Main.Acceptor.Name"
 	 */
-	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName, final int allocateSize) {
+	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName) {
 		var name = ProgramInstanceName.replace(':', '.');
 		// 这样写，不小心重名也能工作。
-		return pals.computeIfAbsent(name, (k) -> new PersistentAtomicLong(k, allocateSize));
+		return pals.computeIfAbsent(name, PersistentAtomicLong::new);
 	}
 
-	public static @NotNull PersistentAtomicLong getOrAdd(@NotNull String ProgramInstanceName) {
-		return getOrAdd(ProgramInstanceName, 5000);
-	}
-
-	private PersistentAtomicLong(@NotNull String ProgramInstanceName, int allocateSize) {
-		if (allocateSize <= 0)
-			throw new IllegalArgumentException();
-
+	private PersistentAtomicLong(@NotNull String ProgramInstanceName) {
 		name = ProgramInstanceName;
 		fileName = ProgramInstanceName + ".zeze.pal";
-		this.allocateSize = allocateSize;
 
 		try {
 			var fs = open(fileName);
@@ -53,8 +45,8 @@ public class PersistentAtomicLong {
 				try {
 					var line = fs.readLine();
 					if (null != line) {
-						allocated = Long.parseLong(line);
-						currentId.set(allocated);
+						allocatedEnd = Long.parseLong(line);
+						currentId.set(allocatedEnd);
 					}
 					// 初始化的时候不allocate，如果程序启动，没有分配就退出，保持原来的值。
 				} finally {
@@ -73,14 +65,30 @@ public class PersistentAtomicLong {
 	}
 
 	public long next() {
+		return next(1);
+		/* 旧的分配一个的代码。比较确认完成以后删除。
 		for (; ; ) {
-			long current = currentId.get();
-			if (current >= allocated) {
+			var current = currentId.get();
+			if (current >= allocatedEnd) {
 				allocate();
 				continue;
 			}
 			if (currentId.compareAndSet(current, current + 1))
 				return current + 1;
+		}
+		*/
+	}
+
+	public long next(int count) {
+		for (; ; ) {
+			var current = currentId.get();
+			var next = current + count;
+			if (next >= allocatedEnd) {
+				allocate();
+				continue;
+			}
+			if (currentId.compareAndSet(current, next))
+				return next;
 		}
 	}
 
@@ -119,18 +127,19 @@ public class PersistentAtomicLong {
 			try {
 				var lock = fs.getChannel().lock();
 				try {
-					if (currentId.get() < allocated)
+					if (currentId.get() < allocatedEnd)
 						return; // has allocated. concurrent.
 					fs.seek(0);
 					var line = fs.readLine();
 					var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
+					var allocateSize = fund.next();
 					var newLast = last + allocateSize;
 					var reset = newLast < 0;
 					if (reset)
 						newLast = allocateSize;
 					fs.setLength(0);
 					fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
-					allocated = newLast; // first
+					allocatedEnd = newLast; // first
 					if (reset)
 						currentId.set(0); // second
 				} finally {

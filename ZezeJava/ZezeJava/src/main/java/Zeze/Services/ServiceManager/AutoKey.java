@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Util.FastLock;
+import Zeze.Util.TimeAdaptedFund;
 
 public final class AutoKey extends FastLock {
 	private final String name;
@@ -26,25 +27,7 @@ public final class AutoKey extends FastLock {
 		return current.get();
 	}
 
-	private static final int ALLOCATE_COUNT_MIN = 64;
-	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
-
-	private int allocateCount = ALLOCATE_COUNT_MIN;
-	private long lastAllocateTime = System.currentTimeMillis();
-
-	private void adjustAllocateCount() {
-		var now = System.currentTimeMillis();
-		var diff = now - lastAllocateTime;
-		lastAllocateTime = now;
-		long newCount = allocateCount;
-		if (diff < 30 * 1000) // 30 seconds
-			newCount <<= 1;
-		else if (diff > 120 * 1000) // 120 seconds
-			newCount >>= 1;
-		else
-			return;
-		allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
-	}
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	public long next() {
 		for (; ; ) {
@@ -59,7 +42,7 @@ public final class AutoKey extends FastLock {
 			lock();
 			try {
 				if (idEnd == end) {
-					adjustAllocateCount();
+					var allocateCount = fund.next();
 					agent.allocate(this, allocateCount);
 				}
 			} finally {

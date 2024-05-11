@@ -15,6 +15,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TimeAdaptedFund;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,15 +43,11 @@ public class AutoKey extends ReentrantLock {
 		}
 	}
 
-	private static final int ALLOCATE_COUNT_MIN = 64;
-	private static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
-
 	private final @NotNull Module module;
 	private final @NotNull String name;
 	private volatile @Nullable Range range;
 
-	private int allocateCount = ALLOCATE_COUNT_MIN;
-	private long lastAllocateTime = System.currentTimeMillis();
+	private final TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 
 	private AutoKey(@NotNull Module module, @NotNull String name) {
 		this.module = module;
@@ -62,7 +59,7 @@ public class AutoKey extends ReentrantLock {
 	}
 
 	public int getAllocateCount() {
-		return allocateCount;
+		return fund.get();
 	}
 
 	public long nextId() {
@@ -242,26 +239,12 @@ public class AutoKey extends ReentrantLock {
 				try {
 					var newRange = new OutObject<Range>();
 					ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
-						Transaction.whileCommit(() -> {
-							// 不能在重做时重复计算，一次事务重新计算一次，下一次生效。
-							// 这里可能有并发问题, 不过影响可以忽略
-							var now = System.currentTimeMillis();
-							var diff = now - lastAllocateTime;
-							lastAllocateTime = now;
-							long newCount = allocateCount;
-							if (diff < 30 * 1000) // 30 seconds
-								newCount <<= 1;
-							else if (diff > 120 * 1000) // 120 seconds
-								newCount >>= 1;
-							else
-								return;
-							allocateCount = (int)Math.min(Math.max(newCount, ALLOCATE_COUNT_MIN), ALLOCATE_COUNT_MAX);
-						});
+						Transaction.whileCommit(fund::next);
 
 						var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 						var key = module._tAutoKeys.getOrAdd(seedKey);
 						var start = key.getNextId();
-						var end = start + allocateCount; // allocateCount == 0 会死循环。
+						var end = start + fund.get(); // allocateCount == 0 会死循环。
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;

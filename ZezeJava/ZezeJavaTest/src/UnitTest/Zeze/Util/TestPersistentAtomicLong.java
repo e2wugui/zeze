@@ -14,8 +14,8 @@ public class TestPersistentAtomicLong extends TestCase {
 	public void testConcurrent() {
 		Task.tryInitThreadPool();
 
-		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);
-		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);
+		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
+		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
 		var jobs = new ArrayList<Future<?>>();
 		jobs.add(Task.runUnsafe(() -> Alloc(p1), "Alloc1", DispatchMode.Normal));
 		jobs.add(Task.runUnsafe(() -> Alloc(p2), "Alloc2", DispatchMode.Normal));
