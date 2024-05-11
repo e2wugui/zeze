@@ -80,13 +80,16 @@ public class PersistentAtomicLong {
 	}
 
 	public long next(int count) {
+		if (count < 1)
+			throw new IllegalArgumentException("count < 1");
+
 		for (; ; ) {
 			var current = currentId.get();
-			var next = current + count;
-			if (next >= allocatedEnd) {
+			if (current >= allocatedEnd) {
 				allocate();
 				continue;
 			}
+			var next = current + count;
 			if (currentId.compareAndSet(current, next))
 				return next;
 		}
