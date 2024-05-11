@@ -76,9 +76,4 @@ public class Id128 implements Comparable<Id128>, Serializable {
 			return c;
 		return Long.compareUnsigned(low, o.low);
 	}
-
-	public long substract(Id128 o) {
-		// todo 剑法实现。
-		return 0;
-	}
 }

@@ -10,12 +10,13 @@ public class Tid128Cache extends FastLock {
 	private Id128 current;
 	private final Id128 end;
 	private final int count;
+	private volatile int allocated;
 
 	public Tid128Cache(String name, AbstractAgent agent, Id128 start, int count) {
 		this.name = name;
 		this.agent = agent;
 		this.start = start;
-		this.current = start.copy();
+		this.current = start;
 		this.end = start.add(count);
 		this.count = count;
 	}
@@ -40,9 +41,9 @@ public class Tid128Cache extends FastLock {
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
 	public int allocateCount() {
-		var allocated = current.substract(start);
 		var half = count >> 1;
-		if (allocated < half)
+		var tmp = allocated;
+		if (tmp < half)
 			return Math.max(ALLOCATE_COUNT_MIN, half);
 		return Math.min(ALLOCATE_COUNT_MAX, count * 2);
 	}
@@ -52,6 +53,7 @@ public class Tid128Cache extends FastLock {
 		try {
 			if (current.compareTo(end) < 0) {
 				current = current.add(1);
+				allocated += 1; // 这个在锁内了,还警告啊.
 				return current;
 			}
 		} finally {
