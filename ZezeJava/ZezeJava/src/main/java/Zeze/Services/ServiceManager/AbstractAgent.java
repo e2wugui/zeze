@@ -140,8 +140,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public @NotNull TaskCompletionSource<Tid128Cache> allocateTid128CacheFuture(String globalName) {
-		// todo 更多参数!
-		return tid128UdpClient.allocateFuture(globalName);
+		var tmp = lastTid128CacheFuture;
+		var allocateCount = tmp == null ? Tid128Cache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
+		return tid128UdpClient.allocateFuture(globalName, allocateCount);
 	}
 
 	protected abstract boolean allocateAsync(String globalName, int allocCount,

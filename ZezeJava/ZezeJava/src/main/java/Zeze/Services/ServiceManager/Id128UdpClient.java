@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IdentityHashSet;
@@ -23,9 +24,9 @@ public class Id128UdpClient {
 	private final DatagramSocket udp;
 	private final Thread worker;
 	private boolean running = true;
-	private final ConcurrentHashMap<String, TaskCompletionSource<Tid128Cache>> currentFuture
+	private final ConcurrentHashMap<String, FutureWithCount> currentFuture
 			= new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, IdentityHashSet<TaskCompletionSource<Tid128Cache>>> pending
+	private ConcurrentHashMap<String, IdentityHashSet<FutureWithCount>> pending
 			= new ConcurrentHashMap<>();
 
 	public Id128UdpClient(int port, Service service) throws Exception {
@@ -50,8 +51,26 @@ public class Id128UdpClient {
 		worker.start();
 	}
 
-	public TaskCompletionSource<Tid128Cache> allocateFuture(String globalName) {
-		return currentFuture.computeIfAbsent(globalName, __ -> new TaskCompletionSource<>());
+	public static class FutureWithCount extends TaskCompletionSource<Tid128Cache> {
+		private final int count;
+		private final AtomicInteger pending = new AtomicInteger();
+
+		public FutureWithCount(int count) {
+			this.count = count;
+		}
+
+		public int getCount() {
+			return count;
+		}
+	}
+	public TaskCompletionSource<Tid128Cache> allocateFuture(String globalName, int allocateCount) {
+		// 多次请求的allocateCount不一样,只记住第一次的.
+		var current = currentFuture.computeIfAbsent(globalName, __ -> new FutureWithCount(allocateCount));
+		if (current.pending.incrementAndGet() >= 5) {
+			currentFuture.remove(globalName);
+			// todo 马上发送.
+		}
+		return current;
 	}
 
 	public void stop() throws Exception {

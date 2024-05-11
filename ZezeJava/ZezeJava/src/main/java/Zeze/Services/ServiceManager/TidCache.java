@@ -33,7 +33,7 @@ public class TidCache {
 		return start;
 	}
 
-	public static final int ALLOCATE_COUNT_MIN = 64;
+	public static final int ALLOCATE_COUNT_MIN = 16;
 	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
 	public int allocateCount() {
