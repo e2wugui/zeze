@@ -33,6 +33,11 @@ public class ThreadHelper extends Thread {
 		this.setDaemon(daemon);
 	}
 
+	public ThreadHelper(Runnable task, String name, boolean daemon) {
+		super(task, name);
+		this.setDaemon(daemon);
+	}
+
 	public final boolean isRunning() {
 		return running;
 	}

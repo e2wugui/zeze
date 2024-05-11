@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 public final class Checkpoint {
-	static final Logger logger = LogManager.getLogger(Checkpoint.class);
+	static final Logger logger = LogManager.getLogger();
 
 	private final ArrayList<Database> databases = new ArrayList<>();
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
