@@ -1,19 +1,38 @@
 package Zeze.Services.ServiceManager;
 
+import java.nio.charset.StandardCharsets;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.BinaryPool;
+import org.jetbrains.annotations.NotNull;
 
 public final class BAllocateId128Argument implements Serializable {
-	private String name;
+	private static final BinaryPool namePool = new BinaryPool();
+
+	private @NotNull Binary name;
 	private int count;
 
-	public String getName() {
+	public BAllocateId128Argument() {
+		name = Binary.Empty;
+	}
+
+	public BAllocateId128Argument(@NotNull String name, int count) {
+		this.name = new Binary(name);
+		this.count = count;
+	}
+
+	public @NotNull Binary getBinaryName() {
 		return name;
 	}
 
-	public void setName(String value) {
-		name = value;
+	public @NotNull String getName() {
+		return new String(name.bytesUnsafe(), 0, name.size(), StandardCharsets.UTF_8);
+	}
+
+	public void setName(@NotNull String value) {
+		name = new Binary(value);
 	}
 
 	public int getCount() {
@@ -25,31 +44,29 @@ public final class BAllocateId128Argument implements Serializable {
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
-		name = bb.ReadString();
+	public void decode(@NotNull IByteBuffer ibb) {
+		var bb = (ByteBuffer)ibb; // 特殊优化实现
+		int size = bb.ReadUInt();
+		var beginIndex = bb.ReadIndex;
+		var endIndex = beginIndex + size;
+		namePool.intern(bb.Bytes, beginIndex, endIndex);
+		bb.ReadIndex = endIndex;
 		count = bb.ReadInt();
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		bb.WriteString(name);
+	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteBinary(name);
 		bb.WriteInt(count);
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 16;
-
 	@Override
 	public int preAllocSize() {
-		return _PRE_ALLOC_SIZE_;
+		return 20;
 	}
 
 	@Override
-	public void preAllocSize(int size) {
-		_PRE_ALLOC_SIZE_ = size;
-	}
-
-	@Override
-	public String toString() {
-		return "BAllocateId128Argument{name='" + name + "',count=" + count + '}';
+	public @NotNull String toString() {
+		return "BAllocateId128Argument{name='" + getName() + "',count=" + count + '}';
 	}
 }

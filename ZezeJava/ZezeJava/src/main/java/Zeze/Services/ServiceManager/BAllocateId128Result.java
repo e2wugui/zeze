@@ -4,26 +4,14 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Id128;
+import org.jetbrains.annotations.NotNull;
 
 public final class BAllocateId128Result implements Serializable {
-	private String name;
-	private Id128 startId;
+	private final @NotNull Id128 startId = new Id128();
 	private int count;
 
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String value) {
-		name = value;
-	}
-
-	public Id128 getStartId() {
+	public @NotNull Id128 getStartId() {
 		return startId;
-	}
-
-	public void setStartId(Id128 value) {
-		startId = value;
 	}
 
 	public int getCount() {
@@ -35,34 +23,24 @@ public final class BAllocateId128Result implements Serializable {
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
-		name = bb.ReadString();
-		startId = new Id128();
+	public void decode(@NotNull IByteBuffer bb) {
 		startId.decode(bb);
 		count = bb.ReadInt();
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
-		bb.WriteString(name);
+	public void encode(@NotNull ByteBuffer bb) {
 		startId.encode(bb);
 		bb.WriteInt(count);
 	}
 
-	private static int _PRE_ALLOC_SIZE_ = 32;
-
 	@Override
 	public int preAllocSize() {
-		return _PRE_ALLOC_SIZE_;
+		return 21;
 	}
 
 	@Override
-	public void preAllocSize(int size) {
-		_PRE_ALLOC_SIZE_ = size;
-	}
-
-	@Override
-	public String toString() {
-		return "BAllocateId128Result{name='" + name + "',startId=" + startId + ",count=" + count + '}';
+	public @NotNull String toString() {
+		return "BAllocateId128Result{startId=" + startId + ",count=" + count + '}';
 	}
 }
