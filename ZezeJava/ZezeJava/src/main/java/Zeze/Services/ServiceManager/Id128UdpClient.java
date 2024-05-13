@@ -27,6 +27,7 @@ public class Id128UdpClient {
 	private final Thread worker;
 	private boolean running = true;
 	private final ConcurrentHashMap<String, FutureNode> currentFuture = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, FutureNode> tailFuture = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
 	private long lastProcessTickTime = System.currentTimeMillis();
 	private final Service service;
@@ -73,6 +74,10 @@ public class Id128UdpClient {
 		if (current.pending.incrementAndGet() >= 5) {
 			var futureNode = currentFuture.remove(globalName);
 			if (null != futureNode) { // concurrent remove. maybe null.
+				tailFuture.compute(globalName, (key, value) -> {
+					futureNode.prev = value; // value maybe null. that is first node.
+					return futureNode;
+				});
 				var r = new AllocateId128(futureNode);
 				r.setSessionId(service.nextSessionId());
 				r.Argument.setName(globalName);
@@ -131,9 +136,14 @@ public class Id128UdpClient {
 		var context = pendingRpc.remove(r.getSessionId());
 		if (null != context) {
 			var futureNode = context.getFutureNode();
-
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
 			if (futureNode.pending.get() > 0) {
+				var ffn = futureNode;
+				// todo [确认] 如果tail是当前futureNode,则删除(置null也行).
+				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
+				tailFuture.compute(r.Argument.getName(), (key, value) -> {
+					return (value == ffn ? null : value);
+				});
 				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent, r.Result.getStartId(), r.Result.getCount());
 				do {
 					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
