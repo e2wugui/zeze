@@ -158,8 +158,11 @@ public class Id128UdpClient {
 				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent, r.Result.getStartId(), r.Result.getCount());
 				do {
 					var current = futureNode;
-					current.setResult(tid128Cache);
-					current.pending.set(0); // 用来标记futureNode已经设置过结果.
+					// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
+					if (current.pending.get() > 0) {
+						current.setResult(tid128Cache);
+						current.pending.set(0); // 用来标记futureNode已经设置过结果.
+					}
 					futureNode = current.prev;
 					current.prev = null; // help gc.
 				} while (futureNode != null);
@@ -217,8 +220,12 @@ public class Id128UdpClient {
 				}
 
 				// 1. 仅给当前的future报告错误,链表保持不变(残留),以后的设置结果和报错由future保证不会重复.
-				r.getFutureNode().setException(new TimeoutException());
-				r.getFutureNode().pending.set(0); // 用来标记futureNode已经设置过结果.
+				// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
+				var futureNode = r.getFutureNode();
+				if (futureNode.pending.get() > 0) {
+					futureNode.setException(new TimeoutException());
+					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
+				}
 				pendingRpc.remove(eIt.key());
 				/*
 				// 2. 这里仅仅为了回收rpc-context,不对futureNode队列进行处理.
@@ -229,8 +236,11 @@ public class Id128UdpClient {
 				var futureNode = r.getFutureNode();
 				do {
 					var current = futureNode;
-					current.setException(new TimeoutException());
-					current.pending.set(0);
+					// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面码刚好可以工作.
+					if (current.pending.get() > 0) {
+						current.setException(new TimeoutException());
+						current.pending.set(0);
+					}
 					futureNode = current.prev;
 					current.prev = null;
 				} while (futureNode != null);
