@@ -5,6 +5,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -130,7 +131,7 @@ public class Id128UdpClient {
 			}
 			try {
 				processTick();
-			} catch (Exception ex) {
+			} catch (Throwable ex) {
 				logger.error("", ex);
 			}
 		}
@@ -165,36 +166,45 @@ public class Id128UdpClient {
 	}
 
 	// 单线程
-	private void processTick() throws Exception {
+	private void processTick() {
 		var now = System.currentTimeMillis();
 		if (now - lastProcessTickTime >= eSoTimeoutTick) {
 			lastProcessTickTime = now;
 			var bb = ByteBuffer.Allocate();
-			for (var key : currentFuture.keySet()) {
-				var futureNode = currentFuture.remove(key);
-				if (futureNode != null) { // 并发删除, see allocateFuture
-					var r = new AllocateId128(futureNode);
-					r.setSessionId(nextSessionIdFunc.call());
-					r.Argument.setName(key);
-					r.Argument.setCount(futureNode.count);
-					r.setTimeout(eRpcTimeout);
-					if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
-						throw new RuntimeException("impossible!");
-					r.encode(bb);
-					if (bb.size() > eMaxUdpPacketSize) {
-						// udp is connected.
-						var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
-						udp.send(udpPacket);
-						// clear
-						bb.ReadIndex = 0;
-						bb.WriteIndex = 0;
+			var futureNodesGuard = new ArrayList<FutureNode>();
+			try {
+				for (var key : currentFuture.keySet()) {
+					var futureNode = currentFuture.remove(key);
+					if (futureNode != null) { // 并发删除, see allocateFuture
+						futureNodesGuard.add(futureNode);
+						var r = new AllocateId128(futureNode);
+						r.setSessionId(nextSessionIdFunc.call());
+						r.Argument.setName(key);
+						r.Argument.setCount(futureNode.count);
+						r.setTimeout(eRpcTimeout);
+						if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
+							throw new RuntimeException("impossible!");
+						r.encode(bb);
+						if (bb.size() > eMaxUdpPacketSize) {
+							// udp is connected.
+							var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
+							udp.send(udpPacket);
+							// clear
+							bb.ReadIndex = 0;
+							bb.WriteIndex = 0;
+						}
 					}
 				}
-			}
-			if (!bb.isEmpty()) {
-				// udp is connected.
-				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
-				udp.send(udpPacket);
+				if (!bb.isEmpty()) {
+					// udp is connected.
+					var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
+					udp.send(udpPacket);
+				}
+				futureNodesGuard.clear();
+			} catch (Exception ex) {
+				for (var futureNode : futureNodesGuard)
+					futureNode.setException(ex);
+				logger.error("", ex);
 			}
 		}
 		var period = (int)(now - lastRpcTimeoutCheckTime);
