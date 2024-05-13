@@ -70,38 +70,43 @@ public class Id128UdpClient {
 
 	public TaskCompletionSource<Tid128Cache> allocateFuture(String globalName, int allocateCount) {
 		// 多次请求的allocateCount不一样,只记住第一次的.
-		var current = currentFuture.computeIfAbsent(globalName, __ -> new FutureNode(allocateCount));
-		if (current.pending.incrementAndGet() >= 5) {
-			var futureNodeGet = currentFuture.get(globalName);
-			tailFuture.compute(globalName, (key, value) -> {
-				if (value == futureNodeGet)
-					return value; // 并发allocate,自己已经是tail,保持不变.
-				futureNodeGet.prev = value; // value maybe null. that is first node.
-				return futureNodeGet;
+		return currentFuture.compute(globalName, (key, value) -> {
+			var current = value;
+			if (current == null)
+				current = new FutureNode(allocateCount);
+			if (current.pending.incrementAndGet() < 5)
+				return current;
+
+			// 下面 1.入队, 2.发送rpc请求, 3.删除.
+
+			// 1.入队
+			var funalCurrent = current;
+			tailFuture.compute(globalName, (key2, value2) -> {
+				funalCurrent.prev = value2; // value maybe null. that is first node.
+				return funalCurrent;
 			});
-			// todo 并发确认! currentFuture.remove,tailFuture.compute应该是一个原子操作,这样写不需要加锁吧?
-			//  或者currentFuture一开始就compute,代码全部写在里面?
-			var futureNode = currentFuture.remove(globalName);
-			if (null != futureNode) { // concurrent remove. maybe null.
-				var r = new AllocateId128(futureNode);
-				r.setSessionId(service.nextSessionId());
-				r.Argument.setName(globalName);
-				r.Argument.setCount(futureNode.count);
-				if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
-					throw new RuntimeException("impossible!");
-				var bb = ByteBuffer.Allocate();
-				r.encode(bb);
-				// udp is connected.
-				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
-				try {
-					udp.send(udpPacket);
-				} catch (IOException e) {
-					futureNode.setException(e);
-					throw new RuntimeException(e);
-				}
+
+			// 2.发送rpc
+			var r = new AllocateId128(current);
+			r.setSessionId(service.nextSessionId());
+			r.Argument.setName(globalName);
+			r.Argument.setCount(current.count);
+			if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
+				throw new RuntimeException("impossible!");
+			var bb = ByteBuffer.Allocate();
+			r.encode(bb);
+			// udp is connected.
+			var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
+			try {
+				udp.send(udpPacket);
+			} catch (IOException e) {
+				current.setException(e);
+				throw new RuntimeException(e);
 			}
-		}
-		return current;
+
+			// 3.删除
+			return null;
+		});
 	}
 
 	public void stop() throws Exception {
@@ -144,7 +149,6 @@ public class Id128UdpClient {
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
 			if (futureNode.pending.get() > 0) {
 				var ffn = futureNode;
-				// todo [确认] 如果tail是当前futureNode,则删除(置null也行).
 				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
 				tailFuture.compute(r.Argument.getName(), (key, value) -> {
 					return (value == ffn ? null : value);
