@@ -10,7 +10,45 @@ import org.jetbrains.annotations.Nullable;
 public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	public static final java.nio.ByteBuffer Empty = java.nio.ByteBuffer.wrap(ByteBuffer.Empty);
 
-	public java.nio.ByteBuffer bb;
+	public @NotNull java.nio.ByteBuffer bb;
+
+	public static @NotNull NioByteBuffer Wrap(@NotNull java.nio.ByteBuffer bb) {
+		return new NioByteBuffer(bb);
+	}
+
+	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes) {
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes));
+	}
+
+	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int length) {
+		ByteBuffer.VerifyArrayIndex(bytes, length);
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, 0, length));
+	}
+
+	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
+		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, offset, length));
+	}
+
+	public static @NotNull NioByteBuffer Wrap(@NotNull Binary binary) {
+		return new NioByteBuffer(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
+	}
+
+	public static @NotNull NioByteBuffer allocate(int capacity) {
+		return new NioByteBuffer(java.nio.ByteBuffer.allocate(capacity));
+	}
+
+	public static @NotNull NioByteBuffer allocateDirect(int capacity) {
+		return new NioByteBuffer(java.nio.ByteBuffer.allocateDirect(capacity));
+	}
+
+	protected NioByteBuffer(@NotNull java.nio.ByteBuffer bb) {
+		this.bb = bb;
+	}
+
+	public @NotNull java.nio.ByteBuffer getNioByteBuffer() {
+		return bb;
+	}
 
 	@Override
 	public int getReadIndex() {
@@ -40,32 +78,6 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	@Override
 	public boolean isEmpty() {
 		return !bb.hasRemaining();
-	}
-
-	public static @NotNull NioByteBuffer Wrap(@NotNull java.nio.ByteBuffer bb) {
-		return new NioByteBuffer(bb);
-	}
-
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes) {
-		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes));
-	}
-
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int length) {
-		ByteBuffer.VerifyArrayIndex(bytes, length);
-		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, 0, length));
-	}
-
-	public static @NotNull NioByteBuffer Wrap(byte @NotNull [] bytes, int offset, int length) {
-		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
-		return new NioByteBuffer(java.nio.ByteBuffer.wrap(bytes, offset, length));
-	}
-
-	public static @NotNull NioByteBuffer Wrap(@NotNull Binary binary) {
-		return new NioByteBuffer(java.nio.ByteBuffer.wrap(binary.bytesUnsafe(), binary.getOffset(), binary.size()));
-	}
-
-	protected NioByteBuffer(@NotNull java.nio.ByteBuffer bb) {
-		this.bb = bb;
 	}
 
 	@Override

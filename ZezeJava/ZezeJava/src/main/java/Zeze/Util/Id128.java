@@ -67,12 +67,12 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 		}
 	}
 
-	public void encode(byte @NotNull [] bytes16) {
+	public void encode16(byte @NotNull [] bytes16) {
 		ByteBuffer.longLeHandler.set(bytes16, 0, low);
 		ByteBuffer.longLeHandler.set(bytes16, 8, high);
 	}
 
-	public void decode(byte @NotNull [] bytes16) {
+	public void decode16(byte @NotNull [] bytes16) {
 		low = ByteBuffer.ToLong(bytes16, 0);
 		high = ByteBuffer.ToLong(bytes16, 8);
 	}

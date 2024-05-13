@@ -5,10 +5,11 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.NioByteBuffer;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 import Zeze.Util.RocksDatabase;
@@ -36,7 +37,7 @@ public class Id128UdpServer {
 
 	private final @Nullable RocksDatabase.Table table;
 	private final ConcurrentHashMap<Binary, Id128WithLock> cache = new ConcurrentHashMap<>();
-	private final @NotNull DatagramSocket udp;
+	private final @NotNull DatagramChannel udpChannel;
 	private final @NotNull Thread worker; // 工作线程，根据性能测试情况，以后可能多个
 
 	public Id128UdpServer() throws IOException {
@@ -47,11 +48,13 @@ public class Id128UdpServer {
 		this(table, null, 0); // any ip & auto port.
 	}
 
-	public Id128UdpServer(@Nullable RocksDatabase.Table table, @Nullable String ip, int port) throws IOException {
+	public Id128UdpServer(@Nullable RocksDatabase.Table table, @Nullable String host, int port) throws IOException {
 		this.table = table;
-		udp = null == ip || ip.isBlank()
-				? new DatagramSocket(port)
-				: new DatagramSocket(port, InetAddress.getByName(ip));
+		udpChannel = DatagramChannel.open();
+		udpChannel.configureBlocking(true);
+		udpChannel.bind(host == null || host.isBlank()
+				? new InetSocketAddress(port)
+				: new InetSocketAddress(InetAddress.getByName(host), port));
 
 		worker = new Thread(this::run, "Id128UdpServer");
 		worker.setDaemon(true);
@@ -59,22 +62,22 @@ public class Id128UdpServer {
 		worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception:", e));
 	}
 
-	public int getLocalPort() {
-		return udp.getLocalPort();
+	public int getLocalPort() throws IOException {
+		return getLocalSocketAddress().getPort();
 	}
 
-	public SocketAddress getLocalSocketAddress() {
-		return udp.getLocalSocketAddress();
+	public @NotNull InetSocketAddress getLocalSocketAddress() throws IOException {
+		return (InetSocketAddress)udpChannel.getLocalAddress();
 	}
 
-	public void start() {
-		logger.info("start worker: {}:{}", udp.getLocalAddress(), udp.getLocalPort());
+	public void start() throws IOException {
+		logger.info("start worker: {}", udpChannel.getLocalAddress());
 		worker.start();
 	}
 
-	public void stop() throws InterruptedException {
+	public void stop() throws Exception {
 		logger.info("stop begin");
-		udp.close();
+		udpChannel.close();
 		// worker.interrupt();
 		worker.join();
 		logger.info("stop end");
@@ -82,17 +85,16 @@ public class Id128UdpServer {
 
 	private void run() {
 		logger.info("worker begin");
-		var bbRecv = ByteBuffer.Allocate(2048);
+		var bbRecv = NioByteBuffer.allocate(2048);
+		var dbb = bbRecv.getNioByteBuffer();
 		var bbSend = ByteBuffer.Allocate(2048);
-		var packet = new DatagramPacket(bbRecv.Bytes, bbRecv.capacity());
 		var rpc = new AllocateId128();
 		var bytes16 = new byte[16];
 		for (; ; ) {
 			try {
-				packet.setData(bbRecv.Bytes);
-				udp.receive(packet);
-				bbRecv.ReadIndex = packet.getOffset();
-				bbRecv.WriteIndex = bbRecv.ReadIndex + packet.getLength();
+				dbb.clear();
+				var addr = udpChannel.receive(dbb);
+				dbb.flip();
 				bbSend.Reset();
 				try {
 					while (!bbRecv.isEmpty()) {
@@ -104,12 +106,17 @@ public class Id128UdpServer {
 				} catch (Exception e) {
 					logger.error("process exception:", e);
 				}
-				if (bbSend.WriteIndex > 0) {
-					packet.setData(bbSend.Bytes, 0, bbSend.WriteIndex);
-					udp.send(packet);
+				int sendSize = bbSend.WriteIndex;
+				if (sendSize > 0) {
+					dbb.clear();
+					dbb.put(bbSend.Bytes, 0, sendSize); // NioByteBuffer还不支持写,这里只能多一次复制
+					dbb.flip();
+					int r = udpChannel.send(dbb, addr);
+					if (r != sendSize)
+						logger.error("send failed: r={} != {}", r, sendSize);
 				}
 			} catch (Throwable e) { // logger.error
-				if (udp.isClosed()) {
+				if (!udpChannel.isOpen()) {
 					logger.info("{}: {}", e.getClass().getName(), e.getMessage());
 					break;
 				}
@@ -131,7 +138,7 @@ public class Id128UdpServer {
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
 				if (v != null && v.length >= 16)
-					id.decode(v);
+					id.decode16(v);
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
@@ -141,7 +148,7 @@ public class Id128UdpServer {
 		try {
 			id128.increment(count);
 			res.getStartId().assign(id128);
-			id128.encode(bytes16);
+			id128.encode16(bytes16);
 			if (table != null)
 				table.put(name.bytesUnsafe(), bytes16); // 以后再考虑能不能移到锁外
 		} finally {

@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Serialize.NioByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.BinaryPool;
 import org.jetbrains.annotations.NotNull;
@@ -45,13 +46,22 @@ public final class BAllocateId128Argument implements Serializable {
 
 	@Override
 	public void decode(@NotNull IByteBuffer ibb) {
-		var bb = (ByteBuffer)ibb; // 特殊优化实现
-		int size = bb.ReadUInt();
-		var beginIndex = bb.ReadIndex;
-		var endIndex = beginIndex + size;
-		namePool.intern(bb.Bytes, beginIndex, endIndex);
-		bb.ReadIndex = endIndex;
-		count = bb.ReadInt();
+		int size = ibb.ReadUInt();
+		// intern方式获取name
+		if (ibb instanceof NioByteBuffer) {
+			var nbb = ((NioByteBuffer)ibb).getNioByteBuffer();
+			var beginIndex = nbb.position();
+			var endIndex = beginIndex + size;
+			name = namePool.intern(nbb, beginIndex, endIndex);
+			nbb.position(endIndex);
+		} else {
+			var bb = (ByteBuffer)ibb;
+			var beginIndex = bb.ReadIndex;
+			var endIndex = beginIndex + size;
+			name = namePool.intern(bb.Bytes, beginIndex, endIndex);
+			bb.ReadIndex = endIndex;
+		}
+		count = ibb.ReadInt();
 	}
 
 	@Override

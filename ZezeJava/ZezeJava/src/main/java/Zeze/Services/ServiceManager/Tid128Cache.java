@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.io.IOException;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 
@@ -54,7 +53,8 @@ public class Tid128Cache extends FastLock {
 		try {
 			if (current.compareTo(end) < 0) {
 				current = current.add(1);
-				allocated += 1; // 这个在锁内了,还警告啊.
+				//noinspection NonAtomicOperationOnVolatileField
+				allocated++; // 这个在锁内了,还警告啊.
 				return current;
 			}
 		} finally {
