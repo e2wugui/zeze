@@ -7,6 +7,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
@@ -21,6 +22,9 @@ public class Id128UdpClient {
 	private static final Logger logger = LogManager.getLogger();
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
+	private static final int eSendImmediatelyGuard = 5;
+	private static final int eRpcTimeoutChecker = 1500;
+	private static final int eRpcTimeout = 5000;
 
 	private final AbstractAgent agent;
 	private final DatagramSocket udp;
@@ -30,6 +34,7 @@ public class Id128UdpClient {
 	private final ConcurrentHashMap<String, FutureNode> tailFuture = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
 	private long lastProcessTickTime = System.currentTimeMillis();
+	private long lastRpcTimeoutCheckTime = System.currentTimeMillis();
 	private final Service service;
 
 	public Id128UdpClient(AbstractAgent agent, int port, Service service) throws Exception {
@@ -74,7 +79,7 @@ public class Id128UdpClient {
 			var current = value;
 			if (current == null)
 				current = new FutureNode(allocateCount);
-			if (current.pending.incrementAndGet() < 5)
+			if (current.pending.incrementAndGet() < eSendImmediatelyGuard)
 				return current;
 
 			// 下面 1.入队, 2.发送rpc请求, 3.删除.
@@ -91,6 +96,7 @@ public class Id128UdpClient {
 			r.setSessionId(service.nextSessionId());
 			r.Argument.setName(globalName);
 			r.Argument.setCount(current.count);
+			r.setTimeout(eRpcTimeout);
 			if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
 				throw new RuntimeException("impossible!");
 			var bb = ByteBuffer.Allocate();
@@ -148,19 +154,20 @@ public class Id128UdpClient {
 			var futureNode = context.getFutureNode();
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
 			if (futureNode.pending.get() > 0) {
-				var ffn = futureNode;
-				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
-				tailFuture.compute(r.Argument.getName(), (key, value) -> {
-					return (value == ffn ? null : value);
-				});
+				var futureContext = futureNode;
 				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent, r.Result.getStartId(), r.Result.getCount());
 				do {
-					futureNode.pending.set(0); // 用来标记futureNode已经设置过结果.
-					futureNode.setResult(tid128Cache);
 					var current = futureNode;
-					futureNode = futureNode.prev;
+					current.setResult(tid128Cache);
+					current.pending.set(0); // 用来标记futureNode已经设置过结果.
+					futureNode = current.prev;
 					current.prev = null; // help gc.
 				} while (futureNode != null);
+				// 设置完result以后才删除.却表中间异常,队列不会乱.
+				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
+				tailFuture.compute(r.Argument.getName(), (key, value) -> {
+					return (value == futureContext ? null : value);
+				});
 			}
 		}
 	}
@@ -168,8 +175,7 @@ public class Id128UdpClient {
 	// 单线程
 	private void processTick() throws Exception {
 		var now = System.currentTimeMillis();
-		var period = now - lastProcessTickTime;
-		if (period >= eSoTimeoutTick) {
+		if (now - lastProcessTickTime >= eSoTimeoutTick) {
 			lastProcessTickTime = now;
 			var bb = ByteBuffer.Allocate();
 			for (var key : currentFuture.keySet()) {
@@ -179,6 +185,7 @@ public class Id128UdpClient {
 					r.setSessionId(service.nextSessionId());
 					r.Argument.setName(key);
 					r.Argument.setCount(futureNode.count);
+					r.setTimeout(eRpcTimeout);
 					if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
 						throw new RuntimeException("impossible!");
 					r.encode(bb);
@@ -196,6 +203,39 @@ public class Id128UdpClient {
 				// udp is connected.
 				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 				udp.send(udpPacket);
+			}
+		}
+		var period = (int)(now - lastRpcTimeoutCheckTime);
+		if (period > eRpcTimeoutChecker) {
+			lastRpcTimeoutCheckTime = now;
+			for (var eIt = pendingRpc.entryIterator(); eIt.moveToNext(); ) {
+				var r = eIt.value();
+				var remain = r.getTimeout() - period;
+				if (remain > 0) {
+					r.setTimeout(remain);
+					continue;
+				}
+
+				// 1. 仅给当前的future报告错误,链表保持不变(残留),以后的设置结果和报错由future保证不会重复.
+				r.getFutureNode().setException(new TimeoutException());
+				r.getFutureNode().pending.set(0); // 用来标记futureNode已经设置过结果.
+				pendingRpc.remove(eIt.key());
+				/*
+				// 2. 这里仅仅为了回收rpc-context,不对futureNode队列进行处理.
+				//    如果后面的请求有结果,仍然会得到setResult.
+				pendingRpc.remove(eIt.key());
+
+				// 3. 给当前以及之前的报错.之前的从链表中去掉,当前由于没有实现双向链表残留着.
+				var futureNode = r.getFutureNode();
+				do {
+					var current = futureNode;
+					current.setException(new TimeoutException());
+					current.pending.set(0);
+					futureNode = current.prev;
+					current.prev = null;
+				} while (futureNode != null);
+				pendingRpc.remove(eIt.key());
+				*/
 			}
 		}
 	}
