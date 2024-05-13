@@ -123,6 +123,7 @@ public class Profiler {
 			c = cs.get(n);
 		c.name = "REDO";
 		c.timeBegin = System.nanoTime();
+		c.timeEnd = 0;
 		count = n + 1;
 	}
 
@@ -138,7 +139,7 @@ public class Profiler {
 			c = cs.get(n);
 		c.name = name;
 		c.timeBegin = System.nanoTime();
-		count = n + 1;
+		c.timeEnd = 0;
 		return c;
 	}
 
@@ -176,8 +177,8 @@ public class Profiler {
 			var traces = c.e.getStackTrace();
 			for (int i = 1, n = traces.length; i < n; i++) {
 				var strace = traces[i];
-				sb.append("\tat ").append(strace.getClassName()).append('.').append(strace.getMethodName()).append(':')
-						.append(strace.getLineNumber()).append('\n');
+				sb.append("\tat ").append(strace.getClassName()).append('.').append(strace.getMethodName()).append('(')
+						.append(strace.getFileName()).append(':').append(strace.getLineNumber()).append(")\n");
 			}
 		}
 		while (++idx < count && (c = contexts.get(idx)).timeBegin < timeEnd)

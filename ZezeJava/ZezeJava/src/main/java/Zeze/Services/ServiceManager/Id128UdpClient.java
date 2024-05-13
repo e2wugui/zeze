@@ -45,7 +45,7 @@ public class Id128UdpClient {
 		udp.connect(InetAddress.getByName(ip), port);
 		udp.setSoTimeout(eSoTimeoutTick);
 
-		worker = new Thread(this::run, "Id128UdpServer");
+		worker = new Thread(this::run, "Id128UdpClient");
 		worker.setDaemon(true);
 		worker.setPriority(Thread.NORM_PRIORITY + 2);
 		worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));

@@ -2,13 +2,13 @@ package Infinite;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Collections.PSet1;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Util.StableRandom;
 import Zeze.Util.Task;
 import demo.Bean1;
 import demo.Module1.BFood;
@@ -23,7 +23,6 @@ public class CoverHistory {
 	private static final int eKeyRange = 1024; // 修改的记录范围
 	private static final int eTaskCont = 10000; // 总的修改任务
 	private static final int eJobsPerTask = 3; // 每个任务执行多少个修改工作。
-	private final Random random = new Random();
 	private final demo.App app;
 	private final ArrayList<Job> jobs = new ArrayList<>();
 	private final ArrayList<Future<?>> taskFutures = new ArrayList<>();
@@ -75,8 +74,11 @@ public class CoverHistory {
 	}
 
 	public void submitTasks() {
-		for (var i = 0; i < eTaskCont; ++i)
-			taskFutures.add(Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(null), "runJob")));
+		var t = System.currentTimeMillis();
+		for (var i = 0; i < eTaskCont; ++i) {
+			var seed = t ^ i;
+			taskFutures.add(Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")));
+		}
 	}
 
 	public void join() throws ExecutionException, InterruptedException {
@@ -85,21 +87,28 @@ public class CoverHistory {
 		taskFutures.clear();
 	}
 
+	public static StableRandom getRandom() {
+		return StableRandom.local();
+	}
+
 	/**
 	 * 当访问记录的时候，r为null，里面随机获取记录。
 	 * 当嵌套执行测试时，由外层Job提供嵌套的数据，典型的时Map<Key,BValue>可以对里面的值嵌套执行runJobs.
+	 *
 	 * @param r data accessed.
 	 * @return long
 	 */
-	private long runJobs(@Nullable BValue r) {
+	private long runJobs(long seed, @Nullable BValue r) {
+		if (r == null)
+			StableRandom.local().setSeed(seed);
 		var jobIndexes = new HashSet<Integer>();
 		var limit = eJobsPerTask;
 		while (limit > 0) {
-			var index = random.nextInt(jobs.size());
+			var index = getRandom().nextInt(jobs.size());
 			if (jobIndexes.add(index)) { // 随机可能重复，确保运行足够的limit次数。当jobs足够多，limit足够小，冲突应该不大。
-				limit --;
+				limit--;
 				jobs.get(index).run(r != null ? r
-						: app.demo_Module1.getTableCoverHistory().getOrAdd(random.nextLong(eKeyRange)));
+						: app.demo_Module1.getTableCoverHistory().getOrAdd(getRandom().nextLong(eKeyRange)));
 			}
 		}
 		return 0;
@@ -109,103 +118,103 @@ public class CoverHistory {
 		void run(BValue value);
 	}
 
-	public class Int_1 implements Job {
+	public static class Int_1 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setInt_1(random.nextInt());
+			value.setInt_1(getRandom().nextInt());
 		}
 	}
 
-	public class Long2 implements Job {
+	public static class Long2 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setLong2(random.nextLong());
+			value.setLong2(getRandom().nextLong());
 		}
 	}
 
-	public class String3 implements Job {
+	public static class String3 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setString3(String.valueOf(random.nextInt()));
+			value.setString3(String.valueOf(getRandom().nextInt()));
 		}
 	}
 
-	public class Bool4 implements Job {
+	public static class Bool4 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setBool4(random.nextInt(2) == 1);
+			value.setBool4(getRandom().nextInt(2) == 1);
 		}
 	}
 
-	public class Short5 implements Job {
+	public static class Short5 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setShort5((short)random.nextInt(Short.MAX_VALUE));
+			value.setShort5((short)getRandom().nextInt(Short.MAX_VALUE));
 		}
 	}
 
-	public class Float6 implements Job {
+	public static class Float6 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setFloat6(random.nextInt());
+			value.setFloat6(getRandom().nextInt());
 		}
 	}
 
-	public class Double7 implements Job {
+	public static class Double7 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setDouble7(random.nextInt(Short.MAX_VALUE));
+			value.setDouble7(getRandom().nextInt(Short.MAX_VALUE));
 		}
 	}
 
-	public class Bytes8 implements Job {
+	public static class Bytes8 implements Job {
 		@Override
 		public void run(BValue value) {
 			var bytes = new byte[8];
-			random.nextBytes(bytes);
+			getRandom().nextBytes(bytes);
 			value.setBytes8(new Binary(bytes));
 		}
 	}
 
-	public class List9 implements Job {
+	public static class List9 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList9();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(3)) {
+				switch (getRandom().nextInt(3)) {
 				case 0: // insert
 					if (list.isEmpty())
 						list.add(new Bean1());
 					else
-						list.add(random.nextInt(list.size()), new Bean1());
+						list.add(getRandom().nextInt(list.size()), new Bean1());
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 
 				case 2: // modify.
 					if (list.isEmpty())
 						list.add(new Bean1()); // ensure modify
-					var randItem = list.get(random.nextInt(list.size()));
-					randItem.setV1(random.nextInt());
+					var randItem = list.get(getRandom().nextInt(list.size()));
+					randItem.setV1(getRandom().nextInt());
 					break;
 				}
 			}
 		}
 	}
 
-	public class Set10 implements Job {
+	public static class Set10 implements Job {
 
-		private void randRemove(PSet1<Integer> set) {
+		private static void randRemove(PSet1<Integer> set) {
 			if (set.isEmpty())
 				return;
 
-			var index = random.nextInt(set.size());
+			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
 					it.remove();
@@ -223,9 +232,9 @@ public class CoverHistory {
 			if (forceRemove) {
 				randRemove(set);
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
-					set.add(random.nextInt());
+					set.add(getRandom().nextInt());
 					break;
 
 				case 1: // remove
@@ -236,38 +245,38 @@ public class CoverHistory {
 		}
 	}
 
-	public class Map11 implements Job {
+	public static class Map11 implements Job {
 		@Override
 		public void run(BValue value) {
 			var map11 = value.getMap11(); // key is 0,1,2
 			var forceRemove = map11.size() >= 3;
 			if (forceRemove) {
-				map11.remove(random.nextLong(3));
+				map11.remove(getRandom().nextLong(3));
 			} else {
-				switch (random.nextInt(3)) {
+				switch (getRandom().nextInt(3)) {
 				case 0: // put, maybe replace.
-					map11.put(random.nextLong(3), new demo.Module2.BValue());
+					map11.put(getRandom().nextLong(3), new demo.Module2.BValue());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map11.remove(random.nextLong(3));
+					map11.remove(getRandom().nextLong(3));
 					break;
 
 				case 2: // modify.
 					if (map11.isEmpty())
-						map11.put(random.nextLong(3), new demo.Module2.BValue()); // ensure modify
+						map11.put(getRandom().nextLong(3), new demo.Module2.BValue()); // ensure modify
 					var randItem = getRandItem(map11);
 					assert randItem != null;
-					randItem.setS(random.nextInt());
+					randItem.setS(getRandom().nextInt());
 					break;
 				}
 			}
 		}
 
-		private demo.Module2.BValue getRandItem(PMap2<Long, demo.Module2.BValue> map2) {
+		private static demo.Module2.BValue getRandItem(PMap2<Long, demo.Module2.BValue> map2) {
 			if (map2.isEmpty())
 				return null;
-			var index = random.nextInt(map2.size());
+			var index = getRandom().nextInt(map2.size());
 			for (var cur : map2) {
 				if (index-- == 0)
 					return cur.getValue();
@@ -276,25 +285,25 @@ public class CoverHistory {
 		}
 	}
 
-	public class Bean12 implements Job {
+	public static class Bean12 implements Job {
 
 		@Override
 		public void run(BValue value) {
-			switch (random.nextInt(6)) {
+			switch (getRandom().nextInt(6)) {
 			case 0:
-				value.getBean12().setInt_1(random.nextInt());
+				value.getBean12().setInt_1(getRandom().nextInt());
 				break;
 			case 1:
-				value.getBean12().setLong2(random.nextLong());
+				value.getBean12().setLong2(getRandom().nextLong());
 				break;
 			case 2:
-				value.getBean12().setString3(String.valueOf(random.nextInt()));
+				value.getBean12().setString3(String.valueOf(getRandom().nextInt()));
 				break;
 			case 3:
 				value.getBean12().setRemoved(new BRemoved2());
 				break;
 			case 4:
-				value.getBean12().getRemoved().setInt_1(random.nextInt());
+				value.getBean12().getRemoved().setInt_1(getRandom().nextInt());
 				break;
 			case 5:
 				value.setBean12(new BSimple());
@@ -303,18 +312,18 @@ public class CoverHistory {
 		}
 	}
 
-	public class Byte13 implements Job {
+	public static class Byte13 implements Job {
 
 		@Override
 		public void run(BValue value) {
-			value.setByte13((byte)random.nextInt(255));
+			value.setByte13((byte)getRandom().nextInt(255));
 		}
 	}
 
-	public class Dynamic14 implements Job {
+	public static class Dynamic14 implements Job {
 
-		public static void testDynamic(Random random, DynamicBean dVar) {
-			switch (random.nextInt(5)) {
+		public static void testDynamic(DynamicBean dVar) {
+			switch (getRandom().nextInt(5)) {
 			case 0:
 				dVar.setBean(new demo.Bean1());
 				break;
@@ -327,12 +336,12 @@ public class CoverHistory {
 			case 3:
 				var dBean = dVar.getBean();
 				if (dBean.typeId() == Bean1.TYPEID)
-					((Bean1)dBean).setV1(random.nextInt());
+					((Bean1)dBean).setV1(getRandom().nextInt());
 				else if (dBean.typeId() == BSimple.TYPEID)
-					((BSimple)dBean).setInt_1(random.nextInt());
+					((BSimple)dBean).setInt_1(getRandom().nextInt());
 				else if (dBean.typeId() == BItem.TYPEID) {
 					var bItem = (BItem)dBean;
-					switch (random.nextInt(3)) {
+					switch (getRandom().nextInt(3)) {
 					case 0:
 						bItem.setSubclass(new demo.Bean1());
 						break;
@@ -349,9 +358,9 @@ public class CoverHistory {
 				if (dVar.getBean().typeId() == BItem.TYPEID) {
 					var subClass = ((BItem)dVar.getBean()).getSubclass().getBean();
 					if (subClass.typeId() == Bean1.TYPEID)
-						((Bean1)subClass).setV1(random.nextInt());
+						((Bean1)subClass).setV1(getRandom().nextInt());
 					else if (subClass.typeId() == BSimple.TYPEID)
-						((BSimple)subClass).setInt_1(random.nextInt());
+						((BSimple)subClass).setInt_1(getRandom().nextInt());
 					else if (subClass.typeId() == BFood.TYPEID)
 						// 不再深入了。
 						((BFood)subClass).setSubclass(new demo.Bean1());
@@ -362,56 +371,56 @@ public class CoverHistory {
 
 		@Override
 		public void run(BValue value) {
-			testDynamic(random, value.getDynamic14());
+			testDynamic(value.getDynamic14());
 		}
 	}
 
-	public class Map15 implements Job {
+	public static class Map15 implements Job {
 		@Override
 		public void run(BValue value) {
 			var map15 = value.getMap15(); // key is 0,1,2
 			var forceRemove = map15.size() >= 3;
 			if (forceRemove) {
-				map15.remove(random.nextLong(3)); // maybe remove nothing.
+				map15.remove(getRandom().nextLong(3)); // maybe remove nothing.
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // put, maybe replace.
-					map15.put(random.nextLong(3), random.nextLong());
+					map15.put(getRandom().nextLong(3), getRandom().nextLong());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map15.remove(random.nextLong(3));
+					map15.remove(getRandom().nextLong(3));
 					break;
 				}
 			}
 		}
 	}
 
-	public class Map16 implements Job {
-		public static Key randKey(Random random) {
-			return new Key((short)random.nextInt(3), "");
+	public static class Map16 implements Job {
+		public static Key randKey() {
+			return new Key((short)getRandom().nextInt(3), "");
 		}
 
-		public static void testKey2BSimple(Random random, PMap2<Key, BSimple> map) {
+		public static void testKey2BSimple(PMap2<Key, BSimple> map) {
 			var forceRemove = map.size() >= 3;
 			if (forceRemove) {
-				map.remove(randKey(random));
+				map.remove(randKey());
 			} else {
-				switch (random.nextInt(3)) {
+				switch (getRandom().nextInt(3)) {
 				case 0: // put, maybe replace.
-					map.put(randKey(random), new BSimple());
+					map.put(randKey(), new BSimple());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map.remove(randKey(random));
+					map.remove(randKey());
 					break;
 
 				case 2: // modify.
 					if (map.isEmpty())
-						map.put(randKey(random), new BSimple()); // ensure modify
-					var randItem = getRandItem(random, map);
+						map.put(randKey(), new BSimple()); // ensure modify
+					var randItem = getRandItem(map);
 					assert randItem != null;
-					randItem.setInt_1(random.nextInt());
+					randItem.setInt_1(getRandom().nextInt());
 					break;
 				}
 			}
@@ -420,13 +429,13 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var map = value.getMap16(); // see randKey
-			testKey2BSimple(random, map);
+			testKey2BSimple(map);
 		}
 
-		public static BSimple getRandItem(Random random, PMap2<Key, BSimple> map2) {
+		public static BSimple getRandItem(PMap2<Key, BSimple> map2) {
 			if (map2.isEmpty())
 				return null;
-			var index = random.nextInt(map2.size());
+			var index = getRandom().nextInt(map2.size());
 			for (var cur : map2) {
 				if (index-- == 0)
 					return cur.getValue();
@@ -435,124 +444,124 @@ public class CoverHistory {
 		}
 	}
 
-	public class Vector2 implements Job {
+	public static class Vector2 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setVector2(new Zeze.Serialize.Vector2(random.nextInt(), random.nextInt()));
+			value.setVector2(new Zeze.Serialize.Vector2(getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Vector2Int implements Job {
+	public static class Vector2Int implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setVector2Int(new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+			value.setVector2Int(new Zeze.Serialize.Vector2Int(getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Vector3 implements Job {
+	public static class Vector3 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setVector3(new Zeze.Serialize.Vector3(random.nextInt(), random.nextInt(), random.nextInt()));
+			value.setVector3(new Zeze.Serialize.Vector3(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Vector3Int implements Job {
+	public static class Vector3Int implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setVector3Int(new Zeze.Serialize.Vector3Int(random.nextInt(), random.nextInt(), random.nextInt()));
+			value.setVector3Int(new Zeze.Serialize.Vector3Int(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Vector4 implements Job {
+	public static class Vector4 implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setVector4(new Zeze.Serialize.Vector4(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
+			value.setVector4(new Zeze.Serialize.Vector4(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Quaternion implements Job {
+	public static class Quaternion implements Job {
 		@Override
 		public void run(BValue value) {
-			value.setQuaternion(new Zeze.Serialize.Quaternion(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
+			value.setQuaternion(new Zeze.Serialize.Quaternion(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 		}
 	}
 
-	public class Dynamic23 extends Dynamic14 {
+	public static class Dynamic23 extends Dynamic14 {
 		@Override
 		public void run(BValue value) {
-			testDynamic(random, value.getDynamic23());
+			testDynamic(value.getDynamic23());
 		}
 	}
 
-	public class ListVector2Int implements Job {
+	public static class ListVector2Int implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getListVector2Int();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector2Int(getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector2Int(getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class Map25 implements Job {
+	public static class Map25 implements Job {
 		@Override
 		public void run(BValue value) {
 			var map = value.getMap25(); // see randKey
-			Map16.testKey2BSimple(random, map);
+			Map16.testKey2BSimple(map);
 		}
 	}
 
-	public class Map26 implements Job {
+	public static class Map26 implements Job {
 		@Override
 		public void run(BValue value) {
 			var map = value.getMap26();
 			var forceRemove = map.size() >= 3;
 			if (forceRemove) {
-				map.remove(Map16.randKey(random));
+				map.remove(Map16.randKey());
 			} else {
-				switch (random.nextInt(3)) {
+				switch (getRandom().nextInt(3)) {
 				case 0: // put, maybe replace.
-					map.put(Map16.randKey(random), BValue.newDynamicBean_Map26());
+					map.put(Map16.randKey(), BValue.newDynamicBean_Map26());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map.remove(Map16.randKey(random));
+					map.remove(Map16.randKey());
 					break;
 
 				case 2: // modify.
 					if (map.isEmpty())
-						map.put(Map16.randKey(random), BValue.newDynamicBean_Map26()); // ensure modify
+						map.put(Map16.randKey(), BValue.newDynamicBean_Map26()); // ensure modify
 					var randItem = getRandItem(map);
 					assert randItem != null;
 					var bean = randItem.getBean();
 					if (bean.typeId() != BSimple.TYPEID)
 						randItem.setBean(new BSimple());
 					else
-						((BSimple)bean).setInt_1(random.nextInt());
+						((BSimple)bean).setInt_1(getRandom().nextInt());
 					break;
 				}
 			}
 		}
 
-		private DynamicBean getRandItem(PMap2<Key, DynamicBean> map2) {
+		private static DynamicBean getRandItem(PMap2<Key, DynamicBean> map2) {
 			if (map2.isEmpty())
 				return null;
-			var index = random.nextInt(map2.size());
+			var index = getRandom().nextInt(map2.size());
 			for (var cur : map2) {
 				if (index-- == 0)
 					return cur.getValue();
@@ -561,266 +570,266 @@ public class CoverHistory {
 		}
 	}
 
-	public class Dynamic27 implements Job {
+	public static class Dynamic27 implements Job {
 
 		@Override
 		public void run(BValue value) {
 			// dynamic14 已经测试过了，这里简单表现一下。
-			switch (random.nextInt(2)) {
+			switch (getRandom().nextInt(2)) {
 			case 0:
 				value.getDynamic27().setBean(new BSimple());
 				break;
 			case 1:
 				var bean = value.getDynamic27().getBean();
 				if (bean.typeId() == BSimple.TYPEID)
-					((BSimple)bean).setInt_1(random.nextInt());
+					((BSimple)bean).setInt_1(getRandom().nextInt());
 				break;
 			}
 		}
 	}
 
-	public class Key28 implements Job {
+	public static class Key28 implements Job {
 
 		@Override
 		public void run(BValue value) {
-			value.setKey28(new Key((short)random.nextInt(100), String.valueOf(random.nextInt())));
+			value.setKey28(new Key((short)getRandom().nextInt(100), String.valueOf(getRandom().nextInt())));
 		}
 	}
 
-	public class Array29 implements Job {
+	public static class Array29 implements Job {
 
 		@Override
 		public void run(BValue value) {
 			var list = value.getArray29();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add((float)random.nextInt());
+						list.add((float)getRandom().nextInt());
 					else
-						list.add(random.nextInt(list.size()), (float)random.nextInt());
+						list.add(getRandom().nextInt(list.size()), (float)getRandom().nextInt());
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List30 implements Job {
+	public static class List30 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList30();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(random.nextInt());
+						list.add(getRandom().nextInt());
 					else
-						list.add(random.nextInt(list.size()), random.nextInt());
+						list.add(getRandom().nextInt(list.size()), getRandom().nextInt());
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List31 implements Job {
+	public static class List31 implements Job {
 
 		@Override
 		public void run(BValue value) {
 			var list = value.getList31();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(random.nextLong());
+						list.add(getRandom().nextLong());
 					else
-						list.add(random.nextInt(list.size()), random.nextLong());
+						list.add(getRandom().nextInt(list.size()), getRandom().nextLong());
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List32 implements Job {
+	public static class List32 implements Job {
 
 		@Override
 		public void run(BValue value) {
 			var list = value.getList32();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add((float)random.nextInt());
+						list.add((float)getRandom().nextInt());
 					else
-						list.add(random.nextInt(list.size()), (float)random.nextInt());
+						list.add(getRandom().nextInt(list.size()), (float)getRandom().nextInt());
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List33 implements Job {
+	public static class List33 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList33();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector2(random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector2(getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector2(random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector2(getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List34 implements Job {
+	public static class List34 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList34();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector3(random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector3(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector3(random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector3(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List35 implements Job {
+	public static class List35 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList35();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector4(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector4(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector4(random.nextInt(), random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector4(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List36 implements Job {
+	public static class List36 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList36();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector2Int(getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector2Int(random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector2Int(getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class List37 implements Job {
+	public static class List37 implements Job {
 		@Override
 		public void run(BValue value) {
 			var list = value.getList37();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
-				list.remove(random.nextInt(list.size()));
+				list.remove(getRandom().nextInt(list.size()));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
 					if (list.isEmpty())
-						list.add(new Zeze.Serialize.Vector3Int(random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(new Zeze.Serialize.Vector3Int(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					else
-						list.add(random.nextInt(list.size()), new Zeze.Serialize.Vector3Int(random.nextInt(), random.nextInt(), random.nextInt()));
+						list.add(getRandom().nextInt(list.size()), new Zeze.Serialize.Vector3Int(getRandom().nextInt(), getRandom().nextInt(), getRandom().nextInt()));
 					break;
 
 				case 1: // remove
 					if (!list.isEmpty())
-						list.remove(random.nextInt(list.size()));
+						list.remove(getRandom().nextInt(list.size()));
 					break;
 				}
 			}
 		}
 	}
 
-	public class Set38 implements Job {
-		private void randRemove(PSet1<Integer> set) {
+	public static class Set38 implements Job {
+		private static void randRemove(PSet1<Integer> set) {
 			if (set.isEmpty())
 				return;
 
-			var index = random.nextInt(set.size());
+			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
 					it.remove();
@@ -838,9 +847,9 @@ public class CoverHistory {
 			if (forceRemove) {
 				randRemove(set);
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
-					set.add(random.nextInt());
+					set.add(getRandom().nextInt());
 					break;
 
 				case 1: // remove
@@ -851,12 +860,12 @@ public class CoverHistory {
 		}
 	}
 
-	public class Set39 implements Job {
-		private void randRemove(PSet1<Long> set) {
+	public static class Set39 implements Job {
+		private static void randRemove(PSet1<Long> set) {
 			if (set.isEmpty())
 				return;
 
-			var index = random.nextInt(set.size());
+			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
 					it.remove();
@@ -874,9 +883,9 @@ public class CoverHistory {
 			if (forceRemove) {
 				randRemove(set);
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // insert
-					set.add(random.nextLong());
+					set.add(getRandom().nextLong());
 					break;
 
 				case 1: // remove
@@ -887,60 +896,60 @@ public class CoverHistory {
 		}
 	}
 
-	public class Map40 implements Job {
+	public static class Map40 implements Job {
 
 		@Override
 		public void run(BValue value) {
 			var map40 = value.getMap40(); // key is 0,1,2
 			var forceRemove = map40.size() >= 3;
 			if (forceRemove) {
-				map40.remove(random.nextInt(3));
+				map40.remove(getRandom().nextInt(3));
 			} else {
-				switch (random.nextInt(2)) {
+				switch (getRandom().nextInt(2)) {
 				case 0: // put, maybe replace.
-					map40.put(random.nextInt(3), random.nextInt());
+					map40.put(getRandom().nextInt(3), getRandom().nextInt());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map40.remove(random.nextInt(3));
+					map40.remove(getRandom().nextInt(3));
 					break;
 				}
 			}
 		}
 	}
 
-	public class Map41 implements Job {
+	public static class Map41 implements Job {
 		@Override
 		public void run(BValue value) {
 			var map41 = value.getMap41(); // key is 0,1,2
 			var forceRemove = map41.size() >= 3;
 			if (forceRemove) {
-				map41.remove(random.nextLong(3));
+				map41.remove(getRandom().nextLong(3));
 			} else {
-				switch (random.nextInt(3)) {
+				switch (getRandom().nextInt(3)) {
 				case 0: // put, maybe replace.
-					map41.put(random.nextLong(3), new BSimple());
+					map41.put(getRandom().nextLong(3), new BSimple());
 					break;
 
 				case 1: // remove, maybe remove nothing
-					map41.remove(random.nextLong(3));
+					map41.remove(getRandom().nextLong(3));
 					break;
 
 				case 2: // modify.
 					if (map41.isEmpty())
-						map41.put(random.nextLong(3), new BSimple()); // ensure modify
+						map41.put(getRandom().nextLong(3), new BSimple()); // ensure modify
 					var randItem = getRandItem(map41);
 					assert randItem != null;
-					randItem.setInt_1(random.nextInt());
+					randItem.setInt_1(getRandom().nextInt());
 					break;
 				}
 			}
 		}
 
-		private BSimple getRandItem(PMap2<Long, BSimple> map2) {
+		private static BSimple getRandItem(PMap2<Long, BSimple> map2) {
 			if (map2.isEmpty())
 				return null;
-			var index = random.nextInt(map2.size());
+			var index = getRandom().nextInt(map2.size());
 			for (var cur : map2) {
 				if (index-- == 0)
 					return cur.getValue();
@@ -955,7 +964,7 @@ public class CoverHistory {
 			// map 基本测试足够了，这里只测试递归修改。
 			var map = value.getMap42Recursive();
 			var rValue = map.computeIfAbsent(0L, (key) -> new BValue());
-			runJobs(rValue); // recursive, 没有退出限制，靠概率退出。
+			runJobs(0, rValue); // recursive, 没有退出限制，靠概率退出。
 		}
 	}
 
