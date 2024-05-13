@@ -80,6 +80,7 @@ public class Id128UdpClient {
 				return futureNodeGet;
 			});
 			// todo 并发确认! currentFuture.remove,tailFuture.compute应该是一个原子操作,这样写不需要加锁吧?
+			//  或者currentFuture一开始就compute,代码全部写在里面?
 			var futureNode = currentFuture.remove(globalName);
 			if (null != futureNode) { // concurrent remove. maybe null.
 				var r = new AllocateId128(futureNode);
