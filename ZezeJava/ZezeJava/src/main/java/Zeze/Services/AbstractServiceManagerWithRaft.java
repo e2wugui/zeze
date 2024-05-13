@@ -27,6 +27,14 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
             service.AddFactoryHandle(47342648206403L, factoryHandle); // 11022, -776297405
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.AllocateId128.class, Zeze.Builtin.ServiceManagerWithRaft.AllocateId128.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.AllocateId128::new;
+            factoryHandle.Handle = this::ProcessAllocateId128Request;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAllocateId128Request", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAllocateId128Request", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47341577254933L, factoryHandle); // 11022, -1847248875
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ServiceManagerWithRaft.Edit.class, Zeze.Builtin.ServiceManagerWithRaft.Edit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ServiceManagerWithRaft.Edit::new;
             factoryHandle.Handle = this::ProcessEditRequest;
@@ -100,6 +108,7 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47342648206403L);
+        service.getFactorys().remove(47341577254933L);
         service.getFactorys().remove(47340950705715L);
         service.getFactorys().remove(47341226054794L);
         service.getFactorys().remove(47339747890828L);
@@ -119,6 +128,7 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
         rocks.registerTableTemplate("tAutoKey", String.class, Zeze.Builtin.ServiceManagerWithRaft.BAutoKey.class);
+        rocks.registerTableTemplate("tId128", String.class, Zeze.Builtin.ServiceManagerWithRaft.BId128.class);
         rocks.registerTableTemplate("tLoadObservers", String.class, Zeze.Builtin.ServiceManagerWithRaft.BLoadObservers.class);
         rocks.registerTableTemplate("tServerState", String.class, Zeze.Builtin.ServiceManagerWithRaft.BServerState.class);
         rocks.registerTableTemplate("tSession", String.class, Zeze.Builtin.ServiceManagerWithRaft.BSession.class);
@@ -132,6 +142,7 @@ public abstract class AbstractServiceManagerWithRaft implements Zeze.IModule {
     }
 
     protected abstract long ProcessAllocateIdRequest(Zeze.Builtin.ServiceManagerWithRaft.AllocateId r) throws Exception;
+    protected abstract long ProcessAllocateId128Request(Zeze.Builtin.ServiceManagerWithRaft.AllocateId128 r) throws Exception;
     protected abstract long ProcessEditRequest(Zeze.Builtin.ServiceManagerWithRaft.Edit r) throws Exception;
     protected abstract long ProcessLoginRequest(Zeze.Builtin.ServiceManagerWithRaft.Login r) throws Exception;
     protected abstract long ProcessNormalCloseRequest(Zeze.Builtin.ServiceManagerWithRaft.NormalClose r) throws Exception;

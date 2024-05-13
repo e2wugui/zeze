@@ -41,6 +41,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	private static final Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
 	private final Rocks rocks;
 	private final Table<String, BAutoKey> tableAutoKey;
+	private final Table<String, BId128> tableId128;
 	private final Table<String, BSession> tableSession;
 	private final Table<String, BLoadObservers> tableLoadObservers;
 	private final Table<String, BServerState> tableServerState;
@@ -69,6 +70,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		rocks.getRaft().getServer().start();
 
 		tableAutoKey = rocks.<String, BAutoKey>getTableTemplate("tAutoKey").openTable();
+		tableId128 = rocks.<String, BId128>getTableTemplate("tId128").openTable();
 		tableSession = rocks.<String, BSession>getTableTemplate("tSession").openTable();
 		tableLoadObservers = rocks.<String, BLoadObservers>getTableTemplate("tLoadObservers").openTable();
 		tableServerState = rocks.<String, BServerState>getTableTemplate("tServerState").openTable();
@@ -286,18 +288,29 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 	}
 
 	@Override
+	protected long ProcessAllocateId128Request(AllocateId128 r) {
+		// 随便写写! 这个实际上没用,因为id128需要通过udp,这里是tcp.
+		if (r.Argument.getCount() < 1)
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+
+		var id128 = tableId128.getOrAdd(r.Argument.getName());
+		r.Result.setStartId(id128.getCurrent());
+		var count = r.Argument.getCount();
+		id128.setCurrent(id128.getCurrent().add(count)); // 不能直接修改当前值,因为没有受事务保护.
+		r.Result.setCount(count);
+		r.SendResult();
+		return 0;
+	}
+
+	@Override
 	protected long ProcessAllocateIdRequest(AllocateId r) {
+		if (r.Argument.getCount() < 1)
+			return Zeze.Transaction.Procedure.ErrorRequestId;
+
 		var autoKey = tableAutoKey.getOrAdd(r.Argument.getName());
-
 		r.Result.setStartId(autoKey.getCurrent());
-
 		// 随便修正一下分配数量。
 		var count = r.Argument.getCount();
-		if (count < 256)
-			count = 256;
-		else if (count > 10000)
-			count = 10000;
-
 		long current = autoKey.getCurrent() + count;
 		autoKey.setCurrent(current);
 		r.Result.setCount(count);

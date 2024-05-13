@@ -16,6 +16,8 @@
 	<external bean="Zeze.Services.ServiceManager.BUnSubscribeArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeResult"/>
 	<externalkey beankey="Zeze.Util.Id128"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateId128Argument"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateId128Result"/>
 
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
@@ -1118,12 +1120,18 @@
 				<enum name="NotExist" value="1"/>
 			</rpc>
 			<rpc name="NormalClose" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="AllocateId128" argument="Zeze.Services.ServiceManager.BAllocateId128Argument" result="Zeze.Services.ServiceManager.BAllocateId128Result" base="Zeze.Raft.RaftRpc" handle="server"/>
 
 			<!-- autokey -->
 			<bean name="BAutoKey" kind="rocks">
 				<variable id="1" name="Current" type="long"/>
 			</bean>
 			<table name="tAutoKey" key="string" value="BAutoKey" kind="rocks"/>
+
+			<bean name="BId128" kind="rocks">
+				<variable id="1" name="Current" type="Zeze.Util.Id128"/>
+			</bean>
+			<table name="tId128" key="string" value="BId128" kind="rocks"/>
 
 			<!-- session -->
 			<bean name="BOfflineNotifyRocks" kind="rocks">
