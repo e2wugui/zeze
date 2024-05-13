@@ -4,13 +4,11 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
-import javax.persistence.Id;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.Tid128Cache;
-import Zeze.Services.ServiceManager.TidCache;
 import Zeze.Util.Id128;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
@@ -488,7 +486,7 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					var log = it.value();
 					if (log.category() != Log.Category.eHistory)
-						continue; // 
+						continue; //
 					var logBelong = log.getBelong();
 					// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
 					if (logBelong != null && logBelong.isManaged()) {

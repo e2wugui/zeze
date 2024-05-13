@@ -92,13 +92,23 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		}
 	}
 
+	public void encodeRaw(@NotNull ByteBuffer bb) {
+		bb.WriteULong(high);
+		bb.WriteULong(low);
+	}
+
+	public void decodeRaw(@NotNull IByteBuffer bb) {
+		high = bb.ReadULong();
+		low = bb.ReadULong();
+	}
+
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.BYTES);
 		int wi = bb.WriteIndex;
 		bb.WriteByte(0); // skip binary size
-		bb.WriteULong(low);
 		bb.WriteULong(high);
+		bb.WriteULong(low);
 		bb.Bytes[wi] = (byte)(bb.WriteIndex - wi - 1); // binary size [2,18]
 		bb.WriteByte(0); // end of bean
 	}
@@ -112,8 +122,8 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 				throw new IllegalStateException("decode Id128 error: type=" + t);
 			int n = bb.ReadUInt();
 			int e = bb.getReadIndex() + n;
-			low = bb.ReadULong();
 			high = bb.ReadULong();
+			low = bb.ReadULong();
 			if (bb.getReadIndex() != e)
 				throw new IllegalStateException("decode Id128 error: size=" + n);
 			bb.ReadTagSize(t = bb.ReadByte());

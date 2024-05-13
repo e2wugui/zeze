@@ -30,11 +30,6 @@ public class Id128UdpServer {
 	private static class Id128Context extends FastLock {
 		final Id128 current = new Id128();
 		final Id128 max = new Id128();
-
-		@Override
-		public Id128Context clone() {
-			throw new AssertionError(new CloneNotSupportedException());
-		}
 	}
 
 	private final @Nullable RocksDatabase.Table table;
@@ -141,7 +136,7 @@ public class Id128UdpServer {
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
 				if (v != null) {
-					c.max.decode(ByteBuffer.Wrap(v));
+					c.max.decodeRaw(ByteBuffer.Wrap(v));
 					c.current.assign(c.max);
 				}
 			} catch (RocksDBException e) {
@@ -158,7 +153,7 @@ public class Id128UdpServer {
 			if (current.compareTo(max) > 0) {
 				max.increment(Math.max(fund.next(), count));
 				bbTemp.Reset();
-				max.encode(bbTemp);
+				max.encodeRaw(bbTemp);
 				if (table != null)
 					table.put(name.bytesUnsafe(), 0, name.size(), bbTemp.Bytes, 0, bbTemp.WriteIndex);
 			}

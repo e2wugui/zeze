@@ -16,14 +16,14 @@ public class BGlobalKeyState implements Serializable {
 		globalKey = bb.ReadBinary();
 		state = bb.ReadInt();
 		reducedTid = new Id128();
-		reducedTid.decode(bb);
+		reducedTid.decodeRaw(bb);
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(globalKey);
 		bb.WriteInt(state);
-		reducedTid.encode(bb);
+		reducedTid.encodeRaw(bb);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

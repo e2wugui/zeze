@@ -24,13 +24,13 @@ public final class BAllocateId128Result implements Serializable {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		startId.decode(bb);
+		startId.decodeRaw(bb);
 		count = bb.ReadInt();
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		startId.encode(bb);
+		startId.encodeRaw(bb);
 		bb.WriteInt(count);
 	}
 

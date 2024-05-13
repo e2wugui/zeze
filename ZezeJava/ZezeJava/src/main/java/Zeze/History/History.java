@@ -10,7 +10,6 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.TableKey;
 import Zeze.Util.Id128;
-import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -141,9 +140,9 @@ public class History {
 	}
 
 	public static LogChangesRaw buildLogChanges(Id128 globalSerialId,
-												   Changes changes,
-												   @Nullable String protocolClassName,
-												   @Nullable Binary protocolArgument) {
+												Changes changes,
+												@Nullable String protocolClassName,
+												@Nullable Binary protocolArgument) {
 		var logChanges = new LogChangesRaw(changes.getRecords());
 		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);
