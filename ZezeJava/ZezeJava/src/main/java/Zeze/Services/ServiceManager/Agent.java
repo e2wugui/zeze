@@ -43,7 +43,13 @@ public final class Agent extends AbstractAgent {
 
 	@Override
 	public void start() throws Exception {
-		client.start();
+		lock();
+		try {
+			client.start();
+			tid128UdpClient.start();
+		} finally {
+			unlock();
+		}
 	}
 
 	@Override
@@ -295,6 +301,7 @@ public final class Agent extends AbstractAgent {
 	public void stop() throws Exception {
 		lock();
 		try {
+			tid128UdpClient.stop();
 			var so = client.getSocket();
 			if (so != null) // 有可能提前关闭,so==null时执行下面这行会抛异常
 				new NormalClose().SendAndWaitCheckResultCode(so);
