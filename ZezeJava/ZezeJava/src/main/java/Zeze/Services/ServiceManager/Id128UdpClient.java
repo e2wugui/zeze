@@ -72,12 +72,16 @@ public class Id128UdpClient {
 		// 多次请求的allocateCount不一样,只记住第一次的.
 		var current = currentFuture.computeIfAbsent(globalName, __ -> new FutureNode(allocateCount));
 		if (current.pending.incrementAndGet() >= 5) {
+			var futureNodeGet = currentFuture.get(globalName);
+			tailFuture.compute(globalName, (key, value) -> {
+				if (value == futureNodeGet)
+					return value; // 并发allocate,自己已经是tail,保持不变.
+				futureNodeGet.prev = value; // value maybe null. that is first node.
+				return futureNodeGet;
+			});
+			// todo 并发确认! currentFuture.remove,tailFuture.compute应该是一个原子操作,这样写不需要加锁吧?
 			var futureNode = currentFuture.remove(globalName);
 			if (null != futureNode) { // concurrent remove. maybe null.
-				tailFuture.compute(globalName, (key, value) -> {
-					futureNode.prev = value; // value maybe null. that is first node.
-					return futureNode;
-				});
 				var r = new AllocateId128(futureNode);
 				r.setSessionId(service.nextSessionId());
 				r.Argument.setName(globalName);
