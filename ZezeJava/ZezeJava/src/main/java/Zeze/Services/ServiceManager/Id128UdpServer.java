@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.Transaction;
 
 /**
  * AllocateId128 server
@@ -89,7 +90,7 @@ public class Id128UdpServer {
 		var dbb = bbRecv.getNioByteBuffer();
 		var bbSend = ByteBuffer.Allocate(2048);
 		var rpc = new AllocateId128();
-		var bytes16 = new byte[16];
+		var bbTemp = ByteBuffer.Allocate(32);
 		for (; ; ) {
 			try {
 				dbb.clear();
@@ -97,11 +98,15 @@ public class Id128UdpServer {
 				dbb.flip();
 				bbSend.Reset();
 				try {
-					while (!bbRecv.isEmpty()) {
-						rpc.decode(bbRecv);
-						process(rpc, bytes16);
-						rpc.setRequest(false);
-						rpc.encode(bbSend);
+					try (var txn = table != null ? table.getRocksDb().beginTransaction() : null) {
+						while (!bbRecv.isEmpty()) {
+							rpc.decode(bbRecv);
+							process(rpc, txn, bbTemp);
+							rpc.setRequest(false);
+							rpc.encode(bbSend);
+						}
+						if (txn != null)
+							txn.commit();
 					}
 				} catch (Exception e) {
 					logger.error("process exception:", e);
@@ -128,7 +133,8 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
-	private void process(@NotNull AllocateId128 rpc, byte @NotNull [] bytes16) throws RocksDBException {
+	private void process(@NotNull AllocateId128 rpc, @Nullable Transaction txn, @NotNull ByteBuffer bbTemp)
+			throws RocksDBException {
 		var arg = rpc.Argument;
 		var res = rpc.Result;
 		var name = arg.getBinaryName();
@@ -138,9 +144,7 @@ public class Id128UdpServer {
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
 				if (v != null)
-					id.decode16(v);
-				else
-					id.increment(1); // 从1开始分配
+					id.decode(ByteBuffer.Wrap(v));
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
@@ -150,9 +154,11 @@ public class Id128UdpServer {
 		try {
 			res.getStartId().assign(id128);
 			id128.increment(count);
-			if (table != null) { // 以后再考虑能不能移到锁外
-				id128.encode16(bytes16);
-				table.put(name.bytesUnsafe(), bytes16);
+			if (txn != null) { // 以后再考虑能不能移到锁外
+				bbTemp.Reset();
+				id128.encode(bbTemp);
+				//noinspection DataFlowIssue
+				table.put(txn, name.bytesUnsafe(), name.size(), bbTemp.Bytes, bbTemp.WriteIndex);
 			}
 		} finally {
 			id128.lock.unlock();

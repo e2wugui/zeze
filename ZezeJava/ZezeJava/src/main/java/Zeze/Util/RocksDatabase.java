@@ -506,6 +506,10 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			return rocksDb.getLongProperty(cfHandle, "rocksdb.estimate-num-keys");
 		}
 
+		public @NotNull RocksDatabase getRocksDb() {
+			return RocksDatabase.this;
+		}
+
 		public @NotNull String getName() {
 			return name;
 		}
