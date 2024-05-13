@@ -107,27 +107,27 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(String globalName) {
 		var future = new TaskCompletionSource<TidCache>();
-		var tmp = lastTidCacheFuture;
-		var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
-		var sent = allocateAsync(globalName, allocateCount, (rpc) -> {
-			lock();
-			try {
-				if (rpc.getResultCode() == 0) {
-					var newest = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
-					future.setResult(newest);
-				} else {
-					future.setException(new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode())));
-				}
-			} finally {
-				unlock();
-			}
-			return 0;
-		});
-		if (!sent)
-			future.setException(new Exception("AllocatedId send fail."));
-
 		lock();
 		try {
+			var tmp = lastTidCacheFuture;
+			var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
+			var sent = allocateAsync(globalName, allocateCount, (rpc) -> {
+				lock();
+				try {
+					if (rpc.getResultCode() == 0) {
+						var newest = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
+						future.setResult(newest);
+					} else {
+						future.setException(new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode())));
+					}
+				} finally {
+					unlock();
+				}
+				return 0;
+			});
+			if (!sent) // 错误的请求将保持,使得所有事务都失败,本质上不允许出错.
+				future.setException(new Exception("AllocatedId send fail."));
+
 			lastTidCacheFuture = future;
 		} finally {
 			unlock();
@@ -140,9 +140,14 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	public @NotNull TaskCompletionSource<Tid128Cache> allocateTid128CacheFuture(String globalName) {
-		var tmp = lastTid128CacheFuture;
-		var allocateCount = tmp == null ? Tid128Cache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
-		return tid128UdpClient.allocateFuture(globalName, allocateCount);
+		lock();
+		try {
+			var tmp = lastTid128CacheFuture;
+			var allocateCount = tmp == null ? Tid128Cache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
+			return tid128UdpClient.allocateFuture(globalName, allocateCount);
+		} finally {
+			unlock();
+		}
 	}
 
 	protected abstract boolean allocateAsync(String globalName, int allocCount,

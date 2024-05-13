@@ -274,7 +274,7 @@ public final class Agent extends AbstractAgent {
 
 		// todo 使用老的协议得到服务器的Id128UdpServer的port。
 		//  现在的方式使用和tcp.port一样.
-		super.tid128UdpClient = new Id128UdpClient(0, client);
+		super.tid128UdpClient = new Id128UdpClient(this, 0, client);
 	}
 
 	@Override
