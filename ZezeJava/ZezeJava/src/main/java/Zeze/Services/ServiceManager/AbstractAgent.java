@@ -144,7 +144,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		try {
 			var tmp = lastTid128CacheFuture;
 			var allocateCount = tmp == null ? Tid128Cache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
-			return tid128UdpClient.allocateFuture(globalName, allocateCount);
+			return (lastTid128CacheFuture = tid128UdpClient.allocateFuture(globalName, allocateCount));
 		} finally {
 			unlock();
 		}
