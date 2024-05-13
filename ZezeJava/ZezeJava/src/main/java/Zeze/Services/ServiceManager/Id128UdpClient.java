@@ -22,7 +22,7 @@ public class Id128UdpClient {
 	private static final Logger logger = LogManager.getLogger();
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
-	private static final int eSendImmediatelyGuard = 3;
+	private static final int eSendImmediatelyGuard = 1;
 	private static final int eRpcTimeoutChecker = 1500;
 	private static final int eRpcTimeout = 5000;
 
