@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
@@ -249,4 +250,18 @@ public class Id128UdpClient {
 		}
 	}
 
+	public static void main(String [] args) throws Exception {
+		var nextSessionId = new AtomicLong();
+		var server = new Id128UdpServer();
+		server.start(); // must start first. server.getLocalPort() need.
+		var client = new Id128UdpClient(null, "127.0.0.1", server.getLocalPort(), nextSessionId::incrementAndGet);
+		client.start();
+		try {
+			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
+			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
+		} finally {
+			client.stop();
+			server.stop();
+		}
+	}
 }
