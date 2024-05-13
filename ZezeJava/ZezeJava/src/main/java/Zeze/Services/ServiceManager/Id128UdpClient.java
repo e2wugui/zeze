@@ -19,7 +19,7 @@ public class Id128UdpClient {
 	private static final Logger logger = LogManager.getLogger();
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
-	private static final int eSendImmediatelyGuard = 5;
+	private static final int eSendImmediatelyGuard = 3;
 	private static final int eRpcTimeoutChecker = 1500;
 	private static final int eRpcTimeout = 5000;
 
@@ -172,7 +172,7 @@ public class Id128UdpClient {
 			var bb = ByteBuffer.Allocate();
 			for (var key : currentFuture.keySet()) {
 				var futureNode = currentFuture.remove(key);
-				if (futureNode != null) { // 实际上不可能为null.只有这里会删除,单线程.
+				if (futureNode != null) { // 并发删除, see allocateFuture
 					var r = new AllocateId128(futureNode);
 					r.setSessionId(nextSessionIdFunc.call());
 					r.Argument.setName(key);
