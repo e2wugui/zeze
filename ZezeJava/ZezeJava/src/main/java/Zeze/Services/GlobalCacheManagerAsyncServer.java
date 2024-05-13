@@ -33,6 +33,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
+import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -499,7 +500,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
-			long reduceTid;
+			Id128 reduceTid;
 		};
 		cs.lock.enter(() -> {
 			if (state.stage == 0) {
@@ -670,7 +671,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
-			long reduceTid;
+			Id128 reduceTid;
 		};
 		cs.lock.enter(() -> {
 			if (state.stage == 0) {

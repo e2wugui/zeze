@@ -99,12 +99,12 @@ public class Id128UdpServer {
 				bbSend.Reset();
 				try {
 					try (var txn = table != null ? table.getRocksDb().beginTransaction() : null) {
-						while (!bbRecv.isEmpty()) {
-							rpc.decode(bbRecv);
+					while (!bbRecv.isEmpty()) {
+						rpc.decode(bbRecv);
 							process(rpc, txn, bbTemp);
-							rpc.setRequest(false);
-							rpc.encode(bbSend);
-						}
+						rpc.setRequest(false);
+						rpc.encode(bbSend);
+					}
 						if (txn != null)
 							txn.commit();
 					}
@@ -144,7 +144,7 @@ public class Id128UdpServer {
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
 				if (v != null)
-					id.decode(ByteBuffer.Wrap(v));
+					id.decode16(v);
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}

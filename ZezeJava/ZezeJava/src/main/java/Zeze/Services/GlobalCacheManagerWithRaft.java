@@ -29,6 +29,7 @@ import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.RocksRaft.TableTemplate;
 import Zeze.Raft.RocksRaft.Transaction;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -291,7 +292,7 @@ public class GlobalCacheManagerWithRaft
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
-			var reduceTid = new OutLong();
+			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
 					// 已经是Modify又申请，可能是sender异常关闭，
@@ -439,7 +440,7 @@ public class GlobalCacheManagerWithRaft
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
 			serialId.getAndIncrement();
 			var SenderAcquired = serverAcquiredTemplate.openTable(sender.serverId);
-			var reduceTid = new OutLong();
+			var reduceTid = new OutObject<>(Id128.Zero);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.serverId) {
 					// 已经是Modify又申请，可能是sender异常关闭，又重启连上。

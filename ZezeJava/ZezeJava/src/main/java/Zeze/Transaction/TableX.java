@@ -320,7 +320,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateInvalid:
 					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 
 					if (r.getDirty())
@@ -333,7 +333,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateShare:
 					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
 					if (r.getDirty())
 						break;
@@ -346,7 +346,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
 					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					if (r.getDirty())
 						break;
 					if (isTraceEnabled)
@@ -433,7 +433,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateInvalid:
 					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 					if (r.getDirty())
 						break;
@@ -445,7 +445,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateShare:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
@@ -458,7 +458,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateModify:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
-					r.setTid(0);
+					r.setTid(null);
 					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					if (r.getDirty())
 						break;

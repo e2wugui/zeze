@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.io.Closeable;
 import Zeze.Net.Binary;
+import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,7 +12,7 @@ public interface IGlobalAgent extends Closeable {
 
 		static {
 			for (int i = 0; i < successResults.length; i++)
-				successResults[i] = new AcquireResult(0, i, 0);
+				successResults[i] = new AcquireResult(0, i, null);
 		}
 
 		public static @NotNull AcquireResult getSuccessResult(int state) {
@@ -20,9 +21,9 @@ public interface IGlobalAgent extends Closeable {
 
 		public final long resultCode;
 		public final int resultState;
-		public final long reducedTid;
+		public final Id128 reducedTid;
 
-		public AcquireResult(long code, int state, long reducedTid) {
+		public AcquireResult(long code, int state, Id128 reducedTid) {
 			resultCode = code;
 			resultState = state;
 			this.reducedTid = reducedTid;

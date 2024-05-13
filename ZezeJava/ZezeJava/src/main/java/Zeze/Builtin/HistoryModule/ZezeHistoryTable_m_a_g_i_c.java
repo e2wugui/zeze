@@ -6,8 +6,8 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.HistoryModule.BLogChanges>
-        implements TableReadOnly<Long, Zeze.Builtin.HistoryModule.BLogChanges, Zeze.Builtin.HistoryModule.BLogChangesReadOnly> {
+public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges>
+        implements TableReadOnly<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges, Zeze.Builtin.HistoryModule.BLogChangesReadOnly> {
     public ZezeHistoryTable_m_a_g_i_c() {
         super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c");
     }
@@ -17,8 +17,8 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
     }
 
     @Override
-    public Class<Long> getKeyClass() {
-        return Long.class;
+    public Class<Zeze.Util.Id128> getKeyClass() {
+        return Zeze.Util.Id128.class;
     }
 
     @Override
@@ -33,29 +33,35 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
     public static final int VAR_Timestamp = 5;
 
     @Override
-    public Long decodeKey(ByteBuffer _os_) {
-        long _v_;
-        _v_ = _os_.ReadLong();
+    public Zeze.Util.Id128 decodeKey(ByteBuffer _os_) {
+        Zeze.Util.Id128 _v_ = new Zeze.Util.Id128();
+        _v_.decode(_os_);
         return _v_;
     }
 
     @Override
-    public ByteBuffer encodeKey(Long _v_) {
-        ByteBuffer _os_ = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(_v_));
-        _os_.WriteLong(_v_);
+    public ByteBuffer encodeKey(Zeze.Util.Id128 _v_) {
+        ByteBuffer _os_ = ByteBuffer.Allocate(16);
+        _v_.encode(_os_);
         return _os_;
     }
 
     @Override
-    public Long decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        long _v_;
-        _v_ = rs.getLong("__key");
+    public Zeze.Util.Id128 decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+        var parents = new java.util.ArrayList<String>();
+        Zeze.Util.Id128 _v_ = new Zeze.Util.Id128();
+        parents.add("__key");
+        _v_.decodeResultSet(parents, rs);
+        parents.remove(parents.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long _v_) {
-        st.appendLong("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Util.Id128 _v_) {
+        var parents = new java.util.ArrayList<String>();
+        parents.add("__key");
+        _v_.encodeSQLStatement(parents, st);
+        parents.remove(parents.size() - 1);
     }
 
     @Override
@@ -64,7 +70,7 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Long, Zeze.Builtin.
     }
 
     @Override
-    public Zeze.Builtin.HistoryModule.BLogChangesReadOnly getReadOnly(Long key) {
+    public Zeze.Builtin.HistoryModule.BLogChangesReadOnly getReadOnly(Zeze.Util.Id128 key) {
         return get(key);
     }
 }

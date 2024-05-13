@@ -9,6 +9,7 @@ import Zeze.Application;
 import Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c;
 import Zeze.Transaction.TableKey;
 import Zeze.Util.FastLock;
+import Zeze.Util.Id128;
 
 public class ApplyHelper extends FastLock {
 	private final Application zeze;
@@ -16,7 +17,7 @@ public class ApplyHelper extends FastLock {
 	private final IApplyDatabase dbApplied;
 	private final int beforeTimeMs;
 	private final ConcurrentHashMap<Integer, ApplyTable<?, ?>> applyTables = new ConcurrentHashMap<>();
-	private Long exclusiveStartKey;
+	private Id128 exclusiveStartKey;
 
 	public ApplyHelper(Application zeze, ZezeHistoryTable_m_a_g_i_c historyTable,
 					   IApplyDatabase dbApplied, int beforeTimeMs) {

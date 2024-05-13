@@ -1,6 +1,7 @@
 package Zeze.History;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
@@ -8,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.TableKey;
+import Zeze.Util.Id128;
 import Zeze.Util.LongConcurrentHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,10 +19,10 @@ public class History {
 
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
-	private volatile LongConcurrentHashMap<LogChangesRaw> logChanges;
+	private volatile ConcurrentHashMap<Id128, LogChangesRaw> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
-	private final LongConcurrentHashMap<Binary> encoded = new LongConcurrentHashMap<>();
+	private final ConcurrentHashMap<Id128, Binary> encoded = new ConcurrentHashMap<>();
 
 	public History() {
 	}
@@ -31,7 +33,7 @@ public class History {
 
 	public void addLogChanges(LogChangesRaw _logChanges) {
 		if (null == logChanges)
-			logChanges = new LongConcurrentHashMap<>();
+			logChanges = new ConcurrentHashMap<>();
 		logChanges.put(_logChanges.getGlobalSerialId(), _logChanges);
 	}
 
@@ -39,9 +41,9 @@ public class History {
 		// rrs 锁外
 		var changes = logChanges; // volatile
 		if (null != changes) {
-			changes.forEach((v) -> {
+			changes.forEach((key, v) -> {
 				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
-				encoded.computeIfAbsent(v.getGlobalSerialId(), (key) -> {
+				encoded.computeIfAbsent(v.getGlobalSerialId(), __ -> {
 					var bb = ByteBuffer.Allocate();
 					v.encode(bb);
 					return new Binary(bb);
@@ -57,9 +59,9 @@ public class History {
 		// 锁内
 		var changes = logChanges;
 		if (null != changes) {
-			changes.forEach((v) -> {
+			changes.forEach((key, v) -> {
 				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
-				encoded.computeIfAbsent(v.getGlobalSerialId(), (key) -> {
+				encoded.computeIfAbsent(v.getGlobalSerialId(), __ -> {
 					var bb = ByteBuffer.Allocate();
 					v.encode(bb);
 					return new Binary(bb);
@@ -72,24 +74,23 @@ public class History {
 	public void flush(Database.Table table, Database.Transaction txn) {
 		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
 		//logger.debug("flush: {}", encoded.size());
-		for (var it = encoded.entryIterator(); it.moveToNext(); /**/) {
+		for (var e : encoded.entrySet()) {
 			var key = ByteBuffer.Allocate();
-			key.WriteLong(it.key());
-			var value = ByteBuffer.Wrap(it.value());
+			e.getKey().encode(key);
+			var value = ByteBuffer.Wrap(e.getValue());
 			table.replace(txn, key, value);
 		}
 		encoded.clear();
 	}
 
-	public static void putLogChangesAll(@NotNull LongConcurrentHashMap<LogChangesRaw> to,
-										@NotNull LongConcurrentHashMap<LogChangesRaw> other) {
-		other.forEach((v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
+	public static void putLogChangesAll(@NotNull ConcurrentHashMap<Id128, LogChangesRaw> to,
+										@NotNull ConcurrentHashMap<Id128, LogChangesRaw> other) {
+		other.forEach((key, v) -> to.putIfAbsent(v.getGlobalSerialId(), v));
 	}
 
-	public static void putEncodedAll(@NotNull LongConcurrentHashMap<Binary> to,
-									 @NotNull LongConcurrentHashMap<Binary> other) {
-		for (var it = other.entryIterator(); it.moveToNext(); /**/)
-			to.putIfAbsent(it.key(), it.value());
+	public static void putEncodedAll(@NotNull ConcurrentHashMap<Id128, Binary> to,
+									 @NotNull ConcurrentHashMap<Id128, Binary> other) {
+		other.forEach(to::putIfAbsent);
 	}
 
 	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
@@ -139,7 +140,7 @@ public class History {
 		}
 	}
 
-	public static LogChangesRaw buildLogChanges(long globalSerialId,
+	public static LogChangesRaw buildLogChanges(Id128 globalSerialId,
 												   Changes changes,
 												   @Nullable String protocolClassName,
 												   @Nullable Binary protocolArgument) {

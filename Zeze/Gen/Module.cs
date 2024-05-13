@@ -112,6 +112,9 @@ namespace Zeze.Gen
                     case "external":
                         new Types.External(this, e);
                         break;
+                    case "externalkey":
+                        new Types.ExternalBeanKey(this, e);
+                        break;
                     default:
                         throw new Exception("unknown nodename=" + e.Name + " in module=" + Path());
                 }

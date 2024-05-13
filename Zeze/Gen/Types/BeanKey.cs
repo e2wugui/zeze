@@ -116,7 +116,7 @@ namespace Zeze.Gen.Types
 			Enums.Add(e);
 		}
 
-		public ModuleSpace Space { get; private set; }
+		public ModuleSpace Space { get; protected set; }
 
 		public override bool IsImmutable => true;
 		public override bool IsJavaPrimitive => false;
@@ -125,7 +125,7 @@ namespace Zeze.Gen.Types
 		public string NamePinyin => Program.ToPinyin(Name);
         public virtual string FullCxxName => Space.Path("::", Name);
         
-		private string _name;
+		protected string _name;
 		public override bool IsNeedNegativeCheck
 		{
 			get
@@ -143,7 +143,7 @@ namespace Zeze.Gen.Types
 		public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public string Comment { get; private set; }
-		public string FullName => Space.Path(".", Name);
+		public virtual string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
 		
 		private List<Variable> VariablesIdOrder_;
@@ -183,6 +183,11 @@ namespace Zeze.Gen.Types
             }
         }
         
+		public BeanKey()
+		{
+
+		}
+
 		public BeanKey(ModuleSpace space, XmlElement self)
 		{
 			Space = space;

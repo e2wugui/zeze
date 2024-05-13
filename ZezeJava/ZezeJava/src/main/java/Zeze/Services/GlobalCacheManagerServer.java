@@ -27,6 +27,7 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -465,7 +466,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
-				var reduceTid = new OutLong();
+				var reduceTid = new OutObject<>(Id128.Zero);
 				if (cs.modify != null) {
 					if (cs.modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
@@ -615,7 +616,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				serialIdGenerator.getAndIncrement();
 
 				var gKey = cs.globalKey;
-				var reduceTid = new OutLong();
+				var reduceTid = new OutObject<>(Id128.Zero);
 				if (cs.modify != null) {
 					if (cs.modify == sender) {
 						if (isDebugEnabled)

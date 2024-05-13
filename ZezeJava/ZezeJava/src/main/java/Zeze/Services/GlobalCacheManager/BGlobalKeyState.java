@@ -4,24 +4,26 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.Id128;
 
 public class BGlobalKeyState implements Serializable {
 	public Binary globalKey; // 没有初始化，使用时注意
 	public int state;
-	public long reducedTid; // 被降级方的事务Id
+	public Id128 reducedTid; // 被降级方的事务Id
 
 	@Override
 	public void decode(IByteBuffer bb) {
 		globalKey = bb.ReadBinary();
 		state = bb.ReadInt();
-		reducedTid = bb.ReadLong();
+		reducedTid = new Id128();
+		reducedTid.decode(bb);
 	}
 
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(globalKey);
 		bb.WriteInt(state);
-		bb.WriteLong(reducedTid);
+		reducedTid.encode(bb);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

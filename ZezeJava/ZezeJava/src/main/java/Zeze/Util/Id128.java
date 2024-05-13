@@ -10,6 +10,8 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 	private long low; // unsigned
 	private long high; // unsigned
 
+	public static final Id128 Zero = new Id128();
+
 	public Id128() {
 	}
 
@@ -106,5 +108,9 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 		ByteBuffer.longBeHandler.set(bytes, 8, high);
 		ByteBuffer.longBeHandler.set(bytes, 16, low);
 		return new BigInteger(bytes, 7, 17).toString();
+	}
+
+	public void buildString(StringBuilder sb, int level) {
+		sb.append(Str.indent(level)).append(toString());
 	}
 }

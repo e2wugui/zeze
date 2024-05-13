@@ -7,7 +7,7 @@ public interface BLogChangesReadOnly {
     boolean negativeCheck();
     BLogChanges copy();
 
-    long getGlobalSerialId();
+    Zeze.Util.Id128 getGlobalSerialId();
     String getProtocolClassName();
     Zeze.Net.Binary getProtocolArgument();
     Zeze.Transaction.Collections.PMap1ReadOnly<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> getChangesReadOnly();

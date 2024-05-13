@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.Id128;
 import Zeze.Util.PerfCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,13 +38,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
-	private long tid;
+	private Id128 tid;
 
-	public void setTid(long tid) {
+	public void setTid(Id128 tid) {
 		this.tid = tid;
 	}
 
-	public long getTid() {
+	public Id128 getTid() {
 		return tid;
 	}
 

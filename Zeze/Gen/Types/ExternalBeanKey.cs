@@ -4,15 +4,15 @@ using System.Xml;
 
 namespace Zeze.Gen.Types
 {
-    public class External : Bean
+    public class ExternalBeanKey : BeanKey
     {
         public override string FullName => _name;
 
-        public External(ModuleSpace sol, XmlElement self)
+        public ExternalBeanKey(ModuleSpace sol, XmlElement self)
         {
             Space = sol;
-            _name = self.GetAttribute("bean");
-            Kind = "bean";
+            _name = self.GetAttribute("beankey");
+            Kind = "beankey";
             Program.CheckReserveFullName(_name, sol.Path());
 
             if (Types.ContainsKey(_name))

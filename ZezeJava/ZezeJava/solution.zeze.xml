@@ -15,6 +15,7 @@
 	<external bean="Zeze.Services.ServiceManager.BSubscribeArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BUnSubscribeArgument"/>
 	<external bean="Zeze.Services.ServiceManager.BSubscribeResult"/>
+	<externalkey beankey="Zeze.Util.Id128"/>
 
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
@@ -42,7 +43,7 @@
 			<bean name="BReduceParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
-				<variable id="3" name="ReduceTid" type="long"/>
+				<variable id="3" name="ReduceTid" type="Zeze.Util.Id128"/>
 			</bean>
 
 			<bean name="BLoginParam">
@@ -1848,13 +1849,13 @@
 				<variable id="2" name="KeyEncoded" type="binary"/>
 			</beankey>
 			<bean name="BLogChanges" extendable="true">
-				<variable id="1" name="GlobalSerialId" type="long"/>
+				<variable id="1" name="GlobalSerialId" type="Zeze.Util.Id128"/>
 				<variable id="2" name="ProtocolClassName" type="string"/>
 				<variable id="3" name="ProtocolArgument" type="binary"/>
 				<variable id="4" name="Changes" type="map[BTableKey, binary]"/>
 				<variable id="5" name="Timestamp" type="long"/>
 			</bean>
-			<table name="ZezeHistoryTable_m_a_g_i_c" key="long" value="BLogChanges"/>
+			<table name="ZezeHistoryTable_m_a_g_i_c" key="Zeze.Util.Id128" value="BLogChanges"/>
 
 			<!-- 查询分析 servlet -->
 			<servlet name="WalkPage" TransactionLevel="None"/>

@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import javax.persistence.Id;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Services.ServiceManager.Tid128Cache;
 import Zeze.Services.ServiceManager.TidCache;
+import Zeze.Util.Id128;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.TaskCompletionSource;
@@ -71,7 +74,7 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
-	private TaskCompletionSource<TidCache> tidCacheFuture;
+	private TaskCompletionSource<Tid128Cache> tidCacheFuture;
 
 	private Transaction() {
 	}
@@ -430,13 +433,13 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure proc) throws Exception {
-		final long tid;
+		final Id128 tid;
 		if (tidCacheFuture != null) {
 			tid = tidCacheFuture.get().next();
 			for (var e : accessedRecords.entrySet())
 				e.getValue().atomicTupleRecord.record.setTid(tid);
 		} else {
-			tid = 0;
+			tid = null; // 为了final的赋值,以后不会用到.
 		}
 
 		// onz patch: onz事务执行阶段的2段式同步等待。
@@ -628,7 +631,7 @@ public final class Transaction {
 
 				case GlobalCacheManagerConst.StateModify:
 					if (procedure.getZeze().getConfig().isHistory() && tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
-						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTidCacheFuture();
+						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTid128CacheFuture();
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 
@@ -637,7 +640,7 @@ public final class Transaction {
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var isHistory = procedure.getZeze().getConfig().isHistory();
 					if (isHistory) {
-						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
 								procedure.getZeze().getConfig().getHistory());
 					}
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
@@ -653,8 +656,8 @@ public final class Transaction {
 					if (isHistory) {
 						// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
 						var startTid = tidCacheFuture.get().getStart();
-						if (acquire.reducedTid > startTid) {
-							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTidCacheFuture(
+						if (acquire.reducedTid.compareTo(startTid) < 0) {
+							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
 									procedure.getZeze().getConfig().getHistory()
 							);
 						}
