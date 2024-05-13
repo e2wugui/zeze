@@ -22,7 +22,7 @@ public class Id128UdpClient {
 	private static final Logger logger = LogManager.getLogger();
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
-	private static final int eSendImmediatelyGuard = 1;
+	private static final int eSendImmediatelyGuard = 1; // >1会导致Simulate测试跑得太慢,还需要分析原因
 	private static final int eRpcTimeoutChecker = 1500;
 	private static final int eRpcTimeout = 5000;
 
@@ -101,7 +101,6 @@ public class Id128UdpClient {
 				udp.send(udpPacket);
 			} catch (Exception e) {
 				current.setException(e);
-				throw new RuntimeException(e);
 			}
 
 			// 3.删除
