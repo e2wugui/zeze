@@ -79,14 +79,14 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteLong8(low);
-		bb.WriteLong8(high);
+		bb.WriteULong(low);
+		bb.WriteULong(high);
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		low = bb.ReadLong8();
-		high = bb.ReadLong8();
+		low = bb.ReadULong();
+		high = bb.ReadULong();
 	}
 
 	@Override
