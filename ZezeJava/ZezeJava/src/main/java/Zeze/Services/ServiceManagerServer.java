@@ -151,8 +151,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final Conf conf = new Conf();
 	private NetServer server;
 	private final @NotNull AsyncSocket serverSocket;
-	private final @NotNull RocksDB autoKeysDb;
+	private final @NotNull RocksDatabase autoKeysDb;
+	private final @NotNull RocksDatabase.Table autoKeyTable;
+	private final @NotNull RocksDatabase.Table id128Table;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
+	private final Id128UdpServer id128Server;
 
 	public static final class Conf implements Config.ICustomize {
 		public int keepAlivePeriod = -1;
@@ -591,12 +594,16 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);
 
-		autoKeysDb = RocksDatabase.open(Path.of(this.conf.dbHome, autokeys).toString());
+		autoKeysDb = new RocksDatabase(Path.of(this.conf.dbHome, autokeys).toString());
+		autoKeyTable = autoKeysDb.getOrAddTable("autokey");
+		id128Table = autoKeysDb.getOrAddTable("id128");
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,
 				new Acceptor(port, ipaddress != null ? ipaddress.getHostAddress() : null));
 		server.start();
+		id128Server = new Id128UdpServer(id128Table, null, port); // todo 先使用和tcp一样的端口.自动选择下一步.
+		id128Server.start();
 	}
 
 	private static final class AutoKey extends FastLock {
@@ -612,7 +619,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			bb.WriteBytes(nameBytes);
 			key = bb.Bytes;
 			try {
-				var value = sms.autoKeysDb.get(RocksDatabase.getDefaultReadOptions(), key);
+				var value = sms.autoKeyTable.get(key);
 				current.set(max = (value != null ? ByteBuffer.Wrap(value).ReadLong() : 1)); // 默认从1开始
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
@@ -642,7 +649,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 							var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
 							bb.WriteLong(m);
 							try {
-								sms.autoKeysDb.put(RocksDatabase.getDefaultWriteOptions(), key, bb.Bytes);
+								sms.autoKeyTable.put(key, bb.Bytes);
 							} catch (RocksDBException e) {
 								Task.forceThrow(e);
 							}
@@ -666,6 +673,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public void stop() throws Exception {
 		lock();
 		try {
+			id128Server.stop();
 			if (server == null)
 				return;
 			serverSocket.close();
