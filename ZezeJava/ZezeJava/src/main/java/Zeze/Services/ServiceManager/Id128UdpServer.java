@@ -128,7 +128,7 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
-	private void process(@NotNull AllocateId128 rpc, byte @NotNull [] bytes16) throws Exception {
+	private void process(@NotNull AllocateId128 rpc, byte @NotNull [] bytes16) throws RocksDBException {
 		var arg = rpc.Argument;
 		var res = rpc.Result;
 		var name = arg.getBinaryName();
@@ -137,8 +137,10 @@ public class Id128UdpServer {
 			var id = new Id128WithLock();
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
-				if (v != null && v.length >= 16)
+				if (v != null)
 					id.decode16(v);
+				else
+					id.increment(1); // 从1开始分配
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
@@ -146,11 +148,12 @@ public class Id128UdpServer {
 		});
 		id128.lock.lock();
 		try {
-			id128.increment(count);
 			res.getStartId().assign(id128);
-			id128.encode16(bytes16);
-			if (table != null)
-				table.put(name.bytesUnsafe(), bytes16); // 以后再考虑能不能移到锁外
+			id128.increment(count);
+			if (table != null) { // 以后再考虑能不能移到锁外
+				id128.encode16(bytes16);
+				table.put(name.bytesUnsafe(), bytes16);
+			}
 		} finally {
 			id128.lock.unlock();
 		}
@@ -165,32 +168,24 @@ public class Id128UdpServer {
 		try (var client = new DatagramSocket()) {
 			var r = new AllocateId128();
 			r.Argument.setName("test");
-			r.Argument.setCount(128);
+			r.Argument.setCount(100);
 			var bbr = ByteBuffer.Allocate();
-			r.encode(bbr);
-			{
+			for (int j = 0; j < 2; j++)
+				r.encode(bbr);
+			for (int i = 0; i < 2; i++) {
 				var req = new DatagramPacket(bbr.Bytes, bbr.ReadIndex, bbr.size(), serverSocketAddress);
 				client.send(req);
 
-				var buf = new byte[256];
+				var buf = new byte[2048];
 				var p = new DatagramPacket(buf, buf.length);
 				client.receive(p);
+
+				var bb = ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength());
 				var rr = new AllocateId128();
-				rr.decode(ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength()));
-
-				logger.info("{}", rr.Result);
-			}
-			{
-				var req = new DatagramPacket(bbr.Bytes, bbr.ReadIndex, bbr.size(), serverSocketAddress);
-				client.send(req);
-
-				var buf = new byte[256];
-				var p = new DatagramPacket(buf, buf.length);
-				client.receive(p);
-				var rr = new AllocateId128();
-				rr.decode(ByteBuffer.Wrap(p.getData(), p.getOffset(), p.getLength()));
-
-				logger.info("{}", rr.Result);
+				for (int j = 0; j < 2; j++) {
+					rr.decode(bb);
+					logger.info("{}", rr.Result);
+				}
 			}
 		} catch (Exception ex) {
 			logger.error("main exception:", ex);
