@@ -144,7 +144,7 @@ public class Id128UdpServer {
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
 				if (v != null)
-					id.decode16(v);
+					id.decode(ByteBuffer.Wrap(v));
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
