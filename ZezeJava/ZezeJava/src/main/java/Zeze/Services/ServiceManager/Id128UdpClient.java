@@ -1,6 +1,5 @@
 package Zeze.Services.ServiceManager;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -9,11 +8,9 @@ import java.net.SocketTimeoutException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.OutInt;
-import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,22 +32,14 @@ public class Id128UdpClient {
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
 	private long lastProcessTickTime = System.currentTimeMillis();
 	private long lastRpcTimeoutCheckTime = System.currentTimeMillis();
-	private final Service service;
+	private final FuncLong nextSessionIdFunc;
 
-	public Id128UdpClient(AbstractAgent agent, int port, Service service) throws Exception {
+	public Id128UdpClient(AbstractAgent agent, String ip, int port, FuncLong nextSessionIdFunc) throws Exception {
 		this.agent = agent;
-		this.service = service;
+		this.nextSessionIdFunc = nextSessionIdFunc;
 
-		// 查找smAgent的Service，使用其中第一个Connector的信息。
-		var outIp = new OutObject<String>();
-		var outPort = new OutInt();
-		service.getConfig().forEachConnector2((connector -> {
-			outIp.value = connector.getHostNameOrAddress();
-			outPort.value = connector.getPort();
-			return false;
-		}));
 		udp = new DatagramSocket();
-		udp.connect(InetAddress.getByName(outIp.value), port == 0 ? outPort.value : port);
+		udp.connect(InetAddress.getByName(ip), port);
 		udp.setSoTimeout(eSoTimeoutTick);
 
 		worker = new Thread(this::run, "Id128UdpServer");
@@ -92,20 +81,20 @@ public class Id128UdpClient {
 			});
 
 			// 2.发送rpc
-			var r = new AllocateId128(current);
-			r.setSessionId(service.nextSessionId());
-			r.Argument.setName(globalName);
-			r.Argument.setCount(current.count);
-			r.setTimeout(eRpcTimeout);
-			if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
-				throw new RuntimeException("impossible!");
-			var bb = ByteBuffer.Allocate();
-			r.encode(bb);
-			// udp is connected.
-			var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 			try {
+				var r = new AllocateId128(current);
+				r.setSessionId(nextSessionIdFunc.call());
+				r.Argument.setName(globalName);
+				r.Argument.setCount(current.count);
+				r.setTimeout(eRpcTimeout);
+				if (null != pendingRpc.putIfAbsent(r.getSessionId(), r))
+					throw new RuntimeException("impossible!");
+				var bb = ByteBuffer.Allocate();
+				r.encode(bb);
+				// udp is connected.
+				var udpPacket = new DatagramPacket(bb.Bytes, bb.ReadIndex, bb.size());
 				udp.send(udpPacket);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				current.setException(e);
 				throw new RuntimeException(e);
 			}
@@ -185,7 +174,7 @@ public class Id128UdpClient {
 				var futureNode = currentFuture.remove(key);
 				if (futureNode != null) { // 实际上不可能为null.只有这里会删除,单线程.
 					var r = new AllocateId128(futureNode);
-					r.setSessionId(service.nextSessionId());
+					r.setSessionId(nextSessionIdFunc.call());
 					r.Argument.setName(key);
 					r.Argument.setCount(futureNode.count);
 					r.setTimeout(eRpcTimeout);

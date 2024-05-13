@@ -14,6 +14,8 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
+import Zeze.Util.OutInt;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -274,7 +276,15 @@ public final class Agent extends AbstractAgent {
 
 		// todo 使用老的协议得到服务器的Id128UdpServer的port。
 		//  现在的方式使用和tcp.port一样.
-		super.tid128UdpClient = new Id128UdpClient(this, 0, client);
+		// 查找smAgent的Service，使用其中第一个Connector的信息。
+		var outIp = new OutObject<String>();
+		var outPort = new OutInt();
+		client.getConfig().forEachConnector2((connector -> {
+			outIp.value = connector.getHostNameOrAddress();
+			outPort.value = connector.getPort();
+			return false;
+		}));
+		super.tid128UdpClient = new Id128UdpClient(this, outIp.value, outPort.value, client::nextSessionId);
 	}
 
 	@Override
