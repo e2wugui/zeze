@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,10 +67,12 @@ public class Id128UdpClient {
 
 	public TaskCompletionSource<Tid128Cache> allocateFuture(String globalName, int allocateCount) {
 		// 多次请求的allocateCount不一样,只记住第一次的.
-		return currentFuture.compute(globalName, (key, value) -> {
+		var outFuture = new OutObject<TaskCompletionSource<Tid128Cache>>();
+		currentFuture.compute(globalName, (key, value) -> {
 			var current = value;
 			if (current == null)
 				current = new FutureNode(allocateCount);
+			outFuture.value = current; // 后面可能删除,所以需要用这个返回.
 			if (current.pending.incrementAndGet() < eSendImmediatelyGuard)
 				return current;
 
@@ -104,6 +107,7 @@ public class Id128UdpClient {
 			// 3.删除
 			return null;
 		});
+		return outFuture.value;
 	}
 
 	public void stop() throws Exception {
@@ -259,6 +263,14 @@ public class Id128UdpClient {
 		try {
 			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
 			System.out.println(client.allocateFuture("testGlobal1", 128).get().next());
+			var futures = new ArrayList<TaskCompletionSource<Tid128Cache>>();
+			futures.add(client.allocateFuture("testGlobal1", 128));
+			futures.add(client.allocateFuture("testGlobal1", 128));
+			futures.add(client.allocateFuture("testGlobal1", 128));
+			futures.add(client.allocateFuture("testGlobal1", 128));
+			System.out.println("concurrent-->");
+			for (var future : futures)
+				System.out.println(future.get().next());
 		} finally {
 			client.stop();
 			server.stop();
