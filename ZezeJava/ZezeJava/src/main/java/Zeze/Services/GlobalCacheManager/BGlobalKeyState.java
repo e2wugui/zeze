@@ -23,7 +23,8 @@ public class BGlobalKeyState implements Serializable {
 	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(globalKey);
 		bb.WriteInt(state);
-		reducedTid.encodeRaw(bb);
+		var tid = reducedTid;
+		(tid != null ? tid : Id128.Zero).encodeRaw(bb);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
