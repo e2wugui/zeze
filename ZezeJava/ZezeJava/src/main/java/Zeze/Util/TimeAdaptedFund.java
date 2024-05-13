@@ -36,15 +36,11 @@ public class TimeAdaptedFund {
 		var diff = now - lastTime;
 		lastTime = now;
 		var newFund = fund;
-		if (diff < doublyMs)
-			newFund <<= 1; // 倍增
+		if (diff < doublyMs && newFund <= Integer.MAX_VALUE / 2)
+			fund = newFund <<= 1; // 倍增
 		else if (diff > halveMs)
-			newFund >>= 1; // 减半
-		else
-			return newFund; // 保持不变
-
-		fund = Math.max(newFund, fundMin);
-		return fund;
+			fund = newFund = Math.max(newFund >> 1, fundMin); // 减半
+		return newFund;
 	}
 
 	public int get() {

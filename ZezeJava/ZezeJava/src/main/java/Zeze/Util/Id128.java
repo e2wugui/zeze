@@ -1,16 +1,34 @@
 package Zeze.Util;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.BeanKey;
 import org.jetbrains.annotations.NotNull;
 
-public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
+public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneable {
+	public static final Id128 Zero = new Id128() {
+		@Override
+		public void assign(@NotNull Id128 id128) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void increment(long num) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void decode(@NotNull IByteBuffer bb) {
+			throw new UnsupportedOperationException();
+		}
+	};
+
 	private long low; // unsigned
 	private long high; // unsigned
-
-	public static final Id128 Zero = new Id128();
 
 	public Id128() {
 	}
@@ -61,6 +79,11 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 	}
 
 	@Override
+	public @NotNull ArrayList<BVariable.Data> variables() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public Id128 clone() {
 		try {
 			return (Id128)super.clone();
@@ -71,14 +94,31 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
+		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.BYTES);
+		int wi = bb.WriteIndex;
+		bb.WriteByte(0); // skip binary size
 		bb.WriteULong(low);
 		bb.WriteULong(high);
+		bb.Bytes[wi] = (byte)(bb.WriteIndex - wi - 1); // binary size [2,18]
+		bb.WriteByte(0); // end of bean
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		low = bb.ReadULong();
-		high = bb.ReadULong();
+		int t = bb.ReadByte();
+		if (bb.ReadTagSize(t) == 1) {
+			t &= ByteBuffer.TAG_MASK;
+			if (t != ByteBuffer.BYTES)
+				throw new IllegalStateException("decode Id128 error: type=" + t);
+			int n = bb.ReadUInt();
+			int e = bb.getReadIndex() + n;
+			low = bb.ReadULong();
+			high = bb.ReadULong();
+			if (bb.getReadIndex() != e)
+				throw new IllegalStateException("decode Id128 error: size=" + n);
+			bb.ReadTagSize(t = bb.ReadByte());
+		}
+		bb.skipAllUnknownFields(t);
 	}
 
 	@Override
@@ -111,6 +151,6 @@ public class Id128 implements Comparable<Id128>, Serializable, Cloneable {
 	}
 
 	public void buildString(StringBuilder sb, int level) {
-		sb.append(Str.indent(level)).append(toString());
+		sb.append(Str.indent(level)).append(this);
 	}
 }

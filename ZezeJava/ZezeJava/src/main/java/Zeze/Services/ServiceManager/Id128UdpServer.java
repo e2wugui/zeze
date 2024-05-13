@@ -14,12 +14,12 @@ import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import Zeze.Util.TimeAdaptedFund;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.Transaction;
 
 /**
  * AllocateId128 server
@@ -27,17 +27,19 @@ import org.rocksdb.Transaction;
 public class Id128UdpServer {
 	private static final @NotNull Logger logger = LogManager.getLogger();
 
-	private static class Id128WithLock extends Id128 {
-		final FastLock lock = new FastLock();
+	private static class Id128Context extends FastLock {
+		final Id128 current = new Id128();
+		final Id128 max = new Id128();
 
 		@Override
-		public Id128WithLock clone() {
+		public Id128Context clone() {
 			throw new AssertionError(new CloneNotSupportedException());
 		}
 	}
 
 	private final @Nullable RocksDatabase.Table table;
-	private final ConcurrentHashMap<Binary, Id128WithLock> cache = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Binary, Id128Context> cache = new ConcurrentHashMap<>();
+	private final @NotNull TimeAdaptedFund fund = TimeAdaptedFund.getDefaultFund();
 	private final @NotNull DatagramChannel udpChannel;
 	private final @NotNull Thread worker; // 工作线程，根据性能测试情况，以后可能多个
 
@@ -98,15 +100,11 @@ public class Id128UdpServer {
 				dbb.flip();
 				bbSend.Reset();
 				try {
-					try (var txn = table != null ? table.getRocksDb().beginTransaction() : null) {
 					while (!bbRecv.isEmpty()) {
 						rpc.decode(bbRecv);
-							process(rpc, txn, bbTemp);
+						process(rpc, bbTemp);
 						rpc.setRequest(false);
 						rpc.encode(bbSend);
-					}
-						if (txn != null)
-							txn.commit();
 					}
 				} catch (Exception e) {
 					logger.error("process exception:", e);
@@ -133,35 +131,39 @@ public class Id128UdpServer {
 		logger.info("worker end");
 	}
 
-	private void process(@NotNull AllocateId128 rpc, @Nullable Transaction txn, @NotNull ByteBuffer bbTemp)
-			throws RocksDBException {
+	private void process(@NotNull AllocateId128 rpc, @NotNull ByteBuffer bbTemp) throws RocksDBException {
 		var arg = rpc.Argument;
 		var res = rpc.Result;
 		var name = arg.getBinaryName();
 		var count = arg.getCount();
-		var id128 = cache.computeIfAbsent(name, k -> {
-			var id = new Id128WithLock();
+		var context = cache.computeIfAbsent(name, k -> {
+			var c = new Id128Context();
 			try {
 				var v = table != null ? table.get(k.bytesUnsafe()) : null;
-				if (v != null)
-					id.decode(ByteBuffer.Wrap(v));
+				if (v != null) {
+					c.max.decode(ByteBuffer.Wrap(v));
+					c.current.assign(c.max);
+				}
 			} catch (RocksDBException e) {
 				Task.forceThrow(e);
 			}
-			return id;
+			return c;
 		});
-		id128.lock.lock();
+		context.lock();
 		try {
-			res.getStartId().assign(id128);
-			id128.increment(count);
-			if (txn != null) { // 以后再考虑能不能移到锁外
+			var current = context.current;
+			res.getStartId().assign(current);
+			current.increment(count);
+			var max = context.max;
+			if (current.compareTo(max) > 0) {
+				max.increment(Math.max(fund.next(), count));
 				bbTemp.Reset();
-				id128.encode(bbTemp);
-				//noinspection DataFlowIssue
-				table.put(txn, name.bytesUnsafe(), name.size(), bbTemp.Bytes, bbTemp.WriteIndex);
+				max.encode(bbTemp);
+				if (table != null)
+					table.put(name.bytesUnsafe(), 0, name.size(), bbTemp.Bytes, 0, bbTemp.WriteIndex);
 			}
 		} finally {
-			id128.lock.unlock();
+			context.unlock();
 		}
 		res.setCount(count);
 	}
