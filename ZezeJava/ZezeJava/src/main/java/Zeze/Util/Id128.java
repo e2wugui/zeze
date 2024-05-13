@@ -1,8 +1,6 @@
 package Zeze.Util;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -18,6 +16,11 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 
 		@Override
 		public void increment(long num) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void decodeRaw(@NotNull IByteBuffer bb) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -76,11 +79,6 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		var result = clone();
 		result.increment(num);
 		return result;
-	}
-
-	@Override
-	public @NotNull ArrayList<BVariable.Data> variables() {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override
