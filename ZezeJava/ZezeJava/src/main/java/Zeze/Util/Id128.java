@@ -102,12 +102,10 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.BYTES);
-		int wi = bb.WriteIndex;
-		bb.WriteByte(0); // skip binary size
-		bb.WriteULong(high);
-		bb.WriteULong(low);
-		bb.Bytes[wi] = (byte)(bb.WriteIndex - wi - 1); // binary size [2,18]
+		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.LIST);
+		bb.WriteListType(2, ByteBuffer.INTEGER);
+		bb.WriteLong(high);
+		bb.WriteLong(low);
 		bb.WriteByte(0); // end of bean
 	}
 
@@ -116,14 +114,17 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		int t = bb.ReadByte();
 		if (bb.ReadTagSize(t) == 1) {
 			t &= ByteBuffer.TAG_MASK;
-			if (t != ByteBuffer.BYTES)
+			if (t != ByteBuffer.LIST)
 				throw new IllegalStateException("decode Id128 error: type=" + t);
-			int n = bb.ReadUInt();
-			int e = bb.getReadIndex() + n;
-			high = bb.ReadULong();
-			low = bb.ReadULong();
-			if (bb.getReadIndex() != e)
+			t = bb.ReadByte();
+			int n = bb.ReadTagSize(t);
+			t &= ByteBuffer.TAG_MASK;
+			if (t != ByteBuffer.INTEGER)
+				throw new IllegalStateException("decode Id128 error: subtype=" + t);
+			if (n != 2)
 				throw new IllegalStateException("decode Id128 error: size=" + n);
+			high = bb.ReadLong();
+			low = bb.ReadLong();
 			bb.ReadTagSize(t = bb.ReadByte());
 		}
 		bb.skipAllUnknownFields(t);
