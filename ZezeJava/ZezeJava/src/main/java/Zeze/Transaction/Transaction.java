@@ -654,7 +654,7 @@ public final class Transaction {
 					if (isHistory) {
 						// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
 						var startTid = tidCacheFuture.get().getStart();
-						if (acquire.reducedTid.compareTo(startTid) < 0) {
+						if (null != acquire.reducedTid && acquire.reducedTid.compareTo(startTid) < 0) {
 							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
 									procedure.getZeze().getConfig().getHistory()
 							);

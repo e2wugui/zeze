@@ -290,7 +290,8 @@ public final class Agent extends AbstractAgent {
 			outPort.value = connector.getPort();
 			return false;
 		}));
-		super.tid128UdpClient = new Id128UdpClient(this, outIp.value, outPort.value, client::nextSessionId);
+		if (outIp.value != null && outPort.value > 0) // client 不需要。
+			super.tid128UdpClient = new Id128UdpClient(this, outIp.value, outPort.value, client::nextSessionId);
 	}
 
 	@Override
