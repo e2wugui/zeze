@@ -7,6 +7,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
 
 public class LogBeanKey<T extends Serializable> extends Log {
 	protected final Meta1<T> meta;
@@ -32,6 +33,11 @@ public class LogBeanKey<T extends Serializable> extends Log {
 	@Override
 	public int getTypeId() {
 		return meta.logTypeId;
+	}
+
+	@Override
+	public @NotNull String getTypeName() {
+		return meta.name;
 	}
 
 	@Override

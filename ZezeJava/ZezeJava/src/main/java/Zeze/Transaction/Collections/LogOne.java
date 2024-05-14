@@ -34,6 +34,11 @@ public class LogOne<V extends Bean> extends LogBean {
 	}
 
 	@Override
+	public @NotNull String getTypeName() {
+		return meta.name;
+	}
+
+	@Override
 	public @NotNull Log beginSavepoint() {
 		var dup = new LogOne<>(value);
 		dup.setThis(getThis());
@@ -84,21 +89,21 @@ public class LogOne<V extends Bean> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-        var hasValue = bb.ReadBool();
-        if (hasValue) {
+		var hasValue = bb.ReadBool();
+		if (hasValue) {
 			try {
 				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) {
 				Task.forceThrow(e);
 			}
 			value.decode(bb);
-        } else {
-            var hasLogBean = bb.ReadBool();
-            if (hasLogBean) {
-                logBean = new LogBean();
-                logBean.decode(bb);
-            }
-        }
+		} else {
+			var hasLogBean = bb.ReadBool();
+			if (hasLogBean) {
+				logBean = new LogBean();
+				logBean.decode(bb);
+			}
+		}
 	}
 
 	@Override

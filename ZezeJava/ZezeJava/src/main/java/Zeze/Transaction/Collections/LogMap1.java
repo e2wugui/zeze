@@ -32,6 +32,11 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		return meta.logTypeId;
 	}
 
+	@Override
+	public @NotNull String getTypeName() {
+		return meta.name;
+	}
+
 	public final @NotNull HashMap<K, V> getReplaced() {
 		return replaced;
 	}

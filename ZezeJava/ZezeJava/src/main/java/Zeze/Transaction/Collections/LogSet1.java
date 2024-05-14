@@ -28,6 +28,11 @@ public class LogSet1<V> extends LogSet<V> {
 		return meta.logTypeId;
 	}
 
+	@Override
+	public @NotNull String getTypeName() {
+		return meta.name;
+	}
+
 	public final @NotNull Set<V> getAdded() {
 		return added;
 	}

@@ -6,6 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * 操作日志。
@@ -21,15 +22,21 @@ public abstract class Log implements Serializable {
 
 	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
 
-	public abstract Category category();
-
-	public static void register(Supplier<Log> s) {
+	public static void register(@NotNull Supplier<Log> s) {
 		var ins = s.get();
-		if (null == factorys.putIfAbsent(ins.getTypeId(), s))
-			LogBean.logger.debug("register log {} {}", ins.getTypeId(), ins.getClass().getName());
+		var old = factorys.putIfAbsent(ins.getTypeId(), s);
+		if (old == null)
+			LogBean.logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
+		else {
+			var oldIns = old.get();
+			if (!oldIns.getTypeName().equals(ins.getTypeName())) {
+				LogBean.logger.error("register duplicated log typeId({}): {} & {}",
+						ins.getTypeId(), oldIns.getTypeName(), ins.getTypeName());
+			}
+		}
 	}
 
-	public static Log create(int typeId) {
+	public static @NotNull Log create(int typeId) {
 		var factory = factorys.get(typeId);
 		if (factory != null)
 			return factory.get();
@@ -39,7 +46,13 @@ public abstract class Log implements Serializable {
 	private Bean bean;
 	private int variableId;
 
+	public abstract @NotNull Category category();
+
 	public abstract int getTypeId();
+
+	public @NotNull String getTypeName() {
+		return getClass().getSimpleName();
+	}
 
 	public long getLogKey() {
 		return bean.objectId() + getVariableId();
@@ -86,11 +99,11 @@ public abstract class Log implements Serializable {
 
 	@Override
 	public void encode(ByteBuffer bb) {
-		throw new UnsupportedOperationException(getClass().getName());
+		throw new UnsupportedOperationException(getTypeName());
 	}
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		throw new UnsupportedOperationException(getClass().getName());
+		throw new UnsupportedOperationException(getTypeName());
 	}
 }

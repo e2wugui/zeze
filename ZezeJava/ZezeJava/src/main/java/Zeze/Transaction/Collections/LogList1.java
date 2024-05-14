@@ -51,6 +51,11 @@ public class LogList1<V> extends LogList<V> {
 		return meta.logTypeId;
 	}
 
+	@Override
+	public @NotNull String getTypeName() {
+		return meta.name;
+	}
+
 	public final @NotNull ArrayList<OpLog<V>> getOpLogs() {
 		return opLogs;
 	}

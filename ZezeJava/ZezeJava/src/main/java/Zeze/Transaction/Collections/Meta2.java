@@ -20,14 +20,15 @@ public final class Meta2<K, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map1Metas = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map2Metas = new ConcurrentHashMap<>();
 
-	final int logTypeId;
-	final BiConsumer<ByteBuffer, K> keyEncoder;
-	final Function<IByteBuffer, K> keyDecoder;
-	final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
-	final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
-	final MethodHandle valueFactory; // 只用于Bean类型
+	public final int logTypeId;
+	public final BiConsumer<ByteBuffer, K> keyEncoder;
+	public final Function<IByteBuffer, K> keyDecoder;
+	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
+	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
+	public final MethodHandle valueFactory; // 只用于Bean类型
+	public final @NotNull String name; // 主要用于分析查错
 
-	private Meta2(long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
@@ -36,6 +37,7 @@ public final class Meta2<K, V> {
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;
 		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
+		name = headStr + keyClass.getName() + ',' + valueClass.getName();
 	}
 
 	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
@@ -46,6 +48,7 @@ public final class Meta2<K, V> {
 		valueEncoder = null;
 		valueDecoder = null;
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
+		name = "LogMap2:" + keyClass.getName() + ",DynamicBean";
 	}
 
 	@SuppressWarnings("unchecked")
@@ -54,7 +57,7 @@ public final class Meta2<K, V> {
 		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
-		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>(map1HeadHash, keyClass, (Class<V>)vc));
+		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>("LogMap1:", map1HeadHash, keyClass, (Class<V>)vc));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -64,7 +67,7 @@ public final class Meta2<K, V> {
 		var r = map.get(valueClass);
 		if (r != null)
 			return (Meta2<K, V>)r;
-		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>(map2HeadHash, keyClass, (Class<V>)vc));
+		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>("LogMap2:", map2HeadHash, keyClass, (Class<V>)vc));
 	}
 
 	static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
