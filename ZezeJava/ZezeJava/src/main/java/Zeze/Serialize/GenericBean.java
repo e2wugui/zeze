@@ -38,7 +38,7 @@ public class GenericBean {
 		case ByteBuffer.INTEGER:
 			var vl = bb.ReadLong();
 			int vi = (int)vl;
-			return vi == vl ? Integer.valueOf(vi) : Long.valueOf(vl);
+			return vi == vl ? (Object)vi : (Object)vl;
 		case ByteBuffer.FLOAT:
 			return bb.ReadFloat();
 		case ByteBuffer.DOUBLE:

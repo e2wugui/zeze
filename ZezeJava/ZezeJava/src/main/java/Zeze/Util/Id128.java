@@ -15,6 +15,11 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		}
 
 		@Override
+		public void assign(long high, long low) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
 		public void increment(long num) {
 			throw new UnsupportedOperationException();
 		}
@@ -51,6 +56,11 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 
 	public long getHigh() {
 		return high;
+	}
+
+	public void assign(long high, long low) {
+		this.low = low;
+		this.high = high;
 	}
 
 	public void assign(@NotNull Id128 id128) {
