@@ -1,6 +1,8 @@
 package Zeze.History;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.ws.rs.core.Link;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -8,6 +10,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableX;
+import Zeze.Util.Lru;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	private static final @NotNull Logger logger = LogManager.getLogger();
-	private final LinkedHashMap<K, V> lru = new LinkedHashMap<>();
+	private final Lru<K, V> lru = new Lru<>(4096);
 	private final @NotNull IApplyTable table;
 	private final @NotNull TableX<K, V> originTable;
 
