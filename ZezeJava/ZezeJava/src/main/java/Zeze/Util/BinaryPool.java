@@ -73,7 +73,11 @@ public class BinaryPool {
 		}
 		int n = endIndex - beginIndex;
 		var bytes = new byte[n];
-		bb.get(beginIndex, bytes, 0, n);
+		// bb.get(beginIndex, bytes, 0, n);
+		var p = bb.position();
+		bb.position(beginIndex);
+		bb.get(bytes, 0, n);
+		bb.position(p);
 		b = new Binary(bytes);
 		wLock.lock();
 		try {
