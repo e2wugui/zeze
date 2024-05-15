@@ -86,6 +86,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 
 		@Override
 		public void commit() {
+			int n = 0;
 			// 整个db同步。
 			lock.writeLock().lock();
 			try {
@@ -99,10 +100,13 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 							map.remove(r.getKey());
 						else
 							map.put(r.getKey(), r.getValue());
+						n++;
 					}
 				}
 			} finally {
 				lock.writeLock().unlock();
+				if (n >= 10000)
+					logger.warn("MemTrans commit too many records: {}", n);
 			}
 		}
 

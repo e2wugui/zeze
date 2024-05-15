@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
@@ -62,12 +63,12 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	public class JdbcTrans implements Transaction {
-		java.sql.Connection Connection;
+		Connection connection;
 
 		public JdbcTrans() {
 			try {
-				Connection = dataSource.getConnection();
-				Connection.setAutoCommit(false);
+				connection = dataSource.getConnection();
+				connection.setAutoCommit(false);
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
@@ -76,7 +77,7 @@ public abstract class DatabaseJdbc extends Database {
 		@Override
 		public void close() {
 			try {
-				Connection.close();
+				connection.close();
 			} catch (Throwable e) { // logger.error
 				logger.error("JdbcTrans.close", e);
 			}
@@ -85,7 +86,7 @@ public abstract class DatabaseJdbc extends Database {
 		@Override
 		public void commit() {
 			try {
-				Connection.commit();
+				connection.commit();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
@@ -94,7 +95,7 @@ public abstract class DatabaseJdbc extends Database {
 		@Override
 		public void rollback() {
 			try {
-				Connection.rollback();
+				connection.rollback();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}

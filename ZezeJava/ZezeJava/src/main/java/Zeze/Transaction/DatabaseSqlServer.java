@@ -378,7 +378,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public void remove(Transaction t, ByteBuffer key) {
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
-			try (var cmd = my.Connection.prepareStatement(sql)) {
+			try (var cmd = my.connection.prepareStatement(sql)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
@@ -390,7 +390,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
 			var my = (JdbcTrans)t;
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
-			try (var cmd = my.Connection.prepareStatement(sql)) {
+			try (var cmd = my.connection.prepareStatement(sql)) {
 				var keyCopy = key.CopyIf();
 				var valueCopy = value.CopyIf();
 				cmd.setBytes(1, valueCopy);

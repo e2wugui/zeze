@@ -710,7 +710,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var stValue = (SQLStatement)value;
 			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
 			var my = (JdbcTrans)t;
-			try (var pre = my.Connection.prepareStatement(sql)) {
+			try (var pre = my.connection.prepareStatement(sql)) {
 				setParams(pre, 1, stKey.params);
 				setParams(pre, stKey.params.size() + 1, stValue.params);
 				pre.executeUpdate();
@@ -731,7 +731,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var stKey = (SQLStatement)key;
 			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
 			var my = (JdbcTrans)t;
-			try (var pre = my.Connection.prepareStatement(sql)) {
+			try (var pre = my.connection.prepareStatement(sql)) {
 				setParams(pre, 1, stKey.params);
 				pre.executeUpdate();
 			} catch (SQLException e) {
@@ -1200,7 +1200,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var cmd = ((JdbcTrans)t).Connection.prepareStatement(sqlRemove)) {
+			try (var cmd = ((JdbcTrans)t).connection.prepareStatement(sqlRemove)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.executeUpdate();
 			} catch (SQLException e) {
@@ -1217,7 +1217,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var cmd = ((JdbcTrans)t).Connection.prepareStatement(sqlReplace)) {
+			try (var cmd = ((JdbcTrans)t).connection.prepareStatement(sqlReplace)) {
 				cmd.setBytes(1, key.CopyIf());
 				cmd.setBytes(2, value.CopyIf());
 				cmd.executeUpdate();

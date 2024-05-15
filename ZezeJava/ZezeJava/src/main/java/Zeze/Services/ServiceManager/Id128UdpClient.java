@@ -162,9 +162,7 @@ public class Id128UdpClient {
 				} while (futureNode != null);
 				// 设置完result以后才删除.却表中间异常,队列不会乱.
 				// 只需要执行一次,不用到循环里面判断,因为tail总是最后一个.
-				tailFuture.compute(r.Argument.getName(), (key, value) -> {
-					return (value == futureContext ? null : value);
-				});
+				tailFuture.compute(r.Argument.getName(), (key, value) -> value == futureContext ? null : value);
 			}
 		}
 	}

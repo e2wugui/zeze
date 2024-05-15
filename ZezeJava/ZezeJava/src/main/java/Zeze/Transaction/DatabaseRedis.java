@@ -72,6 +72,7 @@ public class DatabaseRedis extends Database {
 	public static final class RedisTransaction implements Transaction {
 		private final @NotNull Jedis jedis;
 		private final @NotNull redis.clients.jedis.Transaction jedisTrans;
+		private int n;
 
 		public RedisTransaction(@NotNull JedisPool pool) {
 			jedis = pool.getResource();
@@ -80,14 +81,18 @@ public class DatabaseRedis extends Database {
 
 		public void replace(byte @NotNull [] table, byte @NotNull [] key, byte @NotNull [] value) {
 			jedisTrans.hset(table, key, value);
+			n++;
 		}
 
 		public void remove(byte @NotNull [] table, byte @NotNull [] key) {
 			jedisTrans.hdel(table, key);
+			n++;
 		}
 
 		@Override
 		public void commit() {
+			if (n >= 10000)
+				logger.warn("RedisTransaction commit too many records: {}", n);
 			jedisTrans.exec();
 		}
 

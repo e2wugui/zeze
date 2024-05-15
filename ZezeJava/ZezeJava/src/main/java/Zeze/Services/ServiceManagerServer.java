@@ -41,7 +41,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.w3c.dom.Element;
 
