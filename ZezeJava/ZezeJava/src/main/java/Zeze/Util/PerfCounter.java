@@ -334,7 +334,7 @@ public final class PerfCounter extends FastLock {
 	private void addSendRpc(byte @NotNull [] bytes, int offset, int length) {
 		try {
 			var bb = ByteBuffer.Wrap(bytes, offset, length);
-			var header = bb.ReadInt();
+			var header = bb.ReadUInt();
 			if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Request)
 				return;
 			if ((header & FamilyClass.BitResultCode) != 0)

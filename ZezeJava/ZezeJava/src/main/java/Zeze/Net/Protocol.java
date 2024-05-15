@@ -167,9 +167,9 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		if (resultCode == 0)
-			bb.WriteInt(FamilyClass.Protocol);
+			bb.WriteUInt(FamilyClass.Protocol);
 		else {
-			bb.WriteInt(FamilyClass.Protocol | FamilyClass.BitResultCode);
+			bb.WriteUInt(FamilyClass.Protocol | FamilyClass.BitResultCode);
 			bb.WriteLong(resultCode);
 		}
 		Argument.encode(bb);
@@ -177,7 +177,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		var header = bb.ReadInt();
+		var header = bb.ReadUInt();
 		if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 			throw new IllegalStateException("invalid header(" + header + ") for decoding protocol: "
 					+ getClass().getName());

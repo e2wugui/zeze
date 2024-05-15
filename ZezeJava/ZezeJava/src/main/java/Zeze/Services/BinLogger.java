@@ -122,7 +122,7 @@ public final class BinLogger extends ReentrantLock {
 
 		@Override
 		public void decode(@NotNull IByteBuffer bb) {
-			var header = bb.ReadInt();
+			var header = bb.ReadUInt();
 			if ((header & FamilyClass.FamilyClassMask) != FamilyClass.Protocol) {
 				throw new IllegalStateException("invalid header(" + header + ") for decoding protocol "
 						+ getClass().getName());

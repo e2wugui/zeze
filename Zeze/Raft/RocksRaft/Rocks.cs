@@ -343,12 +343,14 @@ namespace Zeze.Raft.RocksRaft
             {
                 r.Flush(batch);
             }
+            var key = ByteBuffer.Allocate(5);
+            var value = ByteBuffer.Allocate(9);
             foreach (var a in changes.AtomicLongs)
             {
-                var key = ByteBuffer.Allocate();
-                var value = ByteBuffer.Allocate();
-                SerializeHelper<int>.Encode(key, a.Key);
-                SerializeHelper<long>.Encode(value, a.Value);
+                key.WriteIndex = 0;
+                key.WriteUInt(a.Key);
+                value.WriteIndex = 0;
+                value.WriteLong(a.Value);
                 batch.Put(key.Bytes, (ulong)key.Size, value.Bytes, (ulong)value.Size, AtomicLongsColumnFamily);
                 if (FollowerApply)
                     AtomicLongSet(a.Key, a.Value);

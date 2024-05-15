@@ -70,14 +70,14 @@ namespace Zeze.Services.GlobalCacheManager
         public override void Decode(ByteBuffer bb)
         {
             GlobalKey = bb.ReadBinary();
-            State = bb.ReadInt();
+            State = bb.ReadUInt();
             ReduceTid = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteBinary(GlobalKey);
-            bb.WriteInt(State);
+            bb.WriteUInt(State);
             bb.WriteLong(ReduceTid);
         }
 

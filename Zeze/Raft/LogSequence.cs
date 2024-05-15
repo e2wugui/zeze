@@ -44,14 +44,14 @@ namespace Zeze.Raft
         public override void Decode(ByteBuffer bb)
         {
             base.Decode(bb);
-            Operate = bb.ReadInt();
+            Operate = bb.ReadUInt();
             Info = bb.ReadString();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             base.Encode(bb);
-            bb.WriteInt(Operate);
+            bb.WriteUInt(Operate);
             bb.WriteString(Info);
         }
 

@@ -67,7 +67,7 @@ public class TestClient : HandshakeClient
         bb.WriteInt4(10000); // moduleId
         bb.WriteInt4(-997899722); // protocolId
         bb.BeginWriteWithSize4(out int saveSize); // pSize
-        bb.WriteInt(FamilyClass.Request); // rpc request
+        bb.WriteUInt(FamilyClass.Request); // rpc request
         bb.WriteLong(1); // rpc sessionId
         bb.WriteTag(0, 1, ByteBuffer.BYTES); // tag: lastVarId=0, varId=1, type=string
         bb.WriteString("ZezeTest"); // account
@@ -99,7 +99,7 @@ public class TestClient : HandshakeClient
             bb.WriteInt4(1); // moduleId
             bb.WriteInt4(2095710350); // protocolId
             bb.BeginWriteWithSize4(out int saveSize); // pSize
-            bb.WriteInt(FamilyClass.Protocol); // protocol
+            bb.WriteUInt(FamilyClass.Protocol); // protocol
             bb.WriteByte(0); // bean end
             bb.EndWriteWithSize4(saveSize);
             bool r = so.Send(bb.Bytes, bb.ReadIndex, bb.Size);
@@ -109,7 +109,7 @@ public class TestClient : HandshakeClient
             bb.WriteInt4(11013); // moduleId
             bb.WriteInt4(-789575265); // protocolId
             bb.BeginWriteWithSize4(out saveSize); // pSize
-            bb.WriteInt(FamilyClass.Request); // rpc request
+            bb.WriteUInt(FamilyClass.Request); // rpc request
             bb.WriteLong(2); // rpc sessionId
             bb.WriteTag(0, 1, ByteBuffer.INTEGER); // tag: lastVarId=0, varId=1, type=long
             bb.WriteLong(321); // RoleId

@@ -475,7 +475,7 @@ namespace Zeze.Transaction
                 parent = parent.Parent;
             }
             bb.WriteString(parent.GetType().FullName); // use in decode reflect
-            bb.WriteInt(varId);
+            bb.WriteUInt(varId);
             if (null != Value)
             {
                 bb.WriteBool(true);
@@ -500,7 +500,7 @@ namespace Zeze.Transaction
         public override void Decode(ByteBuffer bb)
         {
             var parentTypeName = bb.ReadString();
-            var variableId = bb.ReadInt();
+            var variableId = bb.ReadUInt();
             var hasValue = bb.ReadBool();
             if (hasValue)
             {

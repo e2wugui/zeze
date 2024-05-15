@@ -14,7 +14,7 @@ public class BGlobalKeyState implements Serializable {
 	@Override
 	public void decode(IByteBuffer bb) {
 		globalKey = bb.ReadBinary();
-		state = bb.ReadInt();
+		state = bb.ReadUInt();
 		reducedTid = new Id128();
 		reducedTid.decodeRaw(bb);
 	}
@@ -22,7 +22,7 @@ public class BGlobalKeyState implements Serializable {
 	@Override
 	public void encode(ByteBuffer bb) {
 		bb.WriteBinary(globalKey);
-		bb.WriteInt(state);
+		bb.WriteUInt(state);
 		var tid = reducedTid;
 		(tid != null ? tid : Id128.Zero).encodeRaw(bb);
 	}

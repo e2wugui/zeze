@@ -321,9 +321,9 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	public void encode(@NotNull ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
-			bb.WriteInt(header);
+			bb.WriteUInt(header);
 		else {
-			bb.WriteInt(header | FamilyClass.BitResultCode);
+			bb.WriteUInt(header | FamilyClass.BitResultCode);
 			bb.WriteLong(resultCode);
 		}
 		bb.WriteLong(sessionId);
@@ -337,7 +337,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		var header = bb.ReadInt();
+		var header = bb.ReadUInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRpc(familyClass))
 			throw new IllegalStateException("invalid header(" + header + ") for decoding rpc: " + getClass().getName());

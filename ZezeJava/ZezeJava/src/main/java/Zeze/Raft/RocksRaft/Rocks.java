@@ -250,7 +250,7 @@ public final class Rocks extends StateMachine implements Closeable {
 				var value = ByteBuffer.Allocate(9);
 				for (var it = changes.getAtomicLongs().iterator(); it.moveToNext(); ) {
 					key.WriteIndex = 0;
-					key.WriteInt(it.key());
+					key.WriteUInt(it.key());
 					value.WriteIndex = 0;
 					value.WriteLong(it.value());
 					atomicLongsTable.put(batch, key.CopyIf(), value.CopyIf());

@@ -72,7 +72,7 @@ public class LogDynamic extends LogBean {
 		}
 		//noinspection DataFlowIssue
 		bb.WriteString(parent.getClass().getName()); // use in decode reflect
-		bb.WriteInt(varId);
+		bb.WriteUInt(varId);
 		if (null != value) {
 			bb.WriteBool(true);
 			bb.WriteLong(specialTypeId);
@@ -91,7 +91,7 @@ public class LogDynamic extends LogBean {
 	@Override
 	public void decode(IByteBuffer bb) {
 		var parentTypeName = bb.ReadString();
-		var varId = bb.ReadInt();
+		var varId = bb.ReadUInt();
 		var hasValue = bb.ReadBool();
 		if (hasValue) {
 			specialTypeId = bb.ReadLong();

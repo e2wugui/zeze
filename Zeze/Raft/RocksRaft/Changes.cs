@@ -68,7 +68,7 @@ namespace Zeze.Raft.RocksRaft
 
 			public void Encode(ByteBuffer bb)
             {
-				bb.WriteInt(State);
+				bb.WriteUInt(State);
 				switch (State)
 				{
 					case Remove:
@@ -86,7 +86,7 @@ namespace Zeze.Raft.RocksRaft
 
 			public void Decode(ByteBuffer bb)
             {
-				State = bb.ReadInt();
+				State = bb.ReadUInt();
 				switch (State)
                 {
 					case Remove:

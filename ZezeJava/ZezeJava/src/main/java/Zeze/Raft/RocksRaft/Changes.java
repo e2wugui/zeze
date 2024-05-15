@@ -119,7 +119,7 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void encode(ByteBuffer bb) {
-			bb.WriteInt(state);
+			bb.WriteUInt(state);
 			switch (state) {
 			case Remove:
 				break;
@@ -133,7 +133,7 @@ public final class Changes extends Zeze.Raft.Log {
 		}
 
 		public void decode(IByteBuffer bb) {
-			state = bb.ReadInt();
+			state = bb.ReadUInt();
 			switch (state) {
 			case Remove:
 				break;

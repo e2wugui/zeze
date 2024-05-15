@@ -570,7 +570,7 @@ namespace Zeze.Services.ToLuaService2
                 bb.WriteInt4(protocolId);
                 bb.BeginWriteWithSize4(out var outState);
 
-                bb.WriteInt(compress); // FamilyClass
+                bb.WriteUInt(compress); // FamilyClass
                 if (resultCode != 0)
                     bb.WriteLong(resultCode);
                 bb.WriteLong(sid);
@@ -595,7 +595,7 @@ namespace Zeze.Services.ToLuaService2
                 bb.WriteInt4(protocolId);
                 bb.BeginWriteWithSize4(out var state);
 
-                bb.WriteInt(compress);
+                bb.WriteUInt(compress);
                 if (resultCode != 0)
                     bb.WriteLong(resultCode);
 
@@ -848,7 +848,7 @@ namespace Zeze.Services.ToLuaService2
 
             if (pa.IsRpc)
             {
-                int compress = os.ReadInt();
+                int compress = os.ReadUInt();
                 int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
                 bool isRequest = familyClass == FamilyClass.Request;
                 long resultCode = (compress & FamilyClass.BitResultCode) != 0 ? os.ReadLong() : 0;
@@ -899,7 +899,7 @@ namespace Zeze.Services.ToLuaService2
             }
             else
             {
-                int compress = os.ReadInt();
+                int compress = os.ReadUInt();
                 //int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
                 long resultCode = (compress & FamilyClass.BitResultCode) != 0 ? os.ReadLong() : 0;
 

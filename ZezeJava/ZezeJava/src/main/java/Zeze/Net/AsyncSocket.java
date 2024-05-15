@@ -693,7 +693,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		var resultCode = 0L;
 		var rpcSessionId = 0L;
 		try {
-			header = bb.ReadInt();
+			header = bb.ReadUInt();
 			familyClass = header & FamilyClass.FamilyClassMask;
 			if ((header & FamilyClass.BitResultCode) != 0)
 				resultCode = bb.ReadLong();
@@ -723,7 +723,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		var resultCode = 0L;
 		var rpcSessionId = 0L;
 		try {
-			header = bb.ReadInt();
+			header = bb.ReadUInt();
 			familyClass = header & FamilyClass.FamilyClassMask;
 			if ((header & FamilyClass.BitResultCode) != 0)
 				resultCode = bb.ReadLong();

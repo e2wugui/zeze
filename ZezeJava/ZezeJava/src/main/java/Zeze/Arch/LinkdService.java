@@ -52,7 +52,7 @@ public class LinkdService extends HandshakeServer {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode
 		var bb = ByteBuffer.Wrap(dispatch.Argument.getProtocolData());
-		var header = bb.ReadInt();
+		var header = bb.ReadUInt();
 		AsyncSocket so;
 		if ((header & FamilyClass.FamilyClassMask) == FamilyClass.Request
 				&& (so = GetSocket(dispatch.Argument.getLinkSid())) != null) {
@@ -64,7 +64,7 @@ public class LinkdService extends HandshakeServer {
 			// 开始响应rpc.response.
 			// 【注意】复用了上面的变量 bb，compress。
 			bb = ByteBuffer.Allocate(12);
-			bb.WriteInt(FamilyClass.Response | FamilyClass.BitResultCode);
+			bb.WriteUInt(FamilyClass.Response | FamilyClass.BitResultCode);
 			bb.WriteLong(Procedure.Busy);
 			bb.WriteLong(sessionId);
 			EmptyBean.instance.encode(bb); // emptyBean对应任意bean的默认值状态。

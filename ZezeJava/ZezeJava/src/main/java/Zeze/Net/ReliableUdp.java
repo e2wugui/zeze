@@ -122,7 +122,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteInt(TypePacket);
+			bb.WriteUInt(TypePacket);
 			bb.WriteLong(serialId);
 			bb.WriteBytes(bytes, offset, length);
 		}
@@ -140,16 +140,16 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		public void decode(IByteBuffer bb) {
 			// TypePacket 外面解析。
 			command = bb.ReadInt();
-			for (int count = bb.ReadInt(); count > 0; --count) {
+			for (int count = bb.ReadUInt(); count > 0; --count) {
 				serialIds.add(bb.ReadLong());
 			}
 		}
 
 		@Override
 		public void encode(ByteBuffer bb) {
-			bb.WriteInt(TypeControl);
+			bb.WriteUInt(TypeControl);
 			bb.WriteInt(command);
-			bb.WriteInt(serialIds.size());
+			bb.WriteUInt(serialIds.size());
 			serialIds.foreach(bb::WriteLong);
 		}
 	}
@@ -320,7 +320,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			var source = datagramChannel.receive(buffer);
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position(), buffer.limit());
-				var type = bb.ReadInt();
+				var type = bb.ReadUInt();
 				switch (type) {
 				case TypePacket:
 					processPacket(source, bb);

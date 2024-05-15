@@ -142,7 +142,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					if (pdata.size() > 0 && (pdata.get(0) & FamilyClass.FamilyClassMask) == FamilyClass.Request) {
 						// 简单构造并回复该RPC
 						var bb = pdata.Wrap();
-						var header = bb.ReadInt();
+						var header = bb.ReadUInt();
 						if ((header & FamilyClass.BitResultCode) != 0)
 							bb.SkipLong(); // resultCode
 						var sessionId = bb.ReadLong();
@@ -150,7 +150,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 						bb.WriteInt4(Protocol.getModuleId(typeId));
 						bb.WriteInt4(Protocol.getProtocolId(typeId));
 						int saveSize = bb.BeginWriteWithSize4();
-						bb.WriteInt(FamilyClass.Response | FamilyClass.BitResultCode);
+						bb.WriteUInt(FamilyClass.Response | FamilyClass.BitResultCode);
 						bb.WriteLong(Procedure.Busy);
 						bb.WriteLong(sessionId);
 						EmptyBean.instance.encode(bb);

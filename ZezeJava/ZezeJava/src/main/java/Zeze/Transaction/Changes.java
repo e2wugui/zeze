@@ -107,7 +107,7 @@ public final class Changes {
 		}
 
 		public void encode(@NotNull ByteBuffer bb) {
-			bb.WriteInt(state);
+			bb.WriteUInt(state);
 			switch (state) {
 			case Remove:
 				break;
@@ -121,7 +121,7 @@ public final class Changes {
 		}
 
 		public void decode(@NotNull ByteBuffer bb) {
-			state = bb.ReadInt();
+			state = bb.ReadUInt();
 			switch (state) {
 			case Remove:
 				break;

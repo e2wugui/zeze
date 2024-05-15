@@ -247,7 +247,7 @@ namespace Zeze.Net
 #endif
         public override void Decode(ByteBuffer bb)
         {
-            var compress = bb.ReadInt();
+            var compress = bb.ReadUInt();
             // FamilyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
             ResultCode = (compress & Zeze.Net.FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
             Argument.Decode(bb);
@@ -258,7 +258,7 @@ namespace Zeze.Net
             var compress = FamilyClass; // is Protocol(2)
             if (ResultCode != 0)
                 compress |= Zeze.Net.FamilyClass.BitResultCode;
-            bb.WriteInt(compress);
+            bb.WriteUInt(compress);
             if (ResultCode != 0)
                 bb.WriteLong(ResultCode);
             Argument.Encode(bb);

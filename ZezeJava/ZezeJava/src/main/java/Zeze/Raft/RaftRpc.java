@@ -78,9 +78,9 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 	public void encode(ByteBuffer bb) {
 		var header = getFamilyClass();
 		if (resultCode == 0)
-			bb.WriteInt(header);
+			bb.WriteUInt(header);
 		else {
-			bb.WriteInt(header | FamilyClass.BitResultCode);
+			bb.WriteUInt(header | FamilyClass.BitResultCode);
 			bb.WriteLong(resultCode);
 		}
 		bb.WriteLong(getSessionId());
@@ -96,7 +96,7 @@ public abstract class RaftRpc<TArgument extends Serializable, TResult extends Se
 
 	@Override
 	public void decode(IByteBuffer bb) {
-		var header = bb.ReadInt();
+		var header = bb.ReadUInt();
 		var familyClass = header & FamilyClass.FamilyClassMask;
 		if (!FamilyClass.isRaftRpc(familyClass))
 			throw new IllegalStateException("invalid header(" + header + ") for decoding raft rpc " + getClass().getName());

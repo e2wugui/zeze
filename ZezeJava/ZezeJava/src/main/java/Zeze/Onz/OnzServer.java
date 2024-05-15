@@ -140,7 +140,7 @@ public class OnzServer extends AbstractOnz {
 		try (var it = commitIndex.iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var value = it.value();
-				var state = ByteBuffer.Wrap(value).ReadInt();
+				var state = ByteBuffer.Wrap(value).ReadUInt();
 				switch (state) {
 				case eCommitting:
 					redo(it.key(), OnzServer::commit);
@@ -195,7 +195,7 @@ public class OnzServer extends AbstractOnz {
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
-		bbIndex.WriteInt(state);
+		bbIndex.WriteUInt(state);
 		try (var batch = database.borrowBatch()) {
 			// putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);

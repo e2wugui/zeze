@@ -59,7 +59,7 @@ public class CommitRocks {
 		try (var it = commitIndex.iterator()) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var value = it.value();
-				var state = ByteBuffer.Wrap(value).ReadInt();
+				var state = ByteBuffer.Wrap(value).ReadUInt();
 				switch (state) {
 				case Commit.eCommitting:
 					redo(it.key(), Dbh2Agent::commitBatch);
@@ -253,7 +253,7 @@ public class CommitRocks {
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);
-		bbIndex.WriteInt(state);
+		bbIndex.WriteUInt(state);
 		try (var batch = database.borrowBatch()) {
 			// putIfAbsent ？？？ 报错！
 			commitPoint.put(batch, tidBytes, tidBytes.length, bb.Bytes, bb.WriteIndex);

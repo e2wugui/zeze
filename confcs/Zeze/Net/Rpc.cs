@@ -235,7 +235,7 @@ namespace Zeze.Net
 
         public override void Decode(ByteBuffer bb)
         {
-            var compress = bb.ReadInt();
+            var compress = bb.ReadUInt();
             var familyClass = compress & Zeze.Net.FamilyClass.FamilyClassMask;
             IsRequest = familyClass == Zeze.Net.FamilyClass.Request;
             ResultCode = (compress & Zeze.Net.FamilyClass.BitResultCode) != 0 ? bb.ReadLong() : 0;
@@ -251,7 +251,7 @@ namespace Zeze.Net
             var compress = FamilyClass;
             if (ResultCode != 0)
                 compress |= Zeze.Net.FamilyClass.BitResultCode;
-            bb.WriteInt(compress);
+            bb.WriteUInt(compress);
             if (ResultCode != 0)
                 bb.WriteLong(ResultCode);
             bb.WriteLong(SessionId);

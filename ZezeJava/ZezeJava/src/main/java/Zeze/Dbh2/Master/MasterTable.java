@@ -41,7 +41,7 @@ public class MasterTable {
 		@Override
 		public void encode(ByteBuffer bb) {
 			bb.WriteBool(created);
-			bb.WriteInt(buckets.size());
+			bb.WriteUInt(buckets.size());
 			for (var e : buckets.entrySet()) {
 				bb.WriteBinary(e.getKey());
 				e.getValue().encode(bb);
@@ -52,7 +52,7 @@ public class MasterTable {
 		public void decode(IByteBuffer bb) {
 			created = bb.ReadBool();
 			buckets.clear();
-			for (var size = bb.ReadInt(); size > 0; --size) {
+			for (var size = bb.ReadUInt(); size > 0; --size) {
 				var key = bb.ReadBinary();
 				var value = new BBucketMeta.Data();
 				value.decode(bb);
