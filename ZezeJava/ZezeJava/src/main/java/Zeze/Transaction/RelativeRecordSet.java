@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
@@ -39,7 +40,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		return history;
 	}
 
-	void addLogChanges(History.LogChangesRaw logChanges) {
+	void addLogChanges(BLogChanges.Data logChanges) {
 		var h = history;
 		if (h == null)
 			history = h = new History();
@@ -124,7 +125,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
-									   @NotNull Callable<History.LogChangesRaw> collectChanges) throws Exception {
+									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
 
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
