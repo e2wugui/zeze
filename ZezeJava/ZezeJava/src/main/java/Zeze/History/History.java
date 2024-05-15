@@ -114,23 +114,7 @@ public class History {
 
 		return to;
 	}
-
-	/*
-	public static final class LogChangesRaw extends BLogChanges.Data {
-		private final HashMap<TableKey, Changes.Record> records;
-
-		public LogChangesRaw(HashMap<TableKey, Changes.Record> records) {
-			this.records = records;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			records.clear();
-			super.encode(bb);
-		}
-	}
-	*/
-
+	
 	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
 												Changes changes,
 												@Nullable String protocolClassName,
