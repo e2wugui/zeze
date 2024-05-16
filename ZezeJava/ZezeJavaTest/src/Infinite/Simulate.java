@@ -126,7 +126,7 @@ public final class Simulate {
 
 	public static void main(String[] args) throws Exception {
 		var simulate = new Simulate();
-		simulate.Infinite = true;
+		simulate.Infinite = "true".equalsIgnoreCase(System.getProperty("Infinite"));
 		simulate.Before();
 		try {
 			simulate.testMain();

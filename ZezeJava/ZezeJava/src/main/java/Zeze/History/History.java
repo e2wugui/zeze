@@ -114,11 +114,11 @@ public class History {
 
 		return to;
 	}
-	
-	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
-												Changes changes,
-												@Nullable String protocolClassName,
-												@Nullable Binary protocolArgument) {
+
+	public static BLogChanges.Data buildLogChanges(@NotNull Id128 globalSerialId,
+												   @NotNull Changes changes,
+												   @Nullable String protocolClassName,
+												   @Nullable Binary protocolArgument) {
 		var logChanges = new BLogChanges.Data();
 		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);

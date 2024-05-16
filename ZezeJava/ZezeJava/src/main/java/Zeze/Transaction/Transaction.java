@@ -507,7 +507,7 @@ public final class Transaction {
 				logger.fatal("history lost. ++++++++");
 			// <<<<<<<<
 
-			if (tidCacheFuture != null) // always null if !isHistory
+			if (tid != null) // always null if !isHistory
 				return History.buildLogChanges(tid, cc, proc.getProtocolClassName(), proc.getProtocolRawArgument());
 			return null;
 		}); // onz patch: 新增参数

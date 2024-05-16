@@ -71,6 +71,8 @@ public class CoverHistory {
 		jobs.add(new Map40());
 		jobs.add(new Map41());
 		jobs.add(new Map42Recursive());
+		jobs.add(new RemoveRecord());
+		jobs.add(new Combo());
 	}
 
 	public void submitTasks() {
@@ -969,4 +971,21 @@ public class CoverHistory {
 	}
 
 	// var 99 LongList 不测试了，跟List31一样。
+
+	public class RemoveRecord implements Job {
+		@Override
+		public void run(BValue value) {
+			app.demo_Module1.getTableCoverHistory().remove(getRandom().nextLong(eKeyRange));
+		}
+	}
+
+	public class Combo implements Job {
+		@Override
+		public void run(BValue value) {
+			var k = getRandom().nextLong(eKeyRange);
+			app.demo_Module1.getTableCoverHistory().getOrAdd(k).setLong2(12345);
+			app.demo_Module1.getTableCoverHistory().remove(k);
+			app.demo_Module1.getTableCoverHistory().getOrAdd(k).setLong2(54321);
+		}
+	}
 }
