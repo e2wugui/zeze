@@ -3,11 +3,17 @@ package Zeze.History;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
+import Zeze.Builtin.HistoryModule.BLogChanges;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.GenericBean;
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.TableKey;
 import Zeze.Util.Id128;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class Verify {
 	private static final Logger logger = LogManager.getLogger();
@@ -56,5 +62,42 @@ public class Verify {
 		for (var applyTable : applyTables.values())
 			applyTable.verifyAndClear();
 		logger.info("history verify success!!!!!!!!!!!!!!!!!!!!!!");
+	}
+
+	public static @NotNull String toString(@NotNull BLogChanges b) {
+		var sb = new StringBuilder();
+		sb.append("{\n");
+		sb.append("  GlobalSerialId: ").append(b.getGlobalSerialId()).append('\n');
+		sb.append("  ProtocolClassName: ").append(b.getProtocolClassName()).append('\n');
+		sb.append("  Timestamp: ").append(b.getTimestamp()).append('\n');
+		sb.append("  GlobalSerialId: ").append(b.getGlobalSerialId()).append('\n');
+		sb.append("  Changes: {\n");
+		for (var e : b.getChanges()) {
+			sb.append("    {").append(e.getKey().getTableId()).append(',').append(e.getKey().getKeyEncoded())
+					.append("}: ");
+			var bb = ByteBuffer.Wrap(e.getValue());
+			switch (bb.ReadUInt()) {
+			case Changes.Record.Remove:
+				sb.append("remove }\n");
+				break;
+			case Changes.Record.Put:
+				sb.append("put:\n");
+				new GenericBean().decode(bb).buildString(sb);
+				sb.append('\n');
+				break;
+			case Changes.Record.Edit:
+				sb.append("edit: [\n");
+				for (int i = 0, n = bb.ReadUInt(); i < n; i++) {
+					var lb = new LogBean();
+					lb.decode(bb);
+					sb.append(lb);
+				}
+				sb.append("      ]\n");
+				break;
+			}
+		}
+		sb.append("  }\n");
+		sb.append("}\n");
+		return sb.toString();
 	}
 }
