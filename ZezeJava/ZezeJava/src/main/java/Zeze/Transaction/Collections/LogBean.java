@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 public class LogBean extends Log {
 	public static final Logger logger = LogManager.getLogger();
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
+	public static final LogBean Zero = new LogBean();
 
 	private IntHashMap<Log> variables;
 	private Bean self;
@@ -115,7 +116,7 @@ public class LogBean extends Log {
 		return sb.toString();
 	}
 
-	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
+	public static void encodeLogBeanWithTag(ByteBuffer bb, LogBean logBean) {
 		// 使用byte，未来可能扩展其他LogBean子类。
 		if (logBean instanceof LogDynamic)
 			bb.WriteByte(1);
@@ -124,7 +125,7 @@ public class LogBean extends Log {
 		logBean.encode(bb);
 	}
 
-	public static LogBean decodeLogBean(IByteBuffer bb) {
+	public static LogBean decodeLogBeanByTag(IByteBuffer bb) {
 		var type = bb.ReadByte();
 		LogBean logBean;
 		switch (type) {

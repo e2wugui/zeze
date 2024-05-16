@@ -9,7 +9,9 @@ import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.Tid128Cache;
+import Zeze.Transaction.Collections.IZeroLogBean;
 import Zeze.Util.Id128;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.TaskCompletionSource;
@@ -73,6 +75,11 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private TaskCompletionSource<Tid128Cache> tidCacheFuture;
+	private final IdentityHashSet<IZeroLogBean> zeroLogBeans = new IdentityHashSet<>();
+
+	public void add(IZeroLogBean zeroLogBean) {
+		zeroLogBeans.add(zeroLogBean);
+	}
 
 	private Transaction() {
 	}
@@ -132,6 +139,7 @@ public final class Transaction {
 		onzProcedure = null;
 		profiler.reset();
 		tidCacheFuture = null;
+		zeroLogBeans.clear();
 	}
 
 	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
@@ -150,6 +158,7 @@ public final class Transaction {
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 		tidCacheFuture = null;
+		zeroLogBeans.clear();
 	}
 
 	public void begin() {
@@ -500,6 +509,8 @@ public final class Transaction {
 				if (ar.dirty)
 					cc.collectRecord(ar);
 			}
+
+			zeroLogBeans.foreach((value) -> value.zeroLogBean(cc));
 
 			// >>>>>>>>
 			// for debug. remove later.

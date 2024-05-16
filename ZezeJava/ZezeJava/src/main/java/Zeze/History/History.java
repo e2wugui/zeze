@@ -114,7 +114,7 @@ public class History {
 
 		return to;
 	}
-	
+
 	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
 												Changes changes,
 												@Nullable String protocolClassName,

@@ -21,11 +21,19 @@ public class LogList1<V> extends LogList<V> {
 		public final int op;
 		public final int index;
 		public final V value;
+		public LogBean valueLogBean; // 收集完成以后集中触发查询得到，用于List2。
 
 		OpLog(int op, int index, V value) {
 			this.op = op;
 			this.index = index;
 			this.value = value;
+		}
+
+		OpLog(int op, int index, LogBean valueLogBean) {
+			this.op = op;
+			this.index = index;
+			this.value = null;
+			this.valueLogBean = valueLogBean;
 		}
 
 		@Override
