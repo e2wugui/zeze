@@ -54,7 +54,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.add(item);
 		}
 		var newList = list.plus(item);
@@ -70,7 +69,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.remove((V)item);
 		}
 		var newList = list.minus(item);
@@ -86,7 +84,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			listLog.clear();
 		} else
 			list = Empty.vector();
@@ -103,7 +100,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.set(index, item);
 		}
 		var old = list.get(index);
@@ -122,7 +118,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			listLog.add(index, item);
 		} else
 			list = list.plus(index, item);
@@ -134,7 +129,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.remove(index);
 		}
 		var old = list.get(index);
@@ -150,7 +144,6 @@ public class PList2<V extends Bean> extends PList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.addAll(items);
 		}
 		list = list.plusAll(items);
@@ -163,7 +156,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			Transaction.getCurrent().add(listLog);
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
 		var oldV = list;
@@ -188,7 +180,6 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			Transaction.getCurrent().add(listLog);
 			return;
 		}
 		for (V v : this)
@@ -209,7 +200,6 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			Transaction.getCurrent().add(listLog);
 			return;
 		}
 		list = Empty.vector();
@@ -226,17 +216,6 @@ public class PList2<V extends Bean> extends PList<V> {
 		return log;
 	}
 
-	@SuppressWarnings("unchecked")
-	private V zeroApplyValue(LogBean logBean) {
-		try {
-			var value = (V)meta.valueFactory.invoke();
-			value.followerApply(logBean);
-			return value;
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	@Override
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
@@ -245,14 +224,12 @@ public class PList2<V extends Bean> extends PList<V> {
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				var valueModify = zeroApplyValue(opLog.valueLogBean);
-				valueModify.initRootInfo(rootInfo, this);
-				tmp = tmp.with(opLog.index, valueModify);
+				opLog.value.initRootInfo(rootInfo, this);
+				tmp = tmp.with(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_ADD:
-				var valueAdd = zeroApplyValue(opLog.valueLogBean);
-				valueAdd.initRootInfo(rootInfo, this);
-				tmp = tmp.plus(opLog.index, valueAdd);
+				opLog.value.initRootInfo(rootInfo, this);
+				tmp = tmp.plus(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_REMOVE:
 				tmp = tmp.minus(opLog.index);

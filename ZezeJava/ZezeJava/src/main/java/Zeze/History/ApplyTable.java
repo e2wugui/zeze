@@ -127,9 +127,6 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 				throw new RuntimeException("record not equals. key=" + key + "\n"
 						+ diff(originText, applyText, applyValue.versionVarName() + "="));
-
-				//throw new RuntimeException("record not equals. key=" + key + "\n"
-				//		+ originText + "\n" + applyText);
 			}
 			remove(key);
 			return true;

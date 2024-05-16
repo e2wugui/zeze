@@ -1,6 +1,5 @@
 package Zeze.History;
 
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
@@ -11,7 +10,6 @@ import Zeze.Transaction.Database;
 import Zeze.Util.Id128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import Zeze.Transaction.TableKey;
 
 public class History {
 	// private static final Logger logger = LogManager.getLogger(History.class);
@@ -116,49 +114,26 @@ public class History {
 
 		return to;
 	}
-
-	public static final class LogChangesRaw extends BLogChanges.Data {
-		private final HashMap<TableKey, Changes.Record> records;
-
-		public LogChangesRaw(HashMap<TableKey, Changes.Record> records) {
-			this.records = records;
-		}
-
-		@Override
-		public void encode(ByteBuffer bb) {
-			for (var e : records.entrySet()) {
-				var tableKey = new BTableKey(
-						e.getKey().getId(),
-						new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
-				var bbValue = ByteBuffer.Allocate();
-				e.getValue().encode(bbValue);
-				getChanges().put(tableKey, new Binary(bbValue));
-			}
-			records.clear();
-			super.encode(bb);
-		}
-	}
-
-	public static LogChangesRaw buildLogChanges(Id128 globalSerialId,
+	
+	public static BLogChanges.Data buildLogChanges(Id128 globalSerialId,
 												Changes changes,
 												@Nullable String protocolClassName,
 												@Nullable Binary protocolArgument) {
-		var logChanges = new LogChangesRaw(changes.getRecords());
+		var logChanges = new BLogChanges.Data();
 		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);
 		if (null != protocolClassName)
 			logChanges.setProtocolClassName(protocolClassName);
 		if (null != protocolArgument)
 			logChanges.setProtocolArgument(protocolArgument);
-		// 优化：事务encode在访问记录比较多的时候，锁定时间更长，see LogChangesRaw
-//		for (var e : changes.getRecords().entrySet()) {
-//			var tableKey = new BTableKey(
-//					e.getKey().getId(),
-//					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
-//			var bbValue = ByteBuffer.Allocate();
-//			e.getValue().encode(bbValue);
-//			logChanges.getChanges().put(tableKey, new Binary(bbValue));
-//		}
+		for (var e : changes.getRecords().entrySet()) {
+			var tableKey = new BTableKey(
+					e.getKey().getId(),
+					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
+			var bbValue = ByteBuffer.Allocate();
+			e.getValue().encode(bbValue);
+			logChanges.getChanges().put(tableKey, new Binary(bbValue));
+		}
 		return logChanges;
 	}
 }
