@@ -15,7 +15,6 @@ import org.pcollections.Empty;
 public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 	private final HashMap<K, V> replaced = new HashMap<>();
-	private final HashMap<K, LogBean> replacedLogBeans = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
 	public LogMap1(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {

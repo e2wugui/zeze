@@ -14,10 +14,15 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
 
-public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
+public class LogMap2<K, V extends Bean> extends LogMap1<K, V> implements IZeroLogBean {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built;
+	private final HashMap<K, LogBean> replacedLogBeans = new HashMap<>();
+
+	public HashMap<K, LogBean> getReplacedLogBeans() {
+		return replacedLogBeans;
+	}
 
 	public LogMap2(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
 		super(meta, value);
@@ -85,9 +90,10 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 		// super.encode(bb);
 		bb.WriteUInt(getReplaced().size());
-		for (var p : getReplaced().entrySet()) {
+		for (var p : replacedLogBeans.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
-			p.getValue().encode(bb);
+			encodeLogBeanWithTag(bb, p.getValue());
+			// old protocol: p.getValue().encode(bb); // 需要访问 getReplaced().
 		}
 		bb.WriteUInt(getRemoved().size());
 		for (var r : getRemoved())
@@ -108,15 +114,16 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		getReplaced().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
-			V value;
 			try {
-				value = (V)meta.valueFactory.invoke();
+				var value = (V)meta.valueFactory.invoke();
+				var logBean = decodeLogBeanByTag(bb);
+				value.followerApply(logBean);
+				// old protocol: value.decode(bb);
+				getReplaced().put(key, value);
 			} catch (Throwable e) { // MethodHandle.invoke
 				Task.forceThrow(e);
 				return; // never run here
 			}
-			value.decode(bb);
-			getReplaced().put(key, value);
 		}
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
@@ -139,5 +146,18 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		sb.append(" Changed:");
 		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
+	}
+
+	@Override
+	public void zeroLogBean(Changes changes) {
+		var container = getThis();
+		var tableKey = container.tableKey();
+		var record = changes.getRecords().get(tableKey);
+		for (var e : getReplaced().entrySet()) {
+			var logBean = record.getLogBeans().get(e.getValue());
+			if (logBean == null)
+				logBean = LogBean.Zero; // encode/decode 在没有的时候需要创建一个default bean。
+			replacedLogBeans.put(e.getKey(), logBean);
+		}
 	}
 }

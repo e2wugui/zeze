@@ -46,7 +46,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		var exist = get(key);
 		if (exist == null) {
 			exist = createValue();
-			put(key, exist);
+			put(key, exist); // 里面会注册IZeroLogBean。
 		}
 		return exist;
 	}
@@ -66,6 +66,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			Transaction.getCurrent().add(mapLog);
 			return mapLog.put(key, value);
 		}
 		value.mapKey(key);
@@ -92,8 +93,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 				v.mapKey(p.getKey());
 			}
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			Transaction.getCurrent().add(mapLog);
 			mapLog.putAll(m);
 		} else {
 			for (var p : m.entrySet())
@@ -108,6 +110,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		if (isManaged()) {
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			Transaction.getCurrent().add(mapLog);
 			return mapLog.remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
@@ -120,8 +123,9 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public boolean remove(@NotNull Entry<K, V> item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
+			Transaction.getCurrent().add(mapLog);
 			return mapLog.remove(item.getKey(), item.getValue());
 		}
 		var old = map;
@@ -140,15 +144,19 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
+			Transaction.getCurrent().add(mapLog);
 		} else
 			map = Empty.map();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
+		// new protocol: LogMap2.decode已经构造好getReplaced()，所以下面的代码保持不变，不需要修改。
+
 		for (var put : log.getReplaced().values())
 			put.initRootInfo(rootInfo, this);
 		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
