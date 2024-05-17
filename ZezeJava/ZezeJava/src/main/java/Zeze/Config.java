@@ -109,6 +109,15 @@ public final class Config {
 	private int procedureLockWatcherMin = 25;
 	private long appVersion;
 	private @NotNull String history = "";
+	private int checkpointTransactionPeriod = 30_0000;
+
+	public int getCheckpointTransactionPeriod() {
+		return checkpointTransactionPeriod;
+	}
+
+	public void setCheckpointTransactionPeriod(int checkpointTransactionPeriod) {
+		this.checkpointTransactionPeriod = checkpointTransactionPeriod;
+	}
 
 	public boolean isHistory() {
 		return !history.isEmpty();
@@ -529,6 +538,10 @@ public final class Config {
 		String attr = self.getAttribute("CheckpointPeriod");
 		if (!attr.isBlank())
 			checkpointPeriod = Integer.parseInt(attr);
+
+		attr = self.getAttribute("CheckpointTransactionPeriod");
+		if (!attr.isBlank())
+			checkpointTransactionPeriod = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ServerId");
 		if (!attr.isBlank())

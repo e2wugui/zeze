@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
@@ -394,8 +395,15 @@ public final class Transaction {
 		} finally {
 			holdLocks.forEach(Lockey::exitLock);
 			holdLocks.clear();
+			// 锁之后计数并尝试checkpoint。
+			var totalCount = totalTransaction.incrementAndGet();
+			var config = procedure.getZeze().getConfig().getCheckpointTransactionPeriod();
+			if (config > 0 && (totalCount % config == 0))
+				procedure.getZeze().checkpointRun();
 		}
 	}
+
+	private final AtomicLong totalTransaction = new AtomicLong();
 
 	private void triggerActions(@NotNull Procedure procedure) {
 		for (var action : actions) {
