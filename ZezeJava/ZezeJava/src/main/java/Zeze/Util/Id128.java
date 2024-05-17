@@ -42,8 +42,8 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	}
 
 	/**
-	 * @param high high is unsigned
 	 * @param low  low is unsigned
+	 * @param high high is unsigned
 	 */
 	public Id128(long high, long low) {
 		this.low = low;
@@ -76,7 +76,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	public void increment(long num) {
 		low += num;
 		if (Long.compareUnsigned(low, num) < 0)
-			high += 1;
+			high++;
 	}
 
 	/**

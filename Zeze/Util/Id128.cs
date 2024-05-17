@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 using System.Numerics;
 
@@ -19,10 +16,6 @@ namespace Zeze.Util
         {
         }
 
-        /**
-         * @param high high is unsigned
-         * @param low  low is unsigned
-         */
         public Id128(ulong high, ulong low)
         {
             this.low = low;
@@ -53,20 +46,17 @@ namespace Zeze.Util
 
         /**
          * 增加id的值。直接改变现有变量。
-         *
-         * @param num num is unsigned
          */
         public virtual void Increment(ulong num)
         {
             low += num;
             if (low < num)
-                high += 1;
+                high++;
         }
 
         /**
          * 增加id的值，返回一个新对象。
          *
-         * @param num num is unsigned
          * @return new Id128 instance that added.
          */
         public Id128 Add(ulong num)
@@ -78,7 +68,7 @@ namespace Zeze.Util
 
         public Id128 Clone()
         {
-            return new Id128(this.high, this.low);
+            return new Id128(high, low);
         }
 
         public void EncodeRaw(ByteBuffer bb)
@@ -109,14 +99,14 @@ namespace Zeze.Util
             {
                 t &= ByteBuffer.TAG_MASK;
                 if (t != ByteBuffer.LIST)
-                    throw new Exception("decode Id128 error: type=" + t);
+                    throw new Exception("Decode Id128 error: type=" + t);
                 t = bb.ReadByte();
                 int n = bb.ReadTagSize(t);
                 t &= ByteBuffer.TAG_MASK;
                 if (t != ByteBuffer.INTEGER)
-                    throw new Exception("decode Id128 error: subtype=" + t);
+                    throw new Exception("Decode Id128 error: subtype=" + t);
                 if (n != 2)
-                    throw new Exception("decode Id128 error: size=" + n);
+                    throw new Exception("Decode Id128 error: size=" + n);
                 high = (ulong)bb.ReadLong();
                 low = (ulong)bb.ReadLong();
                 bb.ReadTagSize(t = bb.ReadByte());
@@ -148,8 +138,8 @@ namespace Zeze.Util
         public override string ToString()
         {
             var bytes = new byte[17];
-            Buffer.BlockCopy(BitConverter.GetBytes(high), 0, bytes, 1, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(low), 0, bytes, 9, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(low), 0, bytes, 1, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(high), 0, bytes, 9, 8);
             return new BigInteger(bytes).ToString();
         }
 
@@ -181,7 +171,6 @@ namespace Zeze.Util
             {
                 throw new NotImplementedException();
             }
-
 
             public override void Decode(ByteBuffer bb)
             {
