@@ -55,7 +55,10 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			for (var c : changed) {
 				@SuppressWarnings("unchecked")
 				var key = (K)c.getThis().mapKey();
-				if (!getReplaced().containsKey(key) && !getRemoved().contains(key))
+				if (!getReplaced().containsKey(key) // 新增的值是最新的，它的changed忽略。
+						&& !getRemoved().contains(key) // 删除的值不用关了，它的changed忽略。
+						&& getValue().containsKey(key) // 当前容器中不存在的key，忽略，这种是加入以后被删除的value的日志。
+				)
 					changedWithKey.put(key, c);
 			}
 			return true;
