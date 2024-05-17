@@ -16,12 +16,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public Zeze.Net.Binary GlobalKey { get; }
         public int State { get; }
+        public Zeze.Util.Id128 ReduceTid { get; }
     }
 
     public sealed class ReduceParam : Zeze.Transaction.Bean, ReduceParamReadOnly
     {
         Zeze.Net.Binary _GlobalKey;
         int _State;
+        Zeze.Util.Id128 _ReduceTid;
 
         public Zeze.Net.Binary GlobalKey
         {
@@ -74,21 +76,50 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
+        public Zeze.Util.Id128 ReduceTid
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _ReduceTid;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _ReduceTid;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__ReduceTid)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _ReduceTid;
+            }
+            set
+            {
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
+                if (!IsManaged)
+                {
+                    _ReduceTid = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__ReduceTid() { Belong = this, VariableId = 3, Value = value });
+            }
+        }
+
         public ReduceParam()
         {
             _GlobalKey = Zeze.Net.Binary.Empty;
+            _ReduceTid = new Zeze.Util.Id128();
         }
 
-        public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_)
+        public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_, Zeze.Util.Id128 _ReduceTid_)
         {
             _GlobalKey = _GlobalKey_;
             _State = _State_;
+            _ReduceTid = _ReduceTid_;
         }
 
         public void Assign(ReduceParam other)
         {
             GlobalKey = other.GlobalKey;
             State = other.State;
+            ReduceTid = other.ReduceTid;
         }
 
         public ReduceParam CopyIfManaged()
@@ -123,6 +154,11 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             public override void Commit() { ((ReduceParam)Belong)._State = this.Value; }
         }
 
+        sealed class Log__ReduceTid : Zeze.Transaction.Log<Zeze.Util.Id128>
+        {
+            public override void Commit() { ((ReduceParam)Belong)._ReduceTid = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -136,7 +172,10 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalKey").Append('=').Append(GlobalKey).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReduceTid").Append('=').Append(Environment.NewLine);
+            ReduceTid.BuildString(sb, level + 4);
+            sb.Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -160,6 +199,16 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                int _a_ = _o_.WriteIndex;
+                int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+                int _b_ = _o_.WriteIndex;
+                ReduceTid.Encode(_o_);
+                if (_b_ + 1 == _o_.WriteIndex)
+                    _o_.WriteIndex = _a_;
+                else
+                    _i_ = _j_;
+            }
             _o_.WriteByte(0);
         }
 
@@ -175,6 +224,11 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             if (_i_ == 2)
             {
                 State = _o_.ReadInt(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 3)
+            {
+                _o_.ReadBean(ReduceTid, _t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -199,6 +253,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 {
                     case 1: _GlobalKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
                     case 2: _State = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _ReduceTid = ((Zeze.Transaction.Log<Zeze.Util.Id128>)vlog).Value; break;
                 }
             }
         }
@@ -207,6 +262,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         {
             GlobalKey = Zeze.Net.Binary.Empty;
             State = 0;
+            ReduceTid = new Zeze.Util.Id128();
         }
     }
 }

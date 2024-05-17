@@ -65,25 +65,26 @@ namespace Zeze.Services.GlobalCacheManager
     {
         public Binary GlobalKey { get; set; }
         public int State { get; set; }
-        public long ReduceTid { get; set; }
+        public Id128 ReduceTid { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             GlobalKey = bb.ReadBinary();
             State = bb.ReadUInt();
-            ReduceTid = bb.ReadLong();
+            ReduceTid = new Id128();
+            ReduceTid.Decode(bb);
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteBinary(GlobalKey);
             bb.WriteUInt(State);
-            bb.WriteLong(ReduceTid);
+            ReduceTid.Encode(bb);
         }
 
         public override string ToString()
         {
-            return GlobalKey + ":" + State;
+            return GlobalKey + ":" + State + " " + ReduceTid;
         }
 
         public override void ClearParameters()

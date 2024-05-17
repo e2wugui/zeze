@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-11999">
+	<externalkey beankey="Zeze.Util.Id128"/>
+
 	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001">
@@ -27,6 +29,7 @@
 			<bean name="ReduceParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="ReduceTid" type="Zeze.Util.Id128"/>
 			</bean>
 
 			<bean name="LoginParam">
