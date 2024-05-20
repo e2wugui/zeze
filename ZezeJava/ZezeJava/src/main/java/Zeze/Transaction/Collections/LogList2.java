@@ -1,31 +1,119 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Collection;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
+import Zeze.Transaction.Savepoint;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
+	private @Nullable IdentityHashSet<V> addSet;
 
 	public LogList2(@NotNull Meta1<V> meta) {
 		super(meta);
-		addSet = new IdentityHashSet<>();
 	}
 
 	public LogList2(@NotNull Class<V> valueClass) {
 		super(Meta1.getList2Meta(valueClass));
-		// addSet not need.
 	}
 
 	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
 		return changed;
+	}
+
+	@Override
+	public boolean add(@NotNull V item) {
+		if (!super.add(item))
+			return false;
+		if (addSet == null)
+			addSet = new IdentityHashSet<>();
+		addSet.add(item);
+		return true;
+	}
+
+	@Override
+	public boolean addAll(@NotNull Collection<? extends V> items) {
+		var addIndex = getValue().size();
+		var list = getValue().plusAll(items);
+		if (list == getValue())
+			return false;
+		setValue(list);
+		if (addSet == null)
+			addSet = new IdentityHashSet<>();
+		for (var item : items) {
+			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
+			addSet.add(item);
+		}
+		return true;
+	}
+
+	@Override
+	public void clear() {
+		super.clear();
+		if (addSet != null)
+			addSet.clear();
+	}
+
+	@Override
+	public void add(int index, @NotNull V item) {
+		super.add(index, item);
+		if (addSet == null)
+			addSet = new IdentityHashSet<>();
+		addSet.add(item);
+	}
+
+	@Override
+	public @Nullable V set(int index, @NotNull V item) {
+		V old = super.set(index, item);
+		if (addSet == null)
+			addSet = new IdentityHashSet<>();
+		addSet.remove(old);
+		addSet.add(item);
+		return old;
+	}
+
+	@Override
+	public @Nullable V remove(int index) {
+		V old = super.remove(index);
+		if (addSet == null)
+			addSet = new IdentityHashSet<>();
+		addSet.remove(old);
+		return old;
+	}
+
+	@Override
+	public void endSavepoint(@NotNull Savepoint currentSp) {
+		var log = currentSp.getLog(getLogKey());
+		if (log != null) {
+			@SuppressWarnings("unchecked")
+			var currentLog = (LogList2<V>)log;
+			currentLog.setValue(getValue());
+			currentLog.merge(this);
+		} else
+			currentSp.putLog(this);
+	}
+
+	private void merge(@NotNull LogList2<V> from) {
+		if (!from.opLogs.isEmpty()) {
+			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
+				opLogs.clear();
+			opLogs.addAll(from.opLogs);
+			if (from.addSet != null) {
+				if (addSet == null)
+					addSet = from.addSet;
+				else
+					addSet.addAll(from.addSet);
+			}
+		}
 	}
 
 	@Override
@@ -51,7 +139,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 						break;
 					idxExist++;
 				}
-				if (idxExist >= curList.size() || addSet.contains(bean))
+				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
 					it.remove();
 				else
 					e.getValue().value = idxExist;
@@ -119,7 +207,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		var sb = new StringBuilder();
 		sb.append(" opLogs:");
 		ByteBuffer.BuildSortedString(sb, getOpLogs());
-		sb.append(" Changed:");
+		sb.append(" changed:");
 		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}

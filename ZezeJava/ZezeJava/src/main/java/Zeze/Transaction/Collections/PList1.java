@@ -159,8 +159,7 @@ public class PList1<V> extends PList<V> {
 			listLog.addAll(tmpList);
 			return;
 		}
-		list = Empty.vector();
-		list = list.plusAll(tmpList);
+		list = Empty.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -177,8 +176,7 @@ public class PList1<V> extends PList<V> {
 			listLog.addAll(tmpList);
 			return;
 		}
-		list = Empty.vector();
-		list = list.plusAll(tmpList);
+		list = Empty.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -195,22 +193,24 @@ public class PList1<V> extends PList<V> {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogList1<V>)_log;
+		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				list = list.with(opLog.index, opLog.value);
+				tmp = tmp.with(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_ADD:
-				list = list.plus(opLog.index, opLog.value);
+				tmp = tmp.plus(opLog.index, opLog.value);
 				break;
 			case LogList1.OpLog.OP_REMOVE:
-				list = list.minus(opLog.index);
+				tmp = tmp.minus(opLog.index);
 				break;
 			case LogList1.OpLog.OP_CLEAR:
-				list = Empty.vector();
+				tmp = Empty.vector();
 				break;
 			}
 		}
+		list = tmp;
 	}
 
 	@Override

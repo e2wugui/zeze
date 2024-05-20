@@ -57,8 +57,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				var key = (K)c.getThis().mapKey();
 				if (!getReplaced().containsKey(key) // 新增的值是最新的，它的changed忽略。
 						&& !getRemoved().contains(key) // 删除的值不用关了，它的changed忽略。
-						&& getValue().containsKey(key) // 当前容器中不存在的key，忽略，这种是加入以后被删除的value的日志。
-				)
+						&& getValue().containsKey(key)) // 当前容器中不存在的key，忽略，这种是加入以后被删除的value的日志。
 					changedWithKey.put(key, c);
 			}
 			return true;
@@ -135,11 +134,11 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@Override
 	public @NotNull String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Putted:");
+		sb.append(" replaced:");
 		ByteBuffer.BuildSortedString(sb, getReplaced());
-		sb.append(" Removed:");
+		sb.append(" removed:");
 		ByteBuffer.BuildSortedString(sb, getRemoved());
-		sb.append(" Changed:");
+		sb.append(" changed:");
 		ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}

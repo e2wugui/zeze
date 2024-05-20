@@ -6,7 +6,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
-import Zeze.Util.IdentityHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
@@ -36,7 +35,6 @@ public class LogList1<V> extends LogList<V> {
 
 	protected final @NotNull Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
-	protected IdentityHashSet<V> addSet; // 用于LogList2，也由它初始化。
 
 	public LogList1(@NotNull Meta1<V> meta) {
 		this.meta = meta;
@@ -60,7 +58,7 @@ public class LogList1<V> extends LogList<V> {
 		return opLogs;
 	}
 
-	public final boolean add(@NotNull V item) {
+	public boolean add(@NotNull V item) {
 		//noinspection ConstantValue
 		if (item == null)
 			throw new IllegalArgumentException("null item");
@@ -68,22 +66,17 @@ public class LogList1<V> extends LogList<V> {
 		var index = list.size();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-		if (null != addSet)
-			addSet.add(item);
 		return true;
 	}
 
-	public final boolean addAll(@NotNull Collection<? extends V> items) {
-		var addindex = getValue().size();
+	public boolean addAll(@NotNull Collection<? extends V> items) {
+		var addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
-		for (var item : items) {
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, addindex++, item));
-			if (null != addSet)
-				addSet.add(item);
-		}
+		for (var item : items)
+			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
 		return true;
 	}
 
@@ -104,40 +97,30 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final void clear() {
+	public void clear() {
 		setValue(Empty.vector());
 		opLogs.clear();
 		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
-		if (null != addSet)
-			addSet.clear();
 	}
 
-	public final void add(int index, @NotNull V item) {
+	public void add(int index, @NotNull V item) {
 		setValue(getValue().plus(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
-		if (null != addSet)
-			addSet.add(item);
 	}
 
-	public final @Nullable V set(int index, @NotNull V item) {
+	public @Nullable V set(int index, @NotNull V item) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
-		if (null != addSet) {
-			addSet.remove(old);
-			addSet.add(item);
-		}
 		return old;
 	}
 
-	public final @Nullable V remove(int index) {
+	public @Nullable V remove(int index) {
 		var list = getValue();
 		var old = list.get(index);
 		setValue(list.minus(index));
-		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, old));
-		if (null != addSet)
-			addSet.remove(old);
+		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, null));
 		return old;
 	}
 
@@ -179,13 +162,11 @@ public class LogList1<V> extends LogList<V> {
 			currentSp.putLog(this);
 	}
 
-	public final void merge(@NotNull LogList1<V> from) {
+	private void merge(@NotNull LogList1<V> from) {
 		if (!from.opLogs.isEmpty()) {
 			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
 			opLogs.addAll(from.opLogs);
-			if (from.addSet != null && addSet != null)
-				addSet.addAll(from.addSet);
 		}
 	}
 

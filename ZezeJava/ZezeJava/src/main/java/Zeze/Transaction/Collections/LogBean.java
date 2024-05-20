@@ -128,10 +128,14 @@ public class LogBean extends Log {
 		var type = bb.ReadByte();
 		LogBean logBean;
 		switch (type) {
-		case 1: logBean = new LogDynamic();break;
-		case 0: logBean = new LogBean();break;
+		case 0:
+			logBean = new LogBean();
+			break;
+		case 1:
+			logBean = new LogDynamic();
+			break;
 		default:
-			throw new RuntimeException("unknown logbean subclass type=" + type);
+			throw new RuntimeException("unknown logBean subclass type=" + type);
 		}
 		logBean.decode(bb);
 		return logBean;

@@ -236,6 +236,7 @@ public class PList2<V extends Bean> extends PList<V> {
 				break;
 			case LogList1.OpLog.OP_CLEAR:
 				tmp = Empty.vector();
+				break;
 			}
 		}
 		list = tmp;

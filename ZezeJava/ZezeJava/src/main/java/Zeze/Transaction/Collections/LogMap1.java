@@ -84,7 +84,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	public final boolean remove(@NotNull K key, @NotNull V value) {
 		var old = getValue().get(key);
-		if (null != old && old.equals((value))) {
+		if (value.equals(old)) {
 			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);
@@ -94,8 +94,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final void clear() {
-		for (var key : getValue().keySet())
-			remove(key);
+		for (var key : getValue().keySet()) {
+			replaced.remove(key);
+			removed.add(key);
+		}
 		setValue(Empty.map());
 	}
 
@@ -143,7 +145,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	private void mergeChangeNote(@NotNull LogMap1<K, V> another) {
-		// Put,Remove 需要确认有没有顺序问题
+		// put,remove 需要确认有没有顺序问题
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
 		for (var e : another.replaced.entrySet()) {
 			// replace 1,2,3 remove 4
@@ -169,9 +171,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	@Override
 	public @NotNull String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Putted:");
+		sb.append(" replaced:");
 		ByteBuffer.BuildSortedString(sb, replaced);
-		sb.append(" Removed:");
+		sb.append(" removed:");
 		ByteBuffer.BuildSortedString(sb, removed);
 		return sb.toString();
 	}
