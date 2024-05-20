@@ -1,6 +1,7 @@
 package Infinite;
 
 import java.util.ArrayList;
+import Zeze.Transaction.DatabaseMemory;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
@@ -89,31 +90,28 @@ public final class Simulate {
 			var taskDefTimeout = Task.defaultTimeout;
 			Task.defaultTimeout = 86400_000;
 			Tasks.prepare();
-			do {
-				PerfCounter.instance.resetCounter();
-				++BatchNumber;
-				logger.fatal("Run {}", BatchNumber);
-				for (var app : Apps) {
-					if (!app.app.Zeze.getConfig().isHistory())
-						logger.info("app " + app.app.Zeze.getConfig().getServerId() + " history disable.");
-					app.startTest();
-				}
-				for (int i = 0; i < BatchTaskCount; i++)
-					Tasks.randCreateTask().Run();
-				logger.fatal("Wait {}", BatchNumber);
-				for (var app : Apps) {
-					app.WaitAllRunningTasksAndClear();
-					logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
-				}
-				logger.fatal("Verify {}", BatchNumber);
-				// history verify
-				for (var app : Apps)
-					app.app.Zeze.checkpointRun();
-				Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
-				//noinspection BusyWait
-				Thread.sleep(4000);
-				Tasks.verify();
-			} while (Infinite);
+			PerfCounter.instance.resetCounter();
+			++BatchNumber;
+			logger.fatal("Run {}", BatchNumber);
+			for (var app : Apps) {
+				if (!app.app.Zeze.getConfig().isHistory())
+					logger.info("app " + app.app.Zeze.getConfig().getServerId() + " history disable.");
+				app.startTest();
+			}
+			for (int i = 0; i < BatchTaskCount; i++)
+				Tasks.randCreateTask().Run();
+			logger.fatal("Wait {}", BatchNumber);
+			for (var app : Apps) {
+				app.WaitAllRunningTasksAndClear();
+				logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
+			}
+			logger.fatal("Verify {}", BatchNumber);
+			// history verify
+			for (var app : Apps)
+				app.app.Zeze.checkpointRun();
+			Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
+			Thread.sleep(4000);
+			Tasks.verify();
 			Task.defaultTimeout = taskDefTimeout;
 			if (perfScheduled)
 				PerfCounter.instance.tryStartScheduledLog();
@@ -126,15 +124,19 @@ public final class Simulate {
 
 	public static void main(String[] args) throws Exception {
 		var simulate = new Simulate();
-		simulate.Infinite = "true".equalsIgnoreCase(System.getProperty("Infinite"));
-		simulate.Before();
-		try {
-			simulate.testMain();
-		} catch (Throwable e) { // print stacktrace. rethrow
-			logger.fatal("main exception:", e);
-			throw e;
-		} finally {
-			simulate.After();
-		}
+		simulate.Infinite = !"false".equalsIgnoreCase(System.getProperty("Infinite"));
+		do {
+			simulate.Before();
+			try {
+				simulate.testMain();
+			} catch (Throwable e) { // print stacktrace. rethrow
+				logger.fatal("main exception:", e);
+				throw e;
+			} finally {
+				simulate.After();
+			}
+			Tasks.clearAllCounters();
+			DatabaseMemory.clear();
+		} while (simulate.Infinite);
 	}
 }
