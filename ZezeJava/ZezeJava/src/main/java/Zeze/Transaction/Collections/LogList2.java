@@ -44,10 +44,14 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		if (curList != null) {
 			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
 				var e = it.next();
-				var logBean = e.getKey();
-				//noinspection SuspiciousMethodCalls
-				var idxExist = curList.indexOf(logBean.getThis());
-				if (idxExist < 0 || addSet.contains(curList.get(idxExist)))
+				var bean = e.getKey().getThis();
+				int idxExist = 0;
+				for (V v : curList) {
+					if (v == bean)
+						break;
+					idxExist++;
+				}
+				if (idxExist >= curList.size() || addSet.contains(bean))
 					it.remove();
 				else
 					e.getValue().value = idxExist;

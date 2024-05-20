@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import Zeze.Util.LongHashMap;
 
 public final class Savepoint {
-	private LongHashMap<Log> logs;
+	private LongHashMap<Log> logs; // key:objectId+varId
 	// private final LongHashMap<Log> Newly = new LongHashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 	private ArrayList<Action> actions;
 
