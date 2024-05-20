@@ -330,7 +330,7 @@ public final class BinLogger extends ReentrantLock {
 					raf = f = new RandomAccessFile(fileName, "rw");
 					fc = f.getChannel();
 					size = fc.size();
-				} catch (Throwable e) {
+				} catch (Throwable e) { // rethrow
 					forceClose(f);
 					throw e;
 				}
@@ -413,7 +413,7 @@ public final class BinLogger extends ReentrantLock {
 				writeLogThread = new Thread(this::writeLogThread, "WriteLogThread");
 				writeLogThread.setPriority(Thread.NORM_PRIORITY + 2); // 稍调高点优先级,确保输出日志吞吐性能
 				writeLogThread.start();
-			} catch (Throwable e) {
+			} catch (Throwable e) { // rethrow
 				started = false;
 				stopLogger();
 				throw e;
@@ -565,7 +565,7 @@ public final class BinLogger extends ReentrantLock {
 							Thread.sleep(WRITE_THREAD_IDLE_SLEEP);
 						}
 					}
-				} catch (Throwable e) {
+				} catch (Throwable e) { // logger.error
 					logger.error("writeLogThread exception:", e);
 					try {
 						//noinspection BusyWait

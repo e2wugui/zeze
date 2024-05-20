@@ -58,7 +58,7 @@ public final class ClassReloader {
 			VirtualMachine vm = VirtualMachine.attach(args[0]);
 			vm.loadAgent(args[1], null);
 			vm.detach();
-		} catch (Throwable e) {
+		} catch (Throwable e) { // exit
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
 			System.exit(-2);

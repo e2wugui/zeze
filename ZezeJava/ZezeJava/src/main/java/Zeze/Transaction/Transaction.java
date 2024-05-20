@@ -278,8 +278,8 @@ public final class Transaction {
 									if (result == Procedure.Success) {
 										try {
 											finalCommit(procedure);
-										} catch (Exception ex) {
-											logger.fatal("", ex);
+										} catch (Throwable ex) { // logger.fatal & halt
+											logger.fatal("finalCommit exception:", ex);
 											// final Commit 不能抛出异常。否则就halt。
 
 											// 首先释放锁

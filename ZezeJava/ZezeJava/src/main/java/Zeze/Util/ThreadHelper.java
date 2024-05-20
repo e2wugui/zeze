@@ -50,7 +50,7 @@ public class ThreadHelper extends Thread {
 			try {
 				join();
 				break;
-			} catch (Throwable ex) {
+			} catch (Exception ex) {
 				logger.warn("{} shutdown. ignore ex:", getClass().getName(), ex);
 			}
 		}

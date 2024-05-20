@@ -81,7 +81,7 @@ public class DeadlockBreaker extends ThreadHelper {
 						sleepIdleMs = zeze.getConfig().getDeadLockBreakerPeriod();
 				}
 				sleepIdle(sleepIdleMs);
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // logger.error
 				logger.error("angel run exception:", ex);
 			}
 		}
@@ -232,8 +232,7 @@ public class DeadlockBreaker extends ThreadHelper {
 				return allThreads;
 			}
 			logger.info("thread not found: {}", tinfo);
-
-		} catch (Throwable e) {
+		} catch (Throwable e) { // logger.fatal
 			logger.fatal(tinfo, e);
 		}
 		return allThreads;

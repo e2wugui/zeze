@@ -135,7 +135,7 @@ public class Id128UdpClient {
 			}
 			try {
 				processTick();
-			} catch (Throwable ex) {
+			} catch (Throwable ex) { // logger.error
 				logger.error("", ex);
 			}
 		}
