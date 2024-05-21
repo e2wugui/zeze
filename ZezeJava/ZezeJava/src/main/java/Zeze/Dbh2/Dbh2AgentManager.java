@@ -159,6 +159,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
+			ShutdownHook.remove(this);
 			proxyAgent.stop();
 			for (var ma : masterAgent.values())
 				ma.stop();

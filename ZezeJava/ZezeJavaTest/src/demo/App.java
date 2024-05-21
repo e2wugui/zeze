@@ -97,6 +97,7 @@ public class App extends Zeze.AppBase {
 		if (!started)
 			return;
 		started = false;
+		ShutdownHook.remove(this);
 		stopService(); // 关闭网络
 		stopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
