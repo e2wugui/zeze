@@ -88,6 +88,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
 
+	/**
+	 * 子类需要freemarker时，构造，并且重载这个方法。
+	 * @return freeMarker instance.
+	 */
+	public @Nullable FreeMarker getFreeMarker() {
+		return null;
+	}
+
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
 		if (second == lastSecond)
