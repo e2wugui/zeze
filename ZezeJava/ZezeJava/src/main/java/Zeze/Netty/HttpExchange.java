@@ -105,6 +105,7 @@ public class HttpExchange {
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
+	protected String path;
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -116,10 +117,8 @@ public class HttpExchange {
 	}
 
 	public void sendFreeMarker(Object model) throws Exception {
-		var freeMarker = server.getFreeMarker();
-		if (null == freeMarker)
-			throw new IllegalStateException("FreeMarker Not Enabled.");
-		freeMarker.sendResponse(this, model);
+		// MUST BE HttpServerFreeMarker
+		((HttpServerFreeMarker)server).getFreeMarker().sendResponse(this, model);
 	}
 
 	public @Nullable Object getUserState() {
@@ -295,12 +294,15 @@ public class HttpExchange {
 	}
 
 	public @NotNull String path() {
+		if (null != path)
+			return path;
 		var req = request;
 		if (req == null)
 			return "";
 		var uri = req.uri();
 		var i = uri.indexOf('?');
-		return urlDecode(i >= 0 ? uri.substring(0, i) : uri);
+		path = urlDecode(i >= 0 ? uri.substring(0, i) : uri);
+		return path;
 	}
 
 	public @Nullable String query() {

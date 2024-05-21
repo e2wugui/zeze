@@ -46,9 +46,7 @@ public class FreeMarker {
 	 * @throws Exception exception
 	 */
 	public void sendResponse(HttpExchange x, Object modelBean) throws Exception {
-		// todo url 参数，调用者给进来有点烦，现有的zeze-servlet的url是生成的，这里怎么得到它？
-		//  see DbWeb 的例子。
-		var url = "";
+		var url = x.path();
 		var tmpl = freeMarker.getTemplate(url);
 		if (withContentLength.contains(url)) {
 			// todo 需确定FreeMarker输出是什么，只是html内容，不包括头？这里假定只有html内容。
