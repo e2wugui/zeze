@@ -11,6 +11,9 @@ import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,15 +52,12 @@ public class FreeMarker {
 		var url = x.path();
 		var tmpl = freeMarker.getTemplate(url);
 		if (withContentLength.contains(url)) {
-			// todo 需确定FreeMarker输出是什么，只是html内容，不包括头？这里假定只有html内容。
 			try (var out = new HttpExchangeContentLengthWriter(x)) {
 				tmpl.process(modelBean, out);
 				if (out.getContentLength() > 64 * 1024)
 					withContentLength.remove(url);
 			}
 		} else {
-			// todo 流式写的时候，头怎么给？还需确定FreeMarker输出是什么，只是html内容，不包括头？
-			//   HttpExchange.sendStream 也需要确认，自己写的，但怎么用忘了。
 			try (var out = new HttpExchangeStreamWriter(x)) {
 				tmpl.process(modelBean, out);
 				if (out.getContentLength() < 16 * 1024)
@@ -102,6 +102,9 @@ public class FreeMarker {
 
 		public HttpExchangeStreamWriter(HttpExchange x) {
 			this.x = x;
+			//noinspection VulnerableCodeUsages
+			x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
+					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 		}
 
 		public int getContentLength() {
