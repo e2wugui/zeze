@@ -47,7 +47,8 @@ public class Verify {
 				try {
 					applyTable.apply(r.getKey(), r.getValue());
 				} catch (Exception e) {
-					logger.error("apply exception:", e);
+					throw new RuntimeException(String.format("apply(%d-%d:%s) exception", key.getHigh(), key.getLow(),
+							applyTable.getOriginTable().decodeKey(ByteBuffer.Wrap(r.getKey().getKeyEncoded()))), e);
 				}
 			}
 			var process = counter.incrementAndGet();
