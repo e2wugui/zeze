@@ -127,6 +127,8 @@ public class History {
 		if (null != protocolArgument)
 			logChanges.setProtocolArgument(protocolArgument);
 		for (var e : changes.getRecords().entrySet()) {
+			if (e.getValue().getTable().isMemory())
+				continue; // 内存表的日志变更不需要持久化，直接忽略。
 			var tableKey = new BTableKey(
 					e.getKey().getId(),
 					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
