@@ -111,6 +111,17 @@ public class HttpExchange {
 		this.context = context;
 	}
 
+	public HttpServer getHttpServer() {
+		return server;
+	}
+
+	public void sendFreeMarker(Object model) throws Exception {
+		var freeMarker = server.getFreeMarker();
+		if (null == freeMarker)
+			throw new IllegalStateException("FreeMarker Not Enabled.");
+		freeMarker.sendResponse(this, model);
+	}
+
 	public @Nullable Object getUserState() {
 		return userState;
 	}

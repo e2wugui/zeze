@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -86,6 +87,15 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
+	protected @Nullable FreeMarker freeMarker;
+
+	public void enableFreeMarker(File templateDir) throws Exception {
+		freeMarker = new FreeMarker(templateDir);
+	}
+
+	public @Nullable FreeMarker getFreeMarker() {
+		return freeMarker;
+	}
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
