@@ -46,6 +46,9 @@ dependencies {
 
     // for Consul in Zeze.Netty
     compileOnly 'com.ecwid.consul:consul-api:1.4.5'
+
+    // for FreeMarker
+    compileOnly 'org.freemarker:freemarker:2.3.32'
 }
 
 tasks.withType(JavaCompile) {
