@@ -13,13 +13,13 @@ import org.jetbrains.annotations.Nullable;
 
 public class BServiceInfosVersion implements Serializable {
 	private final LongHashMap<BServiceInfos> infosVersion = new LongHashMap<>(); // key:version
-	private transient final @Nullable BServiceInfos newestInfos;
+	private final transient @Nullable BServiceInfos newestInfos;
 
 	public BServiceInfosVersion() {
 		newestInfos = null;
 	}
 
-	public BServiceInfosVersion(@NotNull ByteBuffer bb) {
+	public BServiceInfosVersion(@NotNull IByteBuffer bb) {
 		decode(bb);
 		newestInfos = findNewestInfos();
 	}

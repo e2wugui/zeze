@@ -22,9 +22,7 @@ public class BSubscribeResult implements Serializable {
 	public void decode(@NotNull IByteBuffer bb) {
 		for (var i = bb.ReadUInt(); i > 0; --i) {
 			var serviceName = bb.ReadString();
-			var infos = new BServiceInfosVersion();
-			infos.decode(bb);
-			map.put(serviceName, infos);
+			map.put(serviceName, new BServiceInfosVersion(bb));
 		}
 	}
 
