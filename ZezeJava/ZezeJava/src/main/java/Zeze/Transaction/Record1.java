@@ -163,13 +163,10 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	public void commit(@NotNull RecordAccessed accessed) {
 		if (null != accessed.committedPutLog) {
 			setSoftValue(accessed.committedPutLog.getValue());
-			if (accessed.committedPutLog.getValue() == null) {
-				if (table.isMemory()) {
-					// 记录删除并且是内存表，马上删除。
-					table.getCache().remove(key, this);
-					return; // 内存表已经删除，done
-				}
-				table.rocksCacheRemove(key);
+			if (table.isMemory() && accessed.committedPutLog.getValue() == null) {
+				// 记录删除并且是内存表，马上删除。
+				table.getCache().remove(key, this);
+				return; // 内存表已经删除，done
 			}
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
