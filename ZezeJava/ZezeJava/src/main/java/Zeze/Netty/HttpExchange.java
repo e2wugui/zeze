@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
@@ -120,7 +121,17 @@ public class HttpExchange {
 		var freeMarker = server.getFreeMarker();
 		if (null == freeMarker)
 			throw new IllegalStateException("freemarker not enabled.");
-		freeMarker.sendResponse(this, model);
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> {
+				try {
+					freeMarker.sendResponse(this, model);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
+		else
+			freeMarker.sendResponse(this, model);
 	}
 
 	public @Nullable Object getUserState() {
