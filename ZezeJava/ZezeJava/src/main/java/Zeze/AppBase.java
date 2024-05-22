@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Netty.HttpServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,5 +59,9 @@ public abstract class AppBase extends ReentrantLock {
 	 * @throws Exception exception
 	 */
 	public void startLastModules() throws Exception {
+	}
+
+	public HttpServer getHttpServer() {
+		return null;
 	}
 }

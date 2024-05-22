@@ -19,8 +19,14 @@ import Zeze.Netty.Netty;
 import Zeze.Services.Daemon;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
+import org.jetbrains.annotations.NotNull;
 
 public class App extends Zeze.AppBase {
+	@Override
+	public HttpServer getHttpServer() {
+		return HttpServer;
+	}
+
 	public static void main(String[] args) throws Exception {
 		System.err.println(System.getProperties().get("user.dir"));
 		Instance.Start();

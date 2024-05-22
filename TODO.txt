@@ -6,6 +6,8 @@ DatabaseDynamoDb 还需测试。
 History Compatible 兼容性；@zl
 NewSolution 新建项目助手; @zl
 BUG History List2.indexOf 不能用默认的，因为它是equals判断，应该引用判断。@zl
+BUG Record1.commit 需要加fair锁，跟load之间有竞争：load的if (... !dirty)和setSoftValue之间有时间窗口，
+	会导致commit的值（删除的时候是null）被还原成旧的值，删除语义失败，造成数据错误。
 FreeMarker 接入，支持服务器端渲染。
 
 ------------------------------------------------------------------------------------------------------------------------------

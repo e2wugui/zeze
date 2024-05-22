@@ -98,10 +98,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Exception {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    @Override");
-            sw.WriteLine("    public void StartLast() throws Exception {");
-            sw.WriteLine("    }");
-            sw.WriteLine();
             if (GenEmptyProtocolHandles(sw))
                 sw.WriteLine();
             sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen + " @formatter:off");
@@ -646,7 +642,7 @@ namespace Zeze.Gen.java
             if (serv == null || (serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
-            var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
+            var httpVar = writtenHeader ? "App.getHttpServer()" : "httpServer";
 
             if (module.Servlets.Count > 0 || module.ServletStreams.Count > 0)
             {
@@ -677,7 +673,7 @@ namespace Zeze.Gen.java
             if (serv == null || (serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
-            var httpVar = writtenHeader ? "App.HttpServer" : "httpServer";
+            var httpVar = writtenHeader ? "App.getHttpServer()" : "httpServer";
 
             if (module.Servlets.Count > 0 || module.ServletStreams.Count > 0)
             {
