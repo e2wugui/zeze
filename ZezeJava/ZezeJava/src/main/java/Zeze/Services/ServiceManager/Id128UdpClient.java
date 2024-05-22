@@ -60,14 +60,17 @@ public class Id128UdpClient {
 		private final AtomicInteger pending = new AtomicInteger();
 		private FutureNode prev; // 单向链表,指向前一个.
 
+///		private static final AtomicLong counter = new AtomicLong();
+///		public final long id = counter.incrementAndGet();
+
 		public FutureNode(int count) {
 			this.count = count;
 		}
 	}
 
-	public TaskCompletionSource<Tid128Cache> allocateFuture(String globalName, int allocateCount) {
+	public FutureNode allocateFuture(String globalName, int allocateCount) {
 		// 多次请求的allocateCount不一样,只记住第一次的.
-		var outFuture = new OutObject<TaskCompletionSource<Tid128Cache>>();
+		var outFuture = new OutObject<FutureNode>();
 		currentFuture.compute(globalName, (key, value) -> {
 			var current = value;
 			if (current == null)
@@ -79,10 +82,10 @@ public class Id128UdpClient {
 			// 下面 1.入队, 2.发送rpc请求, 3.删除.
 
 			// 1.入队
-			var funalCurrent = current;
+			var finalCurrent = current;
 			tailFuture.compute(globalName, (key2, value2) -> {
-				funalCurrent.prev = value2; // value maybe null. that is first node.
-				return funalCurrent;
+				finalCurrent.prev = value2; // value maybe null. that is first node.
+				return finalCurrent;
 			});
 
 			// 2.发送rpc

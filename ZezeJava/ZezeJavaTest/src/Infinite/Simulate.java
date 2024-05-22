@@ -95,7 +95,7 @@ public final class Simulate {
 			logger.fatal("Run {}", BatchNumber);
 			for (var app : Apps) {
 				if (!app.app.Zeze.getConfig().isHistory())
-					logger.info("app " + app.app.Zeze.getConfig().getServerId() + " history disable.");
+					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
 				app.startTest();
 			}
 			for (int i = 0; i < BatchTaskCount; i++)
@@ -134,9 +134,9 @@ public final class Simulate {
 				throw e;
 			} finally {
 				simulate.After();
+				Tasks.clearAllCounters();
+				DatabaseMemory.clear();
 			}
-			Tasks.clearAllCounters();
-			DatabaseMemory.clear();
 		} while (simulate.Infinite);
 	}
 }

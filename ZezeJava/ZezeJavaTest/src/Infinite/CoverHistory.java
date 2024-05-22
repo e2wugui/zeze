@@ -188,6 +188,7 @@ public class CoverHistory {
 	public static class List9 implements Job {
 		@Override
 		public void run(BValue value) {
+///			logger.info("List9: {}", value.objectId());
 			var list = value.getList9();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
@@ -258,6 +259,7 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var map11 = value.getMap11(); // key is 0,1,2
+///			logger.info("Map11: {} {}", value.objectId(), map11.size());
 			var forceRemove = map11.size() >= 3;
 			if (forceRemove) {
 				map11.remove(getRandom().nextLong(3));
@@ -530,6 +532,7 @@ public class CoverHistory {
 	public static class Map25 implements Job {
 		@Override
 		public void run(BValue value) {
+///			logger.info("Map25: {}", value.objectId());
 			var map = value.getMap25(); // see randKey
 			Map16.testKey2BSimple(map);
 		}
@@ -538,6 +541,7 @@ public class CoverHistory {
 	public static class Map26 implements Job {
 		@Override
 		public void run(BValue value) {
+///			logger.info("Map26: {}", value.objectId());
 			var map = value.getMap26();
 			var forceRemove = map.size() >= 3;
 			if (forceRemove) {
@@ -930,6 +934,7 @@ public class CoverHistory {
 	public static class Map41 implements Job {
 		@Override
 		public void run(BValue value) {
+///			logger.info("Map41: {}", value.objectId());
 			var map41 = value.getMap41(); // key is 0,1,2
 			var forceRemove = map41.size() >= 3;
 			if (forceRemove) {
@@ -970,6 +975,7 @@ public class CoverHistory {
 	public class Map42Recursive implements Job {
 		@Override
 		public void run(BValue value) {
+///			logger.info("Map42Recursive: {}", value.objectId());
 			// map 基本测试足够了，这里只测试递归修改。
 			var map = value.getMap42Recursive();
 			var rValue = map.computeIfAbsent(0L, (key) -> new BValue());
@@ -982,7 +988,10 @@ public class CoverHistory {
 	public class RemoveRecord implements Job {
 		@Override
 		public void run(BValue value) {
-			app.demo_Module1.getTableCoverHistory().remove(getRandom().nextLong(eKeyRange));
+			var k = getRandom().nextLong(eKeyRange);
+///			var v = app.demo_Module1.getTableCoverHistory().get(k);
+///			logger.info("RemoveRecord: remove {} {}", k, v != null ? v.objectId() : null);
+			app.demo_Module1.getTableCoverHistory().remove(k);
 		}
 	}
 
@@ -990,7 +999,9 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var k = getRandom().nextLong(eKeyRange);
-			app.demo_Module1.getTableCoverHistory().getOrAdd(k).setLong2(12345);
+			var v = app.demo_Module1.getTableCoverHistory().getOrAdd(k);
+			v.setLong2(12345);
+///			logger.info("Combo: remove {}", v.objectId());
 			app.demo_Module1.getTableCoverHistory().remove(k);
 			app.demo_Module1.getTableCoverHistory().getOrAdd(k).setLong2(54321);
 		}

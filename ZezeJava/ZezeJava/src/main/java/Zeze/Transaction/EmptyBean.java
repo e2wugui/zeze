@@ -19,11 +19,6 @@ public class EmptyBean extends Bean {
 			resetRootInfo();
 			throw new UnsupportedOperationException();
 		}
-
-		@Override
-		public void followerApply(@NotNull Log log) {
-			// ignore all
-		}
 	};
 
 	@Override
@@ -34,6 +29,11 @@ public class EmptyBean extends Bean {
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteByte(0);
+	}
+
+	@Override
+	public void followerApply(@NotNull Log log) {
+		// ignore all
 	}
 
 	@Override

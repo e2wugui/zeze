@@ -5,6 +5,7 @@ import Zeze.Builtin.HistoryModule.BLogChanges;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.ServiceManager.Id128UdpClient;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Database;
 import Zeze.Util.Id128;
@@ -12,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class History {
-	// private static final Logger logger = LogManager.getLogger(History.class);
+///	private static final Logger logger = LogManager.getLogger(History.class);
 
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
@@ -115,10 +116,12 @@ public class History {
 		return to;
 	}
 
-	public static BLogChanges.Data buildLogChanges(@NotNull Id128 globalSerialId,
-												   @NotNull Changes changes,
-												   @Nullable String protocolClassName,
-												   @Nullable Binary protocolArgument) {
+	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128UdpClient.FutureNode future,
+															@NotNull Changes changes,
+															@Nullable String protocolClassName,
+															@Nullable Binary protocolArgument, int serverId) {
+		var id128Cache = future.get();
+		Id128 globalSerialId = id128Cache.next();
 		var logChanges = new BLogChanges.Data();
 		logChanges.setTimestamp(System.currentTimeMillis());
 		logChanges.setGlobalSerialId(globalSerialId);
@@ -126,16 +129,29 @@ public class History {
 			logChanges.setProtocolClassName(protocolClassName);
 		if (null != protocolArgument)
 			logChanges.setProtocolArgument(protocolArgument);
+///		var sb = new StringBuilder();
 		for (var e : changes.getRecords().entrySet()) {
 			if (e.getValue().getTable().isMemory())
 				continue; // 内存表的日志变更不需要持久化，直接忽略。
+///			if (!checker2.add(e.getKey().getKey()))
+///				logger.error("concurrent log({})", e.getKey().getKey());
 			var tableKey = new BTableKey(
 					e.getKey().getId(),
 					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
 			var bbValue = ByteBuffer.Allocate();
 			e.getValue().encode(bbValue);
 			logChanges.getChanges().put(tableKey, new Binary(bbValue));
+///			sb.append(e.getKey().getKey()).append(',');
+///			var old = checker.computeIfAbsent(e.getKey().getKey(), __ -> new AtomicLong()).getAndSet(globalSerialId.getLow());
+///			if (old >= globalSerialId.getLow())
+///				logger.error("unordered({}): {} >= {}", e.getKey().getKey(), old, globalSerialId.getLow());
+///			checker2.remove(e.getKey().getKey());
 		}
+///		logger.info("{}-{},{} {}_{} {}",
+///				globalSerialId.getHigh(), globalSerialId.getLow(), sb, serverId, future.id, Verify.toString(logChanges));
 		return logChanges;
 	}
+
+///	private static final ConcurrentHashMap<Object, AtomicLong> checker = new ConcurrentHashMap<>();
+///	private static final ConcurrentHashSet<Object> checker2 = new ConcurrentHashSet<>();
 }

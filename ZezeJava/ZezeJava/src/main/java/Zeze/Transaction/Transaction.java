@@ -9,11 +9,8 @@ import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Services.ServiceManager.Tid128Cache;
-import Zeze.Util.Id128;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -73,7 +70,7 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
-	private TaskCompletionSource<Tid128Cache> tidCacheFuture;
+///	private TaskCompletionSource<Tid128Cache> tidCacheFuture;
 
 	private Transaction() {
 	}
@@ -132,7 +129,7 @@ public final class Transaction {
 		redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
-		tidCacheFuture = null;
+///		tidCacheFuture = null;
 	}
 
 	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
@@ -150,7 +147,7 @@ public final class Transaction {
 		redoBeans.clear();
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
-		tidCacheFuture = null;
+///		tidCacheFuture = null;
 	}
 
 	public void begin() {
@@ -439,6 +436,7 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure proc) throws Exception {
+/*///
 		final Id128 tid;
 		if (tidCacheFuture != null) {
 			tid = tidCacheFuture.get().next();
@@ -447,7 +445,7 @@ public final class Transaction {
 		} else {
 			tid = null; // 为了final的赋值,以后不会用到.
 		}
-
+*/
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
@@ -509,14 +507,11 @@ public final class Transaction {
 					cc.collectRecord(ar);
 			}
 
-			// >>>>>>>>
-			// for debug. remove later.
-			if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty() && tidCacheFuture == null)
-				logger.fatal("history lost. ++++++++");
-			// <<<<<<<<
-
-			if (tid != null) // always null if !isHistory
-				return History.buildLogChanges(tid, cc, proc.getProtocolClassName(), proc.getProtocolRawArgument());
+			if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty()) {
+				return History.buildLogChanges(proc.getZeze().getServiceManager().getLastTid128CacheFuture(),
+						cc, proc.getProtocolClassName(), proc.getProtocolRawArgument(),
+						proc.getZeze().getConfig().getServerId());
+			}
 			return null;
 		}); // onz patch: 新增参数
 
@@ -636,8 +631,8 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-					if (procedure.getZeze().getConfig().isHistory() && tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
-						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTid128CacheFuture();
+///					if (procedure.getZeze().getConfig().isHistory() && tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
+///						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTid128CacheFuture();
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 
@@ -646,8 +641,12 @@ public final class Transaction {
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var isHistory = procedure.getZeze().getConfig().isHistory();
 					if (isHistory) {
-						tidCacheFuture = procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
+///						tidCacheFuture =
+						procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
 								procedure.getZeze().getConfig().getHistory());
+///						logger.info("acquire modify: {},{}",
+///								procedure.getZeze().getConfig().getServerId(),
+///								e.atomicTupleRecord.record.getObjectKey());
 					}
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
@@ -659,6 +658,7 @@ public final class Transaction {
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}
+					/*///
 					if (isHistory) {
 						// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
 						var startTid = tidCacheFuture.get().getStart();
@@ -668,6 +668,7 @@ public final class Transaction {
 							);
 						}
 					}
+					*/
 					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
