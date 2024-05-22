@@ -84,13 +84,12 @@ public final class Simulate {
 
 	@Test
 	public void testMain() throws Exception {
+		var perfScheduled = PerfCounter.instance.cancelScheduledLog();
 		logger.fatal("Prepare");
 		try {
-			var perfScheduled = PerfCounter.instance.cancelScheduledLog();
 			var taskDefTimeout = Task.defaultTimeout;
 			Task.defaultTimeout = 86400_000;
 			Tasks.prepare();
-			PerfCounter.instance.resetCounter();
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
 			for (var app : Apps) {
@@ -98,6 +97,7 @@ public final class Simulate {
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
 				app.startTest();
 			}
+			PerfCounter.instance.resetCounter();
 			for (int i = 0; i < BatchTaskCount; i++)
 				Tasks.randCreateTask().Run();
 			logger.fatal("Wait {}", BatchNumber);
@@ -113,13 +113,14 @@ public final class Simulate {
 			Thread.sleep(4000);
 			Tasks.verify();
 			Task.defaultTimeout = taskDefTimeout;
-			if (perfScheduled)
-				PerfCounter.instance.tryStartScheduledLog();
+			logger.fatal("Done!!!!!!");
 		} catch (Exception ex) {
 			logger.error("", ex);
 			throw ex;
+		} finally {
+			if (perfScheduled)
+				PerfCounter.instance.tryStartScheduledLog();
 		}
-		logger.fatal("Done!!!!!!");
 	}
 
 	public static void main(String[] args) throws Exception {

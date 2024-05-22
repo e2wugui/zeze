@@ -44,8 +44,8 @@ public abstract class ProviderLoadBase {
 		if (timerTask != null) {
 			timerTask.cancel(true);
 			timerTask = null;
-			overload.close();
 		}
+		overload.close();
 	}
 
 	public abstract int getOnlineLocalCount();
