@@ -41,6 +41,10 @@ public class FreeMarker {
 		defaultCharset = Charset.forName(eDefaultEncoding);
 	}
 
+	public Configuration getConfiguration() {
+		return freeMarker;
+	}
+
 	/**
 	 * 服务端格式化页面 & 发送结果。
 	 *
@@ -49,7 +53,7 @@ public class FreeMarker {
 	 * @throws Exception exception
 	 */
 	public void sendResponse(HttpExchange x, Object modelBean) throws Exception {
-		var url = x.path();
+		var url = x.path() + ".ftlh";
 		var tmpl = freeMarker.getTemplate(url);
 		if (withContentLength.contains(url)) {
 			try (var out = new HttpExchangeContentLengthWriter(x)) {
