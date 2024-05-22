@@ -624,13 +624,6 @@ public final class Transaction {
 	}
 
 	private @NotNull CheckResult _check_(Procedure procedure, boolean writeLock, @NotNull RecordAccessed e) {
-		/*
-		 * 事务开始时的记录被删除，被cache清除，被soft清除，发生了reload，等情况，需要重做事务。
-		 * 没有经过严密考虑和优化，通通重做！！！确保万无一失。
-		 */
-		if (e.tableCache.getWithObjectKey(e.atomicTupleRecord.record.getObjectKey()) != e.atomicTupleRecord.record)
-			return CheckResult.Redo;
-
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {

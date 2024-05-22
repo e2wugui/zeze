@@ -113,11 +113,6 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return dataMap.get(key);
 	}
 
-	@SuppressWarnings("unchecked")
-	final Record1<K, V> getWithObjectKey(Object key) {
-		return dataMap.get((K)key);
-	}
-
 	// 不再提供删除，由 Cleaner 集中清理。
 	// under lockey.writeLock
 	/*
