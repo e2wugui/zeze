@@ -6,7 +6,7 @@
 
 	<groupId>com.zezeno</groupId>
 	<artifactId>zeze-java</artifactId>
-	<version>1.4.5-SNAPSHOT</version>
+	<version>1.4.5.1-SNAPSHOT</version>
 
 	<name>zeze-java</name>
 	<url>https://github.com/e2wugui/zeze</url>
@@ -104,6 +104,7 @@
 						<includeOnlyProperty>^git.commit.id.(abbrev|full)$</includeOnlyProperty>
 					</includeOnlyProperties>
 					<commitIdGenerationMode>full</commitIdGenerationMode>
+					<useNativeGit>true</useNativeGit>
 				</configuration>
 			</plugin>
 		</plugins>
