@@ -151,7 +151,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		var tmp = map;
 		for (var put : log.getReplaced().values())
 			put.initRootInfo(rootInfo, this);
-		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
+		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {

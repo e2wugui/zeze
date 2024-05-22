@@ -106,7 +106,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
-		map = map.plusAll(log.getReplaced()).minusAll(log.getRemoved());
+		map = map.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 	}
 
 	@Override

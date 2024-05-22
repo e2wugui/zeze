@@ -60,14 +60,15 @@ public class App extends Zeze.AppBase {
 
 		public MyHttpServer(Application zeze) throws Exception {
 			super(zeze, null, 60);
-			freeMarker = new FreeMarker(new File("web"));
+			var webDir = new File("web");
+			freeMarker = webDir.isDirectory() ? new FreeMarker(webDir) : null;
 		}
 
 		@Override
 		public FreeMarker getFreeMarker() {
 			return freeMarker;
 		}
-	};
+	}
 
 	public void Start() throws Exception {
 		Start(Config.load("./zeze.xml"));
@@ -84,6 +85,7 @@ public class App extends Zeze.AppBase {
 
 	public ProviderApp providerApp;
 	private boolean started = false;
+
 	public void Start(Config config) throws Exception {
 		if (started)
 			return;

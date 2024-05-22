@@ -77,6 +77,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
+		built = false;
+		changedWithKey.clear();
 		buildChangedWithKey();
 
 		bb.WriteUInt(changedWithKey.size());
@@ -106,6 +108,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			var key = keyDecoder.apply(bb);
 			changedWithKey.put(key, decodeLogBean(bb));
 		}
+		built = true;
 
 		// super.decode(bb);
 		getReplaced().clear();
@@ -140,7 +143,10 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		sb.append(" removed:");
 		ByteBuffer.BuildSortedString(sb, getRemoved());
 		sb.append(" changed:");
-		ByteBuffer.BuildSortedString(sb, changed);
+		if (built)
+			ByteBuffer.BuildSortedString(sb, changedWithKey);
+		else
+			ByteBuffer.BuildSortedString(sb, changed);
 		return sb.toString();
 	}
 }

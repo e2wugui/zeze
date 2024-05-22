@@ -19,6 +19,11 @@ public class EmptyBean extends Bean {
 			resetRootInfo();
 			throw new UnsupportedOperationException();
 		}
+
+		@Override
+		public void followerApply(@NotNull Log log) {
+			// ignore all
+		}
 	};
 
 	@Override

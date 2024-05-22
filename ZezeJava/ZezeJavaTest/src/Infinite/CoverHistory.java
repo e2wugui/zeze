@@ -17,9 +17,12 @@ import demo.Module1.BRemoved2;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 public class CoverHistory {
+	private static final Logger logger = LogManager.getLogger(CoverHistory.class);
 	private static final int eKeyRange = 1024; // 修改的记录范围
 	private static final int eTaskCont = 10000; // 总的修改任务
 	private static final int eJobsPerTask = 3; // 每个任务执行多少个修改工作。
@@ -75,11 +78,15 @@ public class CoverHistory {
 		jobs.add(new Combo());
 	}
 
+	private static long seed = System.currentTimeMillis();
+
 	public void submitTasks() {
-		var t = System.currentTimeMillis();
+		var s = seed++;
+		logger.info("submitTasks: seed={}", s);
 		for (var i = 0; i < eTaskCont; ++i) {
-			var seed = t ^ i;
+			var seed = s ^ i;
 			taskFutures.add(Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")));
+			// Task.call(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
 		}
 	}
 

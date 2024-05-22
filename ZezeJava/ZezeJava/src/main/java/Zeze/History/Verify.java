@@ -65,7 +65,7 @@ public class Verify {
 		logger.info("history verify success!!!!!!!!!!!!!!!!!!!!!!");
 	}
 
-	public static @NotNull String toString(@NotNull BLogChanges b) {
+	public static @NotNull String toString(@NotNull BLogChanges.Data b) {
 		var sb = new StringBuilder();
 		sb.append("{\n");
 		sb.append("  GlobalSerialId: ").append(b.getGlobalSerialId()).append('\n');
@@ -73,7 +73,7 @@ public class Verify {
 		sb.append("  Timestamp: ").append(b.getTimestamp()).append('\n');
 		sb.append("  GlobalSerialId: ").append(b.getGlobalSerialId()).append('\n');
 		sb.append("  Changes: {\n");
-		for (var e : b.getChanges()) {
+		for (var e : b.getChanges().entrySet()) {
 			sb.append("    {").append(e.getKey().getTableId()).append(',').append(e.getKey().getKeyEncoded())
 					.append("}: ");
 			var bb = ByteBuffer.Wrap(e.getValue());

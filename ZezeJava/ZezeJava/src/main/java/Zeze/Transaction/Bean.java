@@ -116,15 +116,15 @@ public abstract class Bean implements Serializable {
 	}
 
 	public @NotNull Bean copy() {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	public void assign(@NotNull Data data) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	public @NotNull Data toData() {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -228,15 +228,15 @@ public abstract class Bean implements Serializable {
 	}
 
 	public @NotNull Object mapKey() {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	public void mapKey(@NotNull Object mapKey) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	public void followerApply(@NotNull Log log) {
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(getClass().getName());
 	}
 
 	public @NotNull LogBean createLogBean() {
