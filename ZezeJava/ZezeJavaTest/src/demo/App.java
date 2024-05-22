@@ -59,7 +59,7 @@ public class App extends Zeze.AppBase {
 	public Bag.Module BagModule;
 	public Producer RocketMQProducer;
 	public HttpServer HttpServer;
-	public Netty netty = new Netty();
+	public Netty netty = new Netty(1);
 
 	public static class MyHttpServer extends HttpServer {
 		private final FreeMarker freeMarker;
@@ -131,6 +131,7 @@ public class App extends Zeze.AppBase {
 		ShutdownHook.remove(this);
 		stopService(); // 关闭网络
 		HttpServer.close();
+		netty.close();
 		stopModules(); // 关闭模块，卸载配置什么的。
 		providerApp.providerImplement.stop();
 		if (Zeze != null) {
