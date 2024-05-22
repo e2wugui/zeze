@@ -42,6 +42,7 @@ public class ProviderWithOnline extends ProviderImplement {
 		online.start();
 	}
 
+	@Override
 	public void stop() {
 		if (online != null)
 			online.stop();

@@ -86,6 +86,7 @@ public class ProviderWithOnline extends ProviderImplement {
 		}
 	}
 
+	@Override
 	public void stop() {
 		lock();
 		try {

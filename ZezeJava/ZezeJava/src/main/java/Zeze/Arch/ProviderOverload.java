@@ -14,21 +14,47 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-public class ProviderOverload extends ReentrantLock {
+public class ProviderOverload extends ReentrantLock implements AutoCloseable {
 	private static final Logger logger = LogManager.getLogger(ProviderOverload.class);
 	private static final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
 			new ThreadFactoryWithName("ZezeLoadThread", Thread.MAX_PRIORITY));
 
-	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>();
+	private final ArrayList<ThreadPoolMonitor> threadPools = new ArrayList<>(); // 为方便不加锁读取,只增不减
 
 	public boolean register(@NotNull ExecutorService threadPool, @NotNull Config config) {
 		lock();
 		try {
-			for (var tp : threadPools)
-				if (tp.threadPool == threadPool)
+			int emptyIdx = -1;
+			for (int i = 0, n = threadPools.size(); i < n; i++) {
+				var tp = threadPools.get(i);
+				if (tp == null) {
+					if (emptyIdx < 0)
+						emptyIdx = i;
+				} else if (tp.threadPool == threadPool)
 					return false;
-			threadPools.add(new ThreadPoolMonitor(threadPool, config));
+			}
+			var tpm = new ThreadPoolMonitor(threadPool, config);
+			if (emptyIdx < 0)
+				threadPools.add(tpm);
+			else
+				threadPools.set(emptyIdx, tpm);
 			return true;
+		} finally {
+			unlock();
+		}
+	}
+
+	@Override
+	public void close() {
+		lock();
+		try {
+			for (int i = 0, n = threadPools.size(); i < n; i++) {
+				var tp = threadPools.get(i);
+				if (tp != null) {
+					tp.close();
+					threadPools.set(i, null);
+				}
+			}
 		} finally {
 			unlock();
 		}
@@ -39,19 +65,23 @@ public class ProviderOverload extends ReentrantLock {
 		var result = BLoad.eWorkFine;
 		//noinspection ForLoopReplaceableByForEach
 		for (int i = 0, n = threadPools.size(); i < n; i++) {
-			var overload = threadPools.get(i).overload();
-			if (overload == BLoad.eOverload)
-				return overload;
-			if (overload == BLoad.eThreshold)
-				result = BLoad.eThreshold;
+			var tp = threadPools.get(i);
+			if (tp != null) {
+				var overload = tp.overload();
+				if (overload == BLoad.eOverload)
+					return overload;
+				if (overload == BLoad.eThreshold)
+					result = BLoad.eThreshold;
+			}
 		}
 		return result;
 	}
 
-	static final class ThreadPoolMonitor extends ReentrantLock {
+	private static final class ThreadPoolMonitor implements AutoCloseable {
 		private final @NotNull ExecutorService threadPool;
 		private final @NotNull Config config;
 		private volatile long overload = BLoad.eWorkFine;
+		private volatile boolean stopped;
 
 		public ThreadPoolMonitor(@NotNull ExecutorService threadPool, @NotNull Config config) {
 			this.threadPool = threadPool;
@@ -59,13 +89,15 @@ public class ProviderOverload extends ReentrantLock {
 			startDetectDelay();
 		}
 
+		@Override
+		public void close() {
+			stopped = true;
+		}
+
 		private void startDetectDelay() {
-			lock();
-			try {
+			if (!stopped) {
 				scheduledExecutorService.schedule(
 						this::detecting, Random.getInstance().nextInt(1000) + 1000, TimeUnit.MILLISECONDS);
-			} finally {
-				unlock();
 			}
 		}
 

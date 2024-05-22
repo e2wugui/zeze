@@ -44,6 +44,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	public abstract @Nullable ProviderLoadBase getLoad();
 
+	public abstract void stop();
+
 	public static @Nullable Dispatch localDispatch() {
 		return localDispatch.get();
 	}

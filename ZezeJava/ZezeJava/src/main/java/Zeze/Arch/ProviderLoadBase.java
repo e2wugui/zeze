@@ -41,9 +41,10 @@ public abstract class ProviderLoadBase {
 	}
 
 	public final void stop() {
-		if (null != timerTask) {
+		if (timerTask != null) {
 			timerTask.cancel(true);
 			timerTask = null;
+			overload.close();
 		}
 	}
 

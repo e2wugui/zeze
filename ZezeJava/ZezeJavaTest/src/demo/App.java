@@ -126,6 +126,7 @@ public class App extends Zeze.AppBase {
 		stopService(); // 关闭网络
 		HttpServer.close();
 		stopModules(); // 关闭模块，卸载配置什么的。
+		providerApp.providerImplement.stop();
 		if (Zeze != null) {
 			Zeze.stop(); // 关闭数据库
 			if (null != BoolListModule) {
