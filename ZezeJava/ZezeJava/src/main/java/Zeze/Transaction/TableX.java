@@ -593,7 +593,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		var r = load(key);
 		var v = r.strongRef;
-		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), new RecordAccessed(r), v == null && isMemory());
+		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey),
+				new RecordAccessed(r, cache),
+				v == null && isMemory());
 		return v;
 	}
 
@@ -622,7 +624,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			// add
 		} else {
 			var r = load(key);
-			cr = new RecordAccessed(r);
+			cr = new RecordAccessed(r, cache);
 			var v = r.strongRef;
 			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, v == null && isMemory());
 			if (v != null)
@@ -676,7 +678,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var cr = currentT.getRecordAccessed(tkey);
 		if (cr == null) {
 			var r = load(key);
-			cr = new RecordAccessed(r);
+			cr = new RecordAccessed(r, cache);
 			currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, r.strongRef == null && isMemory());
 		}
 		value.initRootInfoWithRedo(cr.atomicTupleRecord.record.createRootInfoIfNeed(tkey), null);
@@ -705,7 +707,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var r = load(key);
-		cr = new RecordAccessed(r);
+		cr = new RecordAccessed(r, cache);
 		currentT.addRecordAccessed(r.record.createRootInfoIfNeed(tkey), cr, r.strongRef == null && isMemory());
 		cr.put(currentT, null);
 	}

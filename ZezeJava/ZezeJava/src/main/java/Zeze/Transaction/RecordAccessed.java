@@ -30,9 +30,11 @@ public final class RecordAccessed extends Bean {
 	final @NotNull AtomicTupleRecord<?, ?> atomicTupleRecord;
 	boolean dirty;
 	PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
+	TableCache<?, ?> tableCache;
 
-	public RecordAccessed(@NotNull AtomicTupleRecord<?, ?> a) {
+	public RecordAccessed(@NotNull AtomicTupleRecord<?, ?> a, @NotNull TableCache<?, ?> tableCache) {
 		atomicTupleRecord = a;
+		this.tableCache = tableCache;
 	}
 
 	public @Nullable Bean newestValue() {
