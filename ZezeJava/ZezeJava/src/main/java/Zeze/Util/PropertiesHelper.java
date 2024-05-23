@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,6 +14,16 @@ public final class PropertiesHelper {
 	private static final Logger logger = LogManager.getLogger(PropertiesHelper.class);
 
 	private PropertiesHelper() {
+	}
+
+	public static String getString(Map<String, String> anyProps, String key, String def) {
+		var value = anyProps.get(key);
+		return null != value ? value : def;
+	}
+
+	public static int getInt(Map<String, String> anyProps, String key, int def) {
+		var value = anyProps.get(key);
+		return null != value ? Integer.parseInt(value) : def;
 	}
 
 	/**

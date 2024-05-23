@@ -1869,13 +1869,27 @@
 			<servlet name="WalkPage" TransactionLevel="None"/>
 		</module>
 
+		<module name="LinksInfo" id="11032" UseData="true">
+			<bean name="BLinkInfo">
+				<variable id="1" name="Ip" type="string"/>
+				<variable id="2" name="Port" type="int"/>
+			</bean>
+			<servlet name="LinksTextSingleLine" TransactionLevel="None"/>
+			<servlet name="LinksTextMultiLine" TransactionLevel="None"/>
+		</module>
 		<!--
-		可用id范围 11032, [11039, 11100) [11102, 11999]
+		可用id范围 [11039, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="LinksInfo" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.LinksInfo"/>
+		</service>
+	</component>
+
 	<component name="HistoryModule" gendir="src/main/java" genrelativedir="Zeze/History" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.HistoryModule"/>

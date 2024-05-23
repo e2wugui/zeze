@@ -25,7 +25,7 @@ public class Exporter {
 		var conf = Config.load();
 		agent = Application.createServiceManager(conf, "ServiceManagerRaftExporter");
 		if (null == agent)
-			throw new IllegalStateException("agent is null. check your config.");
+			throw new IllegalStateException("agent is null. check your config for ServiceManager.");
 	}
 
 	public void start() throws Exception {
