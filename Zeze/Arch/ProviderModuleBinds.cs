@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using Zeze.Builtin.Provider;
-using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
@@ -43,7 +39,7 @@ namespace Zeze.Arch
             return BModule.ChoiceTypeDefault;
         }
 
-        public void BuildDynamicBinds(Dictionary<string, Zeze.IModule> AllModules, int serverId, Dictionary<int, BModule> result)
+        public void BuildDynamicBinds(Dictionary<string, IModule> AllModules, int serverId, Dictionary<int, BModule> result)
         {
             foreach (var m in AllModules)
             {
@@ -63,7 +59,7 @@ namespace Zeze.Arch
             }
         }
 
-        public void BuildStaticBinds(Dictionary<string, Zeze.IModule> AllModules,
+        public void BuildStaticBinds(Dictionary<string, IModule> AllModules,
             int AutoKeyLocalId, Dictionary<int, BModule> modules)
         {
             Dictionary<string, int> binds = new Dictionary<string, int>();
@@ -130,7 +126,7 @@ namespace Zeze.Arch
 
                 ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), Providers);
 
-                String attr = self.GetAttribute("ConfigType").Trim();
+                string attr = self.GetAttribute("ConfigType").Trim();
                 switch (attr)
                 {
                     case "":

@@ -247,9 +247,9 @@ namespace Zeze.Builtin.DelayRemove
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _TableName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _EncodedKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 3: _EnqueueTime = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _TableName = vlog.StringValue(); break;
+                    case 2: _EncodedKey = vlog.BinaryValue(); break;
+                    case 3: _EnqueueTime = vlog.LongValue(); break;
                 }
             }
         }

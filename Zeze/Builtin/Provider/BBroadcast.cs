@@ -246,9 +246,9 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _protocolType = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _protocolWholeData = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 3: _time = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _protocolType = vlog.LongValue(); break;
+                    case 2: _protocolWholeData = vlog.BinaryValue(); break;
+                    case 3: _time = vlog.IntValue(); break;
                 }
             }
         }

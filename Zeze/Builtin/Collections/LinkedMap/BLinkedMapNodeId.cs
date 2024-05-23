@@ -147,7 +147,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _NodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _NodeId = vlog.LongValue(); break;
                 }
             }
         }

@@ -311,10 +311,10 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ActionName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _ActionName = vlog.StringValue(); break;
                     case 2: _Roles.FollowerApply(vlog); break;
-                    case 3: _Sender = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _Parameter = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 3: _Sender = vlog.LongValue(); break;
+                    case 4: _Parameter = vlog.BinaryValue(); break;
                 }
             }
         }

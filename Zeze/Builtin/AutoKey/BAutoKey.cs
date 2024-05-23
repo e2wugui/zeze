@@ -147,7 +147,7 @@ namespace Zeze.Builtin.AutoKey
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _NextId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _NextId = vlog.LongValue(); break;
                 }
             }
         }

@@ -251,8 +251,8 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _GlobalKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 2: _State = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _GlobalKey = vlog.BinaryValue(); break;
+                    case 2: _State = vlog.IntValue(); break;
                     case 3: _ReduceTid = ((Zeze.Transaction.Log<Zeze.Util.Id128>)vlog).Value; break;
                 }
             }

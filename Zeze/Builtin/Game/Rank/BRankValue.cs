@@ -246,9 +246,9 @@ namespace Zeze.Builtin.Game.Rank
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _RoleId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _Value = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 3: _ValueEx = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 1: _RoleId = vlog.LongValue(); break;
+                    case 2: _Value = vlog.LongValue(); break;
+                    case 3: _ValueEx = vlog.BinaryValue(); break;
                 }
             }
         }

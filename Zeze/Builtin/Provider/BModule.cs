@@ -207,8 +207,8 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ChoiceType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _ConfigType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _ChoiceType = vlog.IntValue(); break;
+                    case 2: _ConfigType = vlog.IntValue(); break;
                 }
             }
         }

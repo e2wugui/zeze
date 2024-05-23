@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
@@ -9,16 +8,16 @@ using Zeze.Util;
 
 namespace Zeze.Arch
 {
-	public class ProviderDirectService : Zeze.Services.HandshakeBoth
+	public class ProviderDirectService : Services.HandshakeBoth
 	{
-		private static readonly new ILogger logger = LogManager.GetLogger(typeof(ProviderDirectService));
+		private new static readonly ILogger logger = LogManager.GetLogger(typeof(ProviderDirectService));
 
 		public ProviderApp ProviderApp;
 		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
 		public readonly ConcurrentDictionary<int, ProviderSession> ProviderByServerId = new();
 		public readonly ConcurrentDictionary<int, IdentityHashSet<Action>> ServerReadyEvents = new();
 
-        public ProviderDirectService(string name, Zeze.Application zeze)
+        public ProviderDirectService(string name, Application zeze)
 			: base(name, zeze)
 		{
 		}
@@ -113,7 +112,7 @@ namespace Zeze.Arch
 				var r = new AnnounceProviderInfo();
 				r.Argument.Ip = ProviderApp.DirectIp;
 				r.Argument.Port = ProviderApp.DirectPort;
-				r.Send(socket, (_r) => Task.FromResult(0L)); // skip result
+				r.Send(socket, _ => Task.FromResult(0L)); // skip result
 			}
 		}
 
@@ -163,7 +162,7 @@ namespace Zeze.Arch
             watchers.Clear();
         }
         
-		internal void SetRelativeServiceReady(ProviderSession ps, String ip, int port)
+		internal void SetRelativeServiceReady(ProviderSession ps, string ip, int port)
 		{
 			lock (this)
 			{
@@ -200,7 +199,7 @@ namespace Zeze.Arch
 		}
 
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
-			int mid, Zeze.Builtin.Provider.BModule m)
+			int mid, Builtin.Provider.BModule m)
 		{
 			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
@@ -237,7 +236,7 @@ namespace Zeze.Arch
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 				Zeze.TaskOneByOneByKey.Execute(
 					r.Argument.HashCode, factoryHandle.Handle, p, r.Argument.MethodFullName,
-					(p, code) => p.TrySendResultCode(code));
+					(p2, code) => p2.TrySendResultCode(code));
 
 				return;
 			}
@@ -246,13 +245,13 @@ namespace Zeze.Arch
 			{
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code), r.Argument.MethodFullName);
+				_ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code), r.Argument.MethodFullName);
 
 				return;
 			}
 			// 所有的ProviderDirectService都不启用存储过程。
 			// 按收到顺序处理，不并发。这样也避免线程切换。
-			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
+			_ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
 		}
 
 		public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)

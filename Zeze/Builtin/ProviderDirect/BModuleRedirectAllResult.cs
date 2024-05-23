@@ -422,11 +422,11 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ModuleId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _SourceProvider = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _MethodFullName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 5: _SessionId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _ModuleId = vlog.IntValue(); break;
+                    case 2: _ServerId = vlog.IntValue(); break;
+                    case 3: _SourceProvider = vlog.LongValue(); break;
+                    case 4: _MethodFullName = vlog.StringValue(); break;
+                    case 5: _SessionId = vlog.LongValue(); break;
                     case 6: _Hashs.FollowerApply(vlog); break;
                 }
             }

@@ -249,8 +249,8 @@ namespace Zeze.Builtin.Game.Bag
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Id = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _Number = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _Id = vlog.IntValue(); break;
+                    case 2: _Number = vlog.IntValue(); break;
                     case 3: _Item.FollowerApply(vlog); break;
                 }
             }

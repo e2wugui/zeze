@@ -245,9 +245,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _MaxNetPing = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _ServerProcessTime = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _ServerReleaseTimeout = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _MaxNetPing = vlog.IntValue(); break;
+                    case 2: _ServerProcessTime = vlog.IntValue(); break;
+                    case 3: _ServerReleaseTimeout = vlog.IntValue(); break;
                 }
             }
         }

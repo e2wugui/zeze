@@ -198,8 +198,8 @@ namespace Zeze.Builtin.Game.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _LinkName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _LinkSid = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _LinkName = vlog.StringValue(); break;
+                    case 2: _LinkSid = vlog.LongValue(); break;
                 }
             }
         }

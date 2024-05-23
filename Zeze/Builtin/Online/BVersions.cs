@@ -226,7 +226,7 @@ namespace Zeze.Builtin.Online
                 switch (vlog.VariableId)
                 {
                     case 1: _Logins.FollowerApply(vlog); break;
-                    case 2: _LastLoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _LastLoginVersion = vlog.LongValue(); break;
                 }
             }
         }

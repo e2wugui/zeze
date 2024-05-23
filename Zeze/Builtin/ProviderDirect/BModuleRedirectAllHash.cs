@@ -199,8 +199,8 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ReturnCode = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _Params = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 1: _ReturnCode = vlog.LongValue(); break;
+                    case 2: _Params = vlog.BinaryValue(); break;
                 }
             }
         }

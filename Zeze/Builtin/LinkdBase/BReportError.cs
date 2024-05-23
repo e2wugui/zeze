@@ -253,9 +253,9 @@ namespace Zeze.Builtin.LinkdBase
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _from = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _code = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _desc = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _from = vlog.IntValue(); break;
+                    case 2: _code = vlog.IntValue(); break;
+                    case 3: _desc = vlog.StringValue(); break;
                 }
             }
         }

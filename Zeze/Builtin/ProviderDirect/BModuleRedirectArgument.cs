@@ -395,12 +395,12 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ModuleId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _HashCode = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _RedirectType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 4: _MethodFullName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 5: _Params = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 6: _ServiceNamePrefix = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _ModuleId = vlog.IntValue(); break;
+                    case 2: _HashCode = vlog.IntValue(); break;
+                    case 3: _RedirectType = vlog.IntValue(); break;
+                    case 4: _MethodFullName = vlog.StringValue(); break;
+                    case 5: _Params = vlog.BinaryValue(); break;
+                    case 6: _ServiceNamePrefix = vlog.StringValue(); break;
                 }
             }
         }

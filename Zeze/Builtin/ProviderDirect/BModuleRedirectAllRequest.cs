@@ -508,14 +508,14 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ModuleId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _HashCodeConcurrentLevel = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _ModuleId = vlog.IntValue(); break;
+                    case 2: _HashCodeConcurrentLevel = vlog.IntValue(); break;
                     case 3: _HashCodes.FollowerApply(vlog); break;
-                    case 4: _SourceProvider = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 5: _SessionId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 6: _MethodFullName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 7: _Params = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 8: _ServiceNamePrefix = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 4: _SourceProvider = vlog.LongValue(); break;
+                    case 5: _SessionId = vlog.LongValue(); break;
+                    case 6: _MethodFullName = vlog.StringValue(); break;
+                    case 7: _Params = vlog.BinaryValue(); break;
+                    case 8: _ServiceNamePrefix = vlog.StringValue(); break;
                 }
             }
         }

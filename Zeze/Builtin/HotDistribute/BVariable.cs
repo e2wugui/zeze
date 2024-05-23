@@ -347,11 +347,11 @@ namespace Zeze.Builtin.HotDistribute
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Id = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _Name = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 3: _Type = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 4: _Key = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 5: _Value = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _Id = vlog.IntValue(); break;
+                    case 2: _Name = vlog.StringValue(); break;
+                    case 3: _Type = vlog.StringValue(); break;
+                    case 4: _Key = vlog.StringValue(); break;
+                    case 5: _Value = vlog.StringValue(); break;
                 }
             }
         }

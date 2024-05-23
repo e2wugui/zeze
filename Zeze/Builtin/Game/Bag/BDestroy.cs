@@ -197,8 +197,8 @@ namespace Zeze.Builtin.Game.Bag
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _BagName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _Position = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _BagName = vlog.StringValue(); break;
+                    case 2: _Position = vlog.IntValue(); break;
                 }
             }
         }

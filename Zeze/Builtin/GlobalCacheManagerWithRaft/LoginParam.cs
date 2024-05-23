@@ -244,9 +244,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _DebugMode = ((Zeze.Transaction.Log<bool>)vlog).Value; break;
+                    case 1: _ServerId = vlog.IntValue(); break;
+                    case 2: _GlobalCacheManagerHashIndex = vlog.IntValue(); break;
+                    case 3: _DebugMode = vlog.BoolValue(); break;
                 }
             }
         }

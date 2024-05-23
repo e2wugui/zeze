@@ -345,11 +345,11 @@ namespace Zeze.Builtin.RedoQueue
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _QueueName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _TaskType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _TaskId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _TaskParam = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
-                    case 5: _PrevTaskId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _QueueName = vlog.StringValue(); break;
+                    case 2: _TaskType = vlog.IntValue(); break;
+                    case 3: _TaskId = vlog.LongValue(); break;
+                    case 4: _TaskParam = vlog.BinaryValue(); break;
+                    case 5: _PrevTaskId = vlog.LongValue(); break;
                 }
             }
         }

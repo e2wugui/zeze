@@ -246,9 +246,9 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Ip = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _Port = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _Ip = vlog.StringValue(); break;
+                    case 2: _Port = vlog.IntValue(); break;
+                    case 3: _ServerId = vlog.IntValue(); break;
                 }
             }
         }

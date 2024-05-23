@@ -294,10 +294,10 @@ namespace Zeze.Builtin.Collections.LinkedMap
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _HeadNodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _TailNodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 3: _Count = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _LastNodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _HeadNodeId = vlog.LongValue(); break;
+                    case 2: _TailNodeId = vlog.LongValue(); break;
+                    case 3: _Count = vlog.LongValue(); break;
+                    case 4: _LastNodeId = vlog.LongValue(); break;
                 }
             }
         }

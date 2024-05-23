@@ -198,7 +198,7 @@ namespace Zeze.Builtin.Collections.Queue
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Timestamp = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _Timestamp = vlog.LongValue(); break;
                     case 2: _Value.FollowerApply(vlog); break;
                 }
             }

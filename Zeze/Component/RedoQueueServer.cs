@@ -1,20 +1,18 @@
-
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Zeze.Builtin.RedoQueue;
 using Zeze.Net;
-using Zeze.Transaction;
 using Zeze.Util;
 
 namespace Zeze.Component
 {
 	public class RedoQueueServer : AbstractRedoQueueServer
 	{
-		protected override async Task<long> ProcessRunTaskRequest(Zeze.Net.Protocol _p)
+		protected override async Task<long> ProcessRunTaskRequest(Protocol _p)
 		{
 			var r = _p as RunTask;
-			Zeze.Transaction.Transaction.Current.RunWhileCommit(() => r.SendResult());
+			Transaction.Transaction.Current.RunWhileCommit(() => r.SendResult());
 
 			var last = await _tQueueLastTaskId.GetOrAddAsync(r.Argument.QueueName);
 			r.Result.TaskId = last.TaskId;
@@ -34,7 +32,7 @@ namespace Zeze.Component
 		private readonly ConcurrentDictionary<string, ConcurrentDictionary<int, Func<Binary, bool>>> handles = new();
 		private Server server;
 
-		public RedoQueueServer(Zeze.Application zeze)
+		public RedoQueueServer(Application zeze)
 		{
 			server = new Server(zeze);
 			RegisterProtocols(server);
@@ -60,15 +58,15 @@ namespace Zeze.Component
 		/**
 		 * ×¢²áÈÎÎñ£¬
 		 */
-		public void Register(String queue, int type, Func<Binary, bool> task)
+		public void Register(string queue, int type, Func<Binary, bool> task)
 		{
-			if (!handles.GetOrAdd(queue, (key) => new()).TryAdd(type, task))
+			if (!handles.GetOrAdd(queue, _ => new()).TryAdd(type, task))
 				throw new Exception("duplicate task type. " + type);
 		}
 
-		public class Server : Zeze.Services.HandshakeServer
+		public class Server : Services.HandshakeServer
 		{
-			public Server(Zeze.Application zeze)
+			public Server(Application zeze)
 				: base("RedoQueueServer", zeze)
 			{
 			}

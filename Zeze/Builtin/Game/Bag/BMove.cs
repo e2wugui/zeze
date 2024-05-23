@@ -295,10 +295,10 @@ namespace Zeze.Builtin.Game.Bag
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _BagName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _PositionFrom = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _PositionTo = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 4: _number = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _BagName = vlog.StringValue(); break;
+                    case 2: _PositionFrom = vlog.IntValue(); break;
+                    case 3: _PositionTo = vlog.IntValue(); break;
+                    case 4: _number = vlog.IntValue(); break;
                 }
             }
         }

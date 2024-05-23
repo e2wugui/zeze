@@ -355,9 +355,9 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Root = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _Root = vlog.StringValue(); break;
                     case 2: _Managers.FollowerApply(vlog); break;
-                    case 3: _NextDepartmentId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 3: _NextDepartmentId = vlog.LongValue(); break;
                     case 4: _Childs.FollowerApply(vlog); break;
                 }
             }

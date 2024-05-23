@@ -147,7 +147,7 @@ namespace Zeze.Builtin.RedoQueue
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _TaskId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _TaskId = vlog.LongValue(); break;
                 }
             }
         }

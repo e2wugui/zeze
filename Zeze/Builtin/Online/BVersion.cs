@@ -405,12 +405,12 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _LoginVersion = vlog.LongValue(); break;
                     case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
-                    case 3: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 5: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 6: _LogoutVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 3: _ReliableNotifyIndex = vlog.LongValue(); break;
+                    case 4: _ReliableNotifyConfirmIndex = vlog.LongValue(); break;
+                    case 5: _ServerId = vlog.IntValue(); break;
+                    case 6: _LogoutVersion = vlog.LongValue(); break;
                 }
             }
         }

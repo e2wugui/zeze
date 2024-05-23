@@ -149,7 +149,7 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ClientId = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _ClientId = vlog.StringValue(); break;
                 }
             }
         }

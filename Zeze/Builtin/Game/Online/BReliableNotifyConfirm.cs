@@ -195,8 +195,8 @@ namespace Zeze.Builtin.Game.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _Sync = ((Zeze.Transaction.Log<bool>)vlog).Value; break;
+                    case 1: _ReliableNotifyConfirmIndex = vlog.LongValue(); break;
+                    case 2: _Sync = vlog.BoolValue(); break;
                 }
             }
         }

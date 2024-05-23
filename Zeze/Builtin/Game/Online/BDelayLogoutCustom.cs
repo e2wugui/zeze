@@ -196,8 +196,8 @@ namespace Zeze.Builtin.Game.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _RoleId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _RoleId = vlog.LongValue(); break;
+                    case 2: _LoginVersion = vlog.LongValue(); break;
                 }
             }
         }

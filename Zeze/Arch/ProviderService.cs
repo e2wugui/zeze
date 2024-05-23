@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Net;
@@ -8,13 +7,13 @@ using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
-    public class ProviderService : Zeze.Services.HandshakeClient
+    public class ProviderService : Services.HandshakeClient
     {
         // private static readonly ILogger logger = LogManager.GetLogger(typeof(ProviderService));
 
         public ProviderApp ProviderApp;
 
-        public ProviderService(String name, Zeze.Application zeze)
+        public ProviderService(string name, Application zeze)
             : base(name, zeze)
         {
         }
@@ -31,7 +30,7 @@ namespace Zeze.Arch
             return sender.Connector.Name;
         }
 
-        public static string GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo)
+        public static string GetLinkName(ServiceInfo serviceInfo)
         {
             return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
         }
@@ -54,7 +53,7 @@ namespace Zeze.Arch
         {
             var linkName = GetLinkName(link);
             var isNew = false;
-            Links.GetOrAdd(linkName, __ =>
+            Links.GetOrAdd(linkName, _ =>
             {
                 if (Config.TryGetOrAddConnector(link.PassiveIp, link.PassivePort, true, out var outC))
                 {
@@ -98,7 +97,7 @@ namespace Zeze.Arch
         public ConcurrentDictionary<string, Connector> Links { get; } = new();
 
         private volatile KeyValuePair<string, Connector>[] LinkConnectors;
-        private readonly Zeze.Util.AtomicInteger LinkRandomIndex = new();
+        private readonly Util.AtomicInteger LinkRandomIndex = new();
         public AsyncSocket RandomLink()
         {
             var volatileTmp = LinkConnectors;
@@ -122,7 +121,7 @@ namespace Zeze.Arch
             var linkName = GetLinkName(sender);
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
-            var announce = new Zeze.Builtin.Provider.AnnounceProviderInfo();
+            var announce = new AnnounceProviderInfo();
             announce.Argument.ServiceNamePrefix = ProviderApp.ServerServiceNamePrefix;
             announce.Argument.ServiceIndentity = Zeze.Config.ServerId.ToString();
             announce.Send(sender);
@@ -130,10 +129,10 @@ namespace Zeze.Arch
             // static binds
             var rpc = new Bind();
             rpc.Argument.Modules.AddRange(ProviderApp.StaticBinds);
-            rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.SetResult(true); return Task.FromResult(0L); });
+            rpc.Send(sender, _ => { ProviderStaticBindCompleted.SetResult(true); return Task.FromResult(0L); });
             var sub = new Builtin.Provider.Subscribe();
             sub.Argument.Modules.AddRange(ProviderApp.DynamicModules);
-            sub.Send(sender, (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return Task.FromResult(0L); });
+            sub.Send(sender, _ => { ProviderDynamicSubscribeCompleted.SetResult(true); return Task.FromResult(0L); });
         }
 
         /*

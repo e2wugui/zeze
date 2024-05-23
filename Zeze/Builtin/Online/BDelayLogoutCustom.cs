@@ -247,9 +247,9 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Account = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _ClientId = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 3: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _Account = vlog.StringValue(); break;
+                    case 2: _ClientId = vlog.StringValue(); break;
+                    case 3: _LoginVersion = vlog.LongValue(); break;
                 }
             }
         }

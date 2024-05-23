@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zeze.Arch;
-using Zeze.Builtin.Provider;
+﻿using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Util;
@@ -16,10 +10,10 @@ namespace Zeze.Arch
 		private long LastLoginTimes;
 		private int ReportDelaySeconds;
 		private int TimoutDelaySeconds;
-		private Util.SchedulerTask Timer;
-		public Zeze.Application Zeze { get; }
+		private SchedulerTask Timer;
+		public Application Zeze { get; }
 
-		public ProviderLoadBase(Zeze.Application zeze)
+		protected ProviderLoadBase(Application zeze)
         {
 			Zeze = zeze;
         }
@@ -42,10 +36,10 @@ namespace Zeze.Arch
 
         public abstract LoadConfig GetLoadConfig();
 
-        public abstract String GetProviderIp();
+        public abstract string GetProviderIp();
         public abstract int GetProviderPort();
         
-		private void OnTimerTask(Zeze.Util.SchedulerTask ThisTask)
+		private void OnTimerTask(SchedulerTask ThisTask)
 		{
             var overload = BLoad.eWorkFine; // TODO 过载检测。
             
@@ -96,7 +90,7 @@ namespace Zeze.Arch
 			var bb = ByteBuffer.Allocate(256);
 			load.Encode(bb);
 
-			var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
+			var loadServer = new Services.ServiceManager.ServerLoad();
 			loadServer.Ip = GetProviderIp();
 			loadServer.Port = GetProviderPort();
 			loadServer.Param = new Binary(bb);

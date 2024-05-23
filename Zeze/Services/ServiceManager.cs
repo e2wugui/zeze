@@ -1,21 +1,13 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
-using System.Net;
 using System.Text;
-using System.Xml;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
-using Zeze.Services.ServiceManager;
 using Zeze.Util;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-using System.Collections;
 using DotNext.Threading;
 using System.Threading;
 using DotNext.Collections.Generic;
@@ -346,7 +338,7 @@ namespace Zeze.Services.ServiceManager
                 if (SubscribeStates.TryGetValue(unReg.ServiceName, out var state) && !state.OnUnRegister(unReg))
                     removing.Add(unReg);
             }
-            r.Argument.Remove.RemoveAll(r => removing.Contains(r));
+            r.Argument.Remove.RemoveAll(r2 => removing.Contains(r2));
 
             // 触发回调前修正集合之间的关系。
             // 删除后来又加入的。
@@ -580,7 +572,7 @@ namespace Zeze.Services.ServiceManager
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteInt(ServerId);
-            bb.WriteString((string)NotifyId);
+            bb.WriteString(NotifyId);
             bb.WriteLong(NotifySerialId);
             bb.WriteBytes(NotifyContext);
         }
@@ -588,7 +580,7 @@ namespace Zeze.Services.ServiceManager
 
     public class OfflineNotify : Rpc<BOfflineNotify, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineNotify).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(OfflineNotify).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -608,7 +600,7 @@ namespace Zeze.Services.ServiceManager
 
     public class OfflineRegister : Rpc<BOfflineNotify, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(OfflineRegister).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(OfflineRegister).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -679,7 +671,7 @@ namespace Zeze.Services.ServiceManager
         /// 服务ip-port，如果没有，保持空和0.
         /// </summary>
         public string PassiveIp { get; internal set; } = "";
-        public int PassivePort { get; internal set; } = 0;
+        public int PassivePort { get; internal set; }
 
         // 服务扩展信息，可选。
         public Binary ExtraInfo { get; internal set; } = Binary.Empty;
@@ -818,7 +810,7 @@ namespace Zeze.Services.ServiceManager
     /// </summary>
     public sealed class EditService : Rpc<BEditService, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(EditService).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(EditService).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -966,7 +958,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class Subscribe : Rpc<SubscribeArgument, SubscribeResult>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(Subscribe).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(Subscribe).FullName);
 
         public const int Success = 0;
         public const int DuplicateSubscribe = 1;
@@ -1001,7 +993,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class UnSubscribe : Rpc<UnSubscribeArgument, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(UnSubscribe).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(UnSubscribe).FullName);
 
         public const int Success = 0;
         public const int NotExist = 1;
@@ -1148,13 +1140,13 @@ namespace Zeze.Services.ServiceManager
             string id1 = x.ServiceIdentity;
             string id2 = y.ServiceIdentity;
             int c = id1.Length.CompareTo(id2.Length);
-            return c != 0 ? c : String.Compare(id1, id2, StringComparison.Ordinal);
+            return c != 0 ? c : string.Compare(id1, id2, StringComparison.Ordinal);
         }
     }
 
     public sealed class KeepAlive : Rpc<EmptyBean, EmptyBean>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(KeepAlive).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(KeepAlive).FullName);
 
         public const int Success = 0;
 
@@ -1164,7 +1156,7 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class SetServerLoad : Protocol<ServerLoad>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(SetServerLoad).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(SetServerLoad).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
@@ -1224,10 +1216,9 @@ namespace Zeze.Services.ServiceManager
 
     public sealed class AllocateId : Rpc<AllocateIdArgument, AllocateIdResult>
     {
-        public readonly static int ProtocolId_ = Util.FixedHash.Hash32(typeof(AllocateId).FullName);
+        public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(AllocateId).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;
     }
-
 }

@@ -148,7 +148,7 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _FullEncodedProtocol = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 1: _FullEncodedProtocol = vlog.BinaryValue(); break;
                 }
             }
         }

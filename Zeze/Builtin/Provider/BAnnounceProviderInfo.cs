@@ -298,10 +298,10 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ServiceNamePrefix = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _ServiceIndentity = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 3: _ProviderDirectIp = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 4: _ProviderDirectPort = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _ServiceNamePrefix = vlog.StringValue(); break;
+                    case 2: _ServiceIndentity = vlog.StringValue(); break;
+                    case 3: _ProviderDirectIp = vlog.StringValue(); break;
+                    case 4: _ProviderDirectPort = vlog.IntValue(); break;
                 }
             }
         }

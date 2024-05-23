@@ -148,7 +148,7 @@ namespace Zeze.Builtin.HotDistribute
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Name = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 1: _Name = vlog.StringValue(); break;
                 }
             }
         }

@@ -298,10 +298,10 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _Online = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 2: _ProposeMaxOnline = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _OnlineNew = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 4: _Overload = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 1: _Online = vlog.IntValue(); break;
+                    case 2: _ProposeMaxOnline = vlog.IntValue(); break;
+                    case 3: _OnlineNew = vlog.IntValue(); break;
+                    case 4: _Overload = vlog.IntValue(); break;
                 }
             }
         }

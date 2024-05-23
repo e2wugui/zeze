@@ -214,7 +214,7 @@ namespace Zeze.Builtin.Collections.Queue
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _NextNodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _NextNodeId = vlog.LongValue(); break;
                     case 2: _Values.FollowerApply(vlog); break;
                 }
             }

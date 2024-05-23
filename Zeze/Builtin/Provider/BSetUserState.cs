@@ -247,9 +247,9 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _linkSid = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 2: _context = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 3: _contextx = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 1: _linkSid = vlog.LongValue(); break;
+                    case 2: _context = vlog.StringValue(); break;
+                    case 3: _contextx = vlog.BinaryValue(); break;
                 }
             }
         }

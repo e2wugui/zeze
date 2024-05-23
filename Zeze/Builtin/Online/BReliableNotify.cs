@@ -208,7 +208,7 @@ namespace Zeze.Builtin.Online
                 switch (vlog.VariableId)
                 {
                     case 1: _Notifies.FollowerApply(vlog); break;
-                    case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _ReliableNotifyIndex = vlog.LongValue(); break;
                 }
             }
         }

@@ -197,8 +197,8 @@ namespace Zeze.Builtin.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ClientId = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _ClientId = vlog.StringValue(); break;
+                    case 2: _ReliableNotifyConfirmIndex = vlog.LongValue(); break;
                 }
             }
         }

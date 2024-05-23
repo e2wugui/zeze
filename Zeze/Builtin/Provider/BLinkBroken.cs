@@ -353,11 +353,11 @@ namespace Zeze.Builtin.Provider
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _account = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 2: _linkSid = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 3: _reason = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 5: _context = ((Zeze.Transaction.Log<string>)vlog).Value; break;
-                    case 6: _contextx = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 1: _account = vlog.StringValue(); break;
+                    case 2: _linkSid = vlog.LongValue(); break;
+                    case 3: _reason = vlog.IntValue(); break;
+                    case 5: _context = vlog.StringValue(); break;
+                    case 6: _contextx = vlog.BinaryValue(); break;
                 }
             }
         }
