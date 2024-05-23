@@ -10,6 +10,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
 
     private String _Ip;
     private int _Port;
+    private Zeze.Net.Binary _Extra;
 
     @Override
     public String getIp() {
@@ -53,23 +54,50 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         txn.putLog(new Log__Port(this, 2, value));
     }
 
-    @SuppressWarnings("deprecation")
-    public BLinkInfo() {
-        _Ip = "";
+    @Override
+    public Zeze.Net.Binary getExtra() {
+        if (!isManaged())
+            return _Extra;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Extra;
+        var log = (Log__Extra)txn.getLog(objectId() + 3);
+        return log != null ? log.value : _Extra;
+    }
+
+    public void setExtra(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Extra = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Extra(this, 3, value));
     }
 
     @SuppressWarnings("deprecation")
-    public BLinkInfo(String _Ip_, int _Port_) {
+    public BLinkInfo() {
+        _Ip = "";
+        _Extra = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public BLinkInfo(String _Ip_, int _Port_, Zeze.Net.Binary _Extra_) {
         if (_Ip_ == null)
             _Ip_ = "";
         _Ip = _Ip_;
         _Port = _Port_;
+        if (_Extra_ == null)
+            _Extra_ = Zeze.Net.Binary.Empty;
+        _Extra = _Extra_;
     }
 
     @Override
     public void reset() {
         setIp("");
         setPort(0);
+        setExtra(Zeze.Net.Binary.Empty);
         _unknown_ = null;
     }
 
@@ -88,12 +116,14 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
     public void assign(BLinkInfo.Data other) {
         setIp(other._Ip);
         setPort(other._Port);
+        setExtra(other._Extra);
         _unknown_ = null;
     }
 
     public void assign(BLinkInfo other) {
         setIp(other.getIp());
         setPort(other.getPort());
+        setExtra(other.getExtra());
         _unknown_ = other._unknown_;
     }
 
@@ -133,6 +163,13 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         public void commit() { ((BLinkInfo)getBelong())._Port = value; }
     }
 
+    private static final class Log__Extra extends Zeze.Transaction.Logs.LogBinary {
+        public Log__Extra(BLinkInfo bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BLinkInfo)getBelong())._Extra = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -145,7 +182,8 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinksInfo.BLinkInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ip=").append(getIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(getPort()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(getPort()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Extra=").append(getExtra()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -192,6 +230,13 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            var _x_ = getExtra();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -209,6 +254,10 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
             setPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setExtra(_o_.ReadBinary(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -224,6 +273,8 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         if (!getIp().equals(_b_.getIp()))
             return false;
         if (getPort() != _b_.getPort())
+            return false;
+        if (!getExtra().equals(_b_.getExtra()))
             return false;
         return true;
     }
@@ -246,6 +297,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
             switch (vlog.getVariableId()) {
                 case 1: _Ip = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
                 case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 3: _Extra = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
             }
         }
     }
@@ -257,6 +309,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         if (getIp() == null)
             setIp("");
         setPort(rs.getInt(_parents_name_ + "Port"));
+        setExtra(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Extra")));
     }
 
     @Override
@@ -264,6 +317,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
         st.appendString(_parents_name_ + "Ip", getIp());
         st.appendInt(_parents_name_ + "Port", getPort());
+        st.appendBinary(_parents_name_ + "Extra", getExtra());
     }
 
     @Override
@@ -271,6 +325,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         var vars = super.variables();
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Ip", "string", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Port", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Extra", "binary", "", ""));
         return vars;
     }
 
@@ -280,6 +335,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private String _Ip;
     private int _Port;
+    private Zeze.Net.Binary _Extra;
 
     public String getIp() {
         return _Ip;
@@ -299,23 +355,38 @@ public static final class Data extends Zeze.Transaction.Data {
         _Port = value;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
-        _Ip = "";
+    public Zeze.Net.Binary getExtra() {
+        return _Extra;
+    }
+
+    public void setExtra(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        _Extra = value;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Ip_, int _Port_) {
+    public Data() {
+        _Ip = "";
+        _Extra = Zeze.Net.Binary.Empty;
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _Ip_, int _Port_, Zeze.Net.Binary _Extra_) {
         if (_Ip_ == null)
             _Ip_ = "";
         _Ip = _Ip_;
         _Port = _Port_;
+        if (_Extra_ == null)
+            _Extra_ = Zeze.Net.Binary.Empty;
+        _Extra = _Extra_;
     }
 
     @Override
     public void reset() {
         _Ip = "";
         _Port = 0;
+        _Extra = Zeze.Net.Binary.Empty;
     }
 
     @Override
@@ -333,11 +404,13 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BLinkInfo other) {
         _Ip = other.getIp();
         _Port = other.getPort();
+        _Extra = other.getExtra();
     }
 
     public void assign(BLinkInfo.Data other) {
         _Ip = other._Ip;
         _Port = other._Port;
+        _Extra = other._Extra;
     }
 
     @Override
@@ -375,7 +448,8 @@ public static final class Data extends Zeze.Transaction.Data {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinksInfo.BLinkInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ip=").append(_Ip).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(_Port).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Port=").append(_Port).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Extra=").append(_Extra).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -407,6 +481,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            var _x_ = _Extra;
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -420,6 +501,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 2) {
             _Port = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            _Extra = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -1873,6 +1873,7 @@
 			<bean name="BLinkInfo">
 				<variable id="1" name="Ip" type="string"/>
 				<variable id="2" name="Port" type="int"/>
+				<variable id="3" name="Extra" type="binary"/>
 			</bean>
 			<servlet name="LinksTextSingleLine" TransactionLevel="None"/>
 			<servlet name="LinksTextMultiLine" TransactionLevel="None"/>

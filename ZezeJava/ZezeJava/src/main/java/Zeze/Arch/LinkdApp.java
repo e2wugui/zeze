@@ -112,12 +112,12 @@ public class LinkdApp {
 		return linkdServiceName + "." + providerIp + "_" + providerPort;
 	}
 
-	public void registerService(@Nullable BLinkInfo extra) throws Exception {
+	public void registerService(@Nullable BLinkInfo.Data extra) throws Exception {
 		commandConsoleService.start();
 		var linkInfo = extra;
 		if (null == linkInfo) {
 			var passive = linkdService.getOnePassiveAddress();
-			linkInfo = new BLinkInfo();
+			linkInfo = new BLinkInfo.Data();
 			linkInfo.setIp(passive.getKey());
 			linkInfo.setPort(passive.getValue());
 		}

@@ -9,4 +9,5 @@ public interface BLinkInfoReadOnly {
 
     String getIp();
     int getPort();
+    Zeze.Net.Binary getExtra();
 }
