@@ -3,8 +3,14 @@ package Zeze.Transaction.Logs;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
+import Zeze.Serialize.Vector2;
+import Zeze.Serialize.Vector2Int;
+import Zeze.Serialize.Vector3;
+import Zeze.Serialize.Vector3Int;
+import Zeze.Serialize.Vector4;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
+import org.jetbrains.annotations.NotNull;
 
 public class LogQuaternion extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<quaternion>");
@@ -18,11 +24,10 @@ public class LogQuaternion extends Log {
 	}
 
 	public LogQuaternion() {
-
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 
@@ -37,17 +42,47 @@ public class LogQuaternion extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteQuaternion(value);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		value = bb.ReadQuaternion();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
+	}
+
+	@Override
+	public @NotNull Quaternion vector2Value() {
+		return value;
+	}
+
+	@Override
+	public @NotNull Vector3Int vector2IntValue() {
+		return new Vector3Int(value);
+	}
+
+	@Override
+	public @NotNull Quaternion vector3Value() {
+		return value;
+	}
+
+	@Override
+	public @NotNull Vector3Int vector3IntValue() {
+		return new Vector3Int(value);
+	}
+
+	@Override
+	public @NotNull Quaternion vector4Value() {
+		return value;
+	}
+
+	@Override
+	public @NotNull Quaternion quaternionValue() {
+		return value;
 	}
 }

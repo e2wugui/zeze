@@ -4,6 +4,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class LogLong extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<long>");
@@ -17,11 +18,10 @@ public class LogLong extends Log {
 	}
 
 	public LogLong() {
-
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 
@@ -36,17 +36,27 @@ public class LogLong extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteLong(value);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		value = bb.ReadLong();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
+	}
+
+	@Override
+	public long longValue() {
+		return value;
+	}
+
+	@Override
+	public double doubleValue() {
+		return value;
 	}
 }

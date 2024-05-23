@@ -4,6 +4,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class LogBool extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<bool>");
@@ -17,11 +18,10 @@ public class LogBool extends Log {
 	}
 
 	public LogBool() {
-
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 
@@ -36,17 +36,32 @@ public class LogBool extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteBool(value);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		value = bb.ReadBool();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.valueOf(value);
+	}
+
+	@Override
+	public boolean booleanValue() {
+		return value;
+	}
+
+	@Override
+	public long longValue() {
+		return value ? 1 : 0;
+	}
+
+	@Override
+	public double doubleValue() {
+		return value ? 1 : 0;
 	}
 }

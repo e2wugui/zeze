@@ -1,10 +1,14 @@
 package Zeze.Transaction.Logs;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public class LogBinary extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<binary>");
@@ -18,11 +22,10 @@ public class LogBinary extends Log {
 	}
 
 	public LogBinary() {
-
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eHistory;
 	}
 
@@ -37,17 +40,32 @@ public class LogBinary extends Log {
 	}
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		bb.WriteBinary(value);
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		value = bb.ReadBinary();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return value.toString();
+	}
+
+	@Override
+	public @NotNull Binary binaryValue() {
+		return value;
+	}
+
+	@Override
+	public @NotNull String stringValue() {
+		return value.toString(StandardCharsets.UTF_8);
+	}
+
+	@Override
+	public @NotNull BigDecimal decimalValue() {
+		return new BigDecimal(stringValue(), MathContext.DECIMAL128);
 	}
 }

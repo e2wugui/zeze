@@ -180,22 +180,22 @@ public class Helper {
 	public static Class<?> getBuiltinBoxingClass(String type) {
 		switch (type) {
 		//@formatter:off
-		case "binary": return Zeze.Net.Binary.class;
 		case "bool": return Boolean.class;
 		case "byte": return Byte.class;
-		case "decimal": return BigDecimal.class;
-		case "double": return Double.class;
-		case "float": return Float.class;
+		case "short": return Short.class;
 		case "int": return Integer.class;
 		case "long": return Long.class;
-		case "quaternion": return Zeze.Serialize.Quaternion.class;
-		case "short": return Short.class;
+		case "float": return Float.class;
+		case "double": return Double.class;
+		case "binary": return Zeze.Net.Binary.class;
 		case "string": return String.class;
+		case "decimal": return BigDecimal.class;
 		case "vector2": return Zeze.Serialize.Vector2.class;
 		case "vector2int": return Zeze.Serialize.Vector2Int.class;
 		case "vector3": return Zeze.Serialize.Vector3.class;
 		case "vector3int": return Zeze.Serialize.Vector3Int.class;
 		case "vector4": return Zeze.Serialize.Vector4.class;
+		case "quaternion": return Zeze.Serialize.Quaternion.class;
 		case "dynamic": return Zeze.Transaction.DynamicBean.class;
 		//@formatter:on
 		}
@@ -242,24 +242,23 @@ public class Helper {
 	}
 
 	public static void registerLogs() {
-		Log.register(LogBinary::new);
 		Log.register(LogBool::new);
 		Log.register(LogByte::new);
-		Log.register(LogDecimal::new);
-		Log.register(LogDouble::new);
-		Log.register(LogFloat::new);
+		Log.register(LogShort::new);
 		Log.register(LogInt::new);
 		Log.register(LogLong::new);
-		Log.register(LogQuaternion::new);
-		Log.register(LogShort::new);
+		Log.register(LogFloat::new);
+		Log.register(LogDouble::new);
+		Log.register(LogBinary::new);
 		Log.register(LogString::new);
+		Log.register(LogDecimal::new);
 		Log.register(LogVector2::new);
 		Log.register(LogVector2Int::new);
 		Log.register(LogVector3::new);
 		Log.register(LogVector3Int::new);
 		Log.register(LogVector4::new);
-		Log.register(LogDynamic::new);
+		Log.register(LogQuaternion::new);
 		Log.register(LogBean::new);
+		Log.register(LogDynamic::new);
 	}
-
 }
