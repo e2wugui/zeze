@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.net.ServerSocket;
 import Zeze.Application;
+import Zeze.Builtin.LinksInfo.BLinkInfo;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -111,13 +112,22 @@ public class LinkdApp {
 		return linkdServiceName + "." + providerIp + "_" + providerPort;
 	}
 
-	public void registerService(@Nullable Binary extra) throws Exception {
+	public void registerService(@Nullable BLinkInfo extra) throws Exception {
 		commandConsoleService.start();
+		var linkInfo = extra;
+		if (null == linkInfo) {
+			var passive = linkdService.getOnePassiveAddress();
+			linkInfo = new BLinkInfo();
+			linkInfo.setIp(passive.getKey());
+			linkInfo.setPort(passive.getValue());
+		}
+		var bb = ByteBuffer.Allocate();
+		linkInfo.encode(bb);
 
 		var identity = "@" + providerIp + "_" + providerPort;
 		var edit = new BEditService();
 		// linkService 总是使用版本0，不开启AppVersion.
-		edit.getAdd().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, extra));
+		edit.getAdd().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, new Binary(bb)));
 		zeze.getServiceManager().editService(edit);
 	}
 }
