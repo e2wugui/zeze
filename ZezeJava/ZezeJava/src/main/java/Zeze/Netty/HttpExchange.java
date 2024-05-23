@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
@@ -930,6 +931,21 @@ public class HttpExchange {
 	// 发送后data内容在回调前不能修改
 	public @NotNull ChannelFuture sendStream(byte @NotNull [] data, int offset, int count) {
 		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)));
+	}
+
+	// 发送后data内容在回调前不能修改
+	public @NotNull ChannelFuture sendStream(@NotNull Binary b) {
+		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(b.bytesUnsafe(), b.getOffset(), b.size())));
+	}
+
+	// 发送后data内容在回调前不能修改
+	public @NotNull ChannelFuture sendStream(@NotNull ByteBuffer bb) {
+		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(bb.Bytes, bb.ReadIndex, bb.size())));
+	}
+
+	// 发送后data内容在回调前不能修改
+	public @NotNull ChannelFuture sendStream(@NotNull java.nio.ByteBuffer bb) {
+		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(bb)));
 	}
 
 	public void endStream() {

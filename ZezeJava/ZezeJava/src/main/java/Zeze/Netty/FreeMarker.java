@@ -11,7 +11,7 @@ import Zeze.Util.ConcurrentHashSet;
 import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -70,7 +70,7 @@ public class FreeMarker {
 
 	public static class HttpExchangeContentLengthWriter extends Writer {
 		private final @NotNull HttpExchange x;
-		private final @NotNull ByteBuf html = Unpooled.buffer(64 * 1024);
+		private final @NotNull ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
 
 		public HttpExchangeContentLengthWriter(@NotNull HttpExchange x) {
 			this.x = x;
@@ -81,9 +81,8 @@ public class FreeMarker {
 		}
 
 		@Override
-		public void write(char @NotNull [] cbuf, int off, int len) throws IOException {
-			var charBuffer = CharBuffer.wrap(cbuf, off, len);
-			html.writeCharSequence(charBuffer, defaultCharset);
+		public void write(char @NotNull [] cbuf, int off, int len) {
+			html.writeCharSequence(CharBuffer.wrap(cbuf, off, len), defaultCharset);
 		}
 
 		@Override
@@ -113,11 +112,10 @@ public class FreeMarker {
 		}
 
 		@Override
-		public void write(char @NotNull [] cbuf, int off, int len) throws IOException {
-			var charBuffer = CharBuffer.wrap(cbuf, off, len);
-			var byteBuffer = defaultCharset.encode(charBuffer);
-			contentLength += byteBuffer.limit() - byteBuffer.position();
-			x.sendStream(byteBuffer.array(), byteBuffer.position(), byteBuffer.limit());
+		public void write(char @NotNull [] cbuf, int off, int len) {
+			var byteBuffer = defaultCharset.encode(CharBuffer.wrap(cbuf, off, len));
+			contentLength += byteBuffer.remaining();
+			x.sendStream(byteBuffer);
 		}
 
 		@Override
