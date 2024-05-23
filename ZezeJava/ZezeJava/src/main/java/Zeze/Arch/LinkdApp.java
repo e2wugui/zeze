@@ -115,9 +115,11 @@ public class LinkdApp {
 	public void registerService(@Nullable BLinkInfo.Data extra) throws Exception {
 		commandConsoleService.start();
 		var linkInfo = extra;
-		if (null == linkInfo) {
-			var passive = linkdService.getOnePassiveAddress();
+		if (null == linkInfo)
 			linkInfo = new BLinkInfo.Data();
+
+		if (linkInfo.getIp().isBlank()) {
+			var passive = linkdService.getOnePassiveAddress();
 			linkInfo.setIp(passive.getKey());
 			linkInfo.setPort(passive.getValue());
 		}
