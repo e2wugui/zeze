@@ -290,9 +290,9 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _OnzTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Cancel = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 3: _FuncArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _OnzTid = vlog.longValue(); break;
+                case 2: _Cancel = vlog.booleanValue(); break;
+                case 3: _FuncArgument = vlog.binaryValue(); break;
             }
         }
     }

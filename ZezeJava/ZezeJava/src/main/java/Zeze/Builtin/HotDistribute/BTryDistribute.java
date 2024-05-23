@@ -239,8 +239,8 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _DistributeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _AtomicAll = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _DistributeId = vlog.longValue(); break;
+                case 2: _AtomicAll = vlog.booleanValue(); break;
             }
         }
     }

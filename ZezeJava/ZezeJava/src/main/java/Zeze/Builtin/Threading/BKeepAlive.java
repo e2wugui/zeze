@@ -241,8 +241,8 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _AppSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _ServerId = vlog.intValue(); break;
+                case 2: _AppSerialId = vlog.longValue(); break;
             }
         }
     }

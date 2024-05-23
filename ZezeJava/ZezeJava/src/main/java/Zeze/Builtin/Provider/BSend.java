@@ -315,8 +315,8 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _linkSids.followerApply(vlog); break;
-                case 2: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _protocolType = vlog.longValue(); break;
+                case 3: _protocolWholeData = vlog.binaryValue(); break;
             }
         }
     }

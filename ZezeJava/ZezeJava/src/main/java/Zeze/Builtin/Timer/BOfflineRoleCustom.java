@@ -428,12 +428,12 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _TimerName = vlog.stringValue(); break;
+                case 2: _RoleId = vlog.longValue(); break;
+                case 3: _LoginVersion = vlog.longValue(); break;
+                case 4: _HandleName = vlog.stringValue(); break;
                 case 5: _CustomData.followerApply(vlog); break;
-                case 6: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 6: _OnlineSetName = vlog.stringValue(); break;
             }
         }
     }

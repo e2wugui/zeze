@@ -423,9 +423,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ParentDepartment = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _ParentDepartment = vlog.longValue(); break;
                 case 2: _Childs.followerApply(vlog); break;
-                case 3: _Name = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Name = vlog.stringValue(); break;
                 case 4: _Managers.followerApply(vlog); break;
                 case 5: _Data.followerApply(vlog); break;
             }

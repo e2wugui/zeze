@@ -270,9 +270,9 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _LoadSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _HeadNodeId = vlog.longValue(); break;
+                case 2: _TailNodeId = vlog.longValue(); break;
+                case 3: _LoadSerialNo = vlog.longValue(); break;
             }
         }
     }

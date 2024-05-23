@@ -253,7 +253,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Capacity = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _Capacity = vlog.intValue(); break;
                 case 2: _Items.followerApply(vlog); break;
             }
         }

@@ -281,8 +281,8 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _GlobalKey = vlog.binaryValue(); break;
+                case 2: _State = vlog.intValue(); break;
                 case 3: _ReduceTid = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128>)vlog).value; break;
             }
         }

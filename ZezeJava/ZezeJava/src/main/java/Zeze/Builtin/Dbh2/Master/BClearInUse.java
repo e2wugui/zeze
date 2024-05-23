@@ -248,8 +248,8 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LocalId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _Global = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _LocalId = vlog.intValue(); break;
+                case 2: _Global = vlog.stringValue(); break;
             }
         }
     }

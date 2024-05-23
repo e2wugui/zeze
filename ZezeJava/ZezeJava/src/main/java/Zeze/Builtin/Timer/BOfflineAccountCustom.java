@@ -431,11 +431,11 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _TimerName = vlog.stringValue(); break;
+                case 2: _Account = vlog.stringValue(); break;
+                case 3: _ClientId = vlog.stringValue(); break;
+                case 4: _LoginVersion = vlog.longValue(); break;
+                case 5: _HandleName = vlog.stringValue(); break;
                 case 6: _CustomData.followerApply(vlog); break;
             }
         }

@@ -584,15 +584,15 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _HashCode = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _RedirectType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 4: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 5: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 6: _ServiceNamePrefix = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 7: _Version = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 8: _Key = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 9: _NoOneByOne = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _ModuleId = vlog.intValue(); break;
+                case 2: _HashCode = vlog.intValue(); break;
+                case 3: _RedirectType = vlog.intValue(); break;
+                case 4: _MethodFullName = vlog.stringValue(); break;
+                case 5: _Params = vlog.binaryValue(); break;
+                case 6: _ServiceNamePrefix = vlog.stringValue(); break;
+                case 7: _Version = vlog.intValue(); break;
+                case 8: _Key = vlog.intValue(); break;
+                case 9: _NoOneByOne = vlog.booleanValue(); break;
             }
         }
     }

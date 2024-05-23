@@ -304,8 +304,8 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Logins.followerApply(vlog); break;
-                case 2: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 2: _LastLoginVersion = vlog.longValue(); break;
+                case 3: _Account = vlog.stringValue(); break;
             }
         }
     }

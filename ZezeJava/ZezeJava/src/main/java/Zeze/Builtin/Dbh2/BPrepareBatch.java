@@ -364,9 +364,9 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Master = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Master = vlog.stringValue(); break;
+                case 2: _Database = vlog.stringValue(); break;
+                case 3: _Table = vlog.stringValue(); break;
                 case 4: _Batch.followerApply(vlog); break;
             }
         }

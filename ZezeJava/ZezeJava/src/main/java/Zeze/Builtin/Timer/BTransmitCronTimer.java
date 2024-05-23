@@ -472,13 +472,13 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _TimerId = vlog.stringValue(); break;
                 case 2: _CronTimer.followerApply(vlog); break;
-                case 3: _HandleClass = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _CustomClass = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 5: _CustomBean = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 6: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _Hot = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 3: _HandleClass = vlog.stringValue(); break;
+                case 4: _CustomClass = vlog.stringValue(); break;
+                case 5: _CustomBean = vlog.binaryValue(); break;
+                case 6: _LoginVersion = vlog.longValue(); break;
+                case 7: _Hot = vlog.booleanValue(); break;
             }
         }
     }

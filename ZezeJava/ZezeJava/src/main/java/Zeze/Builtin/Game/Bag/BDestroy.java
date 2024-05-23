@@ -226,8 +226,8 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Position = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _BagName = vlog.stringValue(); break;
+                case 2: _Position = vlog.intValue(); break;
             }
         }
     }

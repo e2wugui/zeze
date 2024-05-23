@@ -236,8 +236,8 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _JobHandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _JobState = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _JobHandleName = vlog.stringValue(); break;
+                case 2: _JobState = vlog.binaryValue(); break;
             }
         }
     }

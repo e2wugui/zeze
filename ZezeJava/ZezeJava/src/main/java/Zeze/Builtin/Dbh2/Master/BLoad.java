@@ -186,7 +186,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Load = ((Zeze.Transaction.Logs.LogDouble)vlog).value; break;
+                case 1: _Load = vlog.doubleValue(); break;
             }
         }
     }

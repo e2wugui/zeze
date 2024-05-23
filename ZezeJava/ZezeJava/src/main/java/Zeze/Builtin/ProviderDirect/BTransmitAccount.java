@@ -410,11 +410,11 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ActionName = vlog.stringValue(); break;
+                case 2: _Parameter = vlog.binaryValue(); break;
                 case 3: _TargetAccounts.followerApply(vlog); break;
-                case 4: _SenderAccount = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 5: _SenderClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _SenderAccount = vlog.stringValue(); break;
+                case 5: _SenderClientId = vlog.stringValue(); break;
             }
         }
     }

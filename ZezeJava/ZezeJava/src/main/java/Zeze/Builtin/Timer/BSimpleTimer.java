@@ -649,17 +649,17 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Delay = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Period = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _RemainTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _HappenTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _StartTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _NextExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 8: _ExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 9: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 10: _MissfirePolicy = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 11: _OneByOneKey = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Delay = vlog.longValue(); break;
+                case 2: _Period = vlog.longValue(); break;
+                case 3: _RemainTimes = vlog.longValue(); break;
+                case 4: _HappenTimes = vlog.longValue(); break;
+                case 5: _StartTime = vlog.longValue(); break;
+                case 6: _EndTime = vlog.longValue(); break;
+                case 7: _NextExpectedTime = vlog.longValue(); break;
+                case 8: _ExpectedTime = vlog.longValue(); break;
+                case 9: _HappenTime = vlog.longValue(); break;
+                case 10: _MissfirePolicy = vlog.intValue(); break;
+                case 11: _OneByOneKey = vlog.stringValue(); break;
             }
         }
     }

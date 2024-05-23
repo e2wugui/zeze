@@ -352,10 +352,10 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _linksid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _control = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _linksid = vlog.longValue(); break;
+                case 2: _code = vlog.intValue(); break;
+                case 3: _desc = vlog.stringValue(); break;
+                case 4: _control = vlog.intValue(); break;
             }
         }
     }

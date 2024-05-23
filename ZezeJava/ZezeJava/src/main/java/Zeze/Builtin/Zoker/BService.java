@@ -294,9 +294,9 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _State = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Ps = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
+                case 2: _State = vlog.stringValue(); break;
+                case 3: _Ps = vlog.stringValue(); break;
             }
         }
     }

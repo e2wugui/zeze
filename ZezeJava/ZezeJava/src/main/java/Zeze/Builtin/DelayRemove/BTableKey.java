@@ -276,9 +276,9 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _EncodedKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _EnqueueTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _TableName = vlog.stringValue(); break;
+                case 2: _EncodedKey = vlog.binaryValue(); break;
+                case 3: _EnqueueTime = vlog.longValue(); break;
             }
         }
     }

@@ -367,10 +367,10 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _RoleId = vlog.longValue(); break;
                 case 2: _TimerObj.followerApply(vlog); break;
-                case 3: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _LoginVersion = vlog.longValue(); break;
+                case 4: _SerialId = vlog.longValue(); break;
             }
         }
     }

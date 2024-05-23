@@ -590,14 +590,14 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 3: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)vlog).value; break;
-                case 4: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _LoginVersion = vlog.longValue(); break;
                 case 5: _ReliableNotifyMark.followerApply(vlog); break;
-                case 6: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 8: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 9: _LogoutVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 6: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
+                case 7: _ReliableNotifyIndex = vlog.longValue(); break;
+                case 8: _ServerId = vlog.intValue(); break;
+                case 9: _LogoutVersion = vlog.longValue(); break;
                 case 10: _UserData.followerApply(vlog); break;
-                case 11: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 11: _Account = vlog.stringValue(); break;
             }
         }
     }

@@ -436,9 +436,9 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             switch (vlog.getVariableId()) {
                 case 1: _Puts.followerApply(vlog); break;
                 case 2: _Deletes.followerApply(vlog); break;
-                case 3: _QueryIp = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _QueryPort = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 5: _Tid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _QueryIp = vlog.stringValue(); break;
+                case 4: _QueryPort = vlog.intValue(); break;
+                case 5: _Tid = vlog.longValue(); break;
             }
         }
     }

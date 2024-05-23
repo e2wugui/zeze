@@ -176,7 +176,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NextId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _NextId = vlog.longValue(); break;
             }
         }
     }

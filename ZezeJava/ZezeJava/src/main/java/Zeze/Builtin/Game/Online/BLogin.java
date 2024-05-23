@@ -227,8 +227,8 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _RoleId = vlog.longValue(); break;
+                case 2: _OnlineSetName = vlog.stringValue(); break;
             }
         }
     }

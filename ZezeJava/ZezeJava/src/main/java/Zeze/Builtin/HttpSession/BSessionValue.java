@@ -293,8 +293,8 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _CreateTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _ExpireTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _CreateTime = vlog.longValue(); break;
+                case 2: _ExpireTime = vlog.longValue(); break;
                 case 3: _Properties.followerApply(vlog); break;
             }
         }

@@ -287,8 +287,8 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Id = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _Number = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _Id = vlog.intValue(); break;
+                case 2: _Number = vlog.intValue(); break;
                 case 3: _Item.followerApply(vlog); break;
             }
         }

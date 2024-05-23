@@ -193,7 +193,7 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _DistributeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _DistributeId = vlog.longValue(); break;
             }
         }
     }

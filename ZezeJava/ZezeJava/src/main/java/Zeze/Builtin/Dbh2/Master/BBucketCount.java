@@ -193,7 +193,7 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Count = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _Count = vlog.intValue(); break;
             }
         }
     }

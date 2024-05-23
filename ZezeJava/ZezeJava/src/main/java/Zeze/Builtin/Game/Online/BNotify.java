@@ -174,7 +174,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _FullEncodedProtocol = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _FullEncodedProtocol = vlog.binaryValue(); break;
             }
         }
     }

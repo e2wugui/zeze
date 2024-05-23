@@ -392,11 +392,11 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _OnzTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _FuncName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _FuncArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 4: _FlushMode = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 5: _FlushTimeout = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _OnzTid = vlog.longValue(); break;
+                case 2: _FuncName = vlog.stringValue(); break;
+                case 3: _FuncArgument = vlog.binaryValue(); break;
+                case 4: _FlushMode = vlog.intValue(); break;
+                case 5: _FlushTimeout = vlog.intValue(); break;
             }
         }
     }

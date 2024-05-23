@@ -191,7 +191,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Database = vlog.stringValue(); break;
             }
         }
     }

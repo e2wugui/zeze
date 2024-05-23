@@ -291,8 +291,8 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _PrevNodeId = vlog.longValue(); break;
+                case 2: _NextNodeId = vlog.longValue(); break;
                 case 3: _Values.followerApply(vlog); break;
             }
         }

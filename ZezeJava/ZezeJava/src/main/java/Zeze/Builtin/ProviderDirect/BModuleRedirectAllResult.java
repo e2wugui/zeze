@@ -471,11 +471,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _SourceProvider = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 5: _SessionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _ModuleId = vlog.intValue(); break;
+                case 2: _ServerId = vlog.intValue(); break;
+                case 3: _SourceProvider = vlog.longValue(); break;
+                case 4: _MethodFullName = vlog.stringValue(); break;
+                case 5: _SessionId = vlog.longValue(); break;
                 case 6: _Hashs.followerApply(vlog); break;
             }
         }

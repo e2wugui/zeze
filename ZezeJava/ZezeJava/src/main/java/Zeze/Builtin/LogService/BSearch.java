@@ -341,9 +341,9 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Id = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Limit = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Reset = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _Id = vlog.longValue(); break;
+                case 2: _Limit = vlog.intValue(); break;
+                case 3: _Reset = vlog.booleanValue(); break;
                 case 4: _Condition.followerApply(vlog); break;
             }
         }

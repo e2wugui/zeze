@@ -317,10 +317,10 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _HeadNodeId = vlog.longValue(); break;
+                case 2: _TailNodeId = vlog.longValue(); break;
+                case 3: _Count = vlog.longValue(); break;
+                case 4: _LastNodeId = vlog.longValue(); break;
             }
         }
     }

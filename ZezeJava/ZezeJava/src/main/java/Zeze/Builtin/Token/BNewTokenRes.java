@@ -191,7 +191,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _token = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _token = vlog.stringValue(); break;
             }
         }
     }

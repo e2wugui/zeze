@@ -273,7 +273,7 @@ public final class BLastVersionBeanInfo extends Zeze.Transaction.Bean implements
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Name = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Name = vlog.stringValue(); break;
                 case 2: _Variables.followerApply(vlog); break;
             }
         }

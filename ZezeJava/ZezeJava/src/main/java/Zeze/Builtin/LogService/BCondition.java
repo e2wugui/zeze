@@ -410,11 +410,11 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _BeginTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _BeginTime = vlog.longValue(); break;
+                case 2: _EndTime = vlog.longValue(); break;
                 case 3: _Words.followerApply(vlog); break;
-                case 4: _ContainsType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 5: _Pattern = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 4: _ContainsType = vlog.intValue(); break;
+                case 5: _Pattern = vlog.stringValue(); break;
             }
         }
     }

@@ -292,9 +292,9 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _time = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _protocolType = vlog.longValue(); break;
+                case 2: _protocolWholeData = vlog.binaryValue(); break;
+                case 3: _time = vlog.intValue(); break;
             }
         }
     }

@@ -269,7 +269,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Logs.followerApply(vlog); break;
-                case 2: _Remain = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 2: _Remain = vlog.booleanValue(); break;
             }
         }
     }

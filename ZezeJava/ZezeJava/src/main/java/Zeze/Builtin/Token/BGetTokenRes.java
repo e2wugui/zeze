@@ -343,10 +343,10 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _context = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 2: _count = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _time = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _addr = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _context = vlog.binaryValue(); break;
+                case 2: _count = vlog.longValue(); break;
+                case 3: _time = vlog.longValue(); break;
+                case 4: _addr = vlog.stringValue(); break;
             }
         }
     }

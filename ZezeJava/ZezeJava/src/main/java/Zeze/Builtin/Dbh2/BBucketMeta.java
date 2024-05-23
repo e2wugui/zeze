@@ -395,11 +395,11 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _DatabaseName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _KeyFirst = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 4: _KeyLast = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 5: _RaftConfig = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _DatabaseName = vlog.stringValue(); break;
+                case 2: _TableName = vlog.stringValue(); break;
+                case 3: _KeyFirst = vlog.binaryValue(); break;
+                case 4: _KeyLast = vlog.binaryValue(); break;
+                case 5: _RaftConfig = vlog.stringValue(); break;
             }
         }
     }

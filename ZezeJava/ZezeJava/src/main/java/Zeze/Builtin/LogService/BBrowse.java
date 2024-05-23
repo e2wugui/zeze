@@ -387,10 +387,10 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Id = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Limit = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _OffsetFactor = ((Zeze.Transaction.Logs.LogFloat)vlog).value; break;
-                case 4: _Reset = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _Id = vlog.longValue(); break;
+                case 2: _Limit = vlog.intValue(); break;
+                case 3: _OffsetFactor = vlog.floatValue(); break;
+                case 4: _Reset = vlog.booleanValue(); break;
                 case 5: _Condition.followerApply(vlog); break;
             }
         }

@@ -270,9 +270,9 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _MaxNetPing = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _ServerProcessTime = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _ServerReleaseTimeout = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _MaxNetPing = vlog.intValue(); break;
+                case 2: _ServerProcessTime = vlog.intValue(); break;
+                case 3: _ServerReleaseTimeout = vlog.intValue(); break;
             }
         }
     }

@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
 {
-    public class FollowerApply : Types.Visitor
+    public class FollowerApply : Visitor
     {
         readonly StreamWriter sw;
-        readonly Types.Variable var;
+        readonly Variable var;
         readonly string prefix;
 
-        public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             bool needApplyVars = false;
             foreach (var v in bean.Variables)
@@ -49,117 +44,117 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public void Visit(Types.TypeBool type)
+        public void Visit(TypeBool type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.booleanValue(); break;");
         }
 
-        public void Visit(Types.TypeByte type)
+        public void Visit(TypeByte type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.byteValue(); break;");
         }
 
-        public void Visit(Types.TypeShort type)
+        public void Visit(TypeShort type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.shortValue(); break;");
         }
 
-        public void Visit(Types.TypeInt type)
+        public void Visit(TypeInt type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.intValue(); break;");
         }
 
-        public void Visit(Types.TypeLong type)
+        public void Visit(TypeLong type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.longValue(); break;");
         }
 
-        public void Visit(Types.TypeFloat type)
+        public void Visit(TypeFloat type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.floatValue(); break;");
         }
 
-        public void Visit(Types.TypeDouble type)
+        public void Visit(TypeDouble type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.doubleValue(); break;");
         }
 
-        public void Visit(Types.TypeBinary type)
+        public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.binaryValue(); break;");
         }
 
-        public void Visit(Types.TypeString type)
+        public void Visit(TypeString type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.stringValue(); break;");
         }
 
-        public void Visit(Types.TypeList type)
+        public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
-        public void Visit(Types.TypeSet type)
+        public void Visit(TypeSet type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
-        public void Visit(Types.TypeMap type)
+        public void Visit(TypeMap type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
-        public void Visit(Types.Bean type)
+        public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
-        public void Visit(Types.BeanKey type)
+        public void Visit(BeanKey type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
         }
 
-        public void Visit(Types.TypeDynamic type)
+        public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(vlog); break;");
         }
 
-        public void Visit(Types.TypeQuaternion type)
+        public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.quaternionValue(); break;");
         }
 
-        public void Visit(Types.TypeVector2 type)
+        public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.vector2Value(); break;");
         }
 
-        public void Visit(Types.TypeVector2Int type)
+        public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.vector2IntValue(); break;");
         }
 
-        public void Visit(Types.TypeVector3 type)
+        public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.vector3Value(); break;");
         }
 
-        public void Visit(Types.TypeVector3Int type)
+        public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.vector3IntValue(); break;");
         }
 
-        public void Visit(Types.TypeVector4 type)
+        public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.vector4Value(); break;");
         }
 
         public void Visit(TypeDecimal type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.decimalValue(); break;");
         }
 
-        public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)
+        public FollowerApply(Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;
             this.sw = sw;

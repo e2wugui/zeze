@@ -505,14 +505,14 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Item0 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Item1 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _Item2 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _Item3 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _Item4 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _Item5 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _Item6 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 8: _Item7 = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Item0 = vlog.longValue(); break;
+                case 2: _Item1 = vlog.longValue(); break;
+                case 3: _Item2 = vlog.longValue(); break;
+                case 4: _Item3 = vlog.longValue(); break;
+                case 5: _Item4 = vlog.longValue(); break;
+                case 6: _Item5 = vlog.longValue(); break;
+                case 7: _Item6 = vlog.longValue(); break;
+                case 8: _Item7 = vlog.longValue(); break;
             }
         }
     }

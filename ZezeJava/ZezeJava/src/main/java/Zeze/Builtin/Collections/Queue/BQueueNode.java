@@ -305,7 +305,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _NextNodeId = vlog.longValue(); break;
                 case 2: _Values.followerApply(vlog); break;
                 case 3: _NextNodeKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)vlog).value; break;
             }

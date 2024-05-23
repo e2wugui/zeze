@@ -441,12 +441,12 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceNamePrefix = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _ServiceIdentity = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _ProviderDirectIp = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _ProviderDirectPort = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 5: _AppVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _DisableChoice = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _ServiceNamePrefix = vlog.stringValue(); break;
+                case 2: _ServiceIdentity = vlog.stringValue(); break;
+                case 3: _ProviderDirectIp = vlog.stringValue(); break;
+                case 4: _ProviderDirectPort = vlog.intValue(); break;
+                case 5: _AppVersion = vlog.longValue(); break;
+                case 6: _DisableChoice = vlog.booleanValue(); break;
             }
         }
     }

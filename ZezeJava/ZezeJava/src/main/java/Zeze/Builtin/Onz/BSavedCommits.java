@@ -259,7 +259,7 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _State = vlog.intValue(); break;
                 case 2: _Onzs.followerApply(vlog); break;
             }
         }

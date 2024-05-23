@@ -497,13 +497,13 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _protocolData = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 5: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 6: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 7: _onlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _linkSid = vlog.longValue(); break;
+                case 2: _account = vlog.stringValue(); break;
+                case 3: _protocolType = vlog.longValue(); break;
+                case 4: _protocolData = vlog.binaryValue(); break;
+                case 5: _context = vlog.stringValue(); break;
+                case 6: _contextx = vlog.binaryValue(); break;
+                case 7: _onlineSetName = vlog.stringValue(); break;
             }
         }
     }

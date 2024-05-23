@@ -273,9 +273,9 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _SecureKey = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _ServerId = vlog.intValue(); break;
+                case 2: _SecureKey = vlog.stringValue(); break;
+                case 3: _GlobalCacheManagerHashIndex = vlog.intValue(); break;
             }
         }
     }

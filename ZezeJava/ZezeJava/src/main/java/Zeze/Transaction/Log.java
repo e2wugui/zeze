@@ -90,15 +90,15 @@ public abstract class Log implements Serializable {
 		variableId = varId;
 	}
 
-	public void collect(Changes changes, Bean recent, Log vlog) {
+	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {
 		// LogBean LogCollection 需要实现这个方法收集日志.
 	}
 
-	public Log beginSavepoint() {
+	public @NotNull Log beginSavepoint() {
 		return this;
 	}
 
-	public void endSavepoint(Savepoint currentSp) {
+	public void endSavepoint(@NotNull Savepoint currentSp) {
 		currentSp.putLog(this);
 	}
 
@@ -106,12 +106,12 @@ public abstract class Log implements Serializable {
 	// public void rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
 
 	@Override
-	public void encode(ByteBuffer bb) {
+	public void encode(@NotNull ByteBuffer bb) {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 
 	@Override
-	public void decode(IByteBuffer bb) {
+	public void decode(@NotNull IByteBuffer bb) {
 		throw new UnsupportedOperationException(getTypeName());
 	}
 

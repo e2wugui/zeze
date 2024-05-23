@@ -340,10 +340,10 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _newCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _curCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _connectCount = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 4: _perfLog = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _newCount = vlog.longValue(); break;
+                case 2: _curCount = vlog.longValue(); break;
+                case 3: _connectCount = vlog.intValue(); break;
+                case 4: _perfLog = vlog.stringValue(); break;
             }
         }
     }

@@ -241,7 +241,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Notifies.followerApply(vlog); break;
-                case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 2: _ReliableNotifyIndex = vlog.longValue(); break;
             }
         }
     }

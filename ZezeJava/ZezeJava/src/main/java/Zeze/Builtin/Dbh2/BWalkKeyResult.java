@@ -299,8 +299,8 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Keys.followerApply(vlog); break;
-                case 2: _BucketEnd = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 3: _BucketRefuse = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 2: _BucketEnd = vlog.booleanValue(); break;
+                case 3: _BucketRefuse = vlog.booleanValue(); break;
             }
         }
     }

@@ -191,7 +191,7 @@ public final class BNewSession extends Zeze.Transaction.Bean implements BNewSess
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _LogName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _LogName = vlog.stringValue(); break;
             }
         }
     }

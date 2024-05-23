@@ -341,10 +341,10 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ExclusiveStartKey = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 2: _ProposeLimit = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Desc = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 4: _Prefix = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ExclusiveStartKey = vlog.binaryValue(); break;
+                case 2: _ProposeLimit = vlog.intValue(); break;
+                case 3: _Desc = vlog.booleanValue(); break;
+                case 4: _Prefix = vlog.binaryValue(); break;
             }
         }
     }

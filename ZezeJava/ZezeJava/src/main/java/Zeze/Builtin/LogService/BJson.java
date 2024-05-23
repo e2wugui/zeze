@@ -191,7 +191,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Json = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Json = vlog.stringValue(); break;
             }
         }
     }

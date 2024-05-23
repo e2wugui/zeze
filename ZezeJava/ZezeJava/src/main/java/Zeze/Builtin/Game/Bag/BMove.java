@@ -320,10 +320,10 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _PositionFrom = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _PositionTo = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 4: _number = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _BagName = vlog.stringValue(); break;
+                case 2: _PositionFrom = vlog.intValue(); break;
+                case 3: _PositionTo = vlog.intValue(); break;
+                case 4: _number = vlog.intValue(); break;
             }
         }
     }

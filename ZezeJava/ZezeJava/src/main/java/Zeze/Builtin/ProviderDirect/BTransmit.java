@@ -416,11 +416,11 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _ActionName = vlog.stringValue(); break;
                 case 2: _Roles.followerApply(vlog); break;
-                case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 5: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 3: _Sender = vlog.longValue(); break;
+                case 4: _Parameter = vlog.binaryValue(); break;
+                case 5: _OnlineSetName = vlog.stringValue(); break;
             }
         }
     }

@@ -293,9 +293,9 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Md5 = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
+                case 2: _FileName = vlog.stringValue(); break;
+                case 3: _Md5 = vlog.binaryValue(); break;
             }
         }
     }

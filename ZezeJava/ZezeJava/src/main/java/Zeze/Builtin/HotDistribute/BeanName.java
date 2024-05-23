@@ -191,7 +191,7 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Name = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Name = vlog.stringValue(); break;
             }
         }
     }

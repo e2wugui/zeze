@@ -292,9 +292,9 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ModuleId = vlog.intValue(); break;
+                case 2: _ServerId = vlog.intValue(); break;
+                case 3: _Params = vlog.binaryValue(); break;
             }
         }
     }

@@ -511,14 +511,14 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _CronExpression = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _NextExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _ExpectedTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _HappenTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _RemainTimes = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _EndTime = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 7: _MissfirePolicy = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 8: _OneByOneKey = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _CronExpression = vlog.stringValue(); break;
+                case 2: _NextExpectedTime = vlog.longValue(); break;
+                case 3: _ExpectedTime = vlog.longValue(); break;
+                case 4: _HappenTime = vlog.longValue(); break;
+                case 5: _RemainTimes = vlog.longValue(); break;
+                case 6: _EndTime = vlog.longValue(); break;
+                case 7: _MissfirePolicy = vlog.intValue(); break;
+                case 8: _OneByOneKey = vlog.stringValue(); break;
             }
         }
     }

@@ -270,9 +270,9 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _ServerId = vlog.intValue(); break;
+                case 2: _NodeId = vlog.longValue(); break;
+                case 3: _SerialId = vlog.longValue(); break;
             }
         }
     }

@@ -258,7 +258,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _fromTransaction = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _fromTransaction = vlog.booleanValue(); break;
                 case 2: _Puts.followerApply(vlog); break;
             }
         }

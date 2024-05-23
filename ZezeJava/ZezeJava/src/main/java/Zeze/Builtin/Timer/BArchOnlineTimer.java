@@ -420,11 +420,11 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Account = vlog.stringValue(); break;
+                case 2: _ClientId = vlog.stringValue(); break;
                 case 3: _TimerObj.followerApply(vlog); break;
-                case 4: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _SerialId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 4: _LoginVersion = vlog.longValue(); break;
+                case 5: _SerialId = vlog.longValue(); break;
             }
         }
     }

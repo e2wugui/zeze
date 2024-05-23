@@ -176,7 +176,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NodeId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _NodeId = vlog.longValue(); break;
             }
         }
     }

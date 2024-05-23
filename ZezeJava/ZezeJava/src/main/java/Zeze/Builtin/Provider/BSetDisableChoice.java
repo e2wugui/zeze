@@ -186,7 +186,7 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _DisableChoice = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _DisableChoice = vlog.booleanValue(); break;
             }
         }
     }

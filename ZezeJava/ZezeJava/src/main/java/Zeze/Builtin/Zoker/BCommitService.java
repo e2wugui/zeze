@@ -242,8 +242,8 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _VersionNo = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
+                case 2: _VersionNo = vlog.stringValue(); break;
             }
         }
     }

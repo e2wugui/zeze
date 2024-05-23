@@ -237,8 +237,8 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Null = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 2: _Value = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _Null = vlog.booleanValue(); break;
+                case 2: _Value = vlog.binaryValue(); break;
             }
         }
     }

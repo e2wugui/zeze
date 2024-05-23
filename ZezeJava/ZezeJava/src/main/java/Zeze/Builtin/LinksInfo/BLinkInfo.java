@@ -295,9 +295,9 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Ip = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _Extra = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _Ip = vlog.stringValue(); break;
+                case 2: _Port = vlog.intValue(); break;
+                case 3: _Extra = vlog.binaryValue(); break;
             }
         }
     }

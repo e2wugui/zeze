@@ -300,9 +300,9 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Key = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 2: _Data = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _Version = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Key = vlog.binaryValue(); break;
+                case 2: _Data = vlog.binaryValue(); break;
+                case 3: _Version = vlog.longValue(); break;
             }
         }
     }

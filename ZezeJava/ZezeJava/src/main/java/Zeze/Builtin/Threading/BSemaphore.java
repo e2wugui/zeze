@@ -300,8 +300,8 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _LockName = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)vlog).value; break;
-                case 2: _Permits = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _TimeoutMs = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _Permits = vlog.intValue(); break;
+                case 3: _TimeoutMs = vlog.intValue(); break;
             }
         }
     }

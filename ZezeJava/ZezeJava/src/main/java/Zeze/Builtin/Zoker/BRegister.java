@@ -191,7 +191,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ZokerName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _ZokerName = vlog.stringValue(); break;
             }
         }
     }

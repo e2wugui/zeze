@@ -302,9 +302,9 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _from = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _code = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _desc = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _from = vlog.intValue(); break;
+                case 2: _code = vlog.intValue(); break;
+                case 3: _desc = vlog.stringValue(); break;
             }
         }
     }

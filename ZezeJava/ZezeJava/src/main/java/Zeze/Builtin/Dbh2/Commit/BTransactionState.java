@@ -259,7 +259,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _State = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _State = vlog.intValue(); break;
                 case 2: _Buckets.followerApply(vlog); break;
             }
         }

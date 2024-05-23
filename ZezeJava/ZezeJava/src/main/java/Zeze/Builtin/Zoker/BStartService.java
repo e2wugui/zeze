@@ -191,7 +191,7 @@ public final class BStartService extends Zeze.Transaction.Bean implements BStart
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
             }
         }
     }

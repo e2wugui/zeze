@@ -194,7 +194,7 @@ public final class BCommit extends Zeze.Transaction.Bean implements BCommitReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _OnzTid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _OnzTid = vlog.longValue(); break;
             }
         }
     }

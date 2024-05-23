@@ -256,8 +256,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ReturnCode = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ReturnCode = vlog.longValue(); break;
+                case 2: _Params = vlog.binaryValue(); break;
             }
         }
     }

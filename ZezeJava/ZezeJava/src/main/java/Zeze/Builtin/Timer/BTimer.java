@@ -429,11 +429,11 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _TimerName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _HandleName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _TimerName = vlog.stringValue(); break;
+                case 2: _HandleName = vlog.stringValue(); break;
                 case 3: _TimerObj.followerApply(vlog); break;
                 case 4: _CustomData.followerApply(vlog); break;
-                case 5: _ConcurrentFireSerialNo = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 5: _ConcurrentFireSerialNo = vlog.longValue(); break;
             }
         }
     }

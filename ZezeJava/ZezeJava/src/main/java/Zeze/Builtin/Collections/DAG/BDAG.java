@@ -323,10 +323,10 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _NodeSum = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _EdgeSum = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _StartNode = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 4: _EndNode = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _NodeSum = vlog.longValue(); break;
+                case 2: _EdgeSum = vlog.longValue(); break;
+                case 3: _StartNode = vlog.stringValue(); break;
+                case 4: _EndNode = vlog.stringValue(); break;
             }
         }
     }

@@ -242,8 +242,8 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Database = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Table = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Database = vlog.stringValue(); break;
+                case 2: _Table = vlog.stringValue(); break;
             }
         }
     }

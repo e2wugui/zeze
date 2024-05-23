@@ -293,9 +293,9 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _context = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _onlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _context = vlog.stringValue(); break;
+                case 2: _contextx = vlog.binaryValue(); break;
+                case 3: _onlineSetName = vlog.stringValue(); break;
             }
         }
     }

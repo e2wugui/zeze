@@ -370,11 +370,11 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _QueueName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _TaskType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _TaskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _TaskParam = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 5: _PrevTaskId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _QueueName = vlog.stringValue(); break;
+                case 2: _TaskType = vlog.intValue(); break;
+                case 3: _TaskId = vlog.longValue(); break;
+                case 4: _TaskParam = vlog.binaryValue(); break;
+                case 5: _PrevTaskId = vlog.longValue(); break;
             }
         }
     }

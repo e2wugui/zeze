@@ -221,8 +221,8 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Sync = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
+                case 2: _Sync = vlog.booleanValue(); break;
             }
         }
     }

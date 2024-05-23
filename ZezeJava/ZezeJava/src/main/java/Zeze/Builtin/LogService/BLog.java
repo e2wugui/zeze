@@ -244,8 +244,8 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Time = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Log = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Time = vlog.longValue(); break;
+                case 2: _Log = vlog.stringValue(); break;
             }
         }
     }

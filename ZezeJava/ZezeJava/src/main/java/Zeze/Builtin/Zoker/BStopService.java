@@ -237,8 +237,8 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Force = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
+                case 2: _Force = vlog.booleanValue(); break;
             }
         }
     }

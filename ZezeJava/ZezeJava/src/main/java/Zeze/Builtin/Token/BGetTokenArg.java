@@ -244,8 +244,8 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _token = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _maxCount = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _token = vlog.stringValue(); break;
+                case 2: _maxCount = vlog.longValue(); break;
             }
         }
     }

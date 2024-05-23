@@ -423,9 +423,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Root = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _Root = vlog.stringValue(); break;
                 case 2: _Managers.followerApply(vlog); break;
-                case 3: _NextDepartmentId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 3: _NextDepartmentId = vlog.longValue(); break;
                 case 4: _Childs.followerApply(vlog); break;
                 case 5: _Data.followerApply(vlog); break;
             }

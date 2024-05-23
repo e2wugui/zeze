@@ -245,7 +245,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _linkSid = vlog.longValue(); break;
                 case 2: _userState.followerApply(vlog); break;
             }
         }

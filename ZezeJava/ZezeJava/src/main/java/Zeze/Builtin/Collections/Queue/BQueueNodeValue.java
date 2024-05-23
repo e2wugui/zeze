@@ -228,7 +228,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Timestamp = vlog.longValue(); break;
                 case 2: _Value.followerApply(vlog); break;
             }
         }

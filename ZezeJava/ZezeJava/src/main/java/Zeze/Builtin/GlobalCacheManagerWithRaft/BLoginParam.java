@@ -268,9 +268,9 @@ public final class BLoginParam extends Zeze.Transaction.Bean implements BLoginPa
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _DebugMode = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _ServerId = vlog.intValue(); break;
+                case 2: _GlobalCacheManagerHashIndex = vlog.intValue(); break;
+                case 3: _DebugMode = vlog.booleanValue(); break;
             }
         }
     }

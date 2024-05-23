@@ -346,9 +346,9 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _account = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _reason = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _account = vlog.stringValue(); break;
+                case 2: _linkSid = vlog.longValue(); break;
+                case 3: _reason = vlog.intValue(); break;
                 case 4: _userState.followerApply(vlog); break;
             }
         }

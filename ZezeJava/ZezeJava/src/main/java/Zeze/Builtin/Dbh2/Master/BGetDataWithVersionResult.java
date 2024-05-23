@@ -244,8 +244,8 @@ public final class BGetDataWithVersionResult extends Zeze.Transaction.Bean imple
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Data = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 2: _Version = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Data = vlog.binaryValue(); break;
+                case 2: _Version = vlog.longValue(); break;
             }
         }
     }

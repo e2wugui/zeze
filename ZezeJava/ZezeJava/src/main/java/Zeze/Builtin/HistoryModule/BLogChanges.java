@@ -426,10 +426,10 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _GlobalSerialId = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128>)vlog).value; break;
-                case 2: _ProtocolClassName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _ProtocolArgument = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 2: _ProtocolClassName = vlog.stringValue(); break;
+                case 3: _ProtocolArgument = vlog.binaryValue(); break;
                 case 4: _Changes.followerApply(vlog); break;
-                case 5: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 5: _Timestamp = vlog.longValue(); break;
             }
         }
     }

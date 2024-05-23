@@ -346,10 +346,10 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServiceName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _FileName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 3: _Offset = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 4: _Chunk = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _ServiceName = vlog.stringValue(); break;
+                case 2: _FileName = vlog.stringValue(); break;
+                case 3: _Offset = vlog.longValue(); break;
+                case 4: _Chunk = vlog.binaryValue(); break;
             }
         }
     }

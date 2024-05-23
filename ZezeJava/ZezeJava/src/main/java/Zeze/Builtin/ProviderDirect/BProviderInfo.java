@@ -292,9 +292,9 @@ public final class BProviderInfo extends Zeze.Transaction.Bean implements BProvi
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Ip = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _Port = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 3: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _Ip = vlog.stringValue(); break;
+                case 2: _Port = vlog.intValue(); break;
+                case 3: _ServerId = vlog.intValue(); break;
             }
         }
     }

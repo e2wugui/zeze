@@ -288,9 +288,9 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _topic = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _content = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 3: _broadcast = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
+                case 1: _topic = vlog.stringValue(); break;
+                case 2: _content = vlog.binaryValue(); break;
+                case 3: _broadcast = vlog.booleanValue(); break;
             }
         }
     }

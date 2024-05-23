@@ -265,8 +265,8 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ChoiceType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _ConfigType = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _ChoiceType = vlog.intValue(); break;
+                case 2: _ConfigType = vlog.intValue(); break;
             }
         }
     }

@@ -273,9 +273,9 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _OnlineSetName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
+                case 1: _RoleId = vlog.longValue(); break;
+                case 2: _LoginVersion = vlog.longValue(); break;
+                case 3: _OnlineSetName = vlog.stringValue(); break;
             }
         }
     }

@@ -252,7 +252,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _LockName = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)vlog).value; break;
-                case 2: _TimeoutMs = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 2: _TimeoutMs = vlog.intValue(); break;
             }
         }
     }

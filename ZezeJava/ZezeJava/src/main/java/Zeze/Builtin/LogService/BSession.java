@@ -193,7 +193,7 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Id = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Id = vlog.longValue(); break;
             }
         }
     }

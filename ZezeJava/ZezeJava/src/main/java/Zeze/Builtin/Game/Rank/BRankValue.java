@@ -273,9 +273,9 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 2: _Value = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 3: _ValueEx = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
+                case 1: _RoleId = vlog.longValue(); break;
+                case 2: _Value = vlog.longValue(); break;
+                case 3: _ValueEx = vlog.binaryValue(); break;
             }
         }
     }

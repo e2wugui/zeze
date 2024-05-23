@@ -226,8 +226,8 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 2: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _ClientId = vlog.stringValue(); break;
+                case 2: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
             }
         }
     }

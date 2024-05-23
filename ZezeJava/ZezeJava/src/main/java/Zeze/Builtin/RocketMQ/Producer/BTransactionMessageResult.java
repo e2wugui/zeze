@@ -221,8 +221,8 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Result = ((Zeze.Transaction.Logs.LogBool)vlog).value; break;
-                case 2: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
+                case 1: _Result = vlog.booleanValue(); break;
+                case 2: _Timestamp = vlog.longValue(); break;
             }
         }
     }

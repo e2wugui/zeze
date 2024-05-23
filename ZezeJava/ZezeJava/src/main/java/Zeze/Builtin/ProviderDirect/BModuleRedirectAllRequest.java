@@ -608,15 +608,15 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
-                case 2: _HashCodeConcurrentLevel = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 1: _ModuleId = vlog.intValue(); break;
+                case 2: _HashCodeConcurrentLevel = vlog.intValue(); break;
                 case 3: _HashCodes.followerApply(vlog); break;
-                case 4: _SourceProvider = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 5: _SessionId = ((Zeze.Transaction.Logs.LogLong)vlog).value; break;
-                case 6: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 7: _Params = ((Zeze.Transaction.Logs.LogBinary)vlog).value; break;
-                case 8: _ServiceNamePrefix = ((Zeze.Transaction.Logs.LogString)vlog).value; break;
-                case 9: _Version = ((Zeze.Transaction.Logs.LogInt)vlog).value; break;
+                case 4: _SourceProvider = vlog.longValue(); break;
+                case 5: _SessionId = vlog.longValue(); break;
+                case 6: _MethodFullName = vlog.stringValue(); break;
+                case 7: _Params = vlog.binaryValue(); break;
+                case 8: _ServiceNamePrefix = vlog.stringValue(); break;
+                case 9: _Version = vlog.intValue(); break;
             }
         }
     }
