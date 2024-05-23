@@ -439,6 +439,8 @@ public final class PerfCounter extends FastLock {
 	public void resetCounter() {
 		runInfoMap.clear();
 		protocolInfoMap.clear();
+		procedureInfoMap.clear();
+		tableInfoMap.clear();
 		for (var ci : countInfos) {
 			ci.count.reset();
 			ci.lastCount = 0;
