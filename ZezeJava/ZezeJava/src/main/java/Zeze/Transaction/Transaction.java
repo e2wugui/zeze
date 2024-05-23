@@ -618,7 +618,7 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private @NotNull CheckResult _check_(Procedure procedure, boolean writeLock, @NotNull RecordAccessed e) {
+	private static @NotNull CheckResult _check_(Procedure procedure, boolean writeLock, @NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {

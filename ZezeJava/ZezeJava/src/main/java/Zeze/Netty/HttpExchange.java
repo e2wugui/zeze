@@ -103,10 +103,10 @@ public class HttpExchange {
 	protected @Nullable ArrayList<Object> resHeaders; // key,value,key,value,...
 	protected @Nullable List<Cookie> cookies;
 	protected @Nullable HttpSession.CookieSession cookieSession;
+	protected @Nullable String path;
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
-	protected String path;
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -115,23 +115,6 @@ public class HttpExchange {
 
 	public HttpServer getHttpServer() {
 		return server;
-	}
-
-	public void sendFreeMarker(Object model) throws Exception {
-		var freeMarker = server.getFreeMarker();
-		if (null == freeMarker)
-			throw new IllegalStateException("freemarker not enabled.");
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> {
-				try {
-					freeMarker.sendResponse(this, model);
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				}
-			});
-		else
-			freeMarker.sendResponse(this, model);
 	}
 
 	public @Nullable Object getUserState() {
@@ -307,15 +290,14 @@ public class HttpExchange {
 	}
 
 	public @NotNull String path() {
-		if (null != path)
+		if (path != null)
 			return path;
 		var req = request;
 		if (req == null)
 			return "";
 		var uri = req.uri();
 		var i = uri.indexOf('?');
-		path = urlDecode(i >= 0 ? uri.substring(0, i) : uri);
-		return path;
+		return path = urlDecode(i >= 0 ? uri.substring(0, i) : uri);
 	}
 
 	public @Nullable String query() {
@@ -782,6 +764,23 @@ public class HttpExchange {
 
 	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
 		return send(status, "text/xml; charset=utf-8", xml);
+	}
+
+	public void sendFreeMarker(@Nullable Object model) throws Exception {
+		var freeMarker = server.getFreeMarker();
+		if (freeMarker == null)
+			throw new IllegalStateException("FreeMarker not available");
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			t.runWhileCommit(() -> {
+				try {
+					freeMarker.sendResponse(this, model);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+		} else
+			freeMarker.sendResponse(this, model);
 	}
 
 	public void sendFile(@NotNull String filePath) throws Exception {

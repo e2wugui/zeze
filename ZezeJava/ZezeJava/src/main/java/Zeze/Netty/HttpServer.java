@@ -1,7 +1,6 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -87,14 +86,6 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
-
-	/**
-	 * 子类需要freemarker时，构造，并且重载这个方法。
-	 * @return freeMarker instance.
-	 */
-	public @Nullable FreeMarker getFreeMarker() {
-		return null;
-	}
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -193,6 +184,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public void setSsl(@NotNull PrivateKey priKey, @Nullable String keyPassword,
 					   @Nullable X509Certificate... keyCertChain) throws SSLException {
 		sslCtx = SslContextBuilder.forServer(priKey, keyPassword, keyCertChain).build();
+	}
+
+	/**
+	 * 子类需要freemarker时，构造，并且重载这个方法。
+	 */
+	public @Nullable FreeMarker getFreeMarker() {
+		return null;
 	}
 
 	public @NotNull ChannelFuture start(@NotNull Netty netty, int port) throws Exception {

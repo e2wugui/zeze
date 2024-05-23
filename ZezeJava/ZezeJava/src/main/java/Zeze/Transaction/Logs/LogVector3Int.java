@@ -3,8 +3,6 @@ package Zeze.Transaction.Logs;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
-import Zeze.Serialize.Vector2;
-import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;

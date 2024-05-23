@@ -2,7 +2,6 @@ package Zeze.Transaction.Logs;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import java.nio.charset.StandardCharsets;
 import Zeze.Net.Binary;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
