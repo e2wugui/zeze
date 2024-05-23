@@ -175,16 +175,17 @@ public class Schemas implements Serializable {
 			compatibleTable.put("double", 1);
 			compatibleTable.put("binary", 2);
 			compatibleTable.put("string", 2);
+			compatibleTable.put("decimal", 2);
 			compatibleTable.put("list", 3);
 			compatibleTable.put("array", 3);
-			compatibleTable.put("set", 3);
-			compatibleTable.put("map", 4);
-			compatibleTable.put("vector2", 5);
-			compatibleTable.put("vector3", 5);
-			compatibleTable.put("vector4", 5);
-			compatibleTable.put("quaternion", 5);
-			compatibleTable.put("vector2int", 5);
-			compatibleTable.put("vector3int", 5);
+			compatibleTable.put("set", 4);
+			compatibleTable.put("map", 5);
+			compatibleTable.put("vector2", 6);
+			compatibleTable.put("vector2int", 6);
+			compatibleTable.put("vector3", 6);
+			compatibleTable.put("vector3int", 6);
+			compatibleTable.put("vector4", 6);
+			compatibleTable.put("quaternion", 6);
 		}
 		//VectorBean
 
