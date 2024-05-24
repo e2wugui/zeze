@@ -5,40 +5,42 @@ using Zeze.Util;
 
 namespace Zeze.Transaction.Collections
 {
-	public class LogList1<E> : LogList<E>
-	{
+    public class LogList1<E> : LogList<E>
+    {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogList1<E>));
         public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
 
         public override int TypeId => TypeId_;
 
         public class OpLog
-		{
-			public const int OP_MODIFY = 0;
-			public const int OP_ADD = 1;
-			public const int OP_REMOVE = 2;
-			public const int OP_CLEAR = 3;
+        {
+            public const int OP_MODIFY = 0;
+            public const int OP_ADD = 1;
+            public const int OP_REMOVE = 2;
+            public const int OP_CLEAR = 3;
 
-			public readonly int op;
-			public readonly int index;
-			public readonly E value;
+            public readonly int op;
+            public readonly int index;
+            public readonly E value;
 
-			public OpLog(int op, int index, E value)
-			{
-				this.op = op;
-				this.index = index;
-				this.value = value;
-			}
+            public OpLog(int op, int index, E value)
+            {
+                this.op = op;
+                this.index = index;
+                this.value = value;
+            }
 
-			public override string ToString()
-			{
-				return $"({op},{index},{value})";
-			}
-		}
+            public override string ToString()
+            {
+                return $"({op},{index},{value})";
+            }
+        }
 
-		public readonly List<OpLog> OpLogs = new List<OpLog>();
+        public readonly List<OpLog> OpLogs = new List<OpLog>();
 
 #if !USE_CONFCS
+		protected IdentityHashSet<E> AddSet; // 用于LogList2，由它初始化。
+
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
 			throw new System.NotImplementedException("Collect Not Implement.");
@@ -50,6 +52,7 @@ namespace Zeze.Transaction.Collections
 				throw new System.ArgumentNullException("value is null");
 			Value = Value.Add(item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
+			AddSet?.Add(item);
 		}
 
 		public void AddRange(IEnumerable<E> items)
@@ -59,7 +62,8 @@ namespace Zeze.Transaction.Collections
 			foreach (var item in items)
 			{
 				OpLogs.Add(new OpLog(OpLog.OP_ADD, start++, item));
-			}
+                AddSet?.Add(item);
+            }
         }
 
 		public bool Remove(E item)
@@ -68,6 +72,7 @@ namespace Zeze.Transaction.Collections
 			if (index < 0)
 				return false;
 			RemoveAt(index);
+			AddSet?.Remove(item);
 			return true;
 		}
 
@@ -76,33 +81,50 @@ namespace Zeze.Transaction.Collections
 			Value = System.Collections.Immutable.ImmutableList<E>.Empty;
 			OpLogs.Clear();
 			OpLogs.Add(new OpLog(OpLog.OP_CLEAR, 0, default));
+			AddSet?.Clear();
 		}
 
 		public void Insert(int index, E item)
 		{
 			Value = Value.Insert(index, item);
 			OpLogs.Add(new OpLog(OpLog.OP_ADD, index, item));
+			AddSet?.Add(item);
 		}
 
 		public void SetItem(int index, E item)
 		{
+			var old = Value[index];
 			Value = Value.SetItem(index, item);
 			OpLogs.Add(new OpLog(OpLog.OP_MODIFY, index, item));
-		}
+			if (null != AddSet)
+			{
+                AddSet.Add(item);
+				AddSet.Remove(old);
+            }
+        }
 
 		public void RemoveAt(int index)
 		{
+			var Old = Value[index];
 			Value = Value.RemoveAt(index);
 			OpLogs.Add(new OpLog(OpLog.OP_REMOVE, index, default));
+			AddSet?.Remove(Old);
 		}
 
 		public void RemoveRange(int index, int count)
         {
-			Value = Value.RemoveRange(index, count);
-			var end = index + count;
+            var end = index + count;
+            var oldItems = new E[count];
 			for (int i = index; i < end; ++i)
-				OpLogs.Add(new OpLog(OpLog.OP_REMOVE, i, default));
-		}
+                oldItems[i - index] = Value[i];
+
+            Value = Value.RemoveRange(index, count);
+			for (int i = index; i < end; ++i)
+			{
+                OpLogs.Add(new OpLog(OpLog.OP_REMOVE, i, default));
+				AddSet?.Remove(oldItems[i - index]);
+            }
+        }
 
 		internal override void EndSavepoint(Savepoint currentSp)
 		{
@@ -125,7 +147,13 @@ namespace Zeze.Transaction.Collections
 				if (from.OpLogs[0].op == OpLog.OP_CLEAR)
 					OpLogs.Clear();
 				OpLogs.AddRange(from.OpLogs);
-			}
+
+				if (AddSet != null && from.AddSet != null)
+				{
+					foreach (var item in from.AddSet)
+						AddSet.Add(item);
+                }
+            }
 		}
 
 		internal override Log BeginSavepoint()
@@ -138,41 +166,41 @@ namespace Zeze.Transaction.Collections
 			return dup;
 		}
 #endif
-		public override string ToString()
+        public override string ToString()
         {
-			var sb = new StringBuilder();
-			sb.Append("OpLogs:");
-			Str.BuildString(sb, OpLogs);
+            var sb = new StringBuilder();
+            sb.Append("OpLogs:");
+            Str.BuildString(sb, OpLogs);
             return sb.ToString();
         }
 
-		public override void Encode(ByteBuffer bb)
-		{
-			bb.WriteUInt(OpLogs.Count);
-			foreach (var opLog in OpLogs)
-			{
-				bb.WriteUInt(opLog.op);
-				if (opLog.op < OpLog.OP_CLEAR)
-				{
-					bb.WriteUInt(opLog.index);
-					if (opLog.op < OpLog.OP_REMOVE)
-						SerializeHelper<E>.Encode(bb, opLog.value);
-				}
-			}
-		}
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteUInt(OpLogs.Count);
+            foreach (var opLog in OpLogs)
+            {
+                bb.WriteUInt(opLog.op);
+                if (opLog.op < OpLog.OP_CLEAR)
+                {
+                    bb.WriteUInt(opLog.index);
+                    if (opLog.op < OpLog.OP_REMOVE)
+                        SerializeHelper<E>.Encode(bb, opLog.value);
+                }
+            }
+        }
 
         public override void Decode(ByteBuffer bb)
         {
-			OpLogs.Clear();
-			for (var logSize = bb.ReadUInt(); --logSize >= 0;)
-			{
-				int op = bb.ReadUInt();
-				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-				E value = default;
-				if (op < OpLog.OP_REMOVE)
-					value = SerializeHelper<E>.Decode(bb);
-				OpLogs.Add(new OpLog(op, index, value));
-			}
-		}
-	}
+            OpLogs.Clear();
+            for (var logSize = bb.ReadUInt(); --logSize >= 0;)
+            {
+                int op = bb.ReadUInt();
+                int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+                E value = default;
+                if (op < OpLog.OP_REMOVE)
+                    value = SerializeHelper<E>.Decode(bb);
+                OpLogs.Add(new OpLog(op, index, value));
+            }
+        }
+    }
 }

@@ -213,7 +213,10 @@ namespace Zeze.Util
 			if (type == typeof(double))
 				return "double";
 
-			if (type == typeof(Zeze.Net.Binary))
+            if (type == typeof(decimal))
+                return "decimal";
+
+            if (type == typeof(Zeze.Net.Binary))
 				return "binary";
 			if (type == typeof(string))
 				return "string";

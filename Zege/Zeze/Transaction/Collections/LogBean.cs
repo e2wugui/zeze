@@ -42,7 +42,41 @@ namespace Zeze.Transaction.Collections
         {
             throw new System.NotImplementedException();
         }
+
+        public static void EncodeLogBean(ByteBuffer bb, LogBean logBean)
+        {
+            // 使用byte，未来可能扩展其他LogBean子类。
+            if (logBean is LogDynamic)
+                bb.WriteByte(1);
+
+            else // 全部都是LogBean子类，只能else。
+                bb.WriteByte(0);
+            logBean.Encode(bb);
+        }
 #endif
+
+        public static LogBean DecodeLogBean(ByteBuffer bb)
+        {
+            var type = bb.ReadByte();
+            LogBean logBean;
+            switch (type)
+            {
+                case 0:
+                    logBean = new LogBean();
+                    break;
+                case 1:
+#if USE_CONFCS
+                    logBean = new LogConfDynamic();
+#else
+                    logBean = new LogDynamic();
+#endif
+                    break;
+                default:
+                    throw new System.Exception("unknown logBean subclass type=" + type);
+            }
+            logBean.Decode(bb);
+            return logBean;
+        }
 
         public override void Decode(ByteBuffer bb)
         {
