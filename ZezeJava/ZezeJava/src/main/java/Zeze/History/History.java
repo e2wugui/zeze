@@ -131,7 +131,7 @@ public class History {
 			logChanges.setProtocolArgument(protocolArgument);
 ///		var sb = new StringBuilder();
 		for (var e : changes.getRecords().entrySet()) {
-			if (e.getValue().getTable().isMemory())
+			if (null == e.getValue().getTable() || e.getValue().getTable().isMemory())
 				continue; // 内存表的日志变更不需要持久化，直接忽略。
 ///			if (!checker2.add(e.getKey().getKey()))
 ///				logger.error("concurrent log({})", e.getKey().getKey());
