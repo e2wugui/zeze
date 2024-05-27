@@ -132,6 +132,7 @@
 		<zstd-jni.version>1.5.6-3</zstd-jni.version>
 		<consul-api.version>1.4.5</consul-api.version>
 		<freemarker.version>2.3.32</freemarker.version>
+		<thymeleaf.version>3.1.2.RELEASE</thymeleaf.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
@@ -291,6 +292,13 @@
 			<groupId>org.freemarker</groupId>
 			<artifactId>freemarker</artifactId>
 			<version>${freemarker.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.thymeleaf</groupId>
+			<artifactId>thymeleaf</artifactId>
+			<version>${thymeleaf.version}</version>
 			<scope>provided</scope>
 		</dependency>
 

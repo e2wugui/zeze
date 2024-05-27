@@ -152,7 +152,6 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	private final @NotNull AsyncSocket serverSocket;
 	private final @NotNull RocksDatabase autoKeysDb;
 	private final @NotNull RocksDatabase.Table autoKeyTable;
-	private final @NotNull RocksDatabase.Table id128Table;
 	private final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 	private final Id128UdpServer id128Server;
 
@@ -595,7 +594,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 		autoKeysDb = new RocksDatabase(Path.of(this.conf.dbHome, autokeys).toString());
 		autoKeyTable = autoKeysDb.getOrAddTable("autokey");
-		id128Table = autoKeysDb.getOrAddTable("id128");
+		var id128Table = autoKeysDb.getOrAddTable("id128");
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		serverSocket = server.newServerSocket(ipaddress, port,

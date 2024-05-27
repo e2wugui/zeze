@@ -38,8 +38,9 @@ dependencies {
     // for new Compress/Decompress Codec in Zeze.Net
     implementation 'com.github.luben:zstd-jni:1.5.6-3'
 
-    // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
     implementation 'org.freemarker:freemarker:2.3.32'
+    implementation 'org.thymeleaf:thymeleaf:3.1.2.RELEASE'
+    // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
 }
 
 tasks.withType(JavaCompile) {

@@ -49,6 +49,8 @@ dependencies {
 
     // for FreeMarker
     compileOnly 'org.freemarker:freemarker:2.3.32'
+
+    // for Thymeleaf
     compileOnly 'org.thymeleaf:thymeleaf:3.1.2.RELEASE'
 }
 

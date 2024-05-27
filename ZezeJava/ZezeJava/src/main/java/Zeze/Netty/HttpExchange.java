@@ -5,7 +5,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.net.URLDecoder;
 import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -225,7 +224,7 @@ public class HttpExchange {
 	}
 
 	public @NotNull String contentString() {
-		return content.toString(StandardCharsets.UTF_8);
+		return content.toString(HttpServer.defaultCharset);
 	}
 
 	public byte @NotNull [] contentBytes() {
@@ -286,7 +285,7 @@ public class HttpExchange {
 		for (int i = 0, n = s.length(); i < n; i++) {
 			var c = s.charAt(i);
 			if (c == '%' || c == '+')
-				return URLDecoder.decode(s, StandardCharsets.UTF_8);
+				return URLDecoder.decode(s, HttpServer.defaultCharset);
 		}
 		return s;
 	}
@@ -333,7 +332,7 @@ public class HttpExchange {
 	}
 
 	public @NotNull Map<String, String> contentQueryMap() {
-		return parseQuery(content().toString(StandardCharsets.UTF_8));
+		return parseQuery(content().toString(HttpServer.defaultCharset));
 	}
 
 	public static @NotNull String filePath(@NotNull String path) {
@@ -739,7 +738,7 @@ public class HttpExchange {
 	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
 									   @Nullable String content) {
 		return send(status, contentType, content == null || content.isEmpty() ? Unpooled.EMPTY_BUFFER
-				: Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
+				: Unpooled.wrappedBuffer(content.getBytes(HttpServer.defaultCharset)));
 	}
 
 	public @NotNull ChannelFuture sendPlainText(@NotNull HttpResponseStatus status, @Nullable String text) {
@@ -768,30 +767,6 @@ public class HttpExchange {
 		return send(status, "text/xml; charset=utf-8", xml);
 	}
 
-	public void sendThymeleaf(@Nullable Object model) throws Exception {
-		var context = new Context();
-		if (null != model)
-			context.setVariable("bean", model); // 单个对象时怎么取名？
-		sendThymeleaf(context);
-	}
-
-	public void sendThymeleaf(@NotNull Context model) throws Exception {
-		var thymeleaf = server.getThymeleaf();
-		if (thymeleaf == null)
-			throw new IllegalStateException("Thymeleaf not available");
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> {
-				try {
-					thymeleaf.sendResponse(this, model);
-				} catch (Exception e) {
-					Task.forceThrow(e);
-				}
-			});
-		} else
-			thymeleaf.sendResponse(this, model);
-	}
-
 	public void sendFreeMarker(@Nullable Object model) throws Exception {
 		var freeMarker = server.getFreeMarker();
 		if (freeMarker == null)
@@ -807,6 +782,32 @@ public class HttpExchange {
 			});
 		} else
 			freeMarker.sendResponse(this, model);
+	}
+
+	public void sendThymeleaf(@Nullable Object model) throws Exception {
+		Context context;
+		if (model instanceof Context)
+			context = (Context)model;
+		else {
+			context = new Context();
+			if (model != null)
+				context.setVariable("bean", model); // 单个对象时怎么取名？
+		}
+
+		var thymeleaf = server.getThymeleaf();
+		if (thymeleaf == null)
+			throw new IllegalStateException("Thymeleaf not available");
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			t.runWhileCommit(() -> {
+				try {
+					thymeleaf.sendResponse(this, context);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+		} else
+			thymeleaf.sendResponse(this, context);
 	}
 
 	public void sendFile(@NotNull String filePath) throws Exception {
