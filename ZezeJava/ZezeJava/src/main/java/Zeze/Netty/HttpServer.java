@@ -4,6 +4,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
@@ -17,6 +19,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLException;
+import javax.validation.constraints.Null;
 import Zeze.Application;
 import Zeze.Net.Helper;
 import Zeze.Services.ServiceManager.AbstractAgent;
@@ -58,6 +61,8 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("VulnerableCodeUsages")
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
+	public static final @NotNull Charset defaultCharset = StandardCharsets.UTF_8;
+
 	protected static final int sendStackTrace = PropertiesHelper.getInt("HttpServer.sendStackTrace", 1);
 	protected static final AttributeKey<Integer> idleTimeKey = AttributeKey.valueOf("ZezeIdleTime");
 	protected static final AttributeKey<Integer> outBufHashKey = AttributeKey.valueOf("ZezeOutBufHash"); // 用于判断输出buffer是否有变化
@@ -190,6 +195,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	 * 子类需要freemarker时，构造，并且重载这个方法。
 	 */
 	public @Nullable FreeMarker getFreeMarker() {
+		return null;
+	}
+
+	public @Nullable Thymeleaf getThymeleaf() {
 		return null;
 	}
 

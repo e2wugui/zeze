@@ -20,8 +20,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class FreeMarker {
-	public static final @NotNull Charset defaultCharset = StandardCharsets.UTF_8;
-
 	private final Configuration freeMarker = new Configuration(Configuration.VERSION_2_3_32);
 	private final ConcurrentHashSet<String> withContentLength = new ConcurrentHashSet<>();
 
@@ -29,7 +27,7 @@ public class FreeMarker {
 		freeMarker.setDirectoryForTemplateLoading(templateDir);
 
 		// Recommended settings for new projects:
-		freeMarker.setDefaultEncoding(defaultCharset.name());
+		freeMarker.setDefaultEncoding(HttpServer.defaultCharset.name());
 		freeMarker.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
 		freeMarker.setLogTemplateExceptions(false);
 		freeMarker.setWrapUncheckedExceptions(true);
@@ -66,66 +64,5 @@ public class FreeMarker {
 			}
 		}
 		// todo Netty 主要是close问题。我印象中只要使用x.send即可，不需要关心close。
-	}
-
-	public static class HttpExchangeContentLengthWriter extends Writer {
-		private final @NotNull HttpExchange x;
-		private final @NotNull ByteBuf html = PooledByteBufAllocator.DEFAULT.buffer(64 * 1024);
-
-		public HttpExchangeContentLengthWriter(@NotNull HttpExchange x) {
-			this.x = x;
-		}
-
-		public int getContentLength() {
-			return html.readableBytes();
-		}
-
-		@Override
-		public void write(char @NotNull [] cbuf, int off, int len) {
-			html.writeCharSequence(CharBuffer.wrap(cbuf, off, len), defaultCharset);
-		}
-
-		@Override
-		public void flush() throws IOException {
-			// do nothing
-		}
-
-		@Override
-		public void close() throws IOException {
-			x.send(HttpResponseStatus.OK, "text/html; charset=utf-8", html);
-		}
-	}
-
-	public static class HttpExchangeStreamWriter extends Writer {
-		private final @NotNull HttpExchange x;
-		private int contentLength;
-
-		public HttpExchangeStreamWriter(@NotNull HttpExchange x) {
-			this.x = x;
-			//noinspection VulnerableCodeUsages
-			x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
-					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
-		}
-
-		public int getContentLength() {
-			return contentLength;
-		}
-
-		@Override
-		public void write(char @NotNull [] cbuf, int off, int len) {
-			var byteBuffer = defaultCharset.encode(CharBuffer.wrap(cbuf, off, len));
-			contentLength += byteBuffer.remaining();
-			x.sendStream(byteBuffer);
-		}
-
-		@Override
-		public void flush() throws IOException {
-			// do nothing
-		}
-
-		@Override
-		public void close() throws IOException {
-			x.endStream();
-		}
 	}
 }

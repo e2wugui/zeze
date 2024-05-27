@@ -71,6 +71,7 @@ import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCountUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.thymeleaf.context.Context;
 
 @SuppressWarnings("VulnerableCodeUsages")
 public class HttpExchange {
@@ -765,6 +766,30 @@ public class HttpExchange {
 
 	public @NotNull ChannelFuture sendXml(@NotNull HttpResponseStatus status, @Nullable String xml) {
 		return send(status, "text/xml; charset=utf-8", xml);
+	}
+
+	public void sendThymeleaf(@Nullable Object model) throws Exception {
+		var context = new Context();
+		if (null != model)
+			context.setVariable("bean", model); // 单个对象时怎么取名？
+		sendThymeleaf(context);
+	}
+
+	public void sendThymeleaf(@NotNull Context model) throws Exception {
+		var thymeleaf = server.getThymeleaf();
+		if (thymeleaf == null)
+			throw new IllegalStateException("Thymeleaf not available");
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			t.runWhileCommit(() -> {
+				try {
+					thymeleaf.sendResponse(this, model);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+		} else
+			thymeleaf.sendResponse(this, model);
 	}
 
 	public void sendFreeMarker(@Nullable Object model) throws Exception {
