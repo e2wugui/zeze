@@ -1,15 +1,19 @@
 package Zeze.Services.ServiceManager;
 
 import java.util.concurrent.atomic.AtomicLong;
+import org.jetbrains.annotations.NotNull;
 
 public class TidCache {
-	private final String name;
-	private final AbstractAgent agent;
+	public static final int ALLOCATE_COUNT_MIN = 16;
+	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
+
+	private final @NotNull String name;
+	private final @NotNull AbstractAgent agent;
 	private final long start;
-	private final AtomicLong current;
+	private final @NotNull AtomicLong current;
 	private final long end;
 
-	public TidCache(String name, AbstractAgent agent, long start, int count) {
+	public TidCache(@NotNull String name, @NotNull AbstractAgent agent, long start, int count) {
 		this.name = name;
 		this.agent = agent;
 		this.start = start;
@@ -17,11 +21,11 @@ public class TidCache {
 		this.end = start + count;
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
-	public AbstractAgent getAgent() {
+	public @NotNull AbstractAgent getAgent() {
 		return agent;
 	}
 
@@ -32,9 +36,6 @@ public class TidCache {
 	public long getStart() {
 		return start;
 	}
-
-	public static final int ALLOCATE_COUNT_MIN = 16;
-	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
 	public int allocateCount() {
 		var cur = current.get();

@@ -222,27 +222,23 @@ public class PList2<V extends Bean> extends PList<V> {
 		var log = (LogList2<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
-///			try {
-				switch (opLog.op) {
-				case LogList1.OpLog.OP_MODIFY:
-					opLog.value.initRootInfo(rootInfo, this);
-					tmp = tmp.with(opLog.index, opLog.value);
-					break;
-				case LogList1.OpLog.OP_ADD:
-					opLog.value.initRootInfo(rootInfo, this);
-					tmp = tmp.plus(opLog.index, opLog.value);
-					break;
-				case LogList1.OpLog.OP_REMOVE:
-					tmp = tmp.minus(opLog.index);
-					break;
-				case LogList1.OpLog.OP_CLEAR:
-					tmp = Empty.vector();
-					break;
-				}
-///			} catch (IndexOutOfBoundsException e) {
-///				throw new RuntimeException(opLog.index + "," + tmp.size(), e);
+			switch (opLog.op) {
+			case LogList1.OpLog.OP_MODIFY:
+				opLog.value.initRootInfo(rootInfo, this);
+				tmp = tmp.with(opLog.index, opLog.value);
+				break;
+			case LogList1.OpLog.OP_ADD:
+				opLog.value.initRootInfo(rootInfo, this);
+				tmp = tmp.plus(opLog.index, opLog.value);
+				break;
+			case LogList1.OpLog.OP_REMOVE:
+				tmp = tmp.minus(opLog.index);
+				break;
+			case LogList1.OpLog.OP_CLEAR:
+				tmp = Empty.vector();
+				break;
 			}
-///		}
+		}
 		list = tmp;
 
 		// apply changed

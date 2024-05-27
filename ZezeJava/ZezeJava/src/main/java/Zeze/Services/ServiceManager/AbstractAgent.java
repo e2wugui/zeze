@@ -23,9 +23,9 @@ import java.util.List;
 
 /*
  * Agent发起协议	ServiceManager处理后通知		Agent接收通知后回调
- * EditService	给订阅者广播Edit				onChanged
- * Subscribe	给发起者回复BSubscribeResult	onChanged
- * UnSubscribe	无							无
+ * EditService		给订阅者广播Edit				onChanged
+ * Subscribe		给发起者回复BSubscribeResult	onChanged
+ * UnSubscribe		无								无
  */
 public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	static final @NotNull Logger logger = LogManager.getLogger(AbstractAgent.class);
@@ -48,10 +48,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
 	protected @Nullable Runnable onKeepAlive;
-	private volatile TaskCompletionSource<TidCache> lastTidCacheFuture;
-	private volatile Id128UdpClient.FutureNode lastTid128CacheFuture;
-	protected Id128UdpClient tid128UdpClient; // 子类初始化。
-
+	private volatile @Nullable TaskCompletionSource<TidCache> lastTidCacheFuture;
+	private volatile @Nullable Id128UdpClient.FutureNode lastTid128CacheFuture;
+	protected @Nullable Id128UdpClient tid128UdpClient; // 子类初始化。
 
 	protected final ConcurrentHashMap<String, AutoKey> autoKeys = new ConcurrentHashMap<>();
 
@@ -79,16 +78,15 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected boolean triggerOfflineNotify(@NotNull BOfflineNotify notify) {
 		var handle = onOfflineNotifies.get(notify.notifyId);
-		if (null == handle)
-			return false;
-
-		try {
-			handle.run(notify);
-			return true;
-		} catch (Exception ex) {
-			logger.error("", ex);
-			return false;
+		if (handle != null) {
+			try {
+				handle.run(notify);
+				return true;
+			} catch (Exception ex) {
+				logger.error("triggerOfflineNotify exception:", ex);
+			}
 		}
+		return false;
 	}
 
 	public @Nullable Runnable getOnKeepAlive() {
@@ -101,24 +99,25 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected abstract void allocate(@NotNull AutoKey autoKey, int pool);
 
-	public TaskCompletionSource<TidCache> getLastTidCacheFuture() {
+	public @Nullable TaskCompletionSource<TidCache> getLastTidCacheFuture() {
 		return lastTidCacheFuture;
 	}
 
-	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(String globalName) {
+	public @NotNull TaskCompletionSource<TidCache> allocateTidCacheFuture(@NotNull String globalName) {
 		var future = new TaskCompletionSource<TidCache>();
 		lock();
 		try {
-			var tmp = lastTidCacheFuture;
-			var allocateCount = tmp == null ? TidCache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
-			var sent = allocateAsync(globalName, allocateCount, (rpc) -> {
+			var lastFuture = lastTidCacheFuture;
+			var allocateCount = lastFuture == null ? TidCache.ALLOCATE_COUNT_MIN : lastFuture.get().allocateCount();
+			var sent = allocateAsync(globalName, allocateCount, rpc -> {
 				lock();
 				try {
 					if (rpc.getResultCode() == 0) {
 						var newest = new TidCache(globalName, this, rpc.Result.getStartId(), rpc.Result.getCount());
 						future.setResult(newest);
 					} else {
-						future.setException(new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode())));
+						var exception = new Exception("AllocateId rc=" + IModule.getErrorCode(rpc.getResultCode()));
+						future.setException(exception);
 					}
 				} finally {
 					unlock();
@@ -135,23 +134,24 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		return future;
 	}
 
-	public Id128UdpClient.FutureNode getLastTid128CacheFuture() {
+	public @Nullable Id128UdpClient.FutureNode getLastTid128CacheFuture() {
 		return lastTid128CacheFuture;
 	}
 
-	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(String globalName) {
+	public @NotNull Id128UdpClient.FutureNode allocateTid128CacheFuture(@NotNull String globalName) {
 		lock();
 		try {
-			var tmp = lastTid128CacheFuture;
-			var allocateCount = tmp == null ? Tid128Cache.ALLOCATE_COUNT_MIN : tmp.get().allocateCount();
-			lastTid128CacheFuture = tmp = tid128UdpClient.allocateFuture(globalName, allocateCount);
-			return tmp;
+			var future = lastTid128CacheFuture;
+			var allocateCount = future == null ? Tid128Cache.ALLOCATE_COUNT_MIN : future.get().allocateCount();
+			//noinspection DataFlowIssue
+			lastTid128CacheFuture = future = tid128UdpClient.allocateFuture(globalName, allocateCount);
+			return future;
 		} finally {
 			unlock();
 		}
 	}
 
-	protected abstract boolean allocateAsync(String globalName, int allocCount,
+	protected abstract boolean allocateAsync(@NotNull String globalName, int allocCount,
 											 ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
 
 	public abstract void start() throws Exception;

@@ -13,32 +13,28 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class History {
-///	private static final Logger logger = LogManager.getLogger(History.class);
-
 	// 为了节约内存，在确实需要的时候才分配。
 	// 为了在锁外并发。使用并发Map，否则ArrayList或者自己实现的支持splice的连接表效率更高。
-	private volatile ConcurrentHashMap<Id128, BLogChanges.Data> logChanges;
+	private volatile @Nullable ConcurrentHashMap<Id128, BLogChanges.Data> logChanges;
 
 	// 这里为了并发接收数据，不能优化为可null？需要确认。
 	private final ConcurrentHashMap<Id128, Binary> encoded = new ConcurrentHashMap<>();
 
-	public History() {
-	}
-
-	public History(BLogChanges.Data firstData) {
+	public History(@NotNull BLogChanges.Data firstData) {
 		addLogChanges(firstData);
 	}
 
-	public void addLogChanges(BLogChanges.Data _logChanges) {
-		if (null == logChanges)
-			logChanges = new ConcurrentHashMap<>();
+	public void addLogChanges(@NotNull BLogChanges.Data _logChanges) {
+		var logChanges = this.logChanges;
+		if (logChanges == null)
+			this.logChanges = logChanges = new ConcurrentHashMap<>();
 		logChanges.put(_logChanges.getGlobalSerialId(), _logChanges);
 	}
 
 	public void encodeN() {
 		// rrs 锁外
 		var changes = logChanges; // volatile
-		if (null != changes) {
+		if (changes != null) {
 			changes.forEach((key, v) -> {
 				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
 				encoded.computeIfAbsent(v.getGlobalSerialId(), __ -> {
@@ -56,7 +52,7 @@ public class History {
 	public void encode0() {
 		// 锁内
 		var changes = logChanges;
-		if (null != changes) {
+		if (changes != null) {
 			changes.forEach((key, v) -> {
 				// logChanges只要系列号一样，表示内容一样，所以，只要key存在，不需要再encode一次。
 				encoded.computeIfAbsent(v.getGlobalSerialId(), __ -> {
@@ -69,7 +65,7 @@ public class History {
 		}
 	}
 
-	public void flush(Database.Table table, Database.Transaction txn) {
+	public void flush(@NotNull Database.Table table, @NotNull Database.Transaction txn) {
 		// 但仅仅Checkpoint访问，不需要加锁。现实也在锁内。
 		//logger.debug("flush: {}", encoded.size());
 		for (var e : encoded.entrySet()) {
@@ -92,66 +88,54 @@ public class History {
 	}
 
 	// merge 辅助方法，完整的判断to,from及里面的logChanges的null状况。
-	public static History merge(History to, History from) {
+	public static @Nullable History merge(@Nullable History to, @Nullable History from) {
 		// rrs 锁内
 		// 整体查看
-		if (null == to)
+		if (to == null)
 			return from; // still maybe null. 直接全部接管。需要确认from不会再被修改。
 
 		// 合并encoded
-		if (null != from)
+		if (from != null)
 			putEncodedAll(to.encoded, from.encoded);
 
 		// 合并logChanges
-		if (null == to.logChanges) {
-			if (null != from)
+		var toLogChanges = to.logChanges;
+		if (toLogChanges == null) {
+			if (from != null)
 				to.logChanges = from.logChanges; // still maybe null
-
 			return to;
 		}
 
-		if (null != from && null != from.logChanges)
-			putLogChangesAll(to.logChanges, from.logChanges);
-
+		if (from != null) {
+			var fromLogChanges = from.logChanges;
+			if (fromLogChanges != null)
+				putLogChangesAll(toLogChanges, fromLogChanges);
+		}
 		return to;
 	}
 
 	public static @NotNull BLogChanges.Data buildLogChanges(@NotNull Id128UdpClient.FutureNode future,
 															@NotNull Changes changes,
 															@Nullable String protocolClassName,
-															@Nullable Binary protocolArgument, int serverId) {
-		var id128Cache = future.get();
-		Id128 globalSerialId = id128Cache.next();
+															@Nullable Binary protocolArgument) {
 		var logChanges = new BLogChanges.Data();
-		logChanges.setTimestamp(System.currentTimeMillis());
-		logChanges.setGlobalSerialId(globalSerialId);
-		if (null != protocolClassName)
+		if (protocolClassName != null)
 			logChanges.setProtocolClassName(protocolClassName);
-		if (null != protocolArgument)
+		if (protocolArgument != null)
 			logChanges.setProtocolArgument(protocolArgument);
-///		var sb = new StringBuilder();
 		for (var e : changes.getRecords().entrySet()) {
-			if (null == e.getValue().getTable() || e.getValue().getTable().isMemory())
-				continue; // 内存表的日志变更不需要持久化，直接忽略。
-///			if (!checker2.add(e.getKey().getKey()))
-///				logger.error("concurrent log({})", e.getKey().getKey());
-			var tableKey = new BTableKey(
-					e.getKey().getId(),
-					new Binary(e.getValue().getTable().encodeKey(e.getKey().getKey())));
-			var bbValue = ByteBuffer.Allocate();
-			e.getValue().encode(bbValue);
-			logChanges.getChanges().put(tableKey, new Binary(bbValue));
-///			sb.append(e.getKey().getKey()).append(',');
-///			var old = checker.computeIfAbsent(e.getKey().getKey(), __ -> new AtomicLong()).getAndSet(globalSerialId.getLow());
-///			if (old >= globalSerialId.getLow())
-///				logger.error("unordered({}): {} >= {}", e.getKey().getKey(), old, globalSerialId.getLow());
-///			checker2.remove(e.getKey().getKey());
+			var value = e.getValue();
+			var table = value.getTable();
+			if (table != null && !table.isMemory()) { // 内存表的日志变更不需要持久化，直接忽略。
+				var key = e.getKey();
+				var tableKey = new BTableKey(key.getId(), new Binary(table.encodeKey(key.getKey())));
+				var bbValue = ByteBuffer.Allocate();
+				value.encode(bbValue);
+				logChanges.getChanges().put(tableKey, new Binary(bbValue));
+			}
 		}
-///		logger.info("{}-{},{} {}_{} {}",
-///				globalSerialId.getHigh(), globalSerialId.getLow(), sb, serverId, future.id, Verify.toString(logChanges));
+		logChanges.setTimestamp(System.currentTimeMillis());
+		logChanges.setGlobalSerialId(future.get().next());
 		return logChanges;
 	}
-
-///	private static final ConcurrentHashMap<Object, AtomicLong> checker = new ConcurrentHashMap<>();
-///	private static final ConcurrentHashSet<Object> checker2 = new ConcurrentHashSet<>();
 }

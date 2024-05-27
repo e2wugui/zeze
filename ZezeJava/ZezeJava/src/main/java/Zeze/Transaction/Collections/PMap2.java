@@ -157,22 +157,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		for (var e : log.getChangedWithKey().entrySet()) {
 			var k = e.getKey();
 			Bean value = tmp.get(k);
-///			if (value == null) {
-///				var sb = new StringBuilder();
-///				sb.append("{");
-///				for (var e2 : tmp.entrySet()) {
-///					sb.append(e2.getKey()).append('(').append(e2.getKey().getClass().getName()).append("):")
-///							.append(sb.append(e2.getValue())).append(',');
-///				}
-///				sb.append('}');
-///				logger.error("not found key: {}({}), tmp={}", k, k != null ? k.getClass().getName() : "", sb);
-///			}
 			value.followerApply(e.getValue()); // value NullPointerException if not exist.
 		}
 		map = tmp;
 	}
-
-///	private static final Logger logger = LogManager.getLogger(PMap2.class);
 
 	@Override
 	public @NotNull LogBean createLogBean() {

@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -17,9 +18,11 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Id128UdpClient {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger();
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
 	private static final int eSendImmediatelyGuard = 1; // >1会导致Simulate测试跑得太慢,还需要分析原因
@@ -27,25 +30,24 @@ public class Id128UdpClient {
 	private static final int eRpcTimeout = 5000;
 
 	private final AbstractAgent agent;
-	private final DatagramSocket udp;
-	private final Thread worker;
+	private final DatagramSocket udp = new DatagramSocket();
+	private final Thread worker = new Thread(this::run, "Id128UdpClient");
 	private boolean running = true;
 	private final ConcurrentHashMap<String, FutureNode> currentFuture = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, FutureNode> tailFuture = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<AllocateId128> pendingRpc = new LongConcurrentHashMap<>();
 	private long lastProcessTickTime = System.currentTimeMillis();
 	private long lastRpcTimeoutCheckTime = System.currentTimeMillis();
-	private final FuncLong nextSessionIdFunc;
+	private final @NotNull FuncLong nextSessionIdFunc;
 
-	public Id128UdpClient(AbstractAgent agent, String ip, int port, FuncLong nextSessionIdFunc) throws Exception {
+	public Id128UdpClient(AbstractAgent agent, @NotNull String ip, int port, @NotNull FuncLong nextSessionIdFunc)
+			throws IOException {
 		this.agent = agent;
 		this.nextSessionIdFunc = nextSessionIdFunc;
 
-		udp = new DatagramSocket();
 		udp.connect(InetAddress.getByName(ip), port);
 		udp.setSoTimeout(eSoTimeoutTick);
 
-		worker = new Thread(this::run, "Id128UdpClient");
 		worker.setDaemon(true);
 		worker.setPriority(Thread.NORM_PRIORITY + 2);
 		worker.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
@@ -58,17 +60,14 @@ public class Id128UdpClient {
 	public static class FutureNode extends TaskCompletionSource<Tid128Cache> {
 		private final int count;
 		private final AtomicInteger pending = new AtomicInteger();
-		private FutureNode prev; // 单向链表,指向前一个.
-
-///		private static final AtomicLong counter = new AtomicLong();
-///		public final long id = counter.incrementAndGet();
+		private @Nullable FutureNode prev; // 单向链表,指向前一个
 
 		public FutureNode(int count) {
 			this.count = count;
 		}
 	}
 
-	public FutureNode allocateFuture(String globalName, int allocateCount) {
+	public @NotNull FutureNode allocateFuture(@NotNull String globalName, int allocateCount) {
 		// 多次请求的allocateCount不一样,只记住第一次的.
 		var outFuture = new OutObject<FutureNode>();
 		currentFuture.compute(globalName, (key, value) -> {
@@ -145,14 +144,15 @@ public class Id128UdpClient {
 	}
 
 	// 单线程
-	private void processResult(AllocateId128 r) {
+	private void processResult(@NotNull AllocateId128 r) {
 		var context = pendingRpc.remove(r.getSessionId());
-		if (null != context) {
+		if (context != null) {
 			var futureNode = context.getFutureNode();
 			// 判断是否已经设置过结果.迟到或乱序的rpc.
 			if (futureNode.pending.get() > 0) {
 				var futureContext = futureNode;
-				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent, r.Result.getStartId(), r.Result.getCount());
+				var tid128Cache = new Tid128Cache(context.Argument.getName(), agent,
+						r.Result.getStartId(), r.Result.getCount());
 				do {
 					var current = futureNode;
 					// 循环中需要再次判断, see eRpcTimeoutChecker, 但是不判断也是可以的,下面代码刚好可以工作.
@@ -254,7 +254,7 @@ public class Id128UdpClient {
 		}
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		var nextSessionId = new AtomicLong();
 		var server = new Id128UdpServer();
 		server.start(); // must start first. server.getLocalPort() need.

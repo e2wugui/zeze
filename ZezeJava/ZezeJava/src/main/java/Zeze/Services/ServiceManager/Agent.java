@@ -46,7 +46,8 @@ public final class Agent extends AbstractAgent {
 		lock();
 		try {
 			client.start();
-			tid128UdpClient.start();
+			if (tid128UdpClient != null)
+				tid128UdpClient.start();
 		} finally {
 			unlock();
 		}
@@ -142,7 +143,7 @@ public final class Agent extends AbstractAgent {
 	}
 
 	@Override
-	protected boolean allocateAsync(String globalName, int allocCount,
+	protected boolean allocateAsync(@NotNull String globalName, int allocCount,
 									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 		if (allocCount < 1)
 			throw new IllegalArgumentException();
@@ -285,12 +286,12 @@ public final class Agent extends AbstractAgent {
 		// 查找smAgent的Service，使用其中第一个Connector的信息。
 		var outIp = new OutObject<String>();
 		var outPort = new OutInt();
-		client.getConfig().forEachConnector2((connector -> {
+		client.getConfig().forEachConnector2(connector -> {
 			outIp.value = connector.getHostNameOrAddress();
 			outPort.value = connector.getPort();
 			return false;
-		}));
-		if (outIp.value != null && outPort.value > 0) // client 不需要。
+		});
+		if (outIp.value != null && outPort.value > 0) // client需要
 			super.tid128UdpClient = new Id128UdpClient(this, outIp.value, outPort.value, client::nextSessionId);
 	}
 
@@ -302,7 +303,7 @@ public final class Agent extends AbstractAgent {
 	public void stop() throws Exception {
 		lock();
 		try {
-			if (null != tid128UdpClient) {
+			if (tid128UdpClient != null) {
 				tid128UdpClient.stop();
 				tid128UdpClient = null;
 			}

@@ -187,7 +187,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (strongRef == null && !r.getDirty()) {
 						var find = localRocksCacheTable.find(this, key);
 						if (find != null) {
-///							logger.info("load from localrocks {} {}", key, find.objectId());
 							strongRef = find;
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);

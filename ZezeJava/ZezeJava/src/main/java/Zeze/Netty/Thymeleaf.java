@@ -8,24 +8,22 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 
 public class Thymeleaf {
-	private final TemplateEngine templateEngine;
-	private final FileTemplateResolver templateResolver;
+	private final TemplateEngine templateEngine = new TemplateEngine();
+	private final FileTemplateResolver templateResolver = new FileTemplateResolver();
 	private final ConcurrentHashSet<String> withContentLength = new ConcurrentHashSet<>();
 
 	public Thymeleaf(@NotNull String templateDir) {
-		templateEngine = new TemplateEngine();
-		templateResolver = new FileTemplateResolver();
 		templateResolver.setTemplateMode(TemplateMode.HTML);
 		templateResolver.setPrefix(templateDir);
 		templateResolver.setSuffix(".html");
 		templateEngine.setTemplateResolver(templateResolver);
 	}
 
-	public TemplateEngine getTemplateEngine() {
+	public @NotNull TemplateEngine getTemplateEngine() {
 		return templateEngine;
 	}
 
-	public FileTemplateResolver getTemplateResolver() {
+	public @NotNull FileTemplateResolver getTemplateResolver() {
 		return templateResolver;
 	}
 

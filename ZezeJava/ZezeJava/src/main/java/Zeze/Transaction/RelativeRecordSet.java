@@ -36,15 +36,16 @@ public final class RelativeRecordSet extends ReentrantLock {
 		super(true);
 	}
 
-	public History getHistory() {
+	public @Nullable History getHistory() {
 		return history;
 	}
 
-	void addLogChanges(BLogChanges.Data logChanges) {
+	void addLogChanges(@NotNull BLogChanges.Data logChanges) {
 		var h = history;
 		if (h == null)
-			history = h = new History();
-		h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
+			history = new History(logChanges);
+		else
+			h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
 	}
 
 	@Nullable
@@ -62,8 +63,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	public void addOnzProcedures(@Nullable OnzProcedure onzProcedure) {
-		if (null != onzProcedure) {
-			if (null == onzProcedures)
+		if (onzProcedure != null) {
+			if (onzProcedures == null)
 				onzProcedures = new HashSet<>();
 			onzProcedures.add(onzProcedure);
 		}
@@ -73,9 +74,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		//if (r.getRelativeRecordSet().RecordSet != null)
 		//    return; // 这里仅合并孤立记录。外面检查。
 
-		if (recordSet == null) {
+		if (recordSet == null)
 			recordSet = new HashSet<>();
-		}
 		recordSet.add(r);
 		if (r.getRelativeRecordSet() != this) { // 自己：不需要更新MergeTo和引用。
 			r.getRelativeRecordSet().mergeTo = this;
@@ -87,25 +87,24 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (rrs == this) // 这个方法仅用于合并其他rrs
 			throw new IllegalStateException("Merge Self! " + rrs);
 
+		//noinspection NonAtomicOperationOnVolatileField
 		history = History.merge(history, rrs.history);
 
-		if (rrs.recordSet == null) {
+		if (rrs.recordSet == null)
 			return; // 孤立记录，后面单独合并。
-		}
 
-		if (recordSet == null) {
+		if (recordSet == null)
 			recordSet = new HashSet<>();
-		}
 
 		for (var r : rrs.recordSet) {
 			recordSet.add(r);
 			r.setRelativeRecordSet(this);
 		}
 
-		if (null != rrs.onzProcedures) {
-			if (null == this.onzProcedures)
-				this.onzProcedures = new HashSet<>();
-			this.onzProcedures.addAll(rrs.onzProcedures);
+		if (rrs.onzProcedures != null) {
+			if (onzProcedures == null)
+				onzProcedures = new HashSet<>();
+			onzProcedures.addAll(rrs.onzProcedures);
 		}
 
 		rrs.mergeTo = this;
@@ -196,7 +195,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 				commit.run(); // 必须在锁获得并且合并完集合以后才提交修改。
 				var logChanges = collectChanges.call();
 				mergedSet.addOnzProcedures(onzProcedure);
-				if (null != logChanges)
+				if (logChanges != null)
 					mergedSet.addLogChanges(logChanges); // History存在并且开启，则加入rrs。
 
 				if (needFlushNow) {
@@ -498,7 +497,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		if (rrs.mergeTo == null) {
 			// 多线程，未保护访问变量，可以不是很准确。
 			var history = rrs.getHistory();
-			if (null != history)
+			if (history != null)
 				history.encodeN(); // 锁外尝试编码。
 		}
 
@@ -517,19 +516,16 @@ public final class RelativeRecordSet extends ReentrantLock {
 	}
 
 	static void flushWhenCheckpoint(@NotNull Checkpoint checkpoint) {
-		var mode = checkpoint.zeze.getConfig().getCheckpointFlushMode();
 		// 根据选项执行不同的flush模式。
-		switch (mode) {
+		switch (checkpoint.zeze.getConfig().getCheckpointFlushMode()) {
 		case SingleThread:
-			for (var rrs : checkpoint.relativeRecordSetMap) {
+			for (var rrs : checkpoint.relativeRecordSetMap)
 				flush(checkpoint, rrs);
-			}
 			break;
 
-		case MultiThread: {
+		case MultiThread:
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> flush(checkpoint, rrs));
-		}
-		break;
+			break;
 
 		case SingleThreadMerge: {
 			var flushSet = new FlushSet(checkpoint);
@@ -571,13 +567,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 		while (rrs != null) {
 			r.enterFairLock(); // 用来保护State的查看。
 			try {
-				if (r.getState() == GlobalCacheManagerConst.StateRemoved) {
+				if (r.getState() == GlobalCacheManagerConst.StateRemoved)
 					return;
-				}
 			} finally {
 				r.exitFairLock();
 			}
-
 			rrs = flushWhenReduce(rrs, checkpoint);
 		}
 	}
@@ -586,7 +580,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 															   @NotNull Checkpoint checkpoint) {
 		rrs.lock();
 		try {
-			if (rrs.mergeTo == null) {
+			var mergeTo = rrs.mergeTo;
+			if (mergeTo == null) {
 				if (rrs.recordSet != null) { // 孤立记录不用保存，肯定没有修改。
 					checkpoint.flush(rrs);
 					rrs.delete();
@@ -599,12 +594,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 			// 或者被 Checkpoint Flush。
 			// 此时可以认为直接成功了吧？
 			// 或者不判断这个，总是由上面的步骤中处理。
-			if (rrs.mergeTo == RelativeRecordSet.deleted) {
-				// has flush
-				return null;
-			}
+			if (mergeTo == RelativeRecordSet.deleted)
+				return null; // has flush
 
-			return rrs.mergeTo; // 返回这个能更快得到新集合的引用。
+			return mergeTo; // 返回这个能更快得到新集合的引用。
 		} finally {
 			rrs.unlock();
 		}
@@ -615,13 +608,10 @@ public final class RelativeRecordSet extends ReentrantLock {
 		lock();
 		try {
 			var mergeTo = this.mergeTo;
-			if (mergeTo != null) {
+			if (mergeTo != null)
 				return "[MergeTo-" + mergeTo.id + "]";
-			}
-
-			if (recordSet == null) {
+			if (recordSet == null)
 				return id + "-[Isolated]";
-			}
 			return id + "-" + recordSet;
 		} finally {
 			unlock();

@@ -2,17 +2,21 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
+import org.jetbrains.annotations.NotNull;
 
 public class Tid128Cache extends FastLock {
-	private final String name;
-	private final AbstractAgent agent;
-	private final Id128 start;
-	private Id128 current;
-	private final Id128 end;
+	public static final int ALLOCATE_COUNT_MIN = 16;
+	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
+
+	private final @NotNull String name;
+	private final @NotNull AbstractAgent agent;
+	private final @NotNull Id128 start;
+	private @NotNull Id128 current;
+	private final @NotNull Id128 end;
 	private final int count;
 	private volatile int allocated;
 
-	public Tid128Cache(String name, AbstractAgent agent, Id128 start, int count) {
+	public Tid128Cache(@NotNull String name, @NotNull AbstractAgent agent, @NotNull Id128 start, int count) {
 		this.name = name;
 		this.agent = agent;
 		this.start = start;
@@ -21,24 +25,21 @@ public class Tid128Cache extends FastLock {
 		this.count = count;
 	}
 
-	public String getName() {
+	public @NotNull String getName() {
 		return name;
 	}
 
-	public AbstractAgent getAgent() {
+	public @NotNull AbstractAgent getAgent() {
 		return agent;
 	}
 
-	public Id128 get() {
+	public @NotNull Id128 get() {
 		return current;
 	}
 
-	public Id128 getStart() {
+	public @NotNull Id128 getStart() {
 		return start;
 	}
-
-	public static final int ALLOCATE_COUNT_MIN = 16;
-	public static final int ALLOCATE_COUNT_MAX = 1024 * 1024;
 
 	public int allocateCount() {
 		var half = count >> 1;
@@ -48,7 +49,7 @@ public class Tid128Cache extends FastLock {
 		return Math.min(ALLOCATE_COUNT_MAX, count * 2);
 	}
 
-	public Id128 next() {
+	public @NotNull Id128 next() {
 		lock();
 		try {
 			if (current.compareTo(end) < 0) {

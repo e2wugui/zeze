@@ -70,7 +70,6 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
-///	private TaskCompletionSource<Tid128Cache> tidCacheFuture;
 
 	private Transaction() {
 	}
@@ -129,7 +128,6 @@ public final class Transaction {
 		redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
-///		tidCacheFuture = null;
 	}
 
 	void reuseTransactionForRedo(@NotNull CheckResult checkResult) {
@@ -147,7 +145,6 @@ public final class Transaction {
 		redoBeans.clear();
 		redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
-///		tidCacheFuture = null;
 	}
 
 	public void begin() {
@@ -436,16 +433,6 @@ public final class Transaction {
 	}
 
 	private void finalCommit(@NotNull Procedure proc) throws Exception {
-/*///
-		final Id128 tid;
-		if (tidCacheFuture != null) {
-			tid = tidCacheFuture.get().next();
-			for (var e : accessedRecords.entrySet())
-				e.getValue().atomicTupleRecord.record.setTid(tid);
-		} else {
-			tid = null; // 为了final的赋值,以后不会用到.
-		}
-*/
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
 		if (null != onzProcedure) {
@@ -507,10 +494,11 @@ public final class Transaction {
 					cc.collectRecord(ar);
 			}
 
-			if (proc.getZeze().getConfig().isHistory() && !cc.getRecords().isEmpty()) {
-				return History.buildLogChanges(proc.getZeze().getServiceManager().getLastTid128CacheFuture(),
-						cc, proc.getProtocolClassName(), proc.getProtocolRawArgument(),
-						proc.getZeze().getConfig().getServerId());
+			var zeze = proc.getZeze();
+			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
+				var future = zeze.getServiceManager().getLastTid128CacheFuture();
+				assert future != null;
+				return History.buildLogChanges(future, cc, proc.getProtocolClassName(), proc.getProtocolRawArgument());
 			}
 			return null;
 		}); // onz patch: 新增参数
@@ -631,23 +619,15 @@ public final class Transaction {
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 				case GlobalCacheManagerConst.StateModify:
-///					if (procedure.getZeze().getConfig().isHistory() && tidCacheFuture == null) // modify 命中，尝试使用当前的cache。
-///						tidCacheFuture = procedure.getZeze().getServiceManager().getLastTid128CacheFuture();
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
 
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					var isHistory = procedure.getZeze().getConfig().isHistory();
-					if (isHistory) {
-///						tidCacheFuture =
-						procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
-								procedure.getZeze().getConfig().getHistory());
-///						logger.info("acquire modify: {},{}",
-///								procedure.getZeze().getConfig().getServerId(),
-///								e.atomicTupleRecord.record.getObjectKey());
-					}
+					var zeze = procedure.getZeze();
+					if (zeze.getConfig().isHistory())
+						zeze.getServiceManager().allocateTid128CacheFuture(zeze.getConfig().getHistory());
 					var acquire = e.atomicTupleRecord.record.acquire(GlobalCacheManagerConst.StateModify,
 							e.atomicTupleRecord.record.isFresh(), false);
 					//noinspection DataFlowIssue
@@ -658,17 +638,6 @@ public final class Transaction {
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}
-					/*///
-					if (isHistory) {
-						// acquire 比 allocate 慢，此时future结果应已返回，至少绝大多数情况下都已返回。
-						var startTid = tidCacheFuture.get().getStart();
-						if (null != acquire.reducedTid && acquire.reducedTid.compareTo(startTid) > 0) {
-							tidCacheFuture = procedure.getZeze().getServiceManager().allocateTid128CacheFuture(
-									procedure.getZeze().getConfig().getHistory()
-							);
-						}
-					}
-					*/
 					e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateModify);
 					return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
 							? CheckResult.Redo : CheckResult.Success;
