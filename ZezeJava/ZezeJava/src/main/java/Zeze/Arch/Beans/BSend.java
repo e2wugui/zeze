@@ -1,17 +1,21 @@
 package Zeze.Arch.Beans;
 
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Serialize.Serializable;
+import Zeze.Util.LongList;
+import Zeze.Util.Str;
 import org.jetbrains.annotations.NotNull;
 
-public class BSend extends Zeze.Transaction.Bean {
+public class BSend implements Serializable {
 	public static final long TYPEID = 545774009128015305L;
 
-	private final Zeze.Util.LongList _linkSids = new Zeze.Util.LongList();
+	private final LongList _linkSids = new LongList();
 	private long _protocolType;
-	private @NotNull Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
+	private @NotNull Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-	public @NotNull Zeze.Util.LongList getLinkSids() {
+	public @NotNull LongList getLinkSids() {
 		return _linkSids;
 	}
 
@@ -23,11 +27,11 @@ public class BSend extends Zeze.Transaction.Bean {
 		_protocolType = value;
 	}
 
-	public @NotNull Zeze.Net.Binary getProtocolWholeData() {
+	public @NotNull Binary getProtocolWholeData() {
 		return _protocolWholeData;
 	}
 
-	public void setProtocolWholeData(@NotNull Zeze.Net.Binary value) {
+	public void setProtocolWholeData(@NotNull Binary value) {
 		//noinspection ConstantValue
 		if (value == null)
 			throw new IllegalArgumentException();
@@ -35,29 +39,15 @@ public class BSend extends Zeze.Transaction.Bean {
 	}
 
 	public BSend() {
-		_protocolWholeData = Zeze.Net.Binary.Empty;
+		_protocolWholeData = Binary.Empty;
 	}
 
-	public BSend(long _protocolType_, @NotNull Zeze.Net.Binary _protocolWholeData_) {
+	public BSend(long _protocolType_, @NotNull Binary _protocolWholeData_) {
 		_protocolType = _protocolType_;
 		//noinspection ConstantValue
 		if (_protocolWholeData_ == null)
 			throw new IllegalArgumentException();
 		_protocolWholeData = _protocolWholeData_;
-	}
-
-	public void assign(@NotNull BSend other) {
-		_linkSids.clear();
-		_linkSids.addAll(other._linkSids);
-		setProtocolType(other.getProtocolType());
-		setProtocolWholeData(other.getProtocolWholeData());
-	}
-
-	@Override
-	public @NotNull BSend copy() {
-		var copy = new BSend();
-		copy.assign(this);
-		return copy;
 	}
 
 	@Override
@@ -72,25 +62,24 @@ public class BSend extends Zeze.Transaction.Bean {
 		return sb.append(System.lineSeparator()).toString();
 	}
 
-	@Override
 	public void buildString(@NotNull StringBuilder sb, int level) {
-		sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
+		sb.append(Str.indent(level)).append("Zeze.Arch.Beans.BSend: {").append(System.lineSeparator());
 		level += 4;
-		sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
+		sb.append(Str.indent(level)).append("linkSids=[");
 		if (!_linkSids.isEmpty()) {
 			sb.append(System.lineSeparator());
 			level += 4;
 			for (int i = 0, n = _linkSids.size(); i < n; i++) {
-				sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_linkSids.get(i)).append(',').append(System.lineSeparator());
+				sb.append(Str.indent(level)).append("Item=").append(_linkSids.get(i)).append(',').append(System.lineSeparator());
 			}
 			level -= 4;
-			sb.append(Zeze.Util.Str.indent(level));
+			sb.append(Str.indent(level));
 		}
 		sb.append(']').append(',').append(System.lineSeparator());
-		sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
-		sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(getProtocolWholeData()).append(System.lineSeparator());
+		sb.append(Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
+		sb.append(Str.indent(level)).append("protocolWholeData=").append(_protocolWholeData).append(System.lineSeparator());
 		level -= 4;
-		sb.append(Zeze.Util.Str.indent(level)).append('}');
+		sb.append(Str.indent(level)).append('}');
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,14 +109,14 @@ public class BSend extends Zeze.Transaction.Bean {
 			}
 		}
 		{
-			long _x_ = getProtocolType();
+			long _x_ = _protocolType;
 			if (_x_ != 0) {
 				_i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
 				_o_.WriteLong(_x_);
 			}
 		}
 		{
-			var _x_ = getProtocolWholeData();
+			var _x_ = _protocolWholeData;
 			if (_x_.size() != 0) {
 				_i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
 				_o_.WriteBinary(_x_);
@@ -157,11 +146,11 @@ public class BSend extends Zeze.Transaction.Bean {
 			_i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
 		}
 		if (_i_ == 2) {
-			setProtocolType(_o_.ReadLong(_t_));
+			_protocolType = _o_.ReadLong(_t_);
 			_i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
 		}
 		if (_i_ == 3) {
-			setProtocolWholeData(_o_.ReadBinary(_t_));
+			_protocolWholeData = _o_.ReadBinary(_t_);
 			_i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
 		}
 		while (_t_ != 0) {

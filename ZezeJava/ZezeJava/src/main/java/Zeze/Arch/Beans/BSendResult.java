@@ -2,29 +2,20 @@ package Zeze.Arch.Beans;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Serialize.Serializable;
+import Zeze.Util.LongList;
+import Zeze.Util.Str;
 
-public final class BSendResult extends Zeze.Transaction.Bean {
+public final class BSendResult implements Serializable {
 	public static final long TYPEID = -7186434891670297524L;
 
-	private final Zeze.Util.LongList _ErrorLinkSids = new Zeze.Util.LongList();
+	private final LongList _ErrorLinkSids = new LongList();
 
-	public Zeze.Util.LongList getErrorLinkSids() {
+	public LongList getErrorLinkSids() {
 		return _ErrorLinkSids;
 	}
 
 	public BSendResult() {
-	}
-
-	public void assign(BSendResult other) {
-		_ErrorLinkSids.clear();
-		_ErrorLinkSids.addAll(other._ErrorLinkSids);
-	}
-
-	@Override
-	public BSendResult copy() {
-		var copy = new BSendResult();
-		copy.assign(this);
-		return copy;
 	}
 
 	@Override
@@ -39,23 +30,22 @@ public final class BSendResult extends Zeze.Transaction.Bean {
 		return sb.append(System.lineSeparator()).toString();
 	}
 
-	@Override
 	public void buildString(StringBuilder sb, int level) {
-		sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
+		sb.append(Str.indent(level)).append("Zeze.Arch.Beans.BSendResult: {").append(System.lineSeparator());
 		level += 4;
-		sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids=[");
+		sb.append(Str.indent(level)).append("ErrorLinkSids=[");
 		if (!_ErrorLinkSids.isEmpty()) {
 			sb.append(System.lineSeparator());
 			level += 4;
 			for (int i = 0, n = _ErrorLinkSids.size(); i < n; i++) {
-				sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_ErrorLinkSids.get(i)).append(',').append(System.lineSeparator());
+				sb.append(Str.indent(level)).append("Item=").append(_ErrorLinkSids.get(i)).append(',').append(System.lineSeparator());
 			}
 			level -= 4;
-			sb.append(Zeze.Util.Str.indent(level));
+			sb.append(Str.indent(level));
 		}
 		sb.append(']').append(System.lineSeparator());
 		level -= 4;
-		sb.append(Zeze.Util.Str.indent(level)).append('}');
+		sb.append(Str.indent(level)).append('}');
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
