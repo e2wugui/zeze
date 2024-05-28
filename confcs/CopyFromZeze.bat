@@ -5,13 +5,13 @@ pushd %~dp0
 set Zeze=..\Zeze
 set confcs=.\Zeze
 
-rem md %confcs%\Zeze                         2> nul
-rem md %confcs%\Zeze\Net                     2> nul
-rem md %confcs%\Zeze\Serialize               2> nul
-rem md %confcs%\Zeze\Services                2> nul
-rem md %confcs%\Zeze\Transaction             2> nul
-rem md %confcs%\Zeze\Transaction\Collections 2> nul
-rem md %confcs%\Zeze\Util                    2> nul
+rem md %confcs%                         2> nul
+rem md %confcs%\Net                     2> nul
+rem md %confcs%\Serialize               2> nul
+rem md %confcs%\Services                2> nul
+rem md %confcs%\Transaction             2> nul
+rem md %confcs%\Transaction\Collections 2> nul
+rem md %confcs%\Util                    2> nul
 
 copy /y %Zeze%\Config.cs                       %confcs%\
 copy /y %Zeze%\IModule.cs                      %confcs%\

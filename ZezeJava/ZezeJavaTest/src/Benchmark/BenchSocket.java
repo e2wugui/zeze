@@ -3,7 +3,6 @@ package Benchmark;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Config;
 import Zeze.Net.Acceptor;
@@ -26,6 +25,7 @@ import Zeze.Services.Handshake.Constant;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
+import Zeze.Util.StableRandom;
 import demo.Module1.BValue;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,8 +43,8 @@ public class BenchSocket {
 				rand.nextBytes(src[i]);
 			}
 			var b = new Zeze.Util.Benchmark();
-			BufferCodec bufcp = new BufferCodec(count * block);
-			Compress cp = new Compress(bufcp);
+			BufferCodec bc = new BufferCodec(count * block);
+			Compress cp = new Compress(bc);
 			var sum = 0L;
 			for (int i = 0; i < count; ++i) {
 				var index = rand.nextInt(src.length);
@@ -54,8 +54,8 @@ public class BenchSocket {
 				sum += bb.length;
 			}
 			var seconds = b.report("compress " + block, count);
-			var cpsize = bufcp.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)cpsize / sum);
+			var bbSize = bc.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)bbSize / sum);
 		}
 	}
 
@@ -107,10 +107,10 @@ public class BenchSocket {
 		var src = prepareDatas(count / 3_0000, max);
 
 		System.out.println("benchmark ...");
-		BufferCodec bufcp = new BufferCodec(count * max.value);
 		{
+			BufferCodec bc = new BufferCodec(count * max.value);
 			var b = new Zeze.Util.Benchmark();
-			Compress cp = new Compress(bufcp);
+			Compress cp = new Compress(bc);
 			var rand = new java.util.Random(1); // 固定的随机种子。
 			var sum = 0L;
 			for (int i = 0; i < count; ++i) {
@@ -121,17 +121,17 @@ public class BenchSocket {
 				sum += bb.size();
 			}
 			var seconds = b.report("compress", count);
-			var cpsize = bufcp.getBuffer().size();
-			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)cpsize / sum);
+			var bbSize = bc.getBuffer().size();
+			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s " + (double)bbSize / sum);
 		}
 		{
 			var b = new Zeze.Util.Benchmark();
-			BufferCodec bufdp = new BufferCodec(count * max.value);
-			Decompress dp = new Decompress(bufdp);
-			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
+			BufferCodec bc = new BufferCodec(count * max.value);
+			Decompress dp = new Decompress(bc);
+			dp.update(bc.getBuffer().Bytes, bc.getBuffer().ReadIndex, bc.getBuffer().size());
 			dp.flush();
 			var seconds = b.report("decompress", count);
-			var sum = bufdp.getBuffer().size();
+			var sum = bc.getBuffer().size();
 			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		}
 	}
@@ -459,15 +459,18 @@ public class BenchSocket {
 	@Test
 	public void testSerializeSend() {
 		for (int i = 0; i < 2; i++) {
-			var bb0 = benchSendEncode();
-			var bb1 = benchFastSendEncode();
-			benchSendDecode(bb1);
-			benchFastSendDecode(bb0);
+			var seed = System.nanoTime();
+			var rand = new StableRandom(seed);
+			var bb0 = benchSendEncode(rand);
+			rand.setSeed(seed);
+			var bb1 = benchFastSendEncode(rand);
+			var sum0 = benchSendDecode(bb1);
+			var sum1 = benchFastSendDecode(bb0);
+			Assert.assertEquals(sum0, sum1);
 		}
 	}
 
-	private static List<ByteBuffer> benchSendEncode() {
-		var rand = ThreadLocalRandom.current();
+	private static List<ByteBuffer> benchSendEncode(StableRandom rand) {
 		var pdata = new byte[100];
 		var b = new Zeze.Util.Benchmark();
 		var count = 100_000;
@@ -486,7 +489,7 @@ public class BenchSocket {
 		return result;
 	}
 
-	private static void benchSendDecode(List<ByteBuffer> bbs) {
+	private static long benchSendDecode(List<ByteBuffer> bbs) {
 		var b = new Zeze.Util.Benchmark();
 		var sum = 0L;
 		for (var bb : bbs) {
@@ -497,10 +500,10 @@ public class BenchSocket {
 		}
 		b.report("benchSendDecode    ", bbs.size());
 		System.out.println("sum=" + sum);
+		return sum;
 	}
 
-	private static List<ByteBuffer> benchFastSendEncode() {
-		var rand = ThreadLocalRandom.current();
+	private static List<ByteBuffer> benchFastSendEncode(StableRandom rand) {
 		var pdata = new byte[100];
 		var b = new Zeze.Util.Benchmark();
 		var count = 100_000;
@@ -519,7 +522,7 @@ public class BenchSocket {
 		return result;
 	}
 
-	private static void benchFastSendDecode(List<ByteBuffer> bbs) {
+	private static long benchFastSendDecode(List<ByteBuffer> bbs) {
 		var b = new Zeze.Util.Benchmark();
 		var sum = 0L;
 		for (var bb : bbs) {
@@ -530,6 +533,7 @@ public class BenchSocket {
 		}
 		b.report("benchFastSendDecode", bbs.size());
 		System.out.println("sum=" + sum);
+		return sum;
 	}
 
 	@Test
