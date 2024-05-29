@@ -149,6 +149,7 @@ namespace Zeze.Gen.Types
 		public bool Extendable { get; private set; }
 		public bool GenEquals { get; private set; }
 		public string Base { get; private set; }
+		public string Interface { get; private set; }
 		public List<string> Derives = new();
 		public string Version { get; private set; }
 		public bool MappingClass { get; private set; }
@@ -217,7 +218,8 @@ namespace Zeze.Gen.Types
 			Base = self.GetAttribute("base");
 			if (Base != "" && !Base.Contains('.'))
 				Base = Space.Path(".", Base);
-			var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
+            Interface = self.GetAttribute("interface").Trim();
+            var hashTypeId = Util.FixedHash.Hash64(space.Path(".", _name));
 			// 这里的写法：hot bean 允许自定义TypeId，
 			// 但是java的Bean禁止了自定义功能，
 			// 而Hot目前仅用于java，

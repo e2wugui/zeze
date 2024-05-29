@@ -35,7 +35,8 @@ namespace Zeze.Gen.cs
             PropertyReadOnly.Make(bean, sw, "        ");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Transaction.Bean, {bean.Name}ReadOnly");
+            var extraInterface = bean.Interface == "" ? "" : ", " + bean.Interface;
+            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Transaction.Bean, {bean.Name}ReadOnly{extraInterface}");
             sw.WriteLine("    {");
             WriteDefine(sw);
             sw.WriteLine("    }");

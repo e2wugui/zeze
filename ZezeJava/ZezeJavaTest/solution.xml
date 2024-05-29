@@ -77,7 +77,7 @@
 				<value bean="BSimple:2" />
 			</variable>
 		</bean>
-		<bean name="BValue" version="version" equals="true">
+		<bean name="BValue" version="version" equals="true" interface="UnitTest.Zeze.ILong2">
 			<enum name="Enum1" value="4" comment="enum的注释"/>
 
 			<variable id="1" name="int_1" type="int" AllowNegative="true"/> com aa

@@ -27,7 +27,8 @@ namespace Zeze.Gen.rrcs
                 sw.WriteLine(bean.Comment);
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Raft.RocksRaft.Bean");
+            var extraInterface = bean.Interface == "" ? "" : ", " + bean.Interface;
+            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Raft.RocksRaft.Bean{extraInterface}");
             sw.WriteLine("    {");
             WriteDefine(sw);
             sw.WriteLine("    }");

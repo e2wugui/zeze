@@ -19,10 +19,14 @@ namespace Zeze.Gen.javadata
             var static0 = bean.OnlyData ? "" : "static ";
             var final = bean.Extendable ? "" : "final ";
             if (bean.OnlyData)
-                sw.WriteLine("@SuppressWarnings({\"ForLoopReplaceableByForEach\", \"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"})");
+            {
+                var extraSuppress = bean.Interface == "" ? "" : ", \"override\"";
+                sw.WriteLine($"@SuppressWarnings({{\"ForLoopReplaceableByForEach\", \"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"{extraSuppress}}})");
+            }
             else
                 sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
-            sw.WriteLine($"public {static0}{final}class {className} extends Zeze.Transaction.Data {{");
+            var extraInterface = bean.Interface == "" ? "" : " implements " + bean.Interface;
+            sw.WriteLine($"public {static0}{final}class {className} extends Zeze.Transaction.Data{extraInterface} {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }
