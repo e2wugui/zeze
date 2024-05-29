@@ -6,7 +6,7 @@ public class GenericDynamicBean extends GenericBean {
 	public long typeId;
 
 	@Override
-	public @NotNull GenericDynamicBean decode(@NotNull ByteBuffer bb) {
+	public @NotNull GenericDynamicBean decode(@NotNull IByteBuffer bb) {
 		typeId = bb.ReadLong();
 		super.decode(bb);
 		return this;

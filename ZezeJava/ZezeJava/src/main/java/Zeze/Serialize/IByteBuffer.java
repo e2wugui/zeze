@@ -212,7 +212,8 @@ public interface IByteBuffer {
 
 	void ReadDoubles(double @NotNull [] buf, int offset, int length);
 
-	@NotNull String ReadString();
+	@NotNull
+	String ReadString();
 
 	default @NotNull Binary ReadBinary() {
 		var bytes = ReadBytes();
@@ -223,7 +224,8 @@ public interface IByteBuffer {
 
 	void Skip(int n);
 
-	@NotNull ByteBuffer ReadByteBuffer();
+	@NotNull
+	ByteBuffer ReadByteBuffer();
 
 	@SuppressWarnings("unchecked")
 	default <T extends java.io.Serializable> T ReadJavaObject() {
@@ -404,15 +406,20 @@ public interface IByteBuffer {
 				+ " at " + getReadIndex() + '/' + getWriteIndex());
 	}
 
-	@NotNull Vector2 ReadVector2();
+	@NotNull
+	Vector2 ReadVector2();
 
-	@NotNull Vector3 ReadVector3();
+	@NotNull
+	Vector3 ReadVector3();
 
-	@NotNull Vector4 ReadVector4();
+	@NotNull
+	Vector4 ReadVector4();
 
-	@NotNull Quaternion ReadQuaternion();
+	@NotNull
+	Quaternion ReadQuaternion();
 
-	@Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
+	@Nullable
+	ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
 
 	default @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while (tag != 0) {
@@ -664,6 +671,10 @@ public interface IByteBuffer {
 			SkipUnknownField(type1);
 			SkipUnknownField(type2);
 		}
+	}
+
+	default void skipField(int type) {
+		SkipUnknownField(type | 0x10); // ensure high bits not zero
 	}
 
 	default void SkipUnknownField(int tag) {

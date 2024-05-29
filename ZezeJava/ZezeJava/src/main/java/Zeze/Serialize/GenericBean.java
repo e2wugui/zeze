@@ -17,7 +17,38 @@ public class GenericBean {
 
 	public final Map<Integer, Object> fields = new TreeMap<>(); // key=0 for parent bean
 
-	public @NotNull GenericBean decode(@NotNull ByteBuffer bb) {
+	public interface Walker {
+		/**
+		 * 以回调方式遍历Bean的序列化数据. 如果需要忽略当前字段,需要调用bb.skipField(type)
+		 *
+		 * @param varId 字段id. 从1开始按顺序遍历, 但最后有可能出现0表示父类型(此时type一定是Bean类型)
+		 * @param type  {@link ByteBuffer#INTEGER}等类型枚举. Bean类型可以递归调用walk
+		 * @param bb    当前的bb,如果要继续walk则需要bb.ReadIndex移过当前字段
+		 * @return 是否继续walk
+		 */
+		boolean handleField(int varId, int type, @NotNull IByteBuffer bb);
+	}
+
+	/**
+	 * @return 如果全部遍历完则返回true; 如果walker中途返回了false则立即返回false
+	 */
+	public static boolean walk(@NotNull IByteBuffer bb, @NotNull Walker walker) {
+		for (int id = 0; ; ) {
+			int tag = bb.ReadByte() & 0xff;
+			if (tag < 0x10) {
+				if (tag == 1 && !walker.handleField(0, ByteBuffer.BEAN, bb))
+					return false;
+				if (tag <= 1)
+					return true;
+				throw new IllegalStateException("invalid tag=" + tag);
+			}
+			id += bb.ReadTagSize(tag);
+			if (!walker.handleField(id, tag & ByteBuffer.TAG_MASK, bb))
+				return false;
+		}
+	}
+
+	public @NotNull GenericBean decode(@NotNull IByteBuffer bb) {
 		fields.clear();
 		for (int id = 0; ; ) {
 			int tag = bb.ReadByte() & 0xff;
@@ -33,7 +64,7 @@ public class GenericBean {
 		}
 	}
 
-	public static @NotNull Object decodeField(@NotNull ByteBuffer bb, int type) {
+	public static @NotNull Object decodeField(@NotNull IByteBuffer bb, int type) {
 		switch (type) {
 		case ByteBuffer.INTEGER:
 			var vl = bb.ReadLong();
@@ -247,5 +278,19 @@ public class GenericBean {
 		var bb = ByteBuffer.Allocate(16);
 		b.encode(bb);
 		System.out.println(new GenericBean().decode(bb));
+		bb.ReadIndex = 0;
+		walk(bb, (varId, type, bb1) -> {
+			System.out.println("varId=" + varId + ", type=" + type + ", readIndex=" + bb1.getReadIndex());
+			if (type == ByteBuffer.BEAN) {
+				walk(bb, (varId2, type2, bb2) -> {
+					System.out.println("  varId=" + varId2 + ", type=" + type2 + ", readIndex=" + bb2.getReadIndex());
+					bb2.skipField(type2);
+					return true;
+				});
+			} else
+				bb.skipField(type);
+			return true;
+		});
+		System.out.println(bb.size());
 	}
 }
