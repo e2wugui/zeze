@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,11 +8,13 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
-	private transient volatile Map<K, V> read;
-	private final HashMap<K, V> write;
-	private final ReentrantLock writeLock = new ReentrantLock();
+public class FewModifyMap<K, V> implements Map<K, V>, Serializable {
+	private transient volatile @Nullable Map<K, V> read;
+	private final @NotNull HashMap<K, V> write;
+	private transient final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifyMap() {
 		write = new HashMap<>();
@@ -25,19 +28,26 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 		write = new HashMap<>(initialCapacity, loadFactor);
 	}
 
-	protected Map<K, V> prepareRead() {
+	public FewModifyMap(@NotNull Map<? extends K, ? extends V> m) {
+		write = new HashMap<>(m);
+	}
+
+	private @NotNull Map<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
 			try {
-				if ((r = read) == null) {
+				if ((r = read) == null)
 					read = r = Map.copyOf(write);
-				}
 			} finally {
 				writeLock.unlock();
 			}
 		}
 		return r;
+	}
+
+	public @NotNull Map<K, V> snapshot() {
+		return prepareRead();
 	}
 
 	@Override
@@ -61,12 +71,12 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V get(Object key) {
+	public @Nullable V get(Object key) {
 		return prepareRead().get(key);
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public @Nullable V put(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.put(key, value);
@@ -78,7 +88,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V putIfAbsent(K key, V value) {
+	public @Nullable V putIfAbsent(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.putIfAbsent(key, value);
@@ -90,7 +100,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V replace(K key, V value) {
+	public @Nullable V replace(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.replace(key, value);
@@ -115,7 +125,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(Object key) {
 		writeLock.lock();
 		try {
 			var prev = write.remove(key);
@@ -140,7 +150,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 
@@ -154,7 +164,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+	public void replaceAll(@NotNull BiFunction<? super K, ? super V, ? extends V> function) {
 		writeLock.lock();
 		try {
 			if (write.isEmpty())
@@ -180,22 +190,22 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public Set<K> keySet() {
+	public @NotNull Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
 	@Override
-	public Collection<V> values() {
+	public @NotNull Collection<V> values() {
 		return prepareRead().values();
 	}
 
 	@Override
-	public Set<Entry<K, V>> entrySet() {
+	public @NotNull Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
 	}
 
 	@Override
-	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V compute(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.compute(key, remappingFunction);
@@ -207,7 +217,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+	public @Nullable V computeIfAbsent(K key, @NotNull Function<? super K, ? extends V> mappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfAbsent(key, mappingFunction);
@@ -219,7 +229,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V computeIfPresent(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfPresent(key, remappingFunction);
@@ -231,7 +241,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	}
 
 	@Override
-	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V merge(K key, V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.merge(key, value, remappingFunction);
@@ -242,13 +252,16 @@ public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 		}
 	}
 
+	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public FewModifyMap<K, V> clone() throws CloneNotSupportedException {
+	public @NotNull FewModifyMap<K, V> clone() throws CloneNotSupportedException {
+		if (getClass() == FewModifyMap.class)
+			return new FewModifyMap<>(prepareRead());
 		throw new CloneNotSupportedException();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return prepareRead().toString();
 	}
 }

@@ -282,13 +282,13 @@ public class GenericBean {
 		walk(bb, (varId, type, bb1) -> {
 			System.out.println("varId=" + varId + ", type=" + type + ", readIndex=" + bb1.getReadIndex());
 			if (type == ByteBuffer.BEAN) {
-				walk(bb, (varId2, type2, bb2) -> {
+				walk(bb1, (varId2, type2, bb2) -> {
 					System.out.println("  varId=" + varId2 + ", type=" + type2 + ", readIndex=" + bb2.getReadIndex());
 					bb2.skipField(type2);
 					return true;
 				});
 			} else
-				bb.skipField(type);
+				bb1.skipField(type);
 			return true;
 		});
 		System.out.println(bb.size());

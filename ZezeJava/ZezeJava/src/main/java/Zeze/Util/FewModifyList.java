@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -10,11 +11,13 @@ import java.util.RandomAccess;
 import java.util.Spliterator;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.UnaryOperator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
-	private transient volatile List<E> read;
-	private final ArrayList<E> write;
-	private final ReentrantLock writeLock = new ReentrantLock();
+public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, Serializable {
+	private transient volatile @Nullable List<E> read;
+	private final @NotNull ArrayList<E> write;
+	private transient final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifyList() {
 		write = new ArrayList<>();
@@ -24,11 +27,11 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 		write = new ArrayList<>(initialCapacity);
 	}
 
-	public FewModifyList(Collection<? extends E> m) {
+	public FewModifyList(@NotNull Collection<? extends E> m) {
 		write = new ArrayList<>(m);
 	}
 
-	private List<E> prepareRead() {
+	private @NotNull List<E> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
@@ -40,6 +43,10 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 			}
 		}
 		return r;
+	}
+
+	public @NotNull List<E> snapshot() {
+		return prepareRead();
 	}
 
 	@Override
@@ -93,17 +100,17 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public ListIterator<E> listIterator() {
+	public @NotNull ListIterator<E> listIterator() {
 		return prepareRead().listIterator();
 	}
 
 	@Override
-	public ListIterator<E> listIterator(int index) {
+	public @NotNull ListIterator<E> listIterator(int index) {
 		return prepareRead().listIterator(index);
 	}
 
 	@Override
-	public List<E> subList(int fromIndex, int toIndex) {
+	public @NotNull List<E> subList(int fromIndex, int toIndex) {
 		return prepareRead().subList(fromIndex, toIndex);
 	}
 
@@ -123,17 +130,17 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public Iterator<E> iterator() {
+	public @NotNull Iterator<E> iterator() {
 		return prepareRead().iterator();
 	}
 
 	@Override
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return prepareRead().toArray();
 	}
 
 	@Override
-	public <T> T[] toArray(T[] a) {
+	public <T> T @NotNull [] toArray(T @NotNull [] a) {
 		return prepareRead().toArray(a);
 	}
 
@@ -164,12 +171,12 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public boolean containsAll(Collection<?> c) {
+	public boolean containsAll(@NotNull Collection<?> c) {
 		return prepareRead().containsAll(c);
 	}
 
 	@Override
-	public boolean addAll(Collection<? extends E> c) {
+	public boolean addAll(@NotNull Collection<? extends E> c) {
 		writeLock.lock();
 		try {
 			if (!write.addAll(c))
@@ -182,7 +189,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public boolean addAll(int index, Collection<? extends E> c) {
+	public boolean addAll(int index, @NotNull Collection<? extends E> c) {
 		writeLock.lock();
 		try {
 			if (!write.addAll(index, c))
@@ -195,7 +202,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@NotNull Collection<?> c) {
 		writeLock.lock();
 		try {
 			if (!write.removeAll(c))
@@ -208,7 +215,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public boolean retainAll(Collection<?> c) {
+	public boolean retainAll(@NotNull Collection<?> c) {
 		writeLock.lock();
 		try {
 			if (!write.retainAll(c))
@@ -221,7 +228,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public void replaceAll(UnaryOperator<E> operator) {
+	public void replaceAll(@NotNull UnaryOperator<E> operator) {
 		writeLock.lock();
 		try {
 			write.replaceAll(operator);
@@ -245,7 +252,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public void sort(Comparator<? super E> c) {
+	public void sort(@Nullable Comparator<? super E> c) {
 		writeLock.lock();
 		try {
 			write.sort(c);
@@ -256,26 +263,20 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public Spliterator<E> spliterator() {
+	public @NotNull Spliterator<E> spliterator() {
 		return prepareRead().spliterator();
 	}
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public FewModifyList<E> clone() throws CloneNotSupportedException {
-		if (getClass() == FewModifyList.class) {
-			writeLock.lock();
-			try {
-				return new FewModifyList<>(write);
-			} finally {
-				writeLock.unlock();
-			}
-		}
+	public @NotNull FewModifyList<E> clone() throws CloneNotSupportedException {
+		if (getClass() == FewModifyList.class)
+			return new FewModifyList<>(prepareRead());
 		throw new CloneNotSupportedException();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return prepareRead().toString();
 	}
 }

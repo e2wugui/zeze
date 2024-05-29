@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
@@ -11,17 +12,26 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serializable {
-	private transient volatile SortedMap<K, V> read;
-	private final TreeMap<K, V> write;
-	private final ReentrantLock writeLock = new ReentrantLock();
+public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Serializable {
+	private transient volatile @Nullable SortedMap<K, V> read;
+	private final @NotNull TreeMap<K, V> write;
+	private transient final ReentrantLock writeLock = new ReentrantLock();
 
 	public FewModifySortedMap() {
 		write = new TreeMap<>();
 	}
 
-	protected SortedMap<K, V> prepareRead() {
+	public FewModifySortedMap(@Nullable Comparator<? super K> comparator) {
+		write = new TreeMap<>(comparator);
+	}
+
+	public FewModifySortedMap(@NotNull Map<? extends K, ? extends V> m) {
+		write = new TreeMap<>(m);
+	}
+
+	private @NotNull SortedMap<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
@@ -36,6 +46,10 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 			}
 		}
 		return r;
+	}
+
+	public @NotNull SortedMap<K, V> snapshot() {
+		return prepareRead();
 	}
 
 	@Override
@@ -59,12 +73,12 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V get(Object key) {
+	public @Nullable V get(Object key) {
 		return prepareRead().get(key);
 	}
 
 	@Override
-	public V put(K key, V value) {
+	public @Nullable V put(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.put(key, value);
@@ -76,7 +90,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V putIfAbsent(K key, V value) {
+	public @Nullable V putIfAbsent(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.putIfAbsent(key, value);
@@ -88,7 +102,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V replace(K key, V value) {
+	public @Nullable V replace(K key, V value) {
 		writeLock.lock();
 		try {
 			var prev = write.replace(key, value);
@@ -113,7 +127,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V remove(Object key) {
+	public @Nullable V remove(Object key) {
 		writeLock.lock();
 		try {
 			var prev = write.remove(key);
@@ -138,7 +152,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public void putAll(Map<? extends K, ? extends V> m) {
+	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
 		if (m.isEmpty())
 			return;
 		writeLock.lock();
@@ -151,7 +165,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+	public void replaceAll(@NotNull BiFunction<? super K, ? super V, ? extends V> function) {
 		writeLock.lock();
 		try {
 			if (write.isEmpty())
@@ -177,25 +191,22 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public Comparator<? super K> comparator() {
+	public @Nullable Comparator<? super K> comparator() {
 		return prepareRead().comparator();
 	}
 
-	@NotNull
 	@Override
-	public SortedMap<K, V> subMap(K fromKey, K toKey) {
+	public @NotNull SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return prepareRead().subMap(fromKey, toKey);
 	}
 
-	@NotNull
 	@Override
-	public SortedMap<K, V> headMap(K toKey) {
+	public @NotNull SortedMap<K, V> headMap(K toKey) {
 		return prepareRead().headMap(toKey);
 	}
 
-	@NotNull
 	@Override
-	public SortedMap<K, V> tailMap(K fromKey) {
+	public @NotNull SortedMap<K, V> tailMap(K fromKey) {
 		return prepareRead().tailMap(fromKey);
 	}
 
@@ -210,28 +221,28 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public Set<K> keySet() {
+	public @NotNull Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
 	@Override
-	public Collection<V> values() {
+	public @NotNull Collection<V> values() {
 		return prepareRead().values();
 	}
 
 	@Override
-	public Set<Entry<K, V>> entrySet() {
+	public @NotNull Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
 	}
 
 	// 这个方法暴露了可写的操作，不安全。
-	public NavigableMap<K, V> descendingMap() {
+	public @NotNull NavigableMap<K, V> descendingMap() {
 		var tree = (TreeMap<K, V>)prepareRead();
 		return tree.descendingMap();
 	}
 
 	@Override
-	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V compute(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.compute(key, remappingFunction);
@@ -243,7 +254,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+	public @Nullable V computeIfAbsent(K key, @NotNull Function<? super K, ? extends V> mappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfAbsent(key, mappingFunction);
@@ -255,7 +266,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V computeIfPresent(K key, @NotNull BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.computeIfPresent(key, remappingFunction);
@@ -267,7 +278,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 	}
 
 	@Override
-	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+	public @Nullable V merge(K key, V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
 		writeLock.lock();
 		try {
 			var v = write.merge(key, value, remappingFunction);
@@ -278,13 +289,16 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serial
 		}
 	}
 
+	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
+	public @NotNull FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
+		if (getClass() == FewModifySortedMap.class)
+			return new FewModifySortedMap<>(prepareRead());
 		throw new CloneNotSupportedException();
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return prepareRead().toString();
 	}
 }
