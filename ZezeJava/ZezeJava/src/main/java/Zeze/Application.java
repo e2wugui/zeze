@@ -2,11 +2,14 @@ package Zeze;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -595,6 +598,20 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
+	public static void logSystemProperties() {
+		var rt = Runtime.getRuntime();
+		logger.info("java.version={}; os={},{},{}; cpu.cores={}; jvm.heap={}/{}M; file.encoding={}; timezone.offset={}",
+				System.getProperty("java.version"), System.getProperty("os.name"), System.getProperty("os.version"),
+				System.getProperty("os.arch"), rt.availableProcessors(), rt.totalMemory() >> 20,
+				rt.maxMemory() >> 20, Charset.defaultCharset().displayName(), TimeZone.getDefault().getRawOffset());
+		logger.info("user.name={}; user.dir={}", System.getProperty("user.name"), System.getProperty("user.dir"));
+		logger.info("java.class.path={}", System.getProperty("java.class.path"));
+		logger.info("sun.java.command={}", System.getProperty("sun.java.command"));
+		int i = 0;
+		for (var arg : ManagementFactory.getRuntimeMXBean().getInputArguments())
+			logger.info("jvm.arg[{}]={}", i++, arg);
+	}
+
 	public static boolean logZezeVersion() throws IOException {
 		var logged = false;
 		var urls = Application.class.getClassLoader().getResources("zeze.git.properties");
@@ -610,6 +627,15 @@ public final class Application extends ReentrantLock {
 		return logged;
 	}
 
+	private void addShutdownHook() {
+		startState = StartState.eStartingOrStopping;
+		ShutdownHook.add(this, () -> {
+			logger.info("zeze({}) ShutdownHook begin", this.projectName);
+			stop();
+			logger.info("zeze({}) ShutdownHook end", this.projectName);
+		});
+	}
+
 	public void start() throws Exception {
 		lock();
 		try {
@@ -617,15 +643,9 @@ public final class Application extends ReentrantLock {
 				return;
 			if (startState == StartState.eStartingOrStopping)
 				stop();
-			startState = StartState.eStartingOrStopping;
-			ShutdownHook.add(this, () -> {
-				logger.info("zeze({}) ShutdownHook begin", this.projectName);
-				stop();
-				logger.info("zeze({}) ShutdownHook end", this.projectName);
-			});
 
+			logSystemProperties();
 			logZezeVersion();
-
 			var serverId = conf.getServerId();
 			logger.info("Start ServerId={}", serverId);
 
@@ -640,6 +660,7 @@ public final class Application extends ReentrantLock {
 				// Set Database InUse
 				for (var db : databases.values())
 					db.getDirectOperates().setInUse(serverId, conf.getGlobalCacheManagerHostNameOrAddress());
+				addShutdownHook();
 
 				// Open RocksCache
 				var dbConf = new Config.DatabaseConf();
@@ -649,7 +670,8 @@ public final class Application extends ReentrantLock {
 				dbConf.setDatabaseType(Config.DbType.RocksDb);
 				LocalRocksCacheDb = new DatabaseRocksDb(this, dbConf);
 				LocalRocksCacheDb.open(this);
-			}
+			} else
+				addShutdownHook();
 
 			// Start ServiceManager
 			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
@@ -790,12 +812,13 @@ public final class Application extends ReentrantLock {
 				autoKeyOld = null;
 			}
 
-			conf.clearInUseAndIAmSureAppStopped(this, databases);
+			if (!isNoDatabase())
+				conf.clearInUseAndIAmSureAppStopped(this, databases);
 
 			for (var db : databases.values())
 				db.close();
 
-			if (null != dbh2AgentManager) {
+			if (dbh2AgentManager != null) {
 				dbh2AgentManager.stop();
 				dbh2AgentManager = null;
 			}

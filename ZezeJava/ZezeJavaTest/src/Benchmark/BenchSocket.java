@@ -314,8 +314,8 @@ public class BenchSocket {
 		}
 
 		public BenchEnd() {
-			Argument = new EmptyBean();
-			Result = new EmptyBean();
+			Argument = EmptyBean.instance;
+			Result = EmptyBean.instance;
 		}
 	}
 

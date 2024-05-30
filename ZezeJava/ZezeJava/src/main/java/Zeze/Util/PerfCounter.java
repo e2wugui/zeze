@@ -159,11 +159,13 @@ public final class PerfCounter extends FastLock {
 
 	private static final class CountInfo {
 		final @NotNull String name;
+		final boolean accumulate;
 		final LongAdder count = new LongAdder(); // 次数
 		long lastCount;
 
-		CountInfo(String name) {
+		CountInfo(String name, boolean accumulate) {
 			this.name = name;
+			this.accumulate = accumulate;
 		}
 	}
 
@@ -225,11 +227,15 @@ public final class PerfCounter extends FastLock {
 	}
 
 	public int registerCountIndex(String name) {
+		return registerCountIndex(name, false);
+	}
+
+	public int registerCountIndex(String name, boolean accumulate) {
 		lock();
 		try {
 			int n = countInfos.length;
 			var cis = new CountInfo[n + 1];
-			cis[n] = new CountInfo(name);
+			cis[n] = new CountInfo(name, accumulate);
 			System.arraycopy(countInfos, 0, cis, 0, n);
 			countInfos = cis;
 			return n;
@@ -604,7 +610,11 @@ public final class PerfCounter extends FastLock {
 
 			var cList = new ArrayList<CountInfo>(countInfos.length);
 			for (var ci : countInfos) {
-				ci.lastCount = ci.count.sumThenReset();
+				var newCount = ci.count.sumThenReset();
+				if (ci.accumulate)
+					ci.lastCount += newCount;
+				else
+					ci.lastCount = newCount;
 				if (ci.lastCount != 0)
 					cList.add(ci);
 			}
