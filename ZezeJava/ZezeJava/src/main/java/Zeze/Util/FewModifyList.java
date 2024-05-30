@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -14,7 +13,7 @@ import java.util.function.UnaryOperator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, Serializable {
+public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable {
 	private transient volatile @Nullable List<E> read;
 	private final @NotNull ArrayList<E> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();

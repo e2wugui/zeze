@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +10,7 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class FewModifyMap<K, V> implements Map<K, V>, Serializable {
+public class FewModifyMap<K, V> implements Map<K, V>, Cloneable {
 	private transient volatile @Nullable Map<K, V> read;
 	private final @NotNull HashMap<K, V> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();
