@@ -6,11 +6,11 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
     implementation 'org.jetbrains:annotations:24.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
-    implementation 'org.rocksdb:rocksdbjni:9.1.1'
+    implementation 'org.rocksdb:rocksdbjni:9.2.1'
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.109.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.109.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.110.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.110.Final:linux-x86_64'
     implementation 'org.slf4j:slf4j-api:2.0.13'
     implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.23.1'
 
@@ -21,11 +21,11 @@ dependencies {
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.0'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.22'
+    compileOnly 'com.alibaba:druid:1.2.23'
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
 
     // for redis(kvrocks,pika,tendis)
-    compileOnly 'redis.clients:jedis:5.1.2'
+    compileOnly 'redis.clients:jedis:5.1.3'
 
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.663'

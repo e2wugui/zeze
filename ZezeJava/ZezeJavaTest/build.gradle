@@ -15,7 +15,7 @@ dependencies {
     // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.1'
 
     // for jdbc(mysql,sqlserver,tidb)
-    implementation 'com.alibaba:druid:1.2.22'
+    implementation 'com.alibaba:druid:1.2.23'
     implementation 'com.mysql:mysql-connector-j:8.4.0'
 
     // for websocket

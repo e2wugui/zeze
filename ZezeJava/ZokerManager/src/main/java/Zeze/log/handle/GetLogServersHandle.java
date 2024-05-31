@@ -5,9 +5,9 @@ import java.util.Set;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpExchange;
 import Zeze.Services.LogAgent;
+import Zeze.Util.Json;
 import Zeze.log.LogAgentManager;
 import Zeze.log.handle.entity.BaseResponse;
-import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class GetLogServersHandle implements HttpEndStreamHandle {
@@ -16,6 +16,6 @@ public class GetLogServersHandle implements HttpEndStreamHandle {
 		LogAgent logAgent = LogAgentManager.getInstance().getLogAgent();
 		Set<String> logServers = logAgent.getLogServers();
 		var baseResponse = BaseResponse.succResult(new ArrayList<>(logServers));
-		x.sendJson(HttpResponseStatus.OK, JSONObject.toJSONString(baseResponse));
+		x.sendJson(HttpResponseStatus.OK, Json.toCompactString(baseResponse));
 	}
 }
