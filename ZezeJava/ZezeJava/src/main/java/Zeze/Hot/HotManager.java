@@ -470,8 +470,10 @@ public class HotManager extends ClassLoader {
 					// 再次停止启动失败的模块，并注销。
 					for (var startErrorIndex = startErrors.size() - 1; startErrorIndex >= 0; --startErrorIndex) {
 						var module = modules.remove(startErrors.get(startErrorIndex).getName());
-						module.stop();
-						//module.disable(); // stop() has call disable()
+						if (module != null) {
+							module.stop();
+							// module.disable(); // stop() has call disable()
+						}
 					}
 					for (var module : newModules) {
 						if (startErrors.contains(module))

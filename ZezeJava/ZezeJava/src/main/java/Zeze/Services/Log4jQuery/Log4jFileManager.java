@@ -25,7 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Log4jFileManager extends ReentrantLock {
 	public static class Log4jFile {
 		public volatile File file;
-		public volatile LogIndex index;
+		public final LogIndex index;
 
 		public Log4jFile(File file, LogIndex index) {
 			this.file = file;
@@ -59,7 +59,7 @@ public class Log4jFileManager extends ReentrantLock {
 			// 警告，如果启动的瞬间发生了log4j rotate，由于原子性没有保证，可能会创建多余的Log4jFile，
 			// 搜索的时候忽略文件不存在的错误？
 			// 暂时先不处理！
-			files.add(Log4jFile.of(active, loadIndex(active,logConf.logActive + ".index")));
+			files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
 		}
 		var period = 300_000L;
 		buildIndexTimer = Task.scheduleUnsafe(Random.getInstance().nextLong(period), period, this::buildIndex);
@@ -121,7 +121,7 @@ public class Log4jFileManager extends ReentrantLock {
 			case 0: // current log file created
 				var currentLogFileName = getCurrentLogFileName();
 				if (fileName.equals(currentLogFileName)
-					&& (files.isEmpty() || !files.get(files.size() - 1).file.getName().equals(currentLogFileName))) {
+						&& (files.isEmpty() || !files.get(files.size() - 1).file.getName().equals(currentLogFileName))) {
 					var logFile = new File(logConf.logDir, fileName);
 					files.add(Log4jFile.of(logFile, loadIndex(logFile, getCurrentIndexFileName())));
 				}

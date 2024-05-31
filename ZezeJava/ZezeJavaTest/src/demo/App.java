@@ -16,9 +16,11 @@ import Zeze.Game.ProviderWithOnline;
 import Zeze.Netty.FreeMarker;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
+import Zeze.Netty.Thymeleaf;
 import Zeze.Services.Daemon;
 import Zeze.Services.RocketMQ.Producer;
 import Zeze.Util.ShutdownHook;
+import org.jetbrains.annotations.Nullable;
 
 public class App extends Zeze.AppBase {
 	@Override
@@ -61,7 +63,7 @@ public class App extends Zeze.AppBase {
 	public HttpServer HttpServer;
 
 	public static class MyHttpServer extends HttpServer {
-		private final FreeMarker freeMarker;
+		private final @Nullable FreeMarker freeMarker;
 
 		public MyHttpServer(Application zeze) throws Exception {
 			super(zeze, null, 60);
@@ -70,8 +72,13 @@ public class App extends Zeze.AppBase {
 		}
 
 		@Override
-		public FreeMarker getFreeMarker() {
+		public @Nullable FreeMarker getFreeMarker() {
 			return freeMarker;
+		}
+
+		@Override
+		public @Nullable Thymeleaf getThymeleaf() {
+			return super.getThymeleaf(); //TODO
 		}
 	}
 

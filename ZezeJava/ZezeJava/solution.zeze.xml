@@ -1659,7 +1659,7 @@
 			<bean name="BJson">
 				<variable id="1" name="Json" type="string"/>
 			</bean>
-			
+
 			<rpc name="NewSession"  argument="BNewSession" result="BSession" handle="server"/>
 			<rpc name="CloseSession" argument="BSession" handle="server"/>
 			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
@@ -1672,7 +1672,7 @@
 		<module name="Auth" id="11036">
 			<bean name="BRoleAuth">
 				<variable id="1" name="Auths" type="map[long, string]"/>
-			</bean>			
+			</bean>
 			<table name="tRoleAuth" key="string" value="BRoleAuth" />
 
 			<bean name="BAccountAuth">
@@ -1737,7 +1737,7 @@
 			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
 			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
 			<rpc name="CommitService" argument="BCommitService" result="BCommitServiceResult"  handle="server"/>
-			
+
 			<!-- 发布，升级高层接口使用文件操作完成，不需要定义rpc -->
 
 			<!-- 服务：查询，启动，关闭 -->
@@ -1759,7 +1759,7 @@
 			<rpc name="ListSerivce" result="BListServiceResult"  handle="server"/> <!-- 工作目录的第一级子目录既是 -->
 			<rpc name="StartService" argument="BStartService" result="BService"  handle="server"/>
 			<rpc name="StopService" argument="BStopService" result="BService"  handle="server"/>
-			
+
 			<!--
 			service.xml 定义服务一些参数：path,main,argument
 			-->
@@ -1783,7 +1783,7 @@
 			<enum name="eSagaTidExist" value="3"/>
 			<enum name="eOnzTidNotFound" value="4"/>
 			<enum name="eRollback" value="5"/>
-			
+
 			<enum name="eFlushAsync" value="1"/>
 			<enum name="eFlushImmediately" value="2"/>
 			<!-- <enum name="eFlushPeriod" value="3"/> --> 有问题，不实现
@@ -1815,7 +1815,7 @@
 			</bean>
 
 			<rpc name="FuncSagaEnd" argument="BFuncSagaEnd" result="BFuncSagaEndResult" handle="server"/>
-			
+
 			<!-- 2段提交相关控制协议 -->
 			<bean name="BCommit">
 				<variable id="1" name="OnzTid" type="long"/>
@@ -1838,7 +1838,7 @@
 				<variable id="1" name="OnzTid" type="long"/>
 			</bean>
 			<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
-			
+
 			<rpc name="Checkpoint" handle="server"/>
 		</module>
 
@@ -1850,7 +1850,7 @@
 			</bean>
 			<table name="tSession" key="string" value="BSessionValue"/> key is http sessionid from cookie
 		</module>
-		
+
 		<module name="HistoryModule" id="11031" UseData="true">
 			<beankey name="BTableKey">
 				<variable id="1" name="TableId" type="int"/>

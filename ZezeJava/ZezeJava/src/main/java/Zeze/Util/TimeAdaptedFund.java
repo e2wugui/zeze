@@ -11,10 +11,7 @@ public class TimeAdaptedFund {
 	private int fund;
 	private long lastTime = System.currentTimeMillis();
 
-	/**
-	 * 先不公开，当需要自定义参数的时候再说。
-	 */
-	private TimeAdaptedFund(int fundMin, int doublyMs, int halveMs) {
+	public TimeAdaptedFund(int fundMin, int doublyMs, int halveMs) {
 		this.fundMin = fundMin;
 		this.doublyMs = doublyMs;
 		this.halveMs = halveMs;

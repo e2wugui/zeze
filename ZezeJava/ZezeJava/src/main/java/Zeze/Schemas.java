@@ -625,11 +625,11 @@ public class Schemas implements Serializable {
 				var value = e.getValue();
 				varNames.add(value.name);
 				varIds.add(value.id);
-				if (value.type.key != null || value.type.value != null) // is collection or map
-					// 实际上单独判断了也不需要特别处理。先明确写一下。
-					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
-				else
-					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
+//				if (value.type.key != null || value.type.value != null) // is collection or map
+//					// 实际上单独判断了也不需要特别处理。先明确写一下。
+//					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
+//				else
+				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
 				varIds.remove(varIds.size() - 1);
 				varNames.remove(varNames.size() - 1);
 			}

@@ -361,15 +361,11 @@ public final class RaftConfig {
 		}
 
 		Node(String host, int port, String proxyHost, int proxyPort) {
-			this(host, port, proxyHost, proxyPort, true);
-		}
-
-		Node(String host, int port, String proxyHost, int proxyPort, boolean majority) {
 			this.host = host;
 			this.port = port;
 			this.proxyHost = proxyHost;
 			this.proxyPort = proxyPort;
-			this.suggestMajority = majority;
+			suggestMajority = true;
 		}
 
 		public String getHost() {
@@ -418,7 +414,7 @@ public final class RaftConfig {
 		var count = 0;
 		for (var node : nodes.values())
 			if (node.isSuggestMajority())
-				count ++;
+				count++;
 		return count;
 	}
 
