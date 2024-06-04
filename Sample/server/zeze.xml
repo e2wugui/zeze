@@ -17,7 +17,7 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 		每个 linkd 配置一个 Connector。
 		多个 server 的 Connector 配置最好一致。
 		-->
-		<Connector Ip="localhost" Port="20000"/>
+		<Connector HostNameOrAddress="127.0.0.1" Port="20000"/>
 	</ServiceConf>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
