@@ -345,7 +345,7 @@ namespace Zeze
             public bool DisableOperates { get; set; } = false;
 
             public DatabaseConf()
-            { 
+            {
             }
 
             public DatabaseConf(Config conf, XmlElement self)

@@ -9,7 +9,7 @@ namespace Zeze.Transaction.Collections
 #if USE_CONFCS
         where E : ConfBean, new()
 #else
-		where E : Bean, new()
+        where E : Bean, new()
 #endif
     {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogList2<E>));
@@ -36,14 +36,14 @@ namespace Zeze.Transaction.Collections
         }
 
         internal override Log BeginSavepoint()
-		{
-			var dup = new LogList2<E>();
+        {
+            var dup = new LogList2<E>();
             dup.This = This;
             dup.Belong = Belong;
-			dup.VariableId = VariableId;
-			dup.Value = Value;
-			return dup;
-		}
+            dup.VariableId = VariableId;
+            dup.Value = Value;
+            return dup;
+        }
 
         public override void Collect(Changes changes, Bean recent, Log vlog)
         {
@@ -60,29 +60,29 @@ namespace Zeze.Transaction.Collections
 #else
             if (Value != null)
             {
-				// follower接收到log时，Value为空，此时不做Changed过滤。
-				var miss = new List<LogBean>();
-				foreach (var e in Changed)
-				{
-					var logBean = e.Key;
-					var idxExist = Value.IndexOf((E)logBean.This);
-					if (idxExist < 0 || AddSet.Contains(Value[idxExist]))
-						miss.Add(logBean);
-					else
-						e.Value.Value = idxExist;
-				}
-				foreach (var logbean in miss)
-					Changed.Remove(logbean);
-			}
+                // follower接收到log时，Value为空，此时不做Changed过滤。
+                var miss = new List<LogBean>();
+                foreach (var e in Changed)
+                {
+                    var logBean = e.Key;
+                    var idxExist = Value.IndexOf((E)logBean.This);
+                    if (idxExist < 0 || AddSet.Contains(Value[idxExist]))
+                        miss.Add(logBean);
+                    else
+                        e.Value.Value = idxExist;
+                }
+                foreach (var logbean in miss)
+                    Changed.Remove(logbean);
+            }
 
-			bb.WriteUInt(Changed.Count);
-			foreach (var e in Changed)
-			{
+            bb.WriteUInt(Changed.Count);
+            foreach (var e in Changed)
+            {
                 EncodeLogBean(bb, e.Key);
-				bb.WriteUInt(e.Value.Value);
-			}
-			// encode opLogs
-			base.Encode(bb);
+                bb.WriteUInt(e.Value.Value);
+            }
+            // encode opLogs
+            base.Encode(bb);
 #endif
         }
 

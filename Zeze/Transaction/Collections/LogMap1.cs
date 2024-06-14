@@ -17,71 +17,71 @@ namespace Zeze.Transaction.Collections
 
 #if !USE_CONFCS
         public V Get(K key)
-		{
-			if (Value.TryGetValue(key, out V exist))
-				return exist;
-			return default(V);
-		}
-
-		public void Add(K key, V value)
-		{
-			Value = Value.Add(key, value);
-			Replaced[key] = value;
-			Removed.Remove(key);
-		}
-
-		public void AddRange(IEnumerable<KeyValuePair<K, V>> pairs)
-		{
-			foreach (var pair in pairs)
-			{
-				Add(pair.Key, pair.Value);
-			}
-		}
-
-		public void SetItem(K key, V value)
-		{
-			Value = Value.SetItem(key, value);
-			Replaced[key] = value;
-			Removed.Remove(key);
-		}
-
-		public void SetItems(IEnumerable<KeyValuePair<K, V>> items)
-		{
-			foreach (var item in items)
-			{
-				SetItem(item.Key, item.Value);
-			}
-		}
-
-		public bool Remove(K key)
-		{
-			var newValue = Value.Remove(key);
-			if (newValue != Value)
-            {
-				Value = newValue;
-				Replaced.Remove(key);
-				Removed.Add(key);
-				return true;
-			}
-			return false;
-		}
-
-		public bool Remove(KeyValuePair<K, V> item)
-		{
-			if (Value.TryGetKey(item.Key, out var keyVal) && keyVal.Equals(item.Value))
-			{ 
-				return Remove(item.Key);
-			}
-			return false;
-		}
-
-		public void Clear()
         {
-			foreach (var e in Value)
-			{
-				Remove(e.Key);
-			}
-			Value = System.Collections.Immutable.ImmutableDictionary<K, V>.Empty;
+            if (Value.TryGetValue(key, out V exist))
+                return exist;
+            return default(V);
+        }
+
+        public void Add(K key, V value)
+        {
+            Value = Value.Add(key, value);
+            Replaced[key] = value;
+            Removed.Remove(key);
+        }
+
+        public void AddRange(IEnumerable<KeyValuePair<K, V>> pairs)
+        {
+            foreach (var pair in pairs)
+            {
+                Add(pair.Key, pair.Value);
+            }
+        }
+
+        public void SetItem(K key, V value)
+        {
+            Value = Value.SetItem(key, value);
+            Replaced[key] = value;
+            Removed.Remove(key);
+        }
+
+        public void SetItems(IEnumerable<KeyValuePair<K, V>> items)
+        {
+            foreach (var item in items)
+            {
+                SetItem(item.Key, item.Value);
+            }
+        }
+
+        public bool Remove(K key)
+        {
+            var newValue = Value.Remove(key);
+            if (newValue != Value)
+            {
+                Value = newValue;
+                Replaced.Remove(key);
+                Removed.Add(key);
+                return true;
+            }
+            return false;
+        }
+
+        public bool Remove(KeyValuePair<K, V> item)
+        {
+            if (Value.TryGetKey(item.Key, out var keyVal) && keyVal.Equals(item.Value))
+            {
+                return Remove(item.Key);
+            }
+            return false;
+        }
+
+        public void Clear()
+        {
+            foreach (var e in Value)
+            {
+                Remove(e.Key);
+            }
+            Value = System.Collections.Immutable.ImmutableDictionary<K, V>.Empty;
         }
 
         internal override void EndSavepoint(Savepoint currentsp)

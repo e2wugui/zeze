@@ -806,8 +806,7 @@ namespace Zeze.Services.ToLuaService2
             {
                 if (v.Id == 0 && v.Name == null)
                     throw;
-                else
-                    throw new Exception($"encode variable failed: name={v.Name} id={v.Id} type={v.Type},{v.TypeBeanTypeId}", e);
+                throw new Exception($"encode variable failed: name={v.Name} id={v.Id} type={v.Type},{v.TypeBeanTypeId}", e);
             }
         }
 

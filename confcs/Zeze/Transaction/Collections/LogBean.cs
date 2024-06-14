@@ -15,9 +15,9 @@ namespace Zeze.Transaction.Collections
         public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
 
 #if !USE_CONFCS
-		public Bean This { get; set; }
+        public Bean This { get; set; }
 
-		// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
+        // LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
         internal override Log BeginSavepoint()
         {
             throw new System.NotImplementedException();

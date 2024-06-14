@@ -26,15 +26,15 @@ namespace Zeze.Transaction.Collections
         public readonly Dictionary<K, LogBean> ChangedWithKey = new Dictionary<K, LogBean>();
 
 #if !USE_CONFCS
-		internal override Log BeginSavepoint()
-		{
-			var dup = new LogMap2<K, V>();
+        internal override Log BeginSavepoint()
+        {
+            var dup = new LogMap2<K, V>();
             dup.This = This;
             dup.Belong = Belong;
-			dup.VariableId = VariableId;
-			dup.Value = Value;
-			return dup;
-		}
+            dup.VariableId = VariableId;
+            dup.Value = Value;
+            return dup;
+        }
 
         public override void Collect(Changes changes, Bean recent, Log vlog)
         {

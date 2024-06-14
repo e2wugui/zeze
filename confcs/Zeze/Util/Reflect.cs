@@ -134,44 +134,44 @@ namespace Zeze.Util
         }
 #else
         public static string GetStableName(Type type)
-		{
-			if (type.IsGenericType)
-			{
-				var def = type.GetGenericTypeDefinition();
+        {
+            if (type.IsGenericType)
+            {
+                var def = type.GetGenericTypeDefinition();
 
-				// Zeze.Transaction.Logs
-				if (def == typeof(Zeze.Transaction.Log<>))
-					return $"Zeze.Transaction.Log<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Transaction.Collections.LogMap1<,>))
-					return $"Zeze.Transaction.Collections.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
-				if (def == typeof(Zeze.Transaction.Collections.LogMap2<,>))
-					return $"Zeze.Transaction.Collections.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
-				if (def == typeof(Zeze.Transaction.Collections.LogSet1<>))
-					return $"Zeze.Transaction.Collections.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Transaction.Collections.LogList1<>))
-					return $"Zeze.Transaction.Collections.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
-					return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
+                // Zeze.Transaction.Logs
+                if (def == typeof(Zeze.Transaction.Log<>))
+                    return $"Zeze.Transaction.Log<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Transaction.Collections.LogMap1<,>))
+                    return $"Zeze.Transaction.Collections.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(Zeze.Transaction.Collections.LogMap2<,>))
+                    return $"Zeze.Transaction.Collections.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(Zeze.Transaction.Collections.LogSet1<>))
+                    return $"Zeze.Transaction.Collections.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Transaction.Collections.LogList1<>))
+                    return $"Zeze.Transaction.Collections.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
+                    return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
 
                 if (def == typeof(Zeze.Transaction.Collections.LogOne<>))
                     return $"Zeze.Transaction.Collections.LogOne<{GetStableName(type.GenericTypeArguments[0])}>";
 
                 // Zeze.Raft.RocksRaft.Logs
                 if (def == typeof(Zeze.Raft.RocksRaft.Log<>))
-					return $"Zeze.Raft.RocksRaft.Log<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Raft.RocksRaft.LogMap1<,>))
-					return $"Zeze.Raft.RocksRaft.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
-				if (def == typeof(Zeze.Raft.RocksRaft.LogMap2<,>))
-					return $"Zeze.Raft.RocksRaft.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
-				if (def == typeof(Zeze.Raft.RocksRaft.LogSet1<>))
-					return $"Zeze.Raft.RocksRaft.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Raft.RocksRaft.LogList1<>))
-					return $"Zeze.Raft.RocksRaft.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
-				if (def == typeof(Zeze.Raft.RocksRaft.LogList2<>))
-					return $"Zeze.Raft.RocksRaft.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
+                    return $"Zeze.Raft.RocksRaft.Log<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Raft.RocksRaft.LogMap1<,>))
+                    return $"Zeze.Raft.RocksRaft.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(Zeze.Raft.RocksRaft.LogMap2<,>))
+                    return $"Zeze.Raft.RocksRaft.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(Zeze.Raft.RocksRaft.LogSet1<>))
+                    return $"Zeze.Raft.RocksRaft.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Raft.RocksRaft.LogList1<>))
+                    return $"Zeze.Raft.RocksRaft.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
+                if (def == typeof(Zeze.Raft.RocksRaft.LogList2<>))
+                    return $"Zeze.Raft.RocksRaft.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
 
-				// 下面的反射目前实际上不需要，先写在这里。
-				/*
+                // 下面的反射目前实际上不需要，先写在这里。
+                /*
                 // Zeze.Transaction.Collections
                 if (def == typeof(Zeze.Transaction.Collections.PList1<>))
                     return $"Zeze.Transaction.Collections.PList1<{GetStableName(type.GenericTypeArguments[0])}>";
@@ -183,7 +183,7 @@ namespace Zeze.Util
                     return $"Zeze.Transaction.Collections.PMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
                 if (def == typeof(Zeze.Transaction.Collections.PMap2<,>))
                     return $"Zeze.Transaction.Collections.PMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
-                
+
                 // Zeze.Raft.RocksRaft.Collections
                 if (def == typeof(Zeze.Raft.RocksRaft.CollSet1<>))
                     return $"Zeze.Raft.RocksRaft.CollSet1<{GetStableName(type.GenericTypeArguments[0])}>";
@@ -192,50 +192,50 @@ namespace Zeze.Util
                 if (def == typeof(Zeze.Raft.RocksRaft.CollMap2<,>))
                     return $"Zeze.Raft.RocksRaft.CollMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
                 // */
-				throw new Exception($"Unsupported Generic Type {type.FullName}");
-			}
+                throw new Exception($"Unsupported Generic Type {type.FullName}");
+            }
 
-			// 支持的 Zeze/Gen/Types/ 类型。
-			// 必须是xml中定义Bean.Variable.Type的名字。
-			if (type == typeof(bool))
-				return "bool";
-			if (type == typeof(byte))
-				return "byte";
-			if (type == typeof(short))
-				return "short";
-			if (type == typeof(int))
-				return "int";
-			if (type == typeof(long))
-				return "long";
+            // 支持的 Zeze/Gen/Types/ 类型。
+            // 必须是xml中定义Bean.Variable.Type的名字。
+            if (type == typeof(bool))
+                return "bool";
+            if (type == typeof(byte))
+                return "byte";
+            if (type == typeof(short))
+                return "short";
+            if (type == typeof(int))
+                return "int";
+            if (type == typeof(long))
+                return "long";
 
-			if (type == typeof(float))
-				return "float";
-			if (type == typeof(double))
-				return "double";
+            if (type == typeof(float))
+                return "float";
+            if (type == typeof(double))
+                return "double";
 
             if (type == typeof(decimal))
                 return "decimal";
 
             if (type == typeof(Zeze.Net.Binary))
-				return "binary";
-			if (type == typeof(string))
-				return "string";
+                return "binary";
+            if (type == typeof(string))
+                return "string";
 
-			if (type == typeof(Zeze.Util.LogConfDynamic))
-				return "Zeze.Transaction.LogDynamic";
+            if (type == typeof(Zeze.Util.LogConfDynamic))
+                return "Zeze.Transaction.LogDynamic";
 
-			if (type.IsAssignableTo(typeof(Zeze.Serialize.Serializable)))
-				return type.FullName;
+            if (type.IsAssignableTo(typeof(Zeze.Serialize.Serializable)))
+                return type.FullName;
 
-			// Serializable已经处理了下面这两种情况，不会执行到这里，写在这里，明确一下类型。
-			/*
+            // Serializable已经处理了下面这两种情况，不会执行到这里，写在这里，明确一下类型。
+            /*
             if (type.IsAssignableTo(typeof(Zeze.Transaction.Bean)))
                 return type.FullName;
             if (type.IsAssignableTo(typeof(Zeze.Raft.RocksRaft.Bean)))
                 return type.FullName;
             */
-			throw new Exception($"Unsupported type {type.FullName}");
-		}
+            throw new Exception($"Unsupported type {type.FullName}");
+        }
 #endif
     }
 }

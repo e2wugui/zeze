@@ -19,116 +19,116 @@ namespace Zeze.Transaction.Collections
         public readonly ISet<V> Removed = new HashSet<V>();
 
 #if !USE_CONFCS
-		public override void Collect(Changes changes, Bean recent, Log vlog)
-		{
-			throw new System.Exception($"Collect Not Implement.");
-		}
+        public override void Collect(Changes changes, Bean recent, Log vlog)
+        {
+            throw new System.Exception($"Collect Not Implement.");
+        }
 
-		public bool Add(V item)
-		{
-			var newset = Value.Add(item);
-			if (newset != Value)
-			{
-				Added.Add(item);
-				Removed.Remove(item);
-				Value = newset;
-				return true;
-			}
-			return false;
-		}
+        public bool Add(V item)
+        {
+            var newset = Value.Add(item);
+            if (newset != Value)
+            {
+                Added.Add(item);
+                Removed.Remove(item);
+                Value = newset;
+                return true;
+            }
+            return false;
+        }
 
-		public bool Remove(V item)
-		{
-			var newset = Value.Remove(item);
-			if (newset != Value)
-			{
-				Removed.Add(item);
-				Added.Remove(item);
-				Value = newset;
-				return true;
-			}
-			return false;
-		}
+        public bool Remove(V item)
+        {
+            var newset = Value.Remove(item);
+            if (newset != Value)
+            {
+                Removed.Add(item);
+                Added.Remove(item);
+                Value = newset;
+                return true;
+            }
+            return false;
+        }
 
-		public void ExceptWith(IEnumerable<V> other)
-		{
-			var newset = Value.Except(other);
-			if (newset != Value)
-			{
-				foreach (var item in other)
-				{
-					Removed.Add(item);
-					Added.Remove(item);
-				}
-				Value = newset;
-			}
-		}
+        public void ExceptWith(IEnumerable<V> other)
+        {
+            var newset = Value.Except(other);
+            if (newset != Value)
+            {
+                foreach (var item in other)
+                {
+                    Removed.Add(item);
+                    Added.Remove(item);
+                }
+                Value = newset;
+            }
+        }
 
-		public void IntersectWith(IEnumerable<V> other)
-		{
-			var newset = Value.Intersect(other);
-			if (newset != Value)
-			{
-				foreach (var item in Value)
-				{
-					if (!other.Contains(item))
-					{
-						Removed.Add(item);
-						Added.Remove(item);
-					}
-				}
-				Value = newset;
-			}
-		}
-
-		public void SymmetricExceptWith(IEnumerable<V> other)
-		{
-			var newset = Value.SymmetricExcept(other);
-			if (newset != Value)
-			{
-				// this: 1,2 other: 2,3 result: 1,3
-				foreach (var item in other)
-				{
-					if (Value.Contains(item))
-					{
-						Removed.Add(item);
-						Added.Remove(item);
-					}
-					else
-					{
-						Added.Add(item);
-						Removed.Remove(item);
-					}
-				}
-				Value = newset;
-			}
-		}
-
-		public void UnionWith(IEnumerable<V> other)
-		{
-			var newset = Value.Union(other);
-			if (newset != Value)
-			{
-				foreach (var item in other)
-				{
-					if (!Value.Contains(item))
+        public void IntersectWith(IEnumerable<V> other)
+        {
+            var newset = Value.Intersect(other);
+            if (newset != Value)
+            {
+                foreach (var item in Value)
+                {
+                    if (!other.Contains(item))
                     {
-						Added.Add(item);
-						Removed.Remove(item);
-					}
-				}
-				Value = newset;
-			}
-		}
+                        Removed.Add(item);
+                        Added.Remove(item);
+                    }
+                }
+                Value = newset;
+            }
+        }
 
-		public void Clear()
-		{
-			foreach (var e in Value)
-			{
-				Remove(e);
-			}
-			Value = System.Collections.Immutable.ImmutableHashSet<V>.Empty;
-		}
+        public void SymmetricExceptWith(IEnumerable<V> other)
+        {
+            var newset = Value.SymmetricExcept(other);
+            if (newset != Value)
+            {
+                // this: 1,2 other: 2,3 result: 1,3
+                foreach (var item in other)
+                {
+                    if (Value.Contains(item))
+                    {
+                        Removed.Add(item);
+                        Added.Remove(item);
+                    }
+                    else
+                    {
+                        Added.Add(item);
+                        Removed.Remove(item);
+                    }
+                }
+                Value = newset;
+            }
+        }
+
+        public void UnionWith(IEnumerable<V> other)
+        {
+            var newset = Value.Union(other);
+            if (newset != Value)
+            {
+                foreach (var item in other)
+                {
+                    if (!Value.Contains(item))
+                    {
+                        Added.Add(item);
+                        Removed.Remove(item);
+                    }
+                }
+                Value = newset;
+            }
+        }
+
+        public void Clear()
+        {
+            foreach (var e in Value)
+            {
+                Remove(e);
+            }
+            Value = System.Collections.Immutable.ImmutableHashSet<V>.Empty;
+        }
 
         internal override void EndSavepoint(Savepoint currentsp)
         {
