@@ -11,6 +11,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
     private int _time;
+    private boolean _onlySameVersion; // 是否仅广播给匹配该provider版本的客户端
 
     @Override
     public long getProtocolType() {
@@ -74,18 +75,39 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         txn.putLog(new Log__time(this, 3, value));
     }
 
+    @Override
+    public boolean isOnlySameVersion() {
+        if (!isManaged())
+            return _onlySameVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _onlySameVersion;
+        var log = (Log__onlySameVersion)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _onlySameVersion;
+    }
+
+    public void setOnlySameVersion(boolean value) {
+        if (!isManaged()) {
+            _onlySameVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__onlySameVersion(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BBroadcast() {
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_) {
+    public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
         _time = _time_;
+        _onlySameVersion = _onlySameVersion_;
     }
 
     @Override
@@ -93,6 +115,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         setProtocolType(0);
         setProtocolWholeData(Zeze.Net.Binary.Empty);
         setTime(0);
+        setOnlySameVersion(false);
         _unknown_ = null;
     }
 
@@ -112,6 +135,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         setProtocolType(other._protocolType);
         setProtocolWholeData(other._protocolWholeData);
         setTime(other._time);
+        setOnlySameVersion(other._onlySameVersion);
         _unknown_ = null;
     }
 
@@ -119,6 +143,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
         setTime(other.getTime());
+        setOnlySameVersion(other.isOnlySameVersion());
         _unknown_ = other._unknown_;
     }
 
@@ -165,6 +190,13 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         public void commit() { ((BBroadcast)getBelong())._time = value; }
     }
 
+    private static final class Log__onlySameVersion extends Zeze.Transaction.Logs.LogBool {
+        public Log__onlySameVersion(BBroadcast bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BBroadcast)getBelong())._onlySameVersion = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -178,7 +210,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(getProtocolWholeData()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(getTime()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(getTime()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlySameVersion=").append(isOnlySameVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -232,6 +265,13 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            boolean _x_ = isOnlySameVersion();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -253,6 +293,10 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
             setTime(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setOnlySameVersion(_o_.ReadBool(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -270,6 +314,8 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         if (!getProtocolWholeData().equals(_b_.getProtocolWholeData()))
             return false;
         if (getTime() != _b_.getTime())
+            return false;
+        if (isOnlySameVersion() != _b_.isOnlySameVersion())
             return false;
         return true;
     }
@@ -295,6 +341,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
                 case 1: _protocolType = vlog.longValue(); break;
                 case 2: _protocolWholeData = vlog.binaryValue(); break;
                 case 3: _time = vlog.intValue(); break;
+                case 4: _onlySameVersion = vlog.booleanValue(); break;
             }
         }
     }
@@ -305,6 +352,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
         setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
         setTime(rs.getInt(_parents_name_ + "time"));
+        setOnlySameVersion(rs.getBoolean(_parents_name_ + "onlySameVersion"));
     }
 
     @Override
@@ -313,6 +361,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         st.appendLong(_parents_name_ + "protocolType", getProtocolType());
         st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
         st.appendInt(_parents_name_ + "time", getTime());
+        st.appendBoolean(_parents_name_ + "onlySameVersion", isOnlySameVersion());
     }
 
     @Override
@@ -321,6 +370,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean implements BBroadcas
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "protocolType", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "protocolWholeData", "binary", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "time", "int", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "onlySameVersion", "bool", "", ""));
         return vars;
     }
 
@@ -331,6 +381,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
     private int _time;
+    private boolean _onlySameVersion; // 是否仅广播给匹配该provider版本的客户端
 
     public long getProtocolType() {
         return _protocolType;
@@ -358,18 +409,27 @@ public static final class Data extends Zeze.Transaction.Data {
         _time = value;
     }
 
+    public boolean isOnlySameVersion() {
+        return _onlySameVersion;
+    }
+
+    public void setOnlySameVersion(boolean value) {
+        _onlySameVersion = value;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_) {
+    public Data(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_, boolean _onlySameVersion_) {
         _protocolType = _protocolType_;
         if (_protocolWholeData_ == null)
             _protocolWholeData_ = Zeze.Net.Binary.Empty;
         _protocolWholeData = _protocolWholeData_;
         _time = _time_;
+        _onlySameVersion = _onlySameVersion_;
     }
 
     @Override
@@ -377,6 +437,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _protocolType = 0;
         _protocolWholeData = Zeze.Net.Binary.Empty;
         _time = 0;
+        _onlySameVersion = false;
     }
 
     @Override
@@ -395,12 +456,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _protocolType = other.getProtocolType();
         _protocolWholeData = other.getProtocolWholeData();
         _time = other.getTime();
+        _onlySameVersion = other.isOnlySameVersion();
     }
 
     public void assign(BBroadcast.Data other) {
         _protocolType = other._protocolType;
         _protocolWholeData = other._protocolWholeData;
         _time = other._time;
+        _onlySameVersion = other._onlySameVersion;
     }
 
     @Override
@@ -439,7 +502,8 @@ public static final class Data extends Zeze.Transaction.Data {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(_protocolWholeData).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(_time).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("time=").append(_time).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("onlySameVersion=").append(_onlySameVersion).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -478,6 +542,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            boolean _x_ = _onlySameVersion;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -495,6 +566,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _time = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _onlySameVersion = _o_.ReadBool(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

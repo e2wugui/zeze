@@ -1276,16 +1276,16 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private static AsyncSocket getLinkSocket(ConcurrentHashMap<String, Connector> links, String linkName, long roleId) {
 		var connector = links.get(linkName);
 		if (connector == null) {
-			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
+			logger.warn("getLinkSocket: not found connector for linkName={} roleId={}", linkName, roleId);
 			return null;
 		}
 		if (!connector.isHandshakeDone()) {
-			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
+			logger.warn("getLinkSocket: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
 			return null;
 		}
 		var linkSocket = connector.getSocket();
 		if (linkSocket == null) {
-			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
+			logger.warn("getLinkSocket: closed connector for linkName={} roleId={}", linkName, roleId);
 			return null;
 		}
 		return linkSocket;
@@ -1314,14 +1314,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var online = _tonline.selectDirty(roleId);
 			if (online == null) {
 				if (!trySend)
-					logger.info("sendDirect: not found roleId={} in _tonline", roleId);
+					logger.info("sendDirects: not found roleId={} in _tonline", roleId);
 				continue;
 			}
 			var link = online.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
 				if (!trySend)
-					logger.info("sendDirect: state={} != eLogined for roleId={}", state, roleId);
+					logger.info("sendDirects: state={} != eLogined for roleId={}", state, roleId);
 				continue;
 			}
 			var linkName = link.getLinkName();
@@ -1728,9 +1728,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
-	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
+	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
 //		TaskCompletionSource<Long> future = null;
-		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time));
+		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
@@ -1742,17 +1742,25 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return sendCount;
 	}
 
-	public void broadcast(@NotNull Protocol<?> p) {
-		broadcast(p, 60 * 1000);
+	public int broadcast(@NotNull Protocol<?> p) {
+		return broadcast(p, 60 * 1000, false);
+	}
+
+	public int broadcast(@NotNull Protocol<?> p, boolean onlySameVersion) {
+		return broadcast(p, 60 * 1000, onlySameVersion);
 	}
 
 	public int broadcast(@NotNull Protocol<?> p, int time) {
+		return broadcast(p, time, false);
+	}
+
+	public int broadcast(@NotNull Protocol<?> p, int time, boolean onlySameVersion) {
 		if (p instanceof Rpc && p.isRequest())
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		return broadcast(typeId, new Binary(p.encode()), time);
+		return broadcast(typeId, new Binary(p.encode()), time, onlySameVersion);
 	}
 
 	class VerifyBatch {

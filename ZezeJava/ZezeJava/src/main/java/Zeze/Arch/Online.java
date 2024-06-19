@@ -1463,8 +1463,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
-	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time) {
-		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time));
+	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
+		var broadcast = new Broadcast(new BBroadcast.Data(typeId, fullEncodedProtocol, time, onlySameVersion));
 		var pdata = broadcast.encode();
 		int sendCount = 0;
 		for (var link : providerApp.providerService.getLinks().values()) {
@@ -1474,11 +1474,23 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return sendCount;
 	}
 
+	public int broadcast(@NotNull Protocol<?> p) {
+		return broadcast(p, 60 * 1000, false);
+	}
+
+	public int broadcast(@NotNull Protocol<?> p, boolean onlySameVersion) {
+		return broadcast(p, 60 * 1000, onlySameVersion);
+	}
+
 	public int broadcast(@NotNull Protocol<?> p, int time) {
+		return broadcast(p, time, false);
+	}
+
+	public int broadcast(@NotNull Protocol<?> p, int time, boolean onlySameVersion) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 			AsyncSocket.log("Broc", providerApp.providerService.getLinks().size(), p);
-		return broadcast(typeId, new Binary(p.encode()), time);
+		return broadcast(typeId, new Binary(p.encode()), time, onlySameVersion);
 	}
 
 	class VerifyBatch {

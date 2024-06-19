@@ -415,6 +415,7 @@
 				<variable name="protocolType"      id="1" type="long"/>
 				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
 				<variable name="time"              id="3" type="int"/>
+				<variable name="onlySameVersion"   id="4" type="bool"/> 是否仅广播给匹配该provider版本的客户端
 			</bean>
 
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>

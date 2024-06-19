@@ -10,4 +10,5 @@ public interface BBroadcastReadOnly {
     long getProtocolType();
     Zeze.Net.Binary getProtocolWholeData();
     int getTime();
+    boolean isOnlySameVersion();
 }

@@ -436,12 +436,17 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			bb.ReadIndex += Protocol.HEADER_SIZE;
 			AsyncSocket.log("Broc", linkdApp.linkdService.getSocketCount(), protocol.Argument.getProtocolType(), bb);
 		}
+		var providerVersion = protocol.Argument.isOnlySameVersion()
+				? ((ProviderSession)protocol.getSender().getUserState()).appVersion
+				: 0L;
 		linkdApp.linkdService.foreach(socket -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
-			if (linkSession != null && linkSession.isAuthed() && !linkSession.getUserState().getContext().isEmpty()) {
+			if (linkSession != null && linkSession.isAuthed() && !linkSession.getUserState().getContext().isEmpty() &&
+					(providerVersion == 0 ||
+							ProviderDistribute.checkAppVersion(providerVersion, linkSession.getClientAppVersion()))) {
 				socket.Send(pdata);
 				if (enableDump)
 					tryDump(socket, pdata);
