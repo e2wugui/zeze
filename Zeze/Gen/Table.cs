@@ -11,6 +11,7 @@ namespace Zeze.Gen
     {
         public ModuleSpace Space { get; private set; }
         public string Name { get; private set; }
+        public string Suffix { get; private set; }
         public string Key { get; }
         public string Value { get; }
         public string Gen { get; }
@@ -43,6 +44,7 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             if (Name.Length == 0)
                 throw new Exception("Table Name Is Empty module=" + space.Name);
+            Suffix = self.GetAttribute("suffix").Trim();
             Program.CheckReserveName(Name, space.Path());
             space.Add(this);
 

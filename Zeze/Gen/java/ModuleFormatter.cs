@@ -489,7 +489,11 @@ namespace Zeze.Gen.java
                     if (isMultiInstance)
                         sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
                     else
-                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
+                    {
+                        var suffixStr = table.Suffix.Length > 0 ? '"' + table.Suffix + '"' : "";
+                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name +
+                                     " = new " + table.FullName + "(" + suffixStr + ");");
+                    }
                 }
             }
 
