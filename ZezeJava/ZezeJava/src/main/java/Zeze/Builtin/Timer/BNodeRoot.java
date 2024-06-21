@@ -8,9 +8,9 @@ import Zeze.Serialize.IByteBuffer;
 public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootReadOnly {
     public static final long TYPEID = 4685790459206796029L;
 
-    private long _HeadNodeId;
-    private long _TailNodeId;
-    private long _LoadSerialNo;
+    private long _HeadNodeId; // 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
+    private long _TailNodeId; // 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
+    private long _LoadSerialNo; // 每次启动时都递增的序列号, 用来处理跟接管的并发
 
     @Override
     public long getHeadNodeId() {

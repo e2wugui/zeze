@@ -46,7 +46,7 @@ public class TestGameTimer {
 			servers.add(new Game.App());
 
 		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i+1), 12000 + i, 15000 + i);
+			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
 		for (int i = 40; i < serverCount + 40; ++i) {
 			servers.get(i - 40).Start(i, 20000 + i - 40);
 			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
@@ -79,7 +79,11 @@ public class TestGameTimer {
 		TestBean bean = (TestBean)context.customData;
 		if (bean.checkLiving())
 			bean.addValue();
-		System.out.println(">> Name: " + context.timerName + " ID: " + context.timerId + " Now: " + context.curTimeMills + " Expected: " + context.expectedTimeMills + " Next: " + context.nextExpectedTimeMills);
+		System.out.println(">> Name: " + context.timerName
+				+ " ID: " + context.timerId
+				+ " Now: " + System.currentTimeMillis()
+				+ " Expected: " + context.expectedTimeMills
+				+ " Next: " + context.nextExpectedTimeMills);
 	}
 
 	public static class TestOnlineTimerHandle implements TimerHandle {
@@ -90,7 +94,6 @@ public class TestGameTimer {
 
 		@Override
 		public void onTimerCancel() throws Exception {
-
 		}
 	}
 

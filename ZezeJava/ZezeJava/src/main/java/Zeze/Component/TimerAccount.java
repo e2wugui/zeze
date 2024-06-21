@@ -16,6 +16,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -457,6 +459,7 @@ public class TimerAccount {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;
+			//noinspection DataFlowIssue
 			var loginVersion = context.timer.getAccountTimer().online
 					.getLoginVersion(offlineCustom.getAccount(), offlineCustom.getClientId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
@@ -550,39 +553,40 @@ public class TimerAccount {
 						() -> fireCron(timerId, timer.findTimerHandle(handle.getName()), true))));
 	}
 
-	private void fireCron(String timerId, TimerHandle handle, boolean hot) {
+	private void fireCron(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
-			if (null == handle) {
+			if (handle == null) {
 				cancel(timerId);
 				return 0; // done
 			}
 
 			var bTimer = timer.tAccountTimers().get(timerId);
-			if (null == bTimer) {
+			if (bTimer == null) {
 				timer.cancelFuture(timerId);
 				return 0; // done
 			}
 
 			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
-			if (null == loginVersion || bTimer.getLoginVersion() != loginVersion) {
+			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
 				timer.cancelFuture(timerId);
 				return 0; // done
 			}
 
 			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-			if (null == localBean)
+			if (localBean == null)
 				throw new IllegalStateException("local bean not exist");
 			var localTimer = localBean.getTimerIds().get(timerId);
-			if (null == localTimer)
+			if (localTimer == null)
 				throw new IllegalStateException("local timer not exist");
 			var customData = localTimer.getCustomData().getBean();
 			if (customData instanceof EmptyBean)
 				customData = null;
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
+			var hasNext = Timer.nextCronTimer(cronTimer, false);
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
-					cronTimer.getHappenTime(), cronTimer.getNextExpectedTime(), cronTimer.getExpectedTime());
+					cronTimer.getHappenTime(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 			context.account = bTimer.getAccount();
 			context.clientId = bTimer.getClientId();
 			var serialSaved = bTimer.getSerialId();
@@ -600,7 +604,7 @@ public class TimerAccount {
 				return 0;
 			}
 			// skip other error
-			if (!Timer.nextCronTimer(cronTimer, false)) {
+			if (!hasNext) {
 				cancel(timerId);
 				return 0; // procedure done
 			}
@@ -638,21 +642,21 @@ public class TimerAccount {
 	}
 
 	// Timer发生，执行回调。
-	private void fireSimple(String timerId, TimerHandle handle, boolean hot) {
+	private void fireSimple(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
-			if (null == handle) {
+			if (handle == null) {
 				cancel(timerId);
 				return 0; // done
 			}
 
 			var bTimer = timer.tAccountTimers().get(timerId);
-			if (null == bTimer) {
+			if (bTimer == null) {
 				timer.cancelFuture(timerId);
 				return 0; // done
 			}
 			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
-			if (null == loginVersion || bTimer.getLoginVersion() != loginVersion) {
+			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
 				timer.cancelFuture(timerId);
 				return 0; // done
@@ -660,19 +664,19 @@ public class TimerAccount {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var serialSaved = bTimer.getSerialId();
+			var hasNext = Timer.nextSimpleTimer(simpleTimer, false);
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-				if (null == localBean)
+				if (localBean == null)
 					throw new IllegalStateException("local bean not exist");
 				var localTimer = localBean.getTimerIds().get(timerId);
-				if (null == localTimer)
+				if (localTimer == null)
 					throw new IllegalStateException("local timer not exist");
 				var customData = localTimer.getCustomData().getBean();
 				if (customData instanceof EmptyBean)
 					customData = null;
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
-						simpleTimer.getHappenTimes(), simpleTimer.getNextExpectedTime(),
-						simpleTimer.getExpectedTime());
+						simpleTimer.getHappenTimes(), simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 				context.account = bTimer.getAccount();
 				context.clientId = bTimer.getClientId();
 				handle.onTimer(context);
@@ -690,7 +694,7 @@ public class TimerAccount {
 			// 其他错误忽略
 
 			// 准备下一个间隔
-			if (!Timer.nextSimpleTimer(simpleTimer, false)) {
+			if (!hasNext) {
 				cancel(timerId);
 				return 0; // procedure done
 			}

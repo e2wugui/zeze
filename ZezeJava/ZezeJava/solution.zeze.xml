@@ -929,73 +929,74 @@
 			<table name="tlocal" key="string" memory="true" value="BLocals"/>
 		</module> Online 11100
 
-		<module name="Timer" id="11016">
-			<enum name="eMissfirePolicyNothing" value="0"/> quartz 兼容
-			<enum name="eMissfirePolicyRunOnce" value="1"/> quartz 兼容
-			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 新策略，马上补一次调用，但保持下一次调度时间不变。比如用于，每天定点开启活动。
+		<module name="Timer" id="11016"> 定时器模块
+			<enum name="eMissfirePolicyNothing" value="0"/> 如果错过指定触发时间, 则忽略并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnce" value="1"/> 如果错过指定触发时间, 则立即触发一次并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 如果错过指定触发时间, 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
 
 			<bean name="BNodeRoot">
-				<variable id="1" name="HeadNodeId" type="long"/>
-				<variable id="2" name="TailNodeId" type="long"/>
-				<variable id="3" name="LoadSerialNo" type="long"/>
+				<variable id="1" name="HeadNodeId" type="long"/> 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
+				<variable id="2" name="TailNodeId" type="long"/> 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
+				<variable id="3" name="LoadSerialNo" type="long"/> 每次启动时都递增的序列号, 用来处理跟接管的并发
 			</bean>
 
-			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key is serverid 每一台server拥有自己的链表。
+			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key是serverId, 每个server维护处理自己的节点链表
 
 			<bean name="BTimer">
-				<variable id="1" name="TimerName" type="string"/>
-				<variable id="2" name="HandleName" type="string"/>
-				<variable id="3" name="TimerObj" type="dynamic">
-					<value bean="BSimpleTimer"/>
-					<value bean="BCronTimer"/>
+				<variable id="1" name="TimerName" type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<variable id="2" name="HandleName" type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
+				<variable id="3" name="TimerObj" type="dynamic"> 定时器参数
+					<value bean="BSimpleTimer"/> 固定周期触发的timer
+					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
 				</variable>
-				<variable id="4" name="CustomData" type="dynamic">
+				<variable id="4" name="CustomData" type="dynamic"> 用户指定的上下文数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
-				<variable id="5" name="ConcurrentFireSerialNo" type="long"/>
+				<variable id="5" name="ConcurrentFireSerialNo" type="long"/> 触发定时器后自增的序列号, 用来避免并发timer触发
 			</bean>
 
-			<bean name="BSimpleTimer">
-				<variable id="1" name="Delay" type="long"/>
-				<variable id="2" name="Period" type="long"/>
-				<variable id="3" name="RemainTimes" type="long"/> -1 表示不限次数。
-				<variable id="4" name="HappenTimes" type="long"/>
-				<variable id="5" name="StartTime" type="long"/>
-				<variable id="6" name="EndTime" type="long"/> -1表示没有结束时间
-				<variable id="7" name="NextExpectedTime" type="long"/>
-				<variable id="8" name="ExpectedTime" type="long"/>
-				<variable id="9" name="HappenTime" type="long"/>
-				<variable id="10" name="MissfirePolicy" type="int"/>
-				<variable id="11" name="OneByOneKey" type="string"/>
+			<bean name="BSimpleTimer"> 固定周期触发的timer
+				<variable id="1" name="Delay" type="long"/> [已废弃]
+				<variable id="2" name="Period" type="long"/> 触发周期(毫秒), 只有大于0才会周期触发
+				<variable id="3" name="RemainTimes" type="long"/> 剩余触发次数, -1表示不限次数
+				<variable id="4" name="HappenTimes" type="long"/> 已经触发的次数, 触发前自增
+				<variable id="5" name="StartTime" type="long"/> timer的创建时间(unix毫秒时间戳)
+				<variable id="6" name="EndTime" type="long"/> 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+				<variable id="7" name="NextExpectedTime" type="long"/> 下次计划触发的时间(unix毫秒时间戳)
+				<variable id="8" name="ExpectedTime" type="long"/> 上次应该触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="9" name="HappenTime" type="long"/> 上次实际触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="10" name="MissfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="11" name="OneByOneKey" type="string"/> timer触发时所用的OneByOne队列key
 			</bean>
 
-			<bean name="BCronTimer">
-				<variable id="1" name="CronExpression" type="string"/>
-				<variable id="2" name="NextExpectedTime" type="long"/>
-				<variable id="3" name="ExpectedTime" type="long"/>
-				<variable id="4" name="HappenTime" type="long"/>
-				<variable id="5" name="RemainTimes" type="long"/> -1 表示不限次数。
-				<variable id="6" name="EndTime" type="long"/> 结束时间 -1 表示永不结束
-				<variable id="7" name="MissfirePolicy" type="int"/>
-				<variable id="8" name="OneByOneKey" type="string"/>
+			<bean name="BCronTimer"> 使用cron表达式触发时间的timer
+				<variable id="1" name="CronExpression" type="string"/> timer触发时间的cron表达式
+				<variable id="2" name="NextExpectedTime" type="long"/> 下次计划触发的时间(unix毫秒时间戳)
+				<variable id="3" name="ExpectedTime" type="long"/> 上次应该触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="4" name="HappenTime" type="long"/> 上次实际触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="5" name="RemainTimes" type="long"/> 剩余触发次数, -1表示不限次数
+				<variable id="6" name="EndTime" type="long"/> 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+				<variable id="7" name="MissfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="8" name="OneByOneKey" type="string"/> timer触发时所用的OneByOne队列key
+				<variable id="9" name="HappenTimes" type="long"/> 已经触发的次数, 触发前自增
 			</bean>
 
-			<bean name="BNode">
-				<variable id="1" name="PrevNodeId" type="long"/>
-				<variable id="2" name="NextNodeId" type="long"/>
-				<variable id="3" name="Timers" type="map[string, BTimer]"/>
+			<bean name="BNode"> 若干个timer打包的节点
+				<variable id="1" name="PrevNodeId" type="long"/> 节点双链表的前一个节点ID, tNodes表的key, 循环指向,不应该无效
+				<variable id="2" name="NextNodeId" type="long"/> 节点双链表的后一个节点ID, tNodes表的key, 循环指向,不应该无效
+				<variable id="3" name="Timers" type="map[string, BTimer]"/> 该节点的所有timer, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID), 数量上限是Zeze.Component.Timer.CountPerNode(50)
 			</bean>
 
-			<table name="tNodes" key="long" value="BNode"/>
+			<table name="tNodes" key="long" value="BNode"/> 节点表, key是节点ID(AutoKey分配)
 
-			<bean name="BIndex">
-				<variable id="1" name="ServerId" type="int"/>
-				<variable id="2" name="NodeId" type="long"/>
+			<bean name="BIndex"> 一个timer的信息
+				<variable id="1" name="ServerId" type="int"/> 所属的serverId
+				<variable id="2" name="NodeId" type="long"/> 所属的节点ID
 				<variable id="3" name="SerialId" type="long"/> timer系列号，用来区分是否新注册的。
 			</bean>
 
-			<table name="tIndexs" key="string" value="BIndex" />
+			<table name="tIndexs" key="string" value="BIndex" /> timer索引, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 
 			<bean name="BTransmitCronTimer">
 				<variable id="1" name="TimerId" type="string"/>
@@ -1074,8 +1075,7 @@
 				<variable id="6" name="OnlineSetName"   type="string"/>
 			</bean>
 			<bean name="BOfflineTimers">
-				key是timerId，value是注册离线定时器的ServerId。
-				<variable id="1" name="OfflineTimers" type="map[string, int]"/>
+				<variable id="1" name="OfflineTimers" type="map[string, int]"/> key是timerId，value是注册离线定时器的ServerId。
 			</bean>
 
 			<beankey name="BAccountClientId">
@@ -1083,7 +1083,6 @@
 				<variable id="2" name="ClientId" type="string"/>
 			</beankey>
 			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/>
-
 		</module>
 
 		<module name="Statistics" id="11020">

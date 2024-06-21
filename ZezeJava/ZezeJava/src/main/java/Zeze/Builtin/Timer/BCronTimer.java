@@ -4,18 +4,20 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// 使用cron表达式触发时间的timer
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTimerReadOnly {
     public static final long TYPEID = -6995089347718168392L;
 
-    private String _CronExpression;
-    private long _NextExpectedTime;
-    private long _ExpectedTime;
-    private long _HappenTime;
-    private long _RemainTimes; // -1 表示不限次数。
-    private long _EndTime; // 结束时间 -1 表示永不结束
-    private int _MissfirePolicy;
-    private String _OneByOneKey;
+    private String _CronExpression; // timer触发时间的cron表达式
+    private long _NextExpectedTime; // 下次计划触发的时间(unix毫秒时间戳)
+    private long _ExpectedTime; // 上次应该触发的时间(unix毫秒时间戳), 初始为0
+    private long _HappenTime; // 上次实际触发的时间(unix毫秒时间戳), 初始为0
+    private long _RemainTimes; // 剩余触发次数, -1表示不限次数
+    private long _EndTime; // 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+    private int _MissfirePolicy; // 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+    private String _OneByOneKey; // timer触发时所用的OneByOne队列key
+    private long _HappenTimes; // 已经触发的次数, 触发后自增
 
     @Override
     public String getCronExpression() {
@@ -181,6 +183,26 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         txn.putLog(new Log__OneByOneKey(this, 8, value));
     }
 
+    @Override
+    public long getHappenTimes() {
+        if (!isManaged())
+            return _HappenTimes;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _HappenTimes;
+        var log = (Log__HappenTimes)txn.getLog(objectId() + 9);
+        return log != null ? log.value : _HappenTimes;
+    }
+
+    public void setHappenTimes(long value) {
+        if (!isManaged()) {
+            _HappenTimes = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__HappenTimes(this, 9, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BCronTimer() {
         _CronExpression = "";
@@ -188,7 +210,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     }
 
     @SuppressWarnings("deprecation")
-    public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_, String _OneByOneKey_) {
+    public BCronTimer(String _CronExpression_, long _NextExpectedTime_, long _ExpectedTime_, long _HappenTime_, long _RemainTimes_, long _EndTime_, int _MissfirePolicy_, String _OneByOneKey_, long _HappenTimes_) {
         if (_CronExpression_ == null)
             _CronExpression_ = "";
         _CronExpression = _CronExpression_;
@@ -201,6 +223,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         if (_OneByOneKey_ == null)
             _OneByOneKey_ = "";
         _OneByOneKey = _OneByOneKey_;
+        _HappenTimes = _HappenTimes_;
     }
 
     @Override
@@ -213,6 +236,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         setEndTime(0);
         setMissfirePolicy(0);
         setOneByOneKey("");
+        setHappenTimes(0);
         _unknown_ = null;
     }
 
@@ -225,6 +249,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         setEndTime(other.getEndTime());
         setMissfirePolicy(other.getMissfirePolicy());
         setOneByOneKey(other.getOneByOneKey());
+        setHappenTimes(other.getHappenTimes());
         _unknown_ = other._unknown_;
     }
 
@@ -306,6 +331,13 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         public void commit() { ((BCronTimer)getBelong())._OneByOneKey = value; }
     }
 
+    private static final class Log__HappenTimes extends Zeze.Transaction.Logs.LogLong {
+        public Log__HappenTimes(BCronTimer bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BCronTimer)getBelong())._HappenTimes = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -324,7 +356,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         sb.append(Zeze.Util.Str.indent(level)).append("RemainTimes=").append(getRemainTimes()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy=").append(getMissfirePolicy()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OneByOneKey=").append(getOneByOneKey()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("OneByOneKey=").append(getOneByOneKey()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("HappenTimes=").append(getHappenTimes()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -413,6 +446,13 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
                 _o_.WriteString(_x_);
             }
         }
+        {
+            long _x_ = getHappenTimes();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -454,6 +494,10 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             setOneByOneKey(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 9) {
+            setHappenTimes(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -482,6 +526,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return false;
         if (!getOneByOneKey().equals(_b_.getOneByOneKey()))
             return false;
+        if (getHappenTimes() != _b_.getHappenTimes())
+            return false;
         return true;
     }
 
@@ -498,6 +544,8 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         if (getEndTime() < 0)
             return true;
         if (getMissfirePolicy() < 0)
+            return true;
+        if (getHappenTimes() < 0)
             return true;
         return false;
     }
@@ -519,6 +567,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
                 case 6: _EndTime = vlog.longValue(); break;
                 case 7: _MissfirePolicy = vlog.intValue(); break;
                 case 8: _OneByOneKey = vlog.stringValue(); break;
+                case 9: _HappenTimes = vlog.longValue(); break;
             }
         }
     }
@@ -538,6 +587,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         setOneByOneKey(rs.getString(_parents_name_ + "OneByOneKey"));
         if (getOneByOneKey() == null)
             setOneByOneKey("");
+        setHappenTimes(rs.getLong(_parents_name_ + "HappenTimes"));
     }
 
     @Override
@@ -551,6 +601,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         st.appendLong(_parents_name_ + "EndTime", getEndTime());
         st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
         st.appendString(_parents_name_ + "OneByOneKey", getOneByOneKey());
+        st.appendLong(_parents_name_ + "HappenTimes", getHappenTimes());
     }
 
     @Override
@@ -564,6 +615,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "MissfirePolicy", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "OneByOneKey", "string", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTimes", "long", "", ""));
         return vars;
     }
 }

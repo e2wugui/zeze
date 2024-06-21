@@ -30,7 +30,11 @@ public class TestTimer {
 	public static class TestTimerHandle1 implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext timerContext) {
-			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills);
+			System.out.println(">> Name: " + timerContext.timerName
+					+ " ID: " + timerContext.timerId
+					+ " Now: " + System.currentTimeMillis()
+					+ " Expected: " + timerContext.expectedTimeMills
+					+ " Next: " + timerContext.nextExpectedTimeMills);
 		}
 
 		@Override
@@ -43,7 +47,12 @@ public class TestTimer {
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
 			bean.addValue();
-			System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
+			System.out.println(">> Name: " + timerContext.timerName
+					+ " ID: " + timerContext.timerId
+					+ " Now: " + System.currentTimeMillis()
+					+ " Expected: " + timerContext.expectedTimeMills
+					+ " Next: " + timerContext.nextExpectedTimeMills
+					+ " Bean Value: " + bean.getTestValue());
 		}
 
 		@Override
@@ -57,7 +66,12 @@ public class TestTimer {
 			TestBean bean = (TestBean)timerContext.customData;
 			if (bean.checkLiving()) {
 				bean.addValue();
-				System.out.println(">> Name: " + timerContext.timerName + " ID: " + timerContext.timerId + " Now: " + timerContext.curTimeMills + " Expected: " + timerContext.expectedTimeMills + " Next: " + timerContext.nextExpectedTimeMills + " Bean Value: " + bean.getTestValue());
+				System.out.println(">> Name: " + timerContext.timerName
+						+ " ID: " + timerContext.timerId
+						+ " Now: " + System.currentTimeMillis()
+						+ " Expected: " + timerContext.expectedTimeMills
+						+ " Next: " + timerContext.nextExpectedTimeMills
+						+ " Bean Value: " + bean.getTestValue());
 			} else {
 				timerContext.timer.cancel("3");
 				System.out.println(">> Schedule Canceled");

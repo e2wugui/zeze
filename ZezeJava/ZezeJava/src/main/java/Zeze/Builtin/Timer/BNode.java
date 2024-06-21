@@ -4,13 +4,14 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// 若干个timer打包的节点
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly {
     public static final long TYPEID = -44647384323818353L;
 
-    private long _PrevNodeId;
-    private long _NextNodeId;
-    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers;
+    private long _PrevNodeId; // 节点双链表的前一个节点ID, tNodes表的key, 循环指向,不应该无效
+    private long _NextNodeId; // 节点双链表的后一个节点ID, tNodes表的key, 循环指向,不应该无效
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers; // 该节点的所有timer, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID), 数量上限是Zeze.Component.Timer.CountPerNode(50)
 
     @Override
     public long getPrevNodeId() {

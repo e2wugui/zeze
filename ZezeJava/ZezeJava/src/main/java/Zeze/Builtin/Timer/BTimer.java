@@ -8,8 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnly {
     public static final long TYPEID = -3755541261968580150L;
 
-    private String _TimerName;
-    private String _HandleName;
+    private String _TimerName; // 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+    private String _HandleName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
     private final Zeze.Transaction.DynamicBean _TimerObj;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
@@ -53,7 +53,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
-    private long _ConcurrentFireSerialNo;
+    private long _ConcurrentFireSerialNo; // 触发定时器后自增的序列号, 用来避免并发timer触发
 
     private transient Object __zeze_map_key__;
 

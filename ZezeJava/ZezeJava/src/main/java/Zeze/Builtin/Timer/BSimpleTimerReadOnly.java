@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
+// 固定周期触发的timer
 public interface BSimpleTimerReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);

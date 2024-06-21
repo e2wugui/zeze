@@ -16,9 +16,9 @@ public abstract class AbstractTimer implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
-    public static final int eMissfirePolicyNothing = 0; // quartz 兼容
-    public static final int eMissfirePolicyRunOnce = 1; // quartz 兼容
-    public static final int eMissfirePolicyRunOnceOldNext = 2; // 新策略，马上补一次调用，但保持下一次调度时间不变。比如用于，每天定点开启活动。
+    public static final int eMissfirePolicyNothing = 0; // 如果错过指定触发时间, 则忽略并以当前时间+period重设新的触发时间
+    public static final int eMissfirePolicyRunOnce = 1; // 如果错过指定触发时间, 则立即触发一次并以当前时间+period重设新的触发时间
+    public static final int eMissfirePolicyRunOnceOldNext = 2; // 如果错过指定触发时间, 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
 
     protected final Zeze.Builtin.Timer.tAccountOfflineTimers _tAccountOfflineTimers = new Zeze.Builtin.Timer.tAccountOfflineTimers();
     protected final Zeze.Builtin.Timer.tAccountTimers _tAccountTimers = new Zeze.Builtin.Timer.tAccountTimers();

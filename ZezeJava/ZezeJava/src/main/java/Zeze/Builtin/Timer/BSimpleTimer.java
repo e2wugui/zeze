@@ -4,21 +4,22 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// 固定周期触发的timer
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimpleTimerReadOnly {
     public static final long TYPEID = 1832177636612857692L;
 
-    private long _Delay;
-    private long _Period;
-    private long _RemainTimes; // -1 表示不限次数。
-    private long _HappenTimes;
-    private long _StartTime;
-    private long _EndTime; // -1表示没有结束时间
-    private long _NextExpectedTime;
-    private long _ExpectedTime;
-    private long _HappenTime;
-    private int _MissfirePolicy;
-    private String _OneByOneKey;
+    private long _Delay; // [已废弃]
+    private long _Period; // 触发周期(毫秒), 只有大于0才会周期触发
+    private long _RemainTimes; // 剩余触发次数, -1表示不限次数
+    private long _HappenTimes; // 已经触发的次数, 触发后自增
+    private long _StartTime; // timer的创建时间(unix毫秒时间戳)
+    private long _EndTime; // 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+    private long _NextExpectedTime; // 下次计划触发的时间(unix毫秒时间戳)
+    private long _ExpectedTime; // 上次应该触发的时间(unix毫秒时间戳), 初始为0
+    private long _HappenTime; // 上次实际触发的时间(unix毫秒时间戳), 初始为0
+    private int _MissfirePolicy; // 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+    private String _OneByOneKey; // timer触发时所用的OneByOne队列key
 
     @Override
     public long getDelay() {
