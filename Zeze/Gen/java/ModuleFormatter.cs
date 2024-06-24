@@ -402,7 +402,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    if (false == module.Hot || false == project.Hot)
+                    if (!module.Hot || !project.Hot)
                         sw.WriteLine($"        {zezeVar}.removeTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
@@ -469,7 +469,6 @@ namespace Zeze.Gen.java
         public void DefineZezeTables(StreamWriter sw)
         {
             bool isMultiInstance = module.MultiInstance && project is Component;
-
             if (isMultiInstance)
             {
                 sw.WriteLine();
@@ -479,21 +478,17 @@ namespace Zeze.Gen.java
             bool written = false;
             foreach (Table table in module.Tables.Values)
             {
-                if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                 {
                     if (!written)
                     {
                         written = true;
                         sw.WriteLine();
                     }
-                    if (isMultiInstance)
-                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
+                    if (!isMultiInstance && project is Component)
+                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
                     else
-                    {
-                        var suffixStr = table.Suffix.Length > 0 ? '"' + table.Suffix + '"' : "";
-                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name +
-                                     " = new " + table.FullName + "(" + suffixStr + ");");
-                    }
+                        sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
                 }
             }
 
@@ -506,12 +501,40 @@ namespace Zeze.Gen.java
                     sw.WriteLine("        var suffix = name.isEmpty() ? name : \"__\" + name;");
                 foreach (Table table in module.Tables.Values)
                 {
-                    if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
+                    if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                     {
                         sw.WriteLine($"        _{table.Name} = new {table.FullName}(suffix);");
                     }
                 }
                 sw.WriteLine($"    }}");
+            }
+        }
+
+        public void CreateZezeTables(StreamWriter sw)
+        {
+            bool hasAppVersionSuffix = false;
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks && table.Suffix == "@AppMainVersion")
+                {
+                    hasAppVersionSuffix = true;
+                    break;
+                }
+            }
+            if (hasAppVersionSuffix)
+            {
+                sw.WriteLine("        var appMainVersion = app.Zeze.getConfig().getAppMainVersion();");
+                sw.WriteLine("        var appMainVersionSuffix = appMainVersion != 0 ? \"__\" + appMainVersion : null;");
+            }
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
+                {
+                    var suffixStr = table.Suffix.Length > 0
+                        ? table.Suffix == "@AppMainVersion" ? "appMainVersionSuffix" : '"' + table.Suffix + '"'
+                        : "";
+                    sw.WriteLine("        _" + table.Name + " = new " + table.FullName + "(" + suffixStr + ");");
+                }
             }
         }
 
@@ -524,6 +547,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
 
             sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
+            CreateZezeTables(sw);
             sw.WriteLine("        App = app;");
             sw.WriteLine("        Register();");
             sw.WriteLine("    }");

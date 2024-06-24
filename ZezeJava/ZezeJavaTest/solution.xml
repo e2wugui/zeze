@@ -16,7 +16,7 @@
 		<bean name="BCount" UseData="true">
 			<variable id="1" name="Count" type="long"/>
 		</bean>
-		<table name="tHelloCount" key="long" value="BCount"/>
+		<table name="tHelloCount" suffix="__1" key="long" value="BCount"/>
 		<servlet name="hellocount"/>
 	</module>
 
@@ -30,7 +30,7 @@
 			<variable id="1" name="Money" type="long"/>
 		</bean>
 
-		<table name="tKuafu" key="long" value="BKuafu" />
+		<table name="tKuafu" suffix="@AppMainVersion" key="long" value="BKuafu" />
 
 		<bean name="BTestSchemas">
 			<variable id="1" name="Var1" type="long"/>

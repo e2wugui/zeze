@@ -11,4 +11,5 @@ public interface BIndexReadOnly {
     int getServerId();
     long getNodeId();
     long getSerialId();
+    long getVersion();
 }

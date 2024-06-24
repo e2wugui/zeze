@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
+// 玩家离线状态触发的定时器, key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BOfflineTimers>
         implements TableReadOnly<Long, Zeze.Builtin.Timer.BOfflineTimers, Zeze.Builtin.Timer.BOfflineTimersReadOnly> {

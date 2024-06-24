@@ -4,14 +4,15 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
+// 用于BTimer.CustomData,关联角色的offline timer上下文数据
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements BOfflineRoleCustomReadOnly {
     public static final long TYPEID = -124522910617189691L;
 
-    private String _TimerName;
-    private long _RoleId;
-    private long _LoginVersion;
-    private String _HandleName;
+    private String _TimerName; // 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+    private long _RoleId; // 关联的角色ID
+    private long _LoginVersion; // BOnline.LogoutVersion
+    private String _HandleName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
     private final Zeze.Transaction.DynamicBean _CustomData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_CustomData() {

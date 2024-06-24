@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOfflineTimersReadOnly {
     public static final long TYPEID = -4429519688247847602L;
 
-    private final Zeze.Transaction.Collections.PMap1<String, Integer> _OfflineTimers; // key是timerId，value是注册离线定时器的ServerId。
+    private final Zeze.Transaction.Collections.PMap1<String, Integer> _OfflineTimers; // key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID), value是注册定时器的serverId
 
     public Zeze.Transaction.Collections.PMap1<String, Integer> getOfflineTimers() {
         return _OfflineTimers;

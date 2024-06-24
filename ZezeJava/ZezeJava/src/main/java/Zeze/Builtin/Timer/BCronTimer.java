@@ -17,7 +17,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     private long _EndTime; // 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
     private int _MissfirePolicy; // 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
     private String _OneByOneKey; // timer触发时所用的OneByOne队列key
-    private long _HappenTimes; // 已经触发的次数, 触发后自增
+    private long _HappenTimes; // 已经触发的次数, 触发前自增
 
     @Override
     public String getCronExpression() {

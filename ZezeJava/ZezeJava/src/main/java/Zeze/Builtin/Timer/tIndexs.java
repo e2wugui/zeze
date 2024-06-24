@@ -30,6 +30,7 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     public static final int VAR_ServerId = 1;
     public static final int VAR_NodeId = 2;
     public static final int VAR_SerialId = 3;
+    public static final int VAR_Version = 4;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

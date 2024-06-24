@@ -12,6 +12,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
     private int _ServerId; // 所属的serverId
     private long _NodeId; // 所属的节点ID
     private long _SerialId; // timer系列号，用来区分是否新注册的。
+    private long _Version; // 当前timer所属server的版本, 如果当前server的版本更新,可以修改其所属
 
     @Override
     public int getServerId() {
@@ -73,15 +74,36 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         txn.putLog(new Log__SerialId(this, 3, value));
     }
 
+    @Override
+    public long getVersion() {
+        if (!isManaged())
+            return _Version;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Version;
+        var log = (Log__Version)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Version;
+    }
+
+    public void setVersion(long value) {
+        if (!isManaged()) {
+            _Version = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Version(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BIndex() {
     }
 
     @SuppressWarnings("deprecation")
-    public BIndex(int _ServerId_, long _NodeId_, long _SerialId_) {
+    public BIndex(int _ServerId_, long _NodeId_, long _SerialId_, long _Version_) {
         _ServerId = _ServerId_;
         _NodeId = _NodeId_;
         _SerialId = _SerialId_;
+        _Version = _Version_;
     }
 
     @Override
@@ -89,6 +111,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         setServerId(0);
         setNodeId(0);
         setSerialId(0);
+        setVersion(0);
         _unknown_ = null;
     }
 
@@ -96,6 +119,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         setServerId(other.getServerId());
         setNodeId(other.getNodeId());
         setSerialId(other.getSerialId());
+        setVersion(other.getVersion());
         _unknown_ = other._unknown_;
     }
 
@@ -142,6 +166,13 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         public void commit() { ((BIndex)getBelong())._SerialId = value; }
     }
 
+    private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
+        public Log__Version(BIndex bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BIndex)getBelong())._Version = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -155,7 +186,8 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("NodeId=").append(getNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SerialId=").append(getSerialId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("SerialId=").append(getSerialId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -209,6 +241,13 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -230,6 +269,10 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             setSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -248,6 +291,8 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             return false;
         if (getSerialId() != _b_.getSerialId())
             return false;
+        if (getVersion() != _b_.getVersion())
+            return false;
         return true;
     }
 
@@ -258,6 +303,8 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         if (getNodeId() < 0)
             return true;
         if (getSerialId() < 0)
+            return true;
+        if (getVersion() < 0)
             return true;
         return false;
     }
@@ -274,6 +321,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
                 case 1: _ServerId = vlog.intValue(); break;
                 case 2: _NodeId = vlog.longValue(); break;
                 case 3: _SerialId = vlog.longValue(); break;
+                case 4: _Version = vlog.longValue(); break;
             }
         }
     }
@@ -284,6 +332,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         setServerId(rs.getInt(_parents_name_ + "ServerId"));
         setNodeId(rs.getLong(_parents_name_ + "NodeId"));
         setSerialId(rs.getLong(_parents_name_ + "SerialId"));
+        setVersion(rs.getLong(_parents_name_ + "Version"));
     }
 
     @Override
@@ -292,6 +341,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         st.appendInt(_parents_name_ + "ServerId", getServerId());
         st.appendLong(_parents_name_ + "NodeId", getNodeId());
         st.appendLong(_parents_name_ + "SerialId", getSerialId());
+        st.appendLong(_parents_name_ + "Version", getVersion());
     }
 
     @Override
@@ -300,6 +350,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SerialId", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Version", "long", "", ""));
         return vars;
     }
 }

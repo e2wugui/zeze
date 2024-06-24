@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
+// 用于BTimer.CustomData,关联角色的offline timer上下文数据
 public interface BOfflineRoleCustomReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);

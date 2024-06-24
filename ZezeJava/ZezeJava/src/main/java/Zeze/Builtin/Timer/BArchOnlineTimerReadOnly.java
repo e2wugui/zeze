@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
-// 保存在内存Map中
+// 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器
 public interface BArchOnlineTimerReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);

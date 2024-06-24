@@ -4,13 +4,13 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-// 保存在内存Map中
+// 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BArchOnlineTimerReadOnly {
     public static final long TYPEID = -1410268970794351805L;
 
-    private String _Account;
-    private String _ClientId;
+    private String _Account; // 所属的账号名
+    private String _ClientId; // 所属的客户端ID
     private final Zeze.Transaction.DynamicBean _TimerObj;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;

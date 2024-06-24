@@ -12,7 +12,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     private long _Delay; // [已废弃]
     private long _Period; // 触发周期(毫秒), 只有大于0才会周期触发
     private long _RemainTimes; // 剩余触发次数, -1表示不限次数
-    private long _HappenTimes; // 已经触发的次数, 触发后自增
+    private long _HappenTimes; // 已经触发的次数, 触发前自增
     private long _StartTime; // timer的创建时间(unix毫秒时间戳)
     private long _EndTime; // 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
     private long _NextExpectedTime; // 下次计划触发的时间(unix毫秒时间戳)

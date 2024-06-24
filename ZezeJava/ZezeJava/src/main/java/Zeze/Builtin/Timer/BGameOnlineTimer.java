@@ -4,12 +4,12 @@ package Zeze.Builtin.Timer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-// 保存在内存Map中
+// 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
 @SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGameOnlineTimerReadOnly {
     public static final long TYPEID = -3455653027701280193L;
 
-    private long _RoleId;
+    private long _RoleId; // 所属的角色ID
     private final Zeze.Transaction.DynamicBean _TimerObj;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;

@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
-// 保存在内存Map中
+// 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
 public interface BGameOnlineTimerReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
