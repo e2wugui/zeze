@@ -56,13 +56,14 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	/**
 	 * 按字节读取。
+	 *
 	 * @param buf buf
 	 * @param off off
 	 * @param len len
 	 * @return n read bytes, -1 means eof.
 	 * @throws IOException exception
 	 */
-	public int read(@NotNull byte[] buf, int off, int len) throws IOException {
+	public int read(byte @NotNull [] buf, int off, int len) throws IOException {
 		lock();
 		try {
 			var n = 0;
@@ -90,6 +91,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 
 	/**
 	 * 如果buffer没有数据，从文件中读取填入。
+	 *
 	 * @return true fill success; false eof
 	 * @throws IOException exception
 	 */
@@ -112,7 +114,7 @@ public final class BufferedRandomFile extends ReentrantLock implements Closeable
 	private int read() throws IOException {
 		if (!fillBuffer())
 			return -1;
-		pos ++;
+		pos++;
 		return buffer.get();
 	}
 

@@ -26,12 +26,12 @@ import org.jetbrains.annotations.Nullable;
  * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerAccount {
-	final Online online;
-
 	//public static final String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 
-	TimerAccount(Online online) {
+	private final @NotNull Online online;
+
+	TimerAccount(@NotNull Online online) {
 		this.online = online;
 
 		// online timer 生命期和 Online.Local 一致。
@@ -40,138 +40,132 @@ public class TimerAccount {
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
-	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   long delay, long period, long times, long endTime,
-									   TimerHandle handle, Bean customData) {
-		return scheduleOnlineNamed(account, clientId, timerName,
-				delay, period, times, endTime,
-				handle, customData, "");
+									   @Nullable TimerHandle handle, @Nullable Bean customData) {
+		return scheduleOnlineNamed(account, clientId, timerId, delay, period, times, endTime, handle, customData, "");
 	}
 
-	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   long delay, long period, long times, long endTime,
-									   TimerHandle handle, Bean customData, String oneByOneKey) {
-
+									   @Nullable TimerHandle handle, @Nullable Bean customData,
+									   @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 
-		var timer = online.providerApp.zeze.getTimer();
-		var bTimer = timer.tAccountTimers().get(timerName);
-		if (null != bTimer)
+		var bTimer = online.providerApp.zeze.getTimer().tAccountTimers().get(timerId);
+		if (bTimer != null)
 			return false;
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		scheduleOnline(account, clientId, timerName, simpleTimer, handle, customData);
+		scheduleOnline(account, clientId, timerId, simpleTimer, handle, customData);
 		return true;
 	}
 
-	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerName,
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  long delay, long period, long times, long endTime,
-										  Class<? extends TimerHandle> handle, Bean customData) {
-		return scheduleOnlineNamedHot(account, clientId, timerName,
-				delay, period, times, endTime,
-				handle, customData, "");
+										  @NotNull Class<? extends TimerHandle> handleClass,
+										  @Nullable Bean customData) {
+		return scheduleOnlineNamedHot(account, clientId, timerId, delay, period, times, endTime, handleClass,
+				customData, "");
 	}
 
-	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerName,
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  long delay, long period, long times, long endTime,
-										  Class<? extends TimerHandle> handle, Bean customData,
-										  String oneByOneKey) {
-		var timer = online.providerApp.zeze.getTimer();
-		var bTimer = timer.tAccountTimers().get(timerName);
-		if (null != bTimer)
+										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  @NotNull String oneByOneKey) {
+		var bTimer = online.providerApp.zeze.getTimer().tAccountTimers().get(timerId);
+		if (bTimer != null)
 			return false;
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		scheduleOnlineHot(account, clientId, timerName, simpleTimer, handle, customData);
+		scheduleOnlineHot(account, clientId, timerId, simpleTimer, handleClass, customData);
 		return true;
 	}
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
-	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
-									   String cron, long times, long endTime,
-									   TimerHandle handleName, Bean customData) throws Exception {
-		return scheduleOnlineNamed(account, clientId, timerName,
-				cron, times, endTime, handleName, customData, "");
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+									   @NotNull String cron, long times, long endTime,
+									   @Nullable TimerHandle handle, @Nullable Bean customData) throws Exception {
+		return scheduleOnlineNamed(account, clientId, timerId, cron, times, endTime, handle, customData, "");
 	}
 
-	public boolean scheduleOnlineNamed(String account, String clientId, String timerName,
-									   String cron, long times, long endTime,
-									   TimerHandle handleName, Bean customData,
-									   String oneByOneKey) throws Exception {
-
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+									   @NotNull String cron, long times, long endTime,
+									   @Nullable TimerHandle handle, @Nullable Bean customData,
+									   @NotNull String oneByOneKey) throws Exception {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-
-		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tAccountTimers().get(timerName);
-		if (null != timerId)
+		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
 			return false;
+
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		scheduleOnline(account, clientId, timerName, cronTimer, handleName, customData);
+		scheduleOnline(account, clientId, timerId, cronTimer, handle, customData);
 		return true;
 	}
 
-	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerName,
-										  String cron, long times, long endTime,
-										  Class<? extends TimerHandle> handleName, Bean customData) throws Exception {
-		return scheduleOnlineNamedHot(account, clientId, timerName,
-				cron, times, endTime,
-				handleName, customData, "");
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+										  @NotNull String cron, long times, long endTime,
+										  @NotNull Class<? extends TimerHandle> handleClass,
+										  @Nullable Bean customData) throws Exception {
+		return scheduleOnlineNamedHot(account, clientId, timerId, cron, times, endTime, handleClass, customData, "");
 	}
 
-	public boolean scheduleOnlineNamedHot(String account, String clientId, String timerName,
-										  String cron, long times, long endTime,
-										  Class<? extends TimerHandle> handleName, Bean customData,
-										  String oneByOneKey) throws Exception {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerId = timer.tAccountTimers().get(timerName);
-		if (null != timerId)
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+										  @NotNull String cron, long times, long endTime,
+										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										  @NotNull String oneByOneKey) throws Exception {
+		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
 			return false;
+
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		scheduleOnlineHot(account, clientId, timerName, cronTimer, handleName, customData);
+		scheduleOnlineHot(account, clientId, timerId, cronTimer, handleClass, customData);
 		return true;
 	}
 
-	public String scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime,
-								 TimerHandle name, Bean customData) {
-		return scheduleOnline(account, clientId,
-				delay, period, times, endTime, name, customData, "");
+	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
+										  long times, long endTime, @Nullable TimerHandle handle,
+										  @Nullable Bean customData) {
+		return scheduleOnline(account, clientId, delay, period, times, endTime, handle, customData, "");
 	}
 
-	public String scheduleOnline(String account, String clientId, long delay, long period, long times, long endTime,
-								 TimerHandle name, Bean customData, String oneByOneKey) {
-
+	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
+										  long times, long endTime, @Nullable TimerHandle handle,
+										  @Nullable Bean customData, @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOnline(account, clientId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
+		return scheduleOnline(account, clientId, '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				simpleTimer, handle, customData);
 	}
 
-	public String scheduleOnlineHot(String account, String clientId, long delay, long period, long times, long endTime,
-									Class<? extends TimerHandle> name, Bean customData) {
+	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+											 long delay, long period, long times, long endTime,
+											 @NotNull Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData) {
+		return scheduleOnlineHot(account, clientId, delay, period, times, endTime, handleClass, customData, "");
+	}
+
+	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+											 long delay, long period, long times, long endTime,
+											 @NotNull Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData, @NotNull String oneByOneKey) {
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		return scheduleOnlineHot(account, clientId,
-				delay, period, times, endTime,
-				name, customData, "");
+				'@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				simpleTimer, handleClass, customData);
 	}
 
-	public String scheduleOnlineHot(String account, String clientId, long delay, long period, long times, long endTime,
-									Class<? extends TimerHandle> name, Bean customData, String oneByOneKey) {
-		var simpleTimer = new BSimpleTimer();
-		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOnlineHot(account, clientId, "@" + timer.timerIdAutoKey.nextString(), simpleTimer, name, customData);
-	}
-
-	private String scheduleOnline(String account, String clientId, String timerId, BSimpleTimer simpleTimer,
-								  TimerHandle name, Bean customData) {
+	private @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+										   @NotNull BSimpleTimer simpleTimer, @Nullable TimerHandle handle,
+										   @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
-		if (null == loginVersion)
+		if (loginVersion == null)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -181,18 +175,20 @@ public class TimerAccount {
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
-		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
+		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handle);
 		return timerId;
 	}
 
-	private String scheduleOnlineHot(String account, String clientId, String timerId, BSimpleTimer simpleTimer,
-									 Class<? extends TimerHandle> name, Bean customData) {
+	private @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+											  @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
+											  @NotNull Class<? extends TimerHandle> handleClass,
+											  @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
-		if (null == loginVersion)
+		if (loginVersion == null)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -202,50 +198,55 @@ public class TimerAccount {
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
-		scheduleSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), name);
+		scheduleSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
 		return timerId;
 	}
 
-	public String scheduleOnline(String account, String clientId, String cron, long times, long endTime,
-								 TimerHandle name, Bean customData) throws Exception {
-		return scheduleOnline(account, clientId,
-				cron, times, endTime, name, customData, "");
+	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+										  long times, long endTime, @Nullable TimerHandle handle,
+										  @Nullable Bean customData) throws Exception {
+		return scheduleOnline(account, clientId, cron, times, endTime, handle, customData, "");
 	}
 
-	public String scheduleOnline(String account, String clientId, String cron, long times, long endTime,
-								 TimerHandle name, Bean customData, String oneByOneKey) throws Exception {
-
+	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+										  long times, long endTime, @Nullable TimerHandle handle,
+										  @Nullable Bean customData, @NotNull String oneByOneKey) throws Exception {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOnline(account, clientId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
+		return scheduleOnline(account, clientId, '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				cronTimer, handle, customData);
 	}
 
-	public String scheduleOnlineHot(String account, String clientId, String cron, long times, long endTime,
-									Class<? extends TimerHandle> name, Bean customData) throws Exception {
-		return scheduleOnlineHot(account, clientId,
-				cron, times, endTime, name, customData, "");
+	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+											 long times, long endTime,
+											 @NotNull Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData) throws Exception {
+		return scheduleOnlineHot(account, clientId, cron, times, endTime, handleClass, customData, "");
 	}
 
-	public String scheduleOnlineHot(String account, String clientId, String cron, long times, long endTime,
-									Class<? extends TimerHandle> name, Bean customData, String oneByOneKey) throws Exception {
+	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+											 long times, long endTime,
+											 @NotNull Class<? extends TimerHandle> handleClass,
+											 @Nullable Bean customData, @NotNull String oneByOneKey) throws Exception {
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOnlineHot(account, clientId, "@" + timer.timerIdAutoKey.nextString(), cronTimer, name, customData);
+		return scheduleOnlineHot(account, clientId,
+				'@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				cronTimer, handleClass, customData);
 	}
 
-	private String scheduleOnline(String account, String clientId, String timerId, BCronTimer cronTimer,
-								  TimerHandle name, Bean customData) {
+	private @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
+										   @NotNull BCronTimer cronTimer, @Nullable TimerHandle handle,
+										   @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
-		if (null == loginVersion)
+		if (loginVersion == null)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -255,18 +256,20 @@ public class TimerAccount {
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
-		scheduleCron(timerId, cronTimer, name);
+		scheduleCron(timerId, cronTimer, handle);
 		return timerId;
 	}
 
-	private String scheduleOnlineHot(String account, String clientId, String timerId, BCronTimer cronTimer,
-									 Class<? extends TimerHandle> name, Bean customData) {
+	private @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+											  @NotNull String timerId, @NotNull BCronTimer cronTimer,
+											  @NotNull Class<? extends TimerHandle> handleClass,
+											  @Nullable Bean customData) {
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
-		if (null == loginVersion)
+		if (loginVersion == null)
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -276,27 +279,27 @@ public class TimerAccount {
 
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			timerLocal.getCustomData().setBean(customData);
 		}
-		scheduleCronHot(timerId, cronTimer, name);
+		scheduleCronHot(timerId, cronTimer, handleClass);
 		return timerId;
 	}
 
-	public boolean cancel(String timerId) {
+	public boolean cancel(@NotNull String timerId) {
 		var timer = online.providerApp.zeze.getTimer();
 		// always cancel future task. 第一步就做这个。
-		timer.cancelFuture(timerId);
+		Transaction.whileCommit(() -> timer.cancelFuture(timerId));
 
 		// remove online timer
 		var bTimer = timer.tAccountTimers().get(timerId);
-		if (null == bTimer)
+		if (bTimer == null)
 			return false;
 
 		// remove online local
 		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
-		if (null != onlineTimers) {
+		if (onlineTimers != null) {
 			onlineTimers.getTimerIds().remove(timerId);
 			if (onlineTimers.getTimerIds().isEmpty())
 				online.removeLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
@@ -307,67 +310,69 @@ public class TimerAccount {
 		return true;
 	}
 
-	public boolean scheduleOfflineNamed(String timerName, String account, String clientId,
+	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										long delay, long period, long times, long endTime, int missFirePolicy,
-										Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerIndex = timer.tIndexs().get(timerName);
-		if (null != timerIndex)
+										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		var timerIndex = online.providerApp.zeze.getTimer().tIndexs().get(timerId);
+		if (timerIndex != null)
 			return false;
 
-		scheduleOffline(timerName, account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClassName, customData, "");
+		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
+				customData, "");
 		return true;
 	}
 
-	public boolean scheduleOfflineNamed(String timerName, String account, String clientId,
+	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										long delay, long period, long times, long endTime, int missFirePolicy,
-										Class<? extends TimerHandle> handleClassName, Bean customData,
-										String oneByOneKey) {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerIndex = timer.tIndexs().get(timerName);
-		if (null != timerIndex)
+										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										@NotNull String oneByOneKey) {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		var timerIndex = online.providerApp.zeze.getTimer().tIndexs().get(timerId);
+		if (timerIndex != null)
 			return false;
 
-		scheduleOffline(timerName, account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClassName, customData, oneByOneKey);
+		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
+				customData, oneByOneKey);
 		return true;
 	}
 
-	public String scheduleOffline(String account, String clientId,
-								  long delay, long period, long times, long endTime, int missFirePolicy,
-								  Class<? extends TimerHandle> handleClassName, Bean customData) {
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
+										   long delay, long period, long times, long endTime, int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClass,
+										   @Nullable Bean customData) {
+		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
 				account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClassName, customData, "");
+				handleClass, customData, "");
 	}
 
-	public String scheduleOffline(String account, String clientId,
-								  long delay, long period, long times, long endTime, int missFirePolicy,
-								  Class<? extends TimerHandle> handleClassName, Bean customData,
-								  String oneByOneKey) {
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
+	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
+										   long delay, long period, long times, long endTime, int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										   @NotNull String oneByOneKey) {
+		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
 				account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClassName, customData, oneByOneKey);
+				handleClass, customData, oneByOneKey);
 	}
 
-	private String scheduleOffline(String timerId, String account, String clientId,
-								   long delay, long period, long times, long endTime, int missFirePolicy,
-								   Class<? extends TimerHandle> handleClassName, Bean customData, String oneByOneKey) {
+	private @NotNull String scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+											long delay, long period, long times, long endTime, int missFirePolicy,
+											@NotNull Class<? extends TimerHandle> handleClass,
+											@Nullable Bean customData, @NotNull String oneByOneKey) {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
-		if (null == logoutVersion)
+		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
+		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClass.getName());
 		var simpleTimer = new BSimpleTimer();
 		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		simpleTimer.setMissfirePolicy(missFirePolicy);
 		var timerName = timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
@@ -377,69 +382,72 @@ public class TimerAccount {
 			throw new IllegalStateException("too many offline timers. account="
 					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
 
-		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
+		if (offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()) != null)
 			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
 		return timerName;
 	}
 
-	public boolean scheduleOfflineNamed(String timerName, String account, String clientId, String cron,
-										long times, long endTime, int missFirePolicy,
-										Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerIndex = timer.tIndexs().get(timerName);
-		if (null != timerIndex)
+	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+										@NotNull String cron, long times, long endTime, int missFirePolicy,
+										@NotNull Class<? extends TimerHandle> handleClass,
+										@Nullable Bean customData) throws ParseException {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		if (online.providerApp.zeze.getTimer().tIndexs().get(timerId) != null)
 			return false;
-		scheduleOffline(timerName, account, clientId, cron, times, endTime, missFirePolicy,
-				handleClassName, customData, "");
+
+		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
+				"");
 		return true;
 	}
 
-	public boolean scheduleOfflineNamed(String timerName, String account, String clientId, String cron,
-										long times, long endTime, int missFirePolicy,
-										Class<? extends TimerHandle> handleClassName, Bean customData,
-										String oneByOneKey) throws ParseException {
-		var timer = online.providerApp.zeze.getTimer();
-		var timerIndex = timer.tIndexs().get(timerName);
-		if (null != timerIndex)
+	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+										@NotNull String cron, long times, long endTime, int missFirePolicy,
+										@NotNull Class<? extends TimerHandle> handleClass,
+										@Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		if (online.providerApp.zeze.getTimer().tIndexs().get(timerId) != null)
 			return false;
-		scheduleOffline(timerName, account, clientId, cron, times, endTime, missFirePolicy,
-				handleClassName, customData, oneByOneKey);
+
+		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
+				oneByOneKey);
 		return true;
 	}
 
-	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
-								  int missFirePolicy,
-								  Class<? extends TimerHandle> handleClassName, Bean customData) throws ParseException {
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
-				account, clientId, cron, times, endTime, missFirePolicy, handleClassName, customData, "");
+	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+										   long times, long endTime, int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClass,
+										   @Nullable Bean customData) throws ParseException {
+		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
 	}
 
-	public String scheduleOffline(String account, String clientId, String cron, long times, long endTime,
-								  int missFirePolicy,
-								  Class<? extends TimerHandle> handleClassName, Bean customData,
-								  String oneByOneKey) throws ParseException {
-		var timer = online.providerApp.zeze.getTimer();
-		return scheduleOffline("@" + timer.timerIdAutoKey.nextString(),
-				account, clientId, cron, times, endTime, missFirePolicy, handleClassName, customData, oneByOneKey);
+	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
+										   long times, long endTime, int missFirePolicy,
+										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+										   @NotNull String oneByOneKey) throws ParseException {
+		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
+				account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, oneByOneKey);
 	}
 
-	private String scheduleOffline(String timerId, String account, String clientId, String cron, long times, long endTime,
-								   int missFirePolicy,
-								   Class<? extends TimerHandle> handleClassName, Bean customData,
-								   String oneByOneKey) throws ParseException {
+	private @NotNull String scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+											@NotNull String cron, long times, long endTime, int missFirePolicy,
+											@NotNull Class<? extends TimerHandle> handleClass,
+											@Nullable Bean customData,
+											@NotNull String oneByOneKey) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
-		if (null == logoutVersion)
+		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClassName.getName());
+		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClass.getName());
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
 		var timerName = timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
 		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
-		if (null != customData) {
+		if (customData != null) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
@@ -448,7 +456,7 @@ public class TimerAccount {
 			throw new IllegalStateException("too many offline timers. account="
 					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
 
-		if (null != offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()))
+		if (offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()) != null)
 			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
 		return timerName;
 	}
@@ -457,13 +465,13 @@ public class TimerAccount {
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;
 			//noinspection DataFlowIssue
 			var loginVersion = context.timer.getAccountTimer().online
 					.getLoginVersion(offlineCustom.getAccount(), offlineCustom.getClientId());
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
-			if (null != loginVersion && loginVersion == offlineCustom.getLoginVersion()) {
+			if (loginVersion != null && loginVersion == offlineCustom.getLoginVersion()) {
 				@SuppressWarnings("unchecked")
 				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
 				final var handle = handleClass.getDeclaredConstructor().newInstance();
@@ -475,7 +483,7 @@ public class TimerAccount {
 				context.timer.cancel(offlineCustom.getTimerName());
 				var offlineTimers = context.timer.tAccountOfflineTimers()
 						.get(new BAccountClientId(offlineCustom.getAccount(), offlineCustom.getClientId()));
-				if (null == offlineTimers)
+				if (offlineTimers == null)
 					throw new IllegalStateException("maybe operate before timer created.");
 				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
 			}
@@ -486,17 +494,16 @@ public class TimerAccount {
 		}
 	}
 
-	private long onLoginEvent(Object sender, EventDispatcher.EventArgument arg) {
-		var timer = online.providerApp.zeze.getTimer();
+	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var loginArg = (LoginArgument)arg;
 		var loginKey = new BAccountClientId(loginArg.account, loginArg.clientId);
+		var timer = online.providerApp.zeze.getTimer();
 		var offlineTimers = timer.tAccountOfflineTimers().get(loginKey);
 		// X: fix offlineTimers is null
-		if (null == offlineTimers)
+		if (offlineTimers == null)
 			return 0;
-		for (var e : offlineTimers.getOfflineTimers().entrySet()) {
+		for (var e : offlineTimers.getOfflineTimers().entrySet())
 			timer.cancel(e.getKey());
-		}
 		// 嵌入本地服务器事件事务中，
 		// 删除之后，如果上面的redirectCancel失败，
 		// 那么该timer触发的时候会检测到版本号不一致，
@@ -506,11 +513,11 @@ public class TimerAccount {
 	}
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
-	private long onLocalRemoveEvent(Object sender, EventDispatcher.EventArgument arg) {
+	private long onLocalRemoveEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var local = (LocalRemoveEventArgument)arg;
-		if (null != local.local) {
+		if (local.local != null) {
 			var bAny = local.local.getDatas().get(eOnlineTimers);
-			if (null != bAny) {
+			if (bAny != null) {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())
 					cancel(timerId);
@@ -520,7 +527,7 @@ public class TimerAccount {
 	}
 
 	// 调度 cron 定时器
-	private void scheduleCron(String timerId, BCronTimer cron, TimerHandle handle) {
+	private void scheduleCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle handle) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, handle);
@@ -529,28 +536,27 @@ public class TimerAccount {
 		}
 	}
 
-	private void scheduleCronHot(String timerId, BCronTimer cron, Class<? extends TimerHandle> handle) {
+	private void scheduleCronHot(@NotNull String timerId, @NotNull BCronTimer cron,
+								 @NotNull Class<? extends TimerHandle> handleClass) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNextHot(timerId, delay, handle);
+			scheduleCronNextHot(timerId, delay, handleClass);
 		} catch (Exception ex) {
 			Timer.logger.error("", ex);
 		}
 	}
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
-	private void scheduleCronNext(String timerId, long delay, TimerHandle handle) {
-		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(
-				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireCron(timerId, handle, false))));
+	private void scheduleCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
+		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireCron(timerId, handle, false))));
 	}
 
-	private void scheduleCronNextHot(String timerId, long delay, Class<? extends TimerHandle> handle) {
+	private void scheduleCronNextHot(@NotNull String timerId, long delay,
+									 @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(
-				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireCron(timerId, timer.findTimerHandle(handle.getName()), true))));
+		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireCron(timerId, timer.findTimerHandle(handleClass.getName()), true))));
 	}
 
 	private void fireCron(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
@@ -558,20 +564,20 @@ public class TimerAccount {
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (handle == null) {
 				cancel(timerId);
-				return 0; // done
+				return 0;
 			}
 
 			var bTimer = timer.tAccountTimers().get(timerId);
 			if (bTimer == null) {
-				timer.cancelFuture(timerId);
-				return 0; // done
+				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
+				return 0;
 			}
 
 			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
 			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
-				timer.cancelFuture(timerId);
-				return 0; // done
+				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
+				return 0;
 			}
 
 			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
@@ -593,30 +599,28 @@ public class TimerAccount {
 			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
-			}, "TimerAccount.fireOnlineLocalHandle"));
+			}, "TimerAccount.fireCron.inner"));
 
 			var bTimerNew = timer.tAccountTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
-				return 0; // canceled or new timer
+				return 0; // 已经取消或覆盖成新的timer
 
 			if (retNest == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
 			}
-			// skip other error
-			if (!hasNext) {
-				cancel(timerId);
-				return 0; // procedure done
-			}
+			// 其他错误忽略
 
-			// continue period
-			long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
-			if (hot)
-				scheduleCronNextHot(timerId, delay, handle.getClass());
-			else
-				scheduleCronNext(timerId, delay, handle);
+			if (hasNext) { // 准备下一个间隔
+				long delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
+				if (hot)
+					scheduleCronNextHot(timerId, delay, handle.getClass());
+				else
+					scheduleCronNext(timerId, delay, handle);
+			} else
+				cancel(timerId);
 			return 0;
-		}, "TimerAccount.fireOnlineSimpleTimer"));
+		}, "TimerAccount.fireCron"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
@@ -627,18 +631,16 @@ public class TimerAccount {
 	}
 
 	// 调度 Simple 定时器到ThreadPool中。
-	private void scheduleSimple(String timerId, long delay, TimerHandle handle) {
-		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(
-				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireSimple(timerId, handle, false))));
+	private void scheduleSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
+		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireSimple(timerId, handle, false))));
 	}
 
-	private void scheduleSimpleHot(String timerId, long delay, Class<? extends TimerHandle> handle) {
+	private void scheduleSimpleHot(@NotNull String timerId, long delay,
+								   @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(
-				() -> timer.timersFuture.put(timerId, Task.scheduleUnsafe(delay,
-						() -> fireSimple(timerId, timer.findTimerHandle(handle.getName()), true))));
+		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))));
 	}
 
 	// Timer发生，执行回调。
@@ -647,26 +649,27 @@ public class TimerAccount {
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (handle == null) {
 				cancel(timerId);
-				return 0; // done
+				return 0;
 			}
 
 			var bTimer = timer.tAccountTimers().get(timerId);
 			if (bTimer == null) {
-				timer.cancelFuture(timerId);
-				return 0; // done
+				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
+				return 0;
 			}
 			var loginVersion = online.getLoginVersion(bTimer.getAccount(), bTimer.getClientId());
 			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
 				// 已经不是注册定时器时候的登录了。
-				timer.cancelFuture(timerId);
-				return 0; // done
+				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
+				return 0;
 			}
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var serialSaved = bTimer.getSerialId();
 			var hasNext = Timer.nextSimpleTimer(simpleTimer, false);
-			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
-				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
+			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
+				var localBean = online.<BOnlineTimers>getLocalBean(
+						bTimer.getAccount(), bTimer.getClientId(), eOnlineTimers);
 				if (localBean == null)
 					throw new IllegalStateException("local bean not exist");
 				var localTimer = localBean.getTimerIds().get(timerId);
@@ -681,32 +684,28 @@ public class TimerAccount {
 				context.clientId = bTimer.getClientId();
 				handle.onTimer(context);
 				return Procedure.Success;
-			}, "TimerAccount.fireOnlineLocalHandle"));
+			}, "TimerAccount.fireSimple.inner"));
 
 			var bTimerNew = timer.tAccountTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
-				return 0; // canceled or new timer
+				return 0; // 已经取消或覆盖成新的timer
 
-			if (retNest == Procedure.Exception) {
+			if (r == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
 			}
 			// 其他错误忽略
 
-			// 准备下一个间隔
-			if (!hasNext) {
+			if (hasNext) { // 准备下一个间隔
+				var delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
+				if (hot)
+					scheduleSimpleHot(timerId, delay, handle.getClass());
+				else
+					scheduleSimple(timerId, delay, handle);
+			} else
 				cancel(timerId);
-				return 0; // procedure done
-			}
-
-			// continue period
-			var delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
-			if (hot)
-				scheduleSimpleHot(timerId, delay, handle.getClass());
-			else
-				scheduleSimple(timerId, delay, handle);
-			return 0; // last procedure done
-		}, "TimerAccount.fireOnlineSimpleTimer"));
+			return 0;
+		}, "TimerAccount.fireSimple"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {

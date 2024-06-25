@@ -35,7 +35,6 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
-import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,6 +43,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Timer extends AbstractTimer implements HotBeanFactory {
+	static final Logger logger = LogManager.getLogger(Timer.class);
+	public static final int CountPerNode = 50;
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
@@ -62,17 +63,21 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
-	public static final int CountPerNode = 50;
-
-	static final Logger logger = LogManager.getLogger(Timer.class);
 	public final Application zeze;
 	private AutoKey nodeIdAutoKey;
 	AutoKey timerIdAutoKey;
 	AutoKey timerSerialId;
 
 	// 在这台服务器进程内调度的所有Timer。key是timerId，value是ThreadPool.schedule的返回值。
-	final ConcurrentHashMap<String, Future<?>> timersFuture = new ConcurrentHashMap<>();
+	final ConcurrentHashMap<String, Future<?>> timerFutures = new ConcurrentHashMap<>();
 	private final HotHandle<TimerHandle> hotHandle = new HotHandle<>();
+	private boolean started;
+
+	private TimerAccount timerAccount;
+	private Online defaultOnline;
+
+	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
+	private boolean freshStopModuleDynamic;
 
 	public static @NotNull Timer create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Timer.class, app);
@@ -94,8 +99,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		timerSerialId = zeze.getAutoKey("Zeze.Component.Timer.SerialId");
 	}
 
-	private boolean started = false;
-
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
@@ -104,7 +107,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		try {
 			if (started)
 				return;
-
 			started = true;
 			var hotManager = zeze.getHotManager();
 			if (hotManager != null) {
@@ -155,7 +157,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
-	TimerHandle findTimerHandle(String handleClassName) throws Exception {
+	@NotNull
+	TimerHandle findTimerHandle(@NotNull String handleClassName) throws Exception {
 		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
@@ -170,62 +173,62 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 调度一个Timer。
 	 * 需要在事务内使用。
 	 *
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param period     触发周期(毫秒), 只有大于0才会周期触发
-	 * @param handle     Timer处理Class
-	 * @param customData 自定义数据
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
+	 * @param handleClass Timer处理Class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 */
-	public @NotNull String schedule(long delay, long period, @NotNull Class<? extends TimerHandle> handle,
+	public @NotNull String schedule(long delay, long period, @NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
-		return schedule(delay, period, -1, handle, customData);
+		return schedule(delay, period, -1, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个Timeout，即仅执行一次的Timer。
 	 * 需要在事务内使用。
 	 *
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param handle     Timer处理Class
-	 * @param customData 自定义数据
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param handleClass Timer处理Class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 */
-	public @NotNull String schedule(long delay, @NotNull Class<? extends TimerHandle> handle,
+	public @NotNull String schedule(long delay, @NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
-		return schedule(delay, -1, 1, handle, customData);
+		return schedule(delay, -1, 1, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个Timer。
 	 * 需要在事务内使用。
 	 *
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param period     触发周期(毫秒), 只有大于0才会周期触发
-	 * @param times      限制触发次数, -1表示不限次数
-	 * @param handle     Timer处理Class
-	 * @param customData 自定义数据
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
+	 * @param times       限制触发次数, -1表示不限次数
+	 * @param handleClass Timer处理Class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 */
-	public @NotNull String schedule(long delay, long period, long times, @NotNull Class<? extends TimerHandle> handle,
-									@Nullable Bean customData) {
-		return schedule(delay, period, times, -1, handle, customData);
+	public @NotNull String schedule(long delay, long period, long times,
+									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return schedule(delay, period, times, -1, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个Timer。
 	 * 需要在事务内使用。
 	 *
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param period     触发周期(毫秒), 只有大于0才会周期触发
-	 * @param times      限制触发次数, -1表示不限次数
-	 * @param endTime    限制触发的最后时间(unix毫秒时间戳)
-	 * @param handle     Timer处理Class
-	 * @param customData 自定义数据
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
+	 * @param times       限制触发次数, -1表示不限次数
+	 * @param endTime     限制触发的最后时间(unix毫秒时间戳)
+	 * @param handleClass Timer处理Class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 */
 	public @NotNull String schedule(long delay, long period, long times, long endTime,
-									@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
-		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, handle, customData);
+									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return schedule(delay, period, times, endTime, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
@@ -237,78 +240,68 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
 	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
-	 * @param handle         Timer处理Class
+	 * @param handleClass    Timer处理Class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 */
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
-									@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
-		return schedule(delay, period, times, endTime,
-				missFirePolicy, handle, customData, "");
+									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return schedule(delay, period, times, endTime, missFirePolicy, handleClass, customData, "");
 	}
 
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
-									@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
-									String oneByOneKey) {
+									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+									@NotNull String oneByOneKey) {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		simpleTimer.setMissfirePolicy(missFirePolicy);
-		return schedule(simpleTimer, handle, customData);
+		return schedule(simpleTimer, handleClass, customData);
 	}
 
 	// 直接传递BSimpleTimer，需要自己调用它Timer.initSimpleTimer初始化。所以暂时不开放了。
-	private @NotNull String schedule(@NotNull BSimpleTimer simpleTimer, @NotNull Class<? extends TimerHandle> handle,
-									 @Nullable Bean customData) {
-		// auto name
-		return schedule("@" + timerIdAutoKey.nextString(), simpleTimer, handle, customData);
+	private @NotNull String schedule(@NotNull BSimpleTimer simpleTimer,
+									 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return schedule('@' + timerIdAutoKey.nextString(), simpleTimer, handleClass, customData);
 	}
 
 	@NotNull
 	String schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
-					@NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
+					@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
+		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
-		if (nodeId == 0) { // no node
+		if (nodeId == 0) // 如果整个双链表是空的
 			nodeId = nodeIdAutoKey.nextId();
-		}
-		while (true) {
+		for (; ; nodeId = nodeIdAutoKey.nextId()) {
 			var node = _tNodes.getOrAdd(nodeId);
-			// 如果节点是新创建的，这里根据node的变量来判断。
-			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) {
-
-				if (root.getHeadNodeId() == 0 || root.getTailNodeId() == 0) {
-					// root is empty
+			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) { // 如果节点是新创建的
+				var headNodeId = root.getHeadNodeId();
+				var tailNodeId = root.getTailNodeId();
+				if (headNodeId == 0 || tailNodeId == 0) { // 如果整个双链表是空的
 					node.setPrevNodeId(nodeId);
 					node.setNextNodeId(nodeId);
-					root.setHeadNodeId(nodeId);
 					root.setTailNodeId(nodeId);
-				} else {
-					// link to root head
-					var head = _tNodes.get(root.getHeadNodeId());
+				} else { // 双链表不空,插入新节点
+					var head = _tNodes.get(headNodeId);
 					if (head == null)
 						throw new IllegalStateException("headNode is null. maybe operate before create.");
-					head.setPrevNodeId(nodeId);
-					node.setNextNodeId(root.getHeadNodeId());
-					node.setPrevNodeId(root.getTailNodeId());
-					root.setHeadNodeId(nodeId);
-					var tail = _tNodes.get(root.getTailNodeId());
+					var tail = _tNodes.get(tailNodeId);
 					if (tail == null)
 						throw new IllegalStateException("tailNode is null. maybe operate before create.");
-					tail.setNextNodeId(root.getHeadNodeId());
+					node.setPrevNodeId(tailNodeId);
+					node.setNextNodeId(headNodeId);
+					head.setPrevNodeId(nodeId);
+					tail.setNextNodeId(nodeId);
 				}
+				root.setHeadNodeId(nodeId);
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var index = new BIndex();
-				index.setServerId(serverId);
-				index.setNodeId(nodeId);
-				index.setSerialId(timerSerialId.nextId());
-				_tIndexs.tryAdd(timerId, index);
+				var serialId = timerSerialId.nextId();
+				_tIndexs.insert(timerId, new BIndex(serverId, nodeId, serialId, appVer));
 
-				var timer = new BTimer();
-				timer.setTimerName(timerId);
-				timer.setHandleName(handle.getName());
+				var timer = new BTimer(timerId, handleClass.getName(), 0);
 				timer.setTimerObj(simpleTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -318,13 +311,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
-				scheduleSimple(index.getSerialId(), serverId, timerId,
+				scheduleSimple(serialId, serverId, timerId,
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
-						timer.getConcurrentFireSerialNo(),
-						false, simpleTimer.getOneByOneKey());
+						0, false, simpleTimer.getOneByOneKey());
 				return timerId;
 			}
-			nodeId = nodeIdAutoKey.nextId();
 		}
 	}
 
@@ -335,59 +326,59 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 每月第N(monthDay)天的某个时刻(hour,minute,second)。
 	 * 需要在事务内使用。
 	 *
-	 * @param monthDay   月内第几天
-	 * @param hour       小时
-	 * @param minute     分钟
-	 * @param second     秒
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param monthDay    月内第几天
+	 * @param hour        小时
+	 * @param minute      分钟
+	 * @param second      秒
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
 	 */
 	public @NotNull String scheduleMonth(int monthDay, int hour, int minute, int second,
-										 @NotNull Class<? extends TimerHandle> handle,
+										 @NotNull Class<? extends TimerHandle> handleClass,
 										 @Nullable Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " " + monthDay + " * ?";
-		return schedule(cron, handle, customData);
+		return schedule(cron, handleClass, customData);
 	}
 
 	/**
 	 * 每周第N(weekDay)天的某个时刻(hour, minute, second)。
 	 * 需要在事务内使用。
 	 *
-	 * @param weekDay    一周的第几天
-	 * @param hour       小时
-	 * @param minute     分钟
-	 * @param second     秒
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param weekDay     一周的第几天
+	 * @param hour        小时
+	 * @param minute      分钟
+	 * @param second      秒
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
 	 */
 	public @NotNull String scheduleWeek(int weekDay, int hour, int minute, int second,
-										@NotNull Class<? extends TimerHandle> handle,
+										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * " + weekDay;
-		return schedule(cron, handle, customData);
+		return schedule(cron, handleClass, customData);
 	}
 
 	/**
 	 * 每天的某个时刻(hour, minute, second)。
 	 * 需要在事务内使用。
 	 *
-	 * @param hour       小时
-	 * @param minute     分钟
-	 * @param second     秒
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param hour        小时
+	 * @param minute      分钟
+	 * @param second      秒
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
 	 */
 	public @NotNull String scheduleDay(int hour, int minute, int second,
-									   @NotNull Class<? extends TimerHandle> handle,
+									   @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) throws ParseException {
 		var cron = second + " " + minute + " " + hour + " * * ?";
-		return schedule(cron, handle, customData);
+		return schedule(cron, handleClass, customData);
 	}
 
 	/**
@@ -395,15 +386,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 需要在事务内使用。
 	 *
 	 * @param cronExpression cron表达式
-	 * @param handle         回调class
+	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
 	 */
 	public @NotNull String schedule(@NotNull String cronExpression,
-									@NotNull Class<? extends TimerHandle> handle,
+									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) throws ParseException {
-		return schedule(cronExpression, -1, -1, handle, customData);
+		return schedule(cronExpression, -1, -1, handleClass, customData);
 	}
 
 	/**
@@ -413,15 +404,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param cronExpression cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
-	 * @param handle         回调class
+	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
 	 */
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime,
-									@NotNull Class<? extends TimerHandle> handle,
+									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) throws ParseException {
-		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, handle, customData);
+		return schedule(cronExpression, times, endTime, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
@@ -432,79 +423,71 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
 	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
-	 * @param handle         回调class
+	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
 	 */
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
-									@NotNull Class<? extends TimerHandle> handle,
+									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) throws ParseException {
 		return schedule(cronExpression, times, endTime,
-				missFirePolicy, handle, customData, "");
+				missFirePolicy, handleClass, customData, "");
 	}
 
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
-									@NotNull Class<? extends TimerHandle> handle,
-									@Nullable Bean customData, String oneByOneKey) throws ParseException {
+									@NotNull Class<? extends TimerHandle> handleClass,
+									@Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cronExpression, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
-		return schedule(cronTimer, handle, customData);
+		return schedule(cronTimer, handleClass, customData);
 	}
 
 	// 直接传递BCronTimer需要自动调用Timer.initCronTimer初始化。先不开放了。
 	private @NotNull String schedule(@NotNull BCronTimer cronTimer,
-									 @NotNull Class<? extends TimerHandle> name, @Nullable Bean customData) {
-		return schedule("@" + timerIdAutoKey.nextString(), cronTimer, name, customData);
+									 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return schedule('@' + timerIdAutoKey.nextString(), cronTimer, handleClass, customData);
 	}
 
 	@NotNull
-	String schedule(@NotNull String timerId, BCronTimer cronTimer,
-					@NotNull Class<? extends TimerHandle> name, @Nullable Bean customData) {
+	String schedule(@NotNull String timerId, BCronTimer cronTimer, @NotNull Class<? extends TimerHandle> handleClass,
+					@Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
+		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
 		var nodeId = root.getHeadNodeId();
-		if (nodeId == 0) { // no node
+		if (nodeId == 0) // 如果整个双链表是空的
 			nodeId = nodeIdAutoKey.nextId();
-		}
-		while (true) {
+		for (; ; nodeId = nodeIdAutoKey.nextId()) {
 			var node = _tNodes.getOrAdd(nodeId);
-			// 如果节点是新创建的，这里根据node的变量来判断。
-			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) {
-
-				if (root.getHeadNodeId() == 0 || root.getTailNodeId() == 0) {
-					// root is empty
+			if (node.getNextNodeId() == 0 || node.getPrevNodeId() == 0) { // 如果节点是新创建的
+				var headNodeId = root.getHeadNodeId();
+				var tailNodeId = root.getTailNodeId();
+				if (headNodeId == 0 || tailNodeId == 0) { // 如果整个双链表是空的
 					node.setPrevNodeId(nodeId);
 					node.setNextNodeId(nodeId);
-					root.setHeadNodeId(nodeId);
 					root.setTailNodeId(nodeId);
-				} else {
-					// link to root head
-					var head = _tNodes.get(root.getHeadNodeId());
+				} else { // 双链表不空,插入新节点
+					var head = _tNodes.get(headNodeId);
 					if (head == null)
 						throw new IllegalStateException("headNode is null. maybe operate before create.");
-					head.setPrevNodeId(nodeId);
-					node.setNextNodeId(root.getHeadNodeId());
-					node.setPrevNodeId(root.getTailNodeId());
-					root.setHeadNodeId(nodeId);
-					var tail = _tNodes.get(root.getTailNodeId());
+					var tail = _tNodes.get(tailNodeId);
 					if (tail == null)
 						throw new IllegalStateException("tailNode is null. maybe operate before create.");
-					tail.setNextNodeId(root.getHeadNodeId());
+					node.setPrevNodeId(tailNodeId);
+					node.setNextNodeId(headNodeId);
+					head.setPrevNodeId(nodeId);
+					tail.setNextNodeId(nodeId);
 				}
+				root.setHeadNodeId(nodeId);
 			}
 
 			if (node.getTimers().size() < CountPerNode) {
-				var index = new BIndex();
-				index.setServerId(serverId);
-				index.setNodeId(nodeId);
-				index.setSerialId(timerSerialId.nextId());
-				_tIndexs.insert(timerId, index);
+				var serialId = timerSerialId.nextId();
+				_tIndexs.insert(timerId, new BIndex(serverId, nodeId, serialId, appVer));
 
-				var timer = new BTimer();
-				timer.setTimerName(timerId);
-				timer.setHandleName(name.getName());
+				var timer = new BTimer(timerId, handleClass.getName(), 0);
 				timer.setTimerObj(cronTimer);
 				node.getTimers().put(timerId, timer);
 
@@ -514,68 +497,62 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					tryRecordBeanHotModuleWhileCommit(customData);
 				}
 
-				scheduleCron(index.getSerialId(), serverId,
-						timerId, cronTimer,
-						timer.getConcurrentFireSerialNo(),
-						false, cronTimer.getOneByOneKey());
+				scheduleCron(serialId, serverId, timerId, cronTimer, 0, false, cronTimer.getOneByOneKey());
 				return timerId;
 			}
-			nodeId = nodeIdAutoKey.nextId();
 		}
 	}
 
 	/////////////////////////////////////////////////////////////////
 	// Named Timer
-	// 有名字的Timer，每个名字只能全局调度唯一一个真正的Timer。
-	// 对这种Timer，不暴露TimerId，只能通过名字访问。
-	// 当真正的Timer被迁移到不同的Server时，名字到TimerId的映射不需要改变。
+	// 有名字的Timer，每个名字(TimerId)只能全局调度唯一一个真正的Timer。
 
 	/**
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerId    名字, 如果同名timer已存在则直接返回false
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param timerId     名字, 如果同名timer已存在则直接返回false
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, long delay,
-								 @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
-		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handle, customData);
+								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return scheduleNamed(timerId, delay, -1, -1, -1, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerId    名字, 如果同名timer已存在则直接返回false
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param period     触发周期(毫秒), 只有大于0才会周期触发
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param timerId     名字, 如果同名timer已存在则直接返回false
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period,
-								 @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
-		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handle, customData);
+								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return scheduleNamed(timerId, delay, period, -1, -1, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerId    名字, 如果同名timer已存在则直接返回false
-	 * @param delay      首次触发延迟(毫秒), 不能小于0
-	 * @param period     触发周期(毫秒), 只有大于0才会周期触发
-	 * @param times      限制触发次数, -1表示不限次数
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param timerId     名字, 如果同名timer已存在则直接返回false
+	 * @param delay       首次触发延迟(毫秒), 不能小于0
+	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
+	 * @param times       限制触发次数, -1表示不限次数
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times,
-								 @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
-		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handle, customData);
+								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		return scheduleNamed(timerId, delay, period, times, -1, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
@@ -588,31 +565,28 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
 	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
-	 * @param handle         回调class
+	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) {
-		return scheduleNamed(timerId, delay, period, times, endTime,
-				missFirePolicy, handle, customData, "");
+		return scheduleNamed(timerId, delay, period, times, endTime, missFirePolicy, handleClass, customData, "");
 	}
 
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData, String oneByOneKey) {
 		if (timerId.startsWith("@"))
-			throw new IllegalArgumentException("invalid timer name. startsWith '@' is reserved.");
-
-		var index = _tIndexs.get(timerId);
-		if (index != null)
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		if (_tIndexs.get(timerId) != null)
 			return false;
 
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
 		simpleTimer.setMissfirePolicy(missFirePolicy);
-		schedule(timerId, simpleTimer, handle, customData);
+		schedule(timerId, simpleTimer, handleClass, customData);
 		return true;
 	}
 
@@ -620,69 +594,70 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerName  即timerId, 如果同名timer已存在则直接返回false
-	 * @param cron       cron表达式
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param timerId     如果同名timer已存在则直接返回false
+	 * @param cron        cron表达式
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
 	 */
-	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron,
-								 @NotNull Class<? extends TimerHandle> handle,
+	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron,
+								 @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, -1, -1, eMissfirePolicyNothing, handle, customData);
+		return scheduleNamed(timerId, cron, -1, -1, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerName  即timerId, 如果同名timer已存在则直接返回false
-	 * @param cron       cron表达式
-	 * @param times      限制触发次数, -1表示不限次数
-	 * @param endTime    限制触发的最后时间(unix毫秒时间戳)
-	 * @param handle     回调class
-	 * @param customData 自定义数据
+	 * @param timerId     如果同名timer已存在则直接返回false
+	 * @param cron        cron表达式
+	 * @param times       限制触发次数, -1表示不限次数
+	 * @param endTime     限制触发的最后时间(unix毫秒时间戳)
+	 * @param handleClass 回调class
+	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
 	 */
-	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron, long times, long endTime,
-								 @NotNull Class<? extends TimerHandle> handle,
+	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
+								 @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, times, endTime, eMissfirePolicyNothing, handle, customData);
+		return scheduleNamed(timerId, cron, times, endTime, eMissfirePolicyNothing, handleClass, customData);
 	}
 
 	/**
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @param timerName      即timerId, 如果同名timer已存在则直接返回false
+	 * @param timerId        如果同名timer已存在则直接返回false
 	 * @param cron           cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
 	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
-	 * @param handle         回调class
+	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
 	 */
-	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerName, cron, times, endTime,
-				missFirePolicy, handle, customData, "");
+		return scheduleNamed(timerId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
 	}
 
-	public boolean scheduleNamed(@NotNull String timerName, @NotNull String cron, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handle,
+	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
+								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData, String oneByOneKey) throws ParseException {
-		var timerId = _tIndexs.get(timerName);
-		if (timerId != null)
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
+		if (_tIndexs.get(timerId) != null)
 			return false;
+
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
-		schedule(timerName, cronTimer, handle, customData);
+		schedule(timerId, cronTimer, handleClass, customData);
 		return true;
 	}
 
@@ -692,10 +667,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 *
 	 * @param timerId timerId
 	 */
-	public void cancel(String timerId) {
+	public void cancel(@Nullable String timerId) {
 		if (timerId == null)
 			return; // 忽略没有初始化的timerId。
-
 		/*
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
@@ -719,7 +693,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				Transaction.whileCommit(() -> tryRedirectCancel(index.getServerId(), timerId));
 		} else {
 			// 定时器数据已经不存在了，尝试移除future。
-			cancelFuture(timerId);
+			Transaction.whileCommit(() -> cancelFuture(timerId));
 		}
 	}
 
@@ -740,9 +714,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return _tAccountOfflineTimers;
 	}
 
-	private TimerAccount timerAccount;
-	private Online defaultOnline;
-
 	public TimerAccount getAccountTimer() {
 		return timerAccount;
 	}
@@ -751,11 +722,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return defaultOnline;
 	}
 
-	public TimerRole getRoleTimer() {
+	public @NotNull TimerRole getRoleTimer() {
 		return defaultOnline.getTimerRole();
 	}
 
-	public TimerRole getRoleTimer(String onlineSetName) {
+	public @NotNull TimerRole getRoleTimer(@Nullable String onlineSetName) {
 		var online = defaultOnline.getOnline(onlineSetName);
 		if (online == null)
 			throw new IllegalStateException("online miss " + onlineSetName);
@@ -778,70 +749,62 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		cancelFuture(timerId);
 	}
 
-	void cancelFuture(@NotNull String timerName) {
-		var local = timersFuture.remove(timerName);
+	void cancelFuture(@NotNull String timerId) {
+		var local = timerFutures.remove(timerId);
 		if (local != null)
 			local.cancel(false);
 	}
 
-	private void cancel(int serverId, @NotNull String timerName, @Nullable BIndex index, @Nullable BNode node) {
+	private void cancel(int serverId, @NotNull String timerId, @NotNull BIndex index, @Nullable BNode node) {
 		// 事务成功时，总是尝试cancel future
-		Transaction.whileCommit(() -> cancelFuture(timerName));
-
-		if (index == null)
-			return;
-
-		// remove node
+		Transaction.whileCommit(() -> cancelFuture(timerId));
 		if (node != null) {
 			var timers = node.getTimers();
-			timers.remove(timerName);
-
+			timers.remove(timerId);
 			if (timers.isEmpty()) {
-				var prev = _tNodes.get(node.getPrevNodeId());
-				var next = _tNodes.get(node.getNextNodeId());
+				var nodeId = index.getNodeId();
+				var prevNodeId = node.getPrevNodeId();
+				var nextNodeId = node.getNextNodeId();
+				var prev = _tNodes.get(prevNodeId);
+				if (prev != null && prev.getNextNodeId() == nodeId)
+					prev.setNextNodeId(nextNodeId);
+				var next = _tNodes.get(nextNodeId);
+				if (next != null && next.getPrevNodeId() == nodeId)
+					next.setPrevNodeId(prevNodeId);
 				var root = _tNodeRoot.get(serverId);
-				if (root == null || prev == null || next == null)
-					throw new IllegalStateException("maybe operate before timer created.");
-				if (root.getHeadNodeId() == root.getTailNodeId()) {
-					// only one node and will be removed.
-					root.setHeadNodeId(0L);
-					root.setTailNodeId(0L);
-				} else {
-					if (root.getHeadNodeId() == index.getNodeId())
-						root.setHeadNodeId(node.getNextNodeId());
-					if (root.getTailNodeId() == index.getNodeId())
-						root.setTailNodeId(node.getPrevNodeId());
+				if (root != null) {
+					if (root.getHeadNodeId() == nodeId) {
+						if (root.getTailNodeId() == nodeId) {
+							root.setHeadNodeId(0);
+							root.setTailNodeId(0);
+						} else
+							root.setHeadNodeId(nextNodeId);
+					} else if (root.getTailNodeId() == nodeId)
+						root.setTailNodeId(prevNodeId);
 				}
-				prev.setNextNodeId(node.getNextNodeId());
-				next.setPrevNodeId(node.getPrevNodeId());
-
 				// 把当前空的Node加入垃圾回收。
 				// 由于Nodes并发访问的原因，不能马上删除。延迟一定时间就安全了。
 				// 不删除的话就会在数据库留下垃圾。
-				_tNodes.delayRemove(index.getNodeId());
+				_tNodes.delayRemove(nodeId);
 			}
 		}
-		_tIndexs.remove(timerName);
+		_tIndexs.remove(timerId);
 	}
 
-	private void scheduleSimple(long timerSerialId, int serverId,
-								@NotNull String timerId, long delay,
-								long concurrentSerialNo,
-								boolean putIfAbsent,
-								String oneByOneKey) {
-		Transaction.whileCommit(
-				() -> {
-					if (!putIfAbsent || !timersFuture.containsKey(timerId)) {
-						timersFuture.put(timerId, Task.scheduleUnsafe(delay, () -> {
-							if (oneByOneKey == null || oneByOneKey.isEmpty()) {
-								fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
-							} else {
-								zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
-										() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false));
-							}
-						}));
+	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay,
+								long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
+		Transaction.whileCommit(() -> {
+			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
+				timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+					if (oneByOneKey == null || oneByOneKey.isEmpty())
+						fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
+					else {
+						zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
+								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
-				});
+				}));
+			}
+		});
 	}
 
 	public static void initSimpleTimer(@NotNull BSimpleTimer simpleTimer, long delay, long period, long times,
@@ -892,6 +855,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return endTime <= 0 || nextExpectedTime <= endTime;
 	}
 
+	private boolean checkAppVersion(long version) {
+		var curMainVer = zeze.getConfig().getAppVersion() >>> 48;
+		var mainVer = version >>> 48;
+		return curMainVer == mainVer;
+	}
+
 	private long fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 							boolean missFire) {
 		if (Task.call(zeze.newProcedure(() -> {
@@ -899,25 +868,26 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
 					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
+					|| !checkAppVersion(index.getVersion())
 			) {
-				cancelFuture(timerId);
+				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}
 
 			var node = _tNodes.get(index.getNodeId());
 			if (node == null) {
 				cancel(serverId, timerId, index, null);
-				return 0; // procedure done
+				return 0;
 			}
 
 			var timer = node.getTimers().get(timerId);
 			if (timer == null)
 				throw new IllegalStateException("maybe operate before timer created");
-			final var handle = findTimerHandle(timer.getHandleName());
+			var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 				var hasNext = nextSimpleTimer(simpleTimer, missFire);
-				final var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
+				var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
 						simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
@@ -936,7 +906,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);
-					return 0; // procedure done
+					return 0;
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 				// 其他错误忽略
@@ -951,46 +921,41 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			scheduleSimple(timerSerialId, serverId, timerId,
 					simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 					concurrentSerialNo + 1, false, simpleTimer.getOneByOneKey());
-			return 0L;
+			return 0;
 		}, "Timer.fireSimple")) != 0) {
 			Task.call(zeze.newProcedure(() -> {
 				cancel(timerId);
-				return 0L;
+				return 0;
 			}, "Timer.cancelTimer"));
 		}
-		return 0L;
+		return 0;
 	}
 
-	private void scheduleCron(long timerSerialId, int serverId,
-							  @NotNull String timerName, @NotNull BCronTimer cron,
-							  long concurrentSerialNo,
-							  boolean putIfAbsent, String oneByOneKey) {
+	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerId, @NotNull BCronTimer cron,
+							  long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		try {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
-			scheduleCronNext(timerSerialId, serverId, timerName, delay, concurrentSerialNo, putIfAbsent, oneByOneKey);
+			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo, putIfAbsent, oneByOneKey);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
 			logger.error("", ex);
 		}
 	}
 
-	private void scheduleCronNext(long timerSerialId, int serverId,
-								  @NotNull String timerName, long delay,
-								  long concurrentSerialNo,
-								  boolean putIfAbsent, String oneByOneKey) {
-		Transaction.whileCommit(
-				() -> {
-					if (!putIfAbsent || !timersFuture.containsKey(timerName)) {
-						timersFuture.put(timerName, Task.scheduleUnsafe(delay, () -> {
-							if (oneByOneKey == null || oneByOneKey.isEmpty()) {
-								fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false);
-							} else {
-								zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
-										() -> fireCron(timerSerialId, serverId, timerName, concurrentSerialNo, false));
-							}
-						}));
+	private void scheduleCronNext(long timerSerialId, int serverId, @NotNull String timerId, long delay,
+								  long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
+		Transaction.whileCommit(() -> {
+			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
+				timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+					if (oneByOneKey == null || oneByOneKey.isEmpty())
+						fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false);
+					else {
+						zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
+								() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
-				});
+				}));
+			}
+		});
 	}
 
 	public static long cronNextTime(@NotNull String cron, long time) throws ParseException {
@@ -1046,24 +1011,24 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
 					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
 			) {
-				cancelFuture(timerId);
+				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
 			}
 
 			var node = _tNodes.get(index.getNodeId());
 			if (node == null) {
 				cancel(serverId, timerId, index, null); // maybe concurrent cancel
-				return 0; // procedure done
+				return 0;
 			}
 
 			var timer = node.getTimers().get(timerId);
 			if (timer == null)
 				throw new IllegalStateException("maybe operate before timer created");
-			final var handle = findTimerHandle(timer.getHandleName());
+			var handle = findTimerHandle(timer.getHandleName());
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
 				var hasNext = Timer.nextCronTimer(cronTimer, missFire);
-				final var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),
+				var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),
 						cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 
 				// 当调度发生了错误或者由于异步时序没有原子保证，导致同时（或某个瞬间）在多个Server进程调度时，
@@ -1082,13 +1047,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
 					cancel(serverId, timerId, index, node);
-					return 0; // procedure done
+					return 0;
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 
 				if (!hasNext) {
 					cancel(serverId, timerId, index, node);
-					return 0; // procedure done
+					return 0;
 				}
 			}
 			// else 发生了并发执行争抢，也需要再次进行本地调度。此时直接使用cronTimer中的值，不需要再次进行计算。
@@ -1097,34 +1062,33 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			scheduleCronNext(timerSerialId, serverId, timerId,
 					cronTimer.getNextExpectedTime() - System.currentTimeMillis(),
 					concurrentSerialNo + 1, false, cronTimer.getOneByOneKey());
-			return 0L; // procedure done
+			return 0;
 		}, "Timer.fireCron")) != 0) {
 			Task.call(zeze.newProcedure(() -> {
 				cancel(timerId);
-				return 0L;
+				return 0;
 			}, "Timer.cancelTimer"));
 		}
 	}
 
 	private void loadTimer() {
 		var serverId = zeze.getConfig().getServerId();
-		final var out = new OutObject<BNodeRoot>();
+		var outRoot = new BNodeRoot();
 		var r = Task.call(zeze.newProcedure(() -> {
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
-			out.value = root.copy();
-			return 0L;
+			outRoot.assign(root);
+			return 0;
 		}, "Timer.loadTimerLocal"));
 		if (r == Procedure.Success) {
-			var root = out.value;
 			var offlineNotify = new BOfflineNotify();
-			offlineNotify.serverId = zeze.getConfig().getServerId();
-			offlineNotify.notifySerialId = root.getLoadSerialNo();
+			offlineNotify.serverId = serverId;
 			offlineNotify.notifyId = "Zeze.Component.Timer.OfflineNotify";
+			offlineNotify.notifySerialId = outRoot.getLoadSerialNo();
 			zeze.getServiceManager().offlineRegister(offlineNotify,
-					(notify) -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
-			loadTimer(root.getHeadNodeId(), root.getHeadNodeId(), serverId); // last也填头节点是因为链表是循环的
+					notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
+			loadTimer(outRoot.getHeadNodeId(), outRoot.getHeadNodeId(), serverId); // last也填头节点是因为链表是循环的
 		} else
 			logger.error("loadTimer failed: r={}", r);
 	}
@@ -1139,59 +1103,51 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		if (serverId == zeze.getConfig().getServerId())
 			return 0; // skip self
 
-		final var first = new OutLong();
-		final var last = new OutLong();
-
-		var result = Task.call(zeze.newProcedure(() -> {
+		var first = new OutLong();
+		var last = new OutLong();
+		var r = Task.call(zeze.newProcedure(() -> {
 			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
 			var src = _tNodeRoot.get(serverId);
-			if (src == null || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
-				return 0L; // nothing need to do.
-
-			if (src.getLoadSerialNo() != loadSerialNo)
-				return 0L; // 需要接管的机器已经活过来了。
-
-			// prepare splice
-			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
-			var srcHead = _tNodes.get(src.getHeadNodeId());
-			var srcTail = _tNodes.get(src.getTailNodeId());
-			var head = _tNodes.get(root.getHeadNodeId());
-			var tail = _tNodes.get(root.getTailNodeId());
-
+			long srcHeadNodeId, srcTailNodeId;
+			if (src == null || (srcHeadNodeId = src.getHeadNodeId()) == 0 || (srcTailNodeId = src.getTailNodeId()) == 0)
+				return 0;
+			if (src.getLoadSerialNo() != loadSerialNo) // 需要接管的机器已经活过来了
+				return 0;
+			var srcHead = _tNodes.get(srcHeadNodeId);
+			var srcTail = _tNodes.get(srcTailNodeId);
 			if (srcHead == null || srcTail == null)
 				throw new IllegalStateException("maybe operate before timer created.");
 
-			if (head == null || tail == null) {
-				root.setHeadNodeId(src.getHeadNodeId());
-				root.setTailNodeId(src.getTailNodeId());
+			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
+			var headNodeId = root.getHeadNodeId();
+			var tailNodeId = root.getTailNodeId();
+			var head = _tNodes.get(headNodeId);
+			var tail = _tNodes.get(tailNodeId);
+			if (head == null || tail == null)
+				root.setTailNodeId(srcTailNodeId);
+			else {
+				srcHead.setPrevNodeId(tailNodeId);
+				srcTail.setNextNodeId(headNodeId);
+				head.setPrevNodeId(srcTailNodeId);
+				tail.setNextNodeId(srcHeadNodeId);
 			}
-
-			// 先保存存储过程退出以后需要装载的timer范围。
-			first.value = src.getHeadNodeId();
-			last.value = root.getHeadNodeId();
-			// splice
-			srcTail.setNextNodeId(root.getHeadNodeId());
-			root.setHeadNodeId(src.getHeadNodeId());
-			if (head != null)
-				head.setPrevNodeId(src.getTailNodeId());
-			if (tail != null)
-				tail.setNextNodeId(src.getHeadNodeId());
-			srcHead.setPrevNodeId(root.getTailNodeId());
-			// clear src
-			src.setHeadNodeId(0L);
-			src.setTailNodeId(0L);
-			return 0L;
+			root.setHeadNodeId(srcHeadNodeId);
+			src.setHeadNodeId(0);
+			src.setTailNodeId(0);
+			first.value = srcHeadNodeId;
+			last.value = headNodeId;
+			return 0;
 		}, "Timer.spliceAndLoadTimerLocal"));
 
-		if (result == 0)
-			return loadTimer(first.value, last.value, serverId);
-		return result;
+		if (r == 0)
+			loadTimer(first.value, last.value, serverId);
+		return r;
 	}
 
 	// 如果存在node，至少执行一次循环。
-	private long loadTimer(long first, long last, int serverId) {
+	private void loadTimer(long first, long last, int serverId) {
 		if (first == 0 && last == 0)
-			return 0;
+			return;
 		var idSet = new LongHashSet();
 		var node = new OutLong(first);
 		do {
@@ -1209,24 +1165,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				}
 			}
 		} while (node.value != last);
-		return 0L;
 	}
 
-	private long loadTimer(@NotNull OutLong first, long last, int serverId) throws ParseException {
-		var node = _tNodes.get(first.value);
+	private long loadTimer(@NotNull OutLong nodeId, long last, int serverId) throws ParseException {
+		var node = _tNodes.get(nodeId.value);
 		if (node == null) {
-			logger.warn("loadTimer not found nodeId={}", first.value);
-			first.value = last; // 马上结束外面的循环。last仅用在这里。
+			logger.warn("loadTimer not found nodeId={}", nodeId.value);
+			nodeId.value = last; // 马上结束外面的循环。last仅用在这里。
 			return 0; // when root is empty。no node。skip error.
 		}
 		// BUG 修复，如果first.value直接设置，在发生redo时，当前node会被跳过。
 		// 这是因为first是in&out的。另一个解决办法是，first改成只out，当前node用另一个值参数传入。
-		Transaction.whileCommit(() -> {
-			first.value = node.getNextNodeId(); // 设置下一个node。
-		});
-		Transaction.whileRollback(() -> {
-			first.value = node.getNextNodeId(); // 设置下一个node。
-		});
+		Transaction.whileCommit(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
+		Transaction.whileRollback(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 
 		var now = System.currentTimeMillis();
 		for (var timer : node.getTimers().values()) {
@@ -1237,9 +1188,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，
 			// 这回导致load中断后，部分数据没有被设置正确的serverId。
 			// 需要提前到schedule之前，后面的schedule会判断这个值。
-			if (serverId != index.getServerId()) {
+			if (index.getServerId() != serverId)
 				index.setServerId(serverId);
-			}
 			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
 				if (simpleTimer.getNextExpectedTime() < now) { // missFire found
@@ -1289,7 +1239,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						timer.getConcurrentFireSerialNo(), true, cronTimer.getOneByOneKey());
 			}
 		}
-		return 0L;
+		return 0;
 	}
 
 	@Override
@@ -1297,14 +1247,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		_tNodes.__ClearTableCacheUnsafe__();
 	}
 
-	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic = false;
-
-	private void onHotModuleStop(HotModule hot) {
+	private void onHotModuleStop(@NotNull HotModule hot) {
 		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
 	}
 
-	void tryRecordBeanHotModuleWhileCommit(Bean customData) {
+	void tryRecordBeanHotModuleWhileCommit(@NotNull Bean customData) {
 		var cl = customData.getClass().getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
@@ -1315,7 +1262,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
-	private void tryRecordHotModule(Class<?> customClass) {
+	private void tryRecordHotModule(@NotNull Class<?> customClass) {
 		var cl = customClass.getClassLoader();
 		if (HotManager.isHotModule(cl)) {
 			var hotModule = (HotModule)cl;
@@ -1325,7 +1272,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	@Override
-	public BeanFactory beanFactory() {
+	public @NotNull BeanFactory beanFactory() {
 		return beanFactory;
 	}
 
@@ -1337,7 +1284,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	@Override
-	public void processWithNewClasses(List<Class<?>> newClasses) {
+	public void processWithNewClasses(@NotNull List<Class<?>> newClasses) {
 		for (var cls : newClasses)
 			tryRecordHotModule(cls);
 	}

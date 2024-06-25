@@ -67,10 +67,10 @@ public class ProviderUserSession {
 		return context.isEmpty() ? null : Long.parseLong(context);
 	}
 
-	public @NotNull long getRoleIdNotNull() {
+	public long getRoleIdNotNull() {
 		var roleId = getRoleId();
-		if (null == roleId)
-			throw new RuntimeException("roleId is null.");
+		if (roleId == null)
+			throw new RuntimeException("roleId is null");
 		return roleId;
 	}
 
