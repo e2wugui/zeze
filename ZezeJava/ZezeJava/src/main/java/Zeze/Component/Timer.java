@@ -21,6 +21,7 @@ import Zeze.Builtin.Timer.BTimer;
 import Zeze.Builtin.Timer.tAccountOfflineTimers;
 import Zeze.Builtin.Timer.tAccountTimers;
 import Zeze.Builtin.Timer.tIndexs;
+import Zeze.Builtin.Timer.tNodes;
 import Zeze.Collections.BeanFactory;
 import Zeze.Game.Online;
 import Zeze.Hot.HotBeanFactory;
@@ -703,6 +704,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	@NotNull
 	tIndexs tIndexs() {
 		return _tIndexs;
+	}
+
+	@NotNull
+	tNodes tNodes() {
+		return _tNodes;
 	}
 
 	@NotNull
