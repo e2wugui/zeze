@@ -16,6 +16,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
  * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerAccount {
+	private static final Logger logger = LogManager.getLogger(TimerAccount.class);
 	//public static final String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 
@@ -343,48 +346,50 @@ public class TimerAccount {
 										   long delay, long period, long times, long endTime, int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
-		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
-				account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClass, customData, "");
+		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
+		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
+				customData, "");
+		return timerId;
 	}
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
 										   long delay, long period, long times, long endTime, int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										   @NotNull String oneByOneKey) {
-		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
-				account, clientId, delay, period, times, endTime, missFirePolicy,
-				handleClass, customData, oneByOneKey);
+		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
+		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
+				customData, oneByOneKey);
+		return timerId;
 	}
 
-	private @NotNull String scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-											long delay, long period, long times, long endTime, int missFirePolicy,
-											@NotNull Class<? extends TimerHandle> handleClass,
-											@Nullable Bean customData, @NotNull String oneByOneKey) {
+	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+								 long delay, long period, long times, long endTime, int missFirePolicy,
+								 @NotNull Class<? extends TimerHandle> handleClass,
+								 @Nullable Bean customData, @NotNull String oneByOneKey) {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClass.getName());
-		var simpleTimer = new BSimpleTimer();
-		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		simpleTimer.setMissfirePolicy(missFirePolicy);
-		var timerName = timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
-		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
+		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
 		if (customData != null) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
+		var simpleTimer = new BSimpleTimer();
+		Timer.initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
+		simpleTimer.setMissfirePolicy(missFirePolicy);
+		timer.schedule(timerId, simpleTimer, OfflineHandle.class, custom);
+		var config = timer.zeze.getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
-		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
-			throw new IllegalStateException("too many offline timers. account="
-					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-
-		if (offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()) != null)
-			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
-		return timerName;
+		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
+			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
+			logger.error("scheduleOffline(simple): too many timers. account={}, clientId={}, size={} > {}",
+					account, clientId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+		}
+		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
+			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -419,46 +424,48 @@ public class TimerAccount {
 										   long times, long endTime, int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) throws ParseException {
-		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
-				account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
+		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
+		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
+		return timerId;
 	}
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										   long times, long endTime, int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										   @NotNull String oneByOneKey) throws ParseException {
-		return scheduleOffline('@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString(),
-				account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, oneByOneKey);
+		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
+		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
+				oneByOneKey);
+		return timerId;
 	}
 
-	private @NotNull String scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-											@NotNull String cron, long times, long endTime, int missFirePolicy,
-											@NotNull Class<? extends TimerHandle> handleClass,
-											@Nullable Bean customData,
-											@NotNull String oneByOneKey) throws ParseException {
+	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+								 @NotNull String cron, long times, long endTime, int missFirePolicy,
+								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
+								 @NotNull String oneByOneKey) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
 
 		var timer = online.providerApp.zeze.getTimer();
-		var custom = new BOfflineAccountCustom("", account, clientId, logoutVersion, handleClass.getName());
-		var cronTimer = new BCronTimer();
-		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		cronTimer.setMissfirePolicy(missFirePolicy);
-		var timerName = timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
-		custom.setTimerName(timerName); // 没办法，循环依赖了，只能在这里设置。
+		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
 		if (customData != null) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
 		}
+		var cronTimer = new BCronTimer();
+		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
+		cronTimer.setMissfirePolicy(missFirePolicy);
+		timer.schedule(timerId, cronTimer, OfflineHandle.class, custom);
+		var config = timer.zeze.getConfig();
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
-		if (offline.getOfflineTimers().size() > timer.zeze.getConfig().getOfflineTimerLimit())
-			throw new IllegalStateException("too many offline timers. account="
-					+ account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-
-		if (offline.getOfflineTimers().putIfAbsent(timerName, timer.zeze.getConfig().getServerId()) != null)
-			throw new IllegalStateException("duplicate timerName. account=" + account + " clientId=" + clientId);
-		return timerName;
+		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
+			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
+			logger.error("scheduleOffline(cron): too many timers. account={}, clientId={}, size={} > {}",
+					account, clientId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+		}
+		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
+			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////
@@ -468,29 +475,24 @@ public class TimerAccount {
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var offlineCustom = (BOfflineAccountCustom)context.customData;
 			//noinspection DataFlowIssue
-			var loginVersion = context.timer.getAccountTimer().online
-					.getLoginVersion(offlineCustom.getAccount(), offlineCustom.getClientId());
+			var account = offlineCustom.getAccount();
+			var clientId = offlineCustom.getClientId();
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
+			var loginVersion = context.timer.getAccountTimer().online.getLoginVersion(account, clientId);
 			if (loginVersion != null && loginVersion == offlineCustom.getLoginVersion()) {
+				context.account = account;
+				context.clientId = clientId;
+				context.customData = offlineCustom.getCustomData().getBean();
 				@SuppressWarnings("unchecked")
 				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
-				final var handle = handleClass.getDeclaredConstructor().newInstance();
-				context.account = offlineCustom.getAccount();
-				context.clientId = offlineCustom.getClientId();
-				context.customData = offlineCustom.getCustomData().getBean();
-				handle.onTimer(context);
+				handleClass.getDeclaredConstructor().newInstance().onTimer(context);
 			} else {
-				context.timer.cancel(offlineCustom.getTimerName());
-				var offlineTimers = context.timer.tAccountOfflineTimers()
-						.get(new BAccountClientId(offlineCustom.getAccount(), offlineCustom.getClientId()));
-				if (offlineTimers == null)
-					throw new IllegalStateException("maybe operate before timer created.");
-				offlineTimers.getOfflineTimers().remove(offlineCustom.getTimerName());
+				var timerId = offlineCustom.getTimerName();
+				context.timer.cancel(timerId);
+				var offlineTimers = context.timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
+				if (offlineTimers != null)
+					offlineTimers.getOfflineTimers().remove(timerId);
 			}
-		}
-
-		@Override
-		public void onTimerCancel() {
 		}
 	}
 

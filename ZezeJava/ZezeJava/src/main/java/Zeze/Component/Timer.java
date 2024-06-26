@@ -261,12 +261,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	// 直接传递BSimpleTimer，需要自己调用它Timer.initSimpleTimer初始化。所以暂时不开放了。
 	private @NotNull String schedule(@NotNull BSimpleTimer simpleTimer,
 									 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule('@' + timerIdAutoKey.nextString(), simpleTimer, handleClass, customData);
+		var timeId = '@' + timerIdAutoKey.nextString();
+		schedule(timeId, simpleTimer, handleClass, customData);
+		return timeId;
 	}
 
-	@NotNull
-	String schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
-					@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+	void schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
+				  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -314,7 +315,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				scheduleSimple(serialId, serverId, timerId,
 						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
 						0, false, simpleTimer.getOneByOneKey());
-				return timerId;
+				return;
 			}
 		}
 	}
@@ -447,12 +448,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	// 直接传递BCronTimer需要自动调用Timer.initCronTimer初始化。先不开放了。
 	private @NotNull String schedule(@NotNull BCronTimer cronTimer,
 									 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule('@' + timerIdAutoKey.nextString(), cronTimer, handleClass, customData);
+		var timerId = '@' + timerIdAutoKey.nextString();
+		schedule(timerId, cronTimer, handleClass, customData);
+		return timerId;
 	}
 
-	@NotNull
-	String schedule(@NotNull String timerId, BCronTimer cronTimer, @NotNull Class<? extends TimerHandle> handleClass,
-					@Nullable Bean customData) {
+	void schedule(@NotNull String timerId, BCronTimer cronTimer, @NotNull Class<? extends TimerHandle> handleClass,
+				  @Nullable Bean customData) {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -498,7 +500,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				}
 
 				scheduleCron(serialId, serverId, timerId, cronTimer, 0, false, cronTimer.getOneByOneKey());
-				return timerId;
+				return;
 			}
 		}
 	}
@@ -664,8 +666,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 取消一个具体的Timer实例。
 	 * 需要在事务内调用。
-	 *
-	 * @param timerId timerId
 	 */
 	public void cancel(@Nullable String timerId) {
 		if (timerId == null)
@@ -688,17 +688,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
 			cancel(index.getServerId(), timerId, index, _tNodes.get(index.getNodeId()));
-			// cancel future
-			if (index.getServerId() != zeze.getConfig().getServerId())
-				Transaction.whileCommit(() -> tryRedirectCancel(index.getServerId(), timerId));
-		} else {
-			// 定时器数据已经不存在了，尝试移除future。
+			int serverId = index.getServerId();
+			if (serverId != zeze.getConfig().getServerId())
+				Transaction.whileCommit(() -> tryRedirectCancel(serverId, timerId));
+		} else // 定时器数据已经不存在了,尝试移除future
 			Transaction.whileCommit(() -> cancelFuture(timerId));
-		}
 	}
 
-	///////////////////////////////////////////////////////////////////////////////
-	// Online Timer
 	@NotNull
 	tAccountTimers tAccountTimers() {
 		return _tAccountTimers;

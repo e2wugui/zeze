@@ -5,5 +5,6 @@ import org.jetbrains.annotations.NotNull;
 public interface TimerHandle {
 	void onTimer(@NotNull TimerContext context) throws Exception;
 
-	void onTimerCancel() throws Exception;
+	default void onTimerCancel() throws Exception {
+	}
 }

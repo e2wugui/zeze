@@ -804,7 +804,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 
 		public static void logout(BDelayLogoutCustom custom) throws Exception {
-			if (null != defaultInstance) {
+			if (defaultInstance != null) {
 				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
 				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
 				// 能工作，先这样了。
@@ -818,10 +818,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 					logger.log(Level.ERROR, "DelayLogout({}): roleId={}, loginVersion={}, not found OnlineSetName",
 							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion());
 			}
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
 		}
 	}
 

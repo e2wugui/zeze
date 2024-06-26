@@ -738,7 +738,7 @@
 				实际使用TableDynamic按 tlocal{serverId}的名字每服务器使用。
 
 				<table name="tRoleTimers" key="string" value="Zeze.Builtin.Timer.BGameOnlineTimer" memory="true"/> 玩家在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
-				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/> 玩家离线状态触发的定时器, key是角色ID
+				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/> 角色离线时触发的定时器反向索引, key是角色ID
 
 				<!-- interface -->
 				<!--
@@ -1054,11 +1054,11 @@
 
 			<!-- Offline Timer -->
 			<bean name="BOfflineAccountCustom">
-				<variable id="1" name="TimerName"    type="string"/>
-				<variable id="2" name="Account"      type="string"/>
-				<variable id="3" name="ClientId"     type="string"/>
-				<variable id="4" name="LoginVersion" type="long" default="-1"/>
-				<variable id="5" name="HandleName"   type="string"/>
+				<variable id="1" name="TimerName"    type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<variable id="2" name="Account"      type="string"/> 关联的账号名
+				<variable id="3" name="ClientId"     type="string"/> 关联的客户端ID
+				<variable id="4" name="LoginVersion" type="long" default="-1"/> BOnline.LogoutVersion
+				<variable id="5" name="HandleName"   type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
 				<variable id="6" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
@@ -1073,17 +1073,17 @@
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
 					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
 				</variable>
-				<variable id="6" name="OnlineSetName" type="string"/>
+				<variable id="6" name="OnlineSetName" type="string"/> 客户端名
 			</bean>
-			<bean name="BOfflineTimers">
-				<variable id="1" name="OfflineTimers" type="map[string, int]"/> key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID), value是注册定时器的serverId
+			<bean name="BOfflineTimers"> 记录多个定时器(timerId)的反向索引
+				<variable id="1" name="OfflineTimers" type="map[string, int]"/> key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID), value是注册定时器的serverId, 容量不能超过Config配置中的offlineTimerLimit
 			</bean>
 
 			<beankey name="BAccountClientId">
-				<variable id="1" name="Account" type="string"/>
-				<variable id="2" name="ClientId" type="string"/>
+				<variable id="1" name="Account" type="string"/> 账号名
+				<variable id="2" name="ClientId" type="string"/> 客户端ID
 			</beankey>
-			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/>
+			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/> 账号离线时触发的定时器反向索引, key是账号名和客户端ID
 		</module>
 
 		<module name="Statistics" id="11020">

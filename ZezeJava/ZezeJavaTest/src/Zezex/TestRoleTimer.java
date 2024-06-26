@@ -81,25 +81,14 @@ public class TestRoleTimer {
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
 		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
-		}
 	}
 
 	final TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
 
 	public class NullCustomDataHandle implements TimerHandle {
-
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			timerFuture.setResult(true);
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
 		}
 	}
 
@@ -256,11 +245,6 @@ public class TestRoleTimer {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
 		}
 	}
 

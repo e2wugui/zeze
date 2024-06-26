@@ -134,11 +134,6 @@ public final class App extends Zeze.AppBase {
 			buf.setCode(app.counterColdTimer + 1);
 			Transaction.whileCommit(() -> app.counterColdTimer += 1);
 		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
-		}
 	}
 
 	public void Stop() throws Exception {

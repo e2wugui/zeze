@@ -15,6 +15,11 @@ import org.jetbrains.annotations.Nullable;
 
 public class HttpSession extends AbstractHttpSession {
 	public static final String ZEZE_SESSION_ID_NAME = "ZEZESESSIONID";
+	public static final String GlobalHttpSessionExpiredTimer = "Zeze.Netty.HttpSession.GlobalHttpSessionExpiredTimer";
+
+	private final @NotNull Application zeze;
+	private volatile long httpSessionExpire = 15 * 60 * 1000; // default expire 15 minutes.
+	private final Random tokenRandom = new SecureRandom();
 
 	public class CookieSession {
 		private final String cookieSessionId;
@@ -23,7 +28,7 @@ public class HttpSession extends AbstractHttpSession {
 			this.cookieSessionId = cookieSessionId;
 		}
 
-		public @Nullable String getProperty(String key) {
+		public @Nullable String getProperty(@NotNull String key) {
 			var value = _tSession.get(cookieSessionId);
 			if (null != value)
 				return value.getProperties().get(key);
@@ -37,37 +42,34 @@ public class HttpSession extends AbstractHttpSession {
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
-		public Map<String, String> getProperties() {
+		public @NotNull Map<String, String> getProperties() {
 			var tValue = _tSession.get(cookieSessionId);
-			if (null != tValue)
+			if (tValue != null)
 				return tValue.getProperties();
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
 		public long getCreateTime() {
 			var value = _tSession.get(cookieSessionId);
-			if (null != value)
+			if (value != null)
 				return value.getCreateTime();
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
 		public long getExpireTime() {
 			var value = _tSession.get(cookieSessionId);
-			if (null != value)
+			if (value != null)
 				return value.getExpireTime();
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
 		public void setExpireTime(long expireTime) {
 			var value = _tSession.get(cookieSessionId);
-			if (null != value)
+			if (value != null)
 				value.setExpireTime(expireTime);
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 	}
-
-	private volatile long httpSessionExpire = 15 * 60 * 1000; // default expire 15 minutes.
-	private final Random tokenRandom = new SecureRandom();
 
 	public long getHttpSessionExpire() {
 		return httpSessionExpire;
@@ -102,11 +104,7 @@ public class HttpSession extends AbstractHttpSession {
 		return new CookieSession(cookieSessionId); // value 不能记住，每次访问重新从表中读取。
 	}
 
-	public static final String GlobalHttpSessionExpiredTimer = "Zeze.Netty.HttpSession.GlobalHttpSessionExpiredTimer";
-
-	private final Application zeze;
-
-	public HttpSession(Application zeze) {
+	public HttpSession(@NotNull Application zeze) {
 		this.zeze = zeze;
 		zeze.getAppBase().addModule(this);
 	}
@@ -121,12 +119,12 @@ public class HttpSession extends AbstractHttpSession {
 		zeze.getAppBase().removeModule(this);
 	}
 
+	@NotNull
 	Zeze.Builtin.HttpSession.tSession tSession() {
 		return _tSession;
 	}
 
 	public static class ExpiredTimer implements TimerHandle {
-
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var httpSession = (HttpSession)context.timer.zeze.getAppBase().getModules().get(HttpSession.ModuleFullName);
@@ -141,22 +139,17 @@ public class HttpSession extends AbstractHttpSession {
 				batch.tryPerform();
 			}
 		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
-		}
 	}
 
 	private static class RemoveBatch {
-		private final Zeze.Builtin.HttpSession.tSession tSession;
+		private final @NotNull Zeze.Builtin.HttpSession.tSession tSession;
 		private final ArrayList<String> keys = new ArrayList<>();
 
-		public RemoveBatch(Zeze.Builtin.HttpSession.tSession tSession) {
+		public RemoveBatch(@NotNull Zeze.Builtin.HttpSession.tSession tSession) {
 			this.tSession = tSession;
 		}
 
-		public void add(String key) {
+		public void add(@NotNull String key) {
 			keys.add(key);
 			if (keys.size() >= 10)
 				tryPerform();

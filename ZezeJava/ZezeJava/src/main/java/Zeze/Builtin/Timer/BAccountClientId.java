@@ -6,8 +6,8 @@ import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BAccountClientId implements Zeze.Transaction.BeanKey, Comparable<BAccountClientId> {
-    private String _Account;
-    private String _ClientId;
+    private String _Account; // 账号名
+    private String _ClientId; // 客户端ID
 
     // for decode only
     public BAccountClientId() {

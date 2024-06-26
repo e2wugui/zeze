@@ -27,7 +27,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         return Zeze.Component.Timer.createBeanFromSpecialTypeId(typeId);
     }
 
-    private String _OnlineSetName;
+    private String _OnlineSetName; // 客户端名
 
     @Override
     public String getTimerName() {

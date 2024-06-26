@@ -91,10 +91,6 @@ public class TestGameTimer {
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
 		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-		}
 	}
 
 	@Test
@@ -177,11 +173,6 @@ public class TestGameTimer {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			testContent(context);
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
 		}
 	}
 

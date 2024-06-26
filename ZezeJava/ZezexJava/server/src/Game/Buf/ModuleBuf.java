@@ -34,7 +34,6 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	}
 
 	public static class HotTimer implements TimerHandle {
-
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
@@ -45,11 +44,6 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 				throw new RuntimeException("buf " + buf.getId() + ":" + count);
 			buf.setId(count + 1);
 			Transaction.whileCommit(() -> ibuf.setCounter(count + 1));
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
 		}
 	}
 

@@ -36,10 +36,6 @@ public class TestTimer {
 					+ " Expected: " + timerContext.expectedTimeMills
 					+ " Next: " + timerContext.nextExpectedTimeMills);
 		}
-
-		@Override
-		public void onTimerCancel() {
-		}
 	}
 
 	public static class TestTimerHandle2 implements TimerHandle {
@@ -53,10 +49,6 @@ public class TestTimer {
 					+ " Expected: " + timerContext.expectedTimeMills
 					+ " Next: " + timerContext.nextExpectedTimeMills
 					+ " Bean Value: " + bean.getTestValue());
-		}
-
-		@Override
-		public void onTimerCancel() {
 		}
 	}
 
@@ -76,10 +68,6 @@ public class TestTimer {
 				timerContext.timer.cancel("3");
 				System.out.println(">> Schedule Canceled");
 			}
-		}
-
-		@Override
-		public void onTimerCancel() {
 		}
 	}
 

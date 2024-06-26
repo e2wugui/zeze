@@ -475,15 +475,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 
 		public static void logout(BDelayLogoutCustom custom) throws Exception {
-			if (null != instance) {
+			if (instance != null) {
 				var ret = instance.tryLogout(custom);
 				if (ret != 0)
 					Online.logger.error("tryLogout fail. {}", ret);
 			}
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
 		}
 	}
 
