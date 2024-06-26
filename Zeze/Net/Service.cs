@@ -613,7 +613,8 @@ namespace Zeze.Net
             var now = Time.NowUnixMillis; // 使用毫秒，System.nanoTime c# 不知道怎么对应，查了一下说 StopWatch？
             foreach (var socket in SocketMap.Values)
             {
-                if (now - socket.ActiveRecvTime > keepRecvTimeout)
+                var recvTime = now - socket.ActiveRecvTime;
+                if (recvTime > keepRecvTimeout)
                 {
                     try
                     {
@@ -624,7 +625,8 @@ namespace Zeze.Net
                         logger.Error(e, "onKeepAliveTimeout exception:");
                     }
                 }
-                if (socket.Type == AsyncSocketType.eClient && now - socket.ActiveSendTime > keepSendTimeout)
+                if (socket.Type == AsyncSocketType.eClient && // 上次接收时间超过SendTimeout也要发起KeepAlive,通过RPC回复更新上次接收时间
+                    (now - socket.ActiveSendTime > keepSendTimeout || recvTime > keepSendTimeout))
                 {
                     try
                     {
