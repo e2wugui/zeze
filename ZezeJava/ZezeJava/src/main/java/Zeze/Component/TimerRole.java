@@ -764,7 +764,7 @@ public class TimerRole {
 					cronTimer.getHappenTime(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 			context.roleId = bTimer.getRoleId();
 			var serialSaved = bTimer.getSerialId();
-			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
+			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "TimerRole.fireCron.inner"));
@@ -773,7 +773,7 @@ public class TimerRole {
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // 已经取消或覆盖成新的timer
 
-			if (retNest == Procedure.Exception) {
+			if (r == Procedure.Exception) {
 				cancelOnline(timerId); // 异常错误不忽略。
 				return 0;
 			}

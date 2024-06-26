@@ -121,7 +121,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	}
 
 	public static class HotTimer implements TimerHandle {
-
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var mc = context.timer.zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
@@ -157,11 +156,6 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 					break;
 				}
 			});
-		}
-
-		@Override
-		public void onTimerCancel() throws Exception {
-
 		}
 	}
 

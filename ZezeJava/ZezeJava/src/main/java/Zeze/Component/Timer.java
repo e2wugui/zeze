@@ -33,10 +33,12 @@ import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
+import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.util.CronExpression;
@@ -688,10 +690,22 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		*/
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
-			cancel(index.getServerId(), timerId, index, _tNodes.get(index.getNodeId()));
 			int serverId = index.getServerId();
 			if (serverId != zeze.getConfig().getServerId())
 				Transaction.whileCommit(() -> tryRedirectCancel(serverId, timerId));
+			try {
+				TimerHandle handle = null;
+				var nodeId = index.getNodeId();
+				var node = _tNodes.get(nodeId);
+				if (node != null) {
+					var timer = node.getTimers().get(timerId);
+					if (timer != null)
+						handle = findTimerHandle(timer.getHandleName());
+				}
+				cancel(serverId, timerId, nodeId, node, handle);
+			} catch (Exception e) {
+				Task.forceThrow(e);
+			}
 		} else // 定时器数据已经不存在了,尝试移除future
 			Transaction.whileCommit(() -> cancelFuture(timerId));
 	}
@@ -745,6 +759,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
+	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@RedirectToServer
 	protected void redirectCancel(int serverId, @NotNull String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
@@ -757,14 +772,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			local.cancel(false);
 	}
 
-	private void cancel(int serverId, @NotNull String timerId, @NotNull BIndex index, @Nullable BNode node) {
+	private void cancel(int serverId, @NotNull String timerId, long nodeId, @Nullable BNode node,
+						@Nullable TimerHandle handle) throws Exception {
 		// 事务成功时，总是尝试cancel future
 		Transaction.whileCommit(() -> cancelFuture(timerId));
+		_tIndexs.remove(timerId);
 		if (node != null) {
 			var timers = node.getTimers();
-			timers.remove(timerId);
+			var bTimer = timers.remove(timerId);
 			if (timers.isEmpty()) {
-				var nodeId = index.getNodeId();
 				var prevNodeId = node.getPrevNodeId();
 				var nextNodeId = node.getNextNodeId();
 				var prev = _tNodes.get(prevNodeId);
@@ -789,8 +805,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				// 不删除的话就会在数据库留下垃圾。
 				_tNodes.delayRemove(nodeId);
 			}
+			if (handle != null && bTimer != null) {
+				Task.call(zeze.newProcedure(() -> {
+					handle.onTimerCancel(bTimer);
+					return 0;
+				}, "Timer.fireTimerCancel"));
+			}
 		}
-		_tIndexs.remove(timerId);
 	}
 
 	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay,
@@ -876,9 +897,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				return 0;
 			}
 
-			var node = _tNodes.get(index.getNodeId());
+			var nodeId = index.getNodeId();
+			var node = _tNodes.get(nodeId);
 			if (node == null) {
-				cancel(serverId, timerId, index, null);
+				cancel(serverId, timerId, nodeId, null, null);
 				return 0;
 			}
 
@@ -907,13 +929,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
-					cancel(serverId, timerId, index, node);
+					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 				// 其他错误忽略
 				if (!hasNext) {
-					cancel(serverId, timerId, index, node);
+					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}
 			}
@@ -1017,9 +1039,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				return 0;
 			}
 
-			var node = _tNodes.get(index.getNodeId());
+			var nodeId = index.getNodeId();
+			var node = _tNodes.get(nodeId);
 			if (node == null) {
-				cancel(serverId, timerId, index, null); // maybe concurrent cancel
+				cancel(serverId, timerId, nodeId, null, null); // maybe concurrent cancel
 				return 0;
 			}
 
@@ -1048,13 +1071,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 				if (ret == Procedure.Exception) {
 					// 用户处理不允许异常，其他错误记录忽略，日志已经记录。
-					cancel(serverId, timerId, index, node);
+					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 
 				if (!hasNext) {
-					cancel(serverId, timerId, index, node);
+					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}
 			}

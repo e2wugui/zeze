@@ -598,7 +598,7 @@ public class TimerAccount {
 			context.account = bTimer.getAccount();
 			context.clientId = bTimer.getClientId();
 			var serialSaved = bTimer.getSerialId();
-			var retNest = Task.call(online.providerApp.zeze.newProcedure(() -> {
+			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
 			}, "TimerAccount.fireCron.inner"));
@@ -607,7 +607,7 @@ public class TimerAccount {
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // 已经取消或覆盖成新的timer
 
-			if (retNest == Procedure.Exception) {
+			if (r == Procedure.Exception) {
 				cancel(timerId); // 异常错误不忽略。
 				return 0;
 			}

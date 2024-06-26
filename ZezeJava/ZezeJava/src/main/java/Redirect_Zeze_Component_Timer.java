@@ -6,7 +6,7 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
     protected void redirectCancel(int serverId, String timerId) {
         var _t_ = _redirect_.choiceServer(this, serverId, false);
         if (_t_ == null) { // local: loop-back
-            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.Serializable,
+            _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
                 () -> super.redirectCancel(serverId, timerId));
             return;
         }
@@ -32,7 +32,7 @@ public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
         _redirect_ = _app_.getZeze().redirect;
 
         _app_.getZeze().redirect.handles.put("Zeze.Component.Timer:redirectCancel", new Zeze.Arch.RedirectHandle(
-            Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
+            Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 String timerId;
                 var _b_ = _params_.Wrap();
                 timerId = _b_.ReadString();
