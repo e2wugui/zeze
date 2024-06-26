@@ -256,7 +256,8 @@ public class TimerRole {
 				Timer.register(customData.getClass());
 				timerLocal.getCustomData().setBean(customData);
 			}
-			scheduleOnlineSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
+			scheduleOnlineSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
+					handleClass);
 		}
 	}
 
@@ -434,6 +435,10 @@ public class TimerRole {
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleOnlineCronHot(timerId, cronTimer, handleClass);
+	}
+
+	public boolean cancel(@Nullable String timerId) {
+		return cancelOnline(timerId) || cancelOffline(timerId);
 	}
 
 	public boolean cancelOnline(@Nullable String timerId) {

@@ -826,15 +826,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var online = getOrAddOnline(roleId);
 
 		var local = _tlocal.get(roleId);
-		if (local != null) {
-			// 本机数据已经过时，马上删除。
-			if (local.getLoginVersion() != online.getLoginVersion()) {
-				var ret = removeLocalAndTrigger(roleId);
-				if (ret != 0) {
-					logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
-							multiInstanceName, account, roleId, linkName, linkSid, ret);
-					return ret;
-				}
+		if (local != null && local.getLoginVersion() != online.getLoginVersion()) { // 本机数据已经过时，马上删除。
+			var ret = removeLocalAndTrigger(roleId);
+			if (ret != 0) {
+				logger.info("sendError({}): account={}, roleId={}, linkName={}, linkSid={}, removeLocalAndTrigger={}",
+						multiInstanceName, account, roleId, linkName, linkSid, ret);
+				return ret;
 			}
 		}
 
