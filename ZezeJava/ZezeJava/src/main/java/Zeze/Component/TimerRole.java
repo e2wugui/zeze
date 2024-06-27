@@ -207,6 +207,7 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 		online._tRoleTimers().put(timerId, onlineTimer);
+		logger.debug("add online simple timer: timerId={}, roleId={}", timerId, roleId);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -249,6 +250,7 @@ public class TimerRole {
 					online.providerApp.zeze.getTimer().timerSerialId.nextId());
 			onlineTimer.getTimerObj().setBean(simpleTimer);
 			online._tRoleTimers().put(timerId, onlineTimer);
+			logger.debug("add online hot simple timer: timerId={}, roleId={}", timerId, roleId);
 
 			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 			var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -384,6 +386,7 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		online._tRoleTimers().insert(timerId, onlineTimer);
+		logger.debug("add online cron timer: timerId={}, roleId={}", timerId, roleId);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -427,6 +430,7 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		online._tRoleTimers().insert(timerId, onlineTimer);
+		logger.debug("add online hot cron timer: timerId={}, roleId={}", timerId, roleId);
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -454,14 +458,16 @@ public class TimerRole {
 			return false;
 
 		// remove online local
-		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+		var roleId = bTimer.getRoleId();
+		var onlineTimers = (BOnlineTimers)online.getLocalBean(roleId, eOnlineTimers);
 		if (onlineTimers != null) {
 			onlineTimers.getTimerIds().remove(timerId);
 			if (onlineTimers.getTimerIds().isEmpty())
-				online.removeLocalBean(bTimer.getRoleId(), eOnlineTimers);
+				online.removeLocalBean(roleId, eOnlineTimers);
 		}
 		// always remove from table.
 		online._tRoleTimers().remove(timerId);
+		logger.debug("cancel online timer: timerId={}, roleId={}", timerId, roleId);
 		return true;
 	}
 
@@ -491,7 +497,10 @@ public class TimerRole {
 
 		online.providerApp.zeze.getTimer().cancel(timerId);
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
-		return bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
+		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
+		if (r)
+			logger.debug("cancel offline timer: timerId={}, roleId={}", timerId, roleId);
+		return r;
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, long delay, long period,
@@ -543,6 +552,7 @@ public class TimerRole {
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
+		logger.debug("add offline simple timer: timerId={}, roleId={}", timerId, roleId);
 	}
 
 	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
@@ -615,6 +625,7 @@ public class TimerRole {
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
+		logger.debug("add offline cron timer: timerId={}, roleId={}", timerId, roleId);
 	}
 
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
@@ -665,8 +676,10 @@ public class TimerRole {
 						: context.timer.getDefaultOnline();
 				if (online != null) {
 					var offlineTimers = online._tRoleOfflineTimers().get(roleId);
-					if (offlineTimers != null)
+					if (offlineTimers != null) {
 						offlineTimers.getOfflineTimers().remove(timerId);
+						logger.debug("OfflineHandle: cancel offline timer: timerId={}, roleId={}", timerId, roleId);
+					}
 				}
 			}
 		}
@@ -684,6 +697,8 @@ public class TimerRole {
 			// 那么该timer触发的时候会检测到版本号不一致，
 			// 然后timer最终也会被cancel掉。
 			online._tRoleOfflineTimers().remove(roleId);
+			logger.debug("onLoginEvent: cancel all offline timer: roleId={}, size={}",
+					roleId, offlineTimers.getOfflineTimers().size());
 		}
 		return 0;
 	}
@@ -702,7 +717,6 @@ public class TimerRole {
 		return 0;
 	}
 
-	// 调度 cron 定时器
 	private void scheduleOnlineCron(@NotNull String timerId, @NotNull BCronTimer cron, @NotNull TimerHandle handle) {
 		try {
 			scheduleOnlineCronNext(timerId, cron.getNextExpectedTime() - System.currentTimeMillis(), handle);
@@ -741,16 +755,20 @@ public class TimerRole {
 				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
 				return 0;
 			}
-			var loginVersion = online.getLoginVersion(bTimer.getRoleId());
-			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
-				// 已经不是注册定时器时候的登录了。
+			var timerLoginVersion = bTimer.getLoginVersion();
+			var roleId = bTimer.getRoleId();
+			var loginVersion = online.getLoginVersion(roleId);
+			if (loginVersion == null || timerLoginVersion != loginVersion) {
+				// 已经不是注册定时器时候的登录了
+				logger.info("cancel online cron timer mismatch version({}!={}): timerId={}, roleId={}",
+						timerLoginVersion, loginVersion, timerId, roleId);
 				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
 				return 0;
 			}
 
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			Bean customData = null;
-			var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+			var localBean = online.<BOnlineTimers>getLocalBean(roleId, eOnlineTimers);
 			if (localBean != null) {
 				var onlineCustom = localBean.getTimerIds().get(timerId);
 				if (onlineCustom != null) {
@@ -762,19 +780,20 @@ public class TimerRole {
 			var hasNext = Timer.nextCronTimer(cronTimer, false);
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 					cronTimer.getHappenTime(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
-			context.roleId = bTimer.getRoleId();
+			context.roleId = roleId;
 			var serialSaved = bTimer.getSerialId();
 			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				handle.onTimer(context);
 				return Procedure.Success;
-			}, "TimerRole.fireCron.inner"));
+			}, "TimerRole.fireOnlineCron.inner"));
 
 			var bTimerNew = online._tRoleTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // 已经取消或覆盖成新的timer
 
 			if (r == Procedure.Exception) {
-				cancelOnline(timerId); // 异常错误不忽略。
+				logger.info("cancel online cron timer for exception: timerId={}, roleId={}", timerId, roleId);
+				cancelOnline(timerId); // 异常错误不忽略
 				return 0;
 			}
 			// 其他错误忽略
@@ -788,10 +807,11 @@ public class TimerRole {
 			} else
 				cancelOnline(timerId);
 			return 0;
-		}, "TimerRole.fireCron"));
+		}, "TimerRole.fireOnlineCron"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
+				logger.info("cancel online cron timer for ret={}: {}", ret, timerId);
 				cancelOnline(timerId);
 				return 0;
 			}, "TimerRole finally cancel impossible!"));
@@ -811,7 +831,6 @@ public class TimerRole {
 				() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))));
 	}
 
-	// Timer发生，执行回调。
 	private void fireOnlineSimple(@NotNull String timerId, @NotNull TimerHandle handle, boolean hot) {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
@@ -820,9 +839,13 @@ public class TimerRole {
 				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
 				return 0;
 			}
-			var loginVersion = online.getLoginVersion(bTimer.getRoleId());
-			if (loginVersion == null || bTimer.getLoginVersion() != loginVersion) {
-				// 已经不是注册定时器时候的登录了。
+			var timerLoginVersion = bTimer.getLoginVersion();
+			var roleId = bTimer.getRoleId();
+			var loginVersion = online.getLoginVersion(roleId);
+			if (loginVersion == null || timerLoginVersion != loginVersion) {
+				// 已经不是注册定时器时候的登录了
+				logger.info("cancel online simple timer mismatch version({}!={}): timerId={}, roleId={}",
+						timerLoginVersion, loginVersion, timerId, roleId);
 				Transaction.whileCommit(() -> timer.cancelFuture(timerId));
 				return 0;
 			}
@@ -832,7 +855,7 @@ public class TimerRole {
 			var hasNext = Timer.nextSimpleTimer(simpleTimer, false);
 			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				Bean customData = null;
-				var localBean = online.<BOnlineTimers>getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+				var localBean = online.<BOnlineTimers>getLocalBean(roleId, eOnlineTimers);
 				if (localBean != null) {
 					var onlineCustom = localBean.getTimerIds().get(timerId);
 					if (onlineCustom != null) {
@@ -843,17 +866,18 @@ public class TimerRole {
 				}
 				var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
 						simpleTimer.getHappenTimes(), simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
-				context.roleId = bTimer.getRoleId();
+				context.roleId = roleId;
 				handle.onTimer(context);
 				return Procedure.Success;
-			}, "TimerRole.fireSimple.inner"));
+			}, "TimerRole.fireOnlineSimple.inner"));
 
 			var bTimerNew = online._tRoleTimers().get(timerId);
 			if (bTimerNew == null || bTimerNew.getSerialId() != serialSaved)
 				return 0; // 已经取消或覆盖成新的timer
 
 			if (r == Procedure.Exception) {
-				cancelOnline(timerId); // 异常错误不忽略。
+				logger.info("cancel online simple timer for exception: timerId={}, roleId={}", timerId, roleId);
+				cancelOnline(timerId); // 异常错误不忽略
 				return 0;
 			}
 			// 其他错误忽略
@@ -867,10 +891,11 @@ public class TimerRole {
 			} else
 				cancelOnline(timerId);
 			return 0;
-		}, "TimerRole.fireSimple"));
+		}, "TimerRole.fireOnlineSimple"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
+				logger.info("cancel online simple timer for ret={}: {}", ret, timerId);
 				cancelOnline(timerId);
 				return 0;
 			}, "TimerRole finally cancel impossible!"));
