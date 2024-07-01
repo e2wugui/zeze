@@ -222,7 +222,7 @@ namespace Zeze.Net
         // ReSharper disable once UnusedParameter.Global
         public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
         {
-            logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
+            logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketAcceptError {0}", listener);
         }
 
         /// <summary>
@@ -642,7 +642,7 @@ namespace Zeze.Net
 
         protected virtual void OnKeepAliveTimeout(AsyncSocket socket)
         {
-            logger.Info("socket keep alive timeout: {}", socket);
+            logger.Log(SocketOptions.SocketLogLevel, "socket keep alive timeout: {0}", socket);
             socket.Close(null);
         }
 
