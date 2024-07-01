@@ -179,7 +179,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (loginVersion == null) {
 			if (fromTransmit) {
-				logger.warn("schedule simple from transmit, but not login. roleId={} {}",
+				logger.warn("schedule simple from transmit, but not login. roleId={}, handle={}",
 						roleId, handle.getClass().getName());
 				return;
 			}
@@ -208,7 +208,8 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(simpleTimer);
 		online._tRoleTimers().put(timerId, onlineTimer);
-		logger.debug("add online simple timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("add online simple timer: timerId={}, roleId={}, handle={}",
+				timerId, roleId, handle.getClass().getName());
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -226,7 +227,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (loginVersion == null) {
 			if (fromTransmit) {
-				logger.warn("schedule hot simple from transmit, but not login. roleId={} {}",
+				logger.warn("schedule hot simple from transmit, but not login. roleId={}, handle={}",
 						roleId, handleClass.getName());
 				return;
 			}
@@ -251,7 +252,8 @@ public class TimerRole {
 					online.providerApp.zeze.getTimer().timerSerialId.nextId());
 			onlineTimer.getTimerObj().setBean(simpleTimer);
 			online._tRoleTimers().put(timerId, onlineTimer);
-			logger.debug("add online hot simple timer: timerId={}, roleId={}", timerId, roleId);
+			logger.debug("add online hot simple timer: timerId={}, roleId={}, handle={}",
+					timerId, roleId, handleClass.getName());
 
 			var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 			var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -359,7 +361,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (loginVersion == null) {
 			if (fromTransmit) {
-				logger.warn("schedule cron from transmit, but not login. roleId={} {}",
+				logger.warn("schedule cron from transmit, but not login. roleId={}, handle={}",
 						roleId, handle.getClass().getName());
 				return;
 			}
@@ -387,7 +389,8 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		online._tRoleTimers().insert(timerId, onlineTimer);
-		logger.debug("add online cron timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("add online cron timer: timerId={}, roleId={}, handle={}",
+				timerId, roleId, handle.getClass().getName());
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -404,7 +407,7 @@ public class TimerRole {
 		var loginVersion = online.getLocalLoginVersion(roleId);
 		if (loginVersion == null) {
 			if (fromTransmit) {
-				logger.warn("schedule hot cron from transmit, but not login. roleId={} {}",
+				logger.warn("schedule hot cron from transmit, but not login. roleId={}, handle={}",
 						roleId, handleClass.getName());
 				return;
 			}
@@ -431,7 +434,8 @@ public class TimerRole {
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(cronTimer);
 		online._tRoleTimers().insert(timerId, onlineTimer);
-		logger.debug("add online hot cron timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("add online hot cron timer: timerId={}, roleId={}, handle={}",
+				timerId, roleId, handleClass.getName());
 
 		var timerIds = online.getOrAddLocalBean(roleId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
@@ -553,12 +557,13 @@ public class TimerRole {
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(simple): too many timers. roleId={}, size={} > {}",
-					roleId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(simple): too many timers. roleId={}, handle={}, size={} > {}",
+					roleId, handleClass.getName(), offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
-		logger.debug("add offline simple timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("add offline simple timer: timerId={}, roleId={}, handle={}",
+				timerId, roleId, handleClass.getName());
 	}
 
 	public @NotNull String scheduleOffline(long roleId, long delay, long period, long times, long endTime,
@@ -636,12 +641,13 @@ public class TimerRole {
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(cron): too many timers. roleId={}, size={} > {}",
-					roleId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(cron): too many timers. roleId={}, handle={}, size={} > {}",
+					roleId, handleClass.getName(), offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
-		logger.debug("add offline cron timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("add offline cron timer: timerId={}, roleId={}, handle={}",
+				timerId, roleId, handleClass.getName());
 	}
 
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
@@ -695,7 +701,8 @@ public class TimerRole {
 					var offlineTimers = online._tRoleOfflineTimers().get(roleId);
 					if (offlineTimers != null) {
 						offlineTimers.getOfflineTimers().remove(timerId);
-						logger.debug("OfflineHandle: cancel offline timer: timerId={}, roleId={}", timerId, roleId);
+						logger.debug("OfflineHandle: cancel offline timer: timerId={}, roleId={}, handle={}",
+								timerId, roleId, offlineCustom.getHandleName());
 					}
 				}
 			}

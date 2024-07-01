@@ -383,8 +383,9 @@ public class TimerAccount {
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(simple): too many timers. account={}, clientId={}, size={} > {}",
-					account, clientId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(simple): too many timers. account={}, clientId={}, handle={}, size={} > {}",
+					account, clientId, handleClass.getName(),
+					offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
@@ -459,8 +460,9 @@ public class TimerAccount {
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(cron): too many timers. account={}, clientId={}, size={} > {}",
-					account, clientId, offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(cron): too many timers. account={}, clientId={}, handle={}, size={} > {}",
+					account, clientId, handleClass.getName(),
+					offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
 			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
