@@ -7,6 +7,7 @@ import Zeze.Arch.Online;
 import Zeze.Builtin.Timer.BAccountClientId;
 import Zeze.Builtin.Timer.BArchOnlineTimer;
 import Zeze.Builtin.Timer.BCronTimer;
+import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineAccountCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
@@ -316,15 +317,8 @@ public class TimerAccount {
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										long delay, long period, long times, long endTime, int missFirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		if (timerId.startsWith("@"))
-			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		var timerIndex = online.providerApp.zeze.getTimer().tIndexs().get(timerId);
-		if (timerIndex != null)
-			return false;
-
-		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
-				customData, "");
-		return true;
+		return scheduleOfflineNamed(timerId, account, clientId, delay, period, times, endTime, missFirePolicy,
+				handleClass, customData, "");
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -333,9 +327,13 @@ public class TimerAccount {
 										@NotNull String oneByOneKey) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		var timerIndex = online.providerApp.zeze.getTimer().tIndexs().get(timerId);
-		if (timerIndex != null)
-			return false;
+		var zeze = online.providerApp.zeze;
+		var index = zeze.getTimer().tIndexs().get(timerId);
+		if (index != null) {
+			if (index.getServerId() != zeze.getConfig().getServerId())
+				return false; // 已经被其它gs调度
+			cancel(timerId); // 先取消,下面再重建
+		}
 
 		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missFirePolicy, handleClass,
 				customData, oneByOneKey);
@@ -396,14 +394,8 @@ public class TimerAccount {
 										@NotNull String cron, long times, long endTime, int missFirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) throws ParseException {
-		if (timerId.startsWith("@"))
-			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		if (online.providerApp.zeze.getTimer().tIndexs().get(timerId) != null)
-			return false;
-
-		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
-				"");
-		return true;
+		return scheduleOfflineNamed(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass,
+				customData, "");
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -412,11 +404,13 @@ public class TimerAccount {
 										@Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		if (online.providerApp.zeze.getTimer().tIndexs().get(timerId) != null)
-			return false;
+		var zeze = online.providerApp.zeze;
+		var index = zeze.getTimer().tIndexs().get(timerId);
+		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
+			return false; // 已经被其它gs调度
 
 		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
-				oneByOneKey);
+				oneByOneKey, index);
 		return true;
 	}
 
@@ -424,9 +418,7 @@ public class TimerAccount {
 										   long times, long endTime, int missFirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) throws ParseException {
-		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
-		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
-		return timerId;
+		return scheduleOffline(account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
 	}
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -435,14 +427,14 @@ public class TimerAccount {
 										   @NotNull String oneByOneKey) throws ParseException {
 		var timerId = '@' + online.providerApp.zeze.getTimer().timerIdAutoKey.nextString();
 		scheduleOffline(timerId, account, clientId, cron, times, endTime, missFirePolicy, handleClass, customData,
-				oneByOneKey);
+				oneByOneKey, null);
 		return timerId;
 	}
 
 	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 								 @NotNull String cron, long times, long endTime, int missFirePolicy,
 								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-								 @NotNull String oneByOneKey) throws ParseException {
+								 @NotNull String oneByOneKey, @Nullable BIndex index) throws ParseException {
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
@@ -452,6 +444,12 @@ public class TimerAccount {
 		if (customData != null) {
 			Timer.register(customData.getClass());
 			custom.getCustomData().setBean(customData);
+		}
+		if (index != null) {
+			if (timer.cronEquals(index, timerId, cron, times, endTime, missFirePolicy, OfflineHandle.class, custom,
+					oneByOneKey))
+				return;
+			cancel(timerId); // 先取消,下面再重建
 		}
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);

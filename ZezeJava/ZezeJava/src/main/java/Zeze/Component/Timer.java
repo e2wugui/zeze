@@ -589,8 +589,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								 @Nullable Bean customData, String oneByOneKey) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		if (_tIndexs.get(timerId) != null)
-			return false;
+		var index = _tIndexs.get(timerId);
+		if (index != null) {
+			if (index.getServerId() != zeze.getConfig().getServerId())
+				return false; // 已经被其它gs调度
+			cancel(timerId); // 先取消,下面再重建
+		}
 
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
@@ -660,14 +664,48 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								 @Nullable Bean customData, String oneByOneKey) throws ParseException {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		if (_tIndexs.get(timerId) != null)
-			return false;
+		var index = _tIndexs.get(timerId);
+		if (index != null) {
+			if (index.getServerId() != zeze.getConfig().getServerId())
+				return false; // 已经被其它gs调度
+			if (cronEquals(index, timerId, cron, times, endTime, missFirePolicy, handleClass, customData, oneByOneKey))
+				return true;
+			cancel(timerId); // 先取消,下面再重建
+		}
 
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		cronTimer.setMissfirePolicy(missFirePolicy);
 		schedule(timerId, cronTimer, handleClass, customData);
 		return true;
+	}
+
+	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull String cron, long times,
+							  long endTime, int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+							  @Nullable Bean customData, String oneByOneKey) {
+		if (timerFutures.containsKey(timerId)) { // 在调度中
+			var root = _tNodeRoot.get(zeze.getConfig().getServerId());
+			if (root != null) {
+				var node = _tNodes.get(index.getNodeId());
+				if (node != null) {
+					var timer = node.getTimers().get(timerId);
+					if (timer != null
+							&& timer.getHandleName().equals(handleClass.getName())
+							&& timer.getCustomData().getBean().equals(customData)) {
+						var timerObj = timer.getTimerObj().getBean();
+						if (timerObj instanceof BCronTimer) {
+							var cronTimer = (BCronTimer)timerObj;
+							return cronTimer.getCronExpression().equals(cron)
+									&& cronTimer.getRemainTimes() == times
+									&& cronTimer.getEndTime() == endTime
+									&& cronTimer.getMissfirePolicy() == missFirePolicy
+									&& cronTimer.getOneByOneKey().equals(oneByOneKey);
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -1207,10 +1245,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 		var now = System.currentTimeMillis();
 		var appVer = zeze.getConfig().getAppVersion();
-		for (var timer : node.getTimers().values()) {
+		for (var it = node.getTimers().values().iterator(); it.hasNext(); ) {
+			var timer = it.next();
 			var index = _tIndexs.get(timer.getTimerName());
-			if (index == null)
+			if (index == null) {
+				it.remove();
 				continue;
+			}
 			if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
 				continue;
 
