@@ -40,8 +40,8 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         return null;
     }
 
-    private long _LoginVersion;
-    private long _SerialId;
+    private long _LoginVersion; // 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
+    private long _SerialId; // 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
 
     @Override
     public String getAccount() {

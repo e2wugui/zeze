@@ -9,10 +9,10 @@ import Zeze.Serialize.IByteBuffer;
 public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnly {
     public static final long TYPEID = 8921847554177605341L;
 
-    private int _ServerId; // 所属的serverId
+    private int _ServerId; // 所属的serverId, 被其它timer接管后会更新
     private long _NodeId; // 所属的节点ID
-    private long _SerialId; // timer系列号，用来区分是否新注册的。
-    private long _Version; // 当前timer所属server的版本, 如果当前server的版本更新,可以修改其所属
+    private long _SerialId; // 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
+    private long _Version; // 创建时记下当前timer所属server的版本
 
     @Override
     public int getServerId() {

@@ -10,4 +10,5 @@ public interface BNodeRootReadOnly {
     long getHeadNodeId();
     long getTailNodeId();
     long getLoadSerialNo();
+    long getVersion();
 }

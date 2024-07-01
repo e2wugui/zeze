@@ -274,6 +274,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
+		if (root.getVersion() < appVer)
+			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) // 如果整个双链表是空的
 			nodeId = nodeIdAutoKey.nextId();
@@ -461,6 +463,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
+		if (root.getVersion() < appVer)
+			root.setVersion(appVer);
 		var nodeId = root.getHeadNodeId();
 		if (nodeId == 0) // 如果整个双链表是空的
 			nodeId = nodeIdAutoKey.nextId();
@@ -795,6 +799,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						if (root.getTailNodeId() == nodeId) {
 							root.setHeadNodeId(0);
 							root.setTailNodeId(0);
+							root.setVersion(0);
 						} else
 							root.setHeadNodeId(nextNodeId);
 					} else if (root.getTailNodeId() == nodeId)
@@ -878,12 +883,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return endTime <= 0 || nextExpectedTime <= endTime;
 	}
 
-	private boolean checkAppVersion(long version) {
-		var curMainVer = zeze.getConfig().getAppVersion() >>> 48;
-		var mainVer = version >>> 48;
-		return curMainVer == mainVer;
-	}
-
 	private long fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 							boolean missFire) {
 		if (Task.call(zeze.newProcedure(() -> {
@@ -891,7 +890,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
 					|| index.getSerialId() != timerSerialId // 新注册的，旧的future需要取消。
-					|| !checkAppVersion(index.getVersion())
 			) {
 				Transaction.whileCommit(() -> cancelFuture(timerId));
 				return 0;
@@ -1136,6 +1134,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			long srcHeadNodeId, srcTailNodeId;
 			if (src == null || (srcHeadNodeId = src.getHeadNodeId()) == 0 || (srcTailNodeId = src.getTailNodeId()) == 0)
 				return 0;
+			if (src.getVersion() > zeze.getConfig().getAppVersion()) // 不接管版本高的,让相同或高版本的接管
+				return 0;
 			if (src.getLoadSerialNo() != loadSerialNo) // 需要接管的机器已经活过来了
 				return 0;
 			var srcHead = _tNodes.get(srcHeadNodeId);
@@ -1159,6 +1159,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			root.setHeadNodeId(srcHeadNodeId);
 			src.setHeadNodeId(0);
 			src.setTailNodeId(0);
+			src.setVersion(0);
 			first.value = srcHeadNodeId;
 			last.value = headNodeId;
 			return 0;
@@ -1205,9 +1206,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		Transaction.whileRollback(() -> nodeId.value = node.getNextNodeId()); // 设置下一个node。
 
 		var now = System.currentTimeMillis();
+		var appVer = zeze.getConfig().getAppVersion();
 		for (var timer : node.getTimers().values()) {
 			var index = _tIndexs.get(timer.getTimerName());
 			if (index == null)
+				continue;
+			if (index.getVersion() > appVer) // 无法保证高版本定时器的处理,等待各模块启动后重建定时器
 				continue;
 
 			// 优化不能用Config.getServerId整体判断，因为load中断会导致传入的serverId就是当前Config的，

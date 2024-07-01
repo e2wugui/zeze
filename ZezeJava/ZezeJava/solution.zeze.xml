@@ -938,6 +938,7 @@
 				<variable id="1" name="HeadNodeId" type="long"/> 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
 				<variable id="2" name="TailNodeId" type="long"/> 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
 				<variable id="3" name="LoadSerialNo" type="long"/> 每次启动时都递增的序列号, 用来处理跟接管的并发
+				<variable id="4" name="Version" type="long"/> 最高的定时器版本(tIndexs.Version), 用于被接管时判断
 			</bean>
 
 			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key是serverId, 每个server维护处理自己的节点链表
@@ -991,10 +992,10 @@
 			<table name="tNodes" key="long" value="BNode"/> 节点表, key是节点ID(AutoKey分配)
 
 			<bean name="BIndex"> 一个timer的信息
-				<variable id="1" name="ServerId" type="int"/> 所属的serverId
+				<variable id="1" name="ServerId" type="int"/> 所属的serverId, 被其它timer接管后会更新
 				<variable id="2" name="NodeId" type="long"/> 所属的节点ID
-				<variable id="3" name="SerialId" type="long"/> timer系列号，用来区分是否新注册的。
-				<variable id="4" name="Version" type="long"/> 当前timer所属server的版本, 如果当前server的版本更新,可以修改其所属
+				<variable id="3" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
+				<variable id="4" name="Version" type="long"/> 创建时记下当前timer所属server的版本
 			</bean>
 
 			<table name="tIndexs" key="string" value="BIndex" /> timer索引, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID)
@@ -1026,8 +1027,8 @@
 					<value bean="BSimpleTimer"/> 固定周期触发的timer
 					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
 				</variable>
-				<variable id="4" name="LoginVersion" type="long"/>
-				<variable id="5" name="SerialId" type="long"/>
+				<variable id="4" name="LoginVersion" type="long"/> 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
+				<variable id="5" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
 			</bean>
 
 			<bean name="BGameOnlineTimer"> 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
@@ -1036,8 +1037,8 @@
 					<value bean="BSimpleTimer"/> 固定周期触发的timer
 					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
 				</variable>
-				<variable id="3" name="LoginVersion" type="long"/>
-				<variable id="4" name="SerialId" type="long"/>
+				<variable id="3" name="LoginVersion" type="long"/> 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
+				<variable id="4" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
 			</bean>
 
 			<table name="tAccountTimers" key="string" value="BArchOnlineTimer" memory="true"/> 账号在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
@@ -1057,7 +1058,7 @@
 				<variable id="1" name="TimerName"    type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 				<variable id="2" name="Account"      type="string"/> 关联的账号名
 				<variable id="3" name="ClientId"     type="string"/> 关联的客户端ID
-				<variable id="4" name="LoginVersion" type="long" default="-1"/> BOnline.LogoutVersion
+				<variable id="4" name="LoginVersion" type="long" default="-1"/> 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
 				<variable id="5" name="HandleName"   type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
 				<variable id="6" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
@@ -1067,7 +1068,7 @@
 			<bean name="BOfflineRoleCustom"> 用于BTimer.CustomData,关联角色的offline timer上下文数据
 				<variable id="1" name="TimerName"    type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 				<variable id="2" name="RoleId"       type="long"/> 关联的角色ID
-				<variable id="3" name="LoginVersion" type="long" default="-1"/> BOnline.LogoutVersion
+				<variable id="3" name="LoginVersion" type="long" default="-1"/> 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
 				<variable id="4" name="HandleName"   type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
 				<variable id="5" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
 					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>

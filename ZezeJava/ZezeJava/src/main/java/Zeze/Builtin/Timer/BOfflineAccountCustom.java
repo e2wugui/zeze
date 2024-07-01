@@ -12,7 +12,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     private String _TimerName; // 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
     private String _Account; // 关联的账号名
     private String _ClientId; // 关联的客户端ID
-    private long _LoginVersion; // BOnline.LogoutVersion
+    private long _LoginVersion; // 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
     private String _HandleName; // 用户实现Zeze.Component.TimerHandle接口的完整类名
     private final Zeze.Transaction.DynamicBean _CustomData;
 

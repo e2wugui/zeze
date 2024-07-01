@@ -30,6 +30,7 @@ public final class tNodeRoot extends TableX<Integer, Zeze.Builtin.Timer.BNodeRoo
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_LoadSerialNo = 3;
+    public static final int VAR_Version = 4;
 
     @Override
     public Integer decodeKey(ByteBuffer _os_) {

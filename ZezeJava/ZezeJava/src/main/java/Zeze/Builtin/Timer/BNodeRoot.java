@@ -11,6 +11,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
     private long _HeadNodeId; // 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
     private long _TailNodeId; // 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
     private long _LoadSerialNo; // 每次启动时都递增的序列号, 用来处理跟接管的并发
+    private long _Version; // 最高的定时器版本(tIndexs.Version), 用于被接管时判断
 
     @Override
     public long getHeadNodeId() {
@@ -72,15 +73,36 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         txn.putLog(new Log__LoadSerialNo(this, 3, value));
     }
 
+    @Override
+    public long getVersion() {
+        if (!isManaged())
+            return _Version;
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (txn == null)
+            return _Version;
+        var log = (Log__Version)txn.getLog(objectId() + 4);
+        return log != null ? log.value : _Version;
+    }
+
+    public void setVersion(long value) {
+        if (!isManaged()) {
+            _Version = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        txn.putLog(new Log__Version(this, 4, value));
+    }
+
     @SuppressWarnings("deprecation")
     public BNodeRoot() {
     }
 
     @SuppressWarnings("deprecation")
-    public BNodeRoot(long _HeadNodeId_, long _TailNodeId_, long _LoadSerialNo_) {
+    public BNodeRoot(long _HeadNodeId_, long _TailNodeId_, long _LoadSerialNo_, long _Version_) {
         _HeadNodeId = _HeadNodeId_;
         _TailNodeId = _TailNodeId_;
         _LoadSerialNo = _LoadSerialNo_;
+        _Version = _Version_;
     }
 
     @Override
@@ -88,6 +110,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         setHeadNodeId(0);
         setTailNodeId(0);
         setLoadSerialNo(0);
+        setVersion(0);
         _unknown_ = null;
     }
 
@@ -95,6 +118,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());
         setLoadSerialNo(other.getLoadSerialNo());
+        setVersion(other.getVersion());
         _unknown_ = other._unknown_;
     }
 
@@ -141,6 +165,13 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         public void commit() { ((BNodeRoot)getBelong())._LoadSerialNo = value; }
     }
 
+    private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
+        public Log__Version(BNodeRoot bean, int varId, long value) { super(bean, varId, value); }
+
+        @Override
+        public void commit() { ((BNodeRoot)getBelong())._Version = value; }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -154,7 +185,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("HeadNodeId=").append(getHeadNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TailNodeId=").append(getTailNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoadSerialNo=").append(getLoadSerialNo()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoadSerialNo=").append(getLoadSerialNo()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -208,6 +240,13 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -229,6 +268,10 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             setLoadSerialNo(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -247,6 +290,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             return false;
         if (getLoadSerialNo() != _b_.getLoadSerialNo())
             return false;
+        if (getVersion() != _b_.getVersion())
+            return false;
         return true;
     }
 
@@ -257,6 +302,8 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         if (getTailNodeId() < 0)
             return true;
         if (getLoadSerialNo() < 0)
+            return true;
+        if (getVersion() < 0)
             return true;
         return false;
     }
@@ -273,6 +320,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
                 case 1: _HeadNodeId = vlog.longValue(); break;
                 case 2: _TailNodeId = vlog.longValue(); break;
                 case 3: _LoadSerialNo = vlog.longValue(); break;
+                case 4: _Version = vlog.longValue(); break;
             }
         }
     }
@@ -283,6 +331,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         setHeadNodeId(rs.getLong(_parents_name_ + "HeadNodeId"));
         setTailNodeId(rs.getLong(_parents_name_ + "TailNodeId"));
         setLoadSerialNo(rs.getLong(_parents_name_ + "LoadSerialNo"));
+        setVersion(rs.getLong(_parents_name_ + "Version"));
     }
 
     @Override
@@ -291,6 +340,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         st.appendLong(_parents_name_ + "HeadNodeId", getHeadNodeId());
         st.appendLong(_parents_name_ + "TailNodeId", getTailNodeId());
         st.appendLong(_parents_name_ + "LoadSerialNo", getLoadSerialNo());
+        st.appendLong(_parents_name_ + "Version", getVersion());
     }
 
     @Override
@@ -299,6 +349,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "HeadNodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TailNodeId", "long", "", ""));
         vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoadSerialNo", "long", "", ""));
+        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Version", "long", "", ""));
         return vars;
     }
 }
