@@ -682,21 +682,20 @@ public class TimerRole {
 			var roleId = offlineCustom.getRoleId();
 			var onlineSetName = offlineCustom.getOnlineSetName();
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
-			var loginVersion = context.timer.getRoleTimer(onlineSetName).online.getLogoutVersion(roleId);
+			var timer = context.timer;
+			var loginVersion = timer.getRoleTimer(onlineSetName).online.getLogoutVersion(roleId);
 			if (loginVersion != null && loginVersion == offlineCustom.getLoginVersion()) {
 				context.roleId = roleId;
 				var userCustom = offlineCustom.getCustomData().getBean();
 				context.customData = userCustom instanceof EmptyBean ? null : userCustom;
-				@SuppressWarnings("unchecked")
-				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
-				handleClass.getDeclaredConstructor().newInstance().onTimer(context);
+				timer.findTimerHandle(offlineCustom.getHandleName()).onTimer(context);
 			} else {
 				var timerId = offlineCustom.getTimerName();
-				context.timer.cancel(timerId);
-				var providerImpl = context.timer.zeze.getProviderApp().providerImplement;
+				timer.cancel(timerId);
+				var providerImpl = timer.zeze.getProviderApp().providerImplement;
 				var online = providerImpl instanceof ProviderWithOnline
 						? ((ProviderWithOnline)providerImpl).getOnline(onlineSetName)
-						: context.timer.getDefaultOnline();
+						: timer.getDefaultOnline();
 				if (online != null) {
 					var offlineTimers = online._tRoleOfflineTimers().get(roleId);
 					if (offlineTimers != null) {

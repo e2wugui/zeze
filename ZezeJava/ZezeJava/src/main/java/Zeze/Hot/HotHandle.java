@@ -11,31 +11,30 @@ public class HotHandle<THandle> extends ReentrantLock {
 
 	private void onHotModuleStop(HotModule hot) {
 		var classNames = classNameWithHotModule.remove(hot);
-		if (null == classNames)
-			return;
-
-		for (var name : classNames) {
-			handleCache.remove(name);
+		if (classNames != null) {
+			for (var name : classNames)
+				handleCache.remove(name);
 		}
 	}
 
 	public static Class<?> findClass(Application zeze, String handleClassName) throws Exception {
-		return (null == zeze.getHotManager())
+		var hotManager = zeze.getHotManager();
+		return hotManager == null
 				? Class.forName(handleClassName)
-				: zeze.getHotManager().getHotRedirect().loadClass(handleClassName);
+				: hotManager.getHotRedirect().loadClass(handleClassName);
 	}
 
 	@SuppressWarnings("unchecked")
 	public THandle findHandle(Application zeze, String handleClassName) throws Exception {
 		var handle = handleCache.get(handleClassName);
-		if (null != handle)
+		if (handle != null)
 			return handle;
 
 		// synchronize_d (handleCache)
 		lock();
 		try {
 			handle = handleCache.get(handleClassName);
-			if (null != handle)
+			if (handle != null)
 				return handle;
 
 			var handleClass = findClass(zeze, handleClassName);

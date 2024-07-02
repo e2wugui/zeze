@@ -478,14 +478,13 @@ public class TimerAccount {
 			var account = offlineCustom.getAccount();
 			var clientId = offlineCustom.getClientId();
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
+			var timer = context.timer;
 			var loginVersion = context.timer.getAccountTimer().online.getLoginVersion(account, clientId);
 			if (loginVersion != null && loginVersion == offlineCustom.getLoginVersion()) {
 				context.account = account;
 				context.clientId = clientId;
 				context.customData = offlineCustom.getCustomData().getBean();
-				@SuppressWarnings("unchecked")
-				var handleClass = (Class<? extends TimerHandle>)Class.forName(offlineCustom.getHandleName());
-				handleClass.getDeclaredConstructor().newInstance().onTimer(context);
+				timer.findTimerHandle(offlineCustom.getHandleName()).onTimer(context);
 			} else {
 				var timerId = offlineCustom.getTimerName();
 				context.timer.cancel(timerId);
