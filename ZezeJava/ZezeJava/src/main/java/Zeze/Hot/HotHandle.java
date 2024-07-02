@@ -4,12 +4,13 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
+import org.jetbrains.annotations.NotNull;
 
 public class HotHandle<THandle> extends ReentrantLock {
 	private final ConcurrentHashMap<String, THandle> handleCache = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<HotModule, HashSet<String>> classNameWithHotModule = new ConcurrentHashMap<>();
 
-	private void onHotModuleStop(HotModule hot) {
+	private void onHotModuleStop(@NotNull HotModule hot) {
 		var classNames = classNameWithHotModule.remove(hot);
 		if (classNames != null) {
 			for (var name : classNames)
@@ -17,7 +18,8 @@ public class HotHandle<THandle> extends ReentrantLock {
 		}
 	}
 
-	public static Class<?> findClass(Application zeze, String handleClassName) throws Exception {
+	public static @NotNull Class<?> findClass(@NotNull Application zeze, @NotNull String handleClassName)
+			throws ClassNotFoundException {
 		var hotManager = zeze.getHotManager();
 		return hotManager == null
 				? Class.forName(handleClassName)
@@ -25,12 +27,12 @@ public class HotHandle<THandle> extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unchecked")
-	public THandle findHandle(Application zeze, String handleClassName) throws Exception {
+	public @NotNull THandle findHandle(@NotNull Application zeze, @NotNull String handleClassName)
+			throws ReflectiveOperationException {
 		var handle = handleCache.get(handleClassName);
 		if (handle != null)
 			return handle;
 
-		// synchronize_d (handleCache)
 		lock();
 		try {
 			handle = handleCache.get(handleClassName);

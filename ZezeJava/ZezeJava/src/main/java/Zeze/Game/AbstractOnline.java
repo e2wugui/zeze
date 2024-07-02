@@ -24,9 +24,9 @@ public abstract class AbstractOnline implements Zeze.IModule {
     public static final int ResultCodeOnlineDataNotFound = 5;
     public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
-    public static final int eOffline = 0;
-    public static final int eLinkBroken = 1;
-    public static final int eLogined = 2;
+    public static final int eOffline = 0; // 离线状态
+    public static final int eLinkBroken = 1; // 刚刚断开连接
+    public static final int eLogined = 2; // 在线状态
 
     protected final String multiInstanceName;
 

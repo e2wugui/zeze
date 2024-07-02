@@ -5,6 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
+// 每个server各自保存不同表的模板表, 实际用TableDynamic, 表名为"Zeze_Game_Online_Local_{onlineSetName}_{serverId}", key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tlocalTempalte extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {

@@ -161,7 +161,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	@NotNull
-	TimerHandle findTimerHandle(@NotNull String handleClassName) throws Exception {
+	TimerHandle findTimerHandle(@NotNull String handleClassName) throws ReflectiveOperationException {
 		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
@@ -242,22 +242,22 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param period         触发周期(毫秒), 只有大于0才会周期触发
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
-	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    Timer处理Class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 */
-	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
+	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
 									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule(delay, period, times, endTime, missFirePolicy, handleClass, customData, "");
+		return schedule(delay, period, times, endTime, missfirePolicy, handleClass, customData, "");
 	}
 
-	public @NotNull String schedule(long delay, long period, long times, long endTime, int missFirePolicy,
+	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
 									@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 									@NotNull String oneByOneKey) {
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		simpleTimer.setMissfirePolicy(missFirePolicy);
+		simpleTimer.setMissfirePolicy(missfirePolicy);
 		return schedule(simpleTimer, handleClass, customData);
 	}
 
@@ -428,25 +428,25 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param cronExpression cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
-	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
 	 */
-	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
+	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
 									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) throws ParseException {
 		return schedule(cronExpression, times, endTime,
-				missFirePolicy, handleClass, customData, "");
+				missfirePolicy, handleClass, customData, "");
 	}
 
-	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missFirePolicy,
+	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
 									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cronExpression, times, endTime, oneByOneKey);
-		cronTimer.setMissfirePolicy(missFirePolicy);
+		cronTimer.setMissfirePolicy(missfirePolicy);
 		return schedule(cronTimer, handleClass, customData);
 	}
 
@@ -573,19 +573,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param period         触发周期(毫秒), 只有大于0才会周期触发
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
-	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) {
-		return scheduleNamed(timerId, delay, period, times, endTime, missFirePolicy, handleClass, customData, "");
+		return scheduleNamed(timerId, delay, period, times, endTime, missfirePolicy, handleClass, customData, "");
 	}
 
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData, String oneByOneKey) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
@@ -598,7 +598,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 		var simpleTimer = new BSimpleTimer();
 		initSimpleTimer(simpleTimer, delay, period, times, endTime, oneByOneKey);
-		simpleTimer.setMissfirePolicy(missFirePolicy);
+		simpleTimer.setMissfirePolicy(missfirePolicy);
 		schedule(timerId, simpleTimer, handleClass, customData);
 		return true;
 	}
@@ -647,20 +647,20 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param cron           cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
 	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
-	 * @param missFirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
 	 */
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerId, cron, times, endTime, missFirePolicy, handleClass, customData, "");
+		return scheduleNamed(timerId, cron, times, endTime, missfirePolicy, handleClass, customData, "");
 	}
 
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
-								 int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData, String oneByOneKey) throws ParseException {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
@@ -668,20 +668,20 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
-			if (cronEquals(index, timerId, cron, times, endTime, missFirePolicy, handleClass, customData, oneByOneKey))
+			if (cronEquals(index, timerId, cron, times, endTime, missfirePolicy, handleClass, customData, oneByOneKey))
 				return true;
 			cancel(timerId); // 先取消,下面再重建
 		}
 
 		var cronTimer = new BCronTimer();
 		initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
-		cronTimer.setMissfirePolicy(missFirePolicy);
+		cronTimer.setMissfirePolicy(missfirePolicy);
 		schedule(timerId, cronTimer, handleClass, customData);
 		return true;
 	}
 
 	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull String cron, long times,
-							  long endTime, int missFirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
+							  long endTime, int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 							  @Nullable Bean customData, String oneByOneKey) {
 		if (timerFutures.containsKey(timerId)) { // 在调度中
 			var root = _tNodeRoot.get(zeze.getConfig().getServerId());
@@ -698,7 +698,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 							return cronTimer.getCronExpression().equals(cron)
 									&& cronTimer.getRemainTimes() == times
 									&& cronTimer.getEndTime() == endTime
-									&& cronTimer.getMissfirePolicy() == missFirePolicy
+									&& cronTimer.getMissfirePolicy() == missfirePolicy
 									&& cronTimer.getOneByOneKey().equals(oneByOneKey);
 						}
 					}
@@ -815,7 +815,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	private void cancel(int serverId, @NotNull String timerId, long nodeId, @Nullable BNode node,
-						@Nullable TimerHandle handle) throws Exception {
+						@Nullable TimerHandle handle) {
 		// 事务成功时，总是尝试cancel future
 		Transaction.whileCommit(() -> cancelFuture(timerId));
 		_tIndexs.remove(timerId);
@@ -887,7 +887,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		simpleTimer.setOneByOneKey(oneByOneKey);
 	}
 
-	public static boolean nextSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missFire) {
+	public static boolean nextSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missfire) {
 		// check period
 		var period = simpleTimer.getPeriod();
 		if (period <= 0)
@@ -908,7 +908,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		long now = System.currentTimeMillis();
 		simpleTimer.setHappenTime(now);
 
-		if (missFire && simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
+		if (missfire && simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 			// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
 			// simpleTimer.setStartTime(now);
 			nextExpectedTime = now + period;
@@ -921,8 +921,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return endTime <= 0 || nextExpectedTime <= endTime;
 	}
 
-	private long fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
-							boolean missFire) {
+	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
+							boolean missfire) {
 		if (Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
@@ -946,7 +946,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				var hasNext = nextSimpleTimer(simpleTimer, missFire);
+				var hasNext = nextSimpleTimer(simpleTimer, missfire);
 				var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
 						simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 
@@ -988,7 +988,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				return 0;
 			}, "Timer.cancelTimer"));
 		}
-		return 0;
 	}
 
 	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerId, @NotNull BCronTimer cron,
@@ -1032,7 +1031,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		cronTimer.setOneByOneKey(oneByOneKey);
 	}
 
-	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missFire) throws ParseException {
+	public static boolean nextCronTimer(@NotNull BCronTimer cronTimer, boolean missfire) throws ParseException {
 		// check remain times
 		var remainTimes = cronTimer.getRemainTimes();
 		if (remainTimes >= 0) {
@@ -1049,7 +1048,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		cronTimer.setHappenTime(now);
 
 		long baseTime;
-		if (missFire && cronTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
+		if (missfire && cronTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
 			// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
 			// cronTimer.setStartTime(now);
 			baseTime = now;
@@ -1064,7 +1063,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	private void fireCron(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
-						  boolean missFire) {
+						  boolean missfire) {
 		if (Task.call(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
@@ -1088,7 +1087,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var handle = findTimerHandle(timer.getHandleName());
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				var hasNext = Timer.nextCronTimer(cronTimer, missFire);
+				var hasNext = Timer.nextCronTimer(cronTimer, missfire);
 				var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),
 						cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 
@@ -1219,7 +1218,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			if (!idSet.add(nodeId)) // 检测并避免死循环
 				break;
 			// skip error. 使用node返回的值决定是否继续循环。
-			var r = Task.call(zeze.newProcedure(() -> loadTimer(node, last, serverId), "Timer.loadTimer"));
+			var r = Task.call(zeze.newProcedure(() -> {
+				loadTimer(node, last, serverId);
+				return 0;
+			}, "Timer.loadTimer"));
 			if (r != Procedure.Success) {
 				logger.error("loadTimer failed: r={}, nodeId={}", r, nodeId);
 				try {
@@ -1231,12 +1233,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		} while (node.value != last);
 	}
 
-	private long loadTimer(@NotNull OutLong nodeId, long last, int serverId) throws ParseException {
+	private void loadTimer(@NotNull OutLong nodeId, long last, int serverId) throws ParseException {
 		var node = _tNodes.get(nodeId.value);
 		if (node == null) {
 			logger.warn("loadTimer not found nodeId={}", nodeId.value);
 			nodeId.value = last; // 马上结束外面的循环。last仅用在这里。
-			return 0; // when root is empty。no node。skip error.
+			return; // when root is empty。no node。skip error.
 		}
 		// BUG 修复，如果first.value直接设置，在发生redo时，当前node会被跳过。
 		// 这是因为first是in&out的。另一个解决办法是，first改成只out，当前node用另一个值参数传入。
@@ -1262,12 +1264,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				index.setServerId(serverId);
 			if (timer.getTimerObj().getBean().typeId() == BSimpleTimer.TYPEID) {
 				var simpleTimer = (BSimpleTimer)timer.getTimerObj().getBean();
-				if (simpleTimer.getNextExpectedTime() < now) { // missFire found
+				if (simpleTimer.getNextExpectedTime() < now) { // missfire found
 					switch (simpleTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Task.run(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-								timer.getConcurrentFireSerialNo(), true), "Timer.missFireSimple");
+								timer.getConcurrentFireSerialNo(), true), "Timer.missfireSimple");
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:
@@ -1277,7 +1279,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						break;
 
 					default:
-						throw new UnsupportedOperationException("Unknown MissFirePolicy: "
+						throw new UnsupportedOperationException("Unknown MissfirePolicy: "
 								+ simpleTimer.getMissfirePolicy());
 					}
 				}
@@ -1291,7 +1293,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Task.run(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-								timer.getConcurrentFireSerialNo(), true), "Timer.missFireCron");
+								timer.getConcurrentFireSerialNo(), true), "Timer.missfireCron");
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:
@@ -1301,7 +1303,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						break;
 
 					default:
-						throw new UnsupportedOperationException("Unknown MissFirePolicy: "
+						throw new UnsupportedOperationException("Unknown MissfirePolicy: "
 								+ cronTimer.getMissfirePolicy());
 					}
 				}
@@ -1309,7 +1311,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 						timer.getConcurrentFireSerialNo(), true, cronTimer.getOneByOneKey());
 			}
 		}
-		return 0;
 	}
 
 	@Override

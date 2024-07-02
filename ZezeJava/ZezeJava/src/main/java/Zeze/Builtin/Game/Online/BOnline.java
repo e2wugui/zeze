@@ -9,13 +9,13 @@ import Zeze.Serialize.IByteBuffer;
 public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadOnly {
     public static final long TYPEID = -6079880688513613020L;
 
-    private Zeze.Builtin.Game.Online.BLink _Link;
-    private long _LoginVersion;
-    private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
-    private long _ReliableNotifyConfirmIndex;
-    private long _ReliableNotifyIndex;
-    private int _ServerId;
-    private long _LogoutVersion;
+    private Zeze.Builtin.Game.Online.BLink _Link; // link相关状态, 登录和下线时会更新
+    private long _LoginVersion; // 角色登录(包括重登录)时自增
+    private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark; // 登录时清空
+    private long _ReliableNotifyConfirmIndex; // 登录时赋值为0
+    private long _ReliableNotifyIndex; // 登录时赋值为0,然后每次sendReliableNotify时自增
+    private int _ServerId; // 登录时会赋值当前所在的serverId
+    private long _LogoutVersion; // 登录和下线前会赋值为LoginVersion
     private final Zeze.Transaction.DynamicBean _UserData;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_UserData() {
@@ -30,7 +30,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         return Zeze.Game.Online.createBeanFromSpecialTypeId(typeId);
     }
 
-    private String _Account; // 所属账号,用于登录验证
+    private String _Account; // 所属账号, 用于登录验证
 
     @Override
     public Zeze.Builtin.Game.Online.BLink getLink() {

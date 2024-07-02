@@ -8,9 +8,9 @@ import Zeze.Serialize.IByteBuffer;
 public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnly {
     public static final long TYPEID = 1038509325594826174L;
 
-    private long _LoginVersion;
-    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
-    private Zeze.Builtin.Game.Online.BLink _Link;
+    private long _LoginVersion; // 角色登录(包括重登录)时复制为tonline.LoginVersion
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas; // Online模块LocalBean相关方法读写自定义数据, 用来保存角色的Online定时器等
+    private Zeze.Builtin.Game.Online.BLink _Link; // 角色登录(包括重登录)时复制为tonline.Link
 
     @Override
     public long getLoginVersion() {

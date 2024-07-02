@@ -26,7 +26,7 @@ public class ClazzUtils {
 	 */
 	public static List<String> getClazzName(String packageName, boolean showChildPackageFlag) {
 		List<String> result = new ArrayList<>();
-		String suffixPath = packageName.replaceAll("\\.", "/");
+		String suffixPath = packageName.replace('.', '/');
 		ClassLoader loader = Thread.currentThread().getContextClassLoader();
 		try {
 			Enumeration<URL> urls = loader.getResources(suffixPath);

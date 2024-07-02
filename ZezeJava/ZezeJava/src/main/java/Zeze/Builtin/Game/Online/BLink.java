@@ -6,9 +6,9 @@ import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"MethodMayBeStatic", "NullableProblems", "PatternVariableCanBeUsed", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "UnusedAssignment"})
 public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> {
-    private String _LinkName;
-    private long _LinkSid;
-    private int _State;
+    private String _LinkName; // link名, 一般为"地址_端口"
+    private long _LinkSid; // link上的sessionId
+    private int _State; // 登录状态, 见上面e开头的枚举定义
 
     // for decode only
     public BLink() {
