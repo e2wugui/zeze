@@ -693,19 +693,25 @@
 					<variable id="3" name="OnlineSetName" type="string"/>
 				</bean>
 				<!-- tables -->
-				<bean name="BOnline">
-					<variable id="3" name="Link"                       type="BLink"/> link相关状态, 登录和下线时会更新
-					<variable id="4" name="LoginVersion"               type="long"/> 角色登录(包括重登录)时自增
-					<variable id="5" name="ReliableNotifyMark"         type="set" value="string"/> 登录时清空
-					<variable id="6" name="ReliableNotifyConfirmIndex" type="long"/> 登录时赋值为0
-					<variable id="7" name="ReliableNotifyIndex"        type="long"/> 登录时赋值为0,然后每次sendReliableNotify时自增
-					<variable id="8" name="ServerId"                   type="int"/> 登录时会赋值当前所在的serverId
-					<variable id="9" name="LogoutVersion"              type="long"/> 登录和下线前会赋值为LoginVersion
-					<variable id="10" name="UserData" type="dynamic"> Online的getUserData和setUserData方法能存取
+				<bean name="BOnlineShared">
+					<variable id="1" name="Account"       type="string"/> 所属账号, 用于登录验证
+					<variable id="2" name="Link"          type="BLink"/> link相关状态, 登录和下线时会更新
+					<variable id="3" name="LoginVersion"  type="long"/> 角色登录(包括重登录)时自增
+					<variable id="4" name="LogoutVersion" type="long"/> 登录和下线前会赋值为LoginVersion
+					<variable id="5" name="UserData"      type="dynamic"> Online的getUserDataShared和setUserDataShared方法能存取
 						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
 					</variable>
-					<variable id="11" name="Account"                   type="string"/> 所属账号, 用于登录验证
+				</bean>
+				<bean name="BOnline">
+					<variable id="1" name="ServerId"                   type="int"/> 登录时会赋值当前所在的serverId
+					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/> 登录时清空
+					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/> 登录时赋值为0
+					<variable id="4" name="ReliableNotifyIndex"        type="long"/> 登录时赋值为0,然后每次sendReliableNotify时自增
+					<variable id="5" name="UserData"                   type="dynamic"> Online的getUserData和setUserData方法能存取
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 				<beankey name="BLink">
 					<variable id="1" name="LinkName" type="string"/> link名, 一般为"地址_端口"
@@ -730,7 +736,8 @@
 					<variable id="3" name="Link"  type="BLink"/> 角色登录(包括重登录)时复制为tonline.Link
 				</bean>
 
-				<table name="tonline" key="long" value="BOnline"/> 登录相关状态的持久化表, key是角色ID
+				<table name="tOnlineShared" key="long" value="BOnlineShared"/> 登录相关状态的大版本共享的持久化表, key是角色ID
+				<table name="tOnlineTemplate" key="long" value="BOnline"/> 登录相关状态的大版本隔离的持久化模板表, key是角色ID
 				<table name="tlocalTempalte" key="long" value="BLocal"/> 每个server各自保存不同表的模板表, 实际用TableDynamic, 表名为"Zeze_Game_Online_Local_{onlineSetName}_{serverId}", key是角色ID
 				<table name="tRoleTimers" key="string" value="Zeze.Builtin.Timer.BGameOnlineTimer" memory="true"/> 玩家在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/> 角色离线时触发的定时器反向索引, key是角色ID

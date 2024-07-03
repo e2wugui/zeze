@@ -5,16 +5,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-// 登录相关状态的持久化表, key是角色ID
+// 登录相关状态的大版本隔离的持久化模板表, key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
+public final class tOnlineTemplate extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnline, Zeze.Builtin.Game.Online.BOnlineReadOnly> {
-    public tonline() {
-        super(-1571889602, "Zeze_Builtin_Game_Online_tonline");
+    public tOnlineTemplate() {
+        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate");
     }
 
-    public tonline(String suffix) {
-        super(-1571889602, "Zeze_Builtin_Game_Online_tonline", suffix);
+    public tOnlineTemplate(String suffix) {
+        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate", suffix);
     }
 
     @Override
@@ -27,15 +27,11 @@ public final class tonline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline
         return Zeze.Builtin.Game.Online.BOnline.class;
     }
 
-    public static final int VAR_Link = 3;
-    public static final int VAR_LoginVersion = 4;
-    public static final int VAR_ReliableNotifyMark = 5;
-    public static final int VAR_ReliableNotifyConfirmIndex = 6;
-    public static final int VAR_ReliableNotifyIndex = 7;
-    public static final int VAR_ServerId = 8;
-    public static final int VAR_LogoutVersion = 9;
-    public static final int VAR_UserData = 10;
-    public static final int VAR_Account = 11;
+    public static final int VAR_ServerId = 1;
+    public static final int VAR_ReliableNotifyMark = 2;
+    public static final int VAR_ReliableNotifyConfirmIndex = 3;
+    public static final int VAR_ReliableNotifyIndex = 4;
+    public static final int VAR_UserData = 5;
 
     @Override
     public Long decodeKey(ByteBuffer _os_) {

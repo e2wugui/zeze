@@ -183,13 +183,13 @@ public class TimerRole {
 						roleId, handle.getClass().getName());
 				return;
 			}
-			var loginOnline = online.getLoginOnline(roleId);
-			if (loginOnline != null) {
+			var loginOnlineShared = online.getLoginOnlineShared(roleId);
+			if (loginOnlineShared != null) {
 				var p = new BTransmitSimpleTimer();
 				p.setTimerId(timerId);
 				p.setHandleClass(handle.getClass().getName());
 				p.setSimpleTimer(simpleTimer);
-				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setLoginVersion(loginOnlineShared.getLoginVersion());
 				p.setHot(false);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());
@@ -231,13 +231,13 @@ public class TimerRole {
 						roleId, handleClass.getName());
 				return;
 			}
-			var loginOnline = online.getLoginOnline(roleId);
-			if (loginOnline != null) {
+			var loginOnlineShared = online.getLoginOnlineShared(roleId);
+			if (loginOnlineShared != null) {
 				var p = new BTransmitSimpleTimer();
 				p.setTimerId(timerId);
 				p.setHandleClass(handleClass.getName());
 				p.setSimpleTimer(simpleTimer);
-				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setLoginVersion(loginOnlineShared.getLoginVersion());
 				p.setHot(true);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());
@@ -308,8 +308,8 @@ public class TimerRole {
 		var p = new BTransmitCronTimer();
 		p.decode(ByteBuffer.Wrap(parameter));
 
-		var loginOnline = online.getLoginOnline(target);
-		if (loginOnline != null && p.getLoginVersion() == loginOnline.getLoginVersion()) {
+		var loginOnlineShared = online.getLoginOnlineShared(target);
+		if (loginOnlineShared != null && p.getLoginVersion() == loginOnlineShared.getLoginVersion()) {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
@@ -336,8 +336,8 @@ public class TimerRole {
 		var p = new BTransmitSimpleTimer();
 		p.decode(ByteBuffer.Wrap(parameter));
 
-		var loginOnline = online.getLoginOnline(target);
-		if (loginOnline != null && p.getLoginVersion() == loginOnline.getLoginVersion()) {
+		var loginOnlineShared = online.getLoginOnlineShared(target);
+		if (loginOnlineShared != null && p.getLoginVersion() == loginOnlineShared.getLoginVersion()) {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
@@ -365,13 +365,13 @@ public class TimerRole {
 						roleId, handle.getClass().getName());
 				return;
 			}
-			var loginOnline = online.getLoginOnline(roleId);
-			if (loginOnline != null) {
+			var loginOnlineShared = online.getLoginOnlineShared(roleId);
+			if (loginOnlineShared != null) {
 				var p = new BTransmitCronTimer();
 				p.setTimerId(timerId);
 				p.setCronTimer(cronTimer);
 				p.setHandleClass(handle.getClass().getName());
-				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setLoginVersion(loginOnlineShared.getLoginVersion());
 				p.setHot(false);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());
@@ -411,13 +411,13 @@ public class TimerRole {
 						roleId, handleClass.getName());
 				return;
 			}
-			var loginOnline = online.getLoginOnline(roleId);
-			if (loginOnline != null) {
+			var loginOnlineShared = online.getLoginOnlineShared(roleId);
+			if (loginOnlineShared != null) {
 				var p = new BTransmitCronTimer();
 				p.setTimerId(timerId);
 				p.setCronTimer(cronTimer);
 				p.setHandleClass(handleClass.getName());
-				p.setLoginVersion(loginOnline.getLoginVersion());
+				p.setLoginVersion(loginOnlineShared.getLoginVersion());
 				p.setHot(true);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());

@@ -31,7 +31,8 @@ public abstract class AbstractOnline implements Zeze.IModule {
     protected final String multiInstanceName;
 
     protected final Zeze.Builtin.Game.Online.tlocalTempalte _tlocalTempalte;
-    protected final Zeze.Builtin.Game.Online.tonline _tonline;
+    protected final Zeze.Builtin.Game.Online.tOnlineShared _tOnlineShared;
+    protected final Zeze.Builtin.Game.Online.tOnlineTemplate _tOnlineTemplate;
     protected final Zeze.Builtin.Game.Online.tRoleOfflineTimers _tRoleOfflineTimers;
     protected final Zeze.Builtin.Game.Online.tRoleTimers _tRoleTimers;
 
@@ -39,7 +40,8 @@ public abstract class AbstractOnline implements Zeze.IModule {
         multiInstanceName = name;
         var suffix = name.isEmpty() ? name : "__" + name;
         _tlocalTempalte = new Zeze.Builtin.Game.Online.tlocalTempalte(suffix);
-        _tonline = new Zeze.Builtin.Game.Online.tonline(suffix);
+        _tOnlineShared = new Zeze.Builtin.Game.Online.tOnlineShared(suffix);
+        _tOnlineTemplate = new Zeze.Builtin.Game.Online.tOnlineTemplate(suffix);
         _tRoleOfflineTimers = new Zeze.Builtin.Game.Online.tRoleOfflineTimers(suffix);
         _tRoleTimers = new Zeze.Builtin.Game.Online.tRoleTimers(suffix);
     }
@@ -89,14 +91,16 @@ public abstract class AbstractOnline implements Zeze.IModule {
 
     public void RegisterZezeTables(Zeze.Application zeze) {
         zeze.addTable(zeze.getConfig().getTableConf(_tlocalTempalte.getName()).getDatabaseName(), _tlocalTempalte);
-        zeze.addTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.addTable(zeze.getConfig().getTableConf(_tOnlineShared.getName()).getDatabaseName(), _tOnlineShared);
+        zeze.addTable(zeze.getConfig().getTableConf(_tOnlineTemplate.getName()).getDatabaseName(), _tOnlineTemplate);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.addTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
         zeze.removeTable(zeze.getConfig().getTableConf(_tlocalTempalte.getName()).getDatabaseName(), _tlocalTempalte);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tOnlineShared.getName()).getDatabaseName(), _tOnlineShared);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tOnlineTemplate.getName()).getDatabaseName(), _tOnlineTemplate);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleOfflineTimers.getName()).getDatabaseName(), _tRoleOfflineTimers);
         zeze.removeTable(zeze.getConfig().getTableConf(_tRoleTimers.getName()).getDatabaseName(), _tRoleTimers);
     }
