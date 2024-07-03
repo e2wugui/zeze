@@ -76,6 +76,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected static String lastDateStr;
 	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
 	protected final @Nullable String fileHome; // 客户端可下载的文件根目录
+	protected final boolean canListPath; // 客户端可下载的文件目录内容
 	protected final int fileCacheSeconds; // 通知客户端文件下载的缓存时间(秒)
 	protected final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
@@ -128,9 +129,13 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		this(null, fileHome, fileCacheSeconds);
 	}
 
+	/**
+	 * @param fileHome 以斜杠结尾表示允许列目录
+	 */
 	public HttpServer(@Nullable Application zeze, @Nullable String fileHome, int fileCacheSeconds) {
 		this.zeze = zeze;
-		this.fileHome = fileHome;
+		this.fileHome = fileHome != null ? fileHome.replaceFirst("[/\\\\]+$", "") : null;
+		canListPath = fileHome != null && !fileHome.equals(this.fileHome);
 		this.fileCacheSeconds = fileCacheSeconds;
 	}
 

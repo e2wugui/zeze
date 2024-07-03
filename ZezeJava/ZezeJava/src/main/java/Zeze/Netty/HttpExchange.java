@@ -814,12 +814,18 @@ public class HttpExchange {
 		var fileHome = server.fileHome;
 		if (fileHome == null)
 			close(send404());
+		else if (filePath.contains("..")) // filePath不能有"..",否则就成为漏洞读取到意外的文件,虽然一般的浏览器在发请求前会过滤掉带..的path
+			sendPlainText(HttpResponseStatus.FORBIDDEN, "");
 		else
 			sendFile(new File(fileHome.isEmpty() ? "." : fileHome, filePath));
 	}
 
 	public void sendFile(@NotNull File file) throws Exception {
 		if (!file.isFile() || file.isHidden()) {
+			if (server.canListPath && file.isDirectory() && !file.isHidden()) {
+				sendPath(file);
+				return;
+			}
 			close(send404());
 			return;
 		}
