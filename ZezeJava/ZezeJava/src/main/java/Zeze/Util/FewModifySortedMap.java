@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -13,8 +14,8 @@ import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable {
-	private transient volatile @Nullable SortedMap<K, V> read;
+public class FewModifySortedMap<K, V> implements NavigableMap<K, V>, Cloneable {
+	private transient volatile @Nullable NavigableMap<K, V> read;
 	private final @NotNull TreeMap<K, V> write;
 	private transient final ReentrantLock writeLock = new ReentrantLock();
 
@@ -30,7 +31,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable {
 		write = new TreeMap<>(m);
 	}
 
-	private @NotNull SortedMap<K, V> prepareRead() {
+	private @NotNull NavigableMap<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			writeLock.lock();
@@ -47,7 +48,8 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable {
 		return r;
 	}
 
-	public @NotNull SortedMap<K, V> snapshot() {
+	// 必须只读,不允许写,虽然不会抛异常
+	public @NotNull NavigableMap<K, V> snapshot() {
 		return prepareRead();
 	}
 
@@ -194,16 +196,19 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable {
 		return prepareRead().comparator();
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull SortedMap<K, V> subMap(K fromKey, K toKey) {
 		return prepareRead().subMap(fromKey, toKey);
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull SortedMap<K, V> headMap(K toKey) {
 		return prepareRead().headMap(toKey);
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull SortedMap<K, V> tailMap(K fromKey) {
 		return prepareRead().tailMap(fromKey);
@@ -219,25 +224,118 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable {
 		return prepareRead().lastKey();
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull Set<K> keySet() {
 		return prepareRead().keySet();
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull Collection<V> values() {
 		return prepareRead().values();
 	}
 
+	// 必须只读,不允许写,虽然不会抛异常
 	@Override
 	public @NotNull Set<Entry<K, V>> entrySet() {
 		return prepareRead().entrySet();
 	}
 
-	// 这个方法暴露了可写的操作，不安全。
+	@Override
+	public Entry<K, V> lowerEntry(K key) {
+		return prepareRead().lowerEntry(key);
+	}
+
+	@Override
+	public K lowerKey(K key) {
+		return prepareRead().lowerKey(key);
+	}
+
+	@Override
+	public Entry<K, V> floorEntry(K key) {
+		return prepareRead().floorEntry(key);
+	}
+
+	@Override
+	public K floorKey(K key) {
+		return prepareRead().floorKey(key);
+	}
+
+	@Override
+	public Entry<K, V> ceilingEntry(K key) {
+		return prepareRead().ceilingEntry(key);
+	}
+
+	@Override
+	public K ceilingKey(K key) {
+		return prepareRead().ceilingKey(key);
+	}
+
+	@Override
+	public Entry<K, V> higherEntry(K key) {
+		return prepareRead().higherEntry(key);
+	}
+
+	@Override
+	public K higherKey(K key) {
+		return prepareRead().higherKey(key);
+	}
+
+	@Override
+	public Entry<K, V> firstEntry() {
+		return prepareRead().firstEntry();
+	}
+
+	@Override
+	public Entry<K, V> lastEntry() {
+		return prepareRead().lastEntry();
+	}
+
+	@Override
+	public Entry<K, V> pollFirstEntry() {
+		return prepareRead().pollFirstEntry();
+	}
+
+	@Override
+	public Entry<K, V> pollLastEntry() {
+		return prepareRead().pollLastEntry();
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
 	public @NotNull NavigableMap<K, V> descendingMap() {
-		var tree = (TreeMap<K, V>)prepareRead();
-		return tree.descendingMap();
+		return prepareRead().descendingMap();
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
+	public NavigableSet<K> navigableKeySet() {
+		return prepareRead().navigableKeySet();
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
+	public NavigableSet<K> descendingKeySet() {
+		return prepareRead().descendingKeySet();
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
+	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
+		return prepareRead().subMap(fromKey, fromInclusive, toKey, toInclusive);
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
+	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
+		return prepareRead().headMap(toKey, inclusive);
+	}
+
+	// 必须只读,不允许写,虽然不会抛异常
+	@Override
+	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
+		return prepareRead().tailMap(fromKey, inclusive);
 	}
 
 	@Override

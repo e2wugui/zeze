@@ -66,7 +66,7 @@ public class App extends Zeze.AppBase {
 		private final @Nullable FreeMarker freeMarker;
 
 		public MyHttpServer(Application zeze) throws Exception {
-			super(zeze, null, 60);
+			super(zeze);
 			var webDir = new File("web");
 			freeMarker = webDir.isDirectory() ? new FreeMarker(webDir) : null;
 		}

@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -27,6 +28,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FewModifyMap;
+import Zeze.Util.FewModifySortedMap;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Reflect;
@@ -50,6 +52,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.util.AttributeKey;
@@ -75,10 +78,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected static long lastSecond;
 	protected static String lastDateStr;
 	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
-	protected final @Nullable String fileHome; // 客户端可下载的文件根目录
-	protected final boolean canListPath; // 客户端可下载的文件目录内容
-	protected final int fileCacheSeconds; // 通知客户端文件下载的缓存时间(秒)
 	protected final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
+	protected final FewModifySortedMap<String, HttpHandler> prefixHandlers = new FewModifySortedMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
 	protected final ConcurrentHashMap<ChannelId, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	protected final TaskOneByOneByKey task11Executor = new TaskOneByOneByKey();
@@ -122,21 +123,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	public HttpServer() {
-		this(null, null, 10 * 60);
+		this(null);
 	}
 
-	public HttpServer(@Nullable String fileHome, int fileCacheSeconds) {
-		this(null, fileHome, fileCacheSeconds);
-	}
-
-	/**
-	 * @param fileHome 以斜杠结尾表示允许列目录
-	 */
-	public HttpServer(@Nullable Application zeze, @Nullable String fileHome, int fileCacheSeconds) {
+	public HttpServer(@Nullable Application zeze) {
 		this.zeze = zeze;
-		this.fileHome = fileHome != null ? fileHome.replaceFirst("[/\\\\]+$", "") : null;
-		canListPath = fileHome != null && !fileHome.equals(this.fileHome);
-		this.fileCacheSeconds = fileCacheSeconds;
 	}
 
 	public void lock() {
@@ -380,13 +371,74 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		Netty.logger.debug("addHandler: {}", path);
 	}
 
+	/**
+	 * @param pathPrefix 匹配路径前缀,优先匹配最长前缀
+	 */
+	public void addPrefixHandler(@NotNull String pathPrefix, @NotNull HttpHandler handler) {
+		if (prefixHandlers.putIfAbsent(pathPrefix, handler) != null)
+			throw new IllegalStateException("add handler: duplicate path=" + pathPrefix);
+		Netty.logger.debug("addPrefixHandler: {}", pathPrefix);
+	}
+
+	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath) {
+		addFileHandler(pathPrefix, fileRootPath, false, 10 * 60);
+	}
+
+	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath, boolean canListPath) {
+		addFileHandler(pathPrefix, fileRootPath, canListPath, 10 * 60);
+	}
+
+	/**
+	 * @param pathPrefix       URL的根路径,开头和结尾应该都是"/"
+	 * @param fileRootPath     访问文件的根目录
+	 * @param canListPath      是否提供文件目录的访问(展示文件列表)
+	 * @param fileCacheSeconds 通知客户端文件下载的缓存时间(秒)
+	 */
+	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath, boolean canListPath,
+							   int fileCacheSeconds) {
+		var pathPrefixLen = pathPrefix.length();
+		var rootPath = fileRootPath.replaceFirst("[/\\\\]+$", "");
+		addPrefixHandler(pathPrefix, new HttpHandler(0, TransactionLevel.None, DispatchMode.Direct, x -> {
+			var subPath = x.path();
+			int i = pathPrefixLen;
+			for (int e = subPath.length(); i < e; i++) {
+				var c = subPath.charAt(i);
+				if (c != '.' && c != '/' && c != '\\') // 过滤掉前面的特殊符号,避免访问非法路径
+					break;
+			}
+			subPath = subPath.substring(i);
+			if (subPath.contains("..") || subPath.indexOf(':') >= 0) // 不能含有".."或":",否则就成为漏洞读取到意外的文件,虽然一般的浏览器在发请求前会过滤掉带..的path
+				x.close(x.sendPlainText(HttpResponseStatus.FORBIDDEN, ""));
+			else {
+				var file = new File(rootPath, subPath);
+				if (file.isFile() && !file.isHidden())
+					x.sendFile(file);
+				else if (canListPath && file.isDirectory() && !file.isHidden())
+					x.sendPath(file);
+				else
+					x.close(x.send404());
+			}
+		}));
+	}
+
 	public void removeHandler(@NotNull String path) {
 		if (handlers.remove(path) != null)
 			Netty.logger.debug("removeHandler: {}", path);
 	}
 
+	public void removePrefixHandler(@NotNull String path) {
+		if (prefixHandlers.remove(path) != null)
+			Netty.logger.debug("removePrefixHandler: {}", path);
+	}
+
 	public @Nullable HttpHandler getHandler(@NotNull String path) {
-		return handlers.get(path);
+		var handler = handlers.get(path);
+		if (handler == null) {
+			var e = prefixHandlers.floorEntry(path);
+			if (e != null && path.startsWith(e.getKey()))
+				handler = e.getValue();
+		}
+		return handler;
 	}
 
 	// 允许扩展HttpExchange类,返回null表示忽略处理(通常要回复状态并关闭连接). 使用恰当策略提前忽略可以避免同时接收太多请求数据导致OOM

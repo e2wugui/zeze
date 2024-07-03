@@ -335,18 +335,6 @@ public class HttpExchange {
 		return parseQuery(content().toString(HttpServer.defaultCharset));
 	}
 
-	public static @NotNull String filePath(@NotNull String path) {
-		var i = path.lastIndexOf(':'); // 过滤掉盘符,避免访问非法路径
-		if (i < 0)
-			i = 0;
-		for (int e = path.length(); i < e; i++) {
-			var c = path.charAt(i);
-			if (c != '.' && c != '/' && c != '\\') // 过滤掉前面的特殊符号,避免访问非法路径
-				break;
-		}
-		return path.substring(i);
-	}
-
 	public void initCookieSession() {
 		var httpSession = server.getHttpSession();
 		if (httpSession != null)
@@ -363,7 +351,7 @@ public class HttpExchange {
 			var path = path();
 			handler = server.getHandler(path);
 			if (handler == null) {
-				sendFile(filePath(path));
+				close(send404());
 				return;
 			}
 			if (handler.isWebSocketMode() && context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
@@ -810,25 +798,11 @@ public class HttpExchange {
 			thymeleaf.sendResponse(this, context);
 	}
 
-	public void sendFile(@NotNull String filePath) throws Exception {
-		var fileHome = server.fileHome;
-		if (fileHome == null)
-			close(send404());
-		else if (filePath.contains("..")) // filePath不能有"..",否则就成为漏洞读取到意外的文件,虽然一般的浏览器在发请求前会过滤掉带..的path
-			sendPlainText(HttpResponseStatus.FORBIDDEN, "");
-		else
-			sendFile(new File(fileHome.isEmpty() ? "." : fileHome, filePath));
+	public void sendFile(@NotNull File file) throws Exception {
+		sendFile(file, 10 * 60);
 	}
 
-	public void sendFile(@NotNull File file) throws Exception {
-		if (!file.isFile() || file.isHidden()) {
-			if (server.canListPath && file.isDirectory() && !file.isHidden()) {
-				sendPath(file);
-				return;
-			}
-			close(send404());
-			return;
-		}
+	public void sendFile(@NotNull File file, int fileCacheSeconds) throws Exception {
 		var req = request;
 		if (req == null) {
 			close(send500(""));
@@ -863,8 +837,8 @@ public class HttpExchange {
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(fn))
 				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
-				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + server.fileCacheSeconds))
-				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
+				.set(HttpHeaderNames.EXPIRES, HttpServer.getDate(HttpServer.getLastDateSecond() + fileCacheSeconds))
+				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + fileCacheSeconds)
 				.set(HttpHeaderNames.LAST_MODIFIED, HttpServer.getDate(lastModified));
 		context.write(res, context.voidPromise());
 
