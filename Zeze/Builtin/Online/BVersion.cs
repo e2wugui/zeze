@@ -278,7 +278,7 @@ namespace Zeze.Builtin.Online
             }
             {
                 var _x_ = ReliableNotifyMark;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);

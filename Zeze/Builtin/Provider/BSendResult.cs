@@ -88,7 +88,7 @@ namespace Zeze.Builtin.Provider
             int _i_ = 0;
             {
                 var _x_ = ErrorLinkSids;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);

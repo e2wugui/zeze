@@ -360,7 +360,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             {
                 var _x_ = HashCodes;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
@@ -392,7 +392,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             {
                 string _x_ = MethodFullName;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -400,7 +400,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             {
                 var _x_ = Params;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -408,7 +408,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             {
                 string _x_ = ServiceNamePrefix;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

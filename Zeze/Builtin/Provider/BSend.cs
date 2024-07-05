@@ -165,7 +165,7 @@ namespace Zeze.Builtin.Provider
             int _i_ = 0;
             {
                 var _x_ = LinkSids;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -189,7 +189,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 var _x_ = ProtocolWholeData;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);

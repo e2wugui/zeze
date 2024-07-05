@@ -183,7 +183,7 @@ namespace Zeze.Builtin.DelayRemove
             int _i_ = 0;
             {
                 string _x_ = TableName;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -191,7 +191,7 @@ namespace Zeze.Builtin.DelayRemove
             }
             {
                 var _x_ = EncodedKey;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);

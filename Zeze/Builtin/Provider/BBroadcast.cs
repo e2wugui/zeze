@@ -189,7 +189,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 var _x_ = ProtocolWholeData;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);

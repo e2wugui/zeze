@@ -221,7 +221,7 @@ namespace Zeze.Builtin.Provider
             int _i_ = 0;
             {
                 string _x_ = ServiceNamePrefix;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -229,7 +229,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 string _x_ = ServiceIndentity;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -237,7 +237,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 string _x_ = ProviderDirectIp;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

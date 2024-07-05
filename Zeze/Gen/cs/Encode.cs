@@ -181,7 +181,7 @@ namespace Zeze.Gen.cs
             if (id > 0)
             {
                 sw.WriteLine(prefix + "var _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_.Count != 0)");
+                sw.WriteLine(prefix + "if (_x_ != null && _x_.Count != 0)");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteBinary(_x_);");
@@ -196,7 +196,7 @@ namespace Zeze.Gen.cs
             if (id > 0)
             {
                 sw.WriteLine(prefix + "string _x_ = " + varname + ';');
-                sw.WriteLine(prefix + "if (_x_.Length != 0)");
+                sw.WriteLine(prefix + "if (_x_ != null && _x_.Length != 0)");
                 sw.WriteLine(prefix + "{");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
                 sw.WriteLine(prefix + "    " + bufname + ".WriteString(_x_);");
@@ -279,7 +279,7 @@ namespace Zeze.Gen.cs
             if (isArray)
                 sw.WriteLine(prefix + "int _n_ = _x_?.Length ?? 0;");
             else
-                sw.WriteLine(prefix + "int _n_ = _x_.Count;");
+                sw.WriteLine(prefix + "int _n_ = _x_?.Count ?? 0;");
             sw.WriteLine(prefix + "if (_n_ != 0)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
@@ -314,7 +314,7 @@ namespace Zeze.Gen.cs
             Types.Type kt = type.KeyType;
             Types.Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
-            sw.WriteLine(prefix + "int _n_ = _x_.Count;");
+            sw.WriteLine(prefix + "int _n_ = _x_?.Count ?? 0;");
             sw.WriteLine(prefix + "if (_n_ != 0)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
@@ -340,14 +340,18 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
-                sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
-                sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
-                sw.WriteLine(prefix + "else");
-                sw.WriteLine(prefix + "    _i_ = _j_;");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    int _a_ = " + bufname + ".WriteIndex;");
+                sw.WriteLine(prefix + "    int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    int _b_ = " + bufname + ".WriteIndex;");
+                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    if (" + bufname + ".WriteIndex <= " + "_b_ + 1)");
+                sw.WriteLine(prefix + "        " + bufname + ".WriteIndex = _a_;");
+                sw.WriteLine(prefix + "    else");
+                sw.WriteLine(prefix + "        _i_ = _j_;");
+                sw.WriteLine(prefix + "}");
             }
             else
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
@@ -357,14 +361,18 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "int _a_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + "int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "int _b_ = " + bufname + ".WriteIndex;");
-                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
-                sw.WriteLine(prefix + "if (_b_ + 1 == " + bufname + ".WriteIndex)");
-                sw.WriteLine(prefix + "    " + bufname + ".WriteIndex = _a_;");
-                sw.WriteLine(prefix + "else");
-                sw.WriteLine(prefix + "    _i_ = _j_;");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine(prefix + "    int _a_ = " + bufname + ".WriteIndex;");
+                sw.WriteLine(prefix + "    int _j_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    int _b_ = " + bufname + ".WriteIndex;");
+                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    if (" + bufname + ".WriteIndex <= " + "_b_ + 1)");
+                sw.WriteLine(prefix + "        " + bufname + ".WriteIndex = _a_;");
+                sw.WriteLine(prefix + "    else");
+                sw.WriteLine(prefix + "        _i_ = _j_;");
+                sw.WriteLine(prefix + "}");
             }
             else
                 sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
@@ -405,41 +413,26 @@ namespace Zeze.Gen.cs
             }
         }
 
-        public void Visit(TypeQuaternion type)
-        {
-            if (id > 0)
-            {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
-                sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
-            }
-            else if (Project.MakingInstance.IsUnity)
-                sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
-            else
-            {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
-                sw.WriteLine($"{prefix}else");
-                sw.WriteLine($"{prefix}    Zeze.Serialize.Quaternion.EncodeNull({bufname});");
-            }
-        }
-
         public void Visit(TypeVector2 type)
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
                 sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
             }
             else if (Project.MakingInstance.IsUnity)
                 sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
             else
             {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                 sw.WriteLine($"{prefix}else");
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector2.EncodeNull({bufname});");
             }
@@ -449,17 +442,22 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
                 sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
             }
             else if (Project.MakingInstance.IsUnity)
                 sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
             else
             {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                 sw.WriteLine($"{prefix}else");
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector2Int.EncodeNull({bufname});");
             }
@@ -469,17 +467,22 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
                 sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
             }
             else if (Project.MakingInstance.IsUnity)
                 sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
             else
             {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                 sw.WriteLine($"{prefix}else");
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector3.EncodeNull({bufname});");
             }
@@ -489,17 +492,22 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
                 sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
             }
             else if (Project.MakingInstance.IsUnity)
                 sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
             else
             {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                 sw.WriteLine($"{prefix}else");
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector3Int.EncodeNull({bufname});");
             }
@@ -509,19 +517,49 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}_i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
                 sw.WriteLine(Project.MakingInstance.IsUnity
-                    ? $"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});"
-                    : $"{prefix}{varname}.Encode({bufname});");
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
             }
             else if (Project.MakingInstance.IsUnity)
                 sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
             else
             {
-                sw.WriteLine($"{prefix}if ({varname} != null)");
-                sw.WriteLine($"{prefix}    {varname}.Encode({bufname});");
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
                 sw.WriteLine($"{prefix}else");
                 sw.WriteLine($"{prefix}    Zeze.Serialize.Vector4.EncodeNull({bufname});");
+            }
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine(prefix + "if (_x_ != null)");
+                sw.WriteLine(prefix + "{");
+                sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                sw.WriteLine(Project.MakingInstance.IsUnity
+                    ? $"{prefix}    Zeze.Util.UnityVectorHelper.Encode(_x_, {bufname});"
+                    : $"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine(prefix + "}");
+            }
+            else if (Project.MakingInstance.IsUnity)
+                sw.WriteLine($"{prefix}Zeze.Util.UnityVectorHelper.Encode({varname}, {bufname});");
+            else
+            {
+                sw.WriteLine(prefix + "var _x_ = " + varname + ";");
+                sw.WriteLine($"{prefix}if (_x_ != null)");
+                sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
+                sw.WriteLine($"{prefix}else");
+                sw.WriteLine($"{prefix}    Zeze.Serialize.Quaternion.EncodeNull({bufname});");
             }
         }
 

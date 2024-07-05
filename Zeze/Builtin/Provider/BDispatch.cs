@@ -301,7 +301,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 string _x_ = Account;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -317,7 +317,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 var _x_ = ProtocolData;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -325,7 +325,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 string _x_ = Context;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -333,7 +333,7 @@ namespace Zeze.Builtin.Provider
             }
             {
                 var _x_ = Contextx;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);

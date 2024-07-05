@@ -59,7 +59,7 @@ namespace Zeze.Builtin.AutoKey
             }
             {
                 string _x_ = _KeyName;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

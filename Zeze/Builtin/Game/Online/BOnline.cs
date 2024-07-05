@@ -147,7 +147,7 @@ namespace Zeze.Builtin.Game.Online
             int _i_ = 0;
             {
                 string _x_ = LinkName;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
