@@ -18,37 +18,37 @@ public final class SQLStatement {
 	public void appendByte(@NotNull String columnName, byte value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendShort(@NotNull String columnName, short value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendInt(@NotNull String columnName, int value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendLong(@NotNull String columnName, long value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendFloat(@NotNull String columnName, float value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendDouble(@NotNull String columnName, double value) {
 		if (sql.length() > 0)
 			sql.append(", ");
-		sql.append(columnName).append("=").append(value);
+		sql.append(columnName).append('=').append(value);
 	}
 
 	public void appendString(@NotNull String columnName, @NotNull String value) {

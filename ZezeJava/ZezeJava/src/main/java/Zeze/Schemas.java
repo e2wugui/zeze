@@ -301,7 +301,7 @@ public class Schemas implements Serializable {
 			var sb = new StringBuilder();
 			sb.append(varNames.get(0));
 			for (int i = 1; i < varNames.size(); ++i)
-				sb.append("_").append(varNames.get(i));
+				sb.append('_').append(varNames.get(i));
 			return sb.toString();
 		}
 
@@ -309,8 +309,8 @@ public class Schemas implements Serializable {
 			var sb = new StringBuilder();
 			sb.append(varNames.get(0));
 			for (int i = 1; i < varNames.size(); ++i)
-				sb.append("_").append(varNames.get(i));
-			sb.append("_").append(lastName);
+				sb.append('_').append(varNames.get(i));
+			sb.append('_').append(lastName);
 			return sb.toString();
 		}
 
@@ -917,14 +917,12 @@ public class Schemas implements Serializable {
 			if (current.isEmpty())
 				throw new IllegalStateException("no column");
 			var sb = new StringBuilder();
-			sb.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append("(");
-			for (var c : current) {
-				sb.append(c.name).append(" ").append(c.sqlType).append(",");
-			}
+			sb.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append('(');
+			for (var c : current)
+				sb.append(c.name).append(' ').append(c.sqlType).append(',');
 			sb.append("PRIMARY KEY(");
 			sb.append(currentKeyColumns);
-			sb.append(")");
-			sb.append(")"); // end table
+			sb.append("))"); // end table
 			return sb.toString();
 		}
 

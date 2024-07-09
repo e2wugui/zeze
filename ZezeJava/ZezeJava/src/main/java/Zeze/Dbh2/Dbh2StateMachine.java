@@ -106,7 +106,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 			sb.append(" commit=").append(diffCommitBatch / elapse);
 			sb.append(" undo=").append(diffUndoBatch / elapse);
 
-			logger.info(sb.toString());
+			logger.info("{}", sb.toString());
 
 			// 负载，put，delete全算，get算1%。
 			return loadSwitch ? (avgPut + avgDelete) + avgGet * 0.01 : 0.0;
@@ -214,10 +214,10 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		}
 	}
 
-	private static final Binary emptyBucketMetaKey = new Binary(new byte[] {1} );
+	private static final Binary emptyBucketMetaKey = new Binary(new byte[]{1});
 
 	public void endMove(BBucketMeta.Data to) {
-		try (var it = bucket.getData().iterator()){
+		try (var it = bucket.getData().iterator()) {
 			it.seekToFirst();
 			bucket.getData().deleteToEnd(it);
 
@@ -236,7 +236,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 	}
 
 	public void endSplit(BBucketMeta.Data from, BBucketMeta.Data to) {
-		try (var it = bucket.getData().iterator()){
+		try (var it = bucket.getData().iterator()) {
 			it.seek(from.getKeyLast().copyIf());
 			bucket.getData().deleteToEnd(it);
 			bucket.setBucketMeta(from);

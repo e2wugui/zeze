@@ -54,13 +54,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	// 性能统计。
 	public static String formatMeta(BBucketMeta.Data meta) {
-		if (null == meta)
-			return "";
-		//noinspection StringBufferReplaceableByString
-		var sb = new StringBuilder();
-		sb.append(meta.getDatabaseName()).append(".").append(meta.getTableName());
-		sb.append("[").append(meta.getKeyFirst()).append(", ").append(meta.getKeyLast()).append(")");
-		return sb.toString();
+		return meta == null ? "" : meta.getDatabaseName() + '.' + meta.getTableName() +
+				'[' + meta.getKeyFirst() + ',' + meta.getKeyLast() + ']';
 	}
 
 	public class Dbh2RaftServer extends Zeze.Raft.Server {

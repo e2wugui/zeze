@@ -100,13 +100,9 @@ public class TableDynamic<K extends Comparable<K>, V extends Bean> extends Table
 	}
 
 	public void dropTable() {
-		Database.Table databaseTable;
 		var storage = getStorage();
-		if (storage != null && (databaseTable = storage.getDatabaseTable()) instanceof DatabaseMySql.TableMysql) {
-			var tableMysql = (DatabaseMySql.TableMysql)databaseTable;
-			tableMysql.drop();
-			return; // done
-		}
-		throw new UnsupportedOperationException();
+		if (storage == null)
+			throw new UnsupportedOperationException();
+		storage.getDatabaseTable().drop();
 	}
 }

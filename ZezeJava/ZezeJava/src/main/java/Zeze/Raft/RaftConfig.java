@@ -76,7 +76,7 @@ public final class RaftConfig {
 		Arrays.sort(sorted);
 		var sb = new StringBuilder();
 		for (var s : sorted)
-			sb.append("-").append(s);
+			sb.append('-').append(s);
 		return sb.toString();
 	}
 

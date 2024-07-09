@@ -261,7 +261,7 @@ public abstract class Bean implements Serializable {
 		// 子类实现
 	}
 
-	public static @NotNull String parentsToName(@NotNull ArrayList<String> parents) {
+	public static @NotNull String parentsToName(@NotNull Collection<String> parents) {
 		if (parents.isEmpty())
 			return "";
 

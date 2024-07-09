@@ -789,7 +789,7 @@ public final class Config {
 				if (first)
 					first = false;
 				else
-					sb.append(";");
+					sb.append(';');
 				sb.append(host);
 			}
 			return sb.toString();

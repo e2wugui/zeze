@@ -6,17 +6,17 @@ import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Util.Task;
 import com.alibaba.druid.pool.DruidDataSource;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class DatabaseJdbc extends Database {
-	protected final DruidDataSource dataSource;
+	protected final DruidDataSource dataSource = new DruidDataSource();
 
-	public DatabaseJdbc(Application zeze, DatabaseConf conf) {
+	public DatabaseJdbc(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 
-		dataSource = new DruidDataSource();
 		var druidConf = conf.getDruidConf();
-
-		DruidDataSource pool = dataSource;// 连接池
+		var pool = dataSource; // 连接池
 
 		// must present
 		pool.setUrl(conf.getDatabaseUrl());
@@ -58,19 +58,20 @@ public abstract class DatabaseJdbc extends Database {
 	}
 
 	@Override
-	public Transaction beginTransaction() {
-		return new JdbcTrans();
+	public @NotNull Transaction beginTransaction() {
+		return new JdbcTrans(dataSource);
 	}
 
-	public class JdbcTrans implements Transaction {
-		Connection connection;
+	public static class JdbcTrans implements Transaction {
+		final @NotNull Connection connection;
 
-		public JdbcTrans() {
+		public JdbcTrans(@NotNull DruidDataSource dataSource) {
 			try {
 				connection = dataSource.getConnection();
 				connection.setAutoCommit(false);
 			} catch (SQLException e) {
 				Task.forceThrow(e);
+				throw new AssertionError(); // never run here
 			}
 		}
 

@@ -210,9 +210,11 @@ public abstract class Database extends ReentrantLock {
 	public interface Table {
 		boolean isNew();
 
-		void waitReady();
+		default void waitReady() {
+		}
 
-		@NotNull Database getDatabase();
+		@NotNull
+		Database getDatabase();
 
 		default int keyOffsetInRawKey() {
 			return 0;
@@ -300,14 +302,14 @@ public abstract class Database extends ReentrantLock {
 		default long getSizeApproximation() {
 			throw new UnsupportedOperationException();
 		}
+
+		default void drop() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	// KV表辅助类，实现所有的下沉的带类型接口。
 	public static abstract class AbstractKVTable implements Table {
-		@Override
-		public void waitReady() {
-		}
-
 		////////////////////////////////////////////////////////////
 		// KV表操作接口。
 		public abstract @Nullable ByteBuffer find(@NotNull ByteBuffer key);
@@ -369,7 +371,8 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		private static <K extends Comparable<K>, V extends Bean>
-		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value, TableWalkHandle<K, V> callback) throws Exception {
+		boolean invokeCallback(TableX<K, V> table, byte[] key, byte[] value,
+							   TableWalkHandle<K, V> callback) throws Exception {
 			K k = table.decodeKey(key);
 			V v = null;
 			var r = table.getCache().get(k);
@@ -452,7 +455,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
+		K walk(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+			   TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -465,7 +469,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
+		K walkDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+				   TableWalkHandle<K, V> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -478,7 +483,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
+		K walkKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+				  TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -491,7 +497,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
+		K walkKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+					  TableWalkKey<K> callback) throws Exception {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
@@ -536,7 +543,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkHandle<K, V> callback) throws Exception {
+		K walkDatabase(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+					   TableWalkHandle<K, V> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit, (key, value) -> {
 				K k = table.decodeKey(key);
@@ -561,7 +569,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
+		K walkDatabaseKey(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+						  TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
@@ -570,7 +579,8 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
-		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit, TableWalkKey<K> callback) throws Exception {
+		K walkDatabaseKeyDesc(TableX<K, V> table, K exclusiveStartKey, int proposeLimit,
+							  TableWalkKey<K> callback) throws Exception {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
@@ -653,10 +663,12 @@ public abstract class Database extends ReentrantLock {
 		  InsertData(data);
 		  return (CurrentVersion = version, true);
 		*/
-		@Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
-															long version);
+		@Nullable
+		KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+												  long version);
 
-		@Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
+		@Nullable
+		DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
 
 		// 只有mysql,dbh2实现这个。
 		default boolean tryLock() {
@@ -693,8 +705,6 @@ public abstract class Database extends ReentrantLock {
 		private final ThreadLocal<OutInt> count = new ThreadLocal<>();
 
 		/**
-		 * lock
-		 *
 		 * @return false 表示第一次调用，此时需要执行真正的lock实现。
 		 */
 		public boolean tryLock() {
@@ -711,8 +721,6 @@ public abstract class Database extends ReentrantLock {
 		}
 
 		/**
-		 * unlock
-		 *
 		 * @return true 计数达到0，可以执行真正的unlock实现。
 		 */
 		public boolean tryUnlock() {

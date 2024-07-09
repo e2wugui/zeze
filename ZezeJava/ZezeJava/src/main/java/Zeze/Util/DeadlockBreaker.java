@@ -156,8 +156,8 @@ public class DeadlockBreaker extends ThreadHelper {
 	}
 
 	public static void dumpThreadInfoTo(ThreadInfo tinfo, StringBuilder sb) {
-		sb.append("\"").append(tinfo.getThreadName()).append("\"");
-		sb.append(" Id=").append(tinfo.getThreadId()).append(" ");
+		sb.append('"').append(tinfo.getThreadName()).append('"');
+		sb.append(" Id=").append(tinfo.getThreadId()).append(' ');
 		sb.append(tinfo.getThreadState());
 		if (tinfo.getLockName() != null) {
 			sb.append(" on ").append(tinfo.getLockName());

@@ -106,10 +106,10 @@ public final class Simulate {
 				logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
 			}
 			logger.fatal("Verify {}", BatchNumber);
-			// history verify
 			for (var app : Apps)
 				app.app.Zeze.checkpointRun();
-			Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
+			if (Apps.get(0).app.Zeze.getConfig().isHistory())
+				Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
 			Thread.sleep(4000);
 			Tasks.verify();
 			Task.defaultTimeout = taskDefTimeout;

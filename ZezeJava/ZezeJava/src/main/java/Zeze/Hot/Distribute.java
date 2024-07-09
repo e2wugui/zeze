@@ -100,13 +100,10 @@ public class Distribute {
 				providerApp.buildProviderModuleBinds(ProviderModuleBinds.load(providerModuleBinds), appBase.getModules());
 				// 打包配置到module.jar里面，前面的关闭需要移到后面。
 				providerApp.modules.foreach((key, value) -> packModuleConfig(findModule(appBase, key), value));
-			}
-			else {
+			} else
 				System.out.println("hotWorkingDir not exist, please prepare and re-run distribute.");
-			}
-		} else {
+		} else
 			System.out.println("-providerModuleBinds or -config not present, skip module config.");
-		}
 
 		for (var e : hotModuleJars.entrySet()) {
 			//System.out.println(e.getKey() + " ---- close");
@@ -211,6 +208,7 @@ public class Distribute {
 		}
 		return true;
 	}
+
 	private void packModuleConfig(IModule module, BModule.Data config) {
 		try {
 			var moduleJar = hotModuleJars.get(module.getFullName());
@@ -238,7 +236,7 @@ public class Distribute {
 
 	private static final ArrayList<String> hotManagers = new ArrayList<>();
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		var classesDir = "build/classes/java/main";
 		var exportBean = true;
 		var workingDir = "hot";
@@ -312,8 +310,8 @@ public class Distribute {
 
 		public void pack() throws Exception {
 			var module = classesHome.relativize(dir.toPath()).toString()
-					.replace("\\", "/")
-					.replace("/", ".");
+					.replace('\\', '/')
+					.replace('/', '.');
 
 			var interfaceManifest = new Manifest();
 			var moduleManifest = new Manifest();
@@ -321,14 +319,13 @@ public class Distribute {
 				var serverJar = getProjectJar();
 				for (var file : classes) {
 					var classFile = classesHome.relativize(file.toPath())
-							.toString().replace("\\", "/");
+							.toString().replace('\\', '/');
 
 					// 检查是否 Redirect 生成的子类。
 					// 解析名字；根据名字以及类型决定是否打包进hotModule.jar。
 					if (classFile.indexOf('/') == -1 && classFile.startsWith(GenModule.REDIRECT_PREFIX)) {
-						var moduleClassName = classFile.substring(
-								"Redirect_".length(), classFile.length() - ".class".length())
-								.replace("_", ".");
+						var moduleClassName = classFile.substring("Redirect_".length(),
+								classFile.length() - ".class".length()).replace('_', '.');
 						var moduleNamespace = moduleClassName.substring(0, moduleClassName.lastIndexOf('.'));
 						if (isHotModule(moduleNamespace)) {
 							var moduleJar = hotModuleJars.get(moduleNamespace);
@@ -360,8 +357,8 @@ public class Distribute {
 				var logClasses = new ArrayList<PackEntry>();
 				var beanReadonlyMaybe = new ArrayList<PackEntry>();
 				for (var file : classes) {
-					var classFile = classesHome.relativize(file.toPath()).toString().replace("\\", "/");
-					var className = classFile.replace("/", ".");
+					var classFile = classesHome.relativize(file.toPath()).toString().replace('\\', '/');
+					var className = classFile.replace('/', '.');
 					className = className.substring(0, className.indexOf(".class")); // remove ".class"
 					var entry = new ZipEntry(classFile);
 					entry.setTime(file.lastModified());
@@ -378,12 +375,10 @@ public class Distribute {
 							// 怀疑是Bean的生成的interface，先保存下来。
 							beanReadonlyMaybe.add(new PackEntry(cls, entry, file));
 						}
-					}
-					else if (exportBean && (
-									Zeze.Transaction.Bean.class.isAssignableFrom(cls)
-								|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
-								|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
-								|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls))) {
+					} else if (exportBean && (Zeze.Transaction.Bean.class.isAssignableFrom(cls)
+							|| Zeze.Transaction.Data.class.isAssignableFrom(cls)
+							|| Zeze.Transaction.BeanKey.class.isAssignableFrom(cls)
+							|| Zeze.Arch.RedirectResult.class.isAssignableFrom(cls))) {
 						if (Zeze.Transaction.Bean.class.isAssignableFrom(cls))
 							beanNames.add(cls.getName()); // bean 收集下来，用来下一步判断log.class。
 						interfaceJar.putNextEntry(entry);
@@ -446,6 +441,7 @@ public class Distribute {
 			this.file = file;
 		}
 	}
+
 	public void pack(Path dir, ArrayList<Package> packages) throws Exception {
 		var files = dir.toFile().listFiles();
 		if (null == files)

@@ -9,7 +9,7 @@
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>
 	</GlobalCacheManagersConf>
-	
+
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
 	<!--
@@ -18,11 +18,7 @@
 	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
 	<DatabaseConf Name="" DatabaseType="RocksDB" DatabaseUrl="RocksDB"/>
 	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
-	<DatabaseConf
-		Name=""
-		DatabaseType="MySql"
-		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
-		/>
+	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	<DatabaseConf Name="" DatabaseType="Redis" DatabaseUrl="redis://127.0.0.1:6379/"/>
 	-->
@@ -34,7 +30,7 @@
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>
-	
+
 	<ServiceConf Name="TestServer" EncryptType="1" CompressS2c="1" CompressC2s="1">
 		<Acceptor Ip="127.0.0.1" Port="7777"/>
 	</ServiceConf>
