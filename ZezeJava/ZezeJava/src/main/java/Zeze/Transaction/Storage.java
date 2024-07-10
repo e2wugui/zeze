@@ -2,9 +2,12 @@ package Zeze.Transaction;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public final class Storage<K extends Comparable<K>, V extends Bean> {
+	private static final Logger logger = LogManager.getLogger(Storage.class);
 	private final Table table;
 	private final @NotNull Database.Table databaseTable;
 	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
@@ -111,6 +114,10 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	}
 
 	public void close() {
-		databaseTable.close();
+		try {
+			databaseTable.close();
+		} catch (Throwable e) { // logger.error
+			logger.error("Database.Table.close exception:", e);
+		}
 	}
 }

@@ -197,12 +197,22 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	void close() {
-		if (null != timerClean)
-			timerClean.cancel(true);
-		timerClean = null;
-		if (null != timerNewHot)
-			timerNewHot.cancel(true);
-		timerNewHot = null;
+		if (timerClean != null) {
+			try {
+				timerClean.cancel(true);
+			} catch (Throwable e) { // logger.error
+				logger.error("timerClean.cancel exception:", e);
+			}
+			timerClean = null;
+		}
+		if (timerNewHot != null) {
+			try {
+				timerNewHot.cancel(true);
+			} catch (Throwable e) { // logger.error
+				logger.error("timerNewHot.cancel exception:", e);
+			}
+			timerNewHot = null;
+		}
 	}
 
 	// under lockey.writeLock and record.fairLock

@@ -345,8 +345,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean> V find(@NotNull TableX<K, V> table, @NotNull Object key) {
-			var bbKey = table.encodeKey(key);
-			var bbValue = find(bbKey);
+			var bbValue = find(table.encodeKey(key));
 			if (bbValue == null)
 				return null;
 			var value = table.newValue();

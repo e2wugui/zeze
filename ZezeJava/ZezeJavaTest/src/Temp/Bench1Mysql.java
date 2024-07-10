@@ -32,7 +32,7 @@ public class Bench1Mysql {
 					var b = new Zeze.Util.Benchmark();
 					try (var conn = dataSource.getConnection()) {
 						conn.setAutoCommit(true);
-						var sql = "replace into bench1 values(?, ?)";
+						var sql = "REPLACE bench1 VALUE(?,?)";
 						for (var key = startKey; key < endKey; ++key) {
 							try (var pre = conn.prepareStatement(sql)) {
 								pre.setLong(1, key);
@@ -58,21 +58,21 @@ public class Bench1Mysql {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				var dropSql = "drop procedure if exists TestProc1;";
+				var dropSql = "DROP PROCEDURE IF EXISTS TestProc1;";
 				try (var cmd = connection.prepareStatement(dropSql)) {
 					cmd.executeUpdate();
 				}
 
-				var proc = "create procedure TestProc1(in in_data binary, out out_data binary, out out_hex varchar)\n" +
-						"    begin\n" +
-						"        set out_data = in_data;\n" +
-						"        set out_hex = hex(in_data);\n" +
-						"    end;";
-				try (var cmd = connection.prepareStatement(proc)) {
+				var procSql = "CREATE PROCEDURE TestProc1(IN in_data BINARY, OUT out_data BINARY, OUT out_hex VARCHAR)\n" +
+						"BEGIN\n" +
+						"    SET out_data = in_data;\n" +
+						"    SET out_hex = hex(in_data);\n" +
+						"END;";
+				try (var cmd = connection.prepareStatement(procSql)) {
 					cmd.executeUpdate();
 				}
 
-				try (var cmd = connection.prepareCall("call TestProc1(?, ?, ?)")) {
+				try (var cmd = connection.prepareCall("CALL TestProc1(?,?,?)")) {
 					cmd.setBytes(1, new byte[]{(byte)0xa4}); // data
 					cmd.registerOutParameter(2, Types.BINARY);
 					cmd.registerOutParameter(3, Types.VARCHAR);
@@ -98,16 +98,16 @@ public class Bench1Mysql {
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
-				try (var cmd = connection.prepareStatement("drop table if exists TestTable;")) {
+				try (var cmd = connection.prepareStatement("DROP TABLE IF EXISTS TestTable;")) {
 					cmd.executeUpdate();
 				}
 
-				var createSql = "create table if not exists TestTable(id varbinary(767) not null primary key, data blob not null)";
+				var createSql = "CREATE TABLE IF NOT EXISTS TestTable(id VARBINARY(767) NOT NULL PRIMARY KEY, data BLOB NOT NULL)";
 				try (var cmd = connection.prepareStatement(createSql)) {
 					cmd.executeUpdate();
 				}
 
-//				try (var cmd = connection.prepareStatement("select hex(data) from TestTable where id='key1'")) {
+//				try (var cmd = connection.prepareStatement("SELECT hex(data) FROM TestTable WHERE id='key1'")) {
 //					// cmd.setBytes(1, "key1".getBytes(StandardCharsets.UTF_8)); // key
 //					try (ResultSet rs = cmd.executeQuery()) {
 //						if (rs.next()) {
@@ -119,15 +119,15 @@ public class Bench1Mysql {
 //					}
 //				}
 
-				var dropSql = "drop procedure if exists TestProc;";
+				var dropSql = "DROP PROCEDURE IF EXISTS TestProc;";
 				try (var cmd = connection.prepareStatement(dropSql)) {
 					cmd.executeUpdate();
 				}
 
-				var createProc = "create procedure TestProc(in in_data blob)\n" +
-						"    begin\n" +
-						"        replace into TestTable values('key3', in_data);\n" +
-						"    end;";
+				var createProc = "CREATE PROCEDURE TestProc(IN in_data BLOB)\n" +
+						"BEGIN\n" +
+						"    REPLACE TestTable VALUE('key3', in_data);\n" +
+						"END;";
 
 				try (var cmd = connection.prepareStatement(createProc)) {
 					cmd.executeUpdate();
@@ -140,17 +140,17 @@ public class Bench1Mysql {
 				for (int i = 0; i < 256; i++)
 					bs[i] = (byte)i;
 
-				try (var cmd = connection.prepareCall("call TestProc(?)")) {
+				try (var cmd = connection.prepareCall("CALL TestProc(?)")) {
 					cmd.setBytes(1, bs); // data
 					cmd.executeUpdate();
 				}
 
-				try (var cmd = connection.prepareStatement("replace into TestTable values('key4', ?)")) {
+				try (var cmd = connection.prepareStatement("REPLACE TestTable VALUE('key4',?)")) {
 					cmd.setBytes(1, bs); // data
 					cmd.executeUpdate();
 				}
 
-				try (var cmd = connection.prepareStatement("select id, data from TestTable")) {
+				try (var cmd = connection.prepareStatement("SELECT id,data FROM TestTable")) {
 					try (ResultSet rs = cmd.executeQuery()) {
 						while (rs.next()) {
 							var id = rs.getString(1);

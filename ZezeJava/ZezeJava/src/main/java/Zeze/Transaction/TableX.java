@@ -252,13 +252,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 										t.rollback();
 									} finally {
 										try {
-											lct.close();
-										} catch (Exception e) {
+											t.close();
+										} catch (Throwable e) { // logger.error
 											logger.error("", e);
 										}
 										try {
-											t.close();
-										} catch (Exception e) {
+											lct.close();
+										} catch (Throwable e) { // logger.error
 											logger.error("", e);
 										}
 									}
@@ -737,14 +737,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	final void close() {
-		var st = storage;
-		if (st != null) {
-			st.close();
+		var s = storage;
+		if (s != null) {
+			s.close();
 			storage = null;
 		}
-		var ca = cache;
-		if (ca != null) {
-			ca.close();
+		var c = cache;
+		if (c != null) {
+			c.close();
 			cache = null;
 		}
 	}

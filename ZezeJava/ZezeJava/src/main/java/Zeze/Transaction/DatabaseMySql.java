@@ -9,6 +9,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Util.KV;
@@ -22,7 +23,8 @@ import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 public final class DatabaseMySql extends DatabaseJdbc {
-	public static final byte[] keyOfLock = ("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
+	public static final byte[] keyOfLock =
+			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
@@ -48,18 +50,18 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	public void dropOperatesProcedures() {
-		try (var connection = dataSource.getConnection()) {
-			connection.setAutoCommit(false);
-			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
-				cmd.executeUpdate();
+		try (var conn = dataSource.getConnection()) {
+			conn.setAutoCommit(false);
+			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSaveDataWithSameVersion_")) {
+				ps.executeUpdate();
 			}
-			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
-				cmd.executeUpdate();
+			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeSetInUse_")) {
+				ps.executeUpdate();
 			}
-			try (var cmd = connection.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
-				cmd.executeUpdate();
+			try (var ps = conn.prepareStatement("DROP PROCEDURE IF EXISTS _ZezeClearInUse_")) {
+				ps.executeUpdate();
 			}
-			connection.commit();
+			conn.commit();
 		} catch (SQLException e) {
 			Task.forceThrow(e);
 		}
@@ -69,14 +71,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
 			while (true) {
-				try (var connection = dataSource.getConnection()) {
-					connection.setAutoCommit(true);
-					try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
-						cmd.setInt(1, localId);
-						cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
-						cmd.registerOutParameter(3, Types.INTEGER);
-						cmd.executeUpdate();
-						switch (cmd.getInt(3)) {
+				try (var conn = dataSource.getConnection()) {
+					conn.setAutoCommit(true);
+					try (var ps = conn.prepareCall("{CALL _ZezeSetInUse_(?,?,?)}")) {
+						ps.setInt(1, localId); // in_local_id
+						ps.setBytes(2, global.getBytes(StandardCharsets.UTF_8)); // in_global
+						ps.registerOutParameter(3, Types.INTEGER); // ret_value
+						ps.executeUpdate();
+						switch (ps.getInt(3)) {
 						case 0:
 							return;
 						case 1:
@@ -92,7 +94,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						case 6:
 							throw new IllegalStateException("Instance Greater Than One But No Global");
 						default:
-							throw new IllegalStateException("Unknown ReturnValue");
+							throw new IllegalStateException("Unknown Return Value");
 						}
 					}
 				} catch (SQLException e) {
@@ -104,36 +106,32 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 		@Override
 		public int clearInUse(int localId, @NotNull String global) {
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
-					cmd.setInt(1, localId);
-					cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
-					cmd.registerOutParameter(3, Types.INTEGER);
-					cmd.executeUpdate();
-					// Clear 不报告错误，直接返回。
-					return cmd.getInt(3);
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareCall("{CALL _ZezeClearInUse_(?,?,?)}")) {
+					ps.setInt(1, localId); // in_local_id
+					ps.setBytes(2, global.getBytes(StandardCharsets.UTF_8)); // in_global
+					ps.registerOutParameter(3, Types.INTEGER); // ret_value
+					ps.executeUpdate();
+					return ps.getInt(3); // Clear 不报告错误，直接返回。
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
 		}
 
 		@Override
 		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
-					cmd.setBytes(1, key.CopyIf());
-					try (ResultSet rs = cmd.executeQuery()) {
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement("SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=?")) {
+					ps.setBytes(1, key.CopyIf());
+					try (ResultSet rs = ps.executeQuery()) {
 						if (rs.next()) {
-							byte[] value = rs.getBytes(1);
-							long version = rs.getLong(2);
 							var result = new DataWithVersion();
-							result.data = ByteBuffer.Wrap(value);
-							result.version = version;
+							result.data = ByteBuffer.Wrap(rs.getBytes(1));
+							result.version = rs.getLong(2);
 							return result;
 						}
 						return null;
@@ -151,18 +149,18 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (key.isEmpty())
 				throw new IllegalArgumentException("key is empty");
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?, ?)}")) {
-					cmd.setBytes(1, key.CopyIf()); // key
-					cmd.setBytes(2, data.CopyIf()); // data
-					cmd.registerOutParameter(3, Types.BIGINT); // version (in | out)
-					cmd.setLong(3, version);
-					cmd.registerOutParameter(4, Types.INTEGER); // return code
-					cmd.executeUpdate();
-					switch (cmd.getInt(4)) {
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?,?,?,?)}")) {
+					ps.setBytes(1, key.CopyIf()); // in_id
+					ps.setBytes(2, data.CopyIf()); // in_data
+					ps.registerOutParameter(3, Types.BIGINT); // inout_version
+					ps.setLong(3, version);
+					ps.registerOutParameter(4, Types.INTEGER); // ret_value
+					ps.executeUpdate();
+					switch (ps.getInt(4)) {
 					case 0:
-						return KV.create(cmd.getLong(3), true);
+						return KV.create(ps.getLong(3), true);
 					case 2:
 						return KV.create(0L, false);
 					default:
@@ -176,172 +174,169 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public OperatesMySql() {
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var TableDataWithVersion = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_ (\r\n" +
-						"    id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY,\r\n" +
-						"    data LONGBLOB NOT NULL,\r\n" +
-						"    version BIGINT NOT NULL\r\n" +
-						")";
-				try (var cmd = connection.prepareStatement(TableDataWithVersion)) {
-					cmd.executeUpdate();
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				var tableDataWithVersionSql = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_(" +
+						"id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY, " +
+						"data LONGBLOB NOT NULL, version BIGINT NOT NULL)";
+				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
+					ps.executeUpdate();
 				}
-				//noinspection SpellCheckingInspection
-				var ProcSaveDataWithSameVersion = "CREATE PROCEDURE _ZezeSaveDataWithSameVersion_ (\r\n" +
-						"    IN    in_id VARBINARY(" + eMaxKeyLength + "),\r\n" +
-						"    IN    in_data LONGBLOB,\r\n" +
-						"    INOUT inout_version BIGINT,\r\n" +
-						"    OUT   ReturnValue INT\r\n" +
-						")\r\n" +
-						"return_label:BEGIN\r\n" +
-						"    DECLARE oldversionexsit BIGINT;\r\n" +
-						"    DECLARE ROWCOUNT INT;\r\n" +
-						"\r\n" +
-						"    START TRANSACTION;\r\n" +
-						"    SET ReturnValue=1;\r\n" +
-						"    SELECT version INTO oldversionexsit FROM _ZezeDataWithVersion_ WHERE id=in_id;\r\n" +
-						"    SELECT COUNT(*) INTO ROWCOUNT FROM _ZezeDataWithVersion_ WHERE id=in_id;\r\n" +
-						"    IF ROWCOUNT > 0 THEN\r\n" +
-						"        IF oldversionexsit <> inout_version THEN\r\n" +
-						"            SET ReturnValue=2;\r\n" +
-						"            ROLLBACK;\r\n" +
-						"            LEAVE return_label;\r\n" +
-						"        END IF;\r\n" +
-						"        SET oldversionexsit = oldversionexsit + 1;\r\n" +
-						"        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=oldversionexsit WHERE id=in_id;\r\n" +
-						"        SELECT ROW_COUNT() INTO ROWCOUNT;\r\n" +
-						"        IF ROWCOUNT = 1 THEN\r\n" +
-						"            SET inout_version = oldversionexsit;\r\n" +
-						"            SET ReturnValue=0;\r\n" +
-						"            COMMIT;\r\n" +
-						"            LEAVE return_label;\r\n" +
-						"        END IF;\r\n" +
-						"        SET ReturnValue=3;\r\n" +
-						"        ROLLBACK;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"\r\n" +
-						"    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\r\n" +
-						"    SELECT ROW_COUNT() INTO ROWCOUNT;\r\n" +
-						"    IF ROWCOUNT = 1 THEN\r\n" +
-						"        SET ReturnValue=0;\r\n" +
-						"        COMMIT;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    SET ReturnValue=4;\r\n" +
-						"    IF 1=1 THEN\r\n" +
-						"        ROLLBACK;\r\n" +
-						"    END IF;\r\n" +
-						"    LEAVE return_label;\r\n" +
+				var procSaveDataWithSameVersionSql = "CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(\n" +
+						"    IN    in_id VARBINARY(" + eMaxKeyLength + "),\n" +
+						"    IN    in_data LONGBLOB,\n" +
+						"    INOUT inout_version BIGINT,\n" +
+						"    OUT   ret_value INT\n" +
+						")\n" +
+						"return_label:BEGIN\n" +
+						"    DECLARE old_ver BIGINT;\n" +
+						"    DECLARE row_count INT;\n" +
+						"\n" +
+						"    START TRANSACTION;\n" +
+						"    SET ret_value=1;\n" +
+						"    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
+						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
+						"    IF row_count > 0 THEN\n" +
+						"        IF old_ver <> inout_version THEN\n" +
+						"            SET ret_value=2;\n" +
+						"            ROLLBACK;\n" +
+						"            LEAVE return_label;\n" +
+						"        END IF;\n" +
+						"        SET old_ver = old_ver + 1;\n" +
+						"        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;\n" +
+						"        SELECT ROW_COUNT() INTO row_count;\n" +
+						"        IF row_count = 1 THEN\n" +
+						"            SET inout_version = old_ver;\n" +
+						"            SET ret_value=0;\n" +
+						"            COMMIT;\n" +
+						"            LEAVE return_label;\n" +
+						"        END IF;\n" +
+						"        SET ret_value=3;\n" +
+						"        ROLLBACK;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"\n" +
+						"    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\n" +
+						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"    IF row_count = 1 THEN\n" +
+						"        SET ret_value=0;\n" +
+						"        COMMIT;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    SET ret_value=4;\n" +
+						"    IF 1=1 THEN\n" +
+						"        ROLLBACK;\n" +
+						"    END IF;\n" +
+						"    LEAVE return_label;\n" +
 						"END;";
-				try (var cmd = connection.prepareStatement(ProcSaveDataWithSameVersion)) {
-					cmd.executeUpdate();
+				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
+					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
-				var TableInstances = "CREATE TABLE IF NOT EXISTS _ZezeInstances_ (localid int NOT NULL PRIMARY KEY)";
-				try (var cmd = connection.prepareStatement(TableInstances)) {
-					cmd.executeUpdate();
+				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
+				try (var ps = conn.prepareStatement(tableInstancesSql)) {
+					ps.executeUpdate();
 				}
 				//noinspection SpellCheckingInspection
-				var ProcSetInUse = "CREATE PROCEDURE _ZezeSetInUse_ (\r\n" +
-						"    IN  in_localid INT,\r\n" +
-						"    IN  in_global LONGBLOB,\r\n" +
-						"    OUT ReturnValue INT\r\n" +
-						")\r\n" +
-						"return_label:BEGIN\r\n" +
-						"    DECLARE currentglobal LONGBLOB;\r\n" +
-						"    DECLARE emptybinary LONGBLOB;\r\n" +
-						"    DECLARE InstanceCount INT;\r\n" +
-						"    DECLARE ROWCOUNT INT;\r\n" +
-						"\r\n" +
-						"    START TRANSACTION;\r\n" +
-						"    SET ReturnValue=1;\r\n" +
-						"    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_localid) THEN\r\n" +
-						"        SET ReturnValue=2;\r\n" +
-						"        ROLLBACK;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_localid);\r\n" +
-						"    SELECT ROW_COUNT() INTO ROWCOUNT;\r\n" +
-						"    IF ROWCOUNT = 0 THEN\r\n" +
-						"        SET ReturnValue=3;\r\n" +
-						"        ROLLBACK;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    SET emptybinary = BINARY '';\r\n" +
-						"    SELECT data INTO currentglobal FROM _ZezeDataWithVersion_ WHERE id=emptybinary;\r\n" +
-						"    SELECT COUNT(*) INTO ROWCOUNT FROM _ZezeDataWithVersion_ WHERE id=emptybinary;\r\n" +
-						"    IF ROWCOUNT > 0 THEN\r\n" +
-						"        IF currentglobal <> in_global THEN\r\n" +
-						"            SET ReturnValue=4;\r\n" +
-						"            ROLLBACK;\r\n" +
-						"            LEAVE return_label;\r\n" +
-						"        END IF;\r\n" +
-						"    ELSE\r\n" +
+				var procSetInUseSql = "CREATE PROCEDURE _ZezeSetInUse_(\n" +
+						"    IN  in_local_id INT,\n" +
+						"    IN  in_global LONGBLOB,\n" +
+						"    OUT ret_value INT\n" +
+						")\n" +
+						"return_label:BEGIN\n" +
+						"    DECLARE cur_global LONGBLOB;\n" +
+						"    DECLARE empty_bin LONGBLOB;\n" +
+						"    DECLARE instance_count INT;\n" +
+						"    DECLARE row_count INT;\n" +
+						"\n" +
+						"    START TRANSACTION;\n" +
+						"    SET ret_value=1;\n" +
+						"    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
+						"        SET ret_value=2;\n" +
+						"        ROLLBACK;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);\n" +
+						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"    IF row_count = 0 THEN\n" +
+						"        SET ret_value=3;\n" +
+						"        ROLLBACK;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    SET empty_bin = BINARY '';\n" +
+						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
+						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
+						"    IF row_count > 0 THEN\n" +
+						"        IF cur_global <> in_global THEN\n" +
+						"            SET ret_value=4;\n" +
+						"            ROLLBACK;\n" +
+						"            LEAVE return_label;\n" +
+						"        END IF;\n" +
+						"    ELSE\n" +
 						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
-						"        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(emptybinary, in_global, 0);\r\n" +
-						"    END IF;\r\n" +
-						"    SET InstanceCount=0;\r\n" +
-						"    SELECT count(*) INTO InstanceCount FROM _ZezeInstances_;\r\n" +
-						"    IF InstanceCount = 1 THEN\r\n" +
-						"        SET ReturnValue=0;\r\n" +
-						"        COMMIT;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    IF LENGTH(in_global)=0 THEN\r\n" +
-						"        SET ReturnValue=6;\r\n" +
-						"        ROLLBACK;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    SET ReturnValue=0;\r\n" +
-						"    IF 1=1 THEN\r\n" +
-						"        COMMIT;\r\n" +
-						"    END IF;\r\n" +
-						"    LEAVE return_label;\r\n" +
+						"        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);\n" +
+						"    END IF;\n" +
+						"    SET instance_count=0;\n" +
+						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
+						"    IF instance_count = 1 THEN\n" +
+						"        SET ret_value=0;\n" +
+						"        COMMIT;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    IF LENGTH(in_global)=0 THEN\n" +
+						"        SET ret_value=6;\n" +
+						"        ROLLBACK;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    SET ret_value=0;\n" +
+						"    IF 1=1 THEN\n" +
+						"        COMMIT;\n" +
+						"    END IF;\n" +
+						"    LEAVE return_label;\n" +
 						"END;";
-				try (var cmd = connection.prepareStatement(ProcSetInUse)) {
-					cmd.executeUpdate();
+				try (var ps = conn.prepareStatement(procSetInUseSql)) {
+					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
-				var ProcClearInUse = "CREATE PROCEDURE _ZezeClearInUse_ (\r\n" +
-						"    IN  in_localid int,\r\n" +
-						"    IN  in_global LONGBLOB,\r\n" +
-						"    OUT ReturnValue int\r\n" +
-						")\r\n" +
-						"return_label:BEGIN\r\n" +
-						"    DECLARE InstanceCount INT;\r\n" +
-						"    DECLARE emptybinary LONGBLOB;\r\n" +
-						"    DECLARE ROWCOUNT INT;\r\n" +
-						"\r\n" +
-						"    START TRANSACTION;\r\n" +
-						"    SET ReturnValue=1;\r\n" +
-						"    DELETE FROM _ZezeInstances_ WHERE localid=in_localid;\r\n" +
-						"    SELECT ROW_COUNT() INTO ROWCOUNT;\r\n" +
-						"    IF ROWCOUNT = 0 THEN\r\n" +
-						"        SET ReturnValue=2;\r\n" +
-						"        ROLLBACK;\r\n" +
-						"        LEAVE return_label;\r\n" +
-						"    END IF;\r\n" +
-						"    SET InstanceCount=0;\r\n" +
-						"    SELECT count(*) INTO InstanceCount FROM _ZezeInstances_;\r\n" +
-						"    IF InstanceCount = 0 THEN\r\n" +
-						"        SET emptybinary = BINARY '';\r\n" +
-						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=emptybinary;\r\n" +
-						"    END IF;\r\n" +
-						"    SET ReturnValue=0;\r\n" +
-						"    IF 1=1 THEN\r\n" +
-						"        COMMIT;\r\n" +
-						"    END IF;\r\n" +
-						"    LEAVE return_label;\r\n" +
+				var procClearInUseSql = "CREATE PROCEDURE _ZezeClearInUse_(\n" +
+						"    IN  in_local_id int,\n" +
+						"    IN  in_global LONGBLOB,\n" +
+						"    OUT ret_value int\n" +
+						")\n" +
+						"return_label:BEGIN\n" +
+						"    DECLARE instance_count INT;\n" +
+						"    DECLARE empty_bin LONGBLOB;\n" +
+						"    DECLARE row_count INT;\n" +
+						"\n" +
+						"    START TRANSACTION;\n" +
+						"    SET ret_value=1;\n" +
+						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
+						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"    IF row_count = 0 THEN\n" +
+						"        SET ret_value=2;\n" +
+						"        ROLLBACK;\n" +
+						"        LEAVE return_label;\n" +
+						"    END IF;\n" +
+						"    SET instance_count=0;\n" +
+						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
+						"    IF instance_count = 0 THEN\n" +
+						"        SET empty_bin = BINARY '';\n" +
+						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
+						"    END IF;\n" +
+						"    SET ret_value=0;\n" +
+						"    IF 1=1 THEN\n" +
+						"        COMMIT;\n" +
+						"    END IF;\n" +
+						"    LEAVE return_label;\n" +
 						"END;";
-				try (var cmd = connection.prepareStatement(ProcClearInUse)) {
-					cmd.executeUpdate();
+				try (var ps = conn.prepareStatement(procClearInUseSql)) {
+					ps.executeUpdate();
 				} catch (SQLException ex) {
 					if (!ex.getMessage().contains("already exist"))
 						throw ex;
@@ -354,18 +349,19 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public boolean tryLock() {
 			// 总是尝试创建记录，忽略已经存在。
-			var createRecord = "INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(?, ?, ?)";
+			var createRecordSql = "INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(?,?,?)";
 			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=1 WHERE id=? AND version=0";
 			try (var conn = dataSource.getConnection()) {
-				try (var pre = conn.prepareStatement(createRecord)) {
-					pre.setBytes(1, keyOfLock);
-					pre.setBytes(2, ByteBuffer.Empty);
-					pre.setLong(3, 0);
-					pre.executeUpdate();
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(createRecordSql)) {
+					ps.setBytes(1, keyOfLock);
+					ps.setBytes(2, ByteBuffer.Empty);
+					ps.setLong(3, 0);
+					ps.executeUpdate();
 				}
-				try (var pre = conn.prepareStatement(lockSql)) {
-					pre.setBytes(1, keyOfLock);
-					return 1 == pre.executeUpdate();
+				try (var ps = conn.prepareStatement(lockSql)) {
+					ps.setBytes(1, keyOfLock);
+					return ps.executeUpdate() == 1;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -377,9 +373,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		public void unlock() {
 			var unlockSql = "UPDATE _ZezeDataWithVersion_ SET version=0 WHERE id=?";
 			try (var conn = dataSource.getConnection()) {
-				try (var pre = conn.prepareStatement(unlockSql)) {
-					pre.setBytes(1, keyOfLock);
-					pre.executeUpdate();
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(unlockSql)) {
+					ps.setBytes(1, keyOfLock);
+					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -394,7 +391,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (p instanceof String)
 				pre.setString(i + start, (String)p);
 			else
-				pre.setBytes(i + start, ((Zeze.Net.Binary)p).toBytes());
+				pre.setBytes(i + start, ((Binary)p).toBytes());
 		}
 	}
 
@@ -507,23 +504,23 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
 			isNew = true;
 			/*
-			try (var connection = dataSource.getConnection()) {
-				DatabaseMetaData meta = connection.getMetaData();
-				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = !resultSet.next();
+			try (var conn = dataSource.getConnection()) {
+				DatabaseMetaData meta = conn.getMetaData();
+				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
+				isNew = !rs.next();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
 			*/
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var table = getDatabase().getTable(name);
-				if (table == null)
-					throw new IllegalStateException("not found table: " + name);
-				var sql = table.getRelationalTable().createTableSql();
-				try (var cmd = connection.prepareStatement(sql)) {
-					cmd.executeUpdate();
-					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
+			var table = getDatabase().getTable(name);
+			if (table == null)
+				throw new IllegalStateException("not found table: " + name);
+			var sql = table.getRelationalTable().createTableSql();
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(sql)) {
+					ps.executeUpdate();
+					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
@@ -567,12 +564,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "DROP TABLE IF EXISTS " + name;
-				try (var cmd = connection.prepareStatement(sql)) {
+			var sql = "DROP TABLE IF EXISTS " + name;
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(sql)) {
 					dropped = true; // set flag before real drop.
-					cmd.executeUpdate();
+					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
@@ -581,11 +578,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		}
 
 		public void tryAlter() {
-			/*
-			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
-				System.out.println(name);
-			}
-			*/
 			if (isNew) {
 				logger.info("tryAlter isNew {}", name);
 				return; // 已经是最新的表。不需要alter。
@@ -625,14 +617,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 						.append(c.name).append(' ').append(c.sqlType);
 			}
 			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
+			var sql = sb.toString();
+			logger.info("tryAlter {} {}", table.getName(), sql);
 
-			//System.out.println(sb);
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
-				var sql = sb.toString();
-				logger.info("tryAlter {} {}", table.getName(), sql);
-				try (var pre = conn.prepareStatement(sql)) {
-					pre.executeUpdate();
+				try (var ps = conn.prepareStatement(sql)) {
+					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -649,17 +640,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(true);
-				try (var pre = conn.prepareStatement(sql)) {
-					setParams(pre, 1, st.params);
-					try (var rs = pre.executeQuery()) {
-						if (!rs.next())
-							return null;
-						var value = table.newValue();
-						value.decodeResultSet(new ArrayList<>(), rs);
-						return value;
-					}
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				try (var rs = ps.executeQuery()) {
+					if (!rs.next())
+						return null;
+					var value = table.newValue();
+					value.decodeResultSet(new ArrayList<>(), rs);
+					return value;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -680,13 +668,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
-			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(true);
-				try (var pre = conn.prepareStatement(sql)) {
-					setParams(pre, 1, st.params);
-					try (var rs = pre.executeQuery()) {
-						return rs.next();
-					}
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				try (var rs = ps.executeQuery()) {
+					return rs.next();
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -706,11 +691,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
 			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
-			var my = (JdbcTrans)t;
-			try (var pre = my.connection.prepareStatement(sql)) {
-				setParams(pre, 1, stKey.params);
-				setParams(pre, stKey.params.size() + 1, stValue.params);
-				pre.executeUpdate();
+			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
+				setParams(ps, 1, stKey.params);
+				setParams(ps, stKey.params.size() + 1, stValue.params);
+				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
@@ -727,10 +711,9 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
-			var my = (JdbcTrans)t;
-			try (var pre = my.connection.prepareStatement(sql)) {
-				setParams(pre, 1, stKey.params);
-				pre.executeUpdate();
+			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
+				setParams(ps, 1, stKey.params);
+				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
@@ -745,22 +728,19 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return 0;
 
-			var sql = "SELECT * FROM " + name + orderBy;
-			try (var conn = dataSource.getConnection();
-				 var pre = conn.prepareStatement(sql);
-				 var rs = pre.executeQuery()) {
-				var count = 0L;
+			var s = "SELECT * FROM " + name + orderBy;
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
 				while (rs.next()) {
 					count++;
 					if (!invokeCallback(table, rs, callback, null))
 						break;
 				}
-				return count;
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -769,22 +749,19 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return 0;
 
-			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
-			try (var conn = dataSource.getConnection();
-				 var pre = conn.prepareStatement(sql);
-				 var rs = pre.executeQuery()) {
-				var count = 0L;
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
 				while (rs.next()) {
 					count++;
 					if (!invokeKeyCallback(table, rs, callback, null))
 						break;
 				}
-				return count;
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		@Override
@@ -818,27 +795,24 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-				var sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					setParams(cmd, 1, st.params);
-					cmd.setInt(st.params.size() + 1, proposeLimit);
-					var lastKey = new OutObject<K>();
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							if (!invokeCallback(table, rs, callback, lastKey))
-								break;
-						}
+			var st = new SQLStatement();
+			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
+			var sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
+			var lastKey = new OutObject<K>();
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				ps.setInt(st.params.size() + 1, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						if (!invokeCallback(table, rs, callback, lastKey))
+							break;
 					}
-					return lastKey.value;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey.value;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -847,28 +821,25 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-				var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
-						+ keyWhere + orderBy + " LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					setParams(cmd, 1, st.params);
-					cmd.setInt(st.params.size() + 1, proposeLimit);
-					var lastKey = new OutObject<K>();
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							if (!invokeKeyCallback(table, rs, callback, lastKey))
-								break;
-						}
+			var st = new SQLStatement();
+			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
+					+ keyWhere + orderBy + " LIMIT ?";
+			var lastKey = new OutObject<K>();
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				ps.setInt(st.params.size() + 1, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						if (!invokeKeyCallback(table, rs, callback, lastKey))
+							break;
 					}
-					return lastKey.value;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey.value;
 		}
 
 		@Override
@@ -905,29 +876,24 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return 0;
 
-			var sql = "SELECT * FROM " + name + orderBy;
-			try (var conn = dataSource.getConnection()) {
-				try (var pre = conn.prepareStatement(sql)) {
-					try (var rs = pre.executeQuery()) {
-						var count = 0L;
-						var parents = new ArrayList<String>();
-						while (rs.next()) {
-							count++;
-							var key = table.decodeKeyResultSet(rs);
-							var value = table.newValue();
-							value.decodeResultSet(parents, rs);
-							parents.clear();
-							if (!callback.handle(key, value))
-								break;
-						}
-						return count;
-					}
+			var s = "SELECT * FROM " + name + orderBy;
+			var parents = new ArrayList<String>();
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
+				while (rs.next()) {
+					count++;
+					var key = table.decodeKeyResultSet(rs);
+					var value = table.newValue();
+					value.decodeResultSet(parents, rs);
+					parents.clear();
+					if (!callback.handle(key, value))
+						break;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -936,25 +902,19 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return 0;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
-				try (var cmd = connection.prepareStatement(sql)) {
-					var count = 0L;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!callback.handle(table.decodeKeyResultSet(rs)))
-								break;
-						}
-					}
-					return count;
+			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
+				while (rs.next()) {
+					count++;
+					if (!callback.handle(table.decodeKeyResultSet(rs)))
+						break;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		@Override
@@ -988,33 +948,30 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-				var sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					setParams(cmd, 1, st.params);
-					cmd.setInt(st.params.size() + 1, proposeLimit);
-					var lastKey = new OutObject<K>();
-					try (var rs = cmd.executeQuery()) {
-						var parents = new ArrayList<String>();
-						while (rs.next()) {
-							var key = table.decodeKeyResultSet(rs);
-							var value = table.newValue();
-							value.decodeResultSet(parents, rs);
-							parents.clear();
-							lastKey.value = key;
-							if (!callback.handle(key, value))
-								break;
-						}
+			var st = new SQLStatement();
+			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
+			var sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
+			var parents = new ArrayList<String>();
+			var lastKey = new OutObject<K>();
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				ps.setInt(st.params.size() + 1, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						var key = table.decodeKeyResultSet(rs);
+						var value = table.newValue();
+						value.decodeResultSet(parents, rs);
+						parents.clear();
+						lastKey.value = key;
+						if (!callback.handle(key, value))
+							break;
 					}
-					return lastKey.value;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey.value;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -1024,30 +981,27 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var st = new SQLStatement();
-				var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
-				var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
-						+ keyWhere + orderBy + " LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					setParams(cmd, 1, st.params);
-					cmd.setInt(st.params.size() + 1, proposeLimit);
-					var lastKey = new OutObject<K>();
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							var key = table.decodeKeyResultSet(rs);
-							lastKey.value = key;
-							if (!callback.handle(key))
-								break;
-						}
+			var st = new SQLStatement();
+			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
+			var sql = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName()
+					+ keyWhere + orderBy + " LIMIT ?";
+			var lastKey = new OutObject<K>();
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				setParams(ps, 1, st.params);
+				ps.setInt(st.params.size() + 1, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						var key = table.decodeKeyResultSet(rs);
+						lastKey.value = key;
+						if (!callback.handle(key))
+							break;
 					}
-					return lastKey.value;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey.value;
 		}
 
 		@Override
@@ -1082,7 +1036,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	public final class TableMysql extends Database.AbstractKVTable {
 		private final @NotNull String name;
 		private final @NotNull String sqlFind, sqlRemove, sqlReplace;
-		private boolean isNew;
+		private final boolean isNew;
 		private boolean dropped;
 
 		public TableMysql(@NotNull String name) {
@@ -1090,24 +1044,24 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			// isNew 仅用来在Schemas比较的时候可选的忽略被删除的表，这里没有跟Create原子化。
 			// 下面的create table if not exists 在存在的时候会返回warning，isNew是否可以通过这个方法得到？
 			// warning的方案的原子性由数据库保证，比较好，但warning本身可能不是很标准，先保留MetaData方案了。
-			isNew = true;
+			var isNew = true;
 			/*
-			try (var connection = dataSource.getConnection()) {
-				DatabaseMetaData meta = connection.getMetaData();
-				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
-				isNew = !resultSet.next();
+			try (var conn = dataSource.getConnection()) {
+				DatabaseMetaData meta = conn.getMetaData();
+				ResultSet rs = meta.getTables(null, null, this.name, new String[]{"TABLE"});
+				isNew = !rs.next();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				throw new AssertionError(); // never run here
 			}
 			*/
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
 				var sql = "CREATE TABLE IF NOT EXISTS " + name
 						+ "(id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
-				try (var cmd = connection.prepareStatement(sql)) {
-					cmd.executeUpdate();
-					isNew = !tableAlreadyExistsWarning(cmd.getWarnings());
+				try (var ps = conn.prepareStatement(sql)) {
+					ps.executeUpdate();
+					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
 				if (!e.getMessage().contains("already exist"))
@@ -1117,7 +1071,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			sqlFind = "SELECT value FROM " + name + " WHERE id=?";
 			sqlRemove = "DELETE FROM " + name + " WHERE id=?";
-			sqlReplace = "REPLACE INTO " + name + " VALUES(?,?)";
+			sqlReplace = "REPLACE " + name + " VALUE(?,?)";
+			this.isNew = isNew;
 		}
 
 		@Override
@@ -1155,12 +1110,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "DROP TABLE IF EXISTS " + name;
-				try (var cmd = connection.prepareStatement(sql)) {
+			var sql = "DROP TABLE IF EXISTS " + name;
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(sql)) {
 					dropped = true; // set flag before real drop.
-					cmd.executeUpdate();
+					ps.executeUpdate();
 				}
 			} catch (SQLException e) {
 				dropped = false; // rollback
@@ -1174,14 +1129,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return null;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				// 是否可以重用 SqlCommand
-				try (var cmd = connection.prepareStatement(sqlFind)) {
-					cmd.setBytes(1, key.CopyIf());
-					try (var rs = cmd.executeQuery()) {
-						return rs.next() ? ByteBuffer.Wrap(rs.getBytes(1)) : null;
-					}
+			var k = key.CopyIf();
+			byte[] v = null;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sqlFind)) {
+				ps.setBytes(1, k);
+				try (var rs = ps.executeQuery()) {
+					if (rs.next())
+						v = rs.getBytes(1);
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -1190,6 +1144,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				if (PerfCounter.ENABLE_PERF)
 					PerfCounter.instance.addRunInfo("MySQL.SELECT", System.nanoTime() - timeBegin);
 			}
+			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
 
 		@Override
@@ -1198,9 +1153,10 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var cmd = ((JdbcTrans)t).connection.prepareStatement(sqlRemove)) {
-				cmd.setBytes(1, key.CopyIf());
-				cmd.executeUpdate();
+			var k = key.CopyIf();
+			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlRemove)) {
+				ps.setBytes(1, k);
+				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
@@ -1215,10 +1171,12 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				return;
 
 			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-			try (var cmd = ((JdbcTrans)t).connection.prepareStatement(sqlReplace)) {
-				cmd.setBytes(1, key.CopyIf());
-				cmd.setBytes(2, value.CopyIf());
-				cmd.executeUpdate();
+			var k = key.CopyIf();
+			var v = value.CopyIf();
+			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlReplace)) {
+				ps.setBytes(1, k);
+				ps.setBytes(2, v);
+				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
@@ -1251,50 +1209,38 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return 0;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id,value FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-				try (var cmd = connection.prepareStatement(sql)) {
-					var count = 0L;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
-								break;
-						}
-					}
-					return count;
+			var s = "SELECT * FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
+				while (rs.next()) {
+					count++;
+					if (!callback.handle(rs.getBytes(1), rs.getBytes(2)))
+						break;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		private long walkKey(@NotNull TableWalkKeyRaw callback, boolean asc) throws Exception {
 			if (dropped)
 				return 0;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
-				try (var cmd = connection.prepareStatement(sql)) {
-					var count = 0L;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							count++;
-							if (!callback.handle(rs.getBytes(1)))
-								break;
-						}
-					}
-					return count;
+			var s = "SELECT id FROM " + name + (asc ? " ORDER BY id" : " ORDER BY id DESC");
+			var count = 0L;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(s); var rs = ps.executeQuery()) {
+				while (rs.next()) {
+					count++;
+					if (!callback.handle(rs.getBytes(1)))
+						break;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				//noinspection UnreachableCode
 				return -1; // never run here
 			}
+			return count;
 		}
 
 		@Override
@@ -1303,29 +1249,26 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id,value FROM " + name + (exclusiveStartKey != null ? " WHERE id > ?" : "")
-						+ " ORDER BY id LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					var index = 1;
-					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
-					cmd.setInt(index, proposeLimit);
-					byte[] lastKey = null;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							lastKey = rs.getBytes(1);
-							if (!callback.handle(lastKey, rs.getBytes(2)))
-								break;
-						}
+			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
+					+ " ORDER BY id LIMIT ?";
+			byte[] lastKey = null;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				var index = 1;
+				if (exclusiveStartKey != null)
+					ps.setBytes(index++, exclusiveStartKey.CopyIf());
+				ps.setInt(index, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						lastKey = rs.getBytes(1);
+						if (!callback.handle(lastKey, rs.getBytes(2)))
+							break;
 					}
-					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -1334,29 +1277,26 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id > ?" : "")
-						+ " ORDER BY id LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					var index = 1;
-					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
-					cmd.setInt(index, proposeLimit);
-					byte[] lastKey = null;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							lastKey = rs.getBytes(1);
-							if (!callback.handle(lastKey))
-								break;
-						}
+			var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id>?" : "")
+					+ " ORDER BY id LIMIT ?";
+			byte[] lastKey = null;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				var index = 1;
+				if (exclusiveStartKey != null)
+					ps.setBytes(index++, exclusiveStartKey.CopyIf());
+				ps.setInt(index, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						lastKey = rs.getBytes(1);
+						if (!callback.handle(lastKey))
+							break;
 					}
-					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -1365,29 +1305,26 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id,value FROM " + name + (exclusiveStartKey != null ? " WHERE id < ?" : "")
-						+ " ORDER BY id DESC LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					var index = 1;
-					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
-					cmd.setInt(index, proposeLimit);
-					byte[] lastKey = null;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							lastKey = rs.getBytes(1);
-							if (!callback.handle(lastKey, rs.getBytes(2)))
-								break;
-						}
+			var sql = "SELECT * FROM " + name + (exclusiveStartKey != null ? " WHERE id<?" : "")
+					+ " ORDER BY id DESC LIMIT ?";
+			byte[] lastKey = null;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				var index = 1;
+				if (exclusiveStartKey != null)
+					ps.setBytes(index++, exclusiveStartKey.CopyIf());
+				ps.setInt(index, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						lastKey = rs.getBytes(1);
+						if (!callback.handle(lastKey, rs.getBytes(2)))
+							break;
 					}
-					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 
 		@Override
@@ -1396,46 +1333,35 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped || proposeLimit <= 0)
 				return null;
 
-			try (var connection = dataSource.getConnection()) {
-				connection.setAutoCommit(true);
-				var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id < ?" : "")
-						+ " ORDER BY id DESC LIMIT ?";
-				try (var cmd = connection.prepareStatement(sql)) {
-					var index = 1;
-					if (exclusiveStartKey != null)
-						cmd.setBytes(index++, exclusiveStartKey.CopyIf());
-					cmd.setInt(index, proposeLimit);
-					byte[] lastKey = null;
-					try (var rs = cmd.executeQuery()) {
-						while (rs.next()) {
-							lastKey = rs.getBytes(1);
-							if (!callback.handle(lastKey))
-								break;
-						}
+			var sql = "SELECT id FROM " + name + (exclusiveStartKey != null ? " WHERE id<?" : "")
+					+ " ORDER BY id DESC LIMIT ?";
+			byte[] lastKey = null;
+			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
+				var index = 1;
+				if (exclusiveStartKey != null)
+					ps.setBytes(index++, exclusiveStartKey.CopyIf());
+				ps.setInt(index, proposeLimit);
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						lastKey = rs.getBytes(1);
+						if (!callback.handle(lastKey))
+							break;
 					}
-					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 				return null; // never run here
 			}
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 		}
 	}
 
 	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
 		var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
-		try (var conn = dataSource.getConnection()) {
-			conn.setAutoCommit(true);
-			try (var pre = conn.prepareStatement(sql)) {
-				try (var rs = pre.executeQuery()) {
-					if (!rs.next())
-						return -1;
-					return rs.getLong(1);
-				}
-			}
+		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
+			return rs.next() ? rs.getLong(1) : -1;
 		} catch (SQLException e) {
 			Task.forceThrow(e);
-			//noinspection UnreachableCode
 			return -1; // never run here
 		} finally {
 			if (PerfCounter.ENABLE_PERF)

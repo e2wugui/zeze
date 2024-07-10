@@ -25,6 +25,7 @@ public abstract class DatabaseJdbc extends Database {
 		// always on
 		pool.setPoolPreparedStatements(true);
 		pool.setKillWhenSocketReadTimeout(true); // 总是设置，防止错误连接的结果被下一个查询得到。
+		pool.setMaxPoolPreparedStatementPerConnectionSize(32);
 
 		// options
 		if (druidConf.initialSize != null)
@@ -53,41 +54,40 @@ public abstract class DatabaseJdbc extends Database {
 
 	@Override
 	public void close() {
-		super.close();
-		dataSource.close();
+		try {
+			super.close();
+		} catch (Throwable e) { // logger.error
+			logger.error("Database.close exception:", e);
+		}
+		try {
+			dataSource.close();
+		} catch (Throwable e) { // logger.error
+			logger.error("DruidDataSource.close exception:", e);
+		}
 	}
 
 	@Override
 	public @NotNull Transaction beginTransaction() {
-		return new JdbcTrans(dataSource);
+		try {
+			return new JdbcTrans(dataSource.getConnection());
+		} catch (SQLException e) {
+			Task.forceThrow(e);
+			throw new AssertionError(); // never run here
+		}
 	}
 
 	public static class JdbcTrans implements Transaction {
-		final @NotNull Connection connection;
+		final @NotNull Connection conn;
 
-		public JdbcTrans(@NotNull DruidDataSource dataSource) {
-			try {
-				connection = dataSource.getConnection();
-				connection.setAutoCommit(false);
-			} catch (SQLException e) {
-				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
-			}
-		}
-
-		@Override
-		public void close() {
-			try {
-				connection.close();
-			} catch (Throwable e) { // logger.error
-				logger.error("JdbcTrans.close", e);
-			}
+		public JdbcTrans(@NotNull Connection conn) throws SQLException {
+			conn.setAutoCommit(false);
+			this.conn = conn;
 		}
 
 		@Override
 		public void commit() {
 			try {
-				connection.commit();
+				conn.commit();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
@@ -96,9 +96,18 @@ public abstract class DatabaseJdbc extends Database {
 		@Override
 		public void rollback() {
 			try {
-				connection.rollback();
+				conn.rollback();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
+			}
+		}
+
+		@Override
+		public void close() {
+			try {
+				conn.close();
+			} catch (Throwable e) { // logger.error
+				logger.error("JdbcTrans.close exception:", e);
 			}
 		}
 	}
