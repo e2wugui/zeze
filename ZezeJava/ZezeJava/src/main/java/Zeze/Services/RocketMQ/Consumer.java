@@ -1,15 +1,18 @@
 package Zeze.Services.RocketMQ;
 
+import Zeze.Application;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Consumer {
-	public final Zeze.Application zeze;
-	private final DefaultMQPushConsumer consumer;
+	public final @NotNull Application zeze;
+	private final @NotNull DefaultMQPushConsumer consumer;
 
-	public Consumer(Zeze.Application zeze, String consumerGroup, ClientConfig clientConfig) {
+	public Consumer(@NotNull Application zeze, @NotNull String consumerGroup, @NotNull ClientConfig clientConfig) {
 		this.zeze = zeze; // 保持一致的构造，先记住，以后可能有用。
 		consumer = new DefaultMQPushConsumer(consumerGroup);
 		consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
@@ -18,20 +21,16 @@ public class Consumer {
 	/**
 	 * 注册消息处理器。
 	 * 需要在start之前注册监听器。
-	 * @param messageListener listener
 	 */
-	public void setMessageListener(MessageListener messageListener) {
+	public void setMessageListener(@NotNull MessageListener messageListener) {
 		consumer.setMessageListener(messageListener);
 	}
 
 	/**
 	 * 订阅消息。
 	 * 需要在start之前调用。
-	 * @param topic 主题
-	 * @param subExpression 过滤器
-	 * @throws MQClientException exception
 	 */
-	public void subscribe(String topic, String subExpression) throws MQClientException {
+	public void subscribe(@NotNull String topic, @Nullable String subExpression) throws MQClientException {
 		consumer.subscribe(topic, subExpression);
 	}
 
@@ -40,12 +39,10 @@ public class Consumer {
 	}
 
 	public void stop() {
-		if (null != consumer)
-			consumer.shutdown();
+		consumer.shutdown();
 	}
 
-	// 完全开放出去，不进行其他包装了。
-	public DefaultMQPushConsumer getConsumer() {
+	public @NotNull DefaultMQPushConsumer getConsumer() {
 		return consumer;
 	}
 }

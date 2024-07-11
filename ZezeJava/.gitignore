@@ -15,6 +15,8 @@ token_db/
 zeze_cache_*/
 
 Redirect_*.java
+rocksdbjni.dll
+test.ks
 
 /test/autokeys2
 /test/Dbh2/CommitRocks*
