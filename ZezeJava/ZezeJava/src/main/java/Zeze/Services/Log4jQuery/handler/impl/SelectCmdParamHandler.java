@@ -4,27 +4,27 @@ import java.util.List;
 import Zeze.Services.Log4jQuery.handler.HandlerCmd;
 import Zeze.Services.Log4jQuery.handler.QueryHandler;
 import Zeze.Services.Log4jQuery.handler.QueryHandlerManager;
-import Zeze.Services.Log4jQuery.handler.entity.ClazzInfo;
+import Zeze.Services.Log4jQuery.handler.entity.ClassInfo;
 import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
 
 @HandlerCmd("cmd_param")
-public class SelectCmdParamHandler implements QueryHandler<String, ClazzInfo> {
+public class SelectCmdParamHandler implements QueryHandler<String, ClassInfo> {
 		@Override
-		public ClazzInfo invoke(String param) {
+		public ClassInfo invoke(String param) {
 			QueryHandlerManager.QueryHandleContainer queryHandleContainer = QueryHandlerManager.getQueryHandleContainer(param);
-			ClazzInfo clazzInfo = new ClazzInfo();
+			ClassInfo classInfo = new ClassInfo();
 			if (queryHandleContainer == null){
-				return clazzInfo;
+				return classInfo;
 			}
 			Class<?> paramClass = queryHandleContainer.getParamClass();
-			clazzInfo.setClazzName(paramClass.getName());
+			classInfo.setClassName(paramClass.getName());
 			if (paramClass.isAssignableFrom(Number.class) || paramClass == Boolean.class || paramClass == String.class){
-				clazzInfo.setBaseType(true);
+				classInfo.setBaseType(true);
 			}else {
 				List<SimpleField> fields = queryHandleContainer.getFields();
-				clazzInfo.setFields(fields);
+				classInfo.setFields(fields);
 			}
-			return clazzInfo;
+			return classInfo;
 		}
 
 	}

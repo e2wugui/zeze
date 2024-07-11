@@ -1,18 +1,22 @@
 package Zeze.Services.Log4jQuery;
 
 import java.io.IOException;
+import java.util.Objects;
 import Zeze.Util.OutInt;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 日志文件集合，能搜索当前存在的所有日志。
  * 用于Log4jFileSession搜索，具有局部状态。
  */
 public class Log4jFileWalker {
-	private final Log4jFileManager files;
+	private final @NotNull Log4jFileManager files;
 	private int currentIndex = -1;
 	private Log4jFileSession current;
 
-	public Log4jFileWalker(Log4jFileManager files) throws IOException {
+	public Log4jFileWalker(@NotNull Log4jFileManager files) throws IOException {
+		Objects.requireNonNull(files);
 		this.files = files;
 	}
 
@@ -29,34 +33,28 @@ public class Log4jFileWalker {
 	public void seek(long time) throws IOException {
 		var out = new OutInt();
 		var log4jFileSession = files.seek(time, out);
-		if (null == log4jFileSession) {
+		if (log4jFileSession == null) {
 			slowSeek(time);
 			return;
 		}
 
 		currentIndex = out.value;
-		if (null != current)
+		if (current != null)
 			current.close();
 		current = log4jFileSession;
 	}
 
 	private void slowSeek(long time) throws IOException {
-		while (hasNext()) {
-			var log = current.current();
-			if (log.getTime() >= time)
-				break;
+		while (hasNext() && current.current().getTime() < time)
 			next();
-		}
 	}
 
 	public boolean hasNext() throws IOException {
 		// 循环写法，可以跳过空文件。
 		while (currentIndex < files.size()) {
-			var hasNext = current.hasNext();
-			if (hasNext)
+			if (current.hasNext())
 				return true;
-			++ currentIndex;
-			if (currentIndex < files.size())
+			if (++currentIndex < files.size())
 				nextCurrent();
 		}
 		return false;
@@ -67,7 +65,7 @@ public class Log4jFileWalker {
 	}
 
 	private void nextCurrent() throws IOException {
-		if (null != current)
+		if (current != null)
 			current.close();
 		current = files.get(currentIndex);
 	}

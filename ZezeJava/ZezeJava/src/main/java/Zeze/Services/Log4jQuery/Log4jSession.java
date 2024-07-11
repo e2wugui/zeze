@@ -36,12 +36,13 @@ public class Log4jSession {
 
 	/**
 	 * 按 string.find 方式搜索日志，结果通过 result 获取；
+	 *
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
 	public boolean searchContains(List<Log4jLog> result,
-						  long beginTime, long endTime,
-						  List<String> words, int containsType,
-						  int limit) throws IOException {
+								  long beginTime, long endTime,
+								  List<String> words, int containsType,
+								  int limit) throws IOException {
 		result.clear();
 		trySetBeginTime(beginTime);
 
@@ -78,6 +79,7 @@ public class Log4jSession {
 
 	/**
 	 * 按 Regex.match 方式搜索日志，结果通过 result 获取；
+	 *
 	 * @return true 表示还有数据没有搜索完，false 表示结束。
 	 */
 	public boolean searchRegex(List<Log4jLog> result,
@@ -112,9 +114,9 @@ public class Log4jSession {
 	}
 
 	public boolean browseContains(Deque<Log4jLog> result,
-						  long beginTime, long endTime,
-						  List<String> words, int containsType,
-						  int limit, float offsetFactor) throws IOException {
+								  long beginTime, long endTime,
+								  List<String> words, int containsType,
+								  int limit, float offsetFactor) throws IOException {
 		result.clear();
 		trySetBeginTime(beginTime);
 

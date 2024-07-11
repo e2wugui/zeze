@@ -1,7 +1,5 @@
 package Zeze.Services.Log4jQuery.handler;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,46 +8,40 @@ import Zeze.Services.Log4jQuery.handler.entity.SimpleField;
 import Zeze.Util.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class QueryHandlerManager {
-	private static final Logger logger = LogManager.getLogger(QueryHandlerManager.class);
-
+	private static final @NotNull Logger logger = LogManager.getLogger(QueryHandlerManager.class);
 	private static final Map<String, QueryHandleContainer> handlerMap = new HashMap<>();
 	private static boolean initFinish = false;
 
 	public static void init() {
-		List<String> clazzNames = ClazzUtils.getClazzName("Zeze.Services.Log4jQuery.handler.impl", true);
-		clazzNames.forEach(clazz -> {
+		var classNames = ClassUtils.getClassNames("Zeze.Services.Log4jQuery.handler.impl", true);
+		classNames.forEach(clazz -> {
 			try {
-				Class<?> handlerClass = Class.forName(clazz);
-				HandlerCmd handlerCmd = handlerClass.getAnnotation(HandlerCmd.class);
+				var handlerClass = Class.forName(clazz);
+				var handlerCmd = handlerClass.getAnnotation(HandlerCmd.class);
 				if (handlerCmd != null) {
-					String cmd = handlerCmd.value();
-					var instance = (QueryHandler<?, ?>)handlerClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-					QueryHandleContainer queryHandleContainer = new QueryHandleContainer(instance);
-					handlerMap.put(cmd, queryHandleContainer);
+					var instance = (QueryHandler<?, ?>)handlerClass.getConstructor((Class<?>[])null)
+							.newInstance((Object[])null);
+					handlerMap.put(handlerCmd.value(), new QueryHandleContainer(instance));
 				}
 			} catch (Exception e) {
-				logger.error("", e);
+				logger.error("init exception:", e);
 			}
 		});
 	}
 
-	public static String invokeHandler(String req) throws ReflectiveOperationException {
+	public static @NotNull String invokeHandler(@NotNull String req) throws ReflectiveOperationException {
 		if (!initFinish) {
 			init();
 			initFinish = true;
 		}
 		var queryRequest = Json.parse(req, QueryRequest.class);
-		Object param = queryRequest != null ? queryRequest.getParam() : null;
 		String cmd = queryRequest != null ? queryRequest.getCmd() : null;
+		Object param = queryRequest != null ? queryRequest.getParam() : null;
 		QueryHandleContainer queryHandler = handlerMap.get(cmd);
-		if (queryHandler == null) {
-			return "";
-		}
-
-		Object obj = queryHandler.invoke(param);
-		return Json.toCompactString(obj);
+		return queryHandler != null ? Json.toCompactString(queryHandler.invoke(param)) : "";
 	}
 
 	public static List<String> selectCmdList() {
@@ -61,52 +53,43 @@ public class QueryHandlerManager {
 	}
 
 	public static class QueryHandleContainer {
-		private final QueryHandler<?, ?> queryHandler;
+		private final @NotNull QueryHandler<?, ?> queryHandler;
 		private Class<?> paramClass;
 		private final List<SimpleField> fields = new ArrayList<>();
 
-		public QueryHandleContainer(QueryHandler<?, ?> queryHandler) {
+		public QueryHandleContainer(@NotNull QueryHandler<?, ?> queryHandler) {
 			this.queryHandler = queryHandler;
-			Method[] declaredMethods = queryHandler.getClass().getDeclaredMethods();
-			for (Method method : declaredMethods) {
+			for (var method : queryHandler.getClass().getDeclaredMethods()) {
 				if (method.getName().equals("invoke")) {
-					Class<?> parameterType = method.getParameterTypes()[0];
-					if (parameterType != Object.class) {
-						paramClass = parameterType;
-						Field[] paramFields = paramClass.getDeclaredFields();
-						for (Field field : paramFields) {
-							String name = field.getName();
-							Class<?> type = field.getType();
-							fields.add(new SimpleField(name, type.getName()));
-						}
+					var paramClass = method.getParameterTypes()[0];
+					if (paramClass != Object.class) {
+						this.paramClass = paramClass;
+						for (var field : paramClass.getDeclaredFields())
+							fields.add(new SimpleField(field.getName(), field.getType().getName()));
 					}
 				}
 			}
-
 		}
 
 		public Class<?> getParamClass() {
 			return paramClass;
 		}
 
-		public List<SimpleField> getFields() {
+		public @NotNull List<SimpleField> getFields() {
 			return fields;
 		}
 
 		@SuppressWarnings("unchecked")
 		public Object invoke(Object o) throws ReflectiveOperationException {
-			if (paramClass == null || paramClass == Object.class) {
+			if (paramClass == null || paramClass == Object.class)
 				return queryHandler.invoke(null);
-			}
 			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 		}
 
-		private static Object cast(Class<?> clazz, String str) throws ReflectiveOperationException {
-			if (clazz == String.class) {
+		private static Object cast(@NotNull Class<?> clazz, String str) throws ReflectiveOperationException {
+			if (clazz == String.class)
 				return str;
-			}
-			String className = clazz.getName();
-			switch (className) {
+			switch (clazz.getName()) {
 			case "int":
 			case "java.lang.Integer":
 				return Integer.valueOf(str);

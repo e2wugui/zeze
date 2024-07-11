@@ -2,9 +2,9 @@ package Zeze.Services.Log4jQuery.handler.entity;
 
 import java.util.List;
 
-public class ClazzInfo {
+public class ClassInfo {
 	private boolean baseType;
-	private String clazzName;
+	private String className;
 	private List<SimpleField> fields;
 
 	public boolean isBaseType() {
@@ -15,12 +15,12 @@ public class ClazzInfo {
 		this.baseType = baseType;
 	}
 
-	public String getClazzName() {
-		return clazzName;
+	public String getClassName() {
+		return className;
 	}
 
-	public void setClazzName(String clazzName) {
-		this.clazzName = clazzName;
+	public void setClassName(String className) {
+		this.className = className;
 	}
 
 	public List<SimpleField> getFields() {

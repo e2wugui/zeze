@@ -575,6 +575,7 @@ public final class Task {
 			else
 				errorCode = Procedure.Exception;
 
+			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
 			if (isRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.handle(p, errorCode);
@@ -582,7 +583,6 @@ public final class Task {
 					logger.error("{} exception:", aName != null ? aName : p.getClass().getName(), e);
 				}
 			}
-			logAndStatistics(ex, errorCode, p, p == null || isRequestSaved, aName);
 			return errorCode;
 		} finally {
 			//noinspection ConstantValue
