@@ -18,8 +18,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class ModuleFight extends AbstractModule implements IModuleFight {
 	private static final Logger logger = LogManager.getLogger(ModuleFight.class);
-	public TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
-
+	public final TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();
 
 	@Override
 	public boolean isAreYouFightDone() {
@@ -47,6 +46,7 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 		}
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	public void Start(App app) {
 		app.Provider.getOnline().getLoginEvents().addHot(EventDispatcher.Mode.RunEmbed, LoginEventHandle.class);
 	}
@@ -63,12 +63,12 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 
 		Fighter fighter = new Fighter(fighterId, new BFighter());
 		switch (fighterId.getType()) {
-			case BFighterId.TypeRole:
-				var contextBuf = App.Zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
-				var contextEquip = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
-				contextBuf.getService().getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
-				contextEquip.getService().calculateFighter(fighter);
-				break;
+		case BFighterId.TypeRole:
+			var contextBuf = App.Zeze.getHotManager().getModuleContext("Game.Buf", IModuleBuf.class);
+			var contextEquip = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
+			contextBuf.getService().getBufs(fighterId.getInstanceId()).calculateFighter(fighter);
+			contextEquip.getService().calculateFighter(fighter);
+			break;
 		}
 		_tfighters.getOrAdd(fighterId).assign(fighter.getBean());
 		return Procedure.Success;
@@ -96,9 +96,9 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFight(Game.App app) {
         super(app);
     }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

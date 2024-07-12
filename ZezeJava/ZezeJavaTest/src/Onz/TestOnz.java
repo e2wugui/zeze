@@ -56,7 +56,7 @@ public class TestOnz {
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
 		Assert.assertEquals(0, onzServer.perform(txn));
-		logger.info("after perform m1=" + txn.m1 + " m2=" + txn.m2);
+		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
 		Assert.assertEquals(0, txn.m1 + txn.m2);
 	}
 }

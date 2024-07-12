@@ -9,9 +9,7 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRocksDb;
 import junit.framework.TestCase;
 import org.junit.Assert;
-
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 public class TestDatabaseRocksDB extends TestCase {
 

@@ -39,6 +39,7 @@ public class TestTransactionHalt {
 		var cfg = Config.load("zeze.xml");
 		// 不要ServiceManager.Agent。
 		var sm = cfg.getServiceConf("Zeze.Services.ServiceManager.Agent");
+		assert sm != null;
 		sm.forEachConnector(sm::removeConnector);
 
 		cfg.setCheckpointPeriod(CHECKPOINT_PERIOD);

@@ -12,21 +12,25 @@ import com.github.luben.zstd.BufferPool;
 import com.github.luben.zstd.Zstd;
 import com.github.luben.zstd.ZstdInputStreamNoFinalizer;
 import com.github.luben.zstd.ZstdOutputStreamNoFinalizer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class ZstdFactory {
-	private static final Field fCStream, fCSrcPos, fCDstPos;
-	private static final Field fDStream, fDSrcPos, fDDstPos;
-	private static final MethodHandle mhResetCStream, mhCompressStream, mhFlushStream;
-	private static final MethodHandle mhDecompressStream;
+	private static final @NotNull Field fCStream, fCSrcPos, fCDstPos;
+	private static final @NotNull Field fDStream, fDSrcPos, fDDstPos;
+	private static final @NotNull MethodHandle mhResetCStream, mhCompressStream, mhFlushStream;
+	private static final @NotNull MethodHandle mhDecompressStream;
 
-	private static Field getField(Class<?> cls, String fieldName) throws ReflectiveOperationException {
+	private static @NotNull Field getField(@NotNull Class<?> cls,
+										   @NotNull String fieldName) throws ReflectiveOperationException {
 		var field = cls.getDeclaredField(fieldName);
 		field.setAccessible(true);
 		return field;
 	}
 
-	private static MethodHandle getMethodHandle(MethodHandles.Lookup lookup, Class<?> cls, String methodName,
-												Class<?>... paramTypes) throws ReflectiveOperationException {
+	private static @NotNull MethodHandle getMethodHandle(@NotNull MethodHandles.Lookup lookup, @NotNull Class<?> cls,
+														 @NotNull String methodName,
+														 Class<?>... paramTypes) throws ReflectiveOperationException {
 		var method = cls.getDeclaredMethod(methodName, paramTypes);
 		method.setAccessible(true);
 		return lookup.unreflect(method);
@@ -72,16 +76,16 @@ public final class ZstdFactory {
 	}
 
 	public static final class DummyBufferPool implements BufferPool {
-		public static final java.nio.ByteBuffer empty = java.nio.ByteBuffer.allocate(0);
+		public static final @NotNull java.nio.ByteBuffer empty = java.nio.ByteBuffer.allocate(0);
 		public static final DummyBufferPool instance = new DummyBufferPool();
 
 		@Override
-		public java.nio.ByteBuffer get(int capacity) {
+		public @NotNull java.nio.ByteBuffer get(int capacity) {
 			return empty;
 		}
 
 		@Override
-		public void release(java.nio.ByteBuffer buffer) {
+		public void release(@NotNull java.nio.ByteBuffer buffer) {
 		}
 	}
 
@@ -91,7 +95,7 @@ public final class ZstdFactory {
 		public static final int DEFAULT_WINDOW_LOG = -1;
 
 		private long ctxPtr;
-		private final byte[] dstBuf;
+		private final byte @NotNull [] dstBuf;
 
 		public ZstdCompressStream() throws IOException {
 			this(DEFAULT_DST_BUF_SIZE, DEFAULT_COMPRESS_LEVEL, DEFAULT_WINDOW_LOG);
@@ -116,7 +120,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void compress(byte[] src, int srcPos, int srcEnd, ByteBuffer dst) {
+		public void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -134,7 +138,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void compress(byte[] src, int srcPos, int srcEnd, Codec dst) {
+		public void compress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -152,7 +156,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void flush(ByteBuffer dst) {
+		public void flush(@NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -169,7 +173,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void flush(Codec dst) {
+		public void flush(@NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -202,7 +206,7 @@ public final class ZstdFactory {
 		public static final int DEFAULT_DST_BUF_SIZE = (int)ZstdInputStreamNoFinalizer.recommendedDOutSize();
 
 		private long ctxPtr;
-		private byte[] dstBuf;
+		private byte @Nullable [] dstBuf;
 
 		public ZstdDecompressStream() throws IOException {
 			this(0);
@@ -221,7 +225,7 @@ public final class ZstdFactory {
 				throw new IllegalStateException("ctxPtr = 0");
 		}
 
-		public void decompress(byte[] src, int srcPos, int srcEnd, ByteBuffer dst) {
+		public void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull ByteBuffer dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			try {
@@ -252,7 +256,7 @@ public final class ZstdFactory {
 			}
 		}
 
-		public void decompress(byte[] src, int srcPos, int srcEnd, Codec dst) {
+		public void decompress(byte @NotNull [] src, int srcPos, int srcEnd, @NotNull Codec dst) {
 			if (ctxPtr == 0)
 				throw new IllegalStateException("ctxPtr = 0");
 			if (dstBuf == null)
@@ -284,7 +288,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static ZstdCompressStream newCompressStream() {
+	public static @NotNull ZstdCompressStream newCompressStream() {
 		try {
 			return new ZstdCompressStream();
 		} catch (IOException e) {
@@ -293,7 +297,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static ZstdCompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
+	public static @NotNull ZstdCompressStream newCompressStream(int dstBufSize, int compressLevel, int windowLog) {
 		try {
 			return new ZstdCompressStream(dstBufSize, compressLevel, windowLog);
 		} catch (IOException e) {
@@ -302,7 +306,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static ZstdDecompressStream newDecompressStream() {
+	public static @NotNull ZstdDecompressStream newDecompressStream() {
 		try {
 			return new ZstdDecompressStream();
 		} catch (IOException e) {
@@ -311,7 +315,7 @@ public final class ZstdFactory {
 		}
 	}
 
-	public static ZstdDecompressStream newDecompressStream(int dstBufSize) {
+	public static @NotNull ZstdDecompressStream newDecompressStream(int dstBufSize) {
 		try {
 			return new ZstdDecompressStream(dstBufSize);
 		} catch (IOException e) {

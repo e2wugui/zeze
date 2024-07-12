@@ -34,7 +34,7 @@ public class KuafuTransaction extends OnzTransaction<BKuafu.Data, BKuafuResult.D
 
 		m1 = future1.get().getMoney();
 		m2 = future2.get().getMoney();
-		logger.info("perform m1=" + m1 + " m2=" + m2);
+		logger.info("perform m1={} m2={}", m1, m2);
 
 		return 0;
 	}

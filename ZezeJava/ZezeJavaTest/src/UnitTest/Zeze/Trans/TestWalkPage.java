@@ -2,7 +2,6 @@ package UnitTest.Zeze.Trans;
 
 import java.util.ArrayList;
 import java.util.List;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRedis;
 import Zeze.Util.OutInt;
 import demo.App;

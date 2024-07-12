@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Objects;
 import Zeze.Util.OutInt;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * 日志文件集合，能搜索当前存在的所有日志。

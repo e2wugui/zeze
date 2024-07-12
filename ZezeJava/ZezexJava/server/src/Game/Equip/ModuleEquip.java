@@ -30,6 +30,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	int onlineTimerCount;
 	int namedTimerCount;
 	int hotTimerCount;
+
 	@Override
 	public int getOnlineTimerCount() {
 		return onlineTimerCount;
@@ -98,7 +99,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public void Stop(App app) {
 		App.Zeze.getHotManager().throwIfMatch("stop");
 
-		logger.info("Stop " + this.getFullName());
+		logger.info("Stop {}", this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
 			if (!isHotUpgrade()) {
@@ -140,7 +141,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			}
 			if (count != custom.getAttack())
 				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence()
-								+ " count=" + count + ":" + custom.getAttack());
+						+ " count=" + count + ":" + custom.getAttack());
 			custom.setAttack(count + 1);
 			var finalCount = count;
 			Transaction.whileCommit(() -> {
@@ -195,7 +196,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		{
 			var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
-			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
+			logger.info("verify oldAccess={}:{}", version0.getAttack(), oldAccess);
 			if (version0.getAttack() != oldAccess)
 				throw new RuntimeException(getLinkedMapName() + " error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
@@ -327,6 +328,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	private static class ItemsChangeListener implements ChangeListener {
 		private static final String Name = "Game.Equip.Items";
+
 		public static String getName() {
 			return Name;
 		}
@@ -334,41 +336,41 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		@Override
 		public final void OnChanged(Object key, Changes.Record c) {
 			switch (c.getState()) {
-				case Changes.Record.Put:
-					// 记录改变，通知全部。
-					BEquips bequips = (BEquips)c.getValue();
+			case Changes.Record.Put:
+				// 记录改变，通知全部。
+				BEquips bequips = (BEquips)c.getValue();
 
-					SEquipement changed = new SEquipement();
-					changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
-					changed.Argument.getItemsReplace().putAll(bequips.getItems());
+				SEquipement changed = new SEquipement();
+				changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
+				changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-					Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed);
-					break;
-				case Changes.Record.Edit:
-					// 增量变化，通知变更。
-					@SuppressWarnings("unchecked")
-					var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tequip.VAR_Items);
-					if (null != notemap2) {
-						notemap2.mergeChangedToReplaced();
-						SEquipement changed2 = new SEquipement();
-						changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
-						changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
-						for (var p : notemap2.getRemoved()) {
-							changed2.Argument.getItemsRemove().add(p);
-						}
-						Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed2);
+				Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed);
+				break;
+			case Changes.Record.Edit:
+				// 增量变化，通知变更。
+				@SuppressWarnings("unchecked")
+				var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tequip.VAR_Items);
+				if (null != notemap2) {
+					notemap2.mergeChangedToReplaced();
+					SEquipement changed2 = new SEquipement();
+					changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
+					changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+					for (var p : notemap2.getRemoved()) {
+						changed2.Argument.getItemsRemove().add(p);
 					}
-					break;
-				case Changes.Record.Remove:
-					SEquipement changed3 = new SEquipement();
-					changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-					Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed3);
-					break;
+					Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed2);
+				}
+				break;
+			case Changes.Record.Remove:
+				SEquipement changed3 = new SEquipement();
+				changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
+				Game.App.Instance.getProvider().getOnline().sendReliableNotify((Long)key, getName(), changed3);
+				break;
 			}
 		}
 	}
 
-	public int GetEquipPosition(int itemId) {
+	public static int GetEquipPosition(int itemId) {
 		return 0;
 		// 如果装备可以穿到多个位置，则需要选择其中的一个位置返回。
 		// 比如戒指，优先返回空的位置，都不为空（可能的规则）返回等级低的位置。
@@ -379,8 +381,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Exception {
-		var session = ProviderUserSession.get(rpc);
 		/*
+		var session = ProviderUserSession.get(rpc);
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
 		if (null != bItem) {
@@ -422,8 +424,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Exception {
-		var session = ProviderUserSession.get(rpc);
 		/*
+		var session = ProviderUserSession.get(rpc);
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());
 		if (null != eItem) {
@@ -448,7 +450,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return getEquipItem(equips, position);
 	}
 
-	public Game.Item.IItem getEquipItem(BEquips equips, int position) {
+	public static Game.Item.IItem getEquipItem(BEquips equips, int position) {
 		var equip = equips.getItems().get(position);
 		if (null != equip) {
 			var extraTypeId = equip.getExtra().getBean().typeId();
@@ -476,42 +478,42 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		*/
 	}
 
-    @Override
-    protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
-		var session = ProviderUserSession.get(r);
-		session.sendResponseDirect(r);
-        return 0;
-    }
-
-    @Override
-    protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
+	@Override
+	protected long ProcessSendHotRequest(Game.Equip.SendHot r) {
 		var session = ProviderUserSession.get(r);
 		session.sendResponseDirect(r);
 		return 0;
-    }
+	}
 
-    @Override
-    protected long ProcessReportLoginRequest(Game.Equip.ReportLogin r) {
+	@Override
+	protected long ProcessSendHotRemoveRequest(Game.Equip.SendHotRemove r) {
+		var session = ProviderUserSession.get(r);
+		session.sendResponseDirect(r);
+		return 0;
+	}
+
+	@Override
+	protected long ProcessReportLoginRequest(Game.Equip.ReportLogin r) {
 		var session = ProviderUserSession.get(r);
 		var roleId = session.getRoleId();
 		if (roleId == null || roleId != r.Argument.getRoleId() || timerOnline != null)
 			return Procedure.LogicError;
 		startOnlineTimer(r.Argument.getRoleId());
 		session.sendResponseWhileCommit(r);
-        return 0;
-    }
+		return 0;
+	}
 
 	private void startOnlineTimer(long roleId) {
 		this.roleId = roleId;
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, 2000, 2000,
 				-1, -1, HotTimer.class, new BEquipExtra(0, 3, 0));
-		logger.info("timerOnline=" + timerOnline);
+		logger.info("timerOnline={}", timerOnline);
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleEquip(Game.App app) {
         super(app);
     }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

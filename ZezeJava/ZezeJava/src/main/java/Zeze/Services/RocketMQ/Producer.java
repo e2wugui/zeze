@@ -10,11 +10,14 @@ import Zeze.Util.Task;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Producer extends AbstractProducer implements TransactionListener {
 	public final @NotNull Application zeze;
@@ -45,28 +48,29 @@ public class Producer extends AbstractProducer implements TransactionListener {
 	/**
 	 * 发送普通消息。没有相关事务。
 	 */
-	public void sendMessage(@NotNull Message msg) throws Exception {
-		producer.send(msg);
+	public SendResult sendMessage(@NotNull Message msg) throws Exception {
+		return producer.send(msg);
 	}
 
 	/**
 	 * 发送消息，并且把消息跟一个事务绑定起来。仅当事务执行成功时，消息才会被发送。如果事务回滚，消息将被取消。
 	 */
-	public void sendMessageWithTransaction(@NotNull Message msg,
-										   @NotNull FuncLong procedureAction) throws MQClientException {
+	public @Nullable TransactionSendResult sendMessageWithTransaction(@NotNull Message msg,
+																	  @NotNull FuncLong procedureAction)
+			throws MQClientException {
 		// msg = new Message("Topic", "tag1 || tag2", "key1", "Message Body".getBytes(RemotingHelper.DEFAULT_CHARSET));
 		var txnId = zeze.getAutoKey("RocketMQ").nextString();
 		msg.setTransactionId(txnId);
-		if (Task.call(zeze.newProcedure(() -> {
+		var r = Task.call(zeze.newProcedure(() -> {
 			_tSent.insert(txnId, new BTransactionMessageResult(false, System.currentTimeMillis()));
 			return 0;
-		}, "RocketMQ.executeLocalTransaction")) == 0)
-			producer.sendMessageInTransaction(msg, procedureAction);
+		}, "RocketMQ.executeLocalTransaction"));
+		return r == 0 ? producer.sendMessageInTransaction(msg, procedureAction) : null;
 	}
 
 	@Override
 	public @NotNull LocalTransactionState executeLocalTransaction(@NotNull Message msg, Object arg) {
-		if (Task.call(zeze.newProcedure(() -> {
+		var r = Task.call(zeze.newProcedure(() -> {
 			var sent = _tSent.get(msg.getTransactionId());
 			if (sent == null)
 				return 1;
@@ -74,13 +78,16 @@ public class Producer extends AbstractProducer implements TransactionListener {
 				return 0;
 			sent.setResult(true);
 			return ((FuncLong)arg).call();
-		}, "RocketMQ.executeLocalTransaction")) == 0)
-			return LocalTransactionState.COMMIT_MESSAGE;
+		}, "RocketMQ.executeLocalTransaction"));
 
-		Task.call(zeze.newProcedure(() -> {
-			_tSent.remove(msg.getTransactionId());
-			return 0;
-		}, "RocketMQ.executeLocalTransaction.rollback"));
+		if (r == 0)
+			return LocalTransactionState.COMMIT_MESSAGE;
+		if (r != 1) {
+			Task.call(zeze.newProcedure(() -> {
+				_tSent.remove(msg.getTransactionId());
+				return 0;
+			}, "RocketMQ.executeLocalTransaction.rollback"));
+		}
 		return LocalTransactionState.ROLLBACK_MESSAGE;
 	}
 

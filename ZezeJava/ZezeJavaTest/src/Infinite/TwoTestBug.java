@@ -8,14 +8,14 @@ public class TwoTestBug {
 		try {
 			//noinspection InfiniteLoopStatement
 			for (; ; i++) {
-				Simulate.logger.fatal("----------- CBasicSimpleAddConcurrent " + i + " -----------");
+				Simulate.logger.fatal("----------- CBasicSimpleAddConcurrent {} -----------", i);
 				var test1 = new CBasicSimpleAddConcurrent();
 				try {
 					test1.testBenchmark();
 				} catch (Throwable ex) { // print stacktrace.
 					Simulate.logger.fatal("CBasicSimpleAddConcurrent", ex);
 				}
-				Simulate.logger.fatal("----------- Simulate " + i + " -----------");
+				Simulate.logger.fatal("----------- Simulate {} -----------", i);
 				Tasks.clearAllCounters();
 				var simulate = new Simulate();
 				simulate.Infinite = false;
@@ -30,7 +30,7 @@ public class TwoTestBug {
 				}
 			}
 		} finally {
-			Simulate.logger.fatal("----------- End " + i + " -----------");
+			Simulate.logger.fatal("----------- End {} -----------", i);
 		}
 	}
 }

@@ -16,7 +16,7 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
 	}
 
 	@Override
-    protected long ProcessCEnterWorld(CEnterWorld protocol) throws Exception {
+	protected long ProcessCEnterWorld(CEnterWorld protocol) throws Exception {
 		var session = ProviderUserSession.get(protocol);
 		if (session.getRoleId() == null) {
 			return Procedure.LogicError;
@@ -27,7 +27,7 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
 	}
 
 	@Override
-    protected long ProcessCEnterWorldDone(CEnterWorldDone protocol) throws Exception {
+	protected long ProcessCEnterWorldDone(CEnterWorldDone protocol) throws Exception {
 		// map
 		return Procedure.NotImplement;
 	}
@@ -47,9 +47,9 @@ public final class ModuleMap extends AbstractModule implements IModuleMap {
 
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleMap(Game.App app) {
         super(app);
     }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

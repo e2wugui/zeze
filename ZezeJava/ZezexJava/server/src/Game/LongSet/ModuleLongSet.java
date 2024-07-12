@@ -2,8 +2,6 @@ package Game.LongSet;
 
 import java.util.Map;
 import java.util.function.Predicate;
-import Game.App;
-import Game.Timer.ModuleTimer;
 import Zeze.Component.AutoKey;
 import Zeze.Hot.HotService;
 import org.apache.logging.log4j.LogManager;
@@ -150,6 +148,7 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 				break;
 		}
 	}
+
 	@Override
 	public void start() throws Exception {
 		Start(App);
@@ -162,7 +161,6 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 
 	@Override
 	public void upgrade(HotService old) throws Exception {
-
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

@@ -6,18 +6,23 @@ import java.sql.SQLException;
 import com.alibaba.druid.pool.DruidDataSource;
 
 public class MysqlTransactionBehaviorWhenHaltProgram {
-	public static void main(String []args) throws SQLException, InterruptedException, ClassNotFoundException {
+	public static void main(String[] args) throws SQLException, InterruptedException, ClassNotFoundException {
 		String url = "jdbc:mysql://localhost:3306/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		String cmd = "prepare";
 		String driver = "jdbc";
 		for (var i = 0; i < args.length; ++i) {
 			var arg = args[i];
-			if (arg.equals("-url"))
+			switch (arg) {
+			case "-url":
 				url = args[++i];
-			else if (arg.equals("-cmd"))
+				break;
+			case "-cmd":
 				cmd = args[++i];
-			else if (arg.equals("-driver"))
+				break;
+			case "-driver":
 				driver = args[++i];
+				break;
+			}
 		}
 
 		System.out.println("driver=" + driver);

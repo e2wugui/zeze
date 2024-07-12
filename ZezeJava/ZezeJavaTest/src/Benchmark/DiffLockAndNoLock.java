@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 

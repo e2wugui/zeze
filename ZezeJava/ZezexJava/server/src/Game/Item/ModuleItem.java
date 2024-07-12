@@ -28,9 +28,9 @@ public final class ModuleItem extends AbstractModule implements IModuleItem {
 
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleItem(Game.App app) {
         super(app);
     }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }

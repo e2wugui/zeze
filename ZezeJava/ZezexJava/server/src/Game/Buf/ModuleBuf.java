@@ -1,7 +1,6 @@
 package Game.Buf;
 
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import Game.Equip.IModuleEquip;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -70,6 +69,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	}
 
 	int oldAccess = 0;
+
 	public final void Start(App app) {
 	}
 
@@ -82,7 +82,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	@Override
 	public void StopBefore() throws Exception {
-		logger.info("StopBefore " + this.getFullName());
+		logger.info("StopBefore {}", this.getFullName());
 		if (null != timerIdHot) {
 			timerIdHot.cancel(true);
 			timerIdHot = null;
@@ -118,6 +118,7 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 
 	private static class BufChangeListener implements ChangeListener {
 		private final String Name;
+
 		public final String getName() {
 			return Name;
 		}
@@ -171,9 +172,9 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		return new Bufs(roleId, _tbufs.getOrAdd(roleId));
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleBuf(Game.App app) {
         super(app);
     }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }
