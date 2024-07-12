@@ -13,9 +13,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 public final class ModuleFight extends AbstractModule implements IModuleFight {
 	private static final Logger logger = LogManager.getLogger(ModuleFight.class);
 	public final TaskCompletionSource<Boolean> areYouFight = new TaskCompletionSource<>();

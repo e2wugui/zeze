@@ -3,9 +3,6 @@ package Game.Skill;
 import Game.*;
 import Zeze.Hot.HotService;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 public final class ModuleSkill extends AbstractModule implements IModuleSkill {
 	public void Start(App app) {
 	}

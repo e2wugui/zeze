@@ -13,9 +13,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 public class ModuleBuf extends AbstractModule implements IModuleBuf {
 	private static final Logger logger = LogManager.getLogger(ModuleBuf.class);
 

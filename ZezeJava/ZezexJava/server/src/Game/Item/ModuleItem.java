@@ -3,9 +3,6 @@ package Game.Item;
 import Game.*;
 import Zeze.Hot.HotService;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 public final class ModuleItem extends AbstractModule implements IModuleItem {
 	public void Start(App app) {
 	}

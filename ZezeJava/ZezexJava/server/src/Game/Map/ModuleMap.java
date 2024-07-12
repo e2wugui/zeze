@@ -5,9 +5,6 @@ import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 public final class ModuleMap extends AbstractModule implements IModuleMap {
 	public void Start(App app) {
 	}

@@ -12,13 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 /**
  * 这是Hot版本。
  */
-
 public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	private static final Logger logger = LogManager.getLogger(ModuleEquip.class);
 
