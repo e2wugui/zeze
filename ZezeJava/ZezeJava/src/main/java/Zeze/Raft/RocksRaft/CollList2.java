@@ -184,8 +184,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			try {
 				value = (V)valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
-				return; // never run here
+				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
 			add(value);

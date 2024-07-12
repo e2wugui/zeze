@@ -76,8 +76,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			selector = Selectors.getInstance().choice();
 			selector.register(datagramChannel, SelectionKey.OP_READ, this);
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -87,8 +86,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			var ep = new InetSocketAddress(InetAddress.getByName(peer), port);
 			return new Session(ep, handle);
 		} catch (UnknownHostException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

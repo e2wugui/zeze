@@ -209,8 +209,7 @@ public final class PerfCounter extends FastLock {
 		try {
 			return fMaxDirectMemory.getLong(null);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return 0; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -26,8 +26,7 @@ public class DatabaseRocksDb extends Database {
 			rocksDb = new RocksDatabase(homePath);
 			setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRocksDb());
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -150,8 +149,7 @@ public class DatabaseRocksDb extends Database {
 		try {
 			return rocksDb.getOrAddTable(name, isNew);
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		} finally {
 			unlock();
 		}
@@ -176,8 +174,7 @@ public class DatabaseRocksDb extends Database {
 				tables[i] = new TableRocksDb(rocksDbTables[i], isNews[i]);
 			return tables;
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		} finally {
 			unlock();
 		}
@@ -221,8 +218,7 @@ public class DatabaseRocksDb extends Database {
 				var value = table.get(key.Bytes, key.ReadIndex, key.size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -251,8 +247,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				return table.getKeyNumbers();
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
-				return 0; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -422,8 +417,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				return DataWithVersion.decode(table.get(key.Bytes, key.ReadIndex, key.size()));
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			} finally {
 				unlock();
 			}
@@ -444,8 +438,7 @@ public class DatabaseRocksDb extends Database {
 				table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, 0, value.WriteIndex);
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			} finally {
 				unlock();
 			}

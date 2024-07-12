@@ -51,7 +51,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		return selectors;
 	}
 
-	@NotNull ByteBuffer getReadBuffer() {
+	@NotNull
+	ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}
 
@@ -124,7 +125,8 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		bbPool.add(bb);
 	}
 
-	@NotNull SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
+	@NotNull
+	SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
 		try {
 			SelectionKey key = sc.register(selector, ops, handle);
 			// 当引擎线程执行register时，wakeup会导致一次多余唤醒。
@@ -134,8 +136,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				selector.wakeup(); // 不会丢失。
 			return key;
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

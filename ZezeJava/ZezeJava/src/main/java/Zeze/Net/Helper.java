@@ -95,8 +95,7 @@ public final class Helper {
 			Zeze.Serialize.ByteBuffer.intBeHandler.set(addr, 0, address);
 			return InetAddress.getByAddress(addr);
 		} catch (UnknownHostException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -141,8 +140,7 @@ public final class Helper {
 			}
 			return bestAddr != null ? bestAddr.getHostAddress() : "";
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			return ""; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

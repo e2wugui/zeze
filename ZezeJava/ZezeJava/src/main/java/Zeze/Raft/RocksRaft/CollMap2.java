@@ -136,8 +136,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			try {
 				value = (V)valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
-				return; // never run here
+				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
 			put(key, value);

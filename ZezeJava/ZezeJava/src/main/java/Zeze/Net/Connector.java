@@ -44,8 +44,7 @@ public class Connector extends ReentrantLock {
 			Class<?> ccls = Class.forName(className);
 			return (Connector)ccls.getConstructor(Element.class).newInstance(e);
 		} catch (Exception ex) {
-			Task.forceThrow(ex);
-			return null; // never run here
+			throw Task.forceThrow(ex);
 		}
 	}
 

@@ -29,8 +29,7 @@ public abstract class Data implements Serializable, Cloneable {
 		try {
 			return (Data)super.clone();
 		} catch (CloneNotSupportedException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 }

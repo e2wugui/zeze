@@ -295,7 +295,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 			}
 			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
-		} catch (Throwable e) { // rethrow RuntimeException
+		} catch (Throwable e) { // rethrow
 			Task.forceThrow(e);
 		}
 	}

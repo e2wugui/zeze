@@ -61,8 +61,7 @@ public final class BeanFactory {
 		try {
 			return beanClass.getConstructor().newInstance().typeId();
 		} catch (Exception ex) {
-			Task.forceThrow(ex);
-			return 0; // never run here
+			throw Task.forceThrow(ex);
 		}
 	}
 
@@ -90,8 +89,7 @@ public final class BeanFactory {
 						classes.add(beanNewClass);
 						return Reflect.getDefaultConstructor(beanNewClass);
 					} catch (Throwable ex) { // MethodHandle.invoke
-						Task.forceThrow(ex);
-						throw new AssertionError(); // never run here
+						throw Task.forceThrow(ex);
 					}
 				});
 				bf.readingBeanFactory = null;
@@ -106,8 +104,7 @@ public final class BeanFactory {
 						classes.add(beanNewClass);
 						return Reflect.getDefaultConstructor(beanNewClass);
 					} catch (Throwable ex) { // MethodHandle.invoke
-						Task.forceThrow(ex);
-						throw new AssertionError(); // never run here
+						throw Task.forceThrow(ex);
 					}
 				});
 				bf.readingDataFactory = null;
@@ -326,8 +323,7 @@ public final class BeanFactory {
 		try {
 			return (T)methodHandle.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -337,8 +333,7 @@ public final class BeanFactory {
 		try {
 			s = (Serializable)ctor.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 		if (s instanceof Bean) {
 			writingBeanFactoryLock.lock();
@@ -439,8 +434,7 @@ public final class BeanFactory {
 			register(beanTypeId, beanCtor);
 			return bean;
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -476,8 +470,7 @@ public final class BeanFactory {
 			registerData(dataTypeId, dataCtor);
 			return data;
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -37,8 +37,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		try {
 			return (V)meta.valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -78,8 +78,7 @@ public final class Str {
 			ex.printStackTrace(ps);
 			return out.toString(StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

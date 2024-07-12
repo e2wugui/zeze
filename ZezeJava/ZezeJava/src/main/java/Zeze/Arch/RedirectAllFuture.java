@@ -200,8 +200,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		try {
 			return onResult(onResult);
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -249,8 +248,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		try {
 			return onAllDone(onAllDone);
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

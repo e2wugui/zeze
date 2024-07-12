@@ -69,9 +69,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return cmd.getInt(3);
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				//noinspection UnreachableCode
-				return -1; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -93,8 +91,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -122,8 +119,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -325,8 +321,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				ResultSet resultSet = meta.getTables(null, null, this.name, new String[]{"TABLE"});
 				isNew = resultSet.next();
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
+				throw Task.forceThrow(e);
 			}
 
 			try (var connection = dataSource.getConnection()) {
@@ -343,7 +338,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				}
 			} catch (SQLException e) {
 				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
 			}
 		}
 
@@ -369,8 +363,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -448,9 +441,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				//noinspection UnreachableCode
-				return -1; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -477,9 +468,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return count;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				//noinspection UnreachableCode
-				return -1; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -510,8 +499,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -542,8 +530,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -574,8 +561,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -606,8 +592,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 				}
 			} catch (SQLException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 	}

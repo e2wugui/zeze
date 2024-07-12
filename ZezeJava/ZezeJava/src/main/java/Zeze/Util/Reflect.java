@@ -98,14 +98,13 @@ public class Reflect {
 		try {
 			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
 	public TransactionLevel getTransactionLevel(@NotNull String methodName, TransactionLevel def) {
 		var method = methods.get(methodName);
-		if (null == method)
+		if (method == null)
 			return def;
 
 		var annotation = method.getAnnotation(TransactionLevelAnnotation.class);
@@ -114,7 +113,7 @@ public class Reflect {
 
 	public DispatchMode getDispatchMode(@NotNull String methodName, DispatchMode def) {
 		var method = methods.get(methodName);
-		if (null == method)
+		if (method == null)
 			return def;
 
 		var annotation = method.getAnnotation(DispatchModeAnnotation.class);

@@ -87,15 +87,12 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		public AsyncSocket connect() {
 			try {
 				var so = connector.TryGetReadySocket();
-				if (so != null)
-					return so;
-
-				return connector.WaitReady();
+				return so != null ? so : connector.WaitReady();
 			} catch (Throwable abort) { // rethrow RuntimeException
 				setFastFail();
 				throwException("GlobalAgent Login Failed", abort);
+				return null; // never run here
 			}
-			return null; // never run here
 		}
 
 		public void close() {

@@ -106,8 +106,7 @@ public final class Table<K, V extends Bean> {
 		try {
 			return (V)valueFactory.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -198,8 +197,7 @@ public final class Table<K, V extends Bean> {
 		try {
 			valueBytes = rocksTable.get(keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 		if (valueBytes == null)
 			return null;

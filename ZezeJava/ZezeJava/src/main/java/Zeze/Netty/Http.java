@@ -114,8 +114,7 @@ public final class Http {
 						MethodType.methodType(HttpEndStreamHandle.class), mt, lookup.unreflect(method), mt);
 				handler = Objects.requireNonNull((HttpEndStreamHandle)callSite.getTarget().invokeExact());
 			} catch (Throwable e) { // rethrow
-				Task.forceThrow(e);
-				break; // never run here
+				throw Task.forceThrow(e);
 			}
 			httpServer.addHandler(parentPath + path, maxContentLength, transactionLevel, dispatchMode, handler);
 			n++;

@@ -93,8 +93,7 @@ public final class GenModule extends ReentrantLock {
 		try {
 			return newModule(Class.forName(GenModule.getRedirectClassName(moduleClass)), app);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -182,8 +181,7 @@ public final class GenModule extends ReentrantLock {
 			} catch (Exception e) {
 				if (i < n)
 					throw new IllegalStateException("module class: " + moduleClasses[i].getName(), e);
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		} finally {
 			unlock();

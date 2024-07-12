@@ -55,8 +55,7 @@ public class Vector2Int implements Comparable<Vector2Int>, Cloneable {
 		try {
 			return (Vector2Int)super.clone();
 		} catch (CloneNotSupportedException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

@@ -71,8 +71,7 @@ public abstract class DatabaseJdbc extends Database {
 		try {
 			return new JdbcTrans(dataSource.getConnection());
 		} catch (SQLException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

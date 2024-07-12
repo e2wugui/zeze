@@ -61,8 +61,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 				t = (Thread)mhUnstarted.invoke(virtualThreadBuilder, r);
 				t.setName(namePrefix + threadNumber.incrementAndGet());
 			} catch (Throwable e) { // rethrow
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		} else {
 			t = new Thread(r, namePrefix + threadNumber.incrementAndGet());

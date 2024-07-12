@@ -234,8 +234,7 @@ public interface IByteBuffer {
 			 var os = new ObjectInputStream(bs)) {
 			return (T)os.readObject();
 		} catch (IOException | ClassNotFoundException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

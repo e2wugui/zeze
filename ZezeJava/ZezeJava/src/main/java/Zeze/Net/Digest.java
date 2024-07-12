@@ -18,9 +18,7 @@ public final class Digest {
 			md5.update(message, offset, len);
 			return md5.digest();
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			//noinspection UnreachableCode
-			return ByteBuffer.Empty; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -31,9 +29,7 @@ public final class Digest {
 			mac.update(data, offset, length);
 			return mac.doFinal();
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			//noinspection UnreachableCode
-			return ByteBuffer.Empty; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

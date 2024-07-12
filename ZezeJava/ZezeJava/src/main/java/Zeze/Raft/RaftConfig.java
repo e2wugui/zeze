@@ -323,8 +323,7 @@ public final class RaftConfig {
 			var doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is);
 			return new RaftConfig(doc, null, doc.getDocumentElement());
 		} catch (Exception e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

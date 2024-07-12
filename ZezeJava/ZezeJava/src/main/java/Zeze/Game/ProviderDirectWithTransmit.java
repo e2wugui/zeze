@@ -23,8 +23,7 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 						throw new IllegalStateException("not based on " + Serializable.class.getName());
 					return lookup.findConstructor(cls, voidType);
 				} catch (ReflectiveOperationException e) {
-					Task.forceThrow(e);
-					return null; // never run here
+					throw Task.forceThrow(e);
 				}
 			}).invoke();
 		} catch (Throwable e) { // MethodHandle.invoke

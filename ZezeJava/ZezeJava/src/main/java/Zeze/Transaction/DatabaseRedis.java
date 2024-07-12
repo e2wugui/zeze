@@ -41,8 +41,7 @@ public class DatabaseRedis extends Database {
 			config.setMaxWait(Duration.ofMillis(10_000)); // 等待可用连接的时长上限,超时会抛JedisConnectionException,默认-1表示没有超时
 			pool = new JedisPool(config, new URI(getDatabaseUrl()));
 		} catch (URISyntaxException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesRedis(pool));
 	}
@@ -282,7 +281,6 @@ public class DatabaseRedis extends Database {
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
 					Task.forceThrow(e);
-					// never run here
 				}
 			}
 		}
@@ -313,7 +311,6 @@ public class DatabaseRedis extends Database {
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
 					Task.forceThrow(e);
-					// never run here
 				}
 			}
 		}

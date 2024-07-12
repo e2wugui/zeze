@@ -516,8 +516,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr).parse(klass);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}
@@ -528,8 +527,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr).parse(klass);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}
@@ -540,8 +538,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr, pos).parse(klass);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}
@@ -552,8 +549,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr).parse(obj);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}
@@ -564,8 +560,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr).parse(obj);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}
@@ -576,8 +571,7 @@ public final class Json implements Cloneable {
 		try {
 			return jr.buf(jsonStr, pos).parse(obj);
 		} catch (ReflectiveOperationException e) {
-			Task.forceThrow(e);
-			return null; // neven run here
+			throw Task.forceThrow(e);
 		} finally {
 			jr.reset();
 		}

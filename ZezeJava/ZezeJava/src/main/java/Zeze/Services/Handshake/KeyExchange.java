@@ -130,9 +130,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			var rsaPubKey = Cert.loadRsaPublicKey(new BigInteger(1, pubKeyN), pubKeyE);
 			return Cert.encryptRsa(rsaPubKey, data);
 		} catch (GeneralSecurityException e) {
-			Task.forceThrow(e);
-			//noinspection UnreachableCode
-			return ByteBuffer.Empty; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -184,8 +182,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		try {
 			clientIvKey = Cert.decryptRsa(priKey, Argument.encIvKey);
 		} catch (GeneralSecurityException e) {
-			Task.forceThrow(e);
-			return 0; // never run here
+			throw Task.forceThrow(e);
 		}
 		if (clientIvKey.length != 32) {
 			trySendResultCode(Res.ErrorDecryptFailed);

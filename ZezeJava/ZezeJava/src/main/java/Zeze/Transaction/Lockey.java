@@ -75,8 +75,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 				return readLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return readLock.tryLock();
 		} catch (InterruptedException e) {
-			Task.forceThrow(e);
-			return false; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -89,8 +88,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 				return writeLock.tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 			return writeLock.tryLock();
 		} catch (InterruptedException e) {
-			Task.forceThrow(e);
-			return false; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

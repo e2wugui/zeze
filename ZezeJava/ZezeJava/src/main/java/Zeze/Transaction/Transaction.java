@@ -13,6 +13,7 @@ import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -809,6 +810,7 @@ public final class Transaction {
 		return holdLocks.size();
 	}
 
+	@Contract("_, _ -> fail")
 	public void throwAbort(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running: " + state + ", msg: " + msg, cause);
@@ -816,6 +818,7 @@ public final class Transaction {
 		GoBackZeze.Throw(msg, cause);
 	}
 
+	@Contract("_, _ -> fail")
 	public void throwRedoAndReleaseLock(@Nullable String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
@@ -823,6 +826,7 @@ public final class Transaction {
 		GoBackZeze.Throw(msg, cause);
 	}
 
+	@Contract("-> fail")
 	public void throwRedo() {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);

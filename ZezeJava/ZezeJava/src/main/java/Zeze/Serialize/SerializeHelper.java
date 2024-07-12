@@ -83,8 +83,7 @@ public final class SerializeHelper {
 			try {
 				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 			((Serializable)obj).decode(bb);
 			return obj;
@@ -103,8 +102,7 @@ public final class SerializeHelper {
 			try {
 				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			} catch (ReflectiveOperationException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 			((Serializable)obj).decode(bb);
 			return obj;

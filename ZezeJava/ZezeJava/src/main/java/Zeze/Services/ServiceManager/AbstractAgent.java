@@ -331,8 +331,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		try {
 			return subscribeServicesAsync(infos).get();
 		} catch (InterruptedException | ExecutionException e) {
-			Task.forceThrow(e);
-			throw new AssertionError(); // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

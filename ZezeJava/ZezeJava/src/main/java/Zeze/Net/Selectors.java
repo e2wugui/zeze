@@ -145,8 +145,7 @@ public class Selectors extends ReentrantLock {
 			selectorList = tmp;
 			return this;
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

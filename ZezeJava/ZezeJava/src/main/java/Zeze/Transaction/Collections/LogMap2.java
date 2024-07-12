@@ -118,8 +118,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			try {
 				value = (V)meta.valueFactory.invoke();
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
-				return; // never run here
+				throw Task.forceThrow(e);
 			}
 			value.decode(bb);
 			getReplaced().put(key, value);

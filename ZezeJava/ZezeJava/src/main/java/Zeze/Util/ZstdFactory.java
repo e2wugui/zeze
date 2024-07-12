@@ -115,8 +115,7 @@ public final class ZstdFactory {
 				if (r != 0)
 					throw new IllegalStateException("mhResetCStream = " + r);
 			} catch (Throwable e) { // MethodHandle.invoke
-				Task.forceThrow(e);
-				throw new AssertionError(); // never run here
+				throw Task.forceThrow(e);
 			}
 		}
 
@@ -292,8 +291,7 @@ public final class ZstdFactory {
 		try {
 			return new ZstdCompressStream();
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -301,8 +299,7 @@ public final class ZstdFactory {
 		try {
 			return new ZstdCompressStream(dstBufSize, compressLevel, windowLog);
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -310,8 +307,7 @@ public final class ZstdFactory {
 		try {
 			return new ZstdDecompressStream();
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -319,8 +315,7 @@ public final class ZstdFactory {
 		try {
 			return new ZstdDecompressStream(dstBufSize);
 		} catch (IOException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 }

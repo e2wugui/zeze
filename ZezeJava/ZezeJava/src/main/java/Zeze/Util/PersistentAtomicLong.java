@@ -117,8 +117,7 @@ public class PersistentAtomicLong {
 			try {
 				return new FileWithLock(k, "rw");
 			} catch (FileNotFoundException e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 		});
 	}

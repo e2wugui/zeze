@@ -51,9 +51,8 @@ public class ServiceManager {
 		try {
 			return pb.start();
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
-		return null; // never run here
 	}
 
 	public void startService(StartService r) {
@@ -61,7 +60,6 @@ public class ServiceManager {
 		var process = processes.computeIfAbsent(serviceName, __ -> newProcess(serviceName));
 		r.Result.setServiceName(serviceName);
 		r.Result.setState("running");
-		assert process != null;
 		r.Result.setPs(process.info().toString());
 	}
 

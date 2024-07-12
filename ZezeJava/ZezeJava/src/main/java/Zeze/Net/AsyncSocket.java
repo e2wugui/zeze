@@ -429,8 +429,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					logger.error("SocketChannel.close exception:", ex);
 				}
 			}
-			Task.forceThrow(e);
-			throw new AssertionError(); // neven run here
+			throw Task.forceThrow(e);
 		}
 	}
 

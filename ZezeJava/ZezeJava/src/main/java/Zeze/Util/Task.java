@@ -23,6 +23,7 @@ import Zeze.Transaction.Transaction;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -377,8 +378,7 @@ public final class Task {
 				return func.call();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule exception:", e);
-				forceThrow(e);
-				return null; // never run here
+				throw forceThrow(e);
 			} finally {
 				//noinspection ConstantValue
 				if (PerfCounter.ENABLE_PERF && func != null)
@@ -1124,7 +1124,8 @@ public final class Task {
 
 	// 利用编译器的漏洞(?)强制抛出任何异常,调用者不必声明throws或包装成RuntimeException,建议只在必要时使用
 	@SuppressWarnings("unchecked")
-	public static <E extends Throwable> void forceThrow(Throwable e) throws E {
+	@Contract("_ -> fail")
+	public static <E extends Throwable> RuntimeException forceThrow(@NotNull Throwable e) throws E {
 		throw (E)e;
 	}
 

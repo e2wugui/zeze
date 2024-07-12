@@ -293,8 +293,7 @@ public class Service extends ReentrantLock {
 		try {
 			return newServerSocket(InetAddress.getByName(ipaddress), port, acceptor);
 		} catch (UnknownHostException e) {
-			Task.forceThrow(e);
-			return null; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 

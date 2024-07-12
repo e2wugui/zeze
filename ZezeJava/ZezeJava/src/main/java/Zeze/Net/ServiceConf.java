@@ -114,8 +114,7 @@ public final class ServiceConf extends ReentrantLock {
 			try {
 				add = cf.call(host, port, autoReconnect);
 			} catch (Exception e) {
-				Task.forceThrow(e);
-				return null; // never run here
+				throw Task.forceThrow(e);
 			}
 			add.SetService(service);
 			addNew.value = add;

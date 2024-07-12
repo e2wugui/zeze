@@ -144,8 +144,7 @@ public final class Raft {
 		try {
 			return condition.await(time, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			Task.forceThrow(e);
-			return false; // never run here
+			throw Task.forceThrow(e);
 		}
 	}
 
