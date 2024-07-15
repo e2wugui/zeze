@@ -1,6 +1,7 @@
 package Zeze.Netty;
 
 import java.io.Closeable;
+import java.net.InetSocketAddress;
 import Zeze.Util.Task;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -82,6 +83,47 @@ public class Netty implements Closeable {
 			closeAsync().sync();
 		} catch (InterruptedException e) {
 			Task.forceThrow(e);
+		}
+	}
+
+	public static void main(String[] args) throws Exception {
+		String host = null;
+		int port = 0;
+		int threads = 1;
+		String urlpath = "/";
+		String filepath = ".";
+		boolean canListPath = false;
+
+		for (int i = 0; i < args.length; i++) {
+			switch (args[i]) {
+			case "-host":
+				host = args[++i];
+				break;
+			case "-port":
+				port = Integer.parseInt(args[++i]);
+				break;
+			case "-threads":
+				threads = Integer.parseInt(args[++i]);
+				break;
+			case "-urlpath":
+				urlpath = args[++i];
+				break;
+			case "-filepath":
+				filepath = args[++i];
+				break;
+			case "-canListPath":
+				canListPath = true;
+				break;
+			}
+		}
+
+		Task.tryInitThreadPool();
+		try (var netty = new Netty(threads); var server = new HttpServer()) {
+			server.addFileHandler(urlpath, filepath, canListPath);
+			var channel = server.start(netty, host, port).sync().channel();
+			port = ((InetSocketAddress)channel.localAddress()).getPort();
+			logger.info("listening http port: {}", port);
+			channel.closeFuture().sync();
 		}
 	}
 }
