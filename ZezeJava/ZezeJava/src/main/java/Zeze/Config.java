@@ -811,18 +811,15 @@ public final class Config {
 
 	public static final class DruidConf {
 		public String driverClassName;
-		public Integer initialSize;
-		public Integer maxActive;
-		public Integer maxIdle;
-		public Integer minIdle;
-		public Long maxWait;
-		public Integer phyMaxUseCount;
-		public Long phyTimeoutMillis;
-
-		public Integer maxOpenPreparedStatements;
-
 		public String userName;
 		public String password;
+		public Integer initialSize;
+		public Integer minIdle;
+		public Integer maxActive;
+		public Long maxWait;
+		public Integer maxOpenPreparedStatements;
+		public Integer phyMaxUseCount;
+		public Long phyTimeoutMillis;
 
 		private static @Nullable String EmptyToNullString(@NotNull String attr) {
 			var trim = attr.trim();
@@ -844,17 +841,15 @@ public final class Config {
 
 		public DruidConf(@NotNull Element self) {
 			driverClassName = EmptyToNullString(self.getAttribute("DriverClassName"));
+			userName = EmptyToNullString(self.getAttribute("UserName"));
+			password = EmptyToNullString(self.getAttribute("Password"));
 			initialSize = EmptyToNullInteger(self.getAttribute("InitialSize"));
-			maxActive = EmptyToNullInteger(self.getAttribute("MaxActive"));
-			maxIdle = EmptyToNullInteger(self.getAttribute("MaxIdle"));
 			minIdle = EmptyToNullInteger(self.getAttribute("MinIdle"));
+			maxActive = EmptyToNullInteger(self.getAttribute("MaxActive"));
 			maxWait = EmptyToNullLong(self.getAttribute("MaxWait"));
 			maxOpenPreparedStatements = EmptyToNullInteger(self.getAttribute("MaxOpenPreparedStatements"));
 			phyMaxUseCount = EmptyToNullInteger(self.getAttribute("PhyMaxUseCount"));
 			phyTimeoutMillis = EmptyToNullLong(self.getAttribute("PhyTimeoutMillis"));
-
-			userName = EmptyToNullString(self.getAttribute("UserName"));
-			password = EmptyToNullString(self.getAttribute("Password"));
 		}
 	}
 

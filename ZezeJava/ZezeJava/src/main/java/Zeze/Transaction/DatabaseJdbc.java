@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Objects;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Util.Task;
@@ -15,41 +16,47 @@ public abstract class DatabaseJdbc extends Database {
 	public DatabaseJdbc(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 
-		var druidConf = conf.getDruidConf();
-		var pool = dataSource; // 连接池
+		var dc = conf.getDruidConf();
+		var ds = dataSource;
 
-		// must present
-		pool.setUrl(conf.getDatabaseUrl());
-		pool.setDriverClassName(druidConf.driverClassName); // setup in Zeze.Config.DatabaseConf
+		// 数据库连接的URL: jdbc:mysql://localhost:3306/dbname?user=root&password=xxxx&useSSL=false&serverTimezone=UTC
+		ds.setUrl(conf.getDatabaseUrl());
 
-		// always on
-		pool.setPoolPreparedStatements(true);
-		pool.setKillWhenSocketReadTimeout(true); // 总是设置，防止错误连接的结果被下一个查询得到。
-		pool.setMaxPoolPreparedStatementPerConnectionSize(32);
+		// 数据库驱动类名, null表示根据url前缀自动设置, 默认:null
+		ds.setDriverClassName(dc.driverClassName);
 
-		// options
-		if (druidConf.initialSize != null)
-			pool.setInitialSize(druidConf.initialSize); // 初始的连接数；
-		if (druidConf.maxActive != null)
-			pool.setMaxActive(druidConf.maxActive);
-		if (druidConf.minIdle != null)
-			pool.setMinIdle(druidConf.minIdle);
-		if (druidConf.maxWait != null)
-			pool.setMaxWait(druidConf.maxWait);
-		if (druidConf.maxOpenPreparedStatements != null)
-			pool.setMaxOpenPreparedStatements(druidConf.maxOpenPreparedStatements);
-		//if (druidConf.maxIdle != null)
-		//	pool.setMaxIdle(druidConf.maxIdle);
+		// 连接的用户名, 如果URL有用户名则可以不设置或设置为null, 默认:null
+		ds.setUsername(dc.userName);
 
-		if (druidConf.phyMaxUseCount != null)
-			pool.setPhyMaxUseCount(druidConf.phyMaxUseCount);
-		if (druidConf.phyTimeoutMillis != null)
-			pool.setPhyTimeoutMillis(druidConf.phyTimeoutMillis);
+		// 连接的密码, 如果URL有密码则可以不设置或设置为null, 默认:null
+		ds.setPassword(dc.password);
 
-		if (druidConf.userName != null)
-			pool.setUsername(druidConf.userName);
-		if (druidConf.password != null)
-			pool.setPassword(druidConf.password);
+		// 总是开启PreparedStatement缓存, 默认:false
+		ds.setPoolPreparedStatements(true);
+
+		// 总是设置,防止错误连接的结果被下一个查询得到, 默认:false
+		ds.setKillWhenSocketReadTimeout(true);
+
+		// 初始连接数, 默认:0
+		ds.setInitialSize(Objects.requireNonNullElse(dc.initialSize, 4));
+
+		// 最小空闲连接数, 默认:0
+		ds.setMinIdle(Objects.requireNonNullElse(dc.minIdle, 4));
+
+		// 最大连接数(MySQL服务器连接数上限默认151), 默认:8
+		ds.setMaxActive(Objects.requireNonNullElse(dc.maxActive, 32));
+
+		// 等待可用连接的超时时间, <=0表示没有超时, 默认:-1
+		ds.setMaxWait(Objects.requireNonNullElse(dc.maxWait, -1L));
+
+		// 每个连接的PreparedStatement缓存数量上限(MySQL服务器总量上限默认16K), 开启缓存时默认:10
+		ds.setMaxOpenPreparedStatements(Objects.requireNonNullElse(dc.maxOpenPreparedStatements, 256));
+
+		// 通常无需配置, 默认:-1
+		ds.setPhyMaxUseCount(Objects.requireNonNullElse(dc.phyMaxUseCount, -1));
+
+		// 通常无需配置, 默认:-1
+		ds.setPhyTimeoutMillis(Objects.requireNonNullElse(dc.phyTimeoutMillis, -1L));
 	}
 
 	@Override
