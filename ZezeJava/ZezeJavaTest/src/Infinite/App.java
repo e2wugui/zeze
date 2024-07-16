@@ -41,6 +41,12 @@ public class App {
 
 		config.getServiceConfMap().remove("TestServer");
 		coverHistory = new CoverHistory(this.app);
+
+		for (var dbCfg : config.getDatabaseConfMap().values()) {
+			var dc = dbCfg.getDruidConf();
+			if (dc != null && (dc.maxActive == null || dc.maxActive > 10))
+				dc.maxActive = 10;
+		}
 	}
 
 	public int getServerId() {
