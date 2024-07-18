@@ -56,8 +56,10 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> c) {
+		if (c.isEmpty())
+			return false;
 		if (c instanceof PSet1)
-			c = ((PSet1<? extends V>)c).getSet();
+			c = ((PSet1<? extends V>)c).getSet(); // more stable
 		for (var v : c) {
 			if (v == null)
 				throw new IllegalArgumentException("null item");
@@ -79,6 +81,8 @@ public class PSet1<V> extends PSet<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
+		if (c.isEmpty() || isEmpty())
+			return false;
 		if (isManaged()) {
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -93,6 +97,8 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public void clear() {
+		if (isEmpty())
+			return;
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(

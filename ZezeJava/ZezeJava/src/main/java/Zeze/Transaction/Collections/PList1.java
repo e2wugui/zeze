@@ -35,10 +35,7 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.add(item);
 		}
-		var newList = list.plus(item);
-		if (newList == list)
-			return false;
-		list = newList;
+		list = list.plus(item);
 		return true;
 	}
 
@@ -59,6 +56,8 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void clear() {
+		if (isEmpty())
+			return;
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -115,8 +114,10 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> items) {
+		if (items.isEmpty())
+			return false;
 		if (items instanceof PList1)
-			items = ((PList1<? extends V>)items).getList();
+			items = ((PList1<? extends V>)items).getList(); // more stable
 		for (var v : items) {
 			if (v == null)
 				throw new IllegalArgumentException("null item");
@@ -135,6 +136,8 @@ public class PList1<V> extends PList<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
+		if (c.isEmpty() || isEmpty())
+			return false;
 		if (isManaged()) {
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -147,13 +150,13 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void replaceAll(@NotNull UnaryOperator<V> operator) {
-		if (list.isEmpty())
+		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
 		for (V v : this) {
 			v = operator.apply(v);
 			if (v == null)
-				throw new IllegalArgumentException("null item");
+				throw new IllegalStateException("null item");
 			tmpList.add(v);
 		}
 		if (isManaged()) {
@@ -168,7 +171,7 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public void sort(@NotNull Comparator<? super V> c) {
-		if (list.isEmpty())
+		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);

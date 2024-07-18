@@ -32,6 +32,8 @@ import org.junit.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
+	private static int serializeCount = 5_0000;
+
 	@Test
 	public void testCompressRate() {
 		var rand = new java.util.Random(1); // 固定的随机种子。
@@ -406,38 +408,37 @@ public class BenchSocket {
 		// encode
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
-		var count = 5_0000;
-		for (var i = 0; i < count; ++i) {
+		for (var i = 0; i < serializeCount; ++i) {
 			var bb = ByteBuffer.Allocate();
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encodeBean", count);
+		var seconds = b.report("encodeBean", serializeCount);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
-		var b2 = new Zeze.Util.Benchmark();
 		var encoded = ByteBuffer.Allocate();
 		bValue.encode(encoded);
 		var dummy = 0;
-		for (var i = 0; i < count; ++i) {
+		var b2 = new Zeze.Util.Benchmark();
+		for (var i = 0; i < serializeCount; ++i) {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue();
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decodeBean", count);
+		seconds = b2.report("decodeBean", serializeCount);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		System.out.println("dummy=" + dummy);
 
 		// copy
-		var b3 = new Zeze.Util.Benchmark();
 		dummy = 0;
-		for (var i = 0; i < count; ++i) {
+		var b3 = new Zeze.Util.Benchmark();
+		for (var i = 0; i < serializeCount; ++i) {
 			var value = bValue.copy();
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		b3.report("  copyBean", count);
+		b3.report("  copyBean", serializeCount);
 		System.out.println("dummy=" + dummy);
 	}
 
@@ -473,38 +474,37 @@ public class BenchSocket {
 		// encode
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
-		var count = 5_0000;
-		for (var i = 0; i < count; ++i) {
+		for (var i = 0; i < serializeCount; ++i) {
 			var bb = ByteBuffer.Allocate();
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encodeData", count);
+		var seconds = b.report("encodeData", serializeCount);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
-		var b2 = new Zeze.Util.Benchmark();
 		var encoded = ByteBuffer.Allocate();
 		bValue.encode(encoded);
 		var dummy = 0;
-		for (var i = 0; i < count; ++i) {
+		var b2 = new Zeze.Util.Benchmark();
+		for (var i = 0; i < serializeCount; ++i) {
 			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
 			var value = new BValue.Data();
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decodeData", count);
+		seconds = b2.report("decodeData", serializeCount);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 		System.out.println("dummy=" + dummy);
 
 		// copy
-		var b3 = new Zeze.Util.Benchmark();
 		dummy = 0;
-		for (var i = 0; i < count; ++i) {
+		var b3 = new Zeze.Util.Benchmark();
+		for (var i = 0; i < serializeCount; ++i) {
 			var value = bValue.copy();
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		b3.report("  copyData", count);
+		b3.report("  copyData", serializeCount);
 		System.out.println("dummy=" + dummy);
 	}
 
@@ -675,6 +675,17 @@ public class BenchSocket {
 		} finally {
 			client.stop();
 			server.stop();
+		}
+	}
+
+	public static void main(String[] args) {
+		serializeCount = 1_000_000;
+		var b = new BenchSocket();
+		for (int i = 0; i < 3; i++) {
+			b.testSerializeBean();
+			System.out.println("---");
+			b.testSerializeData();
+			System.out.println("===");
 		}
 	}
 }

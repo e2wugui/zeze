@@ -43,8 +43,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
+		if (m.isEmpty())
+			return;
 		if (m instanceof PMap1)
-			m = ((PMap1<? extends K, ? extends V>)m).getMap();
+			m = ((PMap1<? extends K, ? extends V>)m).getMap(); // more stable
 		for (var e : m.entrySet()) {
 			if (e.getKey() == null)
 				throw new IllegalArgumentException("null key");
@@ -94,6 +96,8 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public void clear() {
+		if (isEmpty())
+			return;
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(

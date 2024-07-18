@@ -75,28 +75,29 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
-		for (var p : m.entrySet()) {
-			var k = p.getKey();
-			if (k == null)
-				throw new IllegalArgumentException("null key");
-			var v = p.getValue();
-			if (v == null)
-				throw new IllegalArgumentException("null value");
-		}
+		if (m.isEmpty())
+			return;
+		if (m instanceof PMap2)
+			m = ((PMap2<? extends K, ? extends V>)m).getMap(); // more stable
 
 		if (isManaged()) {
-			for (var p : m.entrySet()) {
-				var v = p.getValue();
+			for (var e : m.entrySet()) {
+				if (e.getKey() == null)
+					throw new IllegalArgumentException("null key");
+				var v = e.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
-				v.mapKey(p.getKey());
+				v.mapKey(e.getKey());
 			}
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
 		} else {
-			for (var p : m.entrySet())
-				p.getValue().mapKey(p.getKey());
+			for (var e : m.entrySet()) {
+				if (e.getKey() == null)
+					throw new IllegalArgumentException("null key");
+				e.getValue().mapKey(e.getKey());
+			}
 			map = map.plusAll(m);
 		}
 	}
@@ -119,13 +120,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	public boolean remove(@NotNull Entry<K, V> item) {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(item.getKey(), item.getValue());
 		}
 		var old = map;
 		var exist = old.get(item.getKey());
-		if (null != exist && exist.equals(item.getValue())) {
+		if (exist != null && exist.equals(item.getValue())) {
 			map = map.minus(item.getKey());
 			return true;
 		}
@@ -134,6 +135,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	public void clear() {
+		if (isEmpty())
+			return;
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -221,8 +224,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		Bean.toBeanMap(dataMap, this);
 	}
 
-	public <D extends Data> void toDataMap(@NotNull Map<K, D> dataList) {
-		Bean.toDataMap(getMap(), dataList);
+	public <D extends Data> void toDataMap(@NotNull Map<K, D> dataMap) {
+		Bean.toDataMap(getMap(), dataMap);
 	}
 
 	public <D extends Data> @NotNull HashMap<K, D> toDataMap() {

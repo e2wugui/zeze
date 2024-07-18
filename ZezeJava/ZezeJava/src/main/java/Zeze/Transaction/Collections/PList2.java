@@ -79,6 +79,8 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void clear() {
+		if (isEmpty())
+			return;
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -137,6 +139,10 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> items) {
+		if (items.isEmpty())
+			return false;
+		if (items instanceof PList2)
+			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
 			for (var item : items)
 				item.initRootInfoWithRedo(rootInfo, this);
@@ -145,6 +151,10 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.addAll(items);
 		}
+		for (var v : items) {
+			if (v == null)
+				throw new IllegalArgumentException("null item");
+		}
 		list = list.plusAll(items);
 		return true;
 	}
@@ -152,6 +162,8 @@ public class PList2<V extends Bean> extends PList<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(@NotNull Collection<?> c) {
+		if (c.isEmpty() || isEmpty())
+			return false;
 		if (isManaged()) {
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
@@ -164,7 +176,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public void replaceAll(@NotNull UnaryOperator<V> operator) {
-		if (list.isEmpty())
+		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
@@ -179,17 +191,20 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			return;
+		} else {
+			for (V v : this) {
+				v = operator.apply(v);
+				if (v == null)
+					throw new IllegalStateException("null item");
+				tmpList.add(v);
+			}
+			list = Empty.<V>vector().plusAll(tmpList);
 		}
-		for (V v : this)
-			tmpList.add(operator.apply(v));
-		list = Empty.vector();
-		list = list.plusAll(tmpList);
 	}
 
 	@Override
 	public void sort(@NotNull Comparator<? super V> c) {
-		if (list.isEmpty())
+		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<>(this);
 		tmpList.sort(c);
@@ -199,10 +214,8 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			return;
-		}
-		list = Empty.vector();
-		list = list.plusAll(tmpList);
+		} else
+			list = Empty.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
