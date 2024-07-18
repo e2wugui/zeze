@@ -3,7 +3,6 @@ package Zeze.Net;
 import java.security.MessageDigest;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 

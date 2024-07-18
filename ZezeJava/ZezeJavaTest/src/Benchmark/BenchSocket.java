@@ -375,35 +375,35 @@ public class BenchSocket {
 	}
 
 	@Test
-	public void testSerialize() {
+	public void testSerializeBean() {
 		{
-			System.out.println("PMap");
+			System.out.println("PMap<Long,Long>");
 			var bValue = new BValue();
 			for (long i = 0; i < 100; ++i) {
 				bValue.getMap15().put(i, i);
 			}
-			testSerialize(bValue);
+			testSerializeBean(bValue);
 		}
 		{
-			System.out.println("PList");
+			System.out.println("PList<Float>");
 			var bValue = new BValue();
 			for (long i = 0; i < 100; ++i) {
 				bValue.getArray29().add((float)i);
 			}
-			testSerialize(bValue);
+			testSerializeBean(bValue);
 		}
-
 		{
-			System.out.println("PSet");
+			System.out.println("PSet<Integer>");
 			var bValue = new BValue();
 			for (int i = 0; i < 100; ++i) {
 				bValue.getSet10().add(i);
 			}
-			testSerialize(bValue);
+			testSerializeBean(bValue);
 		}
 	}
 
-	public static void testSerialize(BValue bValue) {
+	public static void testSerializeBean(BValue bValue) {
+		// encode
 		long sum = 0;
 		var b = new Zeze.Util.Benchmark();
 		var count = 5_0000;
@@ -412,7 +412,7 @@ public class BenchSocket {
 			bValue.encode(bb);
 			sum += bb.size();
 		}
-		var seconds = b.report("encode", count);
+		var seconds = b.report("encodeBean", count);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
 
 		// decode
@@ -426,8 +426,85 @@ public class BenchSocket {
 			value.decode(bb);
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		seconds = b2.report("decode", count);
+		seconds = b2.report("decodeBean", count);
 		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		System.out.println("dummy=" + dummy);
+
+		// copy
+		var b3 = new Zeze.Util.Benchmark();
+		dummy = 0;
+		for (var i = 0; i < count; ++i) {
+			var value = bValue.copy();
+			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
+		}
+		b2.report("  copyBean", count);
+		System.out.println("dummy=" + dummy);
+	}
+
+	@Test
+	public void testSerializeData() {
+		{
+			System.out.println("HashMap<Long,Long>");
+			var bValue = new BValue.Data();
+			for (long i = 0; i < 100; ++i) {
+				bValue.getMap15().put(i, i);
+			}
+			testSerializeData(bValue);
+		}
+		{
+			System.out.println("ArrayList<Float>");
+			var bValue = new BValue.Data();
+			for (long i = 0; i < 100; ++i) {
+				bValue.getArray29().add((float)i);
+			}
+			testSerializeData(bValue);
+		}
+		{
+			System.out.println("HashSet<Integer>");
+			var bValue = new BValue.Data();
+			for (int i = 0; i < 100; ++i) {
+				bValue.getSet10().add(i);
+			}
+			testSerializeData(bValue);
+		}
+	}
+
+	public static void testSerializeData(BValue.Data bValue) {
+		// encode
+		long sum = 0;
+		var b = new Zeze.Util.Benchmark();
+		var count = 5_0000;
+		for (var i = 0; i < count; ++i) {
+			var bb = ByteBuffer.Allocate();
+			bValue.encode(bb);
+			sum += bb.size();
+		}
+		var seconds = b.report("encodeData", count);
+		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+
+		// decode
+		var b2 = new Zeze.Util.Benchmark();
+		var encoded = ByteBuffer.Allocate();
+		bValue.encode(encoded);
+		var dummy = 0;
+		for (var i = 0; i < count; ++i) {
+			var bb = ByteBuffer.Wrap(encoded.Bytes, encoded.ReadIndex, encoded.size());
+			var value = new BValue.Data();
+			value.decode(bb);
+			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
+		}
+		seconds = b2.report("decodeData", count);
+		System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s");
+		System.out.println("dummy=" + dummy);
+
+		// copy
+		var b3 = new Zeze.Util.Benchmark();
+		dummy = 0;
+		for (var i = 0; i < count; ++i) {
+			var value = bValue.copy();
+			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
+		}
+		b2.report("  copyData", count);
 		System.out.println("dummy=" + dummy);
 	}
 
