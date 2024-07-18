@@ -56,6 +56,13 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> c) {
+		if (c instanceof PSet1)
+			c = ((PSet1<? extends V>)c).getSet();
+		for (var v : c) {
+			if (v == null)
+				throw new IllegalArgumentException("null item");
+		}
+
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -110,6 +117,18 @@ public class PSet1<V> extends PSet<V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
 		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
+	}
+
+	public void assign(@NotNull PSet1<V> pset) {
+		var items = pset.getSet();
+		if (isManaged()) {
+			@SuppressWarnings("unchecked")
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
+			setLog.clear();
+			setLog.addAll(items);
+		} else
+			set = items;
 	}
 
 	@Override

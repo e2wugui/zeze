@@ -437,7 +437,7 @@ public class BenchSocket {
 			var value = bValue.copy();
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		b2.report("  copyBean", count);
+		b3.report("  copyBean", count);
 		System.out.println("dummy=" + dummy);
 	}
 
@@ -504,7 +504,7 @@ public class BenchSocket {
 			var value = bValue.copy();
 			dummy += value.getArray29().size() + value.getMap15().size() + value.getSet10().size();
 		}
-		b2.report("  copyData", count);
+		b3.report("  copyData", count);
 		System.out.println("dummy=" + dummy);
 	}
 

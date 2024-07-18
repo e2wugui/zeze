@@ -115,10 +115,11 @@ public class PList1<V> extends PList<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> items) {
-		// XXX
+		if (items instanceof PList1)
+			items = ((PList1<? extends V>)items).getList();
 		for (var v : items) {
 			if (v == null)
-				throw new IllegalArgumentException("null in items");
+				throw new IllegalArgumentException("null item");
 		}
 
 		if (isManaged()) {
@@ -149,17 +150,20 @@ public class PList1<V> extends PList<V> {
 		if (list.isEmpty())
 			return;
 		var tmpList = new ArrayList<V>(size());
-		for (V v : this)
-			tmpList.add(operator.apply(v));
+		for (V v : this) {
+			v = operator.apply(v);
+			if (v == null)
+				throw new IllegalArgumentException("null item");
+			tmpList.add(v);
+		}
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			return;
-		}
-		list = Empty.<V>vector().plusAll(tmpList);
+		} else
+			list = Empty.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -174,9 +178,8 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			listLog.clear();
 			listLog.addAll(tmpList);
-			return;
-		}
-		list = Empty.<V>vector().plusAll(tmpList);
+		} else
+			list = Empty.<V>vector().plusAll(tmpList);
 	}
 
 	@Override
@@ -211,6 +214,18 @@ public class PList1<V> extends PList<V> {
 			}
 		}
 		list = tmp;
+	}
+
+	public void assign(@NotNull PList1<V> plist) {
+		var items = plist.getList();
+		if (isManaged()) {
+			@SuppressWarnings("unchecked")
+			var listLog = (LogList1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
+			listLog.clear();
+			listLog.addAll(items);
+		} else
+			list = items;
 	}
 
 	@Override

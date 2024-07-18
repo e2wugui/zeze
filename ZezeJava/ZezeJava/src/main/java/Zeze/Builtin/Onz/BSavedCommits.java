@@ -81,8 +81,7 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
 
     public void assign(BSavedCommits other) {
         setState(other.getState());
-        _Onzs.clear();
-        _Onzs.addAll(other._Onzs);
+        _Onzs.assign(other._Onzs);
         _unknown_ = other._unknown_;
     }
 

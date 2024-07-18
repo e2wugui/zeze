@@ -100,9 +100,9 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeList type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
                 if (isData)
                 {
                     sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
@@ -117,22 +117,28 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());");
                 }
             }
-            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
+            else if (isData)
             {
-                if (type.ValueType.Name.StartsWith("vector"))
-                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllToVector({var.NamePrivate});");
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+                if (!string.IsNullOrEmpty(type.Variable.JavaType))
+                {
+                    if (type.ValueType.Name.StartsWith("vector"))
+                        sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllToVector({var.NamePrivate});");
+                    else
+                        sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
+                }
                 else
-                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
+                    sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
             }
             else
-                sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.assign(other.{var.NamePrivate});");
         }
 
         public void Visit(TypeSet type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
                 if (isData)
                 {
                     sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ") {");
@@ -147,17 +153,23 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".add(e.copy());"); // set 里面现在不让放 bean，先这样写吧。
                 }
             }
-            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
-                sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
+            else if (isData)
+            {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+                if (!string.IsNullOrEmpty(type.Variable.JavaType))
+                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.addAllTo({var.NamePrivate});");
+                else
+                    sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
+            }
             else
-                sw.WriteLine($"{prefix}{var.NamePrivate}.addAll(other.{var.NamePrivate});");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.assign(other.{var.NamePrivate});");
         }
 
         public void Visit(TypeMap type)
         {
-            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
             if (type.ValueType.IsNormalBean)
             {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
                 if (isData)
                 {
                     if (string.IsNullOrEmpty(type.Variable.JavaType))
@@ -183,10 +195,16 @@ namespace Zeze.Gen.java
                     sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), e.getValue().copy());");
                 }
             }
-            else if (isData && !string.IsNullOrEmpty(type.Variable.JavaType))
-                sw.WriteLine($"{prefix}other.{var.NamePrivate}.putAllTo({var.NamePrivate});");
+            else if (isData)
+            {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+                if (!string.IsNullOrEmpty(type.Variable.JavaType))
+                    sw.WriteLine($"{prefix}other.{var.NamePrivate}.putAllTo({var.NamePrivate});");
+                else
+                    sw.WriteLine($"{prefix}{var.NamePrivate}.putAll(other.{var.NamePrivate});");
+            }
             else
-                sw.WriteLine($"{prefix}{var.NamePrivate}.putAll(other.{var.NamePrivate});");
+                sw.WriteLine($"{prefix}{var.NamePrivate}.assign(other.{var.NamePrivate});");
         }
 
         public void Visit(Bean type)

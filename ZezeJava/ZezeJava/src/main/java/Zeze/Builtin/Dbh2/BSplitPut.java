@@ -81,8 +81,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
 
     public void assign(BSplitPut other) {
         setFromTransaction(other.isFromTransaction());
-        _Puts.clear();
-        _Puts.putAll(other._Puts);
+        _Puts.assign(other._Puts);
         _unknown_ = other._unknown_;
     }
 

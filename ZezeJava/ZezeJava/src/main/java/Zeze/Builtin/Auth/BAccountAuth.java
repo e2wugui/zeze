@@ -32,8 +32,7 @@ public final class BAccountAuth extends Zeze.Transaction.Bean implements BAccoun
     }
 
     public void assign(BAccountAuth other) {
-        _Roles.clear();
-        _Roles.addAll(other._Roles);
+        _Roles.assign(other._Roles);
         _unknown_ = other._unknown_;
     }
 

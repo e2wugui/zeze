@@ -147,8 +147,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         for (var e : other._Managers.entrySet())
             _Managers.put(e.getKey(), e.getValue().copy());
         setNextDepartmentId(other.getNextDepartmentId());
-        _Childs.clear();
-        _Childs.putAll(other._Childs);
+        _Childs.assign(other._Childs);
         _Data.assign(other._Data);
         _unknown_ = other._unknown_;
     }

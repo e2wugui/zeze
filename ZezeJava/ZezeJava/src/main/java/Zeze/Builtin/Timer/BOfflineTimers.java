@@ -33,8 +33,7 @@ public final class BOfflineTimers extends Zeze.Transaction.Bean implements BOffl
     }
 
     public void assign(BOfflineTimers other) {
-        _OfflineTimers.clear();
-        _OfflineTimers.putAll(other._OfflineTimers);
+        _OfflineTimers.assign(other._OfflineTimers);
         _unknown_ = other._unknown_;
     }
 

@@ -170,8 +170,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         setGlobalSerialId(other.getGlobalSerialId());
         setProtocolClassName(other.getProtocolClassName());
         setProtocolArgument(other.getProtocolArgument());
-        _Changes.clear();
-        _Changes.putAll(other._Changes);
+        _Changes.assign(other._Changes);
         setTimestamp(other.getTimestamp());
         _unknown_ = other._unknown_;
     }

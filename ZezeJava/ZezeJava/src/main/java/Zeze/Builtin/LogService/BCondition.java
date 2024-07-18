@@ -163,8 +163,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     public void assign(BCondition other) {
         setBeginTime(other.getBeginTime());
         setEndTime(other.getEndTime());
-        _Words.clear();
-        _Words.addAll(other._Words);
+        _Words.assign(other._Words);
         setContainsType(other.getContainsType());
         setPattern(other.getPattern());
         _unknown_ = other._unknown_;

@@ -174,8 +174,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public void assign(BTransmitAccount other) {
         setActionName(other.getActionName());
         setParameter(other.getParameter());
-        _TargetAccounts.clear();
-        _TargetAccounts.addAll(other._TargetAccounts);
+        _TargetAccounts.assign(other._TargetAccounts);
         setSenderAccount(other.getSenderAccount());
         setSenderClientId(other.getSenderClientId());
         _unknown_ = other._unknown_;

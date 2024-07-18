@@ -43,10 +43,12 @@ public class PMap1<K, V> extends PMap<K, V> {
 
 	@Override
 	public void putAll(@NotNull Map<? extends K, ? extends V> m) {
-		for (var p : m.entrySet()) {
-			if (p.getKey() == null)
+		if (m instanceof PMap1)
+			m = ((PMap1<? extends K, ? extends V>)m).getMap();
+		for (var e : m.entrySet()) {
+			if (e.getKey() == null)
 				throw new IllegalArgumentException("null key");
-			if (p.getValue() == null)
+			if (e.getValue() == null)
 				throw new IllegalArgumentException("null value");
 		}
 
@@ -55,9 +57,8 @@ public class PMap1<K, V> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
-		} else {
+		} else
 			map = map.plusAll(m);
-		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -84,7 +85,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 		}
 		var old = map;
 		var exist = old.get(item.getKey());
-		if (null != exist && exist.equals(item.getValue())) {
+		if (exist != null && exist.equals(item.getValue())) {
 			map = map.minus(item.getKey());
 			return true;
 		}
@@ -116,6 +117,18 @@ public class PMap1<K, V> extends PMap<K, V> {
 		log.setThis(this);
 		log.setVariableId(variableId());
 		return log;
+	}
+
+	public void assign(@NotNull PMap1<K, V> pmap) {
+		var items = pmap.getMap();
+		if (isManaged()) {
+			@SuppressWarnings("unchecked")
+			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
+					parent().objectId() + variableId(), this::createLogBean);
+			mapLog.clear();
+			mapLog.putAll(items);
+		} else
+			map = items;
 	}
 
 	@Override

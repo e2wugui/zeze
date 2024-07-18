@@ -32,8 +32,7 @@ public final class BRoleAuth extends Zeze.Transaction.Bean implements BRoleAuthR
     }
 
     public void assign(BRoleAuth other) {
-        _Auths.clear();
-        _Auths.putAll(other._Auths);
+        _Auths.assign(other._Auths);
         _unknown_ = other._unknown_;
     }
 

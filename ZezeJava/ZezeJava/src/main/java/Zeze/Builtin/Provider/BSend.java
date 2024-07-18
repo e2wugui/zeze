@@ -109,8 +109,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     public void assign(BSend other) {
-        _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
+        _linkSids.assign(other._linkSids);
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
         _unknown_ = other._unknown_;

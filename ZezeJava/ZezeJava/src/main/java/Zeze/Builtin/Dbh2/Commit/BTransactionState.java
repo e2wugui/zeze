@@ -81,8 +81,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     public void assign(BTransactionState other) {
         setState(other.getState());
-        _Buckets.clear();
-        _Buckets.addAll(other._Buckets);
+        _Buckets.assign(other._Buckets);
         _unknown_ = other._unknown_;
     }
 

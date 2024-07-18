@@ -133,8 +133,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     public void assign(BOnline other) {
         setServerId(other.getServerId());
-        _ReliableNotifyMark.clear();
-        _ReliableNotifyMark.addAll(other._ReliableNotifyMark);
+        _ReliableNotifyMark.assign(other._ReliableNotifyMark);
         setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
         setReliableNotifyIndex(other.getReliableNotifyIndex());
         _UserData.assign(other._UserData);

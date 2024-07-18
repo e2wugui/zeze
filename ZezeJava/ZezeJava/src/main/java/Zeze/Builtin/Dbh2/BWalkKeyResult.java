@@ -104,8 +104,7 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     }
 
     public void assign(BWalkKeyResult other) {
-        _Keys.clear();
-        _Keys.addAll(other._Keys);
+        _Keys.assign(other._Keys);
         setBucketEnd(other.isBucketEnd());
         setBucketRefuse(other.isBucketRefuse());
         _unknown_ = other._unknown_;

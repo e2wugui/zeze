@@ -162,10 +162,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     public void assign(BBatch other) {
-        _Puts.clear();
-        _Puts.putAll(other._Puts);
-        _Deletes.clear();
-        _Deletes.addAll(other._Deletes);
+        _Puts.assign(other._Puts);
+        _Deletes.assign(other._Deletes);
         setQueryIp(other.getQueryIp());
         setQueryPort(other.getQueryPort());
         setTid(other.getTid());

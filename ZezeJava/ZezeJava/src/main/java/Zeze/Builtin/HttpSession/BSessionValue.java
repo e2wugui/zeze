@@ -86,8 +86,7 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     public void assign(BSessionValue other) {
         setCreateTime(other.getCreateTime());
         setExpireTime(other.getExpireTime());
-        _Properties.clear();
-        _Properties.putAll(other._Properties);
+        _Properties.assign(other._Properties);
         _unknown_ = other._unknown_;
     }
 
