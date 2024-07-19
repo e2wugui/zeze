@@ -16,22 +16,22 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
     public Zeze.Net.Binary getKey() {
         if (!isManaged())
             return _Key;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 1);
+        var log = (Log__Key)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Key;
     }
 
-    public void setKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Key = value;
+            _Key = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Key(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -54,24 +54,24 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BGetDataWithVersion.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BGetDataWithVersion.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Master.BGetDataWithVersion.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BGetDataWithVersion.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Master.BGetDataWithVersion.Data)_o_);
     }
 
-    public void assign(BGetDataWithVersion.Data other) {
-        setKey(other._Key);
+    public void assign(BGetDataWithVersion.Data _o_) {
+        setKey(_o_._Key);
         _unknown_ = null;
     }
 
-    public void assign(BGetDataWithVersion other) {
-        setKey(other.getKey());
-        _unknown_ = other._unknown_;
+    public void assign(BGetDataWithVersion _o_) {
+        setKey(_o_.getKey());
+        _unknown_ = _o_._unknown_;
     }
 
     public BGetDataWithVersion copyIfManaged() {
@@ -80,15 +80,15 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
 
     @Override
     public BGetDataWithVersion copy() {
-        var copy = new BGetDataWithVersion();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetDataWithVersion();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetDataWithVersion a, BGetDataWithVersion b) {
-        BGetDataWithVersion save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetDataWithVersion _a_, BGetDataWithVersion _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -97,7 +97,7 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
     }
 
     private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BGetDataWithVersion bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Key(BGetDataWithVersion _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGetDataWithVersion)getBelong())._Key = value; }
@@ -105,18 +105,18 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BGetDataWithVersion: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BGetDataWithVersion: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(getKey()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -127,8 +127,8 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -186,35 +186,35 @@ public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Key = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Key = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Key")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "Key", getKey());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "Key", getKey());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Key", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Key", "binary", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -229,10 +229,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Key;
     }
 
-    public void setKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Key = value;
+        _Key = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -254,35 +254,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BGetDataWithVersion toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Master.BGetDataWithVersion();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Master.BGetDataWithVersion();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BGetDataWithVersion)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BGetDataWithVersion)_o_);
     }
 
-    public void assign(BGetDataWithVersion other) {
-        _Key = other.getKey();
+    public void assign(BGetDataWithVersion _o_) {
+        _Key = _o_.getKey();
     }
 
-    public void assign(BGetDataWithVersion.Data other) {
-        _Key = other._Key;
+    public void assign(BGetDataWithVersion.Data _o_) {
+        _Key = _o_._Key;
     }
 
     @Override
     public BGetDataWithVersion.Data copy() {
-        var copy = new BGetDataWithVersion.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetDataWithVersion.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetDataWithVersion.Data a, BGetDataWithVersion.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetDataWithVersion.Data _a_, BGetDataWithVersion.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -297,18 +297,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BGetDataWithVersion: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_Key).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BGetDataWithVersion: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_Key).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -317,8 +317,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

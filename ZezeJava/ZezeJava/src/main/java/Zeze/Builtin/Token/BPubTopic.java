@@ -16,64 +16,64 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     public String getTopic() {
         if (!isManaged())
             return _topic;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _topic;
-        var log = (Log__topic)txn.getLog(objectId() + 1);
+        var log = (Log__topic)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _topic;
     }
 
-    public void setTopic(String value) {
-        if (value == null)
+    public void setTopic(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _topic = value;
+            _topic = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__topic(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__topic(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getContent() {
         if (!isManaged())
             return _content;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _content;
-        var log = (Log__content)txn.getLog(objectId() + 2);
+        var log = (Log__content)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _content;
     }
 
-    public void setContent(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContent(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _content = value;
+            _content = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__content(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__content(this, 2, _v_));
     }
 
     @Override
     public boolean isBroadcast() {
         if (!isManaged())
             return _broadcast;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _broadcast;
-        var log = (Log__broadcast)txn.getLog(objectId() + 3);
+        var log = (Log__broadcast)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _broadcast;
     }
 
-    public void setBroadcast(boolean value) {
+    public void setBroadcast(boolean _v_) {
         if (!isManaged()) {
-            _broadcast = value;
+            _broadcast = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__broadcast(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__broadcast(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -103,28 +103,28 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
 
     @Override
     public Zeze.Builtin.Token.BPubTopic.Data toData() {
-        var data = new Zeze.Builtin.Token.BPubTopic.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BPubTopic.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BPubTopic.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BPubTopic.Data)_o_);
     }
 
-    public void assign(BPubTopic.Data other) {
-        setTopic(other._topic);
-        setContent(other._content);
-        setBroadcast(other._broadcast);
+    public void assign(BPubTopic.Data _o_) {
+        setTopic(_o_._topic);
+        setContent(_o_._content);
+        setBroadcast(_o_._broadcast);
         _unknown_ = null;
     }
 
-    public void assign(BPubTopic other) {
-        setTopic(other.getTopic());
-        setContent(other.getContent());
-        setBroadcast(other.isBroadcast());
-        _unknown_ = other._unknown_;
+    public void assign(BPubTopic _o_) {
+        setTopic(_o_.getTopic());
+        setContent(_o_.getContent());
+        setBroadcast(_o_.isBroadcast());
+        _unknown_ = _o_._unknown_;
     }
 
     public BPubTopic copyIfManaged() {
@@ -133,15 +133,15 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
 
     @Override
     public BPubTopic copy() {
-        var copy = new BPubTopic();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BPubTopic();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BPubTopic a, BPubTopic b) {
-        BPubTopic save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BPubTopic _a_, BPubTopic _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -150,21 +150,21 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     }
 
     private static final class Log__topic extends Zeze.Transaction.Logs.LogString {
-        public Log__topic(BPubTopic bean, int varId, String value) { super(bean, varId, value); }
+        public Log__topic(BPubTopic _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BPubTopic)getBelong())._topic = value; }
     }
 
     private static final class Log__content extends Zeze.Transaction.Logs.LogBinary {
-        public Log__content(BPubTopic bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__content(BPubTopic _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BPubTopic)getBelong())._content = value; }
     }
 
     private static final class Log__broadcast extends Zeze.Transaction.Logs.LogBool {
-        public Log__broadcast(BPubTopic bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__broadcast(BPubTopic _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BPubTopic)getBelong())._broadcast = value; }
@@ -172,20 +172,20 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BPubTopic: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("topic=").append(getTopic()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("content=").append(getContent()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("broadcast=").append(isBroadcast()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BPubTopic: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("topic=").append(getTopic()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("content=").append(getContent()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("broadcast=").append(isBroadcast()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -196,8 +196,8 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -281,45 +281,45 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _topic = vlog.stringValue(); break;
-                case 2: _content = vlog.binaryValue(); break;
-                case 3: _broadcast = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _topic = _v_.stringValue(); break;
+                case 2: _content = _v_.binaryValue(); break;
+                case 3: _broadcast = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTopic(rs.getString(_parents_name_ + "topic"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setTopic(_r_.getString(_pn_ + "topic"));
         if (getTopic() == null)
             setTopic("");
-        setContent(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "content")));
-        setBroadcast(rs.getBoolean(_parents_name_ + "broadcast"));
+        setContent(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "content")));
+        setBroadcast(_r_.getBoolean(_pn_ + "broadcast"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "topic", getTopic());
-        st.appendBinary(_parents_name_ + "content", getContent());
-        st.appendBoolean(_parents_name_ + "broadcast", isBroadcast());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "topic", getTopic());
+        _s_.appendBinary(_pn_ + "content", getContent());
+        _s_.appendBoolean(_pn_ + "broadcast", isBroadcast());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "topic", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "content", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "broadcast", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "topic", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "content", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "broadcast", "bool", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -334,28 +334,28 @@ public static final class Data extends Zeze.Transaction.Data {
         return _topic;
     }
 
-    public void setTopic(String value) {
-        if (value == null)
+    public void setTopic(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _topic = value;
+        _topic = _v_;
     }
 
     public Zeze.Net.Binary getContent() {
         return _content;
     }
 
-    public void setContent(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContent(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _content = value;
+        _content = _v_;
     }
 
     public boolean isBroadcast() {
         return _broadcast;
     }
 
-    public void setBroadcast(boolean value) {
-        _broadcast = value;
+    public void setBroadcast(boolean _v_) {
+        _broadcast = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -384,39 +384,39 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BPubTopic toBean() {
-        var bean = new Zeze.Builtin.Token.BPubTopic();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BPubTopic();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BPubTopic)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BPubTopic)_o_);
     }
 
-    public void assign(BPubTopic other) {
-        _topic = other.getTopic();
-        _content = other.getContent();
-        _broadcast = other.isBroadcast();
+    public void assign(BPubTopic _o_) {
+        _topic = _o_.getTopic();
+        _content = _o_.getContent();
+        _broadcast = _o_.isBroadcast();
     }
 
-    public void assign(BPubTopic.Data other) {
-        _topic = other._topic;
-        _content = other._content;
-        _broadcast = other._broadcast;
+    public void assign(BPubTopic.Data _o_) {
+        _topic = _o_._topic;
+        _content = _o_._content;
+        _broadcast = _o_._broadcast;
     }
 
     @Override
     public BPubTopic.Data copy() {
-        var copy = new BPubTopic.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BPubTopic.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BPubTopic.Data a, BPubTopic.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BPubTopic.Data _a_, BPubTopic.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -431,20 +431,20 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BPubTopic: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("topic=").append(_topic).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("content=").append(_content).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("broadcast=").append(_broadcast).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BPubTopic: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("topic=").append(_topic).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("content=").append(_content).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("broadcast=").append(_broadcast).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -453,8 +453,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

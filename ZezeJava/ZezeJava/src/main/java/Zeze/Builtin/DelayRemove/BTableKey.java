@@ -16,64 +16,64 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     public String getTableName() {
         if (!isManaged())
             return _TableName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TableName;
-        var log = (Log__TableName)txn.getLog(objectId() + 1);
+        var log = (Log__TableName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _TableName;
     }
 
-    public void setTableName(String value) {
-        if (value == null)
+    public void setTableName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _TableName = value;
+            _TableName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TableName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TableName(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getEncodedKey() {
         if (!isManaged())
             return _EncodedKey;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _EncodedKey;
-        var log = (Log__EncodedKey)txn.getLog(objectId() + 2);
+        var log = (Log__EncodedKey)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _EncodedKey;
     }
 
-    public void setEncodedKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setEncodedKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _EncodedKey = value;
+            _EncodedKey = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EncodedKey(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__EncodedKey(this, 2, _v_));
     }
 
     @Override
     public long getEnqueueTime() {
         if (!isManaged())
             return _EnqueueTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _EnqueueTime;
-        var log = (Log__EnqueueTime)txn.getLog(objectId() + 3);
+        var log = (Log__EnqueueTime)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _EnqueueTime;
     }
 
-    public void setEnqueueTime(long value) {
+    public void setEnqueueTime(long _v_) {
         if (!isManaged()) {
-            _EnqueueTime = value;
+            _EnqueueTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EnqueueTime(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__EnqueueTime(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -101,11 +101,11 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         _unknown_ = null;
     }
 
-    public void assign(BTableKey other) {
-        setTableName(other.getTableName());
-        setEncodedKey(other.getEncodedKey());
-        setEnqueueTime(other.getEnqueueTime());
-        _unknown_ = other._unknown_;
+    public void assign(BTableKey _o_) {
+        setTableName(_o_.getTableName());
+        setEncodedKey(_o_.getEncodedKey());
+        setEnqueueTime(_o_.getEnqueueTime());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTableKey copyIfManaged() {
@@ -114,15 +114,15 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
 
     @Override
     public BTableKey copy() {
-        var copy = new BTableKey();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTableKey();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTableKey a, BTableKey b) {
-        BTableKey save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTableKey _a_, BTableKey _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -131,21 +131,21 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     private static final class Log__TableName extends Zeze.Transaction.Logs.LogString {
-        public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
+        public Log__TableName(BTableKey _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTableKey)getBelong())._TableName = value; }
     }
 
     private static final class Log__EncodedKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__EncodedKey(BTableKey _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTableKey)getBelong())._EncodedKey = value; }
     }
 
     private static final class Log__EnqueueTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EnqueueTime(BTableKey bean, int varId, long value) { super(bean, varId, value); }
+        public Log__EnqueueTime(BTableKey _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTableKey)getBelong())._EnqueueTime = value; }
@@ -153,20 +153,20 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.DelayRemove.BTableKey: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EncodedKey=").append(getEncodedKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EnqueueTime=").append(getEnqueueTime()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.DelayRemove.BTableKey: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("EncodedKey=").append(getEncodedKey()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("EnqueueTime=").append(getEnqueueTime()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -177,8 +177,8 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -269,44 +269,44 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _TableName = vlog.stringValue(); break;
-                case 2: _EncodedKey = vlog.binaryValue(); break;
-                case 3: _EnqueueTime = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _TableName = _v_.stringValue(); break;
+                case 2: _EncodedKey = _v_.binaryValue(); break;
+                case 3: _EnqueueTime = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTableName(rs.getString(_parents_name_ + "TableName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setTableName(_r_.getString(_pn_ + "TableName"));
         if (getTableName() == null)
             setTableName("");
-        setEncodedKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "EncodedKey")));
-        setEnqueueTime(rs.getLong(_parents_name_ + "EnqueueTime"));
+        setEncodedKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "EncodedKey")));
+        setEnqueueTime(_r_.getLong(_pn_ + "EnqueueTime"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "TableName", getTableName());
-        st.appendBinary(_parents_name_ + "EncodedKey", getEncodedKey());
-        st.appendLong(_parents_name_ + "EnqueueTime", getEnqueueTime());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "TableName", getTableName());
+        _s_.appendBinary(_pn_ + "EncodedKey", getEncodedKey());
+        _s_.appendLong(_pn_ + "EnqueueTime", getEnqueueTime());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TableName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EncodedKey", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "EnqueueTime", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TableName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EncodedKey", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "EnqueueTime", "long", "", ""));
+        return _v_;
     }
 }

@@ -16,62 +16,62 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     public Zeze.Builtin.Threading.BLockName getLockName() {
         if (!isManaged())
             return _LockName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _LockName;
-        var log = (Log__LockName)txn.getLog(objectId() + 1);
+        var log = (Log__LockName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _LockName;
     }
 
-    public void setLockName(Zeze.Builtin.Threading.BLockName value) {
-        if (value == null)
+    public void setLockName(Zeze.Builtin.Threading.BLockName _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _LockName = value;
+            _LockName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LockName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__LockName(this, 1, _v_));
     }
 
     @Override
     public int getPermits() {
         if (!isManaged())
             return _Permits;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Permits;
-        var log = (Log__Permits)txn.getLog(objectId() + 2);
+        var log = (Log__Permits)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Permits;
     }
 
-    public void setPermits(int value) {
+    public void setPermits(int _v_) {
         if (!isManaged()) {
-            _Permits = value;
+            _Permits = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Permits(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Permits(this, 2, _v_));
     }
 
     @Override
     public int getTimeoutMs() {
         if (!isManaged())
             return _TimeoutMs;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TimeoutMs;
-        var log = (Log__TimeoutMs)txn.getLog(objectId() + 3);
+        var log = (Log__TimeoutMs)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _TimeoutMs;
     }
 
-    public void setTimeoutMs(int value) {
+    public void setTimeoutMs(int _v_) {
         if (!isManaged()) {
-            _TimeoutMs = value;
+            _TimeoutMs = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TimeoutMs(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TimeoutMs(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -98,28 +98,28 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
 
     @Override
     public Zeze.Builtin.Threading.BSemaphore.Data toData() {
-        var data = new Zeze.Builtin.Threading.BSemaphore.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Threading.BSemaphore.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Threading.BSemaphore.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Threading.BSemaphore.Data)_o_);
     }
 
-    public void assign(BSemaphore.Data other) {
-        setLockName(other._LockName);
-        setPermits(other._Permits);
-        setTimeoutMs(other._TimeoutMs);
+    public void assign(BSemaphore.Data _o_) {
+        setLockName(_o_._LockName);
+        setPermits(_o_._Permits);
+        setTimeoutMs(_o_._TimeoutMs);
         _unknown_ = null;
     }
 
-    public void assign(BSemaphore other) {
-        setLockName(other.getLockName());
-        setPermits(other.getPermits());
-        setTimeoutMs(other.getTimeoutMs());
-        _unknown_ = other._unknown_;
+    public void assign(BSemaphore _o_) {
+        setLockName(_o_.getLockName());
+        setPermits(_o_.getPermits());
+        setTimeoutMs(_o_.getTimeoutMs());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSemaphore copyIfManaged() {
@@ -128,15 +128,15 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
 
     @Override
     public BSemaphore copy() {
-        var copy = new BSemaphore();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSemaphore();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSemaphore a, BSemaphore b) {
-        BSemaphore save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSemaphore _a_, BSemaphore _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -145,21 +145,21 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     }
 
     private static final class Log__LockName extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName> {
-        public Log__LockName(BSemaphore bean, int varId, Zeze.Builtin.Threading.BLockName value) { super(Zeze.Builtin.Threading.BLockName.class, bean, varId, value); }
+        public Log__LockName(BSemaphore _b_, int _i_, Zeze.Builtin.Threading.BLockName _v_) { super(Zeze.Builtin.Threading.BLockName.class, _b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSemaphore)getBelong())._LockName = value; }
     }
 
     private static final class Log__Permits extends Zeze.Transaction.Logs.LogInt {
-        public Log__Permits(BSemaphore bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Permits(BSemaphore _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSemaphore)getBelong())._Permits = value; }
     }
 
     private static final class Log__TimeoutMs extends Zeze.Transaction.Logs.LogInt {
-        public Log__TimeoutMs(BSemaphore bean, int varId, int value) { super(bean, varId, value); }
+        public Log__TimeoutMs(BSemaphore _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSemaphore)getBelong())._TimeoutMs = value; }
@@ -167,22 +167,22 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BSemaphore: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LockName=").append(System.lineSeparator());
-        getLockName().buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Permits=").append(getPermits()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimeoutMs=").append(getTimeoutMs()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BSemaphore: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LockName=").append(System.lineSeparator());
+        getLockName().buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Permits=").append(getPermits()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimeoutMs=").append(getTimeoutMs()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -193,8 +193,8 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -292,47 +292,47 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _LockName = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)vlog).value; break;
-                case 2: _Permits = vlog.intValue(); break;
-                case 3: _TimeoutMs = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _LockName = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)_v_).value; break;
+                case 2: _Permits = _v_.intValue(); break;
+                case 3: _TimeoutMs = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("LockName");
-        getLockName().decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setPermits(rs.getInt(_parents_name_ + "Permits"));
-        setTimeoutMs(rs.getInt(_parents_name_ + "TimeoutMs"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("LockName");
+        getLockName().decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setPermits(_r_.getInt(_pn_ + "Permits"));
+        setTimeoutMs(_r_.getInt(_pn_ + "TimeoutMs"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("LockName");
-        getLockName().encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Permits", getPermits());
-        st.appendInt(_parents_name_ + "TimeoutMs", getTimeoutMs());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("LockName");
+        getLockName().encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Permits", getPermits());
+        _s_.appendInt(_pn_ + "TimeoutMs", getTimeoutMs());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Permits", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeoutMs", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LockName", "Zeze.Builtin.Threading.BLockName", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Permits", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TimeoutMs", "int", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -347,26 +347,26 @@ public static final class Data extends Zeze.Transaction.Data {
         return _LockName;
     }
 
-    public void setLockName(Zeze.Builtin.Threading.BLockName value) {
-        if (value == null)
+    public void setLockName(Zeze.Builtin.Threading.BLockName _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _LockName = value;
+        _LockName = _v_;
     }
 
     public int getPermits() {
         return _Permits;
     }
 
-    public void setPermits(int value) {
-        _Permits = value;
+    public void setPermits(int _v_) {
+        _Permits = _v_;
     }
 
     public int getTimeoutMs() {
         return _TimeoutMs;
     }
 
-    public void setTimeoutMs(int value) {
-        _TimeoutMs = value;
+    public void setTimeoutMs(int _v_) {
+        _TimeoutMs = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -392,39 +392,39 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Threading.BSemaphore toBean() {
-        var bean = new Zeze.Builtin.Threading.BSemaphore();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Threading.BSemaphore();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSemaphore)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSemaphore)_o_);
     }
 
-    public void assign(BSemaphore other) {
-        _LockName = other.getLockName();
-        _Permits = other.getPermits();
-        _TimeoutMs = other.getTimeoutMs();
+    public void assign(BSemaphore _o_) {
+        _LockName = _o_.getLockName();
+        _Permits = _o_.getPermits();
+        _TimeoutMs = _o_.getTimeoutMs();
     }
 
-    public void assign(BSemaphore.Data other) {
-        _LockName = other._LockName;
-        _Permits = other._Permits;
-        _TimeoutMs = other._TimeoutMs;
+    public void assign(BSemaphore.Data _o_) {
+        _LockName = _o_._LockName;
+        _Permits = _o_._Permits;
+        _TimeoutMs = _o_._TimeoutMs;
     }
 
     @Override
     public BSemaphore.Data copy() {
-        var copy = new BSemaphore.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSemaphore.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSemaphore.Data a, BSemaphore.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSemaphore.Data _a_, BSemaphore.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -439,22 +439,22 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BSemaphore: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LockName=").append(System.lineSeparator());
-        _LockName.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Permits=").append(_Permits).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimeoutMs=").append(_TimeoutMs).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BSemaphore: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LockName=").append(System.lineSeparator());
+        _LockName.buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Permits=").append(_Permits).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimeoutMs=").append(_TimeoutMs).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -463,8 +463,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

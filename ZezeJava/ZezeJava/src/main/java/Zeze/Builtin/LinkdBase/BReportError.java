@@ -26,62 +26,62 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     public int getFrom() {
         if (!isManaged())
             return _from;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _from;
-        var log = (Log__from)txn.getLog(objectId() + 1);
+        var log = (Log__from)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _from;
     }
 
-    public void setFrom(int value) {
+    public void setFrom(int _v_) {
         if (!isManaged()) {
-            _from = value;
+            _from = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__from(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__from(this, 1, _v_));
     }
 
     @Override
     public int getCode() {
         if (!isManaged())
             return _code;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _code;
-        var log = (Log__code)txn.getLog(objectId() + 2);
+        var log = (Log__code)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _code;
     }
 
-    public void setCode(int value) {
+    public void setCode(int _v_) {
         if (!isManaged()) {
-            _code = value;
+            _code = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__code(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__code(this, 2, _v_));
     }
 
     @Override
     public String getDesc() {
         if (!isManaged())
             return _desc;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _desc;
-        var log = (Log__desc)txn.getLog(objectId() + 3);
+        var log = (Log__desc)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _desc;
     }
 
-    public void setDesc(String value) {
-        if (value == null)
+    public void setDesc(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _desc = value;
+            _desc = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__desc(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__desc(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -108,28 +108,28 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 
     @Override
     public Zeze.Builtin.LinkdBase.BReportError.Data toData() {
-        var data = new Zeze.Builtin.LinkdBase.BReportError.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.LinkdBase.BReportError.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.LinkdBase.BReportError.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.LinkdBase.BReportError.Data)_o_);
     }
 
-    public void assign(BReportError.Data other) {
-        setFrom(other._from);
-        setCode(other._code);
-        setDesc(other._desc);
+    public void assign(BReportError.Data _o_) {
+        setFrom(_o_._from);
+        setCode(_o_._code);
+        setDesc(_o_._desc);
         _unknown_ = null;
     }
 
-    public void assign(BReportError other) {
-        setFrom(other.getFrom());
-        setCode(other.getCode());
-        setDesc(other.getDesc());
-        _unknown_ = other._unknown_;
+    public void assign(BReportError _o_) {
+        setFrom(_o_.getFrom());
+        setCode(_o_.getCode());
+        setDesc(_o_.getDesc());
+        _unknown_ = _o_._unknown_;
     }
 
     public BReportError copyIfManaged() {
@@ -138,15 +138,15 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 
     @Override
     public BReportError copy() {
-        var copy = new BReportError();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BReportError();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BReportError a, BReportError b) {
-        BReportError save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BReportError _a_, BReportError _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -155,21 +155,21 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
     private static final class Log__from extends Zeze.Transaction.Logs.LogInt {
-        public Log__from(BReportError bean, int varId, int value) { super(bean, varId, value); }
+        public Log__from(BReportError _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReportError)getBelong())._from = value; }
     }
 
     private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
-        public Log__code(BReportError bean, int varId, int value) { super(bean, varId, value); }
+        public Log__code(BReportError _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReportError)getBelong())._code = value; }
     }
 
     private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
-        public Log__desc(BReportError bean, int varId, String value) { super(bean, varId, value); }
+        public Log__desc(BReportError _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReportError)getBelong())._desc = value; }
@@ -177,20 +177,20 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("from=").append(getFrom()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(getDesc()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("from=").append(getFrom()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(getDesc()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -201,8 +201,8 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -295,45 +295,45 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _from = vlog.intValue(); break;
-                case 2: _code = vlog.intValue(); break;
-                case 3: _desc = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _from = _v_.intValue(); break;
+                case 2: _code = _v_.intValue(); break;
+                case 3: _desc = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setFrom(rs.getInt(_parents_name_ + "from"));
-        setCode(rs.getInt(_parents_name_ + "code"));
-        setDesc(rs.getString(_parents_name_ + "desc"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setFrom(_r_.getInt(_pn_ + "from"));
+        setCode(_r_.getInt(_pn_ + "code"));
+        setDesc(_r_.getString(_pn_ + "desc"));
         if (getDesc() == null)
             setDesc("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "from", getFrom());
-        st.appendInt(_parents_name_ + "code", getCode());
-        st.appendString(_parents_name_ + "desc", getDesc());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "from", getFrom());
+        _s_.appendInt(_pn_ + "code", getCode());
+        _s_.appendString(_pn_ + "desc", getDesc());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "from", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "code", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "desc", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "from", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "code", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "desc", "string", "", ""));
+        return _v_;
     }
 
 // linkd to client
@@ -358,26 +358,26 @@ public static final class Data extends Zeze.Transaction.Data {
         return _from;
     }
 
-    public void setFrom(int value) {
-        _from = value;
+    public void setFrom(int _v_) {
+        _from = _v_;
     }
 
     public int getCode() {
         return _code;
     }
 
-    public void setCode(int value) {
-        _code = value;
+    public void setCode(int _v_) {
+        _code = _v_;
     }
 
     public String getDesc() {
         return _desc;
     }
 
-    public void setDesc(String value) {
-        if (value == null)
+    public void setDesc(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _desc = value;
+        _desc = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -403,39 +403,39 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.LinkdBase.BReportError toBean() {
-        var bean = new Zeze.Builtin.LinkdBase.BReportError();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.LinkdBase.BReportError();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BReportError)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BReportError)_o_);
     }
 
-    public void assign(BReportError other) {
-        _from = other.getFrom();
-        _code = other.getCode();
-        _desc = other.getDesc();
+    public void assign(BReportError _o_) {
+        _from = _o_.getFrom();
+        _code = _o_.getCode();
+        _desc = _o_.getDesc();
     }
 
-    public void assign(BReportError.Data other) {
-        _from = other._from;
-        _code = other._code;
-        _desc = other._desc;
+    public void assign(BReportError.Data _o_) {
+        _from = _o_._from;
+        _code = _o_._code;
+        _desc = _o_._desc;
     }
 
     @Override
     public BReportError.Data copy() {
-        var copy = new BReportError.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BReportError.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BReportError.Data a, BReportError.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BReportError.Data _a_, BReportError.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -450,20 +450,20 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("from=").append(_from).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("code=").append(_code).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("desc=").append(_desc).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("from=").append(_from).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(_code).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(_desc).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -472,8 +472,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

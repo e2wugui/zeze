@@ -14,22 +14,22 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
 
     @Override
     public Zeze.Builtin.Provider.BAnnounceLinkInfo.Data toData() {
-        var data = new Zeze.Builtin.Provider.BAnnounceLinkInfo.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BAnnounceLinkInfo.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BAnnounceLinkInfo.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BAnnounceLinkInfo.Data)_o_);
     }
 
-    public void assign(BAnnounceLinkInfo.Data other) {
+    public void assign(BAnnounceLinkInfo.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BAnnounceLinkInfo other) {
-        _unknown_ = other._unknown_;
+    public void assign(BAnnounceLinkInfo _o_) {
+        _unknown_ = _o_._unknown_;
     }
 
     public BAnnounceLinkInfo copyIfManaged() {
@@ -38,15 +38,15 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
 
     @Override
     public BAnnounceLinkInfo copy() {
-        var copy = new BAnnounceLinkInfo();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAnnounceLinkInfo();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAnnounceLinkInfo a, BAnnounceLinkInfo b) {
-        BAnnounceLinkInfo save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAnnounceLinkInfo _a_, BAnnounceLinkInfo _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -56,17 +56,17 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceLinkInfo: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceLinkInfo: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -77,8 +77,8 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -117,15 +117,15 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log _l_) {
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -142,33 +142,33 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BAnnounceLinkInfo toBean() {
-        var bean = new Zeze.Builtin.Provider.BAnnounceLinkInfo();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BAnnounceLinkInfo();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BAnnounceLinkInfo)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BAnnounceLinkInfo)_o_);
     }
 
-    public void assign(BAnnounceLinkInfo other) {
+    public void assign(BAnnounceLinkInfo _o_) {
     }
 
-    public void assign(BAnnounceLinkInfo.Data other) {
+    public void assign(BAnnounceLinkInfo.Data _o_) {
     }
 
     @Override
     public BAnnounceLinkInfo.Data copy() {
-        var copy = new BAnnounceLinkInfo.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAnnounceLinkInfo.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAnnounceLinkInfo.Data a, BAnnounceLinkInfo.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAnnounceLinkInfo.Data _a_, BAnnounceLinkInfo.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -183,17 +183,17 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceLinkInfo: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceLinkInfo: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -202,8 +202,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

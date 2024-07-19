@@ -24,20 +24,20 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     public boolean isRemain() {
         if (!isManaged())
             return _Remain;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Remain;
-        var log = (Log__Remain)txn.getLog(objectId() + 2);
+        var log = (Log__Remain)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Remain;
     }
 
-    public void setRemain(boolean value) {
+    public void setRemain(boolean _v_) {
         if (!isManaged()) {
-            _Remain = value;
+            _Remain = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Remain(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Remain(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -62,33 +62,33 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
 
     @Override
     public Zeze.Builtin.LogService.BResult.Data toData() {
-        var data = new Zeze.Builtin.LogService.BResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.LogService.BResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.LogService.BResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.LogService.BResult.Data)_o_);
     }
 
-    public void assign(BResult.Data other) {
+    public void assign(BResult.Data _o_) {
         _Logs.clear();
-        for (var e : other._Logs) {
-            Zeze.Builtin.LogService.BLog data = new Zeze.Builtin.LogService.BLog();
-            data.assign(e);
-            _Logs.add(data);
+        for (var _e_ : _o_._Logs) {
+            var _v_ = new Zeze.Builtin.LogService.BLog();
+            _v_.assign(_e_);
+            _Logs.add(_v_);
         }
-        setRemain(other._Remain);
+        setRemain(_o_._Remain);
         _unknown_ = null;
     }
 
-    public void assign(BResult other) {
+    public void assign(BResult _o_) {
         _Logs.clear();
-        for (var e : other._Logs)
-            _Logs.add(e.copy());
-        setRemain(other.isRemain());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Logs)
+            _Logs.add(_e_.copy());
+        setRemain(_o_.isRemain());
+        _unknown_ = _o_._unknown_;
     }
 
     public BResult copyIfManaged() {
@@ -97,15 +97,15 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
 
     @Override
     public BResult copy() {
-        var copy = new BResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BResult a, BResult b) {
-        BResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BResult _a_, BResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -114,7 +114,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     }
 
     private static final class Log__Remain extends Zeze.Transaction.Logs.LogBool {
-        public Log__Remain(BResult bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Remain(BResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BResult)getBelong())._Remain = value; }
@@ -122,31 +122,31 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Logs=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Logs=[");
         if (!_Logs.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Logs) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Logs) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Remain=").append(isRemain()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Remain=").append(isRemain()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -157,8 +157,8 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -241,13 +241,13 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Logs.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Logs.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Logs.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Logs.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -261,39 +261,39 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Logs.followerApply(vlog); break;
-                case 2: _Remain = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Logs.followerApply(_v_); break;
+                case 2: _Remain = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Logs, Zeze.Builtin.LogService.BLog.class, rs.getString(_parents_name_ + "Logs"));
-        setRemain(rs.getBoolean(_parents_name_ + "Remain"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_Logs, Zeze.Builtin.LogService.BLog.class, _r_.getString(_pn_ + "Logs"));
+        setRemain(_r_.getBoolean(_pn_ + "Remain"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Logs", Zeze.Serialize.Helper.encodeJson(_Logs));
-        st.appendBoolean(_parents_name_ + "Remain", isRemain());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Logs", Zeze.Serialize.Helper.encodeJson(_Logs));
+        _s_.appendBoolean(_pn_ + "Remain", isRemain());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "Zeze.Builtin.LogService.BLog"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remain", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Logs", "list", "", "Zeze.Builtin.LogService.BLog"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Remain", "bool", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -307,18 +307,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Logs;
     }
 
-    public void setLogs(java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> value) {
-        if (value == null)
+    public void setLogs(java.util.ArrayList<Zeze.Builtin.LogService.BLog.Data> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Logs = value;
+        _Logs = _v_;
     }
 
     public boolean isRemain() {
         return _Remain;
     }
 
-    public void setRemain(boolean value) {
-        _Remain = value;
+    public void setRemain(boolean _v_) {
+        _Remain = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -342,44 +342,44 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.LogService.BResult toBean() {
-        var bean = new Zeze.Builtin.LogService.BResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.LogService.BResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BResult)_o_);
     }
 
-    public void assign(BResult other) {
+    public void assign(BResult _o_) {
         _Logs.clear();
-        for (var e : other._Logs) {
-            Zeze.Builtin.LogService.BLog.Data data = new Zeze.Builtin.LogService.BLog.Data();
-            data.assign(e);
-            _Logs.add(data);
+        for (var _e_ : _o_._Logs) {
+            var _v_ = new Zeze.Builtin.LogService.BLog.Data();
+            _v_.assign(_e_);
+            _Logs.add(_v_);
         }
-        _Remain = other.isRemain();
+        _Remain = _o_.isRemain();
     }
 
-    public void assign(BResult.Data other) {
+    public void assign(BResult.Data _o_) {
         _Logs.clear();
-        for (var e : other._Logs)
-            _Logs.add(e.copy());
-        _Remain = other._Remain;
+        for (var _e_ : _o_._Logs)
+            _Logs.add(_e_.copy());
+        _Remain = _o_._Remain;
     }
 
     @Override
     public BResult.Data copy() {
-        var copy = new BResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BResult.Data a, BResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BResult.Data _a_, BResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -394,31 +394,31 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Logs=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Logs=[");
         if (!_Logs.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Logs) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Logs) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Remain=").append(_Remain).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Remain=").append(_Remain).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -427,8 +427,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

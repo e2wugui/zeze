@@ -24,20 +24,20 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     public long getReliableNotifyIndex() {
         if (!isManaged())
             return _ReliableNotifyIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReliableNotifyIndex;
-        var log = (Log__ReliableNotifyIndex)txn.getLog(objectId() + 2);
+        var log = (Log__ReliableNotifyIndex)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ReliableNotifyIndex;
     }
 
-    public void setReliableNotifyIndex(long value) {
+    public void setReliableNotifyIndex(long _v_) {
         if (!isManaged()) {
-            _ReliableNotifyIndex = value;
+            _ReliableNotifyIndex = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReliableNotifyIndex(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReliableNotifyIndex(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -60,10 +60,10 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         _unknown_ = null;
     }
 
-    public void assign(BReliableNotify other) {
-        _Notifies.assign(other._Notifies);
-        setReliableNotifyIndex(other.getReliableNotifyIndex());
-        _unknown_ = other._unknown_;
+    public void assign(BReliableNotify _o_) {
+        _Notifies.assign(_o_._Notifies);
+        setReliableNotifyIndex(_o_.getReliableNotifyIndex());
+        _unknown_ = _o_._unknown_;
     }
 
     public BReliableNotify copyIfManaged() {
@@ -72,15 +72,15 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
 
     @Override
     public BReliableNotify copy() {
-        var copy = new BReliableNotify();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BReliableNotify();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BReliableNotify a, BReliableNotify b) {
-        BReliableNotify save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BReliableNotify _a_, BReliableNotify _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -89,7 +89,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyIndex(BReliableNotify _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReliableNotify)getBelong())._ReliableNotifyIndex = value; }
@@ -97,29 +97,29 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BReliableNotify: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Notifies=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Online.BReliableNotify: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Notifies=[");
         if (!_Notifies.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Notifies) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Notifies) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -130,8 +130,8 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -214,13 +214,13 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Notifies.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Notifies.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Notifies.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Notifies.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -232,38 +232,38 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Notifies.followerApply(vlog); break;
-                case 2: _ReliableNotifyIndex = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Notifies.followerApply(_v_); break;
+                case 2: _ReliableNotifyIndex = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Notifies, Zeze.Net.Binary.class, rs.getString(_parents_name_ + "Notifies"));
-        setReliableNotifyIndex(rs.getLong(_parents_name_ + "ReliableNotifyIndex"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_Notifies, Zeze.Net.Binary.class, _r_.getString(_pn_ + "Notifies"));
+        setReliableNotifyIndex(_r_.getLong(_pn_ + "ReliableNotifyIndex"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Notifies", Zeze.Serialize.Helper.encodeJson(_Notifies));
-        st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Notifies", Zeze.Serialize.Helper.encodeJson(_Notifies));
+        _s_.appendLong(_pn_ + "ReliableNotifyIndex", getReliableNotifyIndex());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Notifies", "list", "", "binary"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyIndex", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Notifies", "list", "", "binary"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyIndex", "long", "", ""));
+        return _v_;
     }
 }

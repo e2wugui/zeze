@@ -18,88 +18,88 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     public long getId() {
         if (!isManaged())
             return _Id;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Id;
-        var log = (Log__Id)txn.getLog(objectId() + 1);
+        var log = (Log__Id)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
-    public void setId(long value) {
+    public void setId(long _v_) {
         if (!isManaged()) {
-            _Id = value;
+            _Id = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Id(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Id(this, 1, _v_));
     }
 
     @Override
     public int getLimit() {
         if (!isManaged())
             return _Limit;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Limit;
-        var log = (Log__Limit)txn.getLog(objectId() + 2);
+        var log = (Log__Limit)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Limit;
     }
 
-    public void setLimit(int value) {
+    public void setLimit(int _v_) {
         if (!isManaged()) {
-            _Limit = value;
+            _Limit = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Limit(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Limit(this, 2, _v_));
     }
 
     @Override
     public float getOffsetFactor() {
         if (!isManaged())
             return _OffsetFactor;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _OffsetFactor;
-        var log = (Log__OffsetFactor)txn.getLog(objectId() + 3);
+        var log = (Log__OffsetFactor)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _OffsetFactor;
     }
 
-    public void setOffsetFactor(float value) {
+    public void setOffsetFactor(float _v_) {
         if (!isManaged()) {
-            _OffsetFactor = value;
+            _OffsetFactor = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OffsetFactor(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__OffsetFactor(this, 3, _v_));
     }
 
     @Override
     public boolean isReset() {
         if (!isManaged())
             return _Reset;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Reset;
-        var log = (Log__Reset)txn.getLog(objectId() + 4);
+        var log = (Log__Reset)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Reset;
     }
 
-    public void setReset(boolean value) {
+    public void setReset(boolean _v_) {
         if (!isManaged()) {
-            _Reset = value;
+            _Reset = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Reset(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Reset(this, 4, _v_));
     }
 
     public Zeze.Builtin.LogService.BCondition getCondition() {
         return _Condition.getValue();
     }
 
-    public void setCondition(Zeze.Builtin.LogService.BCondition value) {
-        _Condition.setValue(value);
+    public void setCondition(Zeze.Builtin.LogService.BCondition _v_) {
+        _Condition.setValue(_v_);
     }
 
     @Override
@@ -135,34 +135,34 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
 
     @Override
     public Zeze.Builtin.LogService.BBrowse.Data toData() {
-        var data = new Zeze.Builtin.LogService.BBrowse.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.LogService.BBrowse.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.LogService.BBrowse.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.LogService.BBrowse.Data)_o_);
     }
 
-    public void assign(BBrowse.Data other) {
-        setId(other._Id);
-        setLimit(other._Limit);
-        setOffsetFactor(other._OffsetFactor);
-        setReset(other._Reset);
-        Zeze.Builtin.LogService.BCondition data_Condition = new Zeze.Builtin.LogService.BCondition();
-        data_Condition.assign(other._Condition);
-        _Condition.setValue(data_Condition);
+    public void assign(BBrowse.Data _o_) {
+        setId(_o_._Id);
+        setLimit(_o_._Limit);
+        setOffsetFactor(_o_._OffsetFactor);
+        setReset(_o_._Reset);
+        var _d__Condition = new Zeze.Builtin.LogService.BCondition();
+        _d__Condition.assign(_o_._Condition);
+        _Condition.setValue(_d__Condition);
         _unknown_ = null;
     }
 
-    public void assign(BBrowse other) {
-        setId(other.getId());
-        setLimit(other.getLimit());
-        setOffsetFactor(other.getOffsetFactor());
-        setReset(other.isReset());
-        _Condition.assign(other._Condition);
-        _unknown_ = other._unknown_;
+    public void assign(BBrowse _o_) {
+        setId(_o_.getId());
+        setLimit(_o_.getLimit());
+        setOffsetFactor(_o_.getOffsetFactor());
+        setReset(_o_.isReset());
+        _Condition.assign(_o_._Condition);
+        _unknown_ = _o_._unknown_;
     }
 
     public BBrowse copyIfManaged() {
@@ -171,15 +171,15 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
 
     @Override
     public BBrowse copy() {
-        var copy = new BBrowse();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBrowse();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBrowse a, BBrowse b) {
-        BBrowse save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBrowse _a_, BBrowse _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -188,28 +188,28 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     }
 
     private static final class Log__Id extends Zeze.Transaction.Logs.LogLong {
-        public Log__Id(BBrowse bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Id(BBrowse _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBrowse)getBelong())._Id = value; }
     }
 
     private static final class Log__Limit extends Zeze.Transaction.Logs.LogInt {
-        public Log__Limit(BBrowse bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Limit(BBrowse _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBrowse)getBelong())._Limit = value; }
     }
 
     private static final class Log__OffsetFactor extends Zeze.Transaction.Logs.LogFloat {
-        public Log__OffsetFactor(BBrowse bean, int varId, float value) { super(bean, varId, value); }
+        public Log__OffsetFactor(BBrowse _b_, int _i_, float _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBrowse)getBelong())._OffsetFactor = value; }
     }
 
     private static final class Log__Reset extends Zeze.Transaction.Logs.LogBool {
-        public Log__Reset(BBrowse bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Reset(BBrowse _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBrowse)getBelong())._Reset = value; }
@@ -217,24 +217,24 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Limit=").append(getLimit()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(getOffsetFactor()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Reset=").append(isReset()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Condition=").append(System.lineSeparator());
-        _Condition.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Limit=").append(getLimit()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OffsetFactor=").append(getOffsetFactor()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Reset=").append(isReset()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Condition=").append(System.lineSeparator());
+        _Condition.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -245,8 +245,8 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -358,13 +358,13 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Condition.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Condition.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Condition.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Condition.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -380,55 +380,55 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Id = vlog.longValue(); break;
-                case 2: _Limit = vlog.intValue(); break;
-                case 3: _OffsetFactor = vlog.floatValue(); break;
-                case 4: _Reset = vlog.booleanValue(); break;
-                case 5: _Condition.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Id = _v_.longValue(); break;
+                case 2: _Limit = _v_.intValue(); break;
+                case 3: _OffsetFactor = _v_.floatValue(); break;
+                case 4: _Reset = _v_.booleanValue(); break;
+                case 5: _Condition.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setId(rs.getLong(_parents_name_ + "Id"));
-        setLimit(rs.getInt(_parents_name_ + "Limit"));
-        setOffsetFactor(rs.getFloat(_parents_name_ + "OffsetFactor"));
-        setReset(rs.getBoolean(_parents_name_ + "Reset"));
-        parents.add("Condition");
-        _Condition.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setId(_r_.getLong(_pn_ + "Id"));
+        setLimit(_r_.getInt(_pn_ + "Limit"));
+        setOffsetFactor(_r_.getFloat(_pn_ + "OffsetFactor"));
+        setReset(_r_.getBoolean(_pn_ + "Reset"));
+        _p_.add("Condition");
+        _Condition.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Id", getId());
-        st.appendInt(_parents_name_ + "Limit", getLimit());
-        st.appendFloat(_parents_name_ + "OffsetFactor", getOffsetFactor());
-        st.appendBoolean(_parents_name_ + "Reset", isReset());
-        parents.add("Condition");
-        _Condition.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Id", getId());
+        _s_.appendInt(_pn_ + "Limit", getLimit());
+        _s_.appendFloat(_pn_ + "OffsetFactor", getOffsetFactor());
+        _s_.appendBoolean(_pn_ + "Reset", isReset());
+        _p_.add("Condition");
+        _Condition.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Limit", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OffsetFactor", "float", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Reset", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Condition", "Zeze.Builtin.LogService.BCondition", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Limit", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OffsetFactor", "float", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Reset", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Condition", "Zeze.Builtin.LogService.BCondition", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -445,42 +445,42 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Id;
     }
 
-    public void setId(long value) {
-        _Id = value;
+    public void setId(long _v_) {
+        _Id = _v_;
     }
 
     public int getLimit() {
         return _Limit;
     }
 
-    public void setLimit(int value) {
-        _Limit = value;
+    public void setLimit(int _v_) {
+        _Limit = _v_;
     }
 
     public float getOffsetFactor() {
         return _OffsetFactor;
     }
 
-    public void setOffsetFactor(float value) {
-        _OffsetFactor = value;
+    public void setOffsetFactor(float _v_) {
+        _OffsetFactor = _v_;
     }
 
     public boolean isReset() {
         return _Reset;
     }
 
-    public void setReset(boolean value) {
-        _Reset = value;
+    public void setReset(boolean _v_) {
+        _Reset = _v_;
     }
 
     public Zeze.Builtin.LogService.BCondition.Data getCondition() {
         return _Condition;
     }
 
-    public void setCondition(Zeze.Builtin.LogService.BCondition.Data value) {
-        if (value == null)
+    public void setCondition(Zeze.Builtin.LogService.BCondition.Data _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Condition = value;
+        _Condition = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -510,43 +510,43 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.LogService.BBrowse toBean() {
-        var bean = new Zeze.Builtin.LogService.BBrowse();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.LogService.BBrowse();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BBrowse)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BBrowse)_o_);
     }
 
-    public void assign(BBrowse other) {
-        _Id = other.getId();
-        _Limit = other.getLimit();
-        _OffsetFactor = other.getOffsetFactor();
-        _Reset = other.isReset();
-        _Condition.assign(other._Condition.getValue());
+    public void assign(BBrowse _o_) {
+        _Id = _o_.getId();
+        _Limit = _o_.getLimit();
+        _OffsetFactor = _o_.getOffsetFactor();
+        _Reset = _o_.isReset();
+        _Condition.assign(_o_._Condition.getValue());
     }
 
-    public void assign(BBrowse.Data other) {
-        _Id = other._Id;
-        _Limit = other._Limit;
-        _OffsetFactor = other._OffsetFactor;
-        _Reset = other._Reset;
-        _Condition.assign(other._Condition);
+    public void assign(BBrowse.Data _o_) {
+        _Id = _o_._Id;
+        _Limit = _o_._Limit;
+        _OffsetFactor = _o_._OffsetFactor;
+        _Reset = _o_._Reset;
+        _Condition.assign(_o_._Condition);
     }
 
     @Override
     public BBrowse.Data copy() {
-        var copy = new BBrowse.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBrowse.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBrowse.Data a, BBrowse.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBrowse.Data _a_, BBrowse.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -561,24 +561,24 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Limit=").append(_Limit).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OffsetFactor=").append(_OffsetFactor).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Reset=").append(_Reset).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Condition=").append(System.lineSeparator());
-        _Condition.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Limit=").append(_Limit).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OffsetFactor=").append(_OffsetFactor).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Reset=").append(_Reset).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Condition=").append(System.lineSeparator());
+        _Condition.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -587,8 +587,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

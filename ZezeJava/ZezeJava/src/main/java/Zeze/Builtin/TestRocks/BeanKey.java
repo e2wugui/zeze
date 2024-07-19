@@ -33,19 +33,19 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BeanKey: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.TestRocks.BeanKey: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -56,8 +56,8 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -146,19 +146,19 @@ public final class BeanKey implements Zeze.Transaction.BeanKey, Comparable<BeanK
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _Id = rs.getInt(_parents_name_ + "Id");
-        _Name = rs.getString(_parents_name_ + "Name");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _Id = _r_.getInt(_pn_ + "Id");
+        _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)
             _Name = "";
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Id", _Id);
-        st.appendString(_parents_name_ + "Name", _Name);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Id", _Id);
+        _s_.appendString(_pn_ + "Name", _Name);
     }
 
     @Override

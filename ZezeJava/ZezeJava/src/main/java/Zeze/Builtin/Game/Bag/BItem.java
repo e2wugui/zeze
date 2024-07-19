@@ -16,12 +16,12 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         return new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::getSpecialTypeIdFromBean, Zeze.Game.Bag::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean bean) {
-        return Zeze.Game.Bag.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_3(Zeze.Transaction.Bean _b_) {
+        return Zeze.Game.Bag.getSpecialTypeIdFromBean(_b_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long typeId) {
-        return Zeze.Game.Bag.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long _t_) {
+        return Zeze.Game.Bag.createBeanFromSpecialTypeId(_t_);
     }
 
     private transient Object __zeze_map_key__;
@@ -32,48 +32,48 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     @Override
     public int getId() {
         if (!isManaged())
             return _Id;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Id;
-        var log = (Log__Id)txn.getLog(objectId() + 1);
+        var log = (Log__Id)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
-    public void setId(int value) {
+    public void setId(int _v_) {
         if (!isManaged()) {
-            _Id = value;
+            _Id = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Id(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Id(this, 1, _v_));
     }
 
     @Override
     public int getNumber() {
         if (!isManaged())
             return _Number;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Number;
-        var log = (Log__Number)txn.getLog(objectId() + 2);
+        var log = (Log__Number)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Number;
     }
 
-    public void setNumber(int value) {
+    public void setNumber(int _v_) {
         if (!isManaged()) {
-            _Number = value;
+            _Number = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Number(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Number(this, 2, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getItem() {
@@ -105,11 +105,11 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         _unknown_ = null;
     }
 
-    public void assign(BItem other) {
-        setId(other.getId());
-        setNumber(other.getNumber());
-        _Item.assign(other._Item);
-        _unknown_ = other._unknown_;
+    public void assign(BItem _o_) {
+        setId(_o_.getId());
+        setNumber(_o_.getNumber());
+        _Item.assign(_o_._Item);
+        _unknown_ = _o_._unknown_;
     }
 
     public BItem copyIfManaged() {
@@ -118,15 +118,15 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
 
     @Override
     public BItem copy() {
-        var copy = new BItem();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BItem();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BItem a, BItem b) {
-        BItem save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BItem _a_, BItem _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -135,14 +135,14 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     private static final class Log__Id extends Zeze.Transaction.Logs.LogInt {
-        public Log__Id(BItem bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Id(BItem _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BItem)getBelong())._Id = value; }
     }
 
     private static final class Log__Number extends Zeze.Transaction.Logs.LogInt {
-        public Log__Number(BItem bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Number(BItem _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BItem)getBelong())._Number = value; }
@@ -150,22 +150,22 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BItem: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Number=").append(getNumber()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-        _Item.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BItem: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Number=").append(getNumber()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+        _Item.getBean().buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -176,8 +176,8 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -260,13 +260,13 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Item.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Item.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Item.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Item.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -280,42 +280,42 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Id = vlog.intValue(); break;
-                case 2: _Number = vlog.intValue(); break;
-                case 3: _Item.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Id = _v_.intValue(); break;
+                case 2: _Number = _v_.intValue(); break;
+                case 3: _Item.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setId(rs.getInt(_parents_name_ + "Id"));
-        setNumber(rs.getInt(_parents_name_ + "Number"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Item, rs.getString(_parents_name_ + "Item"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setId(_r_.getInt(_pn_ + "Id"));
+        setNumber(_r_.getInt(_pn_ + "Number"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Item, _r_.getString(_pn_ + "Item"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Id", getId());
-        st.appendInt(_parents_name_ + "Number", getNumber());
-        st.appendString(_parents_name_ + "Item", Zeze.Serialize.Helper.encodeJson(_Item));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Id", getId());
+        _s_.appendInt(_pn_ + "Number", getNumber());
+        _s_.appendString(_pn_ + "Item", Zeze.Serialize.Helper.encodeJson(_Item));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Number", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item", "dynamic", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Number", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item", "dynamic", "", ""));
+        return _v_;
     }
 }

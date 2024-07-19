@@ -113,16 +113,16 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}    return new Zeze.Transaction.DynamicBean({var.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean bean) {{");
+            sw.WriteLine($"{prefix}public static long getSpecialTypeIdFromBean_{var.Id}(Zeze.Transaction.Bean _b_) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
                 // 根据配置的实际类型生成switch。
-                sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
-                sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
+                sw.WriteLine($"{prefix}    var _t_ = _b_.typeId();");
+                sw.WriteLine($"{prefix}    if (_t_ == Zeze.Transaction.EmptyBean.TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
+                    sw.WriteLine($"{prefix}    if (_t_ == {real.Value.TypeId}L)");
                     sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
                 }
                 sw.WriteLine($"{prefix}    throw new UnsupportedOperationException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
@@ -130,28 +130,28 @@ namespace Zeze.Gen.java
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(bean);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(_b_);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_{var.Id}(long typeId) {{");
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_{var.Id}(long _t_) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId))
             {
                 // 根据配置的实际类型生成switch。
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                    sw.WriteLine($"{prefix}    if (_t_ == {real.Key}L)");
                     sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
                 }
-                sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.TYPEID)");
+                sw.WriteLine($"{prefix}    if (_t_ == Zeze.Transaction.EmptyBean.TYPEID)");
                 sw.WriteLine($"{prefix}        return new Zeze.Transaction.EmptyBean();");
                 sw.WriteLine($"{prefix}    return null;");
             }
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(_t_);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
@@ -231,15 +231,15 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + bean.Name + " copy() {");
-            sw.WriteLine("        var copy = new " + bean.Name + "();");
-            sw.WriteLine("        copy.assign(this);");
-            sw.WriteLine("        return copy;");
+            sw.WriteLine("        var _c_ = new " + bean.Name + "();");
+            sw.WriteLine("        _c_.assign(this);");
+            sw.WriteLine("        return _c_;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void swap({bean.Name} a, {bean.Name} b) {{");
-            sw.WriteLine($"        {bean.Name} save = a.copy();");
-            sw.WriteLine("        a.assign(b);");
-            sw.WriteLine("        b.assign(save);");
+            sw.WriteLine($"    public static void swap({bean.Name} _a_, {bean.Name} _b_) {{");
+            sw.WriteLine($"        var _s_ = _a_.copy();");
+            sw.WriteLine("        _a_.assign(_b_);");
+            sw.WriteLine("        _b_.assign(_s_);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
@@ -270,7 +270,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
                 sw.WriteLine($"{prefix}public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {{");
-                sw.WriteLine($"{prefix}    var vars = super.variables();");
+                sw.WriteLine($"{prefix}    var _v_ = super.variables();");
                 foreach (var v in bean.VariablesIdOrder)
                 {
                     string type = v.Type;
@@ -302,9 +302,9 @@ namespace Zeze.Gen.java
                                 value = Variable.GetBeanFullName(set.ValueType);
                         }
                     }
-                    sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
+                    sw.WriteLine($"{prefix}    _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }
-                sw.WriteLine($"{prefix}    return vars;");
+                sw.WriteLine($"{prefix}    return _v_;");
                 sw.WriteLine($"{prefix}}}");
             }
         }

@@ -15,40 +15,40 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)txn.getLog(objectId() + 1);
+        var log = (Log__ServerId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServerId;
     }
 
-    public void setServerId(int value) {
+    public void setServerId(int _v_) {
         if (!isManaged()) {
-            _ServerId = value;
+            _ServerId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServerId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServerId(this, 1, _v_));
     }
 
     @Override
     public long getAppSerialId() {
         if (!isManaged())
             return _AppSerialId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _AppSerialId;
-        var log = (Log__AppSerialId)txn.getLog(objectId() + 2);
+        var log = (Log__AppSerialId)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _AppSerialId;
     }
 
-    public void setAppSerialId(long value) {
+    public void setAppSerialId(long _v_) {
         if (!isManaged()) {
-            _AppSerialId = value;
+            _AppSerialId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__AppSerialId(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__AppSerialId(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -70,26 +70,26 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
 
     @Override
     public Zeze.Builtin.Threading.BKeepAlive.Data toData() {
-        var data = new Zeze.Builtin.Threading.BKeepAlive.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Threading.BKeepAlive.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Threading.BKeepAlive.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Threading.BKeepAlive.Data)_o_);
     }
 
-    public void assign(BKeepAlive.Data other) {
-        setServerId(other._ServerId);
-        setAppSerialId(other._AppSerialId);
+    public void assign(BKeepAlive.Data _o_) {
+        setServerId(_o_._ServerId);
+        setAppSerialId(_o_._AppSerialId);
         _unknown_ = null;
     }
 
-    public void assign(BKeepAlive other) {
-        setServerId(other.getServerId());
-        setAppSerialId(other.getAppSerialId());
-        _unknown_ = other._unknown_;
+    public void assign(BKeepAlive _o_) {
+        setServerId(_o_.getServerId());
+        setAppSerialId(_o_.getAppSerialId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BKeepAlive copyIfManaged() {
@@ -98,15 +98,15 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
 
     @Override
     public BKeepAlive copy() {
-        var copy = new BKeepAlive();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BKeepAlive();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BKeepAlive a, BKeepAlive b) {
-        BKeepAlive save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BKeepAlive _a_, BKeepAlive _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -115,14 +115,14 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BKeepAlive bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerId(BKeepAlive _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BKeepAlive)getBelong())._ServerId = value; }
     }
 
     private static final class Log__AppSerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__AppSerialId(BKeepAlive bean, int varId, long value) { super(bean, varId, value); }
+        public Log__AppSerialId(BKeepAlive _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BKeepAlive)getBelong())._AppSerialId = value; }
@@ -130,19 +130,19 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BKeepAlive: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AppSerialId=").append(getAppSerialId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BKeepAlive: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppSerialId=").append(getAppSerialId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -153,8 +153,8 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -234,39 +234,39 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ServerId = vlog.intValue(); break;
-                case 2: _AppSerialId = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ServerId = _v_.intValue(); break;
+                case 2: _AppSerialId = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setServerId(rs.getInt(_parents_name_ + "ServerId"));
-        setAppSerialId(rs.getLong(_parents_name_ + "AppSerialId"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setServerId(_r_.getInt(_pn_ + "ServerId"));
+        setAppSerialId(_r_.getLong(_pn_ + "AppSerialId"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "ServerId", getServerId());
-        st.appendLong(_parents_name_ + "AppSerialId", getAppSerialId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "ServerId", getServerId());
+        _s_.appendLong(_pn_ + "AppSerialId", getAppSerialId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "AppSerialId", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "AppSerialId", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -280,16 +280,16 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ServerId;
     }
 
-    public void setServerId(int value) {
-        _ServerId = value;
+    public void setServerId(int _v_) {
+        _ServerId = _v_;
     }
 
     public long getAppSerialId() {
         return _AppSerialId;
     }
 
-    public void setAppSerialId(long value) {
-        _AppSerialId = value;
+    public void setAppSerialId(long _v_) {
+        _AppSerialId = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -310,37 +310,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Threading.BKeepAlive toBean() {
-        var bean = new Zeze.Builtin.Threading.BKeepAlive();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Threading.BKeepAlive();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BKeepAlive)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BKeepAlive)_o_);
     }
 
-    public void assign(BKeepAlive other) {
-        _ServerId = other.getServerId();
-        _AppSerialId = other.getAppSerialId();
+    public void assign(BKeepAlive _o_) {
+        _ServerId = _o_.getServerId();
+        _AppSerialId = _o_.getAppSerialId();
     }
 
-    public void assign(BKeepAlive.Data other) {
-        _ServerId = other._ServerId;
-        _AppSerialId = other._AppSerialId;
+    public void assign(BKeepAlive.Data _o_) {
+        _ServerId = _o_._ServerId;
+        _AppSerialId = _o_._AppSerialId;
     }
 
     @Override
     public BKeepAlive.Data copy() {
-        var copy = new BKeepAlive.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BKeepAlive.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BKeepAlive.Data a, BKeepAlive.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BKeepAlive.Data _a_, BKeepAlive.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -355,19 +355,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BKeepAlive: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AppSerialId=").append(_AppSerialId).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BKeepAlive: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppSerialId=").append(_AppSerialId).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -376,8 +376,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

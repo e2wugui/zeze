@@ -36,21 +36,21 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Threading.BLockName: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalThreadId=").append(System.lineSeparator());
-        _GlobalThreadId.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BLockName: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("GlobalThreadId=").append(System.lineSeparator());
+        _GlobalThreadId.buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -61,8 +61,8 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -154,23 +154,23 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("GlobalThreadId");
-        _GlobalThreadId.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _Name = rs.getString(_parents_name_ + "Name");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("GlobalThreadId");
+        _GlobalThreadId.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)
             _Name = "";
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("GlobalThreadId");
-        _GlobalThreadId.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Name", _Name);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("GlobalThreadId");
+        _GlobalThreadId.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Name", _Name);
     }
 
     @Override

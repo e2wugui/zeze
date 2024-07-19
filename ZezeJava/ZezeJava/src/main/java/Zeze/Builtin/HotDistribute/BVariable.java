@@ -18,108 +18,108 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     public int getId() {
         if (!isManaged())
             return _Id;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Id;
-        var log = (Log__Id)txn.getLog(objectId() + 1);
+        var log = (Log__Id)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
-    public void setId(int value) {
+    public void setId(int _v_) {
         if (!isManaged()) {
-            _Id = value;
+            _Id = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Id(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Id(this, 1, _v_));
     }
 
     @Override
     public String getName() {
         if (!isManaged())
             return _Name;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Name;
-        var log = (Log__Name)txn.getLog(objectId() + 2);
+        var log = (Log__Name)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Name;
     }
 
-    public void setName(String value) {
-        if (value == null)
+    public void setName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Name = value;
+            _Name = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Name(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Name(this, 2, _v_));
     }
 
     @Override
     public String getType() {
         if (!isManaged())
             return _Type;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Type;
-        var log = (Log__Type)txn.getLog(objectId() + 3);
+        var log = (Log__Type)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Type;
     }
 
-    public void setType(String value) {
-        if (value == null)
+    public void setType(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Type = value;
+            _Type = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Type(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Type(this, 3, _v_));
     }
 
     @Override
     public String getKey() {
         if (!isManaged())
             return _Key;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 4);
+        var log = (Log__Key)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Key;
     }
 
-    public void setKey(String value) {
-        if (value == null)
+    public void setKey(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Key = value;
+            _Key = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Key(this, 4, _v_));
     }
 
     @Override
     public String getValue() {
         if (!isManaged())
             return _Value;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Value;
-        var log = (Log__Value)txn.getLog(objectId() + 5);
+        var log = (Log__Value)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Value;
     }
 
-    public void setValue(String value) {
-        if (value == null)
+    public void setValue(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Value = value;
+            _Value = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Value(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Value(this, 5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -159,32 +159,32 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
 
     @Override
     public Zeze.Builtin.HotDistribute.BVariable.Data toData() {
-        var data = new Zeze.Builtin.HotDistribute.BVariable.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.HotDistribute.BVariable.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.HotDistribute.BVariable.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.HotDistribute.BVariable.Data)_o_);
     }
 
-    public void assign(BVariable.Data other) {
-        setId(other._Id);
-        setName(other._Name);
-        setType(other._Type);
-        setKey(other._Key);
-        setValue(other._Value);
+    public void assign(BVariable.Data _o_) {
+        setId(_o_._Id);
+        setName(_o_._Name);
+        setType(_o_._Type);
+        setKey(_o_._Key);
+        setValue(_o_._Value);
         _unknown_ = null;
     }
 
-    public void assign(BVariable other) {
-        setId(other.getId());
-        setName(other.getName());
-        setType(other.getType());
-        setKey(other.getKey());
-        setValue(other.getValue());
-        _unknown_ = other._unknown_;
+    public void assign(BVariable _o_) {
+        setId(_o_.getId());
+        setName(_o_.getName());
+        setType(_o_.getType());
+        setKey(_o_.getKey());
+        setValue(_o_.getValue());
+        _unknown_ = _o_._unknown_;
     }
 
     public BVariable copyIfManaged() {
@@ -193,15 +193,15 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
 
     @Override
     public BVariable copy() {
-        var copy = new BVariable();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BVariable();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BVariable a, BVariable b) {
-        BVariable save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BVariable _a_, BVariable _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -210,35 +210,35 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     }
 
     private static final class Log__Id extends Zeze.Transaction.Logs.LogInt {
-        public Log__Id(BVariable bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Id(BVariable _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BVariable)getBelong())._Id = value; }
     }
 
     private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
-        public Log__Name(BVariable bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Name(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BVariable)getBelong())._Name = value; }
     }
 
     private static final class Log__Type extends Zeze.Transaction.Logs.LogString {
-        public Log__Type(BVariable bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Type(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BVariable)getBelong())._Type = value; }
     }
 
     private static final class Log__Key extends Zeze.Transaction.Logs.LogString {
-        public Log__Key(BVariable bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Key(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BVariable)getBelong())._Key = value; }
     }
 
     private static final class Log__Value extends Zeze.Transaction.Logs.LogString {
-        public Log__Value(BVariable bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Value(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BVariable)getBelong())._Value = value; }
@@ -246,22 +246,22 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Type=").append(getType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(getValue()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Type=").append(getType()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(getValue()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -272,8 +272,8 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -390,59 +390,59 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Id = vlog.intValue(); break;
-                case 2: _Name = vlog.stringValue(); break;
-                case 3: _Type = vlog.stringValue(); break;
-                case 4: _Key = vlog.stringValue(); break;
-                case 5: _Value = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Id = _v_.intValue(); break;
+                case 2: _Name = _v_.stringValue(); break;
+                case 3: _Type = _v_.stringValue(); break;
+                case 4: _Key = _v_.stringValue(); break;
+                case 5: _Value = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setId(rs.getInt(_parents_name_ + "Id"));
-        setName(rs.getString(_parents_name_ + "Name"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setId(_r_.getInt(_pn_ + "Id"));
+        setName(_r_.getString(_pn_ + "Name"));
         if (getName() == null)
             setName("");
-        setType(rs.getString(_parents_name_ + "Type"));
+        setType(_r_.getString(_pn_ + "Type"));
         if (getType() == null)
             setType("");
-        setKey(rs.getString(_parents_name_ + "Key"));
+        setKey(_r_.getString(_pn_ + "Key"));
         if (getKey() == null)
             setKey("");
-        setValue(rs.getString(_parents_name_ + "Value"));
+        setValue(_r_.getString(_pn_ + "Value"));
         if (getValue() == null)
             setValue("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Id", getId());
-        st.appendString(_parents_name_ + "Name", getName());
-        st.appendString(_parents_name_ + "Type", getType());
-        st.appendString(_parents_name_ + "Key", getKey());
-        st.appendString(_parents_name_ + "Value", getValue());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Id", getId());
+        _s_.appendString(_pn_ + "Name", getName());
+        _s_.appendString(_pn_ + "Type", getType());
+        _s_.appendString(_pn_ + "Key", getKey());
+        _s_.appendString(_pn_ + "Value", getValue());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Name", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Type", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Key", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Value", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Name", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Type", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Key", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Value", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -459,48 +459,48 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Id;
     }
 
-    public void setId(int value) {
-        _Id = value;
+    public void setId(int _v_) {
+        _Id = _v_;
     }
 
     public String getName() {
         return _Name;
     }
 
-    public void setName(String value) {
-        if (value == null)
+    public void setName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Name = value;
+        _Name = _v_;
     }
 
     public String getType() {
         return _Type;
     }
 
-    public void setType(String value) {
-        if (value == null)
+    public void setType(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Type = value;
+        _Type = _v_;
     }
 
     public String getKey() {
         return _Key;
     }
 
-    public void setKey(String value) {
-        if (value == null)
+    public void setKey(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Key = value;
+        _Key = _v_;
     }
 
     public String getValue() {
         return _Value;
     }
 
-    public void setValue(String value) {
-        if (value == null)
+    public void setValue(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Value = value;
+        _Value = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -539,43 +539,43 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.HotDistribute.BVariable toBean() {
-        var bean = new Zeze.Builtin.HotDistribute.BVariable();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.HotDistribute.BVariable();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BVariable)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BVariable)_o_);
     }
 
-    public void assign(BVariable other) {
-        _Id = other.getId();
-        _Name = other.getName();
-        _Type = other.getType();
-        _Key = other.getKey();
-        _Value = other.getValue();
+    public void assign(BVariable _o_) {
+        _Id = _o_.getId();
+        _Name = _o_.getName();
+        _Type = _o_.getType();
+        _Key = _o_.getKey();
+        _Value = _o_.getValue();
     }
 
-    public void assign(BVariable.Data other) {
-        _Id = other._Id;
-        _Name = other._Name;
-        _Type = other._Type;
-        _Key = other._Key;
-        _Value = other._Value;
+    public void assign(BVariable.Data _o_) {
+        _Id = _o_._Id;
+        _Name = _o_._Name;
+        _Type = _o_._Type;
+        _Key = _o_._Key;
+        _Value = _o_._Value;
     }
 
     @Override
     public BVariable.Data copy() {
-        var copy = new BVariable.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BVariable.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BVariable.Data a, BVariable.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BVariable.Data _a_, BVariable.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -590,22 +590,22 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Type=").append(_Type).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_Value).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Type=").append(_Type).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_Value).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -614,8 +614,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

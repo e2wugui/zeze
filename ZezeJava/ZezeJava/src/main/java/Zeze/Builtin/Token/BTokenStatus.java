@@ -17,82 +17,82 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     public long getNewCount() {
         if (!isManaged())
             return _newCount;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _newCount;
-        var log = (Log__newCount)txn.getLog(objectId() + 1);
+        var log = (Log__newCount)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _newCount;
     }
 
-    public void setNewCount(long value) {
+    public void setNewCount(long _v_) {
         if (!isManaged()) {
-            _newCount = value;
+            _newCount = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__newCount(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__newCount(this, 1, _v_));
     }
 
     @Override
     public long getCurCount() {
         if (!isManaged())
             return _curCount;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _curCount;
-        var log = (Log__curCount)txn.getLog(objectId() + 2);
+        var log = (Log__curCount)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _curCount;
     }
 
-    public void setCurCount(long value) {
+    public void setCurCount(long _v_) {
         if (!isManaged()) {
-            _curCount = value;
+            _curCount = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__curCount(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__curCount(this, 2, _v_));
     }
 
     @Override
     public int getConnectCount() {
         if (!isManaged())
             return _connectCount;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _connectCount;
-        var log = (Log__connectCount)txn.getLog(objectId() + 3);
+        var log = (Log__connectCount)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _connectCount;
     }
 
-    public void setConnectCount(int value) {
+    public void setConnectCount(int _v_) {
         if (!isManaged()) {
-            _connectCount = value;
+            _connectCount = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__connectCount(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__connectCount(this, 3, _v_));
     }
 
     @Override
     public String getPerfLog() {
         if (!isManaged())
             return _perfLog;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _perfLog;
-        var log = (Log__perfLog)txn.getLog(objectId() + 4);
+        var log = (Log__perfLog)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _perfLog;
     }
 
-    public void setPerfLog(String value) {
-        if (value == null)
+    public void setPerfLog(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _perfLog = value;
+            _perfLog = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__perfLog(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__perfLog(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -121,30 +121,30 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
 
     @Override
     public Zeze.Builtin.Token.BTokenStatus.Data toData() {
-        var data = new Zeze.Builtin.Token.BTokenStatus.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BTokenStatus.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BTokenStatus.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BTokenStatus.Data)_o_);
     }
 
-    public void assign(BTokenStatus.Data other) {
-        setNewCount(other._newCount);
-        setCurCount(other._curCount);
-        setConnectCount(other._connectCount);
-        setPerfLog(other._perfLog);
+    public void assign(BTokenStatus.Data _o_) {
+        setNewCount(_o_._newCount);
+        setCurCount(_o_._curCount);
+        setConnectCount(_o_._connectCount);
+        setPerfLog(_o_._perfLog);
         _unknown_ = null;
     }
 
-    public void assign(BTokenStatus other) {
-        setNewCount(other.getNewCount());
-        setCurCount(other.getCurCount());
-        setConnectCount(other.getConnectCount());
-        setPerfLog(other.getPerfLog());
-        _unknown_ = other._unknown_;
+    public void assign(BTokenStatus _o_) {
+        setNewCount(_o_.getNewCount());
+        setCurCount(_o_.getCurCount());
+        setConnectCount(_o_.getConnectCount());
+        setPerfLog(_o_.getPerfLog());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTokenStatus copyIfManaged() {
@@ -153,15 +153,15 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
 
     @Override
     public BTokenStatus copy() {
-        var copy = new BTokenStatus();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTokenStatus();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTokenStatus a, BTokenStatus b) {
-        BTokenStatus save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTokenStatus _a_, BTokenStatus _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -170,28 +170,28 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     }
 
     private static final class Log__newCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__newCount(BTokenStatus bean, int varId, long value) { super(bean, varId, value); }
+        public Log__newCount(BTokenStatus _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTokenStatus)getBelong())._newCount = value; }
     }
 
     private static final class Log__curCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__curCount(BTokenStatus bean, int varId, long value) { super(bean, varId, value); }
+        public Log__curCount(BTokenStatus _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTokenStatus)getBelong())._curCount = value; }
     }
 
     private static final class Log__connectCount extends Zeze.Transaction.Logs.LogInt {
-        public Log__connectCount(BTokenStatus bean, int varId, int value) { super(bean, varId, value); }
+        public Log__connectCount(BTokenStatus _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTokenStatus)getBelong())._connectCount = value; }
     }
 
     private static final class Log__perfLog extends Zeze.Transaction.Logs.LogString {
-        public Log__perfLog(BTokenStatus bean, int varId, String value) { super(bean, varId, value); }
+        public Log__perfLog(BTokenStatus _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTokenStatus)getBelong())._perfLog = value; }
@@ -199,21 +199,21 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BTokenStatus: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("newCount=").append(getNewCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("curCount=").append(getCurCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(getConnectCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("perfLog=").append(getPerfLog()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BTokenStatus: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("newCount=").append(getNewCount()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("curCount=").append(getCurCount()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("connectCount=").append(getConnectCount()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("perfLog=").append(getPerfLog()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -224,8 +224,8 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -333,49 +333,49 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _newCount = vlog.longValue(); break;
-                case 2: _curCount = vlog.longValue(); break;
-                case 3: _connectCount = vlog.intValue(); break;
-                case 4: _perfLog = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _newCount = _v_.longValue(); break;
+                case 2: _curCount = _v_.longValue(); break;
+                case 3: _connectCount = _v_.intValue(); break;
+                case 4: _perfLog = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setNewCount(rs.getLong(_parents_name_ + "newCount"));
-        setCurCount(rs.getLong(_parents_name_ + "curCount"));
-        setConnectCount(rs.getInt(_parents_name_ + "connectCount"));
-        setPerfLog(rs.getString(_parents_name_ + "perfLog"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setNewCount(_r_.getLong(_pn_ + "newCount"));
+        setCurCount(_r_.getLong(_pn_ + "curCount"));
+        setConnectCount(_r_.getInt(_pn_ + "connectCount"));
+        setPerfLog(_r_.getString(_pn_ + "perfLog"));
         if (getPerfLog() == null)
             setPerfLog("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "newCount", getNewCount());
-        st.appendLong(_parents_name_ + "curCount", getCurCount());
-        st.appendInt(_parents_name_ + "connectCount", getConnectCount());
-        st.appendString(_parents_name_ + "perfLog", getPerfLog());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "newCount", getNewCount());
+        _s_.appendLong(_pn_ + "curCount", getCurCount());
+        _s_.appendInt(_pn_ + "connectCount", getConnectCount());
+        _s_.appendString(_pn_ + "perfLog", getPerfLog());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "newCount", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "curCount", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "connectCount", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "perfLog", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "newCount", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "curCount", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "connectCount", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "perfLog", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -391,34 +391,34 @@ public static final class Data extends Zeze.Transaction.Data {
         return _newCount;
     }
 
-    public void setNewCount(long value) {
-        _newCount = value;
+    public void setNewCount(long _v_) {
+        _newCount = _v_;
     }
 
     public long getCurCount() {
         return _curCount;
     }
 
-    public void setCurCount(long value) {
-        _curCount = value;
+    public void setCurCount(long _v_) {
+        _curCount = _v_;
     }
 
     public int getConnectCount() {
         return _connectCount;
     }
 
-    public void setConnectCount(int value) {
-        _connectCount = value;
+    public void setConnectCount(int _v_) {
+        _connectCount = _v_;
     }
 
     public String getPerfLog() {
         return _perfLog;
     }
 
-    public void setPerfLog(String value) {
-        if (value == null)
+    public void setPerfLog(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _perfLog = value;
+        _perfLog = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -446,41 +446,41 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BTokenStatus toBean() {
-        var bean = new Zeze.Builtin.Token.BTokenStatus();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BTokenStatus();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BTokenStatus)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BTokenStatus)_o_);
     }
 
-    public void assign(BTokenStatus other) {
-        _newCount = other.getNewCount();
-        _curCount = other.getCurCount();
-        _connectCount = other.getConnectCount();
-        _perfLog = other.getPerfLog();
+    public void assign(BTokenStatus _o_) {
+        _newCount = _o_.getNewCount();
+        _curCount = _o_.getCurCount();
+        _connectCount = _o_.getConnectCount();
+        _perfLog = _o_.getPerfLog();
     }
 
-    public void assign(BTokenStatus.Data other) {
-        _newCount = other._newCount;
-        _curCount = other._curCount;
-        _connectCount = other._connectCount;
-        _perfLog = other._perfLog;
+    public void assign(BTokenStatus.Data _o_) {
+        _newCount = _o_._newCount;
+        _curCount = _o_._curCount;
+        _connectCount = _o_._connectCount;
+        _perfLog = _o_._perfLog;
     }
 
     @Override
     public BTokenStatus.Data copy() {
-        var copy = new BTokenStatus.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTokenStatus.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTokenStatus.Data a, BTokenStatus.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTokenStatus.Data _a_, BTokenStatus.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -495,21 +495,21 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BTokenStatus: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("newCount=").append(_newCount).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("curCount=").append(_curCount).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("connectCount=").append(_connectCount).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("perfLog=").append(_perfLog).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BTokenStatus: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("newCount=").append(_newCount).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("curCount=").append(_curCount).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("connectCount=").append(_connectCount).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("perfLog=").append(_perfLog).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -518,8 +518,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

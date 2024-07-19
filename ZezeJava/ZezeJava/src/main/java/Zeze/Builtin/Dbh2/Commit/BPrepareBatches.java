@@ -33,31 +33,31 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     @Override
     public Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Commit.BPrepareBatches.Data)_o_);
     }
 
-    public void assign(BPrepareBatches.Data other) {
+    public void assign(BPrepareBatches.Data _o_) {
         _Datas.clear();
-        for (var e : other._Datas.entrySet()) {
-            Zeze.Builtin.Dbh2.BPrepareBatch data = new Zeze.Builtin.Dbh2.BPrepareBatch();
-            data.assign(e.getValue());
-            _Datas.put(e.getKey(), data);
+        for (var _e_ : _o_._Datas.entrySet()) {
+            var _v_ = new Zeze.Builtin.Dbh2.BPrepareBatch();
+            _v_.assign(_e_.getValue());
+            _Datas.put(_e_.getKey(), _v_);
         }
         _unknown_ = null;
     }
 
-    public void assign(BPrepareBatches other) {
+    public void assign(BPrepareBatches _o_) {
         _Datas.clear();
-        for (var e : other._Datas.entrySet())
-            _Datas.put(e.getKey(), e.getValue().copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Datas.entrySet())
+            _Datas.put(_e_.getKey(), _e_.getValue().copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BPrepareBatches copyIfManaged() {
@@ -66,15 +66,15 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     @Override
     public BPrepareBatches copy() {
-        var copy = new BPrepareBatches();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BPrepareBatches();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BPrepareBatches a, BPrepareBatches b) {
-        BPrepareBatches save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BPrepareBatches _a_, BPrepareBatches _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -84,31 +84,31 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BPrepareBatches: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Datas={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Commit.BPrepareBatches: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Datas={");
         if (!_Datas.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Datas.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Datas.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -119,8 +119,8 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -195,13 +195,13 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Datas.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Datas.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Datas.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Datas.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -215,35 +215,35 @@ public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPre
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Datas.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Datas.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, rs.getString(_parents_name_ + "Datas"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, _r_.getString(_pn_ + "Datas"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Datas", "map", "string", "Zeze.Builtin.Dbh2.BPrepareBatch"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Datas", "map", "string", "Zeze.Builtin.Dbh2.BPrepareBatch"));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -256,10 +256,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Datas;
     }
 
-    public void setDatas(java.util.HashMap<String, Zeze.Builtin.Dbh2.BPrepareBatch.Data> value) {
-        if (value == null)
+    public void setDatas(java.util.HashMap<String, Zeze.Builtin.Dbh2.BPrepareBatch.Data> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Datas = value;
+        _Datas = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -281,42 +281,42 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Commit.BPrepareBatches toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Commit.BPrepareBatches();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BPrepareBatches)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BPrepareBatches)_o_);
     }
 
-    public void assign(BPrepareBatches other) {
+    public void assign(BPrepareBatches _o_) {
         _Datas.clear();
-        for (var e : other._Datas.entrySet()) {
-            Zeze.Builtin.Dbh2.BPrepareBatch.Data data = new Zeze.Builtin.Dbh2.BPrepareBatch.Data();
-            data.assign(e.getValue());
-            _Datas.put(e.getKey(), data);
+        for (var _e_ : _o_._Datas.entrySet()) {
+            var _v_ = new Zeze.Builtin.Dbh2.BPrepareBatch.Data();
+            _v_.assign(_e_.getValue());
+            _Datas.put(_e_.getKey(), _v_);
         }
     }
 
-    public void assign(BPrepareBatches.Data other) {
+    public void assign(BPrepareBatches.Data _o_) {
         _Datas.clear();
-        for (var e : other._Datas.entrySet())
-            _Datas.put(e.getKey(), e.getValue().copy());
+        for (var _e_ : _o_._Datas.entrySet())
+            _Datas.put(_e_.getKey(), _e_.getValue().copy());
     }
 
     @Override
     public BPrepareBatches.Data copy() {
-        var copy = new BPrepareBatches.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BPrepareBatches.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BPrepareBatches.Data a, BPrepareBatches.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BPrepareBatches.Data _a_, BPrepareBatches.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -331,31 +331,31 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BPrepareBatches: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Datas={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Commit.BPrepareBatches: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Datas={");
         if (!_Datas.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Datas.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Datas.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -364,8 +364,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

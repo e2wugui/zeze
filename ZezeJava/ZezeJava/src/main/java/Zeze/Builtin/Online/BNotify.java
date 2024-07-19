@@ -14,22 +14,22 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     public Zeze.Net.Binary getFullEncodedProtocol() {
         if (!isManaged())
             return _FullEncodedProtocol;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FullEncodedProtocol;
-        var log = (Log__FullEncodedProtocol)txn.getLog(objectId() + 1);
+        var log = (Log__FullEncodedProtocol)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _FullEncodedProtocol;
     }
 
-    public void setFullEncodedProtocol(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setFullEncodedProtocol(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _FullEncodedProtocol = value;
+            _FullEncodedProtocol = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FullEncodedProtocol(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FullEncodedProtocol(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,9 +50,9 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
         _unknown_ = null;
     }
 
-    public void assign(BNotify other) {
-        setFullEncodedProtocol(other.getFullEncodedProtocol());
-        _unknown_ = other._unknown_;
+    public void assign(BNotify _o_) {
+        setFullEncodedProtocol(_o_.getFullEncodedProtocol());
+        _unknown_ = _o_._unknown_;
     }
 
     public BNotify copyIfManaged() {
@@ -61,15 +61,15 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
 
     @Override
     public BNotify copy() {
-        var copy = new BNotify();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNotify();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNotify a, BNotify b) {
-        BNotify save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNotify _a_, BNotify _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     }
 
     private static final class Log__FullEncodedProtocol extends Zeze.Transaction.Logs.LogBinary {
-        public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__FullEncodedProtocol(BNotify _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNotify)getBelong())._FullEncodedProtocol = value; }
@@ -86,18 +86,18 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BNotify: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("FullEncodedProtocol=").append(getFullEncodedProtocol()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BNotify: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FullEncodedProtocol=").append(getFullEncodedProtocol()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -108,8 +108,8 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -167,34 +167,34 @@ public final class BNotify extends Zeze.Transaction.Bean implements BNotifyReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _FullEncodedProtocol = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _FullEncodedProtocol = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setFullEncodedProtocol(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FullEncodedProtocol")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setFullEncodedProtocol(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "FullEncodedProtocol")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "FullEncodedProtocol", getFullEncodedProtocol());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "FullEncodedProtocol", getFullEncodedProtocol());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FullEncodedProtocol", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "FullEncodedProtocol", "binary", "", ""));
+        return _v_;
     }
 }

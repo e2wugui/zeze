@@ -13,8 +13,8 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
         super(833718, "Zeze_Builtin_Timer_tIndexs");
     }
 
-    public tIndexs(String suffix) {
-        super(833718, "Zeze_Builtin_Timer_tIndexs", suffix);
+    public tIndexs(String _s_) {
+        super(833718, "Zeze_Builtin_Timer_tIndexs", _s_);
     }
 
     @Override
@@ -47,17 +47,17 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class tIndexs extends TableX<String, Zeze.Builtin.Timer.BIndex>
     }
 
     @Override
-    public Zeze.Builtin.Timer.BIndexReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.Timer.BIndexReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

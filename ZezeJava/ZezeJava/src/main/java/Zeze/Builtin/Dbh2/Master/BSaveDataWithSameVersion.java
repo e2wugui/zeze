@@ -21,64 +21,64 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     public Zeze.Net.Binary getKey() {
         if (!isManaged())
             return _Key;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Key;
-        var log = (Log__Key)txn.getLog(objectId() + 1);
+        var log = (Log__Key)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Key;
     }
 
-    public void setKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Key = value;
+            _Key = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Key(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Key(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getData() {
         if (!isManaged())
             return _Data;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Data;
-        var log = (Log__Data)txn.getLog(objectId() + 2);
+        var log = (Log__Data)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Data;
     }
 
-    public void setData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Data = value;
+            _Data = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Data(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Data(this, 2, _v_));
     }
 
     @Override
     public long getVersion() {
         if (!isManaged())
             return _Version;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Version;
-        var log = (Log__Version)txn.getLog(objectId() + 3);
+        var log = (Log__Version)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Version;
     }
 
-    public void setVersion(long value) {
+    public void setVersion(long _v_) {
         if (!isManaged()) {
-            _Version = value;
+            _Version = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Version(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Version(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -108,28 +108,28 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion.Data)_o_);
     }
 
-    public void assign(BSaveDataWithSameVersion.Data other) {
-        setKey(other._Key);
-        setData(other._Data);
-        setVersion(other._Version);
+    public void assign(BSaveDataWithSameVersion.Data _o_) {
+        setKey(_o_._Key);
+        setData(_o_._Data);
+        setVersion(_o_._Version);
         _unknown_ = null;
     }
 
-    public void assign(BSaveDataWithSameVersion other) {
-        setKey(other.getKey());
-        setData(other.getData());
-        setVersion(other.getVersion());
-        _unknown_ = other._unknown_;
+    public void assign(BSaveDataWithSameVersion _o_) {
+        setKey(_o_.getKey());
+        setData(_o_.getData());
+        setVersion(_o_.getVersion());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSaveDataWithSameVersion copyIfManaged() {
@@ -138,15 +138,15 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
 
     @Override
     public BSaveDataWithSameVersion copy() {
-        var copy = new BSaveDataWithSameVersion();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSaveDataWithSameVersion();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSaveDataWithSameVersion a, BSaveDataWithSameVersion b) {
-        BSaveDataWithSameVersion save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSaveDataWithSameVersion _a_, BSaveDataWithSameVersion _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -155,21 +155,21 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     }
 
     private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BSaveDataWithSameVersion bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Key(BSaveDataWithSameVersion _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSaveDataWithSameVersion)getBelong())._Key = value; }
     }
 
     private static final class Log__Data extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Data(BSaveDataWithSameVersion bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Data(BSaveDataWithSameVersion _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSaveDataWithSameVersion)getBelong())._Data = value; }
     }
 
     private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
-        public Log__Version(BSaveDataWithSameVersion bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Version(BSaveDataWithSameVersion _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSaveDataWithSameVersion)getBelong())._Version = value; }
@@ -177,20 +177,20 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(getData()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Data=").append(getData()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(getVersion()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -201,8 +201,8 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -293,43 +293,43 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Key = vlog.binaryValue(); break;
-                case 2: _Data = vlog.binaryValue(); break;
-                case 3: _Version = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Key = _v_.binaryValue(); break;
+                case 2: _Data = _v_.binaryValue(); break;
+                case 3: _Version = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Key")));
-        setData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Data")));
-        setVersion(rs.getLong(_parents_name_ + "Version"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Key")));
+        setData(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Data")));
+        setVersion(_r_.getLong(_pn_ + "Version"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "Key", getKey());
-        st.appendBinary(_parents_name_ + "Data", getData());
-        st.appendLong(_parents_name_ + "Version", getVersion());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "Key", getKey());
+        _s_.appendBinary(_pn_ + "Data", getData());
+        _s_.appendLong(_pn_ + "Version", getVersion());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Key", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Data", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Version", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Key", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Data", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Version", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -349,28 +349,28 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Key;
     }
 
-    public void setKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Key = value;
+        _Key = _v_;
     }
 
     public Zeze.Net.Binary getData() {
         return _Data;
     }
 
-    public void setData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Data = value;
+        _Data = _v_;
     }
 
     public long getVersion() {
         return _Version;
     }
 
-    public void setVersion(long value) {
-        _Version = value;
+    public void setVersion(long _v_) {
+        _Version = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -399,39 +399,39 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSaveDataWithSameVersion)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSaveDataWithSameVersion)_o_);
     }
 
-    public void assign(BSaveDataWithSameVersion other) {
-        _Key = other.getKey();
-        _Data = other.getData();
-        _Version = other.getVersion();
+    public void assign(BSaveDataWithSameVersion _o_) {
+        _Key = _o_.getKey();
+        _Data = _o_.getData();
+        _Version = _o_.getVersion();
     }
 
-    public void assign(BSaveDataWithSameVersion.Data other) {
-        _Key = other._Key;
-        _Data = other._Data;
-        _Version = other._Version;
+    public void assign(BSaveDataWithSameVersion.Data _o_) {
+        _Key = _o_._Key;
+        _Data = _o_._Data;
+        _Version = _o_._Version;
     }
 
     @Override
     public BSaveDataWithSameVersion.Data copy() {
-        var copy = new BSaveDataWithSameVersion.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSaveDataWithSameVersion.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSaveDataWithSameVersion.Data a, BSaveDataWithSameVersion.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSaveDataWithSameVersion.Data _a_, BSaveDataWithSameVersion.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -446,20 +446,20 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(_Data).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(_Version).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BSaveDataWithSameVersion: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Data=").append(_Data).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(_Version).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -468,8 +468,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -25,42 +25,42 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _protocolType;
-        var log = (Log__protocolType)txn.getLog(objectId() + 2);
+        var log = (Log__protocolType)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _protocolType;
     }
 
-    public void setProtocolType(long value) {
+    public void setProtocolType(long _v_) {
         if (!isManaged()) {
-            _protocolType = value;
+            _protocolType = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__protocolType(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__protocolType(this, 2, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getProtocolWholeData() {
         if (!isManaged())
             return _protocolWholeData;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _protocolWholeData;
-        var log = (Log__protocolWholeData)txn.getLog(objectId() + 3);
+        var log = (Log__protocolWholeData)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _protocolWholeData;
     }
 
-    public void setProtocolWholeData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setProtocolWholeData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _protocolWholeData = value;
+            _protocolWholeData = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__protocolWholeData(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__protocolWholeData(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -90,29 +90,29 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     @Override
     public Zeze.Builtin.Provider.BSend.Data toData() {
-        var data = new Zeze.Builtin.Provider.BSend.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BSend.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BSend.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BSend.Data)_o_);
     }
 
-    public void assign(BSend.Data other) {
+    public void assign(BSend.Data _o_) {
         _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
-        setProtocolType(other._protocolType);
-        setProtocolWholeData(other._protocolWholeData);
+        _linkSids.addAll(_o_._linkSids);
+        setProtocolType(_o_._protocolType);
+        setProtocolWholeData(_o_._protocolWholeData);
         _unknown_ = null;
     }
 
-    public void assign(BSend other) {
-        _linkSids.assign(other._linkSids);
-        setProtocolType(other.getProtocolType());
-        setProtocolWholeData(other.getProtocolWholeData());
-        _unknown_ = other._unknown_;
+    public void assign(BSend _o_) {
+        _linkSids.assign(_o_._linkSids);
+        setProtocolType(_o_.getProtocolType());
+        setProtocolWholeData(_o_.getProtocolWholeData());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSend copyIfManaged() {
@@ -121,15 +121,15 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     @Override
     public BSend copy() {
-        var copy = new BSend();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSend();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSend a, BSend b) {
-        BSend save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSend _a_, BSend _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -138,14 +138,14 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
-        public Log__protocolType(BSend bean, int varId, long value) { super(bean, varId, value); }
+        public Log__protocolType(BSend _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSend)getBelong())._protocolType = value; }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
-        public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__protocolWholeData(BSend _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSend)getBelong())._protocolWholeData = value; }
@@ -153,30 +153,30 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSids=[");
         if (!_linkSids.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _linkSids) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _linkSids) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(getProtocolWholeData()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolWholeData=").append(getProtocolWholeData()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -187,8 +187,8 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -284,13 +284,13 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _linkSids.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _linkSids.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _linkSids.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _linkSids.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -306,43 +306,43 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _linkSids.followerApply(vlog); break;
-                case 2: _protocolType = vlog.longValue(); break;
-                case 3: _protocolWholeData = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _linkSids.followerApply(_v_); break;
+                case 2: _protocolType = _v_.longValue(); break;
+                case 3: _protocolWholeData = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_linkSids, Long.class, rs.getString(_parents_name_ + "linkSids"));
-        setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
-        setProtocolWholeData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolWholeData")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_linkSids, Long.class, _r_.getString(_pn_ + "linkSids"));
+        setProtocolType(_r_.getLong(_pn_ + "protocolType"));
+        setProtocolWholeData(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "protocolWholeData")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "linkSids", Zeze.Serialize.Helper.encodeJson(_linkSids));
-        st.appendLong(_parents_name_ + "protocolType", getProtocolType());
-        st.appendBinary(_parents_name_ + "protocolWholeData", getProtocolWholeData());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "linkSids", Zeze.Serialize.Helper.encodeJson(_linkSids));
+        _s_.appendLong(_pn_ + "protocolType", getProtocolType());
+        _s_.appendBinary(_pn_ + "protocolWholeData", getProtocolWholeData());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSids", "list", "", "long"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "protocolType", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "protocolWholeData", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSids", "list", "", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "protocolType", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "protocolWholeData", "binary", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -357,28 +357,28 @@ public static class Data extends Zeze.Transaction.Data {
         return _linkSids;
     }
 
-    public void setLinkSids(java.util.ArrayList<Long> value) {
-        if (value == null)
+    public void setLinkSids(java.util.ArrayList<Long> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _linkSids = value;
+        _linkSids = _v_;
     }
 
     public long getProtocolType() {
         return _protocolType;
     }
 
-    public void setProtocolType(long value) {
-        _protocolType = value;
+    public void setProtocolType(long _v_) {
+        _protocolType = _v_;
     }
 
     public Zeze.Net.Binary getProtocolWholeData() {
         return _protocolWholeData;
     }
 
-    public void setProtocolWholeData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setProtocolWholeData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _protocolWholeData = value;
+        _protocolWholeData = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -407,41 +407,41 @@ public static class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BSend toBean() {
-        var bean = new Zeze.Builtin.Provider.BSend();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BSend();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSend)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSend)_o_);
     }
 
-    public void assign(BSend other) {
+    public void assign(BSend _o_) {
         _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
-        _protocolType = other.getProtocolType();
-        _protocolWholeData = other.getProtocolWholeData();
+        _linkSids.addAll(_o_._linkSids);
+        _protocolType = _o_.getProtocolType();
+        _protocolWholeData = _o_.getProtocolWholeData();
     }
 
-    public void assign(BSend.Data other) {
+    public void assign(BSend.Data _o_) {
         _linkSids.clear();
-        _linkSids.addAll(other._linkSids);
-        _protocolType = other._protocolType;
-        _protocolWholeData = other._protocolWholeData;
+        _linkSids.addAll(_o_._linkSids);
+        _protocolType = _o_._protocolType;
+        _protocolWholeData = _o_._protocolWholeData;
     }
 
     @Override
     public BSend.Data copy() {
-        var copy = new BSend.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSend.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSend.Data a, BSend.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSend.Data _a_, BSend.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -456,30 +456,30 @@ public static class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSids=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSend: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSids=[");
         if (!_linkSids.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _linkSids) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _linkSids) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData=").append(_protocolWholeData).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolWholeData=").append(_protocolWholeData).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -488,8 +488,8 @@ public static class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

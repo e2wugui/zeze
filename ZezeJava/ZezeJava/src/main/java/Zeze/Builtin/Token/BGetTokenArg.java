@@ -15,42 +15,42 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     public String getToken() {
         if (!isManaged())
             return _token;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _token;
-        var log = (Log__token)txn.getLog(objectId() + 1);
+        var log = (Log__token)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _token;
     }
 
-    public void setToken(String value) {
-        if (value == null)
+    public void setToken(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _token = value;
+            _token = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__token(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__token(this, 1, _v_));
     }
 
     @Override
     public long getMaxCount() {
         if (!isManaged())
             return _maxCount;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _maxCount;
-        var log = (Log__maxCount)txn.getLog(objectId() + 2);
+        var log = (Log__maxCount)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _maxCount;
     }
 
-    public void setMaxCount(long value) {
+    public void setMaxCount(long _v_) {
         if (!isManaged()) {
-            _maxCount = value;
+            _maxCount = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__maxCount(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__maxCount(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -75,26 +75,26 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
 
     @Override
     public Zeze.Builtin.Token.BGetTokenArg.Data toData() {
-        var data = new Zeze.Builtin.Token.BGetTokenArg.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BGetTokenArg.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BGetTokenArg.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BGetTokenArg.Data)_o_);
     }
 
-    public void assign(BGetTokenArg.Data other) {
-        setToken(other._token);
-        setMaxCount(other._maxCount);
+    public void assign(BGetTokenArg.Data _o_) {
+        setToken(_o_._token);
+        setMaxCount(_o_._maxCount);
         _unknown_ = null;
     }
 
-    public void assign(BGetTokenArg other) {
-        setToken(other.getToken());
-        setMaxCount(other.getMaxCount());
-        _unknown_ = other._unknown_;
+    public void assign(BGetTokenArg _o_) {
+        setToken(_o_.getToken());
+        setMaxCount(_o_.getMaxCount());
+        _unknown_ = _o_._unknown_;
     }
 
     public BGetTokenArg copyIfManaged() {
@@ -103,15 +103,15 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
 
     @Override
     public BGetTokenArg copy() {
-        var copy = new BGetTokenArg();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetTokenArg();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetTokenArg a, BGetTokenArg b) {
-        BGetTokenArg save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetTokenArg _a_, BGetTokenArg _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     }
 
     private static final class Log__token extends Zeze.Transaction.Logs.LogString {
-        public Log__token(BGetTokenArg bean, int varId, String value) { super(bean, varId, value); }
+        public Log__token(BGetTokenArg _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGetTokenArg)getBelong())._token = value; }
     }
 
     private static final class Log__maxCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__maxCount(BGetTokenArg bean, int varId, long value) { super(bean, varId, value); }
+        public Log__maxCount(BGetTokenArg _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGetTokenArg)getBelong())._maxCount = value; }
@@ -135,19 +135,19 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BGetTokenArg: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("token=").append(getToken()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("maxCount=").append(getMaxCount()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BGetTokenArg: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("token=").append(getToken()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("maxCount=").append(getMaxCount()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -158,8 +158,8 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -237,41 +237,41 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _token = vlog.stringValue(); break;
-                case 2: _maxCount = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _token = _v_.stringValue(); break;
+                case 2: _maxCount = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setToken(rs.getString(_parents_name_ + "token"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setToken(_r_.getString(_pn_ + "token"));
         if (getToken() == null)
             setToken("");
-        setMaxCount(rs.getLong(_parents_name_ + "maxCount"));
+        setMaxCount(_r_.getLong(_pn_ + "maxCount"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "token", getToken());
-        st.appendLong(_parents_name_ + "maxCount", getMaxCount());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "token", getToken());
+        _s_.appendLong(_pn_ + "maxCount", getMaxCount());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "maxCount", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "maxCount", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -285,18 +285,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _token;
     }
 
-    public void setToken(String value) {
-        if (value == null)
+    public void setToken(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _token = value;
+        _token = _v_;
     }
 
     public long getMaxCount() {
         return _maxCount;
     }
 
-    public void setMaxCount(long value) {
-        _maxCount = value;
+    public void setMaxCount(long _v_) {
+        _maxCount = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -320,37 +320,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BGetTokenArg toBean() {
-        var bean = new Zeze.Builtin.Token.BGetTokenArg();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BGetTokenArg();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BGetTokenArg)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BGetTokenArg)_o_);
     }
 
-    public void assign(BGetTokenArg other) {
-        _token = other.getToken();
-        _maxCount = other.getMaxCount();
+    public void assign(BGetTokenArg _o_) {
+        _token = _o_.getToken();
+        _maxCount = _o_.getMaxCount();
     }
 
-    public void assign(BGetTokenArg.Data other) {
-        _token = other._token;
-        _maxCount = other._maxCount;
+    public void assign(BGetTokenArg.Data _o_) {
+        _token = _o_._token;
+        _maxCount = _o_._maxCount;
     }
 
     @Override
     public BGetTokenArg.Data copy() {
-        var copy = new BGetTokenArg.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetTokenArg.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetTokenArg.Data a, BGetTokenArg.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetTokenArg.Data _a_, BGetTokenArg.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -365,19 +365,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BGetTokenArg: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("token=").append(_token).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("maxCount=").append(_maxCount).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BGetTokenArg: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("token=").append(_token).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("maxCount=").append(_maxCount).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -386,8 +386,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

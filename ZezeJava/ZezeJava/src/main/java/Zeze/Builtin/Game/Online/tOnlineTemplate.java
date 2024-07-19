@@ -13,8 +13,8 @@ public final class tOnlineTemplate extends TableX<Long, Zeze.Builtin.Game.Online
         super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate");
     }
 
-    public tOnlineTemplate(String suffix) {
-        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate", suffix);
+    public tOnlineTemplate(String _s_) {
+        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate", _s_);
     }
 
     @Override
@@ -48,15 +48,15 @@ public final class tOnlineTemplate extends TableX<Long, Zeze.Builtin.Game.Online
     }
 
     @Override
-    public Long decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public Long decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         long _v_;
-        _v_ = rs.getLong("__key");
+        _v_ = _s_.getLong("__key");
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long _v_) {
-        st.appendLong("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Long _v_) {
+        _s_.appendLong("__key", _v_);
     }
 
     @Override
@@ -65,7 +65,7 @@ public final class tOnlineTemplate extends TableX<Long, Zeze.Builtin.Game.Online
     }
 
     @Override
-    public Zeze.Builtin.Game.Online.BOnlineReadOnly getReadOnly(Long key) {
-        return get(key);
+    public Zeze.Builtin.Game.Online.BOnlineReadOnly getReadOnly(Long _k_) {
+        return get(_k_);
     }
 }

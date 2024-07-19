@@ -31,48 +31,48 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     @Override
     public int getChoiceType() {
         if (!isManaged())
             return _ChoiceType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ChoiceType;
-        var log = (Log__ChoiceType)txn.getLog(objectId() + 1);
+        var log = (Log__ChoiceType)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ChoiceType;
     }
 
-    public void setChoiceType(int value) {
+    public void setChoiceType(int _v_) {
         if (!isManaged()) {
-            _ChoiceType = value;
+            _ChoiceType = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ChoiceType(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ChoiceType(this, 1, _v_));
     }
 
     @Override
     public int getConfigType() {
         if (!isManaged())
             return _ConfigType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ConfigType;
-        var log = (Log__ConfigType)txn.getLog(objectId() + 2);
+        var log = (Log__ConfigType)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ConfigType;
     }
 
-    public void setConfigType(int value) {
+    public void setConfigType(int _v_) {
         if (!isManaged()) {
-            _ConfigType = value;
+            _ConfigType = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ConfigType(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ConfigType(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -94,26 +94,26 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 
     @Override
     public Zeze.Builtin.Provider.BModule.Data toData() {
-        var data = new Zeze.Builtin.Provider.BModule.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BModule.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BModule.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BModule.Data)_o_);
     }
 
-    public void assign(BModule.Data other) {
-        setChoiceType(other._ChoiceType);
-        setConfigType(other._ConfigType);
+    public void assign(BModule.Data _o_) {
+        setChoiceType(_o_._ChoiceType);
+        setConfigType(_o_._ConfigType);
         _unknown_ = null;
     }
 
-    public void assign(BModule other) {
-        setChoiceType(other.getChoiceType());
-        setConfigType(other.getConfigType());
-        _unknown_ = other._unknown_;
+    public void assign(BModule _o_) {
+        setChoiceType(_o_.getChoiceType());
+        setConfigType(_o_.getConfigType());
+        _unknown_ = _o_._unknown_;
     }
 
     public BModule copyIfManaged() {
@@ -122,15 +122,15 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 
     @Override
     public BModule copy() {
-        var copy = new BModule();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModule();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModule a, BModule b) {
-        BModule save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModule _a_, BModule _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -139,14 +139,14 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
     private static final class Log__ChoiceType extends Zeze.Transaction.Logs.LogInt {
-        public Log__ChoiceType(BModule bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ChoiceType(BModule _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModule)getBelong())._ChoiceType = value; }
     }
 
     private static final class Log__ConfigType extends Zeze.Transaction.Logs.LogInt {
-        public Log__ConfigType(BModule bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ConfigType(BModule _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModule)getBelong())._ConfigType = value; }
@@ -154,19 +154,19 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(getChoiceType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(getConfigType()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ChoiceType=").append(getChoiceType()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConfigType=").append(getConfigType()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -177,8 +177,8 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -258,39 +258,39 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ChoiceType = vlog.intValue(); break;
-                case 2: _ConfigType = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ChoiceType = _v_.intValue(); break;
+                case 2: _ConfigType = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setChoiceType(rs.getInt(_parents_name_ + "ChoiceType"));
-        setConfigType(rs.getInt(_parents_name_ + "ConfigType"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setChoiceType(_r_.getInt(_pn_ + "ChoiceType"));
+        setConfigType(_r_.getInt(_pn_ + "ConfigType"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "ChoiceType", getChoiceType());
-        st.appendInt(_parents_name_ + "ConfigType", getConfigType());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "ChoiceType", getChoiceType());
+        _s_.appendInt(_pn_ + "ConfigType", getConfigType());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ChoiceType", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ConfigType", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ChoiceType", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ConfigType", "int", "", ""));
+        return _v_;
     }
 
 // gs to link
@@ -316,16 +316,16 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ChoiceType;
     }
 
-    public void setChoiceType(int value) {
-        _ChoiceType = value;
+    public void setChoiceType(int _v_) {
+        _ChoiceType = _v_;
     }
 
     public int getConfigType() {
         return _ConfigType;
     }
 
-    public void setConfigType(int value) {
-        _ConfigType = value;
+    public void setConfigType(int _v_) {
+        _ConfigType = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -346,37 +346,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BModule toBean() {
-        var bean = new Zeze.Builtin.Provider.BModule();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BModule();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BModule)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BModule)_o_);
     }
 
-    public void assign(BModule other) {
-        _ChoiceType = other.getChoiceType();
-        _ConfigType = other.getConfigType();
+    public void assign(BModule _o_) {
+        _ChoiceType = _o_.getChoiceType();
+        _ConfigType = _o_.getConfigType();
     }
 
-    public void assign(BModule.Data other) {
-        _ChoiceType = other._ChoiceType;
-        _ConfigType = other._ConfigType;
+    public void assign(BModule.Data _o_) {
+        _ChoiceType = _o_._ChoiceType;
+        _ConfigType = _o_._ConfigType;
     }
 
     @Override
     public BModule.Data copy() {
-        var copy = new BModule.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModule.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModule.Data a, BModule.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModule.Data _a_, BModule.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -391,19 +391,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ChoiceType=").append(_ChoiceType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfigType=").append(_ConfigType).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ChoiceType=").append(_ChoiceType).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConfigType=").append(_ConfigType).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -412,8 +412,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -16,44 +16,44 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     public Zeze.Builtin.Collections.DAG.BDAGNodeKey getFrom() {
         if (!isManaged())
             return _From;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _From;
-        var log = (Log__From)txn.getLog(objectId() + 1);
+        var log = (Log__From)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _From;
     }
 
-    public void setFrom(Zeze.Builtin.Collections.DAG.BDAGNodeKey value) {
-        if (value == null)
+    public void setFrom(Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _From = value;
+            _From = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__From(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__From(this, 1, _v_));
     }
 
     @Override
     public Zeze.Builtin.Collections.DAG.BDAGNodeKey getTo() {
         if (!isManaged())
             return _To;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _To;
-        var log = (Log__To)txn.getLog(objectId() + 2);
+        var log = (Log__To)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _To;
     }
 
-    public void setTo(Zeze.Builtin.Collections.DAG.BDAGNodeKey value) {
-        if (value == null)
+    public void setTo(Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _To = value;
+            _To = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__To(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__To(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -79,10 +79,10 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         _unknown_ = null;
     }
 
-    public void assign(BDAGEdge other) {
-        setFrom(other.getFrom());
-        setTo(other.getTo());
-        _unknown_ = other._unknown_;
+    public void assign(BDAGEdge _o_) {
+        setFrom(_o_.getFrom());
+        setTo(_o_.getTo());
+        _unknown_ = _o_._unknown_;
     }
 
     public BDAGEdge copyIfManaged() {
@@ -91,15 +91,15 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
 
     @Override
     public BDAGEdge copy() {
-        var copy = new BDAGEdge();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDAGEdge();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDAGEdge a, BDAGEdge b) {
-        BDAGEdge save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDAGEdge _a_, BDAGEdge _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -108,14 +108,14 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     }
 
     private static final class Log__From extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey> {
-        public Log__From(BDAGEdge bean, int varId, Zeze.Builtin.Collections.DAG.BDAGNodeKey value) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, bean, varId, value); }
+        public Log__From(BDAGEdge _b_, int _i_, Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, _b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAGEdge)getBelong())._From = value; }
     }
 
     private static final class Log__To extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey> {
-        public Log__To(BDAGEdge bean, int varId, Zeze.Builtin.Collections.DAG.BDAGNodeKey value) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, bean, varId, value); }
+        public Log__To(BDAGEdge _b_, int _i_, Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, _b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAGEdge)getBelong())._To = value; }
@@ -123,23 +123,23 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAGEdge: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("From=").append(System.lineSeparator());
-        getFrom().buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("To=").append(System.lineSeparator());
-        getTo().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DAG.BDAGEdge: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("From=").append(System.lineSeparator());
+        getFrom().buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("To=").append(System.lineSeparator());
+        getTo().buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -150,8 +150,8 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -228,44 +228,44 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _From = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)vlog).value; break;
-                case 2: _To = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)vlog).value; break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _From = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)_v_).value; break;
+                case 2: _To = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)_v_).value; break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("From");
-        getFrom().decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
-        parents.add("To");
-        getTo().decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("From");
+        getFrom().decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
+        _p_.add("To");
+        getTo().decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("From");
-        getFrom().encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
-        parents.add("To");
-        getTo().encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("From");
+        getFrom().encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
+        _p_.add("To");
+        getTo().encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "Zeze.Builtin.Collections.DAG.BDAGNodeKey", "", ""));
+        return _v_;
     }
 }

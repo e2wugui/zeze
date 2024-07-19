@@ -14,20 +14,20 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
     public boolean isDisableChoice() {
         if (!isManaged())
             return _DisableChoice;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _DisableChoice;
-        var log = (Log__DisableChoice)txn.getLog(objectId() + 1);
+        var log = (Log__DisableChoice)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DisableChoice;
     }
 
-    public void setDisableChoice(boolean value) {
+    public void setDisableChoice(boolean _v_) {
         if (!isManaged()) {
-            _DisableChoice = value;
+            _DisableChoice = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__DisableChoice(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__DisableChoice(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
 
     @Override
     public Zeze.Builtin.Provider.BSetDisableChoice.Data toData() {
-        var data = new Zeze.Builtin.Provider.BSetDisableChoice.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BSetDisableChoice.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BSetDisableChoice.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BSetDisableChoice.Data)_o_);
     }
 
-    public void assign(BSetDisableChoice.Data other) {
-        setDisableChoice(other._DisableChoice);
+    public void assign(BSetDisableChoice.Data _o_) {
+        setDisableChoice(_o_._DisableChoice);
         _unknown_ = null;
     }
 
-    public void assign(BSetDisableChoice other) {
-        setDisableChoice(other.isDisableChoice());
-        _unknown_ = other._unknown_;
+    public void assign(BSetDisableChoice _o_) {
+        setDisableChoice(_o_.isDisableChoice());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSetDisableChoice copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
 
     @Override
     public BSetDisableChoice copy() {
-        var copy = new BSetDisableChoice();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSetDisableChoice();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSetDisableChoice a, BSetDisableChoice b) {
-        BSetDisableChoice save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSetDisableChoice _a_, BSetDisableChoice _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
     }
 
     private static final class Log__DisableChoice extends Zeze.Transaction.Logs.LogBool {
-        public Log__DisableChoice(BSetDisableChoice bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__DisableChoice(BSetDisableChoice _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSetDisableChoice)getBelong())._DisableChoice = value; }
@@ -98,18 +98,18 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -179,35 +179,35 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _DisableChoice = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _DisableChoice = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setDisableChoice(rs.getBoolean(_parents_name_ + "DisableChoice"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setDisableChoice(_r_.getBoolean(_pn_ + "DisableChoice"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBoolean(_parents_name_ + "DisableChoice", isDisableChoice());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBoolean(_pn_ + "DisableChoice", isDisableChoice());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DisableChoice", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DisableChoice", "bool", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -220,8 +220,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _DisableChoice;
     }
 
-    public void setDisableChoice(boolean value) {
-        _DisableChoice = value;
+    public void setDisableChoice(boolean _v_) {
+        _DisableChoice = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -240,35 +240,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BSetDisableChoice toBean() {
-        var bean = new Zeze.Builtin.Provider.BSetDisableChoice();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BSetDisableChoice();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSetDisableChoice)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSetDisableChoice)_o_);
     }
 
-    public void assign(BSetDisableChoice other) {
-        _DisableChoice = other.isDisableChoice();
+    public void assign(BSetDisableChoice _o_) {
+        _DisableChoice = _o_.isDisableChoice();
     }
 
-    public void assign(BSetDisableChoice.Data other) {
-        _DisableChoice = other._DisableChoice;
+    public void assign(BSetDisableChoice.Data _o_) {
+        _DisableChoice = _o_._DisableChoice;
     }
 
     @Override
     public BSetDisableChoice.Data copy() {
-        var copy = new BSetDisableChoice.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSetDisableChoice.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSetDisableChoice.Data a, BSetDisableChoice.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSetDisableChoice.Data _a_, BSetDisableChoice.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -283,18 +283,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -303,8 +303,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

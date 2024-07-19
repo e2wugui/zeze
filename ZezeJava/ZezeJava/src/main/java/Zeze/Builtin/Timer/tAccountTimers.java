@@ -13,8 +13,8 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
         super(1803422289, "Zeze_Builtin_Timer_tAccountTimers");
     }
 
-    public tAccountTimers(String suffix) {
-        super(1803422289, "Zeze_Builtin_Timer_tAccountTimers", suffix);
+    public tAccountTimers(String _s_) {
+        super(1803422289, "Zeze_Builtin_Timer_tAccountTimers", _s_);
     }
 
     @Override
@@ -53,17 +53,17 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -72,7 +72,7 @@ public final class tAccountTimers extends TableX<String, Zeze.Builtin.Timer.BArc
     }
 
     @Override
-    public Zeze.Builtin.Timer.BArchOnlineTimerReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.Timer.BArchOnlineTimerReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

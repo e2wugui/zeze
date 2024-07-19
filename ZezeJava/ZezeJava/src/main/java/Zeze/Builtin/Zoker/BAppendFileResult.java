@@ -14,22 +14,22 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
 
     @Override
     public Zeze.Builtin.Zoker.BAppendFileResult.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BAppendFileResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BAppendFileResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BAppendFileResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BAppendFileResult.Data)_o_);
     }
 
-    public void assign(BAppendFileResult.Data other) {
+    public void assign(BAppendFileResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BAppendFileResult other) {
-        _unknown_ = other._unknown_;
+    public void assign(BAppendFileResult _o_) {
+        _unknown_ = _o_._unknown_;
     }
 
     public BAppendFileResult copyIfManaged() {
@@ -38,15 +38,15 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
 
     @Override
     public BAppendFileResult copy() {
-        var copy = new BAppendFileResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAppendFileResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAppendFileResult a, BAppendFileResult b) {
-        BAppendFileResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAppendFileResult _a_, BAppendFileResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -56,17 +56,17 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BAppendFileResult: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BAppendFileResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -77,8 +77,8 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -117,15 +117,15 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log _l_) {
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -142,33 +142,33 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BAppendFileResult toBean() {
-        var bean = new Zeze.Builtin.Zoker.BAppendFileResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BAppendFileResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BAppendFileResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BAppendFileResult)_o_);
     }
 
-    public void assign(BAppendFileResult other) {
+    public void assign(BAppendFileResult _o_) {
     }
 
-    public void assign(BAppendFileResult.Data other) {
+    public void assign(BAppendFileResult.Data _o_) {
     }
 
     @Override
     public BAppendFileResult.Data copy() {
-        var copy = new BAppendFileResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAppendFileResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAppendFileResult.Data a, BAppendFileResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAppendFileResult.Data _a_, BAppendFileResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -183,17 +183,17 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BAppendFileResult: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BAppendFileResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -202,8 +202,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

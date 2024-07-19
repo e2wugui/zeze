@@ -15,42 +15,42 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     public Zeze.Net.Binary getContext() {
         if (!isManaged())
             return _context;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _context;
-        var log = (Log__context)txn.getLog(objectId() + 1);
+        var log = (Log__context)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _context;
     }
 
-    public void setContext(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContext(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _context = value;
+            _context = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__context(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__context(this, 1, _v_));
     }
 
     @Override
     public long getTtl() {
         if (!isManaged())
             return _ttl;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ttl;
-        var log = (Log__ttl)txn.getLog(objectId() + 2);
+        var log = (Log__ttl)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ttl;
     }
 
-    public void setTtl(long value) {
+    public void setTtl(long _v_) {
         if (!isManaged()) {
-            _ttl = value;
+            _ttl = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ttl(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ttl(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -75,26 +75,26 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public Zeze.Builtin.Token.BNewTokenArg.Data toData() {
-        var data = new Zeze.Builtin.Token.BNewTokenArg.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BNewTokenArg.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BNewTokenArg.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BNewTokenArg.Data)_o_);
     }
 
-    public void assign(BNewTokenArg.Data other) {
-        setContext(other._context);
-        setTtl(other._ttl);
+    public void assign(BNewTokenArg.Data _o_) {
+        setContext(_o_._context);
+        setTtl(_o_._ttl);
         _unknown_ = null;
     }
 
-    public void assign(BNewTokenArg other) {
-        setContext(other.getContext());
-        setTtl(other.getTtl());
-        _unknown_ = other._unknown_;
+    public void assign(BNewTokenArg _o_) {
+        setContext(_o_.getContext());
+        setTtl(_o_.getTtl());
+        _unknown_ = _o_._unknown_;
     }
 
     public BNewTokenArg copyIfManaged() {
@@ -103,15 +103,15 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public BNewTokenArg copy() {
-        var copy = new BNewTokenArg();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNewTokenArg();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNewTokenArg a, BNewTokenArg b) {
-        BNewTokenArg save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNewTokenArg _a_, BNewTokenArg _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     private static final class Log__context extends Zeze.Transaction.Logs.LogBinary {
-        public Log__context(BNewTokenArg bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__context(BNewTokenArg _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNewTokenArg)getBelong())._context = value; }
     }
 
     private static final class Log__ttl extends Zeze.Transaction.Logs.LogLong {
-        public Log__ttl(BNewTokenArg bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ttl(BNewTokenArg _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNewTokenArg)getBelong())._ttl = value; }
@@ -135,19 +135,19 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BNewTokenArg: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ttl=").append(getTtl()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BNewTokenArg: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ttl=").append(getTtl()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -158,8 +158,8 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -237,39 +237,39 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _context = vlog.binaryValue(); break;
-                case 2: _ttl = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _context = _v_.binaryValue(); break;
+                case 2: _ttl = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setContext(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "context")));
-        setTtl(rs.getLong(_parents_name_ + "ttl"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setContext(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "context")));
+        setTtl(_r_.getLong(_pn_ + "ttl"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "context", getContext());
-        st.appendLong(_parents_name_ + "ttl", getTtl());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "context", getContext());
+        _s_.appendLong(_pn_ + "ttl", getTtl());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "context", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ttl", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "context", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ttl", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -283,18 +283,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _context;
     }
 
-    public void setContext(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContext(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _context = value;
+        _context = _v_;
     }
 
     public long getTtl() {
         return _ttl;
     }
 
-    public void setTtl(long value) {
-        _ttl = value;
+    public void setTtl(long _v_) {
+        _ttl = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -318,37 +318,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BNewTokenArg toBean() {
-        var bean = new Zeze.Builtin.Token.BNewTokenArg();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BNewTokenArg();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BNewTokenArg)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BNewTokenArg)_o_);
     }
 
-    public void assign(BNewTokenArg other) {
-        _context = other.getContext();
-        _ttl = other.getTtl();
+    public void assign(BNewTokenArg _o_) {
+        _context = _o_.getContext();
+        _ttl = _o_.getTtl();
     }
 
-    public void assign(BNewTokenArg.Data other) {
-        _context = other._context;
-        _ttl = other._ttl;
+    public void assign(BNewTokenArg.Data _o_) {
+        _context = _o_._context;
+        _ttl = _o_._ttl;
     }
 
     @Override
     public BNewTokenArg.Data copy() {
-        var copy = new BNewTokenArg.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNewTokenArg.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNewTokenArg.Data a, BNewTokenArg.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNewTokenArg.Data _a_, BNewTokenArg.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -363,19 +363,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BNewTokenArg: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(_context).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ttl=").append(_ttl).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BNewTokenArg: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(_context).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ttl=").append(_ttl).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -384,8 +384,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -13,8 +13,8 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
         super(453698467, "Zeze_Builtin_Timer_tNodes");
     }
 
-    public tNodes(String suffix) {
-        super(453698467, "Zeze_Builtin_Timer_tNodes", suffix);
+    public tNodes(String _s_) {
+        super(453698467, "Zeze_Builtin_Timer_tNodes", _s_);
     }
 
     @Override
@@ -46,15 +46,15 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
     }
 
     @Override
-    public Long decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public Long decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         long _v_;
-        _v_ = rs.getLong("__key");
+        _v_ = _s_.getLong("__key");
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long _v_) {
-        st.appendLong("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Long _v_) {
+        _s_.appendLong("__key", _v_);
     }
 
     @Override
@@ -63,7 +63,7 @@ public final class tNodes extends TableX<Long, Zeze.Builtin.Timer.BNode>
     }
 
     @Override
-    public Zeze.Builtin.Timer.BNodeReadOnly getReadOnly(Long key) {
-        return get(key);
+    public Zeze.Builtin.Timer.BNodeReadOnly getReadOnly(Long _k_) {
+        return get(_k_);
     }
 }

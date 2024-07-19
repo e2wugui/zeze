@@ -14,20 +14,20 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
     public long getDistributeId() {
         if (!isManaged())
             return _DistributeId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _DistributeId;
-        var log = (Log__DistributeId)txn.getLog(objectId() + 1);
+        var log = (Log__DistributeId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DistributeId;
     }
 
-    public void setDistributeId(long value) {
+    public void setDistributeId(long _v_) {
         if (!isManaged()) {
-            _DistributeId = value;
+            _DistributeId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__DistributeId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__DistributeId(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
 
     @Override
     public Zeze.Builtin.HotDistribute.BDistributeId.Data toData() {
-        var data = new Zeze.Builtin.HotDistribute.BDistributeId.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.HotDistribute.BDistributeId.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.HotDistribute.BDistributeId.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.HotDistribute.BDistributeId.Data)_o_);
     }
 
-    public void assign(BDistributeId.Data other) {
-        setDistributeId(other._DistributeId);
+    public void assign(BDistributeId.Data _o_) {
+        setDistributeId(_o_._DistributeId);
         _unknown_ = null;
     }
 
-    public void assign(BDistributeId other) {
-        setDistributeId(other.getDistributeId());
-        _unknown_ = other._unknown_;
+    public void assign(BDistributeId _o_) {
+        setDistributeId(_o_.getDistributeId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BDistributeId copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
 
     @Override
     public BDistributeId copy() {
-        var copy = new BDistributeId();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDistributeId();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDistributeId a, BDistributeId b) {
-        BDistributeId save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDistributeId _a_, BDistributeId _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
     }
 
     private static final class Log__DistributeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__DistributeId(BDistributeId bean, int varId, long value) { super(bean, varId, value); }
+        public Log__DistributeId(BDistributeId _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDistributeId)getBelong())._DistributeId = value; }
@@ -98,18 +98,18 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BDistributeId: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(getDistributeId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BDistributeId: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(getDistributeId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -186,35 +186,35 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _DistributeId = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _DistributeId = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setDistributeId(rs.getLong(_parents_name_ + "DistributeId"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setDistributeId(_r_.getLong(_pn_ + "DistributeId"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "DistributeId", getDistributeId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "DistributeId", getDistributeId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DistributeId", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DistributeId", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,8 +227,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _DistributeId;
     }
 
-    public void setDistributeId(long value) {
-        _DistributeId = value;
+    public void setDistributeId(long _v_) {
+        _DistributeId = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -247,35 +247,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.HotDistribute.BDistributeId toBean() {
-        var bean = new Zeze.Builtin.HotDistribute.BDistributeId();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.HotDistribute.BDistributeId();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BDistributeId)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BDistributeId)_o_);
     }
 
-    public void assign(BDistributeId other) {
-        _DistributeId = other.getDistributeId();
+    public void assign(BDistributeId _o_) {
+        _DistributeId = _o_.getDistributeId();
     }
 
-    public void assign(BDistributeId.Data other) {
-        _DistributeId = other._DistributeId;
+    public void assign(BDistributeId.Data _o_) {
+        _DistributeId = _o_._DistributeId;
     }
 
     @Override
     public BDistributeId.Data copy() {
-        var copy = new BDistributeId.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDistributeId.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDistributeId.Data a, BDistributeId.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDistributeId.Data _a_, BDistributeId.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -290,18 +290,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BDistributeId: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(_DistributeId).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BDistributeId: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(_DistributeId).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -310,8 +310,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

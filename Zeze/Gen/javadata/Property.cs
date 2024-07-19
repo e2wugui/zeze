@@ -31,13 +31,13 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "    if (value == null)");
+                sw.WriteLine(prefix + "    if (_v_ == null)");
                 sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             }
-            sw.WriteLine(prefix + "    " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + " = _v_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -127,8 +127,8 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.NamePrivate + ".getData();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
-                sw.WriteLine(prefix + "    " + var.NamePrivate + ".setData(value);");
+                sw.WriteLine(prefix + $"public void {var.Setter($"{rname} _v_")} {{");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".setData(_v_);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");

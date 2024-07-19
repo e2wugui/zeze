@@ -19,13 +19,13 @@ namespace Zeze.Gen.javadata
         void DefineNew(Type type)
         {
             string tName = TypeName.GetName(type);
-            sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
+            sw.WriteLine(prefix + "var " + varname + " = new " + tName + "();");
         }
 
         void DefineStack(Type type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + typeName + " " + varname + ";");
+            string tName = TypeName.GetName(type);
+            sw.WriteLine(prefix + tName + " " + varname + ";");
         }
 
         public void Visit(TypeBool type)

@@ -32,11 +32,11 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
         _unknown_ = null;
     }
 
-    public void assign(BOnlineTimers other) {
+    public void assign(BOnlineTimers _o_) {
         _TimerIds.clear();
-        for (var e : other._TimerIds.entrySet())
-            _TimerIds.put(e.getKey(), e.getValue().copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._TimerIds.entrySet())
+            _TimerIds.put(_e_.getKey(), _e_.getValue().copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BOnlineTimers copyIfManaged() {
@@ -45,15 +45,15 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
 
     @Override
     public BOnlineTimers copy() {
-        var copy = new BOnlineTimers();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOnlineTimers();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOnlineTimers a, BOnlineTimers b) {
-        BOnlineTimers save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOnlineTimers _a_, BOnlineTimers _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -63,31 +63,31 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BOnlineTimers: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TimerIds={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BOnlineTimers: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimerIds={");
         if (!_TimerIds.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _TimerIds.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _TimerIds.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -98,8 +98,8 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -174,45 +174,45 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerIds.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _TimerIds.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerIds.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _TimerIds.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _TimerIds.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _TimerIds.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "TimerIds", _TimerIds, rs.getString(_parents_name_ + "TimerIds"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "TimerIds", _TimerIds, _r_.getString(_pn_ + "TimerIds"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "TimerIds", Zeze.Serialize.Helper.encodeJson(_TimerIds));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "TimerIds", Zeze.Serialize.Helper.encodeJson(_TimerIds));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerIds", "map", "string", "Zeze.Builtin.Timer.BOnlineCustom"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TimerIds", "map", "string", "Zeze.Builtin.Timer.BOnlineCustom"));
+        return _v_;
     }
 }

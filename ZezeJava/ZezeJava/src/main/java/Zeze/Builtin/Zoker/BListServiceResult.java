@@ -33,31 +33,31 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public Zeze.Builtin.Zoker.BListServiceResult.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BListServiceResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BListServiceResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BListServiceResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BListServiceResult.Data)_o_);
     }
 
-    public void assign(BListServiceResult.Data other) {
+    public void assign(BListServiceResult.Data _o_) {
         _Services.clear();
-        for (var e : other._Services) {
-            Zeze.Builtin.Zoker.BService data = new Zeze.Builtin.Zoker.BService();
-            data.assign(e);
-            _Services.add(data);
+        for (var _e_ : _o_._Services) {
+            var _v_ = new Zeze.Builtin.Zoker.BService();
+            _v_.assign(_e_);
+            _Services.add(_v_);
         }
         _unknown_ = null;
     }
 
-    public void assign(BListServiceResult other) {
+    public void assign(BListServiceResult _o_) {
         _Services.clear();
-        for (var e : other._Services)
-            _Services.add(e.copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Services)
+            _Services.add(_e_.copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BListServiceResult copyIfManaged() {
@@ -66,15 +66,15 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public BListServiceResult copy() {
-        var copy = new BListServiceResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BListServiceResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BListServiceResult a, BListServiceResult b) {
-        BListServiceResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BListServiceResult _a_, BListServiceResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -84,30 +84,30 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BListServiceResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Services=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BListServiceResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Services=[");
         if (!_Services.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Services) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Services) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -118,8 +118,8 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -189,46 +189,46 @@ public final class BListServiceResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Services.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Services.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Services.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Services.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Services.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Services.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_Services, Zeze.Builtin.Zoker.BService.class, rs.getString(_parents_name_ + "Services"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_Services, Zeze.Builtin.Zoker.BService.class, _r_.getString(_pn_ + "Services"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Services", Zeze.Serialize.Helper.encodeJson(_Services));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Services", Zeze.Serialize.Helper.encodeJson(_Services));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Services", "list", "", "Zeze.Builtin.Zoker.BService"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Services", "list", "", "Zeze.Builtin.Zoker.BService"));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -241,10 +241,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Services;
     }
 
-    public void setServices(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> value) {
-        if (value == null)
+    public void setServices(java.util.ArrayList<Zeze.Builtin.Zoker.BService.Data> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Services = value;
+        _Services = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -266,42 +266,42 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BListServiceResult toBean() {
-        var bean = new Zeze.Builtin.Zoker.BListServiceResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BListServiceResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BListServiceResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BListServiceResult)_o_);
     }
 
-    public void assign(BListServiceResult other) {
+    public void assign(BListServiceResult _o_) {
         _Services.clear();
-        for (var e : other._Services) {
-            Zeze.Builtin.Zoker.BService.Data data = new Zeze.Builtin.Zoker.BService.Data();
-            data.assign(e);
-            _Services.add(data);
+        for (var _e_ : _o_._Services) {
+            var _v_ = new Zeze.Builtin.Zoker.BService.Data();
+            _v_.assign(_e_);
+            _Services.add(_v_);
         }
     }
 
-    public void assign(BListServiceResult.Data other) {
+    public void assign(BListServiceResult.Data _o_) {
         _Services.clear();
-        for (var e : other._Services)
-            _Services.add(e.copy());
+        for (var _e_ : _o_._Services)
+            _Services.add(_e_.copy());
     }
 
     @Override
     public BListServiceResult.Data copy() {
-        var copy = new BListServiceResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BListServiceResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BListServiceResult.Data a, BListServiceResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BListServiceResult.Data _a_, BListServiceResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -316,30 +316,30 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BListServiceResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Services=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BListServiceResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Services=[");
         if (!_Services.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Services) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Services) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -348,8 +348,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

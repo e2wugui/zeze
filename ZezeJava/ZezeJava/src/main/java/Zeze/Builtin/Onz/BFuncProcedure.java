@@ -19,104 +19,104 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     public long getOnzTid() {
         if (!isManaged())
             return _OnzTid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _OnzTid;
-        var log = (Log__OnzTid)txn.getLog(objectId() + 1);
+        var log = (Log__OnzTid)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _OnzTid;
     }
 
-    public void setOnzTid(long value) {
+    public void setOnzTid(long _v_) {
         if (!isManaged()) {
-            _OnzTid = value;
+            _OnzTid = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OnzTid(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__OnzTid(this, 1, _v_));
     }
 
     @Override
     public String getFuncName() {
         if (!isManaged())
             return _FuncName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FuncName;
-        var log = (Log__FuncName)txn.getLog(objectId() + 2);
+        var log = (Log__FuncName)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _FuncName;
     }
 
-    public void setFuncName(String value) {
-        if (value == null)
+    public void setFuncName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _FuncName = value;
+            _FuncName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FuncName(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FuncName(this, 2, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getFuncArgument() {
         if (!isManaged())
             return _FuncArgument;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FuncArgument;
-        var log = (Log__FuncArgument)txn.getLog(objectId() + 3);
+        var log = (Log__FuncArgument)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _FuncArgument;
     }
 
-    public void setFuncArgument(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setFuncArgument(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _FuncArgument = value;
+            _FuncArgument = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FuncArgument(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FuncArgument(this, 3, _v_));
     }
 
     @Override
     public int getFlushMode() {
         if (!isManaged())
             return _FlushMode;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FlushMode;
-        var log = (Log__FlushMode)txn.getLog(objectId() + 4);
+        var log = (Log__FlushMode)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _FlushMode;
     }
 
-    public void setFlushMode(int value) {
+    public void setFlushMode(int _v_) {
         if (!isManaged()) {
-            _FlushMode = value;
+            _FlushMode = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FlushMode(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FlushMode(this, 4, _v_));
     }
 
     @Override
     public int getFlushTimeout() {
         if (!isManaged())
             return _FlushTimeout;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FlushTimeout;
-        var log = (Log__FlushTimeout)txn.getLog(objectId() + 5);
+        var log = (Log__FlushTimeout)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _FlushTimeout;
     }
 
-    public void setFlushTimeout(int value) {
+    public void setFlushTimeout(int _v_) {
         if (!isManaged()) {
-            _FlushTimeout = value;
+            _FlushTimeout = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FlushTimeout(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FlushTimeout(this, 5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -150,32 +150,32 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
 
     @Override
     public Zeze.Builtin.Onz.BFuncProcedure.Data toData() {
-        var data = new Zeze.Builtin.Onz.BFuncProcedure.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Onz.BFuncProcedure.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Onz.BFuncProcedure.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Onz.BFuncProcedure.Data)_o_);
     }
 
-    public void assign(BFuncProcedure.Data other) {
-        setOnzTid(other._OnzTid);
-        setFuncName(other._FuncName);
-        setFuncArgument(other._FuncArgument);
-        setFlushMode(other._FlushMode);
-        setFlushTimeout(other._FlushTimeout);
+    public void assign(BFuncProcedure.Data _o_) {
+        setOnzTid(_o_._OnzTid);
+        setFuncName(_o_._FuncName);
+        setFuncArgument(_o_._FuncArgument);
+        setFlushMode(_o_._FlushMode);
+        setFlushTimeout(_o_._FlushTimeout);
         _unknown_ = null;
     }
 
-    public void assign(BFuncProcedure other) {
-        setOnzTid(other.getOnzTid());
-        setFuncName(other.getFuncName());
-        setFuncArgument(other.getFuncArgument());
-        setFlushMode(other.getFlushMode());
-        setFlushTimeout(other.getFlushTimeout());
-        _unknown_ = other._unknown_;
+    public void assign(BFuncProcedure _o_) {
+        setOnzTid(_o_.getOnzTid());
+        setFuncName(_o_.getFuncName());
+        setFuncArgument(_o_.getFuncArgument());
+        setFlushMode(_o_.getFlushMode());
+        setFlushTimeout(_o_.getFlushTimeout());
+        _unknown_ = _o_._unknown_;
     }
 
     public BFuncProcedure copyIfManaged() {
@@ -184,15 +184,15 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
 
     @Override
     public BFuncProcedure copy() {
-        var copy = new BFuncProcedure();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BFuncProcedure();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BFuncProcedure a, BFuncProcedure b) {
-        BFuncProcedure save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BFuncProcedure _a_, BFuncProcedure _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -201,35 +201,35 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     }
 
     private static final class Log__OnzTid extends Zeze.Transaction.Logs.LogLong {
-        public Log__OnzTid(BFuncProcedure bean, int varId, long value) { super(bean, varId, value); }
+        public Log__OnzTid(BFuncProcedure _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BFuncProcedure)getBelong())._OnzTid = value; }
     }
 
     private static final class Log__FuncName extends Zeze.Transaction.Logs.LogString {
-        public Log__FuncName(BFuncProcedure bean, int varId, String value) { super(bean, varId, value); }
+        public Log__FuncName(BFuncProcedure _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BFuncProcedure)getBelong())._FuncName = value; }
     }
 
     private static final class Log__FuncArgument extends Zeze.Transaction.Logs.LogBinary {
-        public Log__FuncArgument(BFuncProcedure bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__FuncArgument(BFuncProcedure _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BFuncProcedure)getBelong())._FuncArgument = value; }
     }
 
     private static final class Log__FlushMode extends Zeze.Transaction.Logs.LogInt {
-        public Log__FlushMode(BFuncProcedure bean, int varId, int value) { super(bean, varId, value); }
+        public Log__FlushMode(BFuncProcedure _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BFuncProcedure)getBelong())._FlushMode = value; }
     }
 
     private static final class Log__FlushTimeout extends Zeze.Transaction.Logs.LogInt {
-        public Log__FlushTimeout(BFuncProcedure bean, int varId, int value) { super(bean, varId, value); }
+        public Log__FlushTimeout(BFuncProcedure _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BFuncProcedure)getBelong())._FlushTimeout = value; }
@@ -237,22 +237,22 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(getOnzTid()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FuncName=").append(getFuncName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FuncArgument=").append(getFuncArgument()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FlushMode=").append(getFlushMode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FlushTimeout=").append(getFlushTimeout()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnzTid=").append(getOnzTid()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncName=").append(getFuncName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncArgument=").append(getFuncArgument()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushMode=").append(getFlushMode()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushTimeout=").append(getFlushTimeout()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -263,8 +263,8 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -385,53 +385,53 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _OnzTid = vlog.longValue(); break;
-                case 2: _FuncName = vlog.stringValue(); break;
-                case 3: _FuncArgument = vlog.binaryValue(); break;
-                case 4: _FlushMode = vlog.intValue(); break;
-                case 5: _FlushTimeout = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _OnzTid = _v_.longValue(); break;
+                case 2: _FuncName = _v_.stringValue(); break;
+                case 3: _FuncArgument = _v_.binaryValue(); break;
+                case 4: _FlushMode = _v_.intValue(); break;
+                case 5: _FlushTimeout = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setOnzTid(rs.getLong(_parents_name_ + "OnzTid"));
-        setFuncName(rs.getString(_parents_name_ + "FuncName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setOnzTid(_r_.getLong(_pn_ + "OnzTid"));
+        setFuncName(_r_.getString(_pn_ + "FuncName"));
         if (getFuncName() == null)
             setFuncName("");
-        setFuncArgument(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "FuncArgument")));
-        setFlushMode(rs.getInt(_parents_name_ + "FlushMode"));
-        setFlushTimeout(rs.getInt(_parents_name_ + "FlushTimeout"));
+        setFuncArgument(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "FuncArgument")));
+        setFlushMode(_r_.getInt(_pn_ + "FlushMode"));
+        setFlushTimeout(_r_.getInt(_pn_ + "FlushTimeout"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "OnzTid", getOnzTid());
-        st.appendString(_parents_name_ + "FuncName", getFuncName());
-        st.appendBinary(_parents_name_ + "FuncArgument", getFuncArgument());
-        st.appendInt(_parents_name_ + "FlushMode", getFlushMode());
-        st.appendInt(_parents_name_ + "FlushTimeout", getFlushTimeout());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "OnzTid", getOnzTid());
+        _s_.appendString(_pn_ + "FuncName", getFuncName());
+        _s_.appendBinary(_pn_ + "FuncArgument", getFuncArgument());
+        _s_.appendInt(_pn_ + "FlushMode", getFlushMode());
+        _s_.appendInt(_pn_ + "FlushTimeout", getFlushTimeout());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FuncName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "FuncArgument", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "FlushMode", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "FlushTimeout", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "OnzTid", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FuncName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "FuncArgument", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "FlushMode", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "FlushTimeout", "int", "", ""));
+        return _v_;
     }
 
 // <enum name="eFlushPeriod" value="3"/>
@@ -449,44 +449,44 @@ public static final class Data extends Zeze.Transaction.Data {
         return _OnzTid;
     }
 
-    public void setOnzTid(long value) {
-        _OnzTid = value;
+    public void setOnzTid(long _v_) {
+        _OnzTid = _v_;
     }
 
     public String getFuncName() {
         return _FuncName;
     }
 
-    public void setFuncName(String value) {
-        if (value == null)
+    public void setFuncName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _FuncName = value;
+        _FuncName = _v_;
     }
 
     public Zeze.Net.Binary getFuncArgument() {
         return _FuncArgument;
     }
 
-    public void setFuncArgument(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setFuncArgument(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _FuncArgument = value;
+        _FuncArgument = _v_;
     }
 
     public int getFlushMode() {
         return _FlushMode;
     }
 
-    public void setFlushMode(int value) {
-        _FlushMode = value;
+    public void setFlushMode(int _v_) {
+        _FlushMode = _v_;
     }
 
     public int getFlushTimeout() {
         return _FlushTimeout;
     }
 
-    public void setFlushTimeout(int value) {
-        _FlushTimeout = value;
+    public void setFlushTimeout(int _v_) {
+        _FlushTimeout = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -519,43 +519,43 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Onz.BFuncProcedure toBean() {
-        var bean = new Zeze.Builtin.Onz.BFuncProcedure();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Onz.BFuncProcedure();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BFuncProcedure)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BFuncProcedure)_o_);
     }
 
-    public void assign(BFuncProcedure other) {
-        _OnzTid = other.getOnzTid();
-        _FuncName = other.getFuncName();
-        _FuncArgument = other.getFuncArgument();
-        _FlushMode = other.getFlushMode();
-        _FlushTimeout = other.getFlushTimeout();
+    public void assign(BFuncProcedure _o_) {
+        _OnzTid = _o_.getOnzTid();
+        _FuncName = _o_.getFuncName();
+        _FuncArgument = _o_.getFuncArgument();
+        _FlushMode = _o_.getFlushMode();
+        _FlushTimeout = _o_.getFlushTimeout();
     }
 
-    public void assign(BFuncProcedure.Data other) {
-        _OnzTid = other._OnzTid;
-        _FuncName = other._FuncName;
-        _FuncArgument = other._FuncArgument;
-        _FlushMode = other._FlushMode;
-        _FlushTimeout = other._FlushTimeout;
+    public void assign(BFuncProcedure.Data _o_) {
+        _OnzTid = _o_._OnzTid;
+        _FuncName = _o_._FuncName;
+        _FuncArgument = _o_._FuncArgument;
+        _FlushMode = _o_._FlushMode;
+        _FlushTimeout = _o_._FlushTimeout;
     }
 
     @Override
     public BFuncProcedure.Data copy() {
-        var copy = new BFuncProcedure.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BFuncProcedure.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BFuncProcedure.Data a, BFuncProcedure.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BFuncProcedure.Data _a_, BFuncProcedure.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -570,22 +570,22 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("OnzTid=").append(_OnzTid).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FuncName=").append(_FuncName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FuncArgument=").append(_FuncArgument).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FlushMode=").append(_FlushMode).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FlushTimeout=").append(_FlushTimeout).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnzTid=").append(_OnzTid).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncName=").append(_FuncName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncArgument=").append(_FuncArgument).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushMode=").append(_FlushMode).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushTimeout=").append(_FlushTimeout).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -594,8 +594,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

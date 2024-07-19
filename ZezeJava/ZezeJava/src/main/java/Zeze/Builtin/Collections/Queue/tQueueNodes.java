@@ -12,8 +12,8 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
         super(-117984600, "Zeze_Builtin_Collections_Queue_tQueueNodes");
     }
 
-    public tQueueNodes(String suffix) {
-        super(-117984600, "Zeze_Builtin_Collections_Queue_tQueueNodes", suffix);
+    public tQueueNodes(String _s_) {
+        super(-117984600, "Zeze_Builtin_Collections_Queue_tQueueNodes", _s_);
     }
 
     @Override
@@ -32,7 +32,7 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
 
     @Override
     public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        var _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
         _v_.decode(_os_);
         return _v_;
     }
@@ -45,21 +45,21 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     }
 
     @Override
-    public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Builtin.Collections.Queue.BQueueNodeKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -68,7 +68,7 @@ public final class tQueueNodes extends TableX<Zeze.Builtin.Collections.Queue.BQu
     }
 
     @Override
-    public Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey key) {
-        return get(key);
+    public Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly getReadOnly(Zeze.Builtin.Collections.Queue.BQueueNodeKey _k_) {
+        return get(_k_);
     }
 }

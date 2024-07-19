@@ -18,23 +18,23 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         return new Zeze.Transaction.DynamicBean(2, BGameOnlineTimer::getSpecialTypeIdFromBean_2, BGameOnlineTimer::createBeanFromSpecialTypeId_2);
     }
 
-    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean bean) {
-        var _typeId_ = bean.typeId();
-        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {
+        var _t_ = _b_.typeId();
+        if (_t_ == Zeze.Transaction.EmptyBean.TYPEID)
             return Zeze.Transaction.EmptyBean.TYPEID;
-        if (_typeId_ == -6995089347718168392L)
+        if (_t_ == -6995089347718168392L)
             return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
-        if (_typeId_ == 1832177636612857692L)
+        if (_t_ == 1832177636612857692L)
             return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
         throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj");
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long typeId) {
-        if (typeId == -6995089347718168392L)
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long _t_) {
+        if (_t_ == -6995089347718168392L)
             return new Zeze.Builtin.Timer.BCronTimer();
-        if (typeId == 1832177636612857692L)
+        if (_t_ == 1832177636612857692L)
             return new Zeze.Builtin.Timer.BSimpleTimer();
-        if (typeId == Zeze.Transaction.EmptyBean.TYPEID)
+        if (_t_ == Zeze.Transaction.EmptyBean.TYPEID)
             return new Zeze.Transaction.EmptyBean();
         return null;
     }
@@ -46,20 +46,20 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _RoleId;
-        var log = (Log__RoleId)txn.getLog(objectId() + 1);
+        var log = (Log__RoleId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _RoleId;
     }
 
-    public void setRoleId(long value) {
+    public void setRoleId(long _v_) {
         if (!isManaged()) {
-            _RoleId = value;
+            _RoleId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__RoleId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__RoleId(this, 1, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getTimerObj() {
@@ -70,16 +70,16 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         return (Zeze.Builtin.Timer.BCronTimer)_TimerObj.getBean();
     }
 
-    public void setTimerObj(Zeze.Builtin.Timer.BCronTimer value) {
-        _TimerObj.setBean(value);
+    public void setTimerObj(Zeze.Builtin.Timer.BCronTimer _v_) {
+        _TimerObj.setBean(_v_);
     }
 
     public Zeze.Builtin.Timer.BSimpleTimer getTimerObj_Zeze_Builtin_Timer_BSimpleTimer() {
         return (Zeze.Builtin.Timer.BSimpleTimer)_TimerObj.getBean();
     }
 
-    public void setTimerObj(Zeze.Builtin.Timer.BSimpleTimer value) {
-        _TimerObj.setBean(value);
+    public void setTimerObj(Zeze.Builtin.Timer.BSimpleTimer _v_) {
+        _TimerObj.setBean(_v_);
     }
 
     @Override
@@ -101,40 +101,40 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)txn.getLog(objectId() + 3);
+        var log = (Log__LoginVersion)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LoginVersion;
     }
 
-    public void setLoginVersion(long value) {
+    public void setLoginVersion(long _v_) {
         if (!isManaged()) {
-            _LoginVersion = value;
+            _LoginVersion = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LoginVersion(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__LoginVersion(this, 3, _v_));
     }
 
     @Override
     public long getSerialId() {
         if (!isManaged())
             return _SerialId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _SerialId;
-        var log = (Log__SerialId)txn.getLog(objectId() + 4);
+        var log = (Log__SerialId)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _SerialId;
     }
 
-    public void setSerialId(long value) {
+    public void setSerialId(long _v_) {
         if (!isManaged()) {
-            _SerialId = value;
+            _SerialId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SerialId(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__SerialId(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -159,12 +159,12 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         _unknown_ = null;
     }
 
-    public void assign(BGameOnlineTimer other) {
-        setRoleId(other.getRoleId());
-        _TimerObj.assign(other._TimerObj);
-        setLoginVersion(other.getLoginVersion());
-        setSerialId(other.getSerialId());
-        _unknown_ = other._unknown_;
+    public void assign(BGameOnlineTimer _o_) {
+        setRoleId(_o_.getRoleId());
+        _TimerObj.assign(_o_._TimerObj);
+        setLoginVersion(_o_.getLoginVersion());
+        setSerialId(_o_.getSerialId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BGameOnlineTimer copyIfManaged() {
@@ -173,15 +173,15 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     @Override
     public BGameOnlineTimer copy() {
-        var copy = new BGameOnlineTimer();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGameOnlineTimer();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGameOnlineTimer a, BGameOnlineTimer b) {
-        BGameOnlineTimer save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGameOnlineTimer _a_, BGameOnlineTimer _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -190,21 +190,21 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
-        public Log__RoleId(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__RoleId(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGameOnlineTimer)getBelong())._RoleId = value; }
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__LoginVersion(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGameOnlineTimer)getBelong())._LoginVersion = value; }
     }
 
     private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SerialId(BGameOnlineTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__SerialId(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGameOnlineTimer)getBelong())._SerialId = value; }
@@ -212,23 +212,23 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BGameOnlineTimer: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimerObj=").append(System.lineSeparator());
-        _TimerObj.getBean().buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SerialId=").append(getSerialId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BGameOnlineTimer: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimerObj=").append(System.lineSeparator());
+        _TimerObj.getBean().buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SerialId=").append(getSerialId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -239,8 +239,8 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -336,13 +336,13 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerObj.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _TimerObj.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _TimerObj.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _TimerObj.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -360,46 +360,46 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _RoleId = vlog.longValue(); break;
-                case 2: _TimerObj.followerApply(vlog); break;
-                case 3: _LoginVersion = vlog.longValue(); break;
-                case 4: _SerialId = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _RoleId = _v_.longValue(); break;
+                case 2: _TimerObj.followerApply(_v_); break;
+                case 3: _LoginVersion = _v_.longValue(); break;
+                case 4: _SerialId = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setRoleId(rs.getLong(_parents_name_ + "RoleId"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(_TimerObj, rs.getString(_parents_name_ + "TimerObj"));
-        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
-        setSerialId(rs.getLong(_parents_name_ + "SerialId"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setRoleId(_r_.getLong(_pn_ + "RoleId"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_TimerObj, _r_.getString(_pn_ + "TimerObj"));
+        setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
+        setSerialId(_r_.getLong(_pn_ + "SerialId"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "RoleId", getRoleId());
-        st.appendString(_parents_name_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(_TimerObj));
-        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
-        st.appendLong(_parents_name_ + "SerialId", getSerialId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "RoleId", getRoleId());
+        _s_.appendString(_pn_ + "TimerObj", Zeze.Serialize.Helper.encodeJson(_TimerObj));
+        _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
+        _s_.appendLong(_pn_ + "SerialId", getSerialId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TimerObj", "dynamic", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoginVersion", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SerialId", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TimerObj", "dynamic", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LoginVersion", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SerialId", "long", "", ""));
+        return _v_;
     }
 }

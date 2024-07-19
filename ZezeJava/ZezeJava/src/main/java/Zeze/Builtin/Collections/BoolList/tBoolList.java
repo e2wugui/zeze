@@ -12,8 +12,8 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
         super(1535934961, "Zeze_Builtin_Collections_BoolList_tBoolList");
     }
 
-    public tBoolList(String suffix) {
-        super(1535934961, "Zeze_Builtin_Collections_BoolList_tBoolList", suffix);
+    public tBoolList(String _s_) {
+        super(1535934961, "Zeze_Builtin_Collections_BoolList_tBoolList", _s_);
     }
 
     @Override
@@ -37,7 +37,7 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
 
     @Override
     public Zeze.Builtin.Collections.BoolList.BKey decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Collections.BoolList.BKey _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
+        var _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
         _v_.decode(_os_);
         return _v_;
     }
@@ -50,21 +50,21 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
     }
 
     @Override
-    public Zeze.Builtin.Collections.BoolList.BKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Builtin.Collections.BoolList.BKey _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Builtin.Collections.BoolList.BKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Builtin.Collections.BoolList.BKey();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.BoolList.BKey _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Builtin.Collections.BoolList.BKey _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -73,7 +73,7 @@ public final class tBoolList extends TableX<Zeze.Builtin.Collections.BoolList.BK
     }
 
     @Override
-    public Zeze.Builtin.Collections.BoolList.BValueReadOnly getReadOnly(Zeze.Builtin.Collections.BoolList.BKey key) {
-        return get(key);
+    public Zeze.Builtin.Collections.BoolList.BValueReadOnly getReadOnly(Zeze.Builtin.Collections.BoolList.BKey _k_) {
+        return get(_k_);
     }
 }

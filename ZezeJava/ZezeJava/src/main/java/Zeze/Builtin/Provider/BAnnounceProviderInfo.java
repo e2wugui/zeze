@@ -20,126 +20,126 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServiceNamePrefix;
-        var log = (Log__ServiceNamePrefix)txn.getLog(objectId() + 1);
+        var log = (Log__ServiceNamePrefix)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceNamePrefix;
     }
 
-    public void setServiceNamePrefix(String value) {
-        if (value == null)
+    public void setServiceNamePrefix(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceNamePrefix = value;
+            _ServiceNamePrefix = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceNamePrefix(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServiceNamePrefix(this, 1, _v_));
     }
 
     @Override
     public String getServiceIdentity() {
         if (!isManaged())
             return _ServiceIdentity;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServiceIdentity;
-        var log = (Log__ServiceIdentity)txn.getLog(objectId() + 2);
+        var log = (Log__ServiceIdentity)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ServiceIdentity;
     }
 
-    public void setServiceIdentity(String value) {
-        if (value == null)
+    public void setServiceIdentity(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceIdentity = value;
+            _ServiceIdentity = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceIdentity(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServiceIdentity(this, 2, _v_));
     }
 
     @Override
     public String getProviderDirectIp() {
         if (!isManaged())
             return _ProviderDirectIp;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ProviderDirectIp;
-        var log = (Log__ProviderDirectIp)txn.getLog(objectId() + 3);
+        var log = (Log__ProviderDirectIp)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _ProviderDirectIp;
     }
 
-    public void setProviderDirectIp(String value) {
-        if (value == null)
+    public void setProviderDirectIp(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ProviderDirectIp = value;
+            _ProviderDirectIp = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ProviderDirectIp(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ProviderDirectIp(this, 3, _v_));
     }
 
     @Override
     public int getProviderDirectPort() {
         if (!isManaged())
             return _ProviderDirectPort;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ProviderDirectPort;
-        var log = (Log__ProviderDirectPort)txn.getLog(objectId() + 4);
+        var log = (Log__ProviderDirectPort)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _ProviderDirectPort;
     }
 
-    public void setProviderDirectPort(int value) {
+    public void setProviderDirectPort(int _v_) {
         if (!isManaged()) {
-            _ProviderDirectPort = value;
+            _ProviderDirectPort = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ProviderDirectPort(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ProviderDirectPort(this, 4, _v_));
     }
 
     @Override
     public long getAppVersion() {
         if (!isManaged())
             return _AppVersion;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _AppVersion;
-        var log = (Log__AppVersion)txn.getLog(objectId() + 5);
+        var log = (Log__AppVersion)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _AppVersion;
     }
 
-    public void setAppVersion(long value) {
+    public void setAppVersion(long _v_) {
         if (!isManaged()) {
-            _AppVersion = value;
+            _AppVersion = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__AppVersion(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__AppVersion(this, 5, _v_));
     }
 
     @Override
     public boolean isDisableChoice() {
         if (!isManaged())
             return _DisableChoice;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _DisableChoice;
-        var log = (Log__DisableChoice)txn.getLog(objectId() + 6);
+        var log = (Log__DisableChoice)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _DisableChoice;
     }
 
-    public void setDisableChoice(boolean value) {
+    public void setDisableChoice(boolean _v_) {
         if (!isManaged()) {
-            _DisableChoice = value;
+            _DisableChoice = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__DisableChoice(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__DisableChoice(this, 6, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -178,34 +178,34 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
 
     @Override
     public Zeze.Builtin.Provider.BAnnounceProviderInfo.Data toData() {
-        var data = new Zeze.Builtin.Provider.BAnnounceProviderInfo.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BAnnounceProviderInfo.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BAnnounceProviderInfo.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BAnnounceProviderInfo.Data)_o_);
     }
 
-    public void assign(BAnnounceProviderInfo.Data other) {
-        setServiceNamePrefix(other._ServiceNamePrefix);
-        setServiceIdentity(other._ServiceIdentity);
-        setProviderDirectIp(other._ProviderDirectIp);
-        setProviderDirectPort(other._ProviderDirectPort);
-        setAppVersion(other._AppVersion);
-        setDisableChoice(other._DisableChoice);
+    public void assign(BAnnounceProviderInfo.Data _o_) {
+        setServiceNamePrefix(_o_._ServiceNamePrefix);
+        setServiceIdentity(_o_._ServiceIdentity);
+        setProviderDirectIp(_o_._ProviderDirectIp);
+        setProviderDirectPort(_o_._ProviderDirectPort);
+        setAppVersion(_o_._AppVersion);
+        setDisableChoice(_o_._DisableChoice);
         _unknown_ = null;
     }
 
-    public void assign(BAnnounceProviderInfo other) {
-        setServiceNamePrefix(other.getServiceNamePrefix());
-        setServiceIdentity(other.getServiceIdentity());
-        setProviderDirectIp(other.getProviderDirectIp());
-        setProviderDirectPort(other.getProviderDirectPort());
-        setAppVersion(other.getAppVersion());
-        setDisableChoice(other.isDisableChoice());
-        _unknown_ = other._unknown_;
+    public void assign(BAnnounceProviderInfo _o_) {
+        setServiceNamePrefix(_o_.getServiceNamePrefix());
+        setServiceIdentity(_o_.getServiceIdentity());
+        setProviderDirectIp(_o_.getProviderDirectIp());
+        setProviderDirectPort(_o_.getProviderDirectPort());
+        setAppVersion(_o_.getAppVersion());
+        setDisableChoice(_o_.isDisableChoice());
+        _unknown_ = _o_._unknown_;
     }
 
     public BAnnounceProviderInfo copyIfManaged() {
@@ -214,15 +214,15 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
 
     @Override
     public BAnnounceProviderInfo copy() {
-        var copy = new BAnnounceProviderInfo();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAnnounceProviderInfo();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAnnounceProviderInfo a, BAnnounceProviderInfo b) {
-        BAnnounceProviderInfo save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAnnounceProviderInfo _a_, BAnnounceProviderInfo _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -231,42 +231,42 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceNamePrefix(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ServiceNamePrefix(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._ServiceNamePrefix = value; }
     }
 
     private static final class Log__ServiceIdentity extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceIdentity(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ServiceIdentity(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._ServiceIdentity = value; }
     }
 
     private static final class Log__ProviderDirectIp extends Zeze.Transaction.Logs.LogString {
-        public Log__ProviderDirectIp(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ProviderDirectIp(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._ProviderDirectIp = value; }
     }
 
     private static final class Log__ProviderDirectPort extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProviderDirectPort(BAnnounceProviderInfo bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ProviderDirectPort(BAnnounceProviderInfo _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._ProviderDirectPort = value; }
     }
 
     private static final class Log__AppVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__AppVersion(BAnnounceProviderInfo bean, int varId, long value) { super(bean, varId, value); }
+        public Log__AppVersion(BAnnounceProviderInfo _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._AppVersion = value; }
     }
 
     private static final class Log__DisableChoice extends Zeze.Transaction.Logs.LogBool {
-        public Log__DisableChoice(BAnnounceProviderInfo bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__DisableChoice(BAnnounceProviderInfo _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAnnounceProviderInfo)getBelong())._DisableChoice = value; }
@@ -274,23 +274,23 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(getServiceIdentity()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectIp=").append(getProviderDirectIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectPort=").append(getProviderDirectPort()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AppVersion=").append(getAppVersion()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceIdentity=").append(getServiceIdentity()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectIp=").append(getProviderDirectIp()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectPort=").append(getProviderDirectPort()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppVersion=").append(getAppVersion()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -301,8 +301,8 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -434,61 +434,61 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ServiceNamePrefix = vlog.stringValue(); break;
-                case 2: _ServiceIdentity = vlog.stringValue(); break;
-                case 3: _ProviderDirectIp = vlog.stringValue(); break;
-                case 4: _ProviderDirectPort = vlog.intValue(); break;
-                case 5: _AppVersion = vlog.longValue(); break;
-                case 6: _DisableChoice = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ServiceNamePrefix = _v_.stringValue(); break;
+                case 2: _ServiceIdentity = _v_.stringValue(); break;
+                case 3: _ProviderDirectIp = _v_.stringValue(); break;
+                case 4: _ProviderDirectPort = _v_.intValue(); break;
+                case 5: _AppVersion = _v_.longValue(); break;
+                case 6: _DisableChoice = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setServiceNamePrefix(_r_.getString(_pn_ + "ServiceNamePrefix"));
         if (getServiceNamePrefix() == null)
             setServiceNamePrefix("");
-        setServiceIdentity(rs.getString(_parents_name_ + "ServiceIdentity"));
+        setServiceIdentity(_r_.getString(_pn_ + "ServiceIdentity"));
         if (getServiceIdentity() == null)
             setServiceIdentity("");
-        setProviderDirectIp(rs.getString(_parents_name_ + "ProviderDirectIp"));
+        setProviderDirectIp(_r_.getString(_pn_ + "ProviderDirectIp"));
         if (getProviderDirectIp() == null)
             setProviderDirectIp("");
-        setProviderDirectPort(rs.getInt(_parents_name_ + "ProviderDirectPort"));
-        setAppVersion(rs.getLong(_parents_name_ + "AppVersion"));
-        setDisableChoice(rs.getBoolean(_parents_name_ + "DisableChoice"));
+        setProviderDirectPort(_r_.getInt(_pn_ + "ProviderDirectPort"));
+        setAppVersion(_r_.getLong(_pn_ + "AppVersion"));
+        setDisableChoice(_r_.getBoolean(_pn_ + "DisableChoice"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
-        st.appendString(_parents_name_ + "ServiceIdentity", getServiceIdentity());
-        st.appendString(_parents_name_ + "ProviderDirectIp", getProviderDirectIp());
-        st.appendInt(_parents_name_ + "ProviderDirectPort", getProviderDirectPort());
-        st.appendLong(_parents_name_ + "AppVersion", getAppVersion());
-        st.appendBoolean(_parents_name_ + "DisableChoice", isDisableChoice());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ServiceNamePrefix", getServiceNamePrefix());
+        _s_.appendString(_pn_ + "ServiceIdentity", getServiceIdentity());
+        _s_.appendString(_pn_ + "ProviderDirectIp", getProviderDirectIp());
+        _s_.appendInt(_pn_ + "ProviderDirectPort", getProviderDirectPort());
+        _s_.appendLong(_pn_ + "AppVersion", getAppVersion());
+        _s_.appendBoolean(_pn_ + "DisableChoice", isDisableChoice());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceNamePrefix", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIdentity", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ProviderDirectIp", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ProviderDirectPort", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "AppVersion", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "DisableChoice", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceNamePrefix", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServiceIdentity", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ProviderDirectIp", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ProviderDirectPort", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "AppVersion", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "DisableChoice", "bool", "", ""));
+        return _v_;
     }
 
 // gs to link
@@ -507,54 +507,54 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ServiceNamePrefix;
     }
 
-    public void setServiceNamePrefix(String value) {
-        if (value == null)
+    public void setServiceNamePrefix(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ServiceNamePrefix = value;
+        _ServiceNamePrefix = _v_;
     }
 
     public String getServiceIdentity() {
         return _ServiceIdentity;
     }
 
-    public void setServiceIdentity(String value) {
-        if (value == null)
+    public void setServiceIdentity(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ServiceIdentity = value;
+        _ServiceIdentity = _v_;
     }
 
     public String getProviderDirectIp() {
         return _ProviderDirectIp;
     }
 
-    public void setProviderDirectIp(String value) {
-        if (value == null)
+    public void setProviderDirectIp(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ProviderDirectIp = value;
+        _ProviderDirectIp = _v_;
     }
 
     public int getProviderDirectPort() {
         return _ProviderDirectPort;
     }
 
-    public void setProviderDirectPort(int value) {
-        _ProviderDirectPort = value;
+    public void setProviderDirectPort(int _v_) {
+        _ProviderDirectPort = _v_;
     }
 
     public long getAppVersion() {
         return _AppVersion;
     }
 
-    public void setAppVersion(long value) {
-        _AppVersion = value;
+    public void setAppVersion(long _v_) {
+        _AppVersion = _v_;
     }
 
     public boolean isDisableChoice() {
         return _DisableChoice;
     }
 
-    public void setDisableChoice(boolean value) {
-        _DisableChoice = value;
+    public void setDisableChoice(boolean _v_) {
+        _DisableChoice = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -592,45 +592,45 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BAnnounceProviderInfo toBean() {
-        var bean = new Zeze.Builtin.Provider.BAnnounceProviderInfo();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BAnnounceProviderInfo();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BAnnounceProviderInfo)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BAnnounceProviderInfo)_o_);
     }
 
-    public void assign(BAnnounceProviderInfo other) {
-        _ServiceNamePrefix = other.getServiceNamePrefix();
-        _ServiceIdentity = other.getServiceIdentity();
-        _ProviderDirectIp = other.getProviderDirectIp();
-        _ProviderDirectPort = other.getProviderDirectPort();
-        _AppVersion = other.getAppVersion();
-        _DisableChoice = other.isDisableChoice();
+    public void assign(BAnnounceProviderInfo _o_) {
+        _ServiceNamePrefix = _o_.getServiceNamePrefix();
+        _ServiceIdentity = _o_.getServiceIdentity();
+        _ProviderDirectIp = _o_.getProviderDirectIp();
+        _ProviderDirectPort = _o_.getProviderDirectPort();
+        _AppVersion = _o_.getAppVersion();
+        _DisableChoice = _o_.isDisableChoice();
     }
 
-    public void assign(BAnnounceProviderInfo.Data other) {
-        _ServiceNamePrefix = other._ServiceNamePrefix;
-        _ServiceIdentity = other._ServiceIdentity;
-        _ProviderDirectIp = other._ProviderDirectIp;
-        _ProviderDirectPort = other._ProviderDirectPort;
-        _AppVersion = other._AppVersion;
-        _DisableChoice = other._DisableChoice;
+    public void assign(BAnnounceProviderInfo.Data _o_) {
+        _ServiceNamePrefix = _o_._ServiceNamePrefix;
+        _ServiceIdentity = _o_._ServiceIdentity;
+        _ProviderDirectIp = _o_._ProviderDirectIp;
+        _ProviderDirectPort = _o_._ProviderDirectPort;
+        _AppVersion = _o_._AppVersion;
+        _DisableChoice = _o_._DisableChoice;
     }
 
     @Override
     public BAnnounceProviderInfo.Data copy() {
-        var copy = new BAnnounceProviderInfo.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAnnounceProviderInfo.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAnnounceProviderInfo.Data a, BAnnounceProviderInfo.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAnnounceProviderInfo.Data _a_, BAnnounceProviderInfo.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -645,23 +645,23 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(_ServiceIdentity).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectIp=").append(_ProviderDirectIp).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectPort=").append(_ProviderDirectPort).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AppVersion=").append(_AppVersion).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceIdentity=").append(_ServiceIdentity).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectIp=").append(_ProviderDirectIp).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectPort=").append(_ProviderDirectPort).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppVersion=").append(_AppVersion).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -670,8 +670,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

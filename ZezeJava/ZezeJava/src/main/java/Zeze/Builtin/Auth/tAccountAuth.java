@@ -12,8 +12,8 @@ public final class tAccountAuth extends TableX<String, Zeze.Builtin.Auth.BAccoun
         super(663215574, "Zeze_Builtin_Auth_tAccountAuth");
     }
 
-    public tAccountAuth(String suffix) {
-        super(663215574, "Zeze_Builtin_Auth_tAccountAuth", suffix);
+    public tAccountAuth(String _s_) {
+        super(663215574, "Zeze_Builtin_Auth_tAccountAuth", _s_);
     }
 
     @Override
@@ -43,17 +43,17 @@ public final class tAccountAuth extends TableX<String, Zeze.Builtin.Auth.BAccoun
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -62,7 +62,7 @@ public final class tAccountAuth extends TableX<String, Zeze.Builtin.Auth.BAccoun
     }
 
     @Override
-    public Zeze.Builtin.Auth.BAccountAuthReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.Auth.BAccountAuthReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

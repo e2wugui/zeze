@@ -15,20 +15,20 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     public int getState() {
         if (!isManaged())
             return _State;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _State;
-        var log = (Log__State)txn.getLog(objectId() + 1);
+        var log = (Log__State)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _State;
     }
 
-    public void setState(int value) {
+    public void setState(int _v_) {
         if (!isManaged()) {
-            _State = value;
+            _State = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__State(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__State(this, 1, _v_));
     }
 
     public Zeze.Transaction.Collections.PList1<String> getBuckets() {
@@ -62,27 +62,27 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     @Override
     public Zeze.Builtin.Dbh2.Commit.BTransactionState.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Commit.BTransactionState.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Commit.BTransactionState.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Commit.BTransactionState.Data)_o_);
     }
 
-    public void assign(BTransactionState.Data other) {
-        setState(other._State);
+    public void assign(BTransactionState.Data _o_) {
+        setState(_o_._State);
         _Buckets.clear();
-        _Buckets.addAll(other._Buckets);
+        _Buckets.addAll(_o_._Buckets);
         _unknown_ = null;
     }
 
-    public void assign(BTransactionState other) {
-        setState(other.getState());
-        _Buckets.assign(other._Buckets);
-        _unknown_ = other._unknown_;
+    public void assign(BTransactionState _o_) {
+        setState(_o_.getState());
+        _Buckets.assign(_o_._Buckets);
+        _unknown_ = _o_._unknown_;
     }
 
     public BTransactionState copyIfManaged() {
@@ -91,15 +91,15 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     @Override
     public BTransactionState copy() {
-        var copy = new BTransactionState();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTransactionState();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTransactionState a, BTransactionState b) {
-        BTransactionState save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTransactionState _a_, BTransactionState _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -108,7 +108,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
-        public Log__State(BTransactionState bean, int varId, int value) { super(bean, varId, value); }
+        public Log__State(BTransactionState _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransactionState)getBelong())._State = value; }
@@ -116,29 +116,29 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Buckets=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(getState()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Buckets) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Buckets) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -149,8 +149,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -233,13 +233,13 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Buckets.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Buckets.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Buckets.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Buckets.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -251,39 +251,39 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _State = vlog.intValue(); break;
-                case 2: _Buckets.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _State = _v_.intValue(); break;
+                case 2: _Buckets.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setState(rs.getInt(_parents_name_ + "State"));
-        Zeze.Serialize.Helper.decodeJsonList(_Buckets, String.class, rs.getString(_parents_name_ + "Buckets"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setState(_r_.getInt(_pn_ + "State"));
+        Zeze.Serialize.Helper.decodeJsonList(_Buckets, String.class, _r_.getString(_pn_ + "Buckets"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "State", getState());
-        st.appendString(_parents_name_ + "Buckets", Zeze.Serialize.Helper.encodeJson(_Buckets));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "State", getState());
+        _s_.appendString(_pn_ + "Buckets", Zeze.Serialize.Helper.encodeJson(_Buckets));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "State", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Buckets", "list", "", "string"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "State", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Buckets", "list", "", "string"));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -297,18 +297,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _State;
     }
 
-    public void setState(int value) {
-        _State = value;
+    public void setState(int _v_) {
+        _State = _v_;
     }
 
     public java.util.ArrayList<String> getBuckets() {
         return _Buckets;
     }
 
-    public void setBuckets(java.util.ArrayList<String> value) {
-        if (value == null)
+    public void setBuckets(java.util.ArrayList<String> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Buckets = value;
+        _Buckets = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -332,39 +332,39 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Commit.BTransactionState toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Commit.BTransactionState();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Commit.BTransactionState();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BTransactionState)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BTransactionState)_o_);
     }
 
-    public void assign(BTransactionState other) {
-        _State = other.getState();
+    public void assign(BTransactionState _o_) {
+        _State = _o_.getState();
         _Buckets.clear();
-        _Buckets.addAll(other._Buckets);
+        _Buckets.addAll(_o_._Buckets);
     }
 
-    public void assign(BTransactionState.Data other) {
-        _State = other._State;
+    public void assign(BTransactionState.Data _o_) {
+        _State = _o_._State;
         _Buckets.clear();
-        _Buckets.addAll(other._Buckets);
+        _Buckets.addAll(_o_._Buckets);
     }
 
     @Override
     public BTransactionState.Data copy() {
-        var copy = new BTransactionState.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTransactionState.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTransactionState.Data a, BTransactionState.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTransactionState.Data _a_, BTransactionState.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -379,29 +379,29 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(_State).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Buckets=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Commit.BTransactionState: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(_State).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Buckets) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Buckets) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -410,8 +410,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -38,7 +38,7 @@ namespace Zeze.Gen.java
             string valueName = TypeName.GetName(type);
             string logBase = LogName.GetName(type);
             sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {logBase} {{");
-            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
+            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} _b_, int _i_, {valueName} _v_) {{ super(_b_, _i_, _v_); }}");
             sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + $"    public void commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = value; }}");
@@ -143,7 +143,7 @@ namespace Zeze.Gen.java
             string valueName = TypeName.GetName(type);
             string logBase = LogName.GetName(type);
             sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {logBase} {{");
-            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super({valueName}.class, bean, varId, value); }}");
+            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} _b_, int _i_, {valueName} _v_) {{ super({valueName}.class, _b_, _i_, _v_); }}");
             sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + $"    public void commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = value; }}");

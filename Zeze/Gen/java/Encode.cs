@@ -28,8 +28,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void preAllocSize(int size) {");
-            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
+            sw.WriteLine(prefix + "public void preAllocSize(int _s_) {");
+            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = _s_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             if (withUnknown)
@@ -105,8 +105,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void preAllocSize(int size) {");
-            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
+            sw.WriteLine(prefix + "public void preAllocSize(int _s_) {");
+            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = _s_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");

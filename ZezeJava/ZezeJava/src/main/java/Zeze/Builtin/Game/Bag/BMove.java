@@ -17,82 +17,82 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public String getBagName() {
         if (!isManaged())
             return _BagName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _BagName;
-        var log = (Log__BagName)txn.getLog(objectId() + 1);
+        var log = (Log__BagName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _BagName;
     }
 
-    public void setBagName(String value) {
-        if (value == null)
+    public void setBagName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _BagName = value;
+            _BagName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__BagName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__BagName(this, 1, _v_));
     }
 
     @Override
     public int getPositionFrom() {
         if (!isManaged())
             return _PositionFrom;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _PositionFrom;
-        var log = (Log__PositionFrom)txn.getLog(objectId() + 2);
+        var log = (Log__PositionFrom)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _PositionFrom;
     }
 
-    public void setPositionFrom(int value) {
+    public void setPositionFrom(int _v_) {
         if (!isManaged()) {
-            _PositionFrom = value;
+            _PositionFrom = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__PositionFrom(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__PositionFrom(this, 2, _v_));
     }
 
     @Override
     public int getPositionTo() {
         if (!isManaged())
             return _PositionTo;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _PositionTo;
-        var log = (Log__PositionTo)txn.getLog(objectId() + 3);
+        var log = (Log__PositionTo)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _PositionTo;
     }
 
-    public void setPositionTo(int value) {
+    public void setPositionTo(int _v_) {
         if (!isManaged()) {
-            _PositionTo = value;
+            _PositionTo = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__PositionTo(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__PositionTo(this, 3, _v_));
     }
 
     @Override
     public int getNumber() {
         if (!isManaged())
             return _number;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _number;
-        var log = (Log__number)txn.getLog(objectId() + 4);
+        var log = (Log__number)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _number;
     }
 
-    public void setNumber(int value) {
+    public void setNumber(int _v_) {
         if (!isManaged()) {
-            _number = value;
+            _number = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__number(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__number(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -119,12 +119,12 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         _unknown_ = null;
     }
 
-    public void assign(BMove other) {
-        setBagName(other.getBagName());
-        setPositionFrom(other.getPositionFrom());
-        setPositionTo(other.getPositionTo());
-        setNumber(other.getNumber());
-        _unknown_ = other._unknown_;
+    public void assign(BMove _o_) {
+        setBagName(_o_.getBagName());
+        setPositionFrom(_o_.getPositionFrom());
+        setPositionTo(_o_.getPositionTo());
+        setNumber(_o_.getNumber());
+        _unknown_ = _o_._unknown_;
     }
 
     public BMove copyIfManaged() {
@@ -133,15 +133,15 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public BMove copy() {
-        var copy = new BMove();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BMove();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BMove a, BMove b) {
-        BMove save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BMove _a_, BMove _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -150,28 +150,28 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Logs.LogString {
-        public Log__BagName(BMove bean, int varId, String value) { super(bean, varId, value); }
+        public Log__BagName(BMove _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BMove)getBelong())._BagName = value; }
     }
 
     private static final class Log__PositionFrom extends Zeze.Transaction.Logs.LogInt {
-        public Log__PositionFrom(BMove bean, int varId, int value) { super(bean, varId, value); }
+        public Log__PositionFrom(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BMove)getBelong())._PositionFrom = value; }
     }
 
     private static final class Log__PositionTo extends Zeze.Transaction.Logs.LogInt {
-        public Log__PositionTo(BMove bean, int varId, int value) { super(bean, varId, value); }
+        public Log__PositionTo(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BMove)getBelong())._PositionTo = value; }
     }
 
     private static final class Log__number extends Zeze.Transaction.Logs.LogInt {
-        public Log__number(BMove bean, int varId, int value) { super(bean, varId, value); }
+        public Log__number(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BMove)getBelong())._number = value; }
@@ -179,21 +179,21 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BMove: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PositionFrom=").append(getPositionFrom()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PositionTo=").append(getPositionTo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("number=").append(getNumber()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BMove: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("PositionFrom=").append(getPositionFrom()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("PositionTo=").append(getPositionTo()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("number=").append(getNumber()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -204,8 +204,8 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -313,48 +313,48 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _BagName = vlog.stringValue(); break;
-                case 2: _PositionFrom = vlog.intValue(); break;
-                case 3: _PositionTo = vlog.intValue(); break;
-                case 4: _number = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _BagName = _v_.stringValue(); break;
+                case 2: _PositionFrom = _v_.intValue(); break;
+                case 3: _PositionTo = _v_.intValue(); break;
+                case 4: _number = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setBagName(rs.getString(_parents_name_ + "BagName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setBagName(_r_.getString(_pn_ + "BagName"));
         if (getBagName() == null)
             setBagName("");
-        setPositionFrom(rs.getInt(_parents_name_ + "PositionFrom"));
-        setPositionTo(rs.getInt(_parents_name_ + "PositionTo"));
-        setNumber(rs.getInt(_parents_name_ + "number"));
+        setPositionFrom(_r_.getInt(_pn_ + "PositionFrom"));
+        setPositionTo(_r_.getInt(_pn_ + "PositionTo"));
+        setNumber(_r_.getInt(_pn_ + "number"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "BagName", getBagName());
-        st.appendInt(_parents_name_ + "PositionFrom", getPositionFrom());
-        st.appendInt(_parents_name_ + "PositionTo", getPositionTo());
-        st.appendInt(_parents_name_ + "number", getNumber());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "BagName", getBagName());
+        _s_.appendInt(_pn_ + "PositionFrom", getPositionFrom());
+        _s_.appendInt(_pn_ + "PositionTo", getPositionTo());
+        _s_.appendInt(_pn_ + "number", getNumber());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BagName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PositionFrom", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PositionTo", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "number", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BagName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PositionFrom", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PositionTo", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "number", "int", "", ""));
+        return _v_;
     }
 }

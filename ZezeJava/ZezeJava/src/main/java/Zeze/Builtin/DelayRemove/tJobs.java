@@ -12,8 +12,8 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
         super(-582299608, "Zeze_Builtin_DelayRemove_tJobs");
     }
 
-    public tJobs(String suffix) {
-        super(-582299608, "Zeze_Builtin_DelayRemove_tJobs", suffix);
+    public tJobs(String _s_) {
+        super(-582299608, "Zeze_Builtin_DelayRemove_tJobs", _s_);
     }
 
     @Override
@@ -43,15 +43,15 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
     }
 
     @Override
-    public Integer decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public Integer decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         int _v_;
-        _v_ = rs.getInt("__key");
+        _v_ = _s_.getInt("__key");
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Integer _v_) {
-        st.appendInt("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Integer _v_) {
+        _s_.appendInt("__key", _v_);
     }
 
     @Override
@@ -60,7 +60,7 @@ public final class tJobs extends TableX<Integer, Zeze.Builtin.DelayRemove.BJobs>
     }
 
     @Override
-    public Zeze.Builtin.DelayRemove.BJobsReadOnly getReadOnly(Integer key) {
-        return get(key);
+    public Zeze.Builtin.DelayRemove.BJobsReadOnly getReadOnly(Integer _k_) {
+        return get(_k_);
     }
 }

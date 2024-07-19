@@ -17,84 +17,84 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     public Zeze.Net.Binary getExclusiveStartKey() {
         if (!isManaged())
             return _ExclusiveStartKey;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ExclusiveStartKey;
-        var log = (Log__ExclusiveStartKey)txn.getLog(objectId() + 1);
+        var log = (Log__ExclusiveStartKey)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ExclusiveStartKey;
     }
 
-    public void setExclusiveStartKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setExclusiveStartKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ExclusiveStartKey = value;
+            _ExclusiveStartKey = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ExclusiveStartKey(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ExclusiveStartKey(this, 1, _v_));
     }
 
     @Override
     public int getProposeLimit() {
         if (!isManaged())
             return _ProposeLimit;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ProposeLimit;
-        var log = (Log__ProposeLimit)txn.getLog(objectId() + 2);
+        var log = (Log__ProposeLimit)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ProposeLimit;
     }
 
-    public void setProposeLimit(int value) {
+    public void setProposeLimit(int _v_) {
         if (!isManaged()) {
-            _ProposeLimit = value;
+            _ProposeLimit = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ProposeLimit(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ProposeLimit(this, 2, _v_));
     }
 
     @Override
     public boolean isDesc() {
         if (!isManaged())
             return _Desc;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Desc;
-        var log = (Log__Desc)txn.getLog(objectId() + 3);
+        var log = (Log__Desc)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Desc;
     }
 
-    public void setDesc(boolean value) {
+    public void setDesc(boolean _v_) {
         if (!isManaged()) {
-            _Desc = value;
+            _Desc = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Desc(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Desc(this, 3, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getPrefix() {
         if (!isManaged())
             return _Prefix;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Prefix;
-        var log = (Log__Prefix)txn.getLog(objectId() + 4);
+        var log = (Log__Prefix)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Prefix;
     }
 
-    public void setPrefix(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setPrefix(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Prefix = value;
+            _Prefix = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Prefix(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Prefix(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -126,30 +126,30 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
 
     @Override
     public Zeze.Builtin.Dbh2.BWalk.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BWalk.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.BWalk.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BWalk.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.BWalk.Data)_o_);
     }
 
-    public void assign(BWalk.Data other) {
-        setExclusiveStartKey(other._ExclusiveStartKey);
-        setProposeLimit(other._ProposeLimit);
-        setDesc(other._Desc);
-        setPrefix(other._Prefix);
+    public void assign(BWalk.Data _o_) {
+        setExclusiveStartKey(_o_._ExclusiveStartKey);
+        setProposeLimit(_o_._ProposeLimit);
+        setDesc(_o_._Desc);
+        setPrefix(_o_._Prefix);
         _unknown_ = null;
     }
 
-    public void assign(BWalk other) {
-        setExclusiveStartKey(other.getExclusiveStartKey());
-        setProposeLimit(other.getProposeLimit());
-        setDesc(other.isDesc());
-        setPrefix(other.getPrefix());
-        _unknown_ = other._unknown_;
+    public void assign(BWalk _o_) {
+        setExclusiveStartKey(_o_.getExclusiveStartKey());
+        setProposeLimit(_o_.getProposeLimit());
+        setDesc(_o_.isDesc());
+        setPrefix(_o_.getPrefix());
+        _unknown_ = _o_._unknown_;
     }
 
     public BWalk copyIfManaged() {
@@ -158,15 +158,15 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
 
     @Override
     public BWalk copy() {
-        var copy = new BWalk();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BWalk();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BWalk a, BWalk b) {
-        BWalk save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BWalk _a_, BWalk _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -175,28 +175,28 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     private static final class Log__ExclusiveStartKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__ExclusiveStartKey(BWalk bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__ExclusiveStartKey(BWalk _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalk)getBelong())._ExclusiveStartKey = value; }
     }
 
     private static final class Log__ProposeLimit extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProposeLimit(BWalk bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ProposeLimit(BWalk _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalk)getBelong())._ProposeLimit = value; }
     }
 
     private static final class Log__Desc extends Zeze.Transaction.Logs.LogBool {
-        public Log__Desc(BWalk bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Desc(BWalk _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalk)getBelong())._Desc = value; }
     }
 
     private static final class Log__Prefix extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Prefix(BWalk bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Prefix(BWalk _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalk)getBelong())._Prefix = value; }
@@ -204,21 +204,21 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProposeLimit=").append(getProposeLimit()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(isDesc()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Prefix=").append(getPrefix()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeLimit=").append(getProposeLimit()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Desc=").append(isDesc()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Prefix=").append(getPrefix()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -229,8 +229,8 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -334,47 +334,47 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ExclusiveStartKey = vlog.binaryValue(); break;
-                case 2: _ProposeLimit = vlog.intValue(); break;
-                case 3: _Desc = vlog.booleanValue(); break;
-                case 4: _Prefix = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ExclusiveStartKey = _v_.binaryValue(); break;
+                case 2: _ProposeLimit = _v_.intValue(); break;
+                case 3: _Desc = _v_.booleanValue(); break;
+                case 4: _Prefix = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setExclusiveStartKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "ExclusiveStartKey")));
-        setProposeLimit(rs.getInt(_parents_name_ + "ProposeLimit"));
-        setDesc(rs.getBoolean(_parents_name_ + "Desc"));
-        setPrefix(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Prefix")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setExclusiveStartKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "ExclusiveStartKey")));
+        setProposeLimit(_r_.getInt(_pn_ + "ProposeLimit"));
+        setDesc(_r_.getBoolean(_pn_ + "Desc"));
+        setPrefix(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Prefix")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "ExclusiveStartKey", getExclusiveStartKey());
-        st.appendInt(_parents_name_ + "ProposeLimit", getProposeLimit());
-        st.appendBoolean(_parents_name_ + "Desc", isDesc());
-        st.appendBinary(_parents_name_ + "Prefix", getPrefix());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "ExclusiveStartKey", getExclusiveStartKey());
+        _s_.appendInt(_pn_ + "ProposeLimit", getProposeLimit());
+        _s_.appendBoolean(_pn_ + "Desc", isDesc());
+        _s_.appendBinary(_pn_ + "Prefix", getPrefix());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ExclusiveStartKey", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeLimit", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Desc", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Prefix", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ExclusiveStartKey", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeLimit", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Desc", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Prefix", "binary", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -390,36 +390,36 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ExclusiveStartKey;
     }
 
-    public void setExclusiveStartKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setExclusiveStartKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ExclusiveStartKey = value;
+        _ExclusiveStartKey = _v_;
     }
 
     public int getProposeLimit() {
         return _ProposeLimit;
     }
 
-    public void setProposeLimit(int value) {
-        _ProposeLimit = value;
+    public void setProposeLimit(int _v_) {
+        _ProposeLimit = _v_;
     }
 
     public boolean isDesc() {
         return _Desc;
     }
 
-    public void setDesc(boolean value) {
-        _Desc = value;
+    public void setDesc(boolean _v_) {
+        _Desc = _v_;
     }
 
     public Zeze.Net.Binary getPrefix() {
         return _Prefix;
     }
 
-    public void setPrefix(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setPrefix(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Prefix = value;
+        _Prefix = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -450,41 +450,41 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.BWalk toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BWalk();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.BWalk();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BWalk)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BWalk)_o_);
     }
 
-    public void assign(BWalk other) {
-        _ExclusiveStartKey = other.getExclusiveStartKey();
-        _ProposeLimit = other.getProposeLimit();
-        _Desc = other.isDesc();
-        _Prefix = other.getPrefix();
+    public void assign(BWalk _o_) {
+        _ExclusiveStartKey = _o_.getExclusiveStartKey();
+        _ProposeLimit = _o_.getProposeLimit();
+        _Desc = _o_.isDesc();
+        _Prefix = _o_.getPrefix();
     }
 
-    public void assign(BWalk.Data other) {
-        _ExclusiveStartKey = other._ExclusiveStartKey;
-        _ProposeLimit = other._ProposeLimit;
-        _Desc = other._Desc;
-        _Prefix = other._Prefix;
+    public void assign(BWalk.Data _o_) {
+        _ExclusiveStartKey = _o_._ExclusiveStartKey;
+        _ProposeLimit = _o_._ProposeLimit;
+        _Desc = _o_._Desc;
+        _Prefix = _o_._Prefix;
     }
 
     @Override
     public BWalk.Data copy() {
-        var copy = new BWalk.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BWalk.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BWalk.Data a, BWalk.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BWalk.Data _a_, BWalk.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -499,21 +499,21 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProposeLimit=").append(_ProposeLimit).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Desc=").append(_Desc).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Prefix=").append(_Prefix).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeLimit=").append(_ProposeLimit).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Desc=").append(_Desc).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Prefix=").append(_Prefix).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -522,8 +522,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

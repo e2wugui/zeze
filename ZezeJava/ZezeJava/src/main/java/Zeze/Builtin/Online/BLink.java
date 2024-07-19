@@ -40,20 +40,20 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BLink: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LinkSid=").append(_LinkSid).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(_State).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BLink: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LinkSid=").append(_LinkSid).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(_State).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -64,8 +64,8 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -173,21 +173,21 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _LinkName = rs.getString(_parents_name_ + "LinkName");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _LinkName = _r_.getString(_pn_ + "LinkName");
         if (_LinkName == null)
             _LinkName = "";
-        _LinkSid = rs.getLong(_parents_name_ + "LinkSid");
-        _State = rs.getInt(_parents_name_ + "State");
+        _LinkSid = _r_.getLong(_pn_ + "LinkSid");
+        _State = _r_.getInt(_pn_ + "State");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "LinkName", _LinkName);
-        st.appendLong(_parents_name_ + "LinkSid", _LinkSid);
-        st.appendInt(_parents_name_ + "State", _State);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "LinkName", _LinkName);
+        _s_.appendLong(_pn_ + "LinkSid", _LinkSid);
+        _s_.appendInt(_pn_ + "State", _State);
     }
 
     @Override

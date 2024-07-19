@@ -14,20 +14,20 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     public double getLoad() {
         if (!isManaged())
             return _Load;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Load;
-        var log = (Log__Load)txn.getLog(objectId() + 1);
+        var log = (Log__Load)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Load;
     }
 
-    public void setLoad(double value) {
+    public void setLoad(double _v_) {
         if (!isManaged()) {
-            _Load = value;
+            _Load = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Load(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Load(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BLoad.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BLoad.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Master.BLoad.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BLoad.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Master.BLoad.Data)_o_);
     }
 
-    public void assign(BLoad.Data other) {
-        setLoad(other._Load);
+    public void assign(BLoad.Data _o_) {
+        setLoad(_o_._Load);
         _unknown_ = null;
     }
 
-    public void assign(BLoad other) {
-        setLoad(other.getLoad());
-        _unknown_ = other._unknown_;
+    public void assign(BLoad _o_) {
+        setLoad(_o_.getLoad());
+        _unknown_ = _o_._unknown_;
     }
 
     public BLoad copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public BLoad copy() {
-        var copy = new BLoad();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLoad();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLoad a, BLoad b) {
-        BLoad save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLoad _a_, BLoad _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     private static final class Log__Load extends Zeze.Transaction.Logs.LogDouble {
-        public Log__Load(BLoad bean, int varId, double value) { super(bean, varId, value); }
+        public Log__Load(BLoad _b_, int _i_, double _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLoad)getBelong())._Load = value; }
@@ -98,18 +98,18 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BLoad: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Load=").append(getLoad()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BLoad: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Load=").append(getLoad()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -179,35 +179,35 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Load = vlog.doubleValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Load = _v_.doubleValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setLoad(rs.getDouble(_parents_name_ + "Load"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setLoad(_r_.getDouble(_pn_ + "Load"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendDouble(_parents_name_ + "Load", getLoad());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendDouble(_pn_ + "Load", getLoad());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Load", "double", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Load", "double", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -220,8 +220,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Load;
     }
 
-    public void setLoad(double value) {
-        _Load = value;
+    public void setLoad(double _v_) {
+        _Load = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -240,35 +240,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BLoad toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Master.BLoad();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Master.BLoad();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BLoad)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BLoad)_o_);
     }
 
-    public void assign(BLoad other) {
-        _Load = other.getLoad();
+    public void assign(BLoad _o_) {
+        _Load = _o_.getLoad();
     }
 
-    public void assign(BLoad.Data other) {
-        _Load = other._Load;
+    public void assign(BLoad.Data _o_) {
+        _Load = _o_._Load;
     }
 
     @Override
     public BLoad.Data copy() {
-        var copy = new BLoad.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLoad.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLoad.Data a, BLoad.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLoad.Data _a_, BLoad.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -283,18 +283,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BLoad: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Load=").append(_Load).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BLoad: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Load=").append(_Load).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -303,8 +303,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

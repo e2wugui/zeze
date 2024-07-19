@@ -16,42 +16,42 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     public Zeze.Net.Binary getGlobalKey() {
         if (!isManaged())
             return _GlobalKey;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _GlobalKey;
-        var log = (Log__GlobalKey)txn.getLog(objectId() + 1);
+        var log = (Log__GlobalKey)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _GlobalKey;
     }
 
-    public void setGlobalKey(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setGlobalKey(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _GlobalKey = value;
+            _GlobalKey = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__GlobalKey(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__GlobalKey(this, 1, _v_));
     }
 
     @Override
     public int getState() {
         if (!isManaged())
             return _State;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _State;
-        var log = (Log__State)txn.getLog(objectId() + 2);
+        var log = (Log__State)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _State;
     }
 
-    public void setState(int value) {
+    public void setState(int _v_) {
         if (!isManaged()) {
-            _State = value;
+            _State = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__State(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__State(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -74,10 +74,10 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
         _unknown_ = null;
     }
 
-    public void assign(BAcquireParam other) {
-        setGlobalKey(other.getGlobalKey());
-        setState(other.getState());
-        _unknown_ = other._unknown_;
+    public void assign(BAcquireParam _o_) {
+        setGlobalKey(_o_.getGlobalKey());
+        setState(_o_.getState());
+        _unknown_ = _o_._unknown_;
     }
 
     public BAcquireParam copyIfManaged() {
@@ -86,15 +86,15 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
 
     @Override
     public BAcquireParam copy() {
-        var copy = new BAcquireParam();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAcquireParam();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAcquireParam a, BAcquireParam b) {
-        BAcquireParam save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAcquireParam _a_, BAcquireParam _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -103,14 +103,14 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     }
 
     private static final class Log__GlobalKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__GlobalKey(BAcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__GlobalKey(BAcquireParam _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAcquireParam)getBelong())._GlobalKey = value; }
     }
 
     private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
-        public Log__State(BAcquireParam bean, int varId, int value) { super(bean, varId, value); }
+        public Log__State(BAcquireParam _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BAcquireParam)getBelong())._State = value; }
@@ -118,19 +118,19 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey=").append(getGlobalKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("State=").append(getState()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("GlobalKey=").append(getGlobalKey()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(getState()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -141,8 +141,8 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -220,38 +220,38 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _GlobalKey = vlog.binaryValue(); break;
-                case 2: _State = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _GlobalKey = _v_.binaryValue(); break;
+                case 2: _State = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setGlobalKey(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "GlobalKey")));
-        setState(rs.getInt(_parents_name_ + "State"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setGlobalKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "GlobalKey")));
+        setState(_r_.getInt(_pn_ + "State"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBinary(_parents_name_ + "GlobalKey", getGlobalKey());
-        st.appendInt(_parents_name_ + "State", getState());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBinary(_pn_ + "GlobalKey", getGlobalKey());
+        _s_.appendInt(_pn_ + "State", getState());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalKey", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "GlobalKey", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "State", "int", "", ""));
+        return _v_;
     }
 }

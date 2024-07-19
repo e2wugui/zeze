@@ -15,8 +15,8 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         return _From.getValue();
     }
 
-    public void setFrom(Zeze.Builtin.Dbh2.BBucketMeta value) {
-        _From.setValue(value);
+    public void setFrom(Zeze.Builtin.Dbh2.BBucketMeta _v_) {
+        _From.setValue(_v_);
     }
 
     @Override
@@ -28,8 +28,8 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
         return _To.getValue();
     }
 
-    public void setTo(Zeze.Builtin.Dbh2.BBucketMeta value) {
-        _To.setValue(value);
+    public void setTo(Zeze.Builtin.Dbh2.BBucketMeta _v_) {
+        _To.setValue(_v_);
     }
 
     @Override
@@ -54,30 +54,30 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BEndSplit.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BEndSplit.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Master.BEndSplit.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BEndSplit.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Master.BEndSplit.Data)_o_);
     }
 
-    public void assign(BEndSplit.Data other) {
-        Zeze.Builtin.Dbh2.BBucketMeta data_From = new Zeze.Builtin.Dbh2.BBucketMeta();
-        data_From.assign(other._From);
-        _From.setValue(data_From);
-        Zeze.Builtin.Dbh2.BBucketMeta data_To = new Zeze.Builtin.Dbh2.BBucketMeta();
-        data_To.assign(other._To);
-        _To.setValue(data_To);
+    public void assign(BEndSplit.Data _o_) {
+        var _d__From = new Zeze.Builtin.Dbh2.BBucketMeta();
+        _d__From.assign(_o_._From);
+        _From.setValue(_d__From);
+        var _d__To = new Zeze.Builtin.Dbh2.BBucketMeta();
+        _d__To.assign(_o_._To);
+        _To.setValue(_d__To);
         _unknown_ = null;
     }
 
-    public void assign(BEndSplit other) {
-        _From.assign(other._From);
-        _To.assign(other._To);
-        _unknown_ = other._unknown_;
+    public void assign(BEndSplit _o_) {
+        _From.assign(_o_._From);
+        _To.assign(_o_._To);
+        _unknown_ = _o_._unknown_;
     }
 
     public BEndSplit copyIfManaged() {
@@ -86,15 +86,15 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
 
     @Override
     public BEndSplit copy() {
-        var copy = new BEndSplit();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BEndSplit();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BEndSplit a, BEndSplit b) {
-        BEndSplit save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BEndSplit _a_, BEndSplit _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -104,23 +104,23 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BEndSplit: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("From=").append(System.lineSeparator());
-        _From.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("To=").append(System.lineSeparator());
-        _To.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BEndSplit: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("From=").append(System.lineSeparator());
+        _From.buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("To=").append(System.lineSeparator());
+        _To.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -131,8 +131,8 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -208,58 +208,58 @@ public final class BEndSplit extends Zeze.Transaction.Bean implements BEndSplitR
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _From.initRootInfo(root, this);
-        _To.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _From.initRootInfo(_r_, this);
+        _To.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _From.initRootInfoWithRedo(root, this);
-        _To.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _From.initRootInfoWithRedo(_r_, this);
+        _To.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _From.followerApply(vlog); break;
-                case 2: _To.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _From.followerApply(_v_); break;
+                case 2: _To.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("From");
-        _From.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
-        parents.add("To");
-        _To.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("From");
+        _From.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
+        _p_.add("To");
+        _To.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("From");
-        _From.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
-        parents.add("To");
-        _To.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("From");
+        _From.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
+        _p_.add("To");
+        _To.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "From", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "To", "Zeze.Builtin.Dbh2.BBucketMeta", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -273,20 +273,20 @@ public static final class Data extends Zeze.Transaction.Data {
         return _From;
     }
 
-    public void setFrom(Zeze.Builtin.Dbh2.BBucketMeta.Data value) {
-        if (value == null)
+    public void setFrom(Zeze.Builtin.Dbh2.BBucketMeta.Data _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _From = value;
+        _From = _v_;
     }
 
     public Zeze.Builtin.Dbh2.BBucketMeta.Data getTo() {
         return _To;
     }
 
-    public void setTo(Zeze.Builtin.Dbh2.BBucketMeta.Data value) {
-        if (value == null)
+    public void setTo(Zeze.Builtin.Dbh2.BBucketMeta.Data _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _To = value;
+        _To = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -313,37 +313,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BEndSplit toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Master.BEndSplit();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Master.BEndSplit();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BEndSplit)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BEndSplit)_o_);
     }
 
-    public void assign(BEndSplit other) {
-        _From.assign(other._From.getValue());
-        _To.assign(other._To.getValue());
+    public void assign(BEndSplit _o_) {
+        _From.assign(_o_._From.getValue());
+        _To.assign(_o_._To.getValue());
     }
 
-    public void assign(BEndSplit.Data other) {
-        _From.assign(other._From);
-        _To.assign(other._To);
+    public void assign(BEndSplit.Data _o_) {
+        _From.assign(_o_._From);
+        _To.assign(_o_._To);
     }
 
     @Override
     public BEndSplit.Data copy() {
-        var copy = new BEndSplit.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BEndSplit.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BEndSplit.Data a, BEndSplit.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BEndSplit.Data _a_, BEndSplit.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -358,23 +358,23 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BEndSplit: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("From=").append(System.lineSeparator());
-        _From.buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("To=").append(System.lineSeparator());
-        _To.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BEndSplit: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("From=").append(System.lineSeparator());
+        _From.buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("To=").append(System.lineSeparator());
+        _To.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -383,8 +383,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -13,8 +13,8 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
         super(-72689413, "Zeze_Builtin_Collections_LinkedMap_tLinkedMaps");
     }
 
-    public tLinkedMaps(String suffix) {
-        super(-72689413, "Zeze_Builtin_Collections_LinkedMap_tLinkedMaps", suffix);
+    public tLinkedMaps(String _s_) {
+        super(-72689413, "Zeze_Builtin_Collections_LinkedMap_tLinkedMaps", _s_);
     }
 
     @Override
@@ -47,17 +47,17 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class tLinkedMaps extends TableX<String, Zeze.Builtin.Collections.L
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

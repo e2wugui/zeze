@@ -18,104 +18,104 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     public String getQueueName() {
         if (!isManaged())
             return _QueueName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _QueueName;
-        var log = (Log__QueueName)txn.getLog(objectId() + 1);
+        var log = (Log__QueueName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _QueueName;
     }
 
-    public void setQueueName(String value) {
-        if (value == null)
+    public void setQueueName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _QueueName = value;
+            _QueueName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__QueueName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__QueueName(this, 1, _v_));
     }
 
     @Override
     public int getTaskType() {
         if (!isManaged())
             return _TaskType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TaskType;
-        var log = (Log__TaskType)txn.getLog(objectId() + 2);
+        var log = (Log__TaskType)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TaskType;
     }
 
-    public void setTaskType(int value) {
+    public void setTaskType(int _v_) {
         if (!isManaged()) {
-            _TaskType = value;
+            _TaskType = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskType(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TaskType(this, 2, _v_));
     }
 
     @Override
     public long getTaskId() {
         if (!isManaged())
             return _TaskId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TaskId;
-        var log = (Log__TaskId)txn.getLog(objectId() + 3);
+        var log = (Log__TaskId)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _TaskId;
     }
 
-    public void setTaskId(long value) {
+    public void setTaskId(long _v_) {
         if (!isManaged()) {
-            _TaskId = value;
+            _TaskId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskId(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TaskId(this, 3, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getTaskParam() {
         if (!isManaged())
             return _TaskParam;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TaskParam;
-        var log = (Log__TaskParam)txn.getLog(objectId() + 4);
+        var log = (Log__TaskParam)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _TaskParam;
     }
 
-    public void setTaskParam(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setTaskParam(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _TaskParam = value;
+            _TaskParam = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskParam(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TaskParam(this, 4, _v_));
     }
 
     @Override
     public long getPrevTaskId() {
         if (!isManaged())
             return _PrevTaskId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _PrevTaskId;
-        var log = (Log__PrevTaskId)txn.getLog(objectId() + 5);
+        var log = (Log__PrevTaskId)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _PrevTaskId;
     }
 
-    public void setPrevTaskId(long value) {
+    public void setPrevTaskId(long _v_) {
         if (!isManaged()) {
-            _PrevTaskId = value;
+            _PrevTaskId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__PrevTaskId(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__PrevTaskId(this, 5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -147,13 +147,13 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         _unknown_ = null;
     }
 
-    public void assign(BQueueTask other) {
-        setQueueName(other.getQueueName());
-        setTaskType(other.getTaskType());
-        setTaskId(other.getTaskId());
-        setTaskParam(other.getTaskParam());
-        setPrevTaskId(other.getPrevTaskId());
-        _unknown_ = other._unknown_;
+    public void assign(BQueueTask _o_) {
+        setQueueName(_o_.getQueueName());
+        setTaskType(_o_.getTaskType());
+        setTaskId(_o_.getTaskId());
+        setTaskParam(_o_.getTaskParam());
+        setPrevTaskId(_o_.getPrevTaskId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BQueueTask copyIfManaged() {
@@ -162,15 +162,15 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
 
     @Override
     public BQueueTask copy() {
-        var copy = new BQueueTask();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BQueueTask();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BQueueTask a, BQueueTask b) {
-        BQueueTask save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BQueueTask _a_, BQueueTask _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -179,35 +179,35 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     private static final class Log__QueueName extends Zeze.Transaction.Logs.LogString {
-        public Log__QueueName(BQueueTask bean, int varId, String value) { super(bean, varId, value); }
+        public Log__QueueName(BQueueTask _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BQueueTask)getBelong())._QueueName = value; }
     }
 
     private static final class Log__TaskType extends Zeze.Transaction.Logs.LogInt {
-        public Log__TaskType(BQueueTask bean, int varId, int value) { super(bean, varId, value); }
+        public Log__TaskType(BQueueTask _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BQueueTask)getBelong())._TaskType = value; }
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskId(BQueueTask bean, int varId, long value) { super(bean, varId, value); }
+        public Log__TaskId(BQueueTask _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BQueueTask)getBelong())._TaskId = value; }
     }
 
     private static final class Log__TaskParam extends Zeze.Transaction.Logs.LogBinary {
-        public Log__TaskParam(BQueueTask bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__TaskParam(BQueueTask _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BQueueTask)getBelong())._TaskParam = value; }
     }
 
     private static final class Log__PrevTaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__PrevTaskId(BQueueTask bean, int varId, long value) { super(bean, varId, value); }
+        public Log__PrevTaskId(BQueueTask _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BQueueTask)getBelong())._PrevTaskId = value; }
@@ -215,22 +215,22 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.RedoQueue.BQueueTask: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("QueueName=").append(getQueueName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskType=").append(getTaskType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskParam=").append(getTaskParam()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PrevTaskId=").append(getPrevTaskId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.RedoQueue.BQueueTask: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueueName=").append(getQueueName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskType=").append(getTaskType()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskParam=").append(getTaskParam()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("PrevTaskId=").append(getPrevTaskId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -241,8 +241,8 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -363,52 +363,52 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _QueueName = vlog.stringValue(); break;
-                case 2: _TaskType = vlog.intValue(); break;
-                case 3: _TaskId = vlog.longValue(); break;
-                case 4: _TaskParam = vlog.binaryValue(); break;
-                case 5: _PrevTaskId = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _QueueName = _v_.stringValue(); break;
+                case 2: _TaskType = _v_.intValue(); break;
+                case 3: _TaskId = _v_.longValue(); break;
+                case 4: _TaskParam = _v_.binaryValue(); break;
+                case 5: _PrevTaskId = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setQueueName(rs.getString(_parents_name_ + "QueueName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setQueueName(_r_.getString(_pn_ + "QueueName"));
         if (getQueueName() == null)
             setQueueName("");
-        setTaskType(rs.getInt(_parents_name_ + "TaskType"));
-        setTaskId(rs.getLong(_parents_name_ + "TaskId"));
-        setTaskParam(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "TaskParam")));
-        setPrevTaskId(rs.getLong(_parents_name_ + "PrevTaskId"));
+        setTaskType(_r_.getInt(_pn_ + "TaskType"));
+        setTaskId(_r_.getLong(_pn_ + "TaskId"));
+        setTaskParam(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "TaskParam")));
+        setPrevTaskId(_r_.getLong(_pn_ + "PrevTaskId"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "QueueName", getQueueName());
-        st.appendInt(_parents_name_ + "TaskType", getTaskType());
-        st.appendLong(_parents_name_ + "TaskId", getTaskId());
-        st.appendBinary(_parents_name_ + "TaskParam", getTaskParam());
-        st.appendLong(_parents_name_ + "PrevTaskId", getPrevTaskId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "QueueName", getQueueName());
+        _s_.appendInt(_pn_ + "TaskType", getTaskType());
+        _s_.appendLong(_pn_ + "TaskId", getTaskId());
+        _s_.appendBinary(_pn_ + "TaskParam", getTaskParam());
+        _s_.appendLong(_pn_ + "PrevTaskId", getPrevTaskId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "QueueName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TaskType", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TaskId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "TaskParam", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "PrevTaskId", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "QueueName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "TaskType", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TaskId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "TaskParam", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "PrevTaskId", "long", "", ""));
+        return _v_;
     }
 }

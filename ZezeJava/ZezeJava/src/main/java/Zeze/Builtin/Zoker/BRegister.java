@@ -14,22 +14,22 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     public String getZokerName() {
         if (!isManaged())
             return _ZokerName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ZokerName;
-        var log = (Log__ZokerName)txn.getLog(objectId() + 1);
+        var log = (Log__ZokerName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ZokerName;
     }
 
-    public void setZokerName(String value) {
-        if (value == null)
+    public void setZokerName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ZokerName = value;
+            _ZokerName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ZokerName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ZokerName(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -52,24 +52,24 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     @Override
     public Zeze.Builtin.Zoker.BRegister.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BRegister.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BRegister.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BRegister.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BRegister.Data)_o_);
     }
 
-    public void assign(BRegister.Data other) {
-        setZokerName(other._ZokerName);
+    public void assign(BRegister.Data _o_) {
+        setZokerName(_o_._ZokerName);
         _unknown_ = null;
     }
 
-    public void assign(BRegister other) {
-        setZokerName(other.getZokerName());
-        _unknown_ = other._unknown_;
+    public void assign(BRegister _o_) {
+        setZokerName(_o_.getZokerName());
+        _unknown_ = _o_._unknown_;
     }
 
     public BRegister copyIfManaged() {
@@ -78,15 +78,15 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     @Override
     public BRegister copy() {
-        var copy = new BRegister();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BRegister();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BRegister a, BRegister b) {
-        BRegister save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BRegister _a_, BRegister _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     private static final class Log__ZokerName extends Zeze.Transaction.Logs.LogString {
-        public Log__ZokerName(BRegister bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ZokerName(BRegister _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BRegister)getBelong())._ZokerName = value; }
@@ -103,18 +103,18 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BRegister: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ZokerName=").append(getZokerName()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BRegister: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ZokerName=").append(getZokerName()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -125,8 +125,8 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -184,37 +184,37 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ZokerName = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ZokerName = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setZokerName(rs.getString(_parents_name_ + "ZokerName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setZokerName(_r_.getString(_pn_ + "ZokerName"));
         if (getZokerName() == null)
             setZokerName("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ZokerName", getZokerName());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ZokerName", getZokerName());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ZokerName", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ZokerName", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,10 +227,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ZokerName;
     }
 
-    public void setZokerName(String value) {
-        if (value == null)
+    public void setZokerName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ZokerName = value;
+        _ZokerName = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -252,35 +252,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BRegister toBean() {
-        var bean = new Zeze.Builtin.Zoker.BRegister();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BRegister();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BRegister)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BRegister)_o_);
     }
 
-    public void assign(BRegister other) {
-        _ZokerName = other.getZokerName();
+    public void assign(BRegister _o_) {
+        _ZokerName = _o_.getZokerName();
     }
 
-    public void assign(BRegister.Data other) {
-        _ZokerName = other._ZokerName;
+    public void assign(BRegister.Data _o_) {
+        _ZokerName = _o_._ZokerName;
     }
 
     @Override
     public BRegister.Data copy() {
-        var copy = new BRegister.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BRegister.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BRegister.Data a, BRegister.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BRegister.Data _a_, BRegister.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -295,18 +295,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BRegister: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ZokerName=").append(_ZokerName).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BRegister: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ZokerName=").append(_ZokerName).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -315,8 +315,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

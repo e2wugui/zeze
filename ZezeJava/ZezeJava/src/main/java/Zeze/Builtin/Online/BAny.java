@@ -14,12 +14,12 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         return new Zeze.Transaction.DynamicBean(1, Zeze.Arch.Online::getSpecialTypeIdFromBean, Zeze.Arch.Online::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
-        return Zeze.Arch.Online.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean _b_) {
+        return Zeze.Arch.Online.getSpecialTypeIdFromBean(_b_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
-        return Zeze.Arch.Online.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long _t_) {
+        return Zeze.Arch.Online.createBeanFromSpecialTypeId(_t_);
     }
 
     private transient Object __zeze_map_key__;
@@ -30,8 +30,8 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     public Zeze.Transaction.DynamicBean getAny() {
@@ -54,9 +54,9 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
         _unknown_ = null;
     }
 
-    public void assign(BAny other) {
-        _Any.assign(other._Any);
-        _unknown_ = other._unknown_;
+    public void assign(BAny _o_) {
+        _Any.assign(_o_._Any);
+        _unknown_ = _o_._unknown_;
     }
 
     public BAny copyIfManaged() {
@@ -65,15 +65,15 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
 
     @Override
     public BAny copy() {
-        var copy = new BAny();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BAny();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BAny a, BAny b) {
-        BAny save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BAny _a_, BAny _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -83,20 +83,20 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BAny: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Any=").append(System.lineSeparator());
-        _Any.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BAny: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Any=").append(System.lineSeparator());
+        _Any.getBean().buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -107,8 +107,8 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -165,45 +165,45 @@ public final class BAny extends Zeze.Transaction.Bean implements BAnyReadOnly {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Any.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Any.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Any.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Any.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Any.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Any.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Any, rs.getString(_parents_name_ + "Any"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Any, _r_.getString(_pn_ + "Any"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Any", Zeze.Serialize.Helper.encodeJson(_Any));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Any", Zeze.Serialize.Helper.encodeJson(_Any));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Any", "dynamic", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Any", "dynamic", "", ""));
+        return _v_;
     }
 }

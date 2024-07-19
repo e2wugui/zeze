@@ -15,40 +15,40 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReliableNotifyConfirmIndex;
-        var log = (Log__ReliableNotifyConfirmIndex)txn.getLog(objectId() + 1);
+        var log = (Log__ReliableNotifyConfirmIndex)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ReliableNotifyConfirmIndex;
     }
 
-    public void setReliableNotifyConfirmIndex(long value) {
+    public void setReliableNotifyConfirmIndex(long _v_) {
         if (!isManaged()) {
-            _ReliableNotifyConfirmIndex = value;
+            _ReliableNotifyConfirmIndex = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReliableNotifyConfirmIndex(this, 1, _v_));
     }
 
     @Override
     public boolean isSync() {
         if (!isManaged())
             return _Sync;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Sync;
-        var log = (Log__Sync)txn.getLog(objectId() + 2);
+        var log = (Log__Sync)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Sync;
     }
 
-    public void setSync(boolean value) {
+    public void setSync(boolean _v_) {
         if (!isManaged()) {
-            _Sync = value;
+            _Sync = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Sync(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Sync(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -68,10 +68,10 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         _unknown_ = null;
     }
 
-    public void assign(BReliableNotifyConfirm other) {
-        setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
-        setSync(other.isSync());
-        _unknown_ = other._unknown_;
+    public void assign(BReliableNotifyConfirm _o_) {
+        setReliableNotifyConfirmIndex(_o_.getReliableNotifyConfirmIndex());
+        setSync(_o_.isSync());
+        _unknown_ = _o_._unknown_;
     }
 
     public BReliableNotifyConfirm copyIfManaged() {
@@ -80,15 +80,15 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
 
     @Override
     public BReliableNotifyConfirm copy() {
-        var copy = new BReliableNotifyConfirm();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BReliableNotifyConfirm();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BReliableNotifyConfirm a, BReliableNotifyConfirm b) {
-        BReliableNotifyConfirm save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BReliableNotifyConfirm _a_, BReliableNotifyConfirm _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -97,14 +97,14 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReliableNotifyConfirm)getBelong())._ReliableNotifyConfirmIndex = value; }
     }
 
     private static final class Log__Sync extends Zeze.Transaction.Logs.LogBool {
-        public Log__Sync(BReliableNotifyConfirm bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Sync(BReliableNotifyConfirm _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReliableNotifyConfirm)getBelong())._Sync = value; }
@@ -112,19 +112,19 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BReliableNotifyConfirm: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Sync=").append(isSync()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Online.BReliableNotifyConfirm: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Sync=").append(isSync()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -135,8 +135,8 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -214,38 +214,38 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
-                case 2: _Sync = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ReliableNotifyConfirmIndex = _v_.longValue(); break;
+                case 2: _Sync = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
-        setSync(rs.getBoolean(_parents_name_ + "Sync"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setReliableNotifyConfirmIndex(_r_.getLong(_pn_ + "ReliableNotifyConfirmIndex"));
+        setSync(_r_.getBoolean(_pn_ + "Sync"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
-        st.appendBoolean(_parents_name_ + "Sync", isSync());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+        _s_.appendBoolean(_pn_ + "Sync", isSync());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ReliableNotifyConfirmIndex", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Sync", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ReliableNotifyConfirmIndex", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Sync", "bool", "", ""));
+        return _v_;
     }
 }

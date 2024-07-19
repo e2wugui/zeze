@@ -19,42 +19,42 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
     public int getLocalId() {
         if (!isManaged())
             return _LocalId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _LocalId;
-        var log = (Log__LocalId)txn.getLog(objectId() + 1);
+        var log = (Log__LocalId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _LocalId;
     }
 
-    public void setLocalId(int value) {
+    public void setLocalId(int _v_) {
         if (!isManaged()) {
-            _LocalId = value;
+            _LocalId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LocalId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__LocalId(this, 1, _v_));
     }
 
     @Override
     public String getGlobal() {
         if (!isManaged())
             return _Global;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Global;
-        var log = (Log__Global)txn.getLog(objectId() + 2);
+        var log = (Log__Global)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Global;
     }
 
-    public void setGlobal(String value) {
-        if (value == null)
+    public void setGlobal(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Global = value;
+            _Global = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Global(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Global(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -79,26 +79,26 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BClearInUse.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.Master.BClearInUse.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.Master.BClearInUse.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.Master.BClearInUse.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.Master.BClearInUse.Data)_o_);
     }
 
-    public void assign(BClearInUse.Data other) {
-        setLocalId(other._LocalId);
-        setGlobal(other._Global);
+    public void assign(BClearInUse.Data _o_) {
+        setLocalId(_o_._LocalId);
+        setGlobal(_o_._Global);
         _unknown_ = null;
     }
 
-    public void assign(BClearInUse other) {
-        setLocalId(other.getLocalId());
-        setGlobal(other.getGlobal());
-        _unknown_ = other._unknown_;
+    public void assign(BClearInUse _o_) {
+        setLocalId(_o_.getLocalId());
+        setGlobal(_o_.getGlobal());
+        _unknown_ = _o_._unknown_;
     }
 
     public BClearInUse copyIfManaged() {
@@ -107,15 +107,15 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
 
     @Override
     public BClearInUse copy() {
-        var copy = new BClearInUse();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BClearInUse();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BClearInUse a, BClearInUse b) {
-        BClearInUse save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BClearInUse _a_, BClearInUse _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -124,14 +124,14 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
     }
 
     private static final class Log__LocalId extends Zeze.Transaction.Logs.LogInt {
-        public Log__LocalId(BClearInUse bean, int varId, int value) { super(bean, varId, value); }
+        public Log__LocalId(BClearInUse _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BClearInUse)getBelong())._LocalId = value; }
     }
 
     private static final class Log__Global extends Zeze.Transaction.Logs.LogString {
-        public Log__Global(BClearInUse bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Global(BClearInUse _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BClearInUse)getBelong())._Global = value; }
@@ -139,19 +139,19 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BClearInUse: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LocalId=").append(getLocalId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Global=").append(getGlobal()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BClearInUse: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LocalId=").append(getLocalId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Global=").append(getGlobal()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -162,8 +162,8 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -241,41 +241,41 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _LocalId = vlog.intValue(); break;
-                case 2: _Global = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _LocalId = _v_.intValue(); break;
+                case 2: _Global = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setLocalId(rs.getInt(_parents_name_ + "LocalId"));
-        setGlobal(rs.getString(_parents_name_ + "Global"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setLocalId(_r_.getInt(_pn_ + "LocalId"));
+        setGlobal(_r_.getString(_pn_ + "Global"));
         if (getGlobal() == null)
             setGlobal("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "LocalId", getLocalId());
-        st.appendString(_parents_name_ + "Global", getGlobal());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "LocalId", getLocalId());
+        _s_.appendString(_pn_ + "Global", getGlobal());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LocalId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Global", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "LocalId", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Global", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -293,18 +293,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _LocalId;
     }
 
-    public void setLocalId(int value) {
-        _LocalId = value;
+    public void setLocalId(int _v_) {
+        _LocalId = _v_;
     }
 
     public String getGlobal() {
         return _Global;
     }
 
-    public void setGlobal(String value) {
-        if (value == null)
+    public void setGlobal(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Global = value;
+        _Global = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -328,37 +328,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.Master.BClearInUse toBean() {
-        var bean = new Zeze.Builtin.Dbh2.Master.BClearInUse();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.Master.BClearInUse();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BClearInUse)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BClearInUse)_o_);
     }
 
-    public void assign(BClearInUse other) {
-        _LocalId = other.getLocalId();
-        _Global = other.getGlobal();
+    public void assign(BClearInUse _o_) {
+        _LocalId = _o_.getLocalId();
+        _Global = _o_.getGlobal();
     }
 
-    public void assign(BClearInUse.Data other) {
-        _LocalId = other._LocalId;
-        _Global = other._Global;
+    public void assign(BClearInUse.Data _o_) {
+        _LocalId = _o_._LocalId;
+        _Global = _o_._Global;
     }
 
     @Override
     public BClearInUse.Data copy() {
-        var copy = new BClearInUse.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BClearInUse.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BClearInUse.Data a, BClearInUse.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BClearInUse.Data _a_, BClearInUse.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -373,19 +373,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.Master.BClearInUse: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("LocalId=").append(_LocalId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Global=").append(_Global).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BClearInUse: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LocalId=").append(_LocalId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Global=").append(_Global).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -394,8 +394,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

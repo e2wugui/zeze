@@ -25,222 +25,222 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     public long getDelay() {
         if (!isManaged())
             return _Delay;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Delay;
-        var log = (Log__Delay)txn.getLog(objectId() + 1);
+        var log = (Log__Delay)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Delay;
     }
 
-    public void setDelay(long value) {
+    public void setDelay(long _v_) {
         if (!isManaged()) {
-            _Delay = value;
+            _Delay = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Delay(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Delay(this, 1, _v_));
     }
 
     @Override
     public long getPeriod() {
         if (!isManaged())
             return _Period;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Period;
-        var log = (Log__Period)txn.getLog(objectId() + 2);
+        var log = (Log__Period)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Period;
     }
 
-    public void setPeriod(long value) {
+    public void setPeriod(long _v_) {
         if (!isManaged()) {
-            _Period = value;
+            _Period = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Period(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Period(this, 2, _v_));
     }
 
     @Override
     public long getRemainTimes() {
         if (!isManaged())
             return _RemainTimes;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _RemainTimes;
-        var log = (Log__RemainTimes)txn.getLog(objectId() + 3);
+        var log = (Log__RemainTimes)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _RemainTimes;
     }
 
-    public void setRemainTimes(long value) {
+    public void setRemainTimes(long _v_) {
         if (!isManaged()) {
-            _RemainTimes = value;
+            _RemainTimes = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__RemainTimes(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__RemainTimes(this, 3, _v_));
     }
 
     @Override
     public long getHappenTimes() {
         if (!isManaged())
             return _HappenTimes;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _HappenTimes;
-        var log = (Log__HappenTimes)txn.getLog(objectId() + 4);
+        var log = (Log__HappenTimes)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _HappenTimes;
     }
 
-    public void setHappenTimes(long value) {
+    public void setHappenTimes(long _v_) {
         if (!isManaged()) {
-            _HappenTimes = value;
+            _HappenTimes = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__HappenTimes(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__HappenTimes(this, 4, _v_));
     }
 
     @Override
     public long getStartTime() {
         if (!isManaged())
             return _StartTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _StartTime;
-        var log = (Log__StartTime)txn.getLog(objectId() + 5);
+        var log = (Log__StartTime)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _StartTime;
     }
 
-    public void setStartTime(long value) {
+    public void setStartTime(long _v_) {
         if (!isManaged()) {
-            _StartTime = value;
+            _StartTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__StartTime(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__StartTime(this, 5, _v_));
     }
 
     @Override
     public long getEndTime() {
         if (!isManaged())
             return _EndTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _EndTime;
-        var log = (Log__EndTime)txn.getLog(objectId() + 6);
+        var log = (Log__EndTime)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _EndTime;
     }
 
-    public void setEndTime(long value) {
+    public void setEndTime(long _v_) {
         if (!isManaged()) {
-            _EndTime = value;
+            _EndTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EndTime(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__EndTime(this, 6, _v_));
     }
 
     @Override
     public long getNextExpectedTime() {
         if (!isManaged())
             return _NextExpectedTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _NextExpectedTime;
-        var log = (Log__NextExpectedTime)txn.getLog(objectId() + 7);
+        var log = (Log__NextExpectedTime)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _NextExpectedTime;
     }
 
-    public void setNextExpectedTime(long value) {
+    public void setNextExpectedTime(long _v_) {
         if (!isManaged()) {
-            _NextExpectedTime = value;
+            _NextExpectedTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NextExpectedTime(this, 7, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__NextExpectedTime(this, 7, _v_));
     }
 
     @Override
     public long getExpectedTime() {
         if (!isManaged())
             return _ExpectedTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ExpectedTime;
-        var log = (Log__ExpectedTime)txn.getLog(objectId() + 8);
+        var log = (Log__ExpectedTime)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _ExpectedTime;
     }
 
-    public void setExpectedTime(long value) {
+    public void setExpectedTime(long _v_) {
         if (!isManaged()) {
-            _ExpectedTime = value;
+            _ExpectedTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ExpectedTime(this, 8, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ExpectedTime(this, 8, _v_));
     }
 
     @Override
     public long getHappenTime() {
         if (!isManaged())
             return _HappenTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _HappenTime;
-        var log = (Log__HappenTime)txn.getLog(objectId() + 9);
+        var log = (Log__HappenTime)_t_.getLog(objectId() + 9);
         return log != null ? log.value : _HappenTime;
     }
 
-    public void setHappenTime(long value) {
+    public void setHappenTime(long _v_) {
         if (!isManaged()) {
-            _HappenTime = value;
+            _HappenTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__HappenTime(this, 9, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__HappenTime(this, 9, _v_));
     }
 
     @Override
     public int getMissfirePolicy() {
         if (!isManaged())
             return _MissfirePolicy;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _MissfirePolicy;
-        var log = (Log__MissfirePolicy)txn.getLog(objectId() + 10);
+        var log = (Log__MissfirePolicy)_t_.getLog(objectId() + 10);
         return log != null ? log.value : _MissfirePolicy;
     }
 
-    public void setMissfirePolicy(int value) {
+    public void setMissfirePolicy(int _v_) {
         if (!isManaged()) {
-            _MissfirePolicy = value;
+            _MissfirePolicy = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__MissfirePolicy(this, 10, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__MissfirePolicy(this, 10, _v_));
     }
 
     @Override
     public String getOneByOneKey() {
         if (!isManaged())
             return _OneByOneKey;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _OneByOneKey;
-        var log = (Log__OneByOneKey)txn.getLog(objectId() + 11);
+        var log = (Log__OneByOneKey)_t_.getLog(objectId() + 11);
         return log != null ? log.value : _OneByOneKey;
     }
 
-    public void setOneByOneKey(String value) {
-        if (value == null)
+    public void setOneByOneKey(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _OneByOneKey = value;
+            _OneByOneKey = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OneByOneKey(this, 11, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__OneByOneKey(this, 11, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -281,19 +281,19 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         _unknown_ = null;
     }
 
-    public void assign(BSimpleTimer other) {
-        setDelay(other.getDelay());
-        setPeriod(other.getPeriod());
-        setRemainTimes(other.getRemainTimes());
-        setHappenTimes(other.getHappenTimes());
-        setStartTime(other.getStartTime());
-        setEndTime(other.getEndTime());
-        setNextExpectedTime(other.getNextExpectedTime());
-        setExpectedTime(other.getExpectedTime());
-        setHappenTime(other.getHappenTime());
-        setMissfirePolicy(other.getMissfirePolicy());
-        setOneByOneKey(other.getOneByOneKey());
-        _unknown_ = other._unknown_;
+    public void assign(BSimpleTimer _o_) {
+        setDelay(_o_.getDelay());
+        setPeriod(_o_.getPeriod());
+        setRemainTimes(_o_.getRemainTimes());
+        setHappenTimes(_o_.getHappenTimes());
+        setStartTime(_o_.getStartTime());
+        setEndTime(_o_.getEndTime());
+        setNextExpectedTime(_o_.getNextExpectedTime());
+        setExpectedTime(_o_.getExpectedTime());
+        setHappenTime(_o_.getHappenTime());
+        setMissfirePolicy(_o_.getMissfirePolicy());
+        setOneByOneKey(_o_.getOneByOneKey());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSimpleTimer copyIfManaged() {
@@ -302,15 +302,15 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
 
     @Override
     public BSimpleTimer copy() {
-        var copy = new BSimpleTimer();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSimpleTimer();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSimpleTimer a, BSimpleTimer b) {
-        BSimpleTimer save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSimpleTimer _a_, BSimpleTimer _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -319,77 +319,77 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     private static final class Log__Delay extends Zeze.Transaction.Logs.LogLong {
-        public Log__Delay(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Delay(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._Delay = value; }
     }
 
     private static final class Log__Period extends Zeze.Transaction.Logs.LogLong {
-        public Log__Period(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Period(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._Period = value; }
     }
 
     private static final class Log__RemainTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__RemainTimes(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__RemainTimes(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._RemainTimes = value; }
     }
 
     private static final class Log__HappenTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTimes(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__HappenTimes(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._HappenTimes = value; }
     }
 
     private static final class Log__StartTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__StartTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__StartTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._StartTime = value; }
     }
 
     private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__EndTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._EndTime = value; }
     }
 
     private static final class Log__NextExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextExpectedTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__NextExpectedTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._NextExpectedTime = value; }
     }
 
     private static final class Log__ExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpectedTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ExpectedTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._ExpectedTime = value; }
     }
 
     private static final class Log__HappenTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTime(BSimpleTimer bean, int varId, long value) { super(bean, varId, value); }
+        public Log__HappenTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._HappenTime = value; }
     }
 
     private static final class Log__MissfirePolicy extends Zeze.Transaction.Logs.LogInt {
-        public Log__MissfirePolicy(BSimpleTimer bean, int varId, int value) { super(bean, varId, value); }
+        public Log__MissfirePolicy(BSimpleTimer _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._MissfirePolicy = value; }
     }
 
     private static final class Log__OneByOneKey extends Zeze.Transaction.Logs.LogString {
-        public Log__OneByOneKey(BSimpleTimer bean, int varId, String value) { super(bean, varId, value); }
+        public Log__OneByOneKey(BSimpleTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSimpleTimer)getBelong())._OneByOneKey = value; }
@@ -397,28 +397,28 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BSimpleTimer: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Delay=").append(getDelay()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Period=").append(getPeriod()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("RemainTimes=").append(getRemainTimes()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HappenTimes=").append(getHappenTimes()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("StartTime=").append(getStartTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NextExpectedTime=").append(getNextExpectedTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ExpectedTime=").append(getExpectedTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HappenTime=").append(getHappenTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MissfirePolicy=").append(getMissfirePolicy()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OneByOneKey=").append(getOneByOneKey()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BSimpleTimer: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Delay=").append(getDelay()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Period=").append(getPeriod()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("RemainTimes=").append(getRemainTimes()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HappenTimes=").append(getHappenTimes()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("StartTime=").append(getStartTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("NextExpectedTime=").append(getNextExpectedTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExpectedTime=").append(getExpectedTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HappenTime=").append(getHappenTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("MissfirePolicy=").append(getMissfirePolicy()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OneByOneKey=").append(getOneByOneKey()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -429,8 +429,8 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -643,76 +643,76 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Delay = vlog.longValue(); break;
-                case 2: _Period = vlog.longValue(); break;
-                case 3: _RemainTimes = vlog.longValue(); break;
-                case 4: _HappenTimes = vlog.longValue(); break;
-                case 5: _StartTime = vlog.longValue(); break;
-                case 6: _EndTime = vlog.longValue(); break;
-                case 7: _NextExpectedTime = vlog.longValue(); break;
-                case 8: _ExpectedTime = vlog.longValue(); break;
-                case 9: _HappenTime = vlog.longValue(); break;
-                case 10: _MissfirePolicy = vlog.intValue(); break;
-                case 11: _OneByOneKey = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Delay = _v_.longValue(); break;
+                case 2: _Period = _v_.longValue(); break;
+                case 3: _RemainTimes = _v_.longValue(); break;
+                case 4: _HappenTimes = _v_.longValue(); break;
+                case 5: _StartTime = _v_.longValue(); break;
+                case 6: _EndTime = _v_.longValue(); break;
+                case 7: _NextExpectedTime = _v_.longValue(); break;
+                case 8: _ExpectedTime = _v_.longValue(); break;
+                case 9: _HappenTime = _v_.longValue(); break;
+                case 10: _MissfirePolicy = _v_.intValue(); break;
+                case 11: _OneByOneKey = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setDelay(rs.getLong(_parents_name_ + "Delay"));
-        setPeriod(rs.getLong(_parents_name_ + "Period"));
-        setRemainTimes(rs.getLong(_parents_name_ + "RemainTimes"));
-        setHappenTimes(rs.getLong(_parents_name_ + "HappenTimes"));
-        setStartTime(rs.getLong(_parents_name_ + "StartTime"));
-        setEndTime(rs.getLong(_parents_name_ + "EndTime"));
-        setNextExpectedTime(rs.getLong(_parents_name_ + "NextExpectedTime"));
-        setExpectedTime(rs.getLong(_parents_name_ + "ExpectedTime"));
-        setHappenTime(rs.getLong(_parents_name_ + "HappenTime"));
-        setMissfirePolicy(rs.getInt(_parents_name_ + "MissfirePolicy"));
-        setOneByOneKey(rs.getString(_parents_name_ + "OneByOneKey"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setDelay(_r_.getLong(_pn_ + "Delay"));
+        setPeriod(_r_.getLong(_pn_ + "Period"));
+        setRemainTimes(_r_.getLong(_pn_ + "RemainTimes"));
+        setHappenTimes(_r_.getLong(_pn_ + "HappenTimes"));
+        setStartTime(_r_.getLong(_pn_ + "StartTime"));
+        setEndTime(_r_.getLong(_pn_ + "EndTime"));
+        setNextExpectedTime(_r_.getLong(_pn_ + "NextExpectedTime"));
+        setExpectedTime(_r_.getLong(_pn_ + "ExpectedTime"));
+        setHappenTime(_r_.getLong(_pn_ + "HappenTime"));
+        setMissfirePolicy(_r_.getInt(_pn_ + "MissfirePolicy"));
+        setOneByOneKey(_r_.getString(_pn_ + "OneByOneKey"));
         if (getOneByOneKey() == null)
             setOneByOneKey("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Delay", getDelay());
-        st.appendLong(_parents_name_ + "Period", getPeriod());
-        st.appendLong(_parents_name_ + "RemainTimes", getRemainTimes());
-        st.appendLong(_parents_name_ + "HappenTimes", getHappenTimes());
-        st.appendLong(_parents_name_ + "StartTime", getStartTime());
-        st.appendLong(_parents_name_ + "EndTime", getEndTime());
-        st.appendLong(_parents_name_ + "NextExpectedTime", getNextExpectedTime());
-        st.appendLong(_parents_name_ + "ExpectedTime", getExpectedTime());
-        st.appendLong(_parents_name_ + "HappenTime", getHappenTime());
-        st.appendInt(_parents_name_ + "MissfirePolicy", getMissfirePolicy());
-        st.appendString(_parents_name_ + "OneByOneKey", getOneByOneKey());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Delay", getDelay());
+        _s_.appendLong(_pn_ + "Period", getPeriod());
+        _s_.appendLong(_pn_ + "RemainTimes", getRemainTimes());
+        _s_.appendLong(_pn_ + "HappenTimes", getHappenTimes());
+        _s_.appendLong(_pn_ + "StartTime", getStartTime());
+        _s_.appendLong(_pn_ + "EndTime", getEndTime());
+        _s_.appendLong(_pn_ + "NextExpectedTime", getNextExpectedTime());
+        _s_.appendLong(_pn_ + "ExpectedTime", getExpectedTime());
+        _s_.appendLong(_pn_ + "HappenTime", getHappenTime());
+        _s_.appendInt(_pn_ + "MissfirePolicy", getMissfirePolicy());
+        _s_.appendString(_pn_ + "OneByOneKey", getOneByOneKey());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Delay", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Period", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "RemainTimes", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "HappenTimes", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "StartTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "NextExpectedTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ExpectedTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "MissfirePolicy", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "OneByOneKey", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Delay", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Period", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "RemainTimes", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "HappenTimes", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "StartTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "EndTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "NextExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ExpectedTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "HappenTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(10, "MissfirePolicy", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(11, "OneByOneKey", "string", "", ""));
+        return _v_;
     }
 }

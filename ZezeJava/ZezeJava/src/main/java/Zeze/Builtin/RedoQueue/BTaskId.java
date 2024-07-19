@@ -14,20 +14,20 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
     public long getTaskId() {
         if (!isManaged())
             return _TaskId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _TaskId;
-        var log = (Log__TaskId)txn.getLog(objectId() + 1);
+        var log = (Log__TaskId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _TaskId;
     }
 
-    public void setTaskId(long value) {
+    public void setTaskId(long _v_) {
         if (!isManaged()) {
-            _TaskId = value;
+            _TaskId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__TaskId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__TaskId(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -45,9 +45,9 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
         _unknown_ = null;
     }
 
-    public void assign(BTaskId other) {
-        setTaskId(other.getTaskId());
-        _unknown_ = other._unknown_;
+    public void assign(BTaskId _o_) {
+        setTaskId(_o_.getTaskId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTaskId copyIfManaged() {
@@ -56,15 +56,15 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
 
     @Override
     public BTaskId copy() {
-        var copy = new BTaskId();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTaskId();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTaskId a, BTaskId b) {
-        BTaskId save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTaskId _a_, BTaskId _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -73,7 +73,7 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskId(BTaskId bean, int varId, long value) { super(bean, varId, value); }
+        public Log__TaskId(BTaskId _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTaskId)getBelong())._TaskId = value; }
@@ -81,18 +81,18 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.RedoQueue.BTaskId: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TaskId=").append(getTaskId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.RedoQueue.BTaskId: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskId=").append(getTaskId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -103,8 +103,8 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -169,34 +169,34 @@ public final class BTaskId extends Zeze.Transaction.Bean implements BTaskIdReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _TaskId = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _TaskId = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTaskId(rs.getLong(_parents_name_ + "TaskId"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setTaskId(_r_.getLong(_pn_ + "TaskId"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "TaskId", getTaskId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "TaskId", getTaskId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TaskId", "long", "", ""));
+        return _v_;
     }
 }

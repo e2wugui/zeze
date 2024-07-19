@@ -21,80 +21,80 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     public int getOnline() {
         if (!isManaged())
             return _Online;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Online;
-        var log = (Log__Online)txn.getLog(objectId() + 1);
+        var log = (Log__Online)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Online;
     }
 
-    public void setOnline(int value) {
+    public void setOnline(int _v_) {
         if (!isManaged()) {
-            _Online = value;
+            _Online = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Online(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Online(this, 1, _v_));
     }
 
     @Override
     public int getProposeMaxOnline() {
         if (!isManaged())
             return _ProposeMaxOnline;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ProposeMaxOnline;
-        var log = (Log__ProposeMaxOnline)txn.getLog(objectId() + 2);
+        var log = (Log__ProposeMaxOnline)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ProposeMaxOnline;
     }
 
-    public void setProposeMaxOnline(int value) {
+    public void setProposeMaxOnline(int _v_) {
         if (!isManaged()) {
-            _ProposeMaxOnline = value;
+            _ProposeMaxOnline = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ProposeMaxOnline(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ProposeMaxOnline(this, 2, _v_));
     }
 
     @Override
     public int getOnlineNew() {
         if (!isManaged())
             return _OnlineNew;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _OnlineNew;
-        var log = (Log__OnlineNew)txn.getLog(objectId() + 3);
+        var log = (Log__OnlineNew)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _OnlineNew;
     }
 
-    public void setOnlineNew(int value) {
+    public void setOnlineNew(int _v_) {
         if (!isManaged()) {
-            _OnlineNew = value;
+            _OnlineNew = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OnlineNew(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__OnlineNew(this, 3, _v_));
     }
 
     @Override
     public int getOverload() {
         if (!isManaged())
             return _Overload;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Overload;
-        var log = (Log__Overload)txn.getLog(objectId() + 4);
+        var log = (Log__Overload)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Overload;
     }
 
-    public void setOverload(int value) {
+    public void setOverload(int _v_) {
         if (!isManaged()) {
-            _Overload = value;
+            _Overload = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Overload(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Overload(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -120,30 +120,30 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public Zeze.Builtin.Provider.BLoad.Data toData() {
-        var data = new Zeze.Builtin.Provider.BLoad.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BLoad.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BLoad.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BLoad.Data)_o_);
     }
 
-    public void assign(BLoad.Data other) {
-        setOnline(other._Online);
-        setProposeMaxOnline(other._ProposeMaxOnline);
-        setOnlineNew(other._OnlineNew);
-        setOverload(other._Overload);
+    public void assign(BLoad.Data _o_) {
+        setOnline(_o_._Online);
+        setProposeMaxOnline(_o_._ProposeMaxOnline);
+        setOnlineNew(_o_._OnlineNew);
+        setOverload(_o_._Overload);
         _unknown_ = null;
     }
 
-    public void assign(BLoad other) {
-        setOnline(other.getOnline());
-        setProposeMaxOnline(other.getProposeMaxOnline());
-        setOnlineNew(other.getOnlineNew());
-        setOverload(other.getOverload());
-        _unknown_ = other._unknown_;
+    public void assign(BLoad _o_) {
+        setOnline(_o_.getOnline());
+        setProposeMaxOnline(_o_.getProposeMaxOnline());
+        setOnlineNew(_o_.getOnlineNew());
+        setOverload(_o_.getOverload());
+        _unknown_ = _o_._unknown_;
     }
 
     public BLoad copyIfManaged() {
@@ -152,15 +152,15 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public BLoad copy() {
-        var copy = new BLoad();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLoad();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLoad a, BLoad b) {
-        BLoad save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLoad _a_, BLoad _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -169,28 +169,28 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     private static final class Log__Online extends Zeze.Transaction.Logs.LogInt {
-        public Log__Online(BLoad bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Online(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLoad)getBelong())._Online = value; }
     }
 
     private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProposeMaxOnline(BLoad bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ProposeMaxOnline(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLoad)getBelong())._ProposeMaxOnline = value; }
     }
 
     private static final class Log__OnlineNew extends Zeze.Transaction.Logs.LogInt {
-        public Log__OnlineNew(BLoad bean, int varId, int value) { super(bean, varId, value); }
+        public Log__OnlineNew(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLoad)getBelong())._OnlineNew = value; }
     }
 
     private static final class Log__Overload extends Zeze.Transaction.Logs.LogInt {
-        public Log__Overload(BLoad bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Overload(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLoad)getBelong())._Overload = value; }
@@ -198,21 +198,21 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Online=").append(getOnline()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline=").append(getProposeMaxOnline()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew=").append(getOnlineNew()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Overload=").append(getOverload()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Online=").append(getOnline()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeMaxOnline=").append(getProposeMaxOnline()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineNew=").append(getOnlineNew()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Overload=").append(getOverload()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -223,8 +223,8 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -334,47 +334,47 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Online = vlog.intValue(); break;
-                case 2: _ProposeMaxOnline = vlog.intValue(); break;
-                case 3: _OnlineNew = vlog.intValue(); break;
-                case 4: _Overload = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Online = _v_.intValue(); break;
+                case 2: _ProposeMaxOnline = _v_.intValue(); break;
+                case 3: _OnlineNew = _v_.intValue(); break;
+                case 4: _Overload = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setOnline(rs.getInt(_parents_name_ + "Online"));
-        setProposeMaxOnline(rs.getInt(_parents_name_ + "ProposeMaxOnline"));
-        setOnlineNew(rs.getInt(_parents_name_ + "OnlineNew"));
-        setOverload(rs.getInt(_parents_name_ + "Overload"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setOnline(_r_.getInt(_pn_ + "Online"));
+        setProposeMaxOnline(_r_.getInt(_pn_ + "ProposeMaxOnline"));
+        setOnlineNew(_r_.getInt(_pn_ + "OnlineNew"));
+        setOverload(_r_.getInt(_pn_ + "Overload"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Online", getOnline());
-        st.appendInt(_parents_name_ + "ProposeMaxOnline", getProposeMaxOnline());
-        st.appendInt(_parents_name_ + "OnlineNew", getOnlineNew());
-        st.appendInt(_parents_name_ + "Overload", getOverload());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Online", getOnline());
+        _s_.appendInt(_pn_ + "ProposeMaxOnline", getProposeMaxOnline());
+        _s_.appendInt(_pn_ + "OnlineNew", getOnlineNew());
+        _s_.appendInt(_pn_ + "Overload", getOverload());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Online", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeMaxOnline", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineNew", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Overload", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Online", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ProposeMaxOnline", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineNew", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Overload", "int", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -394,32 +394,32 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Online;
     }
 
-    public void setOnline(int value) {
-        _Online = value;
+    public void setOnline(int _v_) {
+        _Online = _v_;
     }
 
     public int getProposeMaxOnline() {
         return _ProposeMaxOnline;
     }
 
-    public void setProposeMaxOnline(int value) {
-        _ProposeMaxOnline = value;
+    public void setProposeMaxOnline(int _v_) {
+        _ProposeMaxOnline = _v_;
     }
 
     public int getOnlineNew() {
         return _OnlineNew;
     }
 
-    public void setOnlineNew(int value) {
-        _OnlineNew = value;
+    public void setOnlineNew(int _v_) {
+        _OnlineNew = _v_;
     }
 
     public int getOverload() {
         return _Overload;
     }
 
-    public void setOverload(int value) {
-        _Overload = value;
+    public void setOverload(int _v_) {
+        _Overload = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -444,41 +444,41 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BLoad toBean() {
-        var bean = new Zeze.Builtin.Provider.BLoad();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BLoad();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BLoad)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BLoad)_o_);
     }
 
-    public void assign(BLoad other) {
-        _Online = other.getOnline();
-        _ProposeMaxOnline = other.getProposeMaxOnline();
-        _OnlineNew = other.getOnlineNew();
-        _Overload = other.getOverload();
+    public void assign(BLoad _o_) {
+        _Online = _o_.getOnline();
+        _ProposeMaxOnline = _o_.getProposeMaxOnline();
+        _OnlineNew = _o_.getOnlineNew();
+        _Overload = _o_.getOverload();
     }
 
-    public void assign(BLoad.Data other) {
-        _Online = other._Online;
-        _ProposeMaxOnline = other._ProposeMaxOnline;
-        _OnlineNew = other._OnlineNew;
-        _Overload = other._Overload;
+    public void assign(BLoad.Data _o_) {
+        _Online = _o_._Online;
+        _ProposeMaxOnline = _o_._ProposeMaxOnline;
+        _OnlineNew = _o_._OnlineNew;
+        _Overload = _o_._Overload;
     }
 
     @Override
     public BLoad.Data copy() {
-        var copy = new BLoad.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLoad.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLoad.Data a, BLoad.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLoad.Data _a_, BLoad.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -493,21 +493,21 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Online=").append(_Online).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProposeMaxOnline=").append(_ProposeMaxOnline).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineNew=").append(_OnlineNew).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Overload=").append(_Overload).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BLoad: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Online=").append(_Online).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeMaxOnline=").append(_ProposeMaxOnline).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineNew=").append(_OnlineNew).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Overload=").append(_Overload).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -516,8 +516,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -15,40 +15,40 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     public boolean isResult() {
         if (!isManaged())
             return _Result;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Result;
-        var log = (Log__Result)txn.getLog(objectId() + 1);
+        var log = (Log__Result)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Result;
     }
 
-    public void setResult(boolean value) {
+    public void setResult(boolean _v_) {
         if (!isManaged()) {
-            _Result = value;
+            _Result = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Result(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Result(this, 1, _v_));
     }
 
     @Override
     public long getTimestamp() {
         if (!isManaged())
             return _Timestamp;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Timestamp;
-        var log = (Log__Timestamp)txn.getLog(objectId() + 2);
+        var log = (Log__Timestamp)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Timestamp;
     }
 
-    public void setTimestamp(long value) {
+    public void setTimestamp(long _v_) {
         if (!isManaged()) {
-            _Timestamp = value;
+            _Timestamp = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Timestamp(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Timestamp(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -68,10 +68,10 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         _unknown_ = null;
     }
 
-    public void assign(BTransactionMessageResult other) {
-        setResult(other.isResult());
-        setTimestamp(other.getTimestamp());
-        _unknown_ = other._unknown_;
+    public void assign(BTransactionMessageResult _o_) {
+        setResult(_o_.isResult());
+        setTimestamp(_o_.getTimestamp());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTransactionMessageResult copyIfManaged() {
@@ -80,15 +80,15 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
 
     @Override
     public BTransactionMessageResult copy() {
-        var copy = new BTransactionMessageResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTransactionMessageResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTransactionMessageResult a, BTransactionMessageResult b) {
-        BTransactionMessageResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTransactionMessageResult _a_, BTransactionMessageResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -97,14 +97,14 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     }
 
     private static final class Log__Result extends Zeze.Transaction.Logs.LogBool {
-        public Log__Result(BTransactionMessageResult bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Result(BTransactionMessageResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransactionMessageResult)getBelong())._Result = value; }
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
-        public Log__Timestamp(BTransactionMessageResult bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Timestamp(BTransactionMessageResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransactionMessageResult)getBelong())._Timestamp = value; }
@@ -112,19 +112,19 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Result=").append(isResult()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Timestamp=").append(getTimestamp()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Result=").append(isResult()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Timestamp=").append(getTimestamp()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -135,8 +135,8 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -214,38 +214,38 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Result = vlog.booleanValue(); break;
-                case 2: _Timestamp = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Result = _v_.booleanValue(); break;
+                case 2: _Timestamp = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setResult(rs.getBoolean(_parents_name_ + "Result"));
-        setTimestamp(rs.getLong(_parents_name_ + "Timestamp"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setResult(_r_.getBoolean(_pn_ + "Result"));
+        setTimestamp(_r_.getLong(_pn_ + "Timestamp"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBoolean(_parents_name_ + "Result", isResult());
-        st.appendLong(_parents_name_ + "Timestamp", getTimestamp());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBoolean(_pn_ + "Result", isResult());
+        _s_.appendLong(_pn_ + "Timestamp", getTimestamp());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Result", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Timestamp", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Result", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Timestamp", "long", "", ""));
+        return _v_;
     }
 }

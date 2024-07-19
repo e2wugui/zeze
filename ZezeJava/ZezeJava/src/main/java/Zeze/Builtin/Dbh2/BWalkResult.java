@@ -25,40 +25,40 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     public boolean isBucketEnd() {
         if (!isManaged())
             return _BucketEnd;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _BucketEnd;
-        var log = (Log__BucketEnd)txn.getLog(objectId() + 2);
+        var log = (Log__BucketEnd)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _BucketEnd;
     }
 
-    public void setBucketEnd(boolean value) {
+    public void setBucketEnd(boolean _v_) {
         if (!isManaged()) {
-            _BucketEnd = value;
+            _BucketEnd = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__BucketEnd(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__BucketEnd(this, 2, _v_));
     }
 
     @Override
     public boolean isBucketRefuse() {
         if (!isManaged())
             return _BucketRefuse;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _BucketRefuse;
-        var log = (Log__BucketRefuse)txn.getLog(objectId() + 3);
+        var log = (Log__BucketRefuse)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _BucketRefuse;
     }
 
-    public void setBucketRefuse(boolean value) {
+    public void setBucketRefuse(boolean _v_) {
         if (!isManaged()) {
-            _BucketRefuse = value;
+            _BucketRefuse = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__BucketRefuse(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__BucketRefuse(this, 3, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -85,35 +85,35 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
 
     @Override
     public Zeze.Builtin.Dbh2.BWalkResult.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BWalkResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.BWalkResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BWalkResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.BWalkResult.Data)_o_);
     }
 
-    public void assign(BWalkResult.Data other) {
+    public void assign(BWalkResult.Data _o_) {
         _KeyValues.clear();
-        for (var e : other._KeyValues) {
-            Zeze.Builtin.Dbh2.BWalkKeyValue data = new Zeze.Builtin.Dbh2.BWalkKeyValue();
-            data.assign(e);
-            _KeyValues.add(data);
+        for (var _e_ : _o_._KeyValues) {
+            var _v_ = new Zeze.Builtin.Dbh2.BWalkKeyValue();
+            _v_.assign(_e_);
+            _KeyValues.add(_v_);
         }
-        setBucketEnd(other._BucketEnd);
-        setBucketRefuse(other._BucketRefuse);
+        setBucketEnd(_o_._BucketEnd);
+        setBucketRefuse(_o_._BucketRefuse);
         _unknown_ = null;
     }
 
-    public void assign(BWalkResult other) {
+    public void assign(BWalkResult _o_) {
         _KeyValues.clear();
-        for (var e : other._KeyValues)
-            _KeyValues.add(e.copy());
-        setBucketEnd(other.isBucketEnd());
-        setBucketRefuse(other.isBucketRefuse());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._KeyValues)
+            _KeyValues.add(_e_.copy());
+        setBucketEnd(_o_.isBucketEnd());
+        setBucketRefuse(_o_.isBucketRefuse());
+        _unknown_ = _o_._unknown_;
     }
 
     public BWalkResult copyIfManaged() {
@@ -122,15 +122,15 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
 
     @Override
     public BWalkResult copy() {
-        var copy = new BWalkResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BWalkResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BWalkResult a, BWalkResult b) {
-        BWalkResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BWalkResult _a_, BWalkResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -139,14 +139,14 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     }
 
     private static final class Log__BucketEnd extends Zeze.Transaction.Logs.LogBool {
-        public Log__BucketEnd(BWalkResult bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__BucketEnd(BWalkResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalkResult)getBelong())._BucketEnd = value; }
     }
 
     private static final class Log__BucketRefuse extends Zeze.Transaction.Logs.LogBool {
-        public Log__BucketRefuse(BWalkResult bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__BucketRefuse(BWalkResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BWalkResult)getBelong())._BucketRefuse = value; }
@@ -154,32 +154,32 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BWalkResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyValues=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalkResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyValues=[");
         if (!_KeyValues.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _KeyValues) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _KeyValues) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("BucketEnd=").append(isBucketEnd()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("BucketRefuse=").append(isBucketRefuse()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketEnd=").append(isBucketEnd()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketRefuse=").append(isBucketRefuse()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -190,8 +190,8 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -287,54 +287,54 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _KeyValues.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _KeyValues.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _KeyValues.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _KeyValues.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _KeyValues.followerApply(vlog); break;
-                case 2: _BucketEnd = vlog.booleanValue(); break;
-                case 3: _BucketRefuse = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _KeyValues.followerApply(_v_); break;
+                case 2: _BucketEnd = _v_.booleanValue(); break;
+                case 3: _BucketRefuse = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_KeyValues, Zeze.Builtin.Dbh2.BWalkKeyValue.class, rs.getString(_parents_name_ + "KeyValues"));
-        setBucketEnd(rs.getBoolean(_parents_name_ + "BucketEnd"));
-        setBucketRefuse(rs.getBoolean(_parents_name_ + "BucketRefuse"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_KeyValues, Zeze.Builtin.Dbh2.BWalkKeyValue.class, _r_.getString(_pn_ + "KeyValues"));
+        setBucketEnd(_r_.getBoolean(_pn_ + "BucketEnd"));
+        setBucketRefuse(_r_.getBoolean(_pn_ + "BucketRefuse"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "KeyValues", Zeze.Serialize.Helper.encodeJson(_KeyValues));
-        st.appendBoolean(_parents_name_ + "BucketEnd", isBucketEnd());
-        st.appendBoolean(_parents_name_ + "BucketRefuse", isBucketRefuse());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "KeyValues", Zeze.Serialize.Helper.encodeJson(_KeyValues));
+        _s_.appendBoolean(_pn_ + "BucketEnd", isBucketEnd());
+        _s_.appendBoolean(_pn_ + "BucketRefuse", isBucketRefuse());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "KeyValues", "list", "", "Zeze.Builtin.Dbh2.BWalkKeyValue"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "BucketEnd", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "BucketRefuse", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "KeyValues", "list", "", "Zeze.Builtin.Dbh2.BWalkKeyValue"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "BucketEnd", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "BucketRefuse", "bool", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -349,26 +349,26 @@ public static final class Data extends Zeze.Transaction.Data {
         return _KeyValues;
     }
 
-    public void setKeyValues(java.util.ArrayList<Zeze.Builtin.Dbh2.BWalkKeyValue.Data> value) {
-        if (value == null)
+    public void setKeyValues(java.util.ArrayList<Zeze.Builtin.Dbh2.BWalkKeyValue.Data> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _KeyValues = value;
+        _KeyValues = _v_;
     }
 
     public boolean isBucketEnd() {
         return _BucketEnd;
     }
 
-    public void setBucketEnd(boolean value) {
-        _BucketEnd = value;
+    public void setBucketEnd(boolean _v_) {
+        _BucketEnd = _v_;
     }
 
     public boolean isBucketRefuse() {
         return _BucketRefuse;
     }
 
-    public void setBucketRefuse(boolean value) {
-        _BucketRefuse = value;
+    public void setBucketRefuse(boolean _v_) {
+        _BucketRefuse = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -394,46 +394,46 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.BWalkResult toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BWalkResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.BWalkResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BWalkResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BWalkResult)_o_);
     }
 
-    public void assign(BWalkResult other) {
+    public void assign(BWalkResult _o_) {
         _KeyValues.clear();
-        for (var e : other._KeyValues) {
-            Zeze.Builtin.Dbh2.BWalkKeyValue.Data data = new Zeze.Builtin.Dbh2.BWalkKeyValue.Data();
-            data.assign(e);
-            _KeyValues.add(data);
+        for (var _e_ : _o_._KeyValues) {
+            var _v_ = new Zeze.Builtin.Dbh2.BWalkKeyValue.Data();
+            _v_.assign(_e_);
+            _KeyValues.add(_v_);
         }
-        _BucketEnd = other.isBucketEnd();
-        _BucketRefuse = other.isBucketRefuse();
+        _BucketEnd = _o_.isBucketEnd();
+        _BucketRefuse = _o_.isBucketRefuse();
     }
 
-    public void assign(BWalkResult.Data other) {
+    public void assign(BWalkResult.Data _o_) {
         _KeyValues.clear();
-        for (var e : other._KeyValues)
-            _KeyValues.add(e.copy());
-        _BucketEnd = other._BucketEnd;
-        _BucketRefuse = other._BucketRefuse;
+        for (var _e_ : _o_._KeyValues)
+            _KeyValues.add(_e_.copy());
+        _BucketEnd = _o_._BucketEnd;
+        _BucketRefuse = _o_._BucketRefuse;
     }
 
     @Override
     public BWalkResult.Data copy() {
-        var copy = new BWalkResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BWalkResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BWalkResult.Data a, BWalkResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BWalkResult.Data _a_, BWalkResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -448,32 +448,32 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BWalkResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyValues=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalkResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyValues=[");
         if (!_KeyValues.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _KeyValues) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(System.lineSeparator());
-                _item_.buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _KeyValues) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
+                _v_.buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("BucketEnd=").append(_BucketEnd).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("BucketRefuse=").append(_BucketRefuse).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketEnd=").append(_BucketEnd).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketRefuse=").append(_BucketRefuse).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -482,8 +482,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

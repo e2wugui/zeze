@@ -21,8 +21,8 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public void mapKey(Object value) {{");
-                sw.WriteLine($"{prefix}    __zeze_map_key__ = value;");
+                sw.WriteLine($"{prefix}public void mapKey(Object _v_) {{");
+                sw.WriteLine($"{prefix}    __zeze_map_key__ = _v_;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
             }
@@ -36,8 +36,8 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}    return {var.NamePrivate};");
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
-                    sw.WriteLine($"{prefix}private void set{var.NameUpper1}(long newValue) {{");
-                    sw.WriteLine($"{prefix}    {var.NamePrivate} = newValue;");
+                    sw.WriteLine($"{prefix}private void set{var.NameUpper1}(long _v_) {{");
+                    sw.WriteLine($"{prefix}    {var.NamePrivate} = _v_;");
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
                     // 重载实现 Bean.Version 接口
@@ -52,8 +52,8 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
                     sw.WriteLine($"{prefix}@Override");
-                    sw.WriteLine($"{prefix}protected void version(long newValue) {{");
-                    sw.WriteLine($"{prefix}    {var.NamePrivate} = newValue;");
+                    sw.WriteLine($"{prefix}protected void version(long _v_) {{");
+                    sw.WriteLine($"{prefix}    {var.NamePrivate} = _v_;");
                     sw.WriteLine($"{prefix}}}");
                     sw.WriteLine();
                     continue;
@@ -82,26 +82,26 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
-            sw.WriteLine(prefix + "    if (txn == null)");
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
+            sw.WriteLine(prefix + "    if (_t_ == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")_t_.getLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "    if (value == null)");
+                sw.WriteLine(prefix + "    if (_v_ == null)");
                 sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             }
 
             sw.WriteLine(prefix + "    if (!isManaged()) {");
-            sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "        " + var.NamePrivate + " = _v_;");
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + "    txn.putLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, value));"); //
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
+            sw.WriteLine(prefix + "    _t_.putLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, _v_));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -209,8 +209,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ".getValue();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
-            sw.WriteLine(prefix + "    " + var.NamePrivate + ".setValue(value);");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + ".setValue(_v_);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
@@ -240,8 +240,8 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.NamePrivate + ".getBean();");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
-                sw.WriteLine(prefix + "    " + var.NamePrivate + ".setBean(value);");
+                sw.WriteLine(prefix + $"public void {var.Setter($"{rname} _v_")} {{");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".setBean(_v_);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
@@ -270,8 +270,8 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{TypeName.GetName(type)} value") + " {");
-            sw.WriteLine(prefix + "    " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{TypeName.GetName(type)} _v_") + " {");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + " = _v_;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

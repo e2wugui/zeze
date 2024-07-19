@@ -19,70 +19,70 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     public String getAccount() {
         if (!isManaged())
             return _account;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _account;
-        var log = (Log__account)txn.getLog(objectId() + 1);
+        var log = (Log__account)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _account;
     }
 
-    public void setAccount(String value) {
-        if (value == null)
+    public void setAccount(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _account = value;
+            _account = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__account(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__account(this, 1, _v_));
     }
 
     @Override
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _linkSid;
-        var log = (Log__linkSid)txn.getLog(objectId() + 2);
+        var log = (Log__linkSid)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _linkSid;
     }
 
-    public void setLinkSid(long value) {
+    public void setLinkSid(long _v_) {
         if (!isManaged()) {
-            _linkSid = value;
+            _linkSid = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__linkSid(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__linkSid(this, 2, _v_));
     }
 
     @Override
     public int getReason() {
         if (!isManaged())
             return _reason;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _reason;
-        var log = (Log__reason)txn.getLog(objectId() + 3);
+        var log = (Log__reason)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _reason;
     }
 
-    public void setReason(int value) {
+    public void setReason(int _v_) {
         if (!isManaged()) {
-            _reason = value;
+            _reason = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__reason(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__reason(this, 3, _v_));
     }
 
     public Zeze.Builtin.Provider.BUserState getUserState() {
         return _userState.getValue();
     }
 
-    public void setUserState(Zeze.Builtin.Provider.BUserState value) {
-        _userState.setValue(value);
+    public void setUserState(Zeze.Builtin.Provider.BUserState _v_) {
+        _userState.setValue(_v_);
     }
 
     @Override
@@ -119,32 +119,32 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
 
     @Override
     public Zeze.Builtin.Provider.BLinkBroken.Data toData() {
-        var data = new Zeze.Builtin.Provider.BLinkBroken.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BLinkBroken.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BLinkBroken.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BLinkBroken.Data)_o_);
     }
 
-    public void assign(BLinkBroken.Data other) {
-        setAccount(other._account);
-        setLinkSid(other._linkSid);
-        setReason(other._reason);
-        Zeze.Builtin.Provider.BUserState data_userState = new Zeze.Builtin.Provider.BUserState();
-        data_userState.assign(other._userState);
-        _userState.setValue(data_userState);
+    public void assign(BLinkBroken.Data _o_) {
+        setAccount(_o_._account);
+        setLinkSid(_o_._linkSid);
+        setReason(_o_._reason);
+        var _d__userState = new Zeze.Builtin.Provider.BUserState();
+        _d__userState.assign(_o_._userState);
+        _userState.setValue(_d__userState);
         _unknown_ = null;
     }
 
-    public void assign(BLinkBroken other) {
-        setAccount(other.getAccount());
-        setLinkSid(other.getLinkSid());
-        setReason(other.getReason());
-        _userState.assign(other._userState);
-        _unknown_ = other._unknown_;
+    public void assign(BLinkBroken _o_) {
+        setAccount(_o_.getAccount());
+        setLinkSid(_o_.getLinkSid());
+        setReason(_o_.getReason());
+        _userState.assign(_o_._userState);
+        _unknown_ = _o_._unknown_;
     }
 
     public BLinkBroken copyIfManaged() {
@@ -153,15 +153,15 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
 
     @Override
     public BLinkBroken copy() {
-        var copy = new BLinkBroken();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLinkBroken();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLinkBroken a, BLinkBroken b) {
-        BLinkBroken save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLinkBroken _a_, BLinkBroken _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -170,21 +170,21 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     private static final class Log__account extends Zeze.Transaction.Logs.LogString {
-        public Log__account(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
+        public Log__account(BLinkBroken _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLinkBroken)getBelong())._account = value; }
     }
 
     private static final class Log__linkSid extends Zeze.Transaction.Logs.LogLong {
-        public Log__linkSid(BLinkBroken bean, int varId, long value) { super(bean, varId, value); }
+        public Log__linkSid(BLinkBroken _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLinkBroken)getBelong())._linkSid = value; }
     }
 
     private static final class Log__reason extends Zeze.Transaction.Logs.LogInt {
-        public Log__reason(BLinkBroken bean, int varId, int value) { super(bean, varId, value); }
+        public Log__reason(BLinkBroken _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLinkBroken)getBelong())._reason = value; }
@@ -192,23 +192,23 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLinkBroken: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("reason=").append(getReason()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
-        _userState.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BLinkBroken: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("reason=").append(getReason()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -219,8 +219,8 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -319,13 +319,13 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _userState.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _userState.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _userState.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _userState.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -339,53 +339,53 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _account = vlog.stringValue(); break;
-                case 2: _linkSid = vlog.longValue(); break;
-                case 3: _reason = vlog.intValue(); break;
-                case 4: _userState.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _account = _v_.stringValue(); break;
+                case 2: _linkSid = _v_.longValue(); break;
+                case 3: _reason = _v_.intValue(); break;
+                case 4: _userState.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setAccount(rs.getString(_parents_name_ + "account"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setAccount(_r_.getString(_pn_ + "account"));
         if (getAccount() == null)
             setAccount("");
-        setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
-        setReason(rs.getInt(_parents_name_ + "reason"));
-        parents.add("userState");
-        _userState.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+        setLinkSid(_r_.getLong(_pn_ + "linkSid"));
+        setReason(_r_.getInt(_pn_ + "reason"));
+        _p_.add("userState");
+        _userState.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "account", getAccount());
-        st.appendLong(_parents_name_ + "linkSid", getLinkSid());
-        st.appendInt(_parents_name_ + "reason", getReason());
-        parents.add("userState");
-        _userState.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "account", getAccount());
+        _s_.appendLong(_pn_ + "linkSid", getLinkSid());
+        _s_.appendInt(_pn_ + "reason", getReason());
+        _p_.add("userState");
+        _userState.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "account", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "linkSid", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "reason", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "userState", "Zeze.Builtin.Provider.BUserState", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "account", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "linkSid", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "reason", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "userState", "Zeze.Builtin.Provider.BUserState", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -403,36 +403,36 @@ public static final class Data extends Zeze.Transaction.Data {
         return _account;
     }
 
-    public void setAccount(String value) {
-        if (value == null)
+    public void setAccount(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _account = value;
+        _account = _v_;
     }
 
     public long getLinkSid() {
         return _linkSid;
     }
 
-    public void setLinkSid(long value) {
-        _linkSid = value;
+    public void setLinkSid(long _v_) {
+        _linkSid = _v_;
     }
 
     public int getReason() {
         return _reason;
     }
 
-    public void setReason(int value) {
-        _reason = value;
+    public void setReason(int _v_) {
+        _reason = _v_;
     }
 
     public Zeze.Builtin.Provider.BUserState.Data getUserState() {
         return _userState;
     }
 
-    public void setUserState(Zeze.Builtin.Provider.BUserState.Data value) {
-        if (value == null)
+    public void setUserState(Zeze.Builtin.Provider.BUserState.Data _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _userState = value;
+        _userState = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -463,41 +463,41 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BLinkBroken toBean() {
-        var bean = new Zeze.Builtin.Provider.BLinkBroken();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BLinkBroken();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BLinkBroken)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BLinkBroken)_o_);
     }
 
-    public void assign(BLinkBroken other) {
-        _account = other.getAccount();
-        _linkSid = other.getLinkSid();
-        _reason = other.getReason();
-        _userState.assign(other._userState.getValue());
+    public void assign(BLinkBroken _o_) {
+        _account = _o_.getAccount();
+        _linkSid = _o_.getLinkSid();
+        _reason = _o_.getReason();
+        _userState.assign(_o_._userState.getValue());
     }
 
-    public void assign(BLinkBroken.Data other) {
-        _account = other._account;
-        _linkSid = other._linkSid;
-        _reason = other._reason;
-        _userState.assign(other._userState);
+    public void assign(BLinkBroken.Data _o_) {
+        _account = _o_._account;
+        _linkSid = _o_._linkSid;
+        _reason = _o_._reason;
+        _userState.assign(_o_._userState);
     }
 
     @Override
     public BLinkBroken.Data copy() {
-        var copy = new BLinkBroken.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLinkBroken.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLinkBroken.Data a, BLinkBroken.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLinkBroken.Data _a_, BLinkBroken.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -512,23 +512,23 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BLinkBroken: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(_account).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("reason=").append(_reason).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("userState=").append(System.lineSeparator());
-        _userState.buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BLinkBroken: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(_account).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("reason=").append(_reason).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("userState=").append(System.lineSeparator());
+        _userState.buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -537,8 +537,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

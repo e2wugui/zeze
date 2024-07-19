@@ -15,42 +15,42 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     public boolean isNull() {
         if (!isManaged())
             return _Null;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Null;
-        var log = (Log__Null)txn.getLog(objectId() + 1);
+        var log = (Log__Null)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Null;
     }
 
-    public void setNull(boolean value) {
+    public void setNull(boolean _v_) {
         if (!isManaged()) {
-            _Null = value;
+            _Null = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Null(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Null(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getValue() {
         if (!isManaged())
             return _Value;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Value;
-        var log = (Log__Value)txn.getLog(objectId() + 2);
+        var log = (Log__Value)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Value;
     }
 
-    public void setValue(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setValue(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Value = value;
+            _Value = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Value(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Value(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -75,26 +75,26 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
 
     @Override
     public Zeze.Builtin.Dbh2.BGetResult.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BGetResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.BGetResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BGetResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.BGetResult.Data)_o_);
     }
 
-    public void assign(BGetResult.Data other) {
-        setNull(other._Null);
-        setValue(other._Value);
+    public void assign(BGetResult.Data _o_) {
+        setNull(_o_._Null);
+        setValue(_o_._Value);
         _unknown_ = null;
     }
 
-    public void assign(BGetResult other) {
-        setNull(other.isNull());
-        setValue(other.getValue());
-        _unknown_ = other._unknown_;
+    public void assign(BGetResult _o_) {
+        setNull(_o_.isNull());
+        setValue(_o_.getValue());
+        _unknown_ = _o_._unknown_;
     }
 
     public BGetResult copyIfManaged() {
@@ -103,15 +103,15 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
 
     @Override
     public BGetResult copy() {
-        var copy = new BGetResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetResult a, BGetResult b) {
-        BGetResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetResult _a_, BGetResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -120,14 +120,14 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     private static final class Log__Null extends Zeze.Transaction.Logs.LogBool {
-        public Log__Null(BGetResult bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__Null(BGetResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGetResult)getBelong())._Null = value; }
     }
 
     private static final class Log__Value extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Value(BGetResult bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Value(BGetResult _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BGetResult)getBelong())._Value = value; }
@@ -135,19 +135,19 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BGetResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Null=").append(isNull()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(getValue()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BGetResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Null=").append(isNull()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(getValue()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -158,8 +158,8 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -230,39 +230,39 @@ public final class BGetResult extends Zeze.Transaction.Bean implements BGetResul
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Null = vlog.booleanValue(); break;
-                case 2: _Value = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Null = _v_.booleanValue(); break;
+                case 2: _Value = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setNull(rs.getBoolean(_parents_name_ + "Null"));
-        setValue(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Value")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setNull(_r_.getBoolean(_pn_ + "Null"));
+        setValue(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Value")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendBoolean(_parents_name_ + "Null", isNull());
-        st.appendBinary(_parents_name_ + "Value", getValue());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendBoolean(_pn_ + "Null", isNull());
+        _s_.appendBinary(_pn_ + "Value", getValue());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Null", "bool", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Value", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Null", "bool", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Value", "binary", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -276,18 +276,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Null;
     }
 
-    public void setNull(boolean value) {
-        _Null = value;
+    public void setNull(boolean _v_) {
+        _Null = _v_;
     }
 
     public Zeze.Net.Binary getValue() {
         return _Value;
     }
 
-    public void setValue(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setValue(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Value = value;
+        _Value = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -311,37 +311,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.BGetResult toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BGetResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.BGetResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BGetResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BGetResult)_o_);
     }
 
-    public void assign(BGetResult other) {
-        _Null = other.isNull();
-        _Value = other.getValue();
+    public void assign(BGetResult _o_) {
+        _Null = _o_.isNull();
+        _Value = _o_.getValue();
     }
 
-    public void assign(BGetResult.Data other) {
-        _Null = other._Null;
-        _Value = other._Value;
+    public void assign(BGetResult.Data _o_) {
+        _Null = _o_._Null;
+        _Value = _o_._Value;
     }
 
     @Override
     public BGetResult.Data copy() {
-        var copy = new BGetResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BGetResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BGetResult.Data a, BGetResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BGetResult.Data _a_, BGetResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -356,19 +356,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BGetResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Null=").append(_Null).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_Value).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BGetResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Null=").append(_Null).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_Value).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -377,8 +377,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

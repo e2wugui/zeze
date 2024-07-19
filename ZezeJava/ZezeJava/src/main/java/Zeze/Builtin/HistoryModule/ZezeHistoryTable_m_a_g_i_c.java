@@ -12,8 +12,8 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Ze
         super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c");
     }
 
-    public ZezeHistoryTable_m_a_g_i_c(String suffix) {
-        super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c", suffix);
+    public ZezeHistoryTable_m_a_g_i_c(String _s_) {
+        super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c", _s_);
     }
 
     @Override
@@ -34,7 +34,7 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Ze
 
     @Override
     public Zeze.Util.Id128 decodeKey(ByteBuffer _os_) {
-        Zeze.Util.Id128 _v_ = new Zeze.Util.Id128();
+        var _v_ = new Zeze.Util.Id128();
         _v_.decode(_os_);
         return _v_;
     }
@@ -47,21 +47,21 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Ze
     }
 
     @Override
-    public Zeze.Util.Id128 decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Util.Id128 _v_ = new Zeze.Util.Id128();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Util.Id128 decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Util.Id128();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Util.Id128 _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Util.Id128 _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -70,7 +70,7 @@ public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Ze
     }
 
     @Override
-    public Zeze.Builtin.HistoryModule.BLogChangesReadOnly getReadOnly(Zeze.Util.Id128 key) {
-        return get(key);
+    public Zeze.Builtin.HistoryModule.BLogChangesReadOnly getReadOnly(Zeze.Util.Id128 _k_) {
+        return get(_k_);
     }
 }

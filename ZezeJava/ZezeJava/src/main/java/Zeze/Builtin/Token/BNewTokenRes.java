@@ -14,22 +14,22 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     public String getToken() {
         if (!isManaged())
             return _token;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _token;
-        var log = (Log__token)txn.getLog(objectId() + 1);
+        var log = (Log__token)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _token;
     }
 
-    public void setToken(String value) {
-        if (value == null)
+    public void setToken(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _token = value;
+            _token = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__token(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__token(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -52,24 +52,24 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public Zeze.Builtin.Token.BNewTokenRes.Data toData() {
-        var data = new Zeze.Builtin.Token.BNewTokenRes.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BNewTokenRes.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BNewTokenRes.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BNewTokenRes.Data)_o_);
     }
 
-    public void assign(BNewTokenRes.Data other) {
-        setToken(other._token);
+    public void assign(BNewTokenRes.Data _o_) {
+        setToken(_o_._token);
         _unknown_ = null;
     }
 
-    public void assign(BNewTokenRes other) {
-        setToken(other.getToken());
-        _unknown_ = other._unknown_;
+    public void assign(BNewTokenRes _o_) {
+        setToken(_o_.getToken());
+        _unknown_ = _o_._unknown_;
     }
 
     public BNewTokenRes copyIfManaged() {
@@ -78,15 +78,15 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public BNewTokenRes copy() {
-        var copy = new BNewTokenRes();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNewTokenRes();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNewTokenRes a, BNewTokenRes b) {
-        BNewTokenRes save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNewTokenRes _a_, BNewTokenRes _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     }
 
     private static final class Log__token extends Zeze.Transaction.Logs.LogString {
-        public Log__token(BNewTokenRes bean, int varId, String value) { super(bean, varId, value); }
+        public Log__token(BNewTokenRes _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNewTokenRes)getBelong())._token = value; }
@@ -103,18 +103,18 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BNewTokenRes: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("token=").append(getToken()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BNewTokenRes: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("token=").append(getToken()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -125,8 +125,8 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -184,37 +184,37 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _token = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _token = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setToken(rs.getString(_parents_name_ + "token"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setToken(_r_.getString(_pn_ + "token"));
         if (getToken() == null)
             setToken("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "token", getToken());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "token", getToken());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "token", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,10 +227,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _token;
     }
 
-    public void setToken(String value) {
-        if (value == null)
+    public void setToken(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _token = value;
+        _token = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -252,35 +252,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BNewTokenRes toBean() {
-        var bean = new Zeze.Builtin.Token.BNewTokenRes();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BNewTokenRes();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BNewTokenRes)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BNewTokenRes)_o_);
     }
 
-    public void assign(BNewTokenRes other) {
-        _token = other.getToken();
+    public void assign(BNewTokenRes _o_) {
+        _token = _o_.getToken();
     }
 
-    public void assign(BNewTokenRes.Data other) {
-        _token = other._token;
+    public void assign(BNewTokenRes.Data _o_) {
+        _token = _o_._token;
     }
 
     @Override
     public BNewTokenRes.Data copy() {
-        var copy = new BNewTokenRes.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNewTokenRes.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNewTokenRes.Data a, BNewTokenRes.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNewTokenRes.Data _a_, BNewTokenRes.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -295,18 +295,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BNewTokenRes: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("token=").append(_token).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BNewTokenRes: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("token=").append(_token).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -315,8 +315,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

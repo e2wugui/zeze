@@ -15,22 +15,22 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public Zeze.Builtin.Onz.BFuncSagaEndResult.Data toData() {
-        var data = new Zeze.Builtin.Onz.BFuncSagaEndResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Onz.BFuncSagaEndResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Onz.BFuncSagaEndResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Onz.BFuncSagaEndResult.Data)_o_);
     }
 
-    public void assign(BFuncSagaEndResult.Data other) {
+    public void assign(BFuncSagaEndResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BFuncSagaEndResult other) {
-        _unknown_ = other._unknown_;
+    public void assign(BFuncSagaEndResult _o_) {
+        _unknown_ = _o_._unknown_;
     }
 
     public BFuncSagaEndResult copyIfManaged() {
@@ -39,15 +39,15 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public BFuncSagaEndResult copy() {
-        var copy = new BFuncSagaEndResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BFuncSagaEndResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BFuncSagaEndResult a, BFuncSagaEndResult b) {
-        BFuncSagaEndResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BFuncSagaEndResult _a_, BFuncSagaEndResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -57,17 +57,17 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -78,8 +78,8 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -118,15 +118,15 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
+    public void followerApply(Zeze.Transaction.Log _l_) {
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
     }
 
 // 保留这个结构，以后可能需要返回结果
@@ -144,33 +144,33 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Onz.BFuncSagaEndResult toBean() {
-        var bean = new Zeze.Builtin.Onz.BFuncSagaEndResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Onz.BFuncSagaEndResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BFuncSagaEndResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BFuncSagaEndResult)_o_);
     }
 
-    public void assign(BFuncSagaEndResult other) {
+    public void assign(BFuncSagaEndResult _o_) {
     }
 
-    public void assign(BFuncSagaEndResult.Data other) {
+    public void assign(BFuncSagaEndResult.Data _o_) {
     }
 
     @Override
     public BFuncSagaEndResult.Data copy() {
-        var copy = new BFuncSagaEndResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BFuncSagaEndResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BFuncSagaEndResult.Data a, BFuncSagaEndResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BFuncSagaEndResult.Data _a_, BFuncSagaEndResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -185,17 +185,17 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
-        level += 4;
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncSagaEndResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -204,8 +204,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

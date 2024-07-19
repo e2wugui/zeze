@@ -33,31 +33,31 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     @Override
     public Zeze.Builtin.Provider.BSubscribe.Data toData() {
-        var data = new Zeze.Builtin.Provider.BSubscribe.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BSubscribe.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BSubscribe.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BSubscribe.Data)_o_);
     }
 
-    public void assign(BSubscribe.Data other) {
+    public void assign(BSubscribe.Data _o_) {
         _modules.clear();
-        for (var e : other._modules.entrySet()) {
-            Zeze.Builtin.Provider.BModule data = new Zeze.Builtin.Provider.BModule();
-            data.assign(e.getValue());
-            _modules.put(e.getKey(), data);
+        for (var _e_ : _o_._modules.entrySet()) {
+            var _v_ = new Zeze.Builtin.Provider.BModule();
+            _v_.assign(_e_.getValue());
+            _modules.put(_e_.getKey(), _v_);
         }
         _unknown_ = null;
     }
 
-    public void assign(BSubscribe other) {
+    public void assign(BSubscribe _o_) {
         _modules.clear();
-        for (var e : other._modules.entrySet())
-            _modules.put(e.getKey(), e.getValue().copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._modules.entrySet())
+            _modules.put(_e_.getKey(), _e_.getValue().copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSubscribe copyIfManaged() {
@@ -66,15 +66,15 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     @Override
     public BSubscribe copy() {
-        var copy = new BSubscribe();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSubscribe();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSubscribe a, BSubscribe b) {
-        BSubscribe save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSubscribe _a_, BSubscribe _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -84,31 +84,31 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSubscribe: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("modules={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSubscribe: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("modules={");
         if (!_modules.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _modules.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _modules.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -119,8 +119,8 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -195,13 +195,13 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _modules.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _modules.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _modules.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _modules.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -215,35 +215,35 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _modules.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _modules.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", _modules, rs.getString(_parents_name_ + "modules"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "modules", _modules, _r_.getString(_pn_ + "modules"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "modules", Zeze.Serialize.Helper.encodeJson(_modules));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "modules", "map", "int", "Zeze.Builtin.Provider.BModule"));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -256,10 +256,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _modules;
     }
 
-    public void setModules(java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> value) {
-        if (value == null)
+    public void setModules(java.util.HashMap<Integer, Zeze.Builtin.Provider.BModule.Data> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _modules = value;
+        _modules = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -281,42 +281,42 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BSubscribe toBean() {
-        var bean = new Zeze.Builtin.Provider.BSubscribe();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BSubscribe();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSubscribe)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSubscribe)_o_);
     }
 
-    public void assign(BSubscribe other) {
+    public void assign(BSubscribe _o_) {
         _modules.clear();
-        for (var e : other._modules.entrySet()) {
-            Zeze.Builtin.Provider.BModule.Data data = new Zeze.Builtin.Provider.BModule.Data();
-            data.assign(e.getValue());
-            _modules.put(e.getKey(), data);
+        for (var _e_ : _o_._modules.entrySet()) {
+            var _v_ = new Zeze.Builtin.Provider.BModule.Data();
+            _v_.assign(_e_.getValue());
+            _modules.put(_e_.getKey(), _v_);
         }
     }
 
-    public void assign(BSubscribe.Data other) {
+    public void assign(BSubscribe.Data _o_) {
         _modules.clear();
-        for (var e : other._modules.entrySet())
-            _modules.put(e.getKey(), e.getValue().copy());
+        for (var _e_ : _o_._modules.entrySet())
+            _modules.put(_e_.getKey(), _e_.getValue().copy());
     }
 
     @Override
     public BSubscribe.Data copy() {
-        var copy = new BSubscribe.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSubscribe.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSubscribe.Data a, BSubscribe.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSubscribe.Data _a_, BSubscribe.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -331,31 +331,31 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSubscribe: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("modules={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSubscribe: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("modules={");
         if (!_modules.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _modules.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _modules.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -364,8 +364,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

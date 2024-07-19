@@ -19,52 +19,52 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     @Override
     public String getJobHandleName() {
         if (!isManaged())
             return _JobHandleName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _JobHandleName;
-        var log = (Log__JobHandleName)txn.getLog(objectId() + 1);
+        var log = (Log__JobHandleName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _JobHandleName;
     }
 
-    public void setJobHandleName(String value) {
-        if (value == null)
+    public void setJobHandleName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _JobHandleName = value;
+            _JobHandleName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__JobHandleName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__JobHandleName(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getJobState() {
         if (!isManaged())
             return _JobState;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _JobState;
-        var log = (Log__JobState)txn.getLog(objectId() + 2);
+        var log = (Log__JobState)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _JobState;
     }
 
-    public void setJobState(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setJobState(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _JobState = value;
+            _JobState = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__JobState(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__JobState(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -90,10 +90,10 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         _unknown_ = null;
     }
 
-    public void assign(BJob other) {
-        setJobHandleName(other.getJobHandleName());
-        setJobState(other.getJobState());
-        _unknown_ = other._unknown_;
+    public void assign(BJob _o_) {
+        setJobHandleName(_o_.getJobHandleName());
+        setJobState(_o_.getJobState());
+        _unknown_ = _o_._unknown_;
     }
 
     public BJob copyIfManaged() {
@@ -102,15 +102,15 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
 
     @Override
     public BJob copy() {
-        var copy = new BJob();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BJob();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BJob a, BJob b) {
-        BJob save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BJob _a_, BJob _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -119,14 +119,14 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     private static final class Log__JobHandleName extends Zeze.Transaction.Logs.LogString {
-        public Log__JobHandleName(BJob bean, int varId, String value) { super(bean, varId, value); }
+        public Log__JobHandleName(BJob _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BJob)getBelong())._JobHandleName = value; }
     }
 
     private static final class Log__JobState extends Zeze.Transaction.Logs.LogBinary {
-        public Log__JobState(BJob bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__JobState(BJob _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BJob)getBelong())._JobState = value; }
@@ -134,19 +134,19 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.DelayRemove.BJob: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("JobHandleName=").append(getJobHandleName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("JobState=").append(getJobState()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.DelayRemove.BJob: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("JobHandleName=").append(getJobHandleName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("JobState=").append(getJobState()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -157,8 +157,8 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -229,40 +229,40 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _JobHandleName = vlog.stringValue(); break;
-                case 2: _JobState = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _JobHandleName = _v_.stringValue(); break;
+                case 2: _JobState = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setJobHandleName(rs.getString(_parents_name_ + "JobHandleName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setJobHandleName(_r_.getString(_pn_ + "JobHandleName"));
         if (getJobHandleName() == null)
             setJobHandleName("");
-        setJobState(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "JobState")));
+        setJobState(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "JobState")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "JobHandleName", getJobHandleName());
-        st.appendBinary(_parents_name_ + "JobState", getJobState());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "JobHandleName", getJobHandleName());
+        _s_.appendBinary(_pn_ + "JobState", getJobState());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "JobHandleName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "JobState", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "JobHandleName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "JobState", "binary", "", ""));
+        return _v_;
     }
 }

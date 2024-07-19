@@ -14,20 +14,20 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     public long getTid() {
         if (!isManaged())
             return _Tid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Tid;
-        var log = (Log__Tid)txn.getLog(objectId() + 1);
+        var log = (Log__Tid)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Tid;
     }
 
-    public void setTid(long value) {
+    public void setTid(long _v_) {
         if (!isManaged()) {
-            _Tid = value;
+            _Tid = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Tid(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Tid(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @Override
     public Zeze.Builtin.Dbh2.BBatchTid.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BBatchTid.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.BBatchTid.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BBatchTid.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.BBatchTid.Data)_o_);
     }
 
-    public void assign(BBatchTid.Data other) {
-        setTid(other._Tid);
+    public void assign(BBatchTid.Data _o_) {
+        setTid(_o_._Tid);
         _unknown_ = null;
     }
 
-    public void assign(BBatchTid other) {
-        setTid(other.getTid());
-        _unknown_ = other._unknown_;
+    public void assign(BBatchTid _o_) {
+        setTid(_o_.getTid());
+        _unknown_ = _o_._unknown_;
     }
 
     public BBatchTid copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @Override
     public BBatchTid copy() {
-        var copy = new BBatchTid();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBatchTid();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBatchTid a, BBatchTid b) {
-        BBatchTid save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBatchTid _a_, BBatchTid _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Tid(BBatchTid bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Tid(BBatchTid _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBatchTid)getBelong())._Tid = value; }
@@ -98,18 +98,18 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Tid=").append(getTid()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -186,35 +186,35 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Tid = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Tid = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTid(rs.getLong(_parents_name_ + "Tid"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setTid(_r_.getLong(_pn_ + "Tid"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Tid", getTid());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Tid", getTid());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tid", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Tid", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,8 +227,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Tid;
     }
 
-    public void setTid(long value) {
-        _Tid = value;
+    public void setTid(long _v_) {
+        _Tid = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -247,35 +247,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.BBatchTid toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BBatchTid();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.BBatchTid();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BBatchTid)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BBatchTid)_o_);
     }
 
-    public void assign(BBatchTid other) {
-        _Tid = other.getTid();
+    public void assign(BBatchTid _o_) {
+        _Tid = _o_.getTid();
     }
 
-    public void assign(BBatchTid.Data other) {
-        _Tid = other._Tid;
+    public void assign(BBatchTid.Data _o_) {
+        _Tid = _o_._Tid;
     }
 
     @Override
     public BBatchTid.Data copy() {
-        var copy = new BBatchTid.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBatchTid.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBatchTid.Data a, BBatchTid.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBatchTid.Data _a_, BBatchTid.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -290,18 +290,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(_Tid).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBatchTid: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Tid=").append(_Tid).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -310,8 +310,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

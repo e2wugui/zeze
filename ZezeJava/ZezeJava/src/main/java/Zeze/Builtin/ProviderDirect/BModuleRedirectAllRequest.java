@@ -22,40 +22,40 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ModuleId;
-        var log = (Log__ModuleId)txn.getLog(objectId() + 1);
+        var log = (Log__ModuleId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ModuleId;
     }
 
-    public void setModuleId(int value) {
+    public void setModuleId(int _v_) {
         if (!isManaged()) {
-            _ModuleId = value;
+            _ModuleId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ModuleId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ModuleId(this, 1, _v_));
     }
 
     @Override
     public int getHashCodeConcurrentLevel() {
         if (!isManaged())
             return _HashCodeConcurrentLevel;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _HashCodeConcurrentLevel;
-        var log = (Log__HashCodeConcurrentLevel)txn.getLog(objectId() + 2);
+        var log = (Log__HashCodeConcurrentLevel)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _HashCodeConcurrentLevel;
     }
 
-    public void setHashCodeConcurrentLevel(int value) {
+    public void setHashCodeConcurrentLevel(int _v_) {
         if (!isManaged()) {
-            _HashCodeConcurrentLevel = value;
+            _HashCodeConcurrentLevel = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__HashCodeConcurrentLevel(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__HashCodeConcurrentLevel(this, 2, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<Integer> getHashCodes() {
@@ -71,126 +71,126 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     public long getSourceProvider() {
         if (!isManaged())
             return _SourceProvider;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _SourceProvider;
-        var log = (Log__SourceProvider)txn.getLog(objectId() + 4);
+        var log = (Log__SourceProvider)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _SourceProvider;
     }
 
-    public void setSourceProvider(long value) {
+    public void setSourceProvider(long _v_) {
         if (!isManaged()) {
-            _SourceProvider = value;
+            _SourceProvider = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SourceProvider(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__SourceProvider(this, 4, _v_));
     }
 
     @Override
     public long getSessionId() {
         if (!isManaged())
             return _SessionId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _SessionId;
-        var log = (Log__SessionId)txn.getLog(objectId() + 5);
+        var log = (Log__SessionId)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _SessionId;
     }
 
-    public void setSessionId(long value) {
+    public void setSessionId(long _v_) {
         if (!isManaged()) {
-            _SessionId = value;
+            _SessionId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SessionId(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__SessionId(this, 5, _v_));
     }
 
     @Override
     public String getMethodFullName() {
         if (!isManaged())
             return _MethodFullName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _MethodFullName;
-        var log = (Log__MethodFullName)txn.getLog(objectId() + 6);
+        var log = (Log__MethodFullName)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _MethodFullName;
     }
 
-    public void setMethodFullName(String value) {
-        if (value == null)
+    public void setMethodFullName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _MethodFullName = value;
+            _MethodFullName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__MethodFullName(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__MethodFullName(this, 6, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Params;
-        var log = (Log__Params)txn.getLog(objectId() + 7);
+        var log = (Log__Params)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _Params;
     }
 
-    public void setParams(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParams(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Params = value;
+            _Params = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Params(this, 7, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Params(this, 7, _v_));
     }
 
     @Override
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServiceNamePrefix;
-        var log = (Log__ServiceNamePrefix)txn.getLog(objectId() + 8);
+        var log = (Log__ServiceNamePrefix)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _ServiceNamePrefix;
     }
 
-    public void setServiceNamePrefix(String value) {
-        if (value == null)
+    public void setServiceNamePrefix(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceNamePrefix = value;
+            _ServiceNamePrefix = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceNamePrefix(this, 8, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServiceNamePrefix(this, 8, _v_));
     }
 
     @Override
     public int getVersion() {
         if (!isManaged())
             return _Version;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Version;
-        var log = (Log__Version)txn.getLog(objectId() + 9);
+        var log = (Log__Version)_t_.getLog(objectId() + 9);
         return log != null ? log.value : _Version;
     }
 
-    public void setVersion(int value) {
+    public void setVersion(int _v_) {
         if (!isManaged()) {
-            _Version = value;
+            _Version = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Version(this, 9, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Version(this, 9, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -238,41 +238,41 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
 
     @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data toData() {
-        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest.Data)_o_);
     }
 
-    public void assign(BModuleRedirectAllRequest.Data other) {
-        setModuleId(other._ModuleId);
-        setHashCodeConcurrentLevel(other._HashCodeConcurrentLevel);
+    public void assign(BModuleRedirectAllRequest.Data _o_) {
+        setModuleId(_o_._ModuleId);
+        setHashCodeConcurrentLevel(_o_._HashCodeConcurrentLevel);
         _HashCodes.clear();
-        _HashCodes.addAll(other._HashCodes);
-        setSourceProvider(other._SourceProvider);
-        setSessionId(other._SessionId);
-        setMethodFullName(other._MethodFullName);
-        setParams(other._Params);
-        setServiceNamePrefix(other._ServiceNamePrefix);
-        setVersion(other._Version);
+        _HashCodes.addAll(_o_._HashCodes);
+        setSourceProvider(_o_._SourceProvider);
+        setSessionId(_o_._SessionId);
+        setMethodFullName(_o_._MethodFullName);
+        setParams(_o_._Params);
+        setServiceNamePrefix(_o_._ServiceNamePrefix);
+        setVersion(_o_._Version);
         _unknown_ = null;
     }
 
-    public void assign(BModuleRedirectAllRequest other) {
-        setModuleId(other.getModuleId());
-        setHashCodeConcurrentLevel(other.getHashCodeConcurrentLevel());
-        _HashCodes.assign(other._HashCodes);
-        setSourceProvider(other.getSourceProvider());
-        setSessionId(other.getSessionId());
-        setMethodFullName(other.getMethodFullName());
-        setParams(other.getParams());
-        setServiceNamePrefix(other.getServiceNamePrefix());
-        setVersion(other.getVersion());
-        _unknown_ = other._unknown_;
+    public void assign(BModuleRedirectAllRequest _o_) {
+        setModuleId(_o_.getModuleId());
+        setHashCodeConcurrentLevel(_o_.getHashCodeConcurrentLevel());
+        _HashCodes.assign(_o_._HashCodes);
+        setSourceProvider(_o_.getSourceProvider());
+        setSessionId(_o_.getSessionId());
+        setMethodFullName(_o_.getMethodFullName());
+        setParams(_o_.getParams());
+        setServiceNamePrefix(_o_.getServiceNamePrefix());
+        setVersion(_o_.getVersion());
+        _unknown_ = _o_._unknown_;
     }
 
     public BModuleRedirectAllRequest copyIfManaged() {
@@ -281,15 +281,15 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
 
     @Override
     public BModuleRedirectAllRequest copy() {
-        var copy = new BModuleRedirectAllRequest();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModuleRedirectAllRequest();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModuleRedirectAllRequest a, BModuleRedirectAllRequest b) {
-        BModuleRedirectAllRequest save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModuleRedirectAllRequest _a_, BModuleRedirectAllRequest _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -298,56 +298,56 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     private static final class Log__ModuleId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ModuleId(BModuleRedirectAllRequest bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ModuleId(BModuleRedirectAllRequest _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._ModuleId = value; }
     }
 
     private static final class Log__HashCodeConcurrentLevel extends Zeze.Transaction.Logs.LogInt {
-        public Log__HashCodeConcurrentLevel(BModuleRedirectAllRequest bean, int varId, int value) { super(bean, varId, value); }
+        public Log__HashCodeConcurrentLevel(BModuleRedirectAllRequest _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._HashCodeConcurrentLevel = value; }
     }
 
     private static final class Log__SourceProvider extends Zeze.Transaction.Logs.LogLong {
-        public Log__SourceProvider(BModuleRedirectAllRequest bean, int varId, long value) { super(bean, varId, value); }
+        public Log__SourceProvider(BModuleRedirectAllRequest _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._SourceProvider = value; }
     }
 
     private static final class Log__SessionId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SessionId(BModuleRedirectAllRequest bean, int varId, long value) { super(bean, varId, value); }
+        public Log__SessionId(BModuleRedirectAllRequest _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._SessionId = value; }
     }
 
     private static final class Log__MethodFullName extends Zeze.Transaction.Logs.LogString {
-        public Log__MethodFullName(BModuleRedirectAllRequest bean, int varId, String value) { super(bean, varId, value); }
+        public Log__MethodFullName(BModuleRedirectAllRequest _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._MethodFullName = value; }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Params(BModuleRedirectAllRequest bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Params(BModuleRedirectAllRequest _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._Params = value; }
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceNamePrefix(BModuleRedirectAllRequest bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ServiceNamePrefix(BModuleRedirectAllRequest _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._ServiceNamePrefix = value; }
     }
 
     private static final class Log__Version extends Zeze.Transaction.Logs.LogInt {
-        public Log__Version(BModuleRedirectAllRequest bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Version(BModuleRedirectAllRequest _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllRequest)getBelong())._Version = value; }
@@ -355,36 +355,36 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(getModuleId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HashCodeConcurrentLevel=").append(getHashCodeConcurrentLevel()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HashCodes={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(getModuleId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCodeConcurrentLevel=").append(getHashCodeConcurrentLevel()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCodes={");
         if (!_HashCodes.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _HashCodes) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _HashCodes) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SourceProvider=").append(getSourceProvider()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SessionId=").append(getSessionId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(getMethodFullName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(getParams()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(getVersion()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SourceProvider=").append(getSourceProvider()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SessionId=").append(getSessionId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(getMethodFullName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(getParams()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(getVersion()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -395,8 +395,8 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -570,13 +570,13 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _HashCodes.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _HashCodes.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _HashCodes.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _HashCodes.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -600,71 +600,71 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ModuleId = vlog.intValue(); break;
-                case 2: _HashCodeConcurrentLevel = vlog.intValue(); break;
-                case 3: _HashCodes.followerApply(vlog); break;
-                case 4: _SourceProvider = vlog.longValue(); break;
-                case 5: _SessionId = vlog.longValue(); break;
-                case 6: _MethodFullName = vlog.stringValue(); break;
-                case 7: _Params = vlog.binaryValue(); break;
-                case 8: _ServiceNamePrefix = vlog.stringValue(); break;
-                case 9: _Version = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ModuleId = _v_.intValue(); break;
+                case 2: _HashCodeConcurrentLevel = _v_.intValue(); break;
+                case 3: _HashCodes.followerApply(_v_); break;
+                case 4: _SourceProvider = _v_.longValue(); break;
+                case 5: _SessionId = _v_.longValue(); break;
+                case 6: _MethodFullName = _v_.stringValue(); break;
+                case 7: _Params = _v_.binaryValue(); break;
+                case 8: _ServiceNamePrefix = _v_.stringValue(); break;
+                case 9: _Version = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setModuleId(rs.getInt(_parents_name_ + "ModuleId"));
-        setHashCodeConcurrentLevel(rs.getInt(_parents_name_ + "HashCodeConcurrentLevel"));
-        Zeze.Serialize.Helper.decodeJsonSet(_HashCodes, Integer.class, rs.getString(_parents_name_ + "HashCodes"));
-        setSourceProvider(rs.getLong(_parents_name_ + "SourceProvider"));
-        setSessionId(rs.getLong(_parents_name_ + "SessionId"));
-        setMethodFullName(rs.getString(_parents_name_ + "MethodFullName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setModuleId(_r_.getInt(_pn_ + "ModuleId"));
+        setHashCodeConcurrentLevel(_r_.getInt(_pn_ + "HashCodeConcurrentLevel"));
+        Zeze.Serialize.Helper.decodeJsonSet(_HashCodes, Integer.class, _r_.getString(_pn_ + "HashCodes"));
+        setSourceProvider(_r_.getLong(_pn_ + "SourceProvider"));
+        setSessionId(_r_.getLong(_pn_ + "SessionId"));
+        setMethodFullName(_r_.getString(_pn_ + "MethodFullName"));
         if (getMethodFullName() == null)
             setMethodFullName("");
-        setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
-        setServiceNamePrefix(rs.getString(_parents_name_ + "ServiceNamePrefix"));
+        setParams(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Params")));
+        setServiceNamePrefix(_r_.getString(_pn_ + "ServiceNamePrefix"));
         if (getServiceNamePrefix() == null)
             setServiceNamePrefix("");
-        setVersion(rs.getInt(_parents_name_ + "Version"));
+        setVersion(_r_.getInt(_pn_ + "Version"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "ModuleId", getModuleId());
-        st.appendInt(_parents_name_ + "HashCodeConcurrentLevel", getHashCodeConcurrentLevel());
-        st.appendString(_parents_name_ + "HashCodes", Zeze.Serialize.Helper.encodeJson(_HashCodes));
-        st.appendLong(_parents_name_ + "SourceProvider", getSourceProvider());
-        st.appendLong(_parents_name_ + "SessionId", getSessionId());
-        st.appendString(_parents_name_ + "MethodFullName", getMethodFullName());
-        st.appendBinary(_parents_name_ + "Params", getParams());
-        st.appendString(_parents_name_ + "ServiceNamePrefix", getServiceNamePrefix());
-        st.appendInt(_parents_name_ + "Version", getVersion());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "ModuleId", getModuleId());
+        _s_.appendInt(_pn_ + "HashCodeConcurrentLevel", getHashCodeConcurrentLevel());
+        _s_.appendString(_pn_ + "HashCodes", Zeze.Serialize.Helper.encodeJson(_HashCodes));
+        _s_.appendLong(_pn_ + "SourceProvider", getSourceProvider());
+        _s_.appendLong(_pn_ + "SessionId", getSessionId());
+        _s_.appendString(_pn_ + "MethodFullName", getMethodFullName());
+        _s_.appendBinary(_pn_ + "Params", getParams());
+        _s_.appendString(_pn_ + "ServiceNamePrefix", getServiceNamePrefix());
+        _s_.appendInt(_pn_ + "Version", getVersion());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ModuleId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "HashCodeConcurrentLevel", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HashCodes", "set", "", "int"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SourceProvider", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "MethodFullName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Params", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ServiceNamePrefix", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Version", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ModuleId", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "HashCodeConcurrentLevel", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "HashCodes", "set", "", "int"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SourceProvider", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "MethodFullName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Params", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "ServiceNamePrefix", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(9, "Version", "int", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -685,80 +685,80 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ModuleId;
     }
 
-    public void setModuleId(int value) {
-        _ModuleId = value;
+    public void setModuleId(int _v_) {
+        _ModuleId = _v_;
     }
 
     public int getHashCodeConcurrentLevel() {
         return _HashCodeConcurrentLevel;
     }
 
-    public void setHashCodeConcurrentLevel(int value) {
-        _HashCodeConcurrentLevel = value;
+    public void setHashCodeConcurrentLevel(int _v_) {
+        _HashCodeConcurrentLevel = _v_;
     }
 
     public java.util.HashSet<Integer> getHashCodes() {
         return _HashCodes;
     }
 
-    public void setHashCodes(java.util.HashSet<Integer> value) {
-        if (value == null)
+    public void setHashCodes(java.util.HashSet<Integer> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _HashCodes = value;
+        _HashCodes = _v_;
     }
 
     public long getSourceProvider() {
         return _SourceProvider;
     }
 
-    public void setSourceProvider(long value) {
-        _SourceProvider = value;
+    public void setSourceProvider(long _v_) {
+        _SourceProvider = _v_;
     }
 
     public long getSessionId() {
         return _SessionId;
     }
 
-    public void setSessionId(long value) {
-        _SessionId = value;
+    public void setSessionId(long _v_) {
+        _SessionId = _v_;
     }
 
     public String getMethodFullName() {
         return _MethodFullName;
     }
 
-    public void setMethodFullName(String value) {
-        if (value == null)
+    public void setMethodFullName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _MethodFullName = value;
+        _MethodFullName = _v_;
     }
 
     public Zeze.Net.Binary getParams() {
         return _Params;
     }
 
-    public void setParams(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParams(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Params = value;
+        _Params = _v_;
     }
 
     public String getServiceNamePrefix() {
         return _ServiceNamePrefix;
     }
 
-    public void setServiceNamePrefix(String value) {
-        if (value == null)
+    public void setServiceNamePrefix(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ServiceNamePrefix = value;
+        _ServiceNamePrefix = _v_;
     }
 
     public int getVersion() {
         return _Version;
     }
 
-    public void setVersion(int value) {
-        _Version = value;
+    public void setVersion(int _v_) {
+        _Version = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -805,53 +805,53 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest toBean() {
-        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BModuleRedirectAllRequest)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BModuleRedirectAllRequest)_o_);
     }
 
-    public void assign(BModuleRedirectAllRequest other) {
-        _ModuleId = other.getModuleId();
-        _HashCodeConcurrentLevel = other.getHashCodeConcurrentLevel();
+    public void assign(BModuleRedirectAllRequest _o_) {
+        _ModuleId = _o_.getModuleId();
+        _HashCodeConcurrentLevel = _o_.getHashCodeConcurrentLevel();
         _HashCodes.clear();
-        _HashCodes.addAll(other._HashCodes);
-        _SourceProvider = other.getSourceProvider();
-        _SessionId = other.getSessionId();
-        _MethodFullName = other.getMethodFullName();
-        _Params = other.getParams();
-        _ServiceNamePrefix = other.getServiceNamePrefix();
-        _Version = other.getVersion();
+        _HashCodes.addAll(_o_._HashCodes);
+        _SourceProvider = _o_.getSourceProvider();
+        _SessionId = _o_.getSessionId();
+        _MethodFullName = _o_.getMethodFullName();
+        _Params = _o_.getParams();
+        _ServiceNamePrefix = _o_.getServiceNamePrefix();
+        _Version = _o_.getVersion();
     }
 
-    public void assign(BModuleRedirectAllRequest.Data other) {
-        _ModuleId = other._ModuleId;
-        _HashCodeConcurrentLevel = other._HashCodeConcurrentLevel;
+    public void assign(BModuleRedirectAllRequest.Data _o_) {
+        _ModuleId = _o_._ModuleId;
+        _HashCodeConcurrentLevel = _o_._HashCodeConcurrentLevel;
         _HashCodes.clear();
-        _HashCodes.addAll(other._HashCodes);
-        _SourceProvider = other._SourceProvider;
-        _SessionId = other._SessionId;
-        _MethodFullName = other._MethodFullName;
-        _Params = other._Params;
-        _ServiceNamePrefix = other._ServiceNamePrefix;
-        _Version = other._Version;
+        _HashCodes.addAll(_o_._HashCodes);
+        _SourceProvider = _o_._SourceProvider;
+        _SessionId = _o_._SessionId;
+        _MethodFullName = _o_._MethodFullName;
+        _Params = _o_._Params;
+        _ServiceNamePrefix = _o_._ServiceNamePrefix;
+        _Version = _o_._Version;
     }
 
     @Override
     public BModuleRedirectAllRequest.Data copy() {
-        var copy = new BModuleRedirectAllRequest.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModuleRedirectAllRequest.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModuleRedirectAllRequest.Data a, BModuleRedirectAllRequest.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModuleRedirectAllRequest.Data _a_, BModuleRedirectAllRequest.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -866,36 +866,36 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HashCodeConcurrentLevel=").append(_HashCodeConcurrentLevel).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("HashCodes={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCodeConcurrentLevel=").append(_HashCodeConcurrentLevel).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCodes={");
         if (!_HashCodes.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _HashCodes) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _HashCodes) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SourceProvider=").append(_SourceProvider).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SessionId=").append(_SessionId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version=").append(_Version).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SourceProvider=").append(_SourceProvider).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SessionId=").append(_SessionId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(_Version).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -904,8 +904,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

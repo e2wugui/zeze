@@ -12,8 +12,8 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
         super(-1128401683, "Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId");
     }
 
-    public tValueIdToNodeId(String suffix) {
-        super(-1128401683, "Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId", suffix);
+    public tValueIdToNodeId(String _s_) {
+        super(-1128401683, "Zeze_Builtin_Collections_LinkedMap_tValueIdToNodeId", _s_);
     }
 
     @Override
@@ -30,7 +30,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
 
     @Override
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
+        var _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
         _v_.decode(_os_);
         return _v_;
     }
@@ -43,21 +43,21 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -66,7 +66,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
     }
 
     @Override
-    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey key) {
-        return get(key);
+    public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeIdReadOnly getReadOnly(Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _k_) {
+        return get(_k_);
     }
 }

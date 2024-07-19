@@ -14,22 +14,22 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public String getSessionName() {
         if (!isManaged())
             return _SessionName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _SessionName;
-        var log = (Log__SessionName)txn.getLog(objectId() + 1);
+        var log = (Log__SessionName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _SessionName;
     }
 
-    public void setSessionName(String value) {
-        if (value == null)
+    public void setSessionName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _SessionName = value;
+            _SessionName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__SessionName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__SessionName(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -50,9 +50,9 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         _unknown_ = null;
     }
 
-    public void assign(BLogin other) {
-        setSessionName(other.getSessionName());
-        _unknown_ = other._unknown_;
+    public void assign(BLogin _o_) {
+        setSessionName(_o_.getSessionName());
+        _unknown_ = _o_._unknown_;
     }
 
     public BLogin copyIfManaged() {
@@ -61,15 +61,15 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
 
     @Override
     public BLogin copy() {
-        var copy = new BLogin();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BLogin();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BLogin a, BLogin b) {
-        BLogin save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BLogin _a_, BLogin _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -78,7 +78,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     private static final class Log__SessionName extends Zeze.Transaction.Logs.LogString {
-        public Log__SessionName(BLogin bean, int varId, String value) { super(bean, varId, value); }
+        public Log__SessionName(BLogin _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BLogin)getBelong())._SessionName = value; }
@@ -86,18 +86,18 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BLogin: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("SessionName=").append(getSessionName()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ServiceManagerWithRaft.BLogin: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("SessionName=").append(getSessionName()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -108,8 +108,8 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -167,36 +167,36 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _SessionName = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _SessionName = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setSessionName(rs.getString(_parents_name_ + "SessionName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setSessionName(_r_.getString(_pn_ + "SessionName"));
         if (getSessionName() == null)
             setSessionName("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "SessionName", getSessionName());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "SessionName", getSessionName());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SessionName", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SessionName", "string", "", ""));
+        return _v_;
     }
 }

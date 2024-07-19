@@ -38,19 +38,19 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity=").append(_ServiceIdentity).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoKeyRocks: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceIdentity=").append(_ServiceIdentity).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -61,8 +61,8 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -149,21 +149,21 @@ public final class BServiceInfoKeyRocks implements Zeze.Transaction.BeanKey, Com
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _ServiceName = rs.getString(_parents_name_ + "ServiceName");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _ServiceName = _r_.getString(_pn_ + "ServiceName");
         if (_ServiceName == null)
             _ServiceName = "";
-        _ServiceIdentity = rs.getString(_parents_name_ + "ServiceIdentity");
+        _ServiceIdentity = _r_.getString(_pn_ + "ServiceIdentity");
         if (_ServiceIdentity == null)
             _ServiceIdentity = "";
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ServiceName", _ServiceName);
-        st.appendString(_parents_name_ + "ServiceIdentity", _ServiceIdentity);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ServiceName", _ServiceName);
+        _s_.appendString(_pn_ + "ServiceIdentity", _ServiceIdentity);
     }
 
     @Override

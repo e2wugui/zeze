@@ -33,25 +33,25 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     @Override
     public Zeze.Builtin.Provider.BSendResult.Data toData() {
-        var data = new Zeze.Builtin.Provider.BSendResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BSendResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BSendResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BSendResult.Data)_o_);
     }
 
-    public void assign(BSendResult.Data other) {
+    public void assign(BSendResult.Data _o_) {
         _ErrorLinkSids.clear();
-        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+        _ErrorLinkSids.addAll(_o_._ErrorLinkSids);
         _unknown_ = null;
     }
 
-    public void assign(BSendResult other) {
-        _ErrorLinkSids.assign(other._ErrorLinkSids);
-        _unknown_ = other._unknown_;
+    public void assign(BSendResult _o_) {
+        _ErrorLinkSids.assign(_o_._ErrorLinkSids);
+        _unknown_ = _o_._unknown_;
     }
 
     public BSendResult copyIfManaged() {
@@ -60,15 +60,15 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     @Override
     public BSendResult copy() {
-        var copy = new BSendResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSendResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSendResult a, BSendResult b) {
-        BSendResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSendResult _a_, BSendResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -78,28 +78,28 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ErrorLinkSids=[");
         if (!_ErrorLinkSids.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _ErrorLinkSids) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _ErrorLinkSids) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -110,8 +110,8 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -181,13 +181,13 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ErrorLinkSids.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _ErrorLinkSids.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _ErrorLinkSids.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _ErrorLinkSids.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -201,35 +201,35 @@ public final class BSendResult extends Zeze.Transaction.Bean implements BSendRes
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ErrorLinkSids.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ErrorLinkSids.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonList(_ErrorLinkSids, Long.class, rs.getString(_parents_name_ + "ErrorLinkSids"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonList(_ErrorLinkSids, Long.class, _r_.getString(_pn_ + "ErrorLinkSids"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(_ErrorLinkSids));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ErrorLinkSids", Zeze.Serialize.Helper.encodeJson(_ErrorLinkSids));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ErrorLinkSids", "list", "", "long"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ErrorLinkSids", "list", "", "long"));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -242,10 +242,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ErrorLinkSids;
     }
 
-    public void setErrorLinkSids(java.util.ArrayList<Long> value) {
-        if (value == null)
+    public void setErrorLinkSids(java.util.ArrayList<Long> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ErrorLinkSids = value;
+        _ErrorLinkSids = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -267,37 +267,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BSendResult toBean() {
-        var bean = new Zeze.Builtin.Provider.BSendResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BSendResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSendResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSendResult)_o_);
     }
 
-    public void assign(BSendResult other) {
+    public void assign(BSendResult _o_) {
         _ErrorLinkSids.clear();
-        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+        _ErrorLinkSids.addAll(_o_._ErrorLinkSids);
     }
 
-    public void assign(BSendResult.Data other) {
+    public void assign(BSendResult.Data _o_) {
         _ErrorLinkSids.clear();
-        _ErrorLinkSids.addAll(other._ErrorLinkSids);
+        _ErrorLinkSids.addAll(_o_._ErrorLinkSids);
     }
 
     @Override
     public BSendResult.Data copy() {
-        var copy = new BSendResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSendResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSendResult.Data a, BSendResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSendResult.Data _a_, BSendResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -312,28 +312,28 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ErrorLinkSids=[");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSendResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ErrorLinkSids=[");
         if (!_ErrorLinkSids.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _ErrorLinkSids) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _ErrorLinkSids) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(']').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -342,8 +342,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

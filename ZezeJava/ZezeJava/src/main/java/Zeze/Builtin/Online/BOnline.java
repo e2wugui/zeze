@@ -24,50 +24,50 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     @Override
     public Zeze.Builtin.Online.BLink getLink() {
         if (!isManaged())
             return _Link;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Link;
-        var log = (Log__Link)txn.getLog(objectId() + 1);
+        var log = (Log__Link)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Link;
     }
 
-    public void setLink(Zeze.Builtin.Online.BLink value) {
-        if (value == null)
+    public void setLink(Zeze.Builtin.Online.BLink _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Link = value;
+            _Link = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Link(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Link(this, 1, _v_));
     }
 
     @Override
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)txn.getLog(objectId() + 2);
+        var log = (Log__LoginVersion)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _LoginVersion;
     }
 
-    public void setLoginVersion(long value) {
+    public void setLoginVersion(long _v_) {
         if (!isManaged()) {
-            _LoginVersion = value;
+            _LoginVersion = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LoginVersion(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__LoginVersion(this, 2, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<String> getReliableNotifyMark() {
@@ -83,80 +83,80 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public long getReliableNotifyIndex() {
         if (!isManaged())
             return _ReliableNotifyIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReliableNotifyIndex;
-        var log = (Log__ReliableNotifyIndex)txn.getLog(objectId() + 4);
+        var log = (Log__ReliableNotifyIndex)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _ReliableNotifyIndex;
     }
 
-    public void setReliableNotifyIndex(long value) {
+    public void setReliableNotifyIndex(long _v_) {
         if (!isManaged()) {
-            _ReliableNotifyIndex = value;
+            _ReliableNotifyIndex = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReliableNotifyIndex(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReliableNotifyIndex(this, 4, _v_));
     }
 
     @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReliableNotifyConfirmIndex;
-        var log = (Log__ReliableNotifyConfirmIndex)txn.getLog(objectId() + 5);
+        var log = (Log__ReliableNotifyConfirmIndex)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _ReliableNotifyConfirmIndex;
     }
 
-    public void setReliableNotifyConfirmIndex(long value) {
+    public void setReliableNotifyConfirmIndex(long _v_) {
         if (!isManaged()) {
-            _ReliableNotifyConfirmIndex = value;
+            _ReliableNotifyConfirmIndex = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReliableNotifyConfirmIndex(this, 5, _v_));
     }
 
     @Override
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)txn.getLog(objectId() + 6);
+        var log = (Log__ServerId)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _ServerId;
     }
 
-    public void setServerId(int value) {
+    public void setServerId(int _v_) {
         if (!isManaged()) {
-            _ServerId = value;
+            _ServerId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServerId(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServerId(this, 6, _v_));
     }
 
     @Override
     public long getLogoutVersion() {
         if (!isManaged())
             return _LogoutVersion;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _LogoutVersion;
-        var log = (Log__LogoutVersion)txn.getLog(objectId() + 7);
+        var log = (Log__LogoutVersion)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _LogoutVersion;
     }
 
-    public void setLogoutVersion(long value) {
+    public void setLogoutVersion(long _v_) {
         if (!isManaged()) {
-            _LogoutVersion = value;
+            _LogoutVersion = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__LogoutVersion(this, 7, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__LogoutVersion(this, 7, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -192,15 +192,15 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _unknown_ = null;
     }
 
-    public void assign(BOnline other) {
-        setLink(other.getLink());
-        setLoginVersion(other.getLoginVersion());
-        _ReliableNotifyMark.assign(other._ReliableNotifyMark);
-        setReliableNotifyIndex(other.getReliableNotifyIndex());
-        setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
-        setServerId(other.getServerId());
-        setLogoutVersion(other.getLogoutVersion());
-        _unknown_ = other._unknown_;
+    public void assign(BOnline _o_) {
+        setLink(_o_.getLink());
+        setLoginVersion(_o_.getLoginVersion());
+        _ReliableNotifyMark.assign(_o_._ReliableNotifyMark);
+        setReliableNotifyIndex(_o_.getReliableNotifyIndex());
+        setReliableNotifyConfirmIndex(_o_.getReliableNotifyConfirmIndex());
+        setServerId(_o_.getServerId());
+        setLogoutVersion(_o_.getLogoutVersion());
+        _unknown_ = _o_._unknown_;
     }
 
     public BOnline copyIfManaged() {
@@ -209,15 +209,15 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @Override
     public BOnline copy() {
-        var copy = new BOnline();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOnline();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOnline a, BOnline b) {
-        BOnline save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOnline _a_, BOnline _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -226,42 +226,42 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     private static final class Log__Link extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink> {
-        public Log__Link(BOnline bean, int varId, Zeze.Builtin.Online.BLink value) { super(Zeze.Builtin.Online.BLink.class, bean, varId, value); }
+        public Log__Link(BOnline _b_, int _i_, Zeze.Builtin.Online.BLink _v_) { super(Zeze.Builtin.Online.BLink.class, _b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._Link = value; }
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BOnline bean, int varId, long value) { super(bean, varId, value); }
+        public Log__LoginVersion(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._LoginVersion = value; }
     }
 
     private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyIndex(BOnline bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyIndex(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._ReliableNotifyIndex = value; }
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyConfirmIndex(BOnline bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyConfirmIndex(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._ReliableNotifyConfirmIndex = value; }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BOnline bean, int varId, int value) { super(bean, varId, value); }
+        public Log__ServerId(BOnline _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._ServerId = value; }
     }
 
     private static final class Log__LogoutVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LogoutVersion(BOnline bean, int varId, long value) { super(bean, varId, value); }
+        public Log__LogoutVersion(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOnline)getBelong())._LogoutVersion = value; }
@@ -269,36 +269,36 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BOnline: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Link=").append(System.lineSeparator());
-        getLink().buildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyMark={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BOnline: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Link=").append(System.lineSeparator());
+        getLink().buildString(_s_, _l_ + 4);
+        _s_.append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyMark={");
         if (!_ReliableNotifyMark.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _ReliableNotifyMark) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _ReliableNotifyMark) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LogoutVersion=").append(getLogoutVersion()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("LogoutVersion=").append(getLogoutVersion()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -309,8 +309,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -461,13 +461,13 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ReliableNotifyMark.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _ReliableNotifyMark.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _ReliableNotifyMark.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _ReliableNotifyMark.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -489,62 +489,62 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink>)vlog).value; break;
-                case 2: _LoginVersion = vlog.longValue(); break;
-                case 3: _ReliableNotifyMark.followerApply(vlog); break;
-                case 4: _ReliableNotifyIndex = vlog.longValue(); break;
-                case 5: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
-                case 6: _ServerId = vlog.intValue(); break;
-                case 7: _LogoutVersion = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Link = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink>)_v_).value; break;
+                case 2: _LoginVersion = _v_.longValue(); break;
+                case 3: _ReliableNotifyMark.followerApply(_v_); break;
+                case 4: _ReliableNotifyIndex = _v_.longValue(); break;
+                case 5: _ReliableNotifyConfirmIndex = _v_.longValue(); break;
+                case 6: _ServerId = _v_.intValue(); break;
+                case 7: _LogoutVersion = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        parents.add("Link");
-        getLink().decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setLoginVersion(rs.getLong(_parents_name_ + "LoginVersion"));
-        Zeze.Serialize.Helper.decodeJsonSet(_ReliableNotifyMark, String.class, rs.getString(_parents_name_ + "ReliableNotifyMark"));
-        setReliableNotifyIndex(rs.getLong(_parents_name_ + "ReliableNotifyIndex"));
-        setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
-        setServerId(rs.getInt(_parents_name_ + "ServerId"));
-        setLogoutVersion(rs.getLong(_parents_name_ + "LogoutVersion"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("Link");
+        getLink().decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
+        Zeze.Serialize.Helper.decodeJsonSet(_ReliableNotifyMark, String.class, _r_.getString(_pn_ + "ReliableNotifyMark"));
+        setReliableNotifyIndex(_r_.getLong(_pn_ + "ReliableNotifyIndex"));
+        setReliableNotifyConfirmIndex(_r_.getLong(_pn_ + "ReliableNotifyConfirmIndex"));
+        setServerId(_r_.getInt(_pn_ + "ServerId"));
+        setLogoutVersion(_r_.getLong(_pn_ + "LogoutVersion"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        parents.add("Link");
-        getLink().encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "LoginVersion", getLoginVersion());
-        st.appendString(_parents_name_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(_ReliableNotifyMark));
-        st.appendLong(_parents_name_ + "ReliableNotifyIndex", getReliableNotifyIndex());
-        st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
-        st.appendInt(_parents_name_ + "ServerId", getServerId());
-        st.appendLong(_parents_name_ + "LogoutVersion", getLogoutVersion());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("Link");
+        getLink().encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
+        _s_.appendString(_pn_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(_ReliableNotifyMark));
+        _s_.appendLong(_pn_ + "ReliableNotifyIndex", getReliableNotifyIndex());
+        _s_.appendLong(_pn_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+        _s_.appendInt(_pn_ + "ServerId", getServerId());
+        _s_.appendLong(_pn_ + "LogoutVersion", getLogoutVersion());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Link", "Zeze.Builtin.Online.BLink", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LoginVersion", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ReliableNotifyMark", "set", "", "string"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ReliableNotifyIndex", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ReliableNotifyConfirmIndex", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ServerId", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "LogoutVersion", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Link", "Zeze.Builtin.Online.BLink", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LoginVersion", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ReliableNotifyMark", "set", "", "string"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ReliableNotifyIndex", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ReliableNotifyConfirmIndex", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "LogoutVersion", "long", "", ""));
+        return _v_;
     }
 }

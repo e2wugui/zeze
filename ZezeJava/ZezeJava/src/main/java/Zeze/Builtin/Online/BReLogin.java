@@ -15,42 +15,42 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     public String getClientId() {
         if (!isManaged())
             return _ClientId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ClientId;
-        var log = (Log__ClientId)txn.getLog(objectId() + 1);
+        var log = (Log__ClientId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ClientId;
     }
 
-    public void setClientId(String value) {
-        if (value == null)
+    public void setClientId(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ClientId = value;
+            _ClientId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ClientId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ClientId(this, 1, _v_));
     }
 
     @Override
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReliableNotifyConfirmIndex;
-        var log = (Log__ReliableNotifyConfirmIndex)txn.getLog(objectId() + 2);
+        var log = (Log__ReliableNotifyConfirmIndex)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ReliableNotifyConfirmIndex;
     }
 
-    public void setReliableNotifyConfirmIndex(long value) {
+    public void setReliableNotifyConfirmIndex(long _v_) {
         if (!isManaged()) {
-            _ReliableNotifyConfirmIndex = value;
+            _ReliableNotifyConfirmIndex = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReliableNotifyConfirmIndex(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReliableNotifyConfirmIndex(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -73,10 +73,10 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         _unknown_ = null;
     }
 
-    public void assign(BReLogin other) {
-        setClientId(other.getClientId());
-        setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
-        _unknown_ = other._unknown_;
+    public void assign(BReLogin _o_) {
+        setClientId(_o_.getClientId());
+        setReliableNotifyConfirmIndex(_o_.getReliableNotifyConfirmIndex());
+        _unknown_ = _o_._unknown_;
     }
 
     public BReLogin copyIfManaged() {
@@ -85,15 +85,15 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
 
     @Override
     public BReLogin copy() {
-        var copy = new BReLogin();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BReLogin();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BReLogin a, BReLogin b) {
-        BReLogin save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BReLogin _a_, BReLogin _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -102,14 +102,14 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     }
 
     private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
-        public Log__ClientId(BReLogin bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ClientId(BReLogin _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReLogin)getBelong())._ClientId = value; }
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyConfirmIndex(BReLogin _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BReLogin)getBelong())._ReliableNotifyConfirmIndex = value; }
@@ -117,19 +117,19 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Online.BReLogin: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ClientId=").append(getClientId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BReLogin: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ClientId=").append(getClientId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -140,8 +140,8 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -219,40 +219,40 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ClientId = vlog.stringValue(); break;
-                case 2: _ReliableNotifyConfirmIndex = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ClientId = _v_.stringValue(); break;
+                case 2: _ReliableNotifyConfirmIndex = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setClientId(rs.getString(_parents_name_ + "ClientId"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setClientId(_r_.getString(_pn_ + "ClientId"));
         if (getClientId() == null)
             setClientId("");
-        setReliableNotifyConfirmIndex(rs.getLong(_parents_name_ + "ReliableNotifyConfirmIndex"));
+        setReliableNotifyConfirmIndex(_r_.getLong(_pn_ + "ReliableNotifyConfirmIndex"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ClientId", getClientId());
-        st.appendLong(_parents_name_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ClientId", getClientId());
+        _s_.appendLong(_pn_ + "ReliableNotifyConfirmIndex", getReliableNotifyConfirmIndex());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ClientId", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyConfirmIndex", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ClientId", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ReliableNotifyConfirmIndex", "long", "", ""));
+        return _v_;
     }
 }

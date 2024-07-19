@@ -14,20 +14,20 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
     public long getOffset() {
         if (!isManaged())
             return _Offset;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Offset;
-        var log = (Log__Offset)txn.getLog(objectId() + 1);
+        var log = (Log__Offset)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Offset;
     }
 
-    public void setOffset(long value) {
+    public void setOffset(long _v_) {
         if (!isManaged()) {
-            _Offset = value;
+            _Offset = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Offset(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Offset(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
 
     @Override
     public Zeze.Builtin.Zoker.BOpenFileResult.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BOpenFileResult.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BOpenFileResult.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BOpenFileResult.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BOpenFileResult.Data)_o_);
     }
 
-    public void assign(BOpenFileResult.Data other) {
-        setOffset(other._Offset);
+    public void assign(BOpenFileResult.Data _o_) {
+        setOffset(_o_._Offset);
         _unknown_ = null;
     }
 
-    public void assign(BOpenFileResult other) {
-        setOffset(other.getOffset());
-        _unknown_ = other._unknown_;
+    public void assign(BOpenFileResult _o_) {
+        setOffset(_o_.getOffset());
+        _unknown_ = _o_._unknown_;
     }
 
     public BOpenFileResult copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
 
     @Override
     public BOpenFileResult copy() {
-        var copy = new BOpenFileResult();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOpenFileResult();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOpenFileResult a, BOpenFileResult b) {
-        BOpenFileResult save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOpenFileResult _a_, BOpenFileResult _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
     }
 
     private static final class Log__Offset extends Zeze.Transaction.Logs.LogLong {
-        public Log__Offset(BOpenFileResult bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Offset(BOpenFileResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOpenFileResult)getBelong())._Offset = value; }
@@ -98,18 +98,18 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BOpenFileResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(getOffset()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BOpenFileResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Offset=").append(getOffset()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -186,35 +186,35 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Offset = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Offset = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setOffset(rs.getLong(_parents_name_ + "Offset"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setOffset(_r_.getLong(_pn_ + "Offset"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Offset", getOffset());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Offset", getOffset());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Offset", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Offset", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,8 +227,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Offset;
     }
 
-    public void setOffset(long value) {
-        _Offset = value;
+    public void setOffset(long _v_) {
+        _Offset = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -247,35 +247,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BOpenFileResult toBean() {
-        var bean = new Zeze.Builtin.Zoker.BOpenFileResult();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BOpenFileResult();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BOpenFileResult)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BOpenFileResult)_o_);
     }
 
-    public void assign(BOpenFileResult other) {
-        _Offset = other.getOffset();
+    public void assign(BOpenFileResult _o_) {
+        _Offset = _o_.getOffset();
     }
 
-    public void assign(BOpenFileResult.Data other) {
-        _Offset = other._Offset;
+    public void assign(BOpenFileResult.Data _o_) {
+        _Offset = _o_._Offset;
     }
 
     @Override
     public BOpenFileResult.Data copy() {
-        var copy = new BOpenFileResult.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOpenFileResult.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOpenFileResult.Data a, BOpenFileResult.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOpenFileResult.Data _a_, BOpenFileResult.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -290,18 +290,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BOpenFileResult: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(_Offset).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BOpenFileResult: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Offset=").append(_Offset).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -310,8 +310,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -16,9 +16,9 @@ namespace Zeze.Gen.java
                     {
                         genBegin = true;
                         sw.WriteLine(prefix + "@Override");
-                        sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {");
+                        sw.WriteLine(prefix + "protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {");
                     }
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(root, this);");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfo(_r_, this);");
                 }
             }
             if (genBegin)
@@ -36,9 +36,9 @@ namespace Zeze.Gen.java
                     {
                         genBegin = true;
                         sw.WriteLine(prefix + "@Override");
-                        sw.WriteLine(prefix + "protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {");
+                        sw.WriteLine(prefix + "protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {");
                     }
-                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfoWithRedo(root, this);");
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".initRootInfoWithRedo(_r_, this);");
                 }
             }
             if (genBegin)

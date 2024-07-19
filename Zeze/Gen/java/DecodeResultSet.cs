@@ -8,13 +8,13 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {");
+            sw.WriteLine(prefix + "public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {");
             var hasParentName = new bool[1];
             foreach (Variable v in bean.Variables)
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new DecodeResultSet(v, v.Id, "rs", sw, $"{prefix}    ", hasParentName, false));
+                v.VariableType.Accept(new DecodeResultSet(v, v.Id, "_r_", sw, $"{prefix}    ", hasParentName, false));
             }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -23,13 +23,13 @@ namespace Zeze.Gen.java
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + "public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {");
+            sw.WriteLine(prefix + "public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {");
             var hasParentName = new bool[1];
             foreach (Variable v in bean.Variables)
             {
                 if (v.Transient)
                     continue;
-                v.VariableType.Accept(new DecodeResultSet(v, v.Id, "rs", sw, $"{prefix}    ", hasParentName, true));
+                v.VariableType.Accept(new DecodeResultSet(v, v.Id, "_r_", sw, $"{prefix}    ", hasParentName, true));
             }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -74,7 +74,7 @@ namespace Zeze.Gen.java
         string ColumnName => null != this.columnName ? columnName : var.Name;
         string Getter => var != null ? isData ? var.NamePrivate : var.Getter : tmpvarname;
         string NamePrivate => var != null ? var.NamePrivate : tmpvarname;
-        string ParaneName => columnName != null ? "" : "_parents_name_ + ";
+        string ParaneName => columnName != null ? "" : "_pn_ + ";
 
         string AssignText(string value)
         {
@@ -88,7 +88,7 @@ namespace Zeze.Gen.java
             if (!hasParentsName[0] && null == columnName)
             {
                 hasParentsName[0] = true;
-                sw.WriteLine($"{prefix}var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);");
+                sw.WriteLine($"{prefix}var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);");
             }
         }
 
@@ -168,16 +168,16 @@ namespace Zeze.Gen.java
 
         public void Visit(Bean type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{NamePrivate}.decodeResultSet(parents, {bb});");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{NamePrivate}.decodeResultSet(_p_, {bb});");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(BeanKey type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{Getter}.decodeResultSet(parents, {bb});");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{Getter}.decodeResultSet(_p_, {bb});");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeDynamic type)
@@ -188,44 +188,44 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeQuaternion(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeQuaternion(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2Int(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector2Int(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3Int(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector3Int(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine($"{prefix}parents.add(\"{ColumnName}\");");
-            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector4(parents, {bb})")};");
-            sw.WriteLine($"{prefix}parents.remove(parents.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
+            sw.WriteLine($"{prefix}{AssignText($"Zeze.Serialize.Helper.decodeVector4(_p_, {bb})")};");
+            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
         public void Visit(TypeDecimal type)

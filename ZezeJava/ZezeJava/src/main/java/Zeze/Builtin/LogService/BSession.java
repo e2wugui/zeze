@@ -14,20 +14,20 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     public long getId() {
         if (!isManaged())
             return _Id;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Id;
-        var log = (Log__Id)txn.getLog(objectId() + 1);
+        var log = (Log__Id)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
-    public void setId(long value) {
+    public void setId(long _v_) {
         if (!isManaged()) {
-            _Id = value;
+            _Id = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Id(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Id(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -47,24 +47,24 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
 
     @Override
     public Zeze.Builtin.LogService.BSession.Data toData() {
-        var data = new Zeze.Builtin.LogService.BSession.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.LogService.BSession.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.LogService.BSession.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.LogService.BSession.Data)_o_);
     }
 
-    public void assign(BSession.Data other) {
-        setId(other._Id);
+    public void assign(BSession.Data _o_) {
+        setId(_o_._Id);
         _unknown_ = null;
     }
 
-    public void assign(BSession other) {
-        setId(other.getId());
-        _unknown_ = other._unknown_;
+    public void assign(BSession _o_) {
+        setId(_o_.getId());
+        _unknown_ = _o_._unknown_;
     }
 
     public BSession copyIfManaged() {
@@ -73,15 +73,15 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
 
     @Override
     public BSession copy() {
-        var copy = new BSession();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSession();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSession a, BSession b) {
-        BSession save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSession _a_, BSession _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     }
 
     private static final class Log__Id extends Zeze.Transaction.Logs.LogLong {
-        public Log__Id(BSession bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Id(BSession _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSession)getBelong())._Id = value; }
@@ -98,18 +98,18 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BSession: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(getId()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BSession: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -120,8 +120,8 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -186,35 +186,35 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Id = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Id = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setId(rs.getLong(_parents_name_ + "Id"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setId(_r_.getLong(_pn_ + "Id"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Id", getId());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Id", getId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Id", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,8 +227,8 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Id;
     }
 
-    public void setId(long value) {
-        _Id = value;
+    public void setId(long _v_) {
+        _Id = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -247,35 +247,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.LogService.BSession toBean() {
-        var bean = new Zeze.Builtin.LogService.BSession();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.LogService.BSession();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BSession)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BSession)_o_);
     }
 
-    public void assign(BSession other) {
-        _Id = other.getId();
+    public void assign(BSession _o_) {
+        _Id = _o_.getId();
     }
 
-    public void assign(BSession.Data other) {
-        _Id = other._Id;
+    public void assign(BSession.Data _o_) {
+        _Id = _o_._Id;
     }
 
     @Override
     public BSession.Data copy() {
-        var copy = new BSession.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSession.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSession.Data a, BSession.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSession.Data _a_, BSession.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -290,18 +290,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.LogService.BSession: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id=").append(_Id).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BSession: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -310,8 +310,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

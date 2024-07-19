@@ -21,150 +21,150 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _linkSid;
-        var log = (Log__linkSid)txn.getLog(objectId() + 1);
+        var log = (Log__linkSid)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _linkSid;
     }
 
-    public void setLinkSid(long value) {
+    public void setLinkSid(long _v_) {
         if (!isManaged()) {
-            _linkSid = value;
+            _linkSid = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__linkSid(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__linkSid(this, 1, _v_));
     }
 
     @Override
     public String getAccount() {
         if (!isManaged())
             return _account;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _account;
-        var log = (Log__account)txn.getLog(objectId() + 2);
+        var log = (Log__account)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _account;
     }
 
-    public void setAccount(String value) {
-        if (value == null)
+    public void setAccount(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _account = value;
+            _account = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__account(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__account(this, 2, _v_));
     }
 
     @Override
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _protocolType;
-        var log = (Log__protocolType)txn.getLog(objectId() + 3);
+        var log = (Log__protocolType)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _protocolType;
     }
 
-    public void setProtocolType(long value) {
+    public void setProtocolType(long _v_) {
         if (!isManaged()) {
-            _protocolType = value;
+            _protocolType = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__protocolType(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__protocolType(this, 3, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getProtocolData() {
         if (!isManaged())
             return _protocolData;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _protocolData;
-        var log = (Log__protocolData)txn.getLog(objectId() + 4);
+        var log = (Log__protocolData)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _protocolData;
     }
 
-    public void setProtocolData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setProtocolData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _protocolData = value;
+            _protocolData = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__protocolData(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__protocolData(this, 4, _v_));
     }
 
     @Override
     public String getContext() {
         if (!isManaged())
             return _context;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _context;
-        var log = (Log__context)txn.getLog(objectId() + 5);
+        var log = (Log__context)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _context;
     }
 
-    public void setContext(String value) {
-        if (value == null)
+    public void setContext(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _context = value;
+            _context = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__context(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__context(this, 5, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getContextx() {
         if (!isManaged())
             return _contextx;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _contextx;
-        var log = (Log__contextx)txn.getLog(objectId() + 6);
+        var log = (Log__contextx)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _contextx;
     }
 
-    public void setContextx(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContextx(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _contextx = value;
+            _contextx = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__contextx(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__contextx(this, 6, _v_));
     }
 
     @Override
     public String getOnlineSetName() {
         if (!isManaged())
             return _onlineSetName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _onlineSetName;
-        var log = (Log__onlineSetName)txn.getLog(objectId() + 7);
+        var log = (Log__onlineSetName)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _onlineSetName;
     }
 
-    public void setOnlineSetName(String value) {
-        if (value == null)
+    public void setOnlineSetName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _onlineSetName = value;
+            _onlineSetName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__onlineSetName(this, 7, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__onlineSetName(this, 7, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -211,36 +211,36 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     @Override
     public Zeze.Builtin.Provider.BDispatch.Data toData() {
-        var data = new Zeze.Builtin.Provider.BDispatch.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Provider.BDispatch.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Provider.BDispatch.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Provider.BDispatch.Data)_o_);
     }
 
-    public void assign(BDispatch.Data other) {
-        setLinkSid(other._linkSid);
-        setAccount(other._account);
-        setProtocolType(other._protocolType);
-        setProtocolData(other._protocolData);
-        setContext(other._context);
-        setContextx(other._contextx);
-        setOnlineSetName(other._onlineSetName);
+    public void assign(BDispatch.Data _o_) {
+        setLinkSid(_o_._linkSid);
+        setAccount(_o_._account);
+        setProtocolType(_o_._protocolType);
+        setProtocolData(_o_._protocolData);
+        setContext(_o_._context);
+        setContextx(_o_._contextx);
+        setOnlineSetName(_o_._onlineSetName);
         _unknown_ = null;
     }
 
-    public void assign(BDispatch other) {
-        setLinkSid(other.getLinkSid());
-        setAccount(other.getAccount());
-        setProtocolType(other.getProtocolType());
-        setProtocolData(other.getProtocolData());
-        setContext(other.getContext());
-        setContextx(other.getContextx());
-        setOnlineSetName(other.getOnlineSetName());
-        _unknown_ = other._unknown_;
+    public void assign(BDispatch _o_) {
+        setLinkSid(_o_.getLinkSid());
+        setAccount(_o_.getAccount());
+        setProtocolType(_o_.getProtocolType());
+        setProtocolData(_o_.getProtocolData());
+        setContext(_o_.getContext());
+        setContextx(_o_.getContextx());
+        setOnlineSetName(_o_.getOnlineSetName());
+        _unknown_ = _o_._unknown_;
     }
 
     public BDispatch copyIfManaged() {
@@ -249,15 +249,15 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     @Override
     public BDispatch copy() {
-        var copy = new BDispatch();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDispatch();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDispatch a, BDispatch b) {
-        BDispatch save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDispatch _a_, BDispatch _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -266,49 +266,49 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     private static final class Log__linkSid extends Zeze.Transaction.Logs.LogLong {
-        public Log__linkSid(BDispatch bean, int varId, long value) { super(bean, varId, value); }
+        public Log__linkSid(BDispatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._linkSid = value; }
     }
 
     private static final class Log__account extends Zeze.Transaction.Logs.LogString {
-        public Log__account(BDispatch bean, int varId, String value) { super(bean, varId, value); }
+        public Log__account(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._account = value; }
     }
 
     private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
-        public Log__protocolType(BDispatch bean, int varId, long value) { super(bean, varId, value); }
+        public Log__protocolType(BDispatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._protocolType = value; }
     }
 
     private static final class Log__protocolData extends Zeze.Transaction.Logs.LogBinary {
-        public Log__protocolData(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__protocolData(BDispatch _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._protocolData = value; }
     }
 
     private static final class Log__context extends Zeze.Transaction.Logs.LogString {
-        public Log__context(BDispatch bean, int varId, String value) { super(bean, varId, value); }
+        public Log__context(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._context = value; }
     }
 
     private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
-        public Log__contextx(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__contextx(BDispatch _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._contextx = value; }
     }
 
     private static final class Log__onlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__onlineSetName(BDispatch bean, int varId, String value) { super(bean, varId, value); }
+        public Log__onlineSetName(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDispatch)getBelong())._onlineSetName = value; }
@@ -316,24 +316,24 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolData=").append(getProtocolData()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(getContextx()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolData=").append(getProtocolData()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("contextx=").append(getContextx()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("onlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -344,8 +344,8 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -490,65 +490,65 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _linkSid = vlog.longValue(); break;
-                case 2: _account = vlog.stringValue(); break;
-                case 3: _protocolType = vlog.longValue(); break;
-                case 4: _protocolData = vlog.binaryValue(); break;
-                case 5: _context = vlog.stringValue(); break;
-                case 6: _contextx = vlog.binaryValue(); break;
-                case 7: _onlineSetName = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _linkSid = _v_.longValue(); break;
+                case 2: _account = _v_.stringValue(); break;
+                case 3: _protocolType = _v_.longValue(); break;
+                case 4: _protocolData = _v_.binaryValue(); break;
+                case 5: _context = _v_.stringValue(); break;
+                case 6: _contextx = _v_.binaryValue(); break;
+                case 7: _onlineSetName = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setLinkSid(rs.getLong(_parents_name_ + "linkSid"));
-        setAccount(rs.getString(_parents_name_ + "account"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setLinkSid(_r_.getLong(_pn_ + "linkSid"));
+        setAccount(_r_.getString(_pn_ + "account"));
         if (getAccount() == null)
             setAccount("");
-        setProtocolType(rs.getLong(_parents_name_ + "protocolType"));
-        setProtocolData(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "protocolData")));
-        setContext(rs.getString(_parents_name_ + "context"));
+        setProtocolType(_r_.getLong(_pn_ + "protocolType"));
+        setProtocolData(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "protocolData")));
+        setContext(_r_.getString(_pn_ + "context"));
         if (getContext() == null)
             setContext("");
-        setContextx(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "contextx")));
-        setOnlineSetName(rs.getString(_parents_name_ + "onlineSetName"));
+        setContextx(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "contextx")));
+        setOnlineSetName(_r_.getString(_pn_ + "onlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "linkSid", getLinkSid());
-        st.appendString(_parents_name_ + "account", getAccount());
-        st.appendLong(_parents_name_ + "protocolType", getProtocolType());
-        st.appendBinary(_parents_name_ + "protocolData", getProtocolData());
-        st.appendString(_parents_name_ + "context", getContext());
-        st.appendBinary(_parents_name_ + "contextx", getContextx());
-        st.appendString(_parents_name_ + "onlineSetName", getOnlineSetName());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "linkSid", getLinkSid());
+        _s_.appendString(_pn_ + "account", getAccount());
+        _s_.appendLong(_pn_ + "protocolType", getProtocolType());
+        _s_.appendBinary(_pn_ + "protocolData", getProtocolData());
+        _s_.appendString(_pn_ + "context", getContext());
+        _s_.appendBinary(_pn_ + "contextx", getContextx());
+        _s_.appendString(_pn_ + "onlineSetName", getOnlineSetName());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSid", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "account", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "protocolType", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "protocolData", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "context", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "contextx", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "onlineSetName", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "linkSid", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "account", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "protocolType", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "protocolData", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "context", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "contextx", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "onlineSetName", "string", "", ""));
+        return _v_;
     }
 
 // link to gs
@@ -568,66 +568,66 @@ public static final class Data extends Zeze.Transaction.Data {
         return _linkSid;
     }
 
-    public void setLinkSid(long value) {
-        _linkSid = value;
+    public void setLinkSid(long _v_) {
+        _linkSid = _v_;
     }
 
     public String getAccount() {
         return _account;
     }
 
-    public void setAccount(String value) {
-        if (value == null)
+    public void setAccount(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _account = value;
+        _account = _v_;
     }
 
     public long getProtocolType() {
         return _protocolType;
     }
 
-    public void setProtocolType(long value) {
-        _protocolType = value;
+    public void setProtocolType(long _v_) {
+        _protocolType = _v_;
     }
 
     public Zeze.Net.Binary getProtocolData() {
         return _protocolData;
     }
 
-    public void setProtocolData(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setProtocolData(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _protocolData = value;
+        _protocolData = _v_;
     }
 
     public String getContext() {
         return _context;
     }
 
-    public void setContext(String value) {
-        if (value == null)
+    public void setContext(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _context = value;
+        _context = _v_;
     }
 
     public Zeze.Net.Binary getContextx() {
         return _contextx;
     }
 
-    public void setContextx(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setContextx(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _contextx = value;
+        _contextx = _v_;
     }
 
     public String getOnlineSetName() {
         return _onlineSetName;
     }
 
-    public void setOnlineSetName(String value) {
-        if (value == null)
+    public void setOnlineSetName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _onlineSetName = value;
+        _onlineSetName = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -673,47 +673,47 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Provider.BDispatch toBean() {
-        var bean = new Zeze.Builtin.Provider.BDispatch();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Provider.BDispatch();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BDispatch)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BDispatch)_o_);
     }
 
-    public void assign(BDispatch other) {
-        _linkSid = other.getLinkSid();
-        _account = other.getAccount();
-        _protocolType = other.getProtocolType();
-        _protocolData = other.getProtocolData();
-        _context = other.getContext();
-        _contextx = other.getContextx();
-        _onlineSetName = other.getOnlineSetName();
+    public void assign(BDispatch _o_) {
+        _linkSid = _o_.getLinkSid();
+        _account = _o_.getAccount();
+        _protocolType = _o_.getProtocolType();
+        _protocolData = _o_.getProtocolData();
+        _context = _o_.getContext();
+        _contextx = _o_.getContextx();
+        _onlineSetName = _o_.getOnlineSetName();
     }
 
-    public void assign(BDispatch.Data other) {
-        _linkSid = other._linkSid;
-        _account = other._account;
-        _protocolType = other._protocolType;
-        _protocolData = other._protocolData;
-        _context = other._context;
-        _contextx = other._contextx;
-        _onlineSetName = other._onlineSetName;
+    public void assign(BDispatch.Data _o_) {
+        _linkSid = _o_._linkSid;
+        _account = _o_._account;
+        _protocolType = _o_._protocolType;
+        _protocolData = _o_._protocolData;
+        _context = _o_._context;
+        _contextx = _o_._contextx;
+        _onlineSetName = _o_._onlineSetName;
     }
 
     @Override
     public BDispatch.Data copy() {
-        var copy = new BDispatch.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDispatch.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDispatch.Data a, BDispatch.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDispatch.Data _a_, BDispatch.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -728,24 +728,24 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("account=").append(_account).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("protocolData=").append(_protocolData).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("context=").append(_context).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("contextx=").append(_contextx).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("onlineSetName=").append(_onlineSetName).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(_account).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolData=").append(_protocolData).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(_context).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("contextx=").append(_contextx).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("onlineSetName=").append(_onlineSetName).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -754,8 +754,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

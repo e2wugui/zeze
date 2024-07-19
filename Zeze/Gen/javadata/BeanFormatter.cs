@@ -52,11 +52,11 @@ namespace Zeze.Gen.javadata
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
-            sw.WriteLine($"{prefix}public long toTypeId(Zeze.Transaction.Data data) {{");
+            sw.WriteLine($"{prefix}public long toTypeId(Zeze.Transaction.Data _d_) {{");
             if (string.IsNullOrEmpty(type.DynamicParams.GetSpecialTypeIdFromBean))
             {
                 // 根据配置的实际类型生成switch。
-                sw.WriteLine($"{prefix}    var _typeId_ = data.typeId();");
+                sw.WriteLine($"{prefix}    var _typeId_ = _d_.typeId();");
                 sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.Data.TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.TYPEID;");
                 foreach (var real in type.RealBeans)
@@ -69,32 +69,32 @@ namespace Zeze.Gen.javadata
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(data);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(_d_);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}@Override");
-            sw.WriteLine($"{prefix}public Zeze.Transaction.Data toData(long typeId) {{");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Data toData(long _t_) {{");
             //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
             if (string.IsNullOrEmpty(type.DynamicParams.CreateDataFromSpecialTypeId))
             {
                 // 根据配置的实际类型生成switch。
                 foreach (var real in type.RealBeans)
                 {
-                    sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                    sw.WriteLine($"{prefix}    if (_t_ == {real.Key}L)");
                     if (real.Value.OnlyData)
                         sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
                     else
                         sw.WriteLine($"{prefix}        return new {real.Value.FullName}.Data();");
                 }
-                sw.WriteLine($"{prefix}    if (typeId == Zeze.Transaction.EmptyBean.Data.TYPEID)");
+                sw.WriteLine($"{prefix}    if (_t_ == Zeze.Transaction.EmptyBean.Data.TYPEID)");
                 sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.Data.instance;");
                 sw.WriteLine($"{prefix}    return null;");
             }
             else
             {
                 // 转发给全局静态（static）函数。
-                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateDataFromSpecialTypeId.Replace("::", ".")}(typeId);");
+                sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateDataFromSpecialTypeId.Replace("::", ".")}(_t_);");
             }
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
@@ -150,15 +150,15 @@ namespace Zeze.Gen.javadata
             // Copy
             sw.WriteLine("    @Override");
             sw.WriteLine("    public " + className + " copy() {");
-            sw.WriteLine("        var copy = new " + className + "();");
-            sw.WriteLine("        copy.assign(this);");
-            sw.WriteLine("        return copy;");
+            sw.WriteLine("        var _c_ = new " + className + "();");
+            sw.WriteLine("        _c_.assign(this);");
+            sw.WriteLine("        return _c_;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine($"    public static void swap({className} a, {className} b) {{");
-            sw.WriteLine($"        var save = a.copy();");
-            sw.WriteLine("        a.assign(b);");
-            sw.WriteLine("        b.assign(save);");
+            sw.WriteLine($"    public static void swap({className} _a_, {className} _b_) {{");
+            sw.WriteLine($"        var _s_ = _a_.copy();");
+            sw.WriteLine("        _a_.assign(_b_);");
+            sw.WriteLine("        _b_.assign(_s_);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");

@@ -38,19 +38,19 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BAccountClientId: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Account=").append(_Account).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ClientId=").append(_ClientId).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BAccountClientId: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Account=").append(_Account).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ClientId=").append(_ClientId).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -61,8 +61,8 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -149,21 +149,21 @@ public final class BAccountClientId implements Zeze.Transaction.BeanKey, Compara
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _Account = rs.getString(_parents_name_ + "Account");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _Account = _r_.getString(_pn_ + "Account");
         if (_Account == null)
             _Account = "";
-        _ClientId = rs.getString(_parents_name_ + "ClientId");
+        _ClientId = _r_.getString(_pn_ + "ClientId");
         if (_ClientId == null)
             _ClientId = "";
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Account", _Account);
-        st.appendString(_parents_name_ + "ClientId", _ClientId);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Account", _Account);
+        _s_.appendString(_pn_ + "ClientId", _ClientId);
     }
 
     @Override

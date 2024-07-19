@@ -19,50 +19,50 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     @Override
     public long getReturnCode() {
         if (!isManaged())
             return _ReturnCode;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ReturnCode;
-        var log = (Log__ReturnCode)txn.getLog(objectId() + 1);
+        var log = (Log__ReturnCode)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ReturnCode;
     }
 
-    public void setReturnCode(long value) {
+    public void setReturnCode(long _v_) {
         if (!isManaged()) {
-            _ReturnCode = value;
+            _ReturnCode = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ReturnCode(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ReturnCode(this, 1, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Params;
-        var log = (Log__Params)txn.getLog(objectId() + 2);
+        var log = (Log__Params)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Params;
     }
 
-    public void setParams(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParams(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Params = value;
+            _Params = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Params(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Params(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,26 +87,26 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
 
     @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data toData() {
-        var data = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data)_o_);
     }
 
-    public void assign(BModuleRedirectAllHash.Data other) {
-        setReturnCode(other._ReturnCode);
-        setParams(other._Params);
+    public void assign(BModuleRedirectAllHash.Data _o_) {
+        setReturnCode(_o_._ReturnCode);
+        setParams(_o_._Params);
         _unknown_ = null;
     }
 
-    public void assign(BModuleRedirectAllHash other) {
-        setReturnCode(other.getReturnCode());
-        setParams(other.getParams());
-        _unknown_ = other._unknown_;
+    public void assign(BModuleRedirectAllHash _o_) {
+        setReturnCode(_o_.getReturnCode());
+        setParams(_o_.getParams());
+        _unknown_ = _o_._unknown_;
     }
 
     public BModuleRedirectAllHash copyIfManaged() {
@@ -115,15 +115,15 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
 
     @Override
     public BModuleRedirectAllHash copy() {
-        var copy = new BModuleRedirectAllHash();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModuleRedirectAllHash();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModuleRedirectAllHash a, BModuleRedirectAllHash b) {
-        BModuleRedirectAllHash save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModuleRedirectAllHash _a_, BModuleRedirectAllHash _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -132,14 +132,14 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     private static final class Log__ReturnCode extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ReturnCode(BModuleRedirectAllHash _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllHash)getBelong())._ReturnCode = value; }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Params(BModuleRedirectAllHash bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Params(BModuleRedirectAllHash _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BModuleRedirectAllHash)getBelong())._Params = value; }
@@ -147,19 +147,19 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ReturnCode=").append(getReturnCode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(getParams()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReturnCode=").append(getReturnCode()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(getParams()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -170,8 +170,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -249,39 +249,39 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ReturnCode = vlog.longValue(); break;
-                case 2: _Params = vlog.binaryValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ReturnCode = _v_.longValue(); break;
+                case 2: _Params = _v_.binaryValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setReturnCode(rs.getLong(_parents_name_ + "ReturnCode"));
-        setParams(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Params")));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setReturnCode(_r_.getLong(_pn_ + "ReturnCode"));
+        setParams(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Params")));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "ReturnCode", getReturnCode());
-        st.appendBinary(_parents_name_ + "Params", getParams());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "ReturnCode", getReturnCode());
+        _s_.appendBinary(_pn_ + "Params", getParams());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ReturnCode", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Params", "binary", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ReturnCode", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Params", "binary", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -295,18 +295,18 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ReturnCode;
     }
 
-    public void setReturnCode(long value) {
-        _ReturnCode = value;
+    public void setReturnCode(long _v_) {
+        _ReturnCode = _v_;
     }
 
     public Zeze.Net.Binary getParams() {
         return _Params;
     }
 
-    public void setParams(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParams(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Params = value;
+        _Params = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -330,37 +330,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash toBean() {
-        var bean = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BModuleRedirectAllHash)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BModuleRedirectAllHash)_o_);
     }
 
-    public void assign(BModuleRedirectAllHash other) {
-        _ReturnCode = other.getReturnCode();
-        _Params = other.getParams();
+    public void assign(BModuleRedirectAllHash _o_) {
+        _ReturnCode = _o_.getReturnCode();
+        _Params = _o_.getParams();
     }
 
-    public void assign(BModuleRedirectAllHash.Data other) {
-        _ReturnCode = other._ReturnCode;
-        _Params = other._Params;
+    public void assign(BModuleRedirectAllHash.Data _o_) {
+        _ReturnCode = _o_._ReturnCode;
+        _Params = _o_._Params;
     }
 
     @Override
     public BModuleRedirectAllHash.Data copy() {
-        var copy = new BModuleRedirectAllHash.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BModuleRedirectAllHash.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BModuleRedirectAllHash.Data a, BModuleRedirectAllHash.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BModuleRedirectAllHash.Data _a_, BModuleRedirectAllHash.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -375,19 +375,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ReturnCode=").append(_ReturnCode).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Params=").append(_Params).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReturnCode=").append(_ReturnCode).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(_Params).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -396,8 +396,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

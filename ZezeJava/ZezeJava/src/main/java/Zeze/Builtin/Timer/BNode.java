@@ -17,40 +17,40 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     public long getPrevNodeId() {
         if (!isManaged())
             return _PrevNodeId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _PrevNodeId;
-        var log = (Log__PrevNodeId)txn.getLog(objectId() + 1);
+        var log = (Log__PrevNodeId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _PrevNodeId;
     }
 
-    public void setPrevNodeId(long value) {
+    public void setPrevNodeId(long _v_) {
         if (!isManaged()) {
-            _PrevNodeId = value;
+            _PrevNodeId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__PrevNodeId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__PrevNodeId(this, 1, _v_));
     }
 
     @Override
     public long getNextNodeId() {
         if (!isManaged())
             return _NextNodeId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)txn.getLog(objectId() + 2);
+        var log = (Log__NextNodeId)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _NextNodeId;
     }
 
-    public void setNextNodeId(long value) {
+    public void setNextNodeId(long _v_) {
         if (!isManaged()) {
-            _NextNodeId = value;
+            _NextNodeId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NextNodeId(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__NextNodeId(this, 2, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> getTimers() {
@@ -84,13 +84,13 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         _unknown_ = null;
     }
 
-    public void assign(BNode other) {
-        setPrevNodeId(other.getPrevNodeId());
-        setNextNodeId(other.getNextNodeId());
+    public void assign(BNode _o_) {
+        setPrevNodeId(_o_.getPrevNodeId());
+        setNextNodeId(_o_.getNextNodeId());
         _Timers.clear();
-        for (var e : other._Timers.entrySet())
-            _Timers.put(e.getKey(), e.getValue().copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Timers.entrySet())
+            _Timers.put(_e_.getKey(), _e_.getValue().copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BNode copyIfManaged() {
@@ -99,15 +99,15 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
 
     @Override
     public BNode copy() {
-        var copy = new BNode();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BNode();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BNode a, BNode b) {
-        BNode save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BNode _a_, BNode _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -116,14 +116,14 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     private static final class Log__PrevNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__PrevNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
+        public Log__PrevNodeId(BNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNode)getBelong())._PrevNodeId = value; }
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextNodeId(BNode bean, int varId, long value) { super(bean, varId, value); }
+        public Log__NextNodeId(BNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BNode)getBelong())._NextNodeId = value; }
@@ -131,33 +131,33 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Timer.BNode: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("PrevNodeId=").append(getPrevNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NextNodeId=").append(getNextNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Timers={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BNode: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("PrevNodeId=").append(getPrevNodeId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("NextNodeId=").append(getNextNodeId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Timers={");
         if (!_Timers.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Timers.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Timers.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -168,8 +168,8 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -270,13 +270,13 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Timers.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Timers.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Timers.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Timers.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -294,42 +294,42 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _PrevNodeId = vlog.longValue(); break;
-                case 2: _NextNodeId = vlog.longValue(); break;
-                case 3: _Timers.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _PrevNodeId = _v_.longValue(); break;
+                case 2: _NextNodeId = _v_.longValue(); break;
+                case 3: _Timers.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setPrevNodeId(rs.getLong(_parents_name_ + "PrevNodeId"));
-        setNextNodeId(rs.getLong(_parents_name_ + "NextNodeId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Timers", _Timers, rs.getString(_parents_name_ + "Timers"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setPrevNodeId(_r_.getLong(_pn_ + "PrevNodeId"));
+        setNextNodeId(_r_.getLong(_pn_ + "NextNodeId"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Timers", _Timers, _r_.getString(_pn_ + "Timers"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "PrevNodeId", getPrevNodeId());
-        st.appendLong(_parents_name_ + "NextNodeId", getNextNodeId());
-        st.appendString(_parents_name_ + "Timers", Zeze.Serialize.Helper.encodeJson(_Timers));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "PrevNodeId", getPrevNodeId());
+        _s_.appendLong(_pn_ + "NextNodeId", getNextNodeId());
+        _s_.appendString(_pn_ + "Timers", Zeze.Serialize.Helper.encodeJson(_Timers));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "PrevNodeId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextNodeId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Timers", "map", "string", "Zeze.Builtin.Timer.BTimer"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "PrevNodeId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "NextNodeId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Timers", "map", "string", "Zeze.Builtin.Timer.BTimer"));
+        return _v_;
     }
 }

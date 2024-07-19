@@ -13,8 +13,8 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
         super(1544681320, "Zeze_Builtin_Collections_DAG_tEdge");
     }
 
-    public tEdge(String suffix) {
-        super(1544681320, "Zeze_Builtin_Collections_DAG_tEdge", suffix);
+    public tEdge(String _s_) {
+        super(1544681320, "Zeze_Builtin_Collections_DAG_tEdge", _s_);
     }
 
     @Override
@@ -32,7 +32,7 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
 
     @Override
     public Zeze.Builtin.Collections.DAG.BDAGEdgeKey decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_ = new Zeze.Builtin.Collections.DAG.BDAGEdgeKey();
+        var _v_ = new Zeze.Builtin.Collections.DAG.BDAGEdgeKey();
         _v_.decode(_os_);
         return _v_;
     }
@@ -45,21 +45,21 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
     }
 
     @Override
-    public Zeze.Builtin.Collections.DAG.BDAGEdgeKey decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_ = new Zeze.Builtin.Collections.DAG.BDAGEdgeKey();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Builtin.Collections.DAG.BDAGEdgeKey decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Builtin.Collections.DAG.BDAGEdgeKey();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Builtin.Collections.DAG.BDAGEdgeKey _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -68,7 +68,7 @@ public final class tEdge extends TableX<Zeze.Builtin.Collections.DAG.BDAGEdgeKey
     }
 
     @Override
-    public Zeze.Builtin.Collections.DAG.BDAGEdgeReadOnly getReadOnly(Zeze.Builtin.Collections.DAG.BDAGEdgeKey key) {
-        return get(key);
+    public Zeze.Builtin.Collections.DAG.BDAGEdgeReadOnly getReadOnly(Zeze.Builtin.Collections.DAG.BDAGEdgeKey _k_) {
+        return get(_k_);
     }
 }

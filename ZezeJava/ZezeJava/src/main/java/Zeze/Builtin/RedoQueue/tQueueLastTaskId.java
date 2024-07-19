@@ -12,8 +12,8 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
         super(-1495051256, "Zeze_Builtin_RedoQueue_tQueueLastTaskId");
     }
 
-    public tQueueLastTaskId(String suffix) {
-        super(-1495051256, "Zeze_Builtin_RedoQueue_tQueueLastTaskId", suffix);
+    public tQueueLastTaskId(String _s_) {
+        super(-1495051256, "Zeze_Builtin_RedoQueue_tQueueLastTaskId", _s_);
     }
 
     @Override
@@ -43,17 +43,17 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -62,7 +62,7 @@ public final class tQueueLastTaskId extends TableX<String, Zeze.Builtin.RedoQueu
     }
 
     @Override
-    public Zeze.Builtin.RedoQueue.BTaskIdReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.RedoQueue.BTaskIdReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

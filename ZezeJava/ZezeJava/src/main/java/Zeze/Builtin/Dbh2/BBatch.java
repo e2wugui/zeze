@@ -22,8 +22,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public void mapKey(Object value) {
-        __zeze_map_key__ = value;
+    public void mapKey(Object _v_) {
+        __zeze_map_key__ = _v_;
     }
 
     public Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> getPuts() {
@@ -48,62 +48,62 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public String getQueryIp() {
         if (!isManaged())
             return _QueryIp;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _QueryIp;
-        var log = (Log__QueryIp)txn.getLog(objectId() + 3);
+        var log = (Log__QueryIp)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _QueryIp;
     }
 
-    public void setQueryIp(String value) {
-        if (value == null)
+    public void setQueryIp(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _QueryIp = value;
+            _QueryIp = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__QueryIp(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__QueryIp(this, 3, _v_));
     }
 
     @Override
     public int getQueryPort() {
         if (!isManaged())
             return _QueryPort;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _QueryPort;
-        var log = (Log__QueryPort)txn.getLog(objectId() + 4);
+        var log = (Log__QueryPort)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _QueryPort;
     }
 
-    public void setQueryPort(int value) {
+    public void setQueryPort(int _v_) {
         if (!isManaged()) {
-            _QueryPort = value;
+            _QueryPort = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__QueryPort(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__QueryPort(this, 4, _v_));
     }
 
     @Override
     public long getTid() {
         if (!isManaged())
             return _Tid;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Tid;
-        var log = (Log__Tid)txn.getLog(objectId() + 5);
+        var log = (Log__Tid)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Tid;
     }
 
-    public void setTid(long value) {
+    public void setTid(long _v_) {
         if (!isManaged()) {
-            _Tid = value;
+            _Tid = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Tid(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Tid(this, 5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -140,34 +140,34 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     @Override
     public Zeze.Builtin.Dbh2.BBatch.Data toData() {
-        var data = new Zeze.Builtin.Dbh2.BBatch.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Dbh2.BBatch.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Dbh2.BBatch.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Dbh2.BBatch.Data)_o_);
     }
 
-    public void assign(BBatch.Data other) {
+    public void assign(BBatch.Data _o_) {
         _Puts.clear();
-        _Puts.putAll(other._Puts);
+        _Puts.putAll(_o_._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other._Deletes);
-        setQueryIp(other._QueryIp);
-        setQueryPort(other._QueryPort);
-        setTid(other._Tid);
+        _Deletes.addAll(_o_._Deletes);
+        setQueryIp(_o_._QueryIp);
+        setQueryPort(_o_._QueryPort);
+        setTid(_o_._Tid);
         _unknown_ = null;
     }
 
-    public void assign(BBatch other) {
-        _Puts.assign(other._Puts);
-        _Deletes.assign(other._Deletes);
-        setQueryIp(other.getQueryIp());
-        setQueryPort(other.getQueryPort());
-        setTid(other.getTid());
-        _unknown_ = other._unknown_;
+    public void assign(BBatch _o_) {
+        _Puts.assign(_o_._Puts);
+        _Deletes.assign(_o_._Deletes);
+        setQueryIp(_o_.getQueryIp());
+        setQueryPort(_o_.getQueryPort());
+        setTid(_o_.getTid());
+        _unknown_ = _o_._unknown_;
     }
 
     public BBatch copyIfManaged() {
@@ -176,15 +176,15 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     @Override
     public BBatch copy() {
-        var copy = new BBatch();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBatch();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBatch a, BBatch b) {
-        BBatch save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBatch _a_, BBatch _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -193,21 +193,21 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     private static final class Log__QueryIp extends Zeze.Transaction.Logs.LogString {
-        public Log__QueryIp(BBatch bean, int varId, String value) { super(bean, varId, value); }
+        public Log__QueryIp(BBatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBatch)getBelong())._QueryIp = value; }
     }
 
     private static final class Log__QueryPort extends Zeze.Transaction.Logs.LogInt {
-        public Log__QueryPort(BBatch bean, int varId, int value) { super(bean, varId, value); }
+        public Log__QueryPort(BBatch _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBatch)getBelong())._QueryPort = value; }
     }
 
     private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Tid(BBatch bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Tid(BBatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBatch)getBelong())._Tid = value; }
@@ -215,43 +215,43 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatch: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Puts={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBatch: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Puts={");
         if (!_Puts.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Puts.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Puts.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Deletes={");
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Deletes={");
         if (!_Deletes.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Deletes) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Deletes) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(getQueryIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(getQueryPort()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(getTid()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueryIp=").append(getQueryIp()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueryPort=").append(getQueryPort()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Tid=").append(getTid()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -262,8 +262,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -403,15 +403,15 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Puts.initRootInfo(root, this);
-        _Deletes.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Puts.initRootInfo(_r_, this);
+        _Deletes.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Puts.initRootInfoWithRedo(root, this);
-        _Deletes.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Puts.initRootInfoWithRedo(_r_, this);
+        _Deletes.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -425,53 +425,53 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Puts.followerApply(vlog); break;
-                case 2: _Deletes.followerApply(vlog); break;
-                case 3: _QueryIp = vlog.stringValue(); break;
-                case 4: _QueryPort = vlog.intValue(); break;
-                case 5: _Tid = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Puts.followerApply(_v_); break;
+                case 2: _Deletes.followerApply(_v_); break;
+                case 3: _QueryIp = _v_.stringValue(); break;
+                case 4: _QueryPort = _v_.intValue(); break;
+                case 5: _Tid = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Puts", _Puts, rs.getString(_parents_name_ + "Puts"));
-        Zeze.Serialize.Helper.decodeJsonSet(_Deletes, Zeze.Net.Binary.class, rs.getString(_parents_name_ + "Deletes"));
-        setQueryIp(rs.getString(_parents_name_ + "QueryIp"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Puts", _Puts, _r_.getString(_pn_ + "Puts"));
+        Zeze.Serialize.Helper.decodeJsonSet(_Deletes, Zeze.Net.Binary.class, _r_.getString(_pn_ + "Deletes"));
+        setQueryIp(_r_.getString(_pn_ + "QueryIp"));
         if (getQueryIp() == null)
             setQueryIp("");
-        setQueryPort(rs.getInt(_parents_name_ + "QueryPort"));
-        setTid(rs.getLong(_parents_name_ + "Tid"));
+        setQueryPort(_r_.getInt(_pn_ + "QueryPort"));
+        setTid(_r_.getLong(_pn_ + "Tid"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Puts", Zeze.Serialize.Helper.encodeJson(_Puts));
-        st.appendString(_parents_name_ + "Deletes", Zeze.Serialize.Helper.encodeJson(_Deletes));
-        st.appendString(_parents_name_ + "QueryIp", getQueryIp());
-        st.appendInt(_parents_name_ + "QueryPort", getQueryPort());
-        st.appendLong(_parents_name_ + "Tid", getTid());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Puts", Zeze.Serialize.Helper.encodeJson(_Puts));
+        _s_.appendString(_pn_ + "Deletes", Zeze.Serialize.Helper.encodeJson(_Deletes));
+        _s_.appendString(_pn_ + "QueryIp", getQueryIp());
+        _s_.appendInt(_pn_ + "QueryPort", getQueryPort());
+        _s_.appendLong(_pn_ + "Tid", getTid());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Puts", "map", "binary", "binary"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Deletes", "set", "", "binary"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "QueryIp", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "QueryPort", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Tid", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Puts", "map", "binary", "binary"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Deletes", "set", "", "binary"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "QueryIp", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "QueryPort", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Tid", "long", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -488,46 +488,46 @@ public static final class Data extends Zeze.Transaction.Data {
         return _Puts;
     }
 
-    public void setPuts(java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> value) {
-        if (value == null)
+    public void setPuts(java.util.HashMap<Zeze.Net.Binary, Zeze.Net.Binary> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Puts = value;
+        _Puts = _v_;
     }
 
     public java.util.HashSet<Zeze.Net.Binary> getDeletes() {
         return _Deletes;
     }
 
-    public void setDeletes(java.util.HashSet<Zeze.Net.Binary> value) {
-        if (value == null)
+    public void setDeletes(java.util.HashSet<Zeze.Net.Binary> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Deletes = value;
+        _Deletes = _v_;
     }
 
     public String getQueryIp() {
         return _QueryIp;
     }
 
-    public void setQueryIp(String value) {
-        if (value == null)
+    public void setQueryIp(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _QueryIp = value;
+        _QueryIp = _v_;
     }
 
     public int getQueryPort() {
         return _QueryPort;
     }
 
-    public void setQueryPort(int value) {
-        _QueryPort = value;
+    public void setQueryPort(int _v_) {
+        _QueryPort = _v_;
     }
 
     public long getTid() {
         return _Tid;
     }
 
-    public void setTid(long value) {
-        _Tid = value;
+    public void setTid(long _v_) {
+        _Tid = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -563,47 +563,47 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Dbh2.BBatch toBean() {
-        var bean = new Zeze.Builtin.Dbh2.BBatch();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Dbh2.BBatch();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BBatch)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BBatch)_o_);
     }
 
-    public void assign(BBatch other) {
+    public void assign(BBatch _o_) {
         _Puts.clear();
-        _Puts.putAll(other._Puts);
+        _Puts.putAll(_o_._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other._Deletes);
-        _QueryIp = other.getQueryIp();
-        _QueryPort = other.getQueryPort();
-        _Tid = other.getTid();
+        _Deletes.addAll(_o_._Deletes);
+        _QueryIp = _o_.getQueryIp();
+        _QueryPort = _o_.getQueryPort();
+        _Tid = _o_.getTid();
     }
 
-    public void assign(BBatch.Data other) {
+    public void assign(BBatch.Data _o_) {
         _Puts.clear();
-        _Puts.putAll(other._Puts);
+        _Puts.putAll(_o_._Puts);
         _Deletes.clear();
-        _Deletes.addAll(other._Deletes);
-        _QueryIp = other._QueryIp;
-        _QueryPort = other._QueryPort;
-        _Tid = other._Tid;
+        _Deletes.addAll(_o_._Deletes);
+        _QueryIp = _o_._QueryIp;
+        _QueryPort = _o_._QueryPort;
+        _Tid = _o_._Tid;
     }
 
     @Override
     public BBatch.Data copy() {
-        var copy = new BBatch.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBatch.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBatch.Data a, BBatch.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBatch.Data _a_, BBatch.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -618,43 +618,43 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Dbh2.BBatch: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Puts={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBatch: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Puts={");
         if (!_Puts.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Puts.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Puts.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Deletes={");
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Deletes={");
         if (!_Deletes.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Deletes) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Deletes) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryIp=").append(_QueryIp).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("QueryPort=").append(_QueryPort).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Tid=").append(_Tid).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueryIp=").append(_QueryIp).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueryPort=").append(_QueryPort).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Tid=").append(_Tid).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -663,8 +663,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -31,19 +31,19 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HistoryModule.BTableKey: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TableId=").append(_TableId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("KeyEncoded=").append(_KeyEncoded).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HistoryModule.BTableKey: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TableId=").append(_TableId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyEncoded=").append(_KeyEncoded).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -54,8 +54,8 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -144,17 +144,17 @@ public final class BTableKey implements Zeze.Transaction.BeanKey, Comparable<BTa
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _TableId = rs.getInt(_parents_name_ + "TableId");
-        _KeyEncoded = new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "KeyEncoded"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _TableId = _r_.getInt(_pn_ + "TableId");
+        _KeyEncoded = new Zeze.Net.Binary(_r_.getBytes(_pn_ + "KeyEncoded"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "TableId", _TableId);
-        st.appendBinary(_parents_name_ + "KeyEncoded", _KeyEncoded);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "TableId", _TableId);
+        _s_.appendBinary(_pn_ + "KeyEncoded", _KeyEncoded);
     }
 
     @Override

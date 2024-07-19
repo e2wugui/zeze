@@ -15,12 +15,12 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         return new Zeze.Transaction.DynamicBean(1, Zeze.Collections.DAG::getSpecialTypeIdFromBean, Zeze.Collections.DAG::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.DAG.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_1(Zeze.Transaction.Bean _b_) {
+        return Zeze.Collections.DAG.getSpecialTypeIdFromBean(_b_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long typeId) {
-        return Zeze.Collections.DAG.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_1(long _t_) {
+        return Zeze.Collections.DAG.createBeanFromSpecialTypeId(_t_);
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -43,9 +43,9 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
         _unknown_ = null;
     }
 
-    public void assign(BDAGNode other) {
-        _Value.assign(other._Value);
-        _unknown_ = other._unknown_;
+    public void assign(BDAGNode _o_) {
+        _Value.assign(_o_._Value);
+        _unknown_ = _o_._unknown_;
     }
 
     public BDAGNode copyIfManaged() {
@@ -54,15 +54,15 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
 
     @Override
     public BDAGNode copy() {
-        var copy = new BDAGNode();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDAGNode();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDAGNode a, BDAGNode b) {
-        BDAGNode save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDAGNode _a_, BDAGNode _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -72,20 +72,20 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAGNode: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-        _Value.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DAG.BDAGNode: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+        _Value.getBean().buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -96,8 +96,8 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -154,45 +154,45 @@ public final class BDAGNode extends Zeze.Transaction.Bean implements BDAGNodeRea
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Value.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Value.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Value.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Value.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Value.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Value.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Value, rs.getString(_parents_name_ + "Value"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Value, _r_.getString(_pn_ + "Value"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "Value", Zeze.Serialize.Helper.encodeJson(_Value));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Value", "dynamic", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Value", "dynamic", "", ""));
+        return _v_;
     }
 }

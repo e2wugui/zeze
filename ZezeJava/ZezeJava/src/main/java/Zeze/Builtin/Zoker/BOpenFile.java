@@ -15,44 +15,44 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
     public String getServiceName() {
         if (!isManaged())
             return _ServiceName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)txn.getLog(objectId() + 1);
+        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
-    public void setServiceName(String value) {
-        if (value == null)
+    public void setServiceName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceName = value;
+            _ServiceName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServiceName(this, 1, _v_));
     }
 
     @Override
     public String getFileName() {
         if (!isManaged())
             return _FileName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _FileName;
-        var log = (Log__FileName)txn.getLog(objectId() + 2);
+        var log = (Log__FileName)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _FileName;
     }
 
-    public void setFileName(String value) {
-        if (value == null)
+    public void setFileName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _FileName = value;
+            _FileName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__FileName(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__FileName(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -80,26 +80,26 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
 
     @Override
     public Zeze.Builtin.Zoker.BOpenFile.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BOpenFile.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BOpenFile.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BOpenFile.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BOpenFile.Data)_o_);
     }
 
-    public void assign(BOpenFile.Data other) {
-        setServiceName(other._ServiceName);
-        setFileName(other._FileName);
+    public void assign(BOpenFile.Data _o_) {
+        setServiceName(_o_._ServiceName);
+        setFileName(_o_._FileName);
         _unknown_ = null;
     }
 
-    public void assign(BOpenFile other) {
-        setServiceName(other.getServiceName());
-        setFileName(other.getFileName());
-        _unknown_ = other._unknown_;
+    public void assign(BOpenFile _o_) {
+        setServiceName(_o_.getServiceName());
+        setFileName(_o_.getFileName());
+        _unknown_ = _o_._unknown_;
     }
 
     public BOpenFile copyIfManaged() {
@@ -108,15 +108,15 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
 
     @Override
     public BOpenFile copy() {
-        var copy = new BOpenFile();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOpenFile();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOpenFile a, BOpenFile b) {
-        BOpenFile save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOpenFile _a_, BOpenFile _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -125,14 +125,14 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
     }
 
     private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BOpenFile bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ServiceName(BOpenFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOpenFile)getBelong())._ServiceName = value; }
     }
 
     private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
-        public Log__FileName(BOpenFile bean, int varId, String value) { super(bean, varId, value); }
+        public Log__FileName(BOpenFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BOpenFile)getBelong())._FileName = value; }
@@ -140,19 +140,19 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BOpenFile: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(getFileName()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BOpenFile: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FileName=").append(getFileName()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -163,8 +163,8 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -235,43 +235,43 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ServiceName = vlog.stringValue(); break;
-                case 2: _FileName = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ServiceName = _v_.stringValue(); break;
+                case 2: _FileName = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setServiceName(rs.getString(_parents_name_ + "ServiceName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setServiceName(_r_.getString(_pn_ + "ServiceName"));
         if (getServiceName() == null)
             setServiceName("");
-        setFileName(rs.getString(_parents_name_ + "FileName"));
+        setFileName(_r_.getString(_pn_ + "FileName"));
         if (getFileName() == null)
             setFileName("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ServiceName", getServiceName());
-        st.appendString(_parents_name_ + "FileName", getFileName());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ServiceName", getServiceName());
+        _s_.appendString(_pn_ + "FileName", getFileName());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "FileName", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -285,20 +285,20 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ServiceName;
     }
 
-    public void setServiceName(String value) {
-        if (value == null)
+    public void setServiceName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ServiceName = value;
+        _ServiceName = _v_;
     }
 
     public String getFileName() {
         return _FileName;
     }
 
-    public void setFileName(String value) {
-        if (value == null)
+    public void setFileName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _FileName = value;
+        _FileName = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -325,37 +325,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BOpenFile toBean() {
-        var bean = new Zeze.Builtin.Zoker.BOpenFile();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BOpenFile();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BOpenFile)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BOpenFile)_o_);
     }
 
-    public void assign(BOpenFile other) {
-        _ServiceName = other.getServiceName();
-        _FileName = other.getFileName();
+    public void assign(BOpenFile _o_) {
+        _ServiceName = _o_.getServiceName();
+        _FileName = _o_.getFileName();
     }
 
-    public void assign(BOpenFile.Data other) {
-        _ServiceName = other._ServiceName;
-        _FileName = other._FileName;
+    public void assign(BOpenFile.Data _o_) {
+        _ServiceName = _o_._ServiceName;
+        _FileName = _o_._FileName;
     }
 
     @Override
     public BOpenFile.Data copy() {
-        var copy = new BOpenFile.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BOpenFile.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BOpenFile.Data a, BOpenFile.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BOpenFile.Data _a_, BOpenFile.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -370,19 +370,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BOpenFile: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FileName=").append(_FileName).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BOpenFile: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("FileName=").append(_FileName).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -391,8 +391,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

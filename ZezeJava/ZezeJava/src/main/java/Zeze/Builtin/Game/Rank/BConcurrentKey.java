@@ -53,22 +53,22 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        _s_.append(System.lineSeparator());
+        return _s_.toString();
     }
 
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Rank.BConcurrentKey: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("RankType=").append(_RankType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConcurrentId=").append(_ConcurrentId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("TimeType=").append(_TimeType).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Year=").append(_Year).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Offset=").append(_Offset).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Rank.BConcurrentKey: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("RankType=").append(_RankType).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConcurrentId=").append(_ConcurrentId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimeType=").append(_TimeType).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Year=").append(_Year).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Offset=").append(_Offset).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -79,8 +79,8 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override
@@ -228,23 +228,23 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        _RankType = rs.getInt(_parents_name_ + "RankType");
-        _ConcurrentId = rs.getInt(_parents_name_ + "ConcurrentId");
-        _TimeType = rs.getInt(_parents_name_ + "TimeType");
-        _Year = rs.getInt(_parents_name_ + "Year");
-        _Offset = rs.getLong(_parents_name_ + "Offset");
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _RankType = _r_.getInt(_pn_ + "RankType");
+        _ConcurrentId = _r_.getInt(_pn_ + "ConcurrentId");
+        _TimeType = _r_.getInt(_pn_ + "TimeType");
+        _Year = _r_.getInt(_pn_ + "Year");
+        _Offset = _r_.getLong(_pn_ + "Offset");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "RankType", _RankType);
-        st.appendInt(_parents_name_ + "ConcurrentId", _ConcurrentId);
-        st.appendInt(_parents_name_ + "TimeType", _TimeType);
-        st.appendInt(_parents_name_ + "Year", _Year);
-        st.appendLong(_parents_name_ + "Offset", _Offset);
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "RankType", _RankType);
+        _s_.appendInt(_pn_ + "ConcurrentId", _ConcurrentId);
+        _s_.appendInt(_pn_ + "TimeType", _TimeType);
+        _s_.appendInt(_pn_ + "Year", _Year);
+        _s_.appendLong(_pn_ + "Offset", _Offset);
     }
 
     @Override

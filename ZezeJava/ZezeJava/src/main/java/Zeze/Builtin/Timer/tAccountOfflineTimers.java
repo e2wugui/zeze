@@ -13,8 +13,8 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
         super(-865861330, "Zeze_Builtin_Timer_tAccountOfflineTimers");
     }
 
-    public tAccountOfflineTimers(String suffix) {
-        super(-865861330, "Zeze_Builtin_Timer_tAccountOfflineTimers", suffix);
+    public tAccountOfflineTimers(String _s_) {
+        super(-865861330, "Zeze_Builtin_Timer_tAccountOfflineTimers", _s_);
     }
 
     @Override
@@ -31,7 +31,7 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
 
     @Override
     public Zeze.Builtin.Timer.BAccountClientId decodeKey(ByteBuffer _os_) {
-        Zeze.Builtin.Timer.BAccountClientId _v_ = new Zeze.Builtin.Timer.BAccountClientId();
+        var _v_ = new Zeze.Builtin.Timer.BAccountClientId();
         _v_.decode(_os_);
         return _v_;
     }
@@ -44,21 +44,21 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     }
 
     @Override
-    public Zeze.Builtin.Timer.BAccountClientId decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
-        var parents = new java.util.ArrayList<String>();
-        Zeze.Builtin.Timer.BAccountClientId _v_ = new Zeze.Builtin.Timer.BAccountClientId();
-        parents.add("__key");
-        _v_.decodeResultSet(parents, rs);
-        parents.remove(parents.size() - 1);
+    public Zeze.Builtin.Timer.BAccountClientId decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
+        var _p_ = new java.util.ArrayList<String>();
+        var _v_ = new Zeze.Builtin.Timer.BAccountClientId();
+        _p_.add("__key");
+        _v_.decodeResultSet(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Zeze.Builtin.Timer.BAccountClientId _v_) {
-        var parents = new java.util.ArrayList<String>();
-        parents.add("__key");
-        _v_.encodeSQLStatement(parents, st);
-        parents.remove(parents.size() - 1);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Zeze.Builtin.Timer.BAccountClientId _v_) {
+        var _p_ = new java.util.ArrayList<String>();
+        _p_.add("__key");
+        _v_.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
     }
 
     @Override
@@ -67,7 +67,7 @@ public final class tAccountOfflineTimers extends TableX<Zeze.Builtin.Timer.BAcco
     }
 
     @Override
-    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Zeze.Builtin.Timer.BAccountClientId key) {
-        return get(key);
+    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Zeze.Builtin.Timer.BAccountClientId _k_) {
+        return get(_k_);
     }
 }

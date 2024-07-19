@@ -17,84 +17,84 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     public long getNodeSum() {
         if (!isManaged())
             return _NodeSum;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _NodeSum;
-        var log = (Log__NodeSum)txn.getLog(objectId() + 1);
+        var log = (Log__NodeSum)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _NodeSum;
     }
 
-    public void setNodeSum(long value) {
+    public void setNodeSum(long _v_) {
         if (!isManaged()) {
-            _NodeSum = value;
+            _NodeSum = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__NodeSum(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__NodeSum(this, 1, _v_));
     }
 
     @Override
     public long getEdgeSum() {
         if (!isManaged())
             return _EdgeSum;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _EdgeSum;
-        var log = (Log__EdgeSum)txn.getLog(objectId() + 2);
+        var log = (Log__EdgeSum)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _EdgeSum;
     }
 
-    public void setEdgeSum(long value) {
+    public void setEdgeSum(long _v_) {
         if (!isManaged()) {
-            _EdgeSum = value;
+            _EdgeSum = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EdgeSum(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__EdgeSum(this, 2, _v_));
     }
 
     @Override
     public String getStartNode() {
         if (!isManaged())
             return _StartNode;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _StartNode;
-        var log = (Log__StartNode)txn.getLog(objectId() + 3);
+        var log = (Log__StartNode)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _StartNode;
     }
 
-    public void setStartNode(String value) {
-        if (value == null)
+    public void setStartNode(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _StartNode = value;
+            _StartNode = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__StartNode(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__StartNode(this, 3, _v_));
     }
 
     @Override
     public String getEndNode() {
         if (!isManaged())
             return _EndNode;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _EndNode;
-        var log = (Log__EndNode)txn.getLog(objectId() + 4);
+        var log = (Log__EndNode)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _EndNode;
     }
 
-    public void setEndNode(String value) {
-        if (value == null)
+    public void setEndNode(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _EndNode = value;
+            _EndNode = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__EndNode(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__EndNode(this, 4, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -124,12 +124,12 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         _unknown_ = null;
     }
 
-    public void assign(BDAG other) {
-        setNodeSum(other.getNodeSum());
-        setEdgeSum(other.getEdgeSum());
-        setStartNode(other.getStartNode());
-        setEndNode(other.getEndNode());
-        _unknown_ = other._unknown_;
+    public void assign(BDAG _o_) {
+        setNodeSum(_o_.getNodeSum());
+        setEdgeSum(_o_.getEdgeSum());
+        setStartNode(_o_.getStartNode());
+        setEndNode(_o_.getEndNode());
+        _unknown_ = _o_._unknown_;
     }
 
     public BDAG copyIfManaged() {
@@ -138,15 +138,15 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
 
     @Override
     public BDAG copy() {
-        var copy = new BDAG();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDAG();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDAG a, BDAG b) {
-        BDAG save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDAG _a_, BDAG _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -155,28 +155,28 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     }
 
     private static final class Log__NodeSum extends Zeze.Transaction.Logs.LogLong {
-        public Log__NodeSum(BDAG bean, int varId, long value) { super(bean, varId, value); }
+        public Log__NodeSum(BDAG _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAG)getBelong())._NodeSum = value; }
     }
 
     private static final class Log__EdgeSum extends Zeze.Transaction.Logs.LogLong {
-        public Log__EdgeSum(BDAG bean, int varId, long value) { super(bean, varId, value); }
+        public Log__EdgeSum(BDAG _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAG)getBelong())._EdgeSum = value; }
     }
 
     private static final class Log__StartNode extends Zeze.Transaction.Logs.LogString {
-        public Log__StartNode(BDAG bean, int varId, String value) { super(bean, varId, value); }
+        public Log__StartNode(BDAG _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAG)getBelong())._StartNode = value; }
     }
 
     private static final class Log__EndNode extends Zeze.Transaction.Logs.LogString {
-        public Log__EndNode(BDAG bean, int varId, String value) { super(bean, varId, value); }
+        public Log__EndNode(BDAG _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDAG)getBelong())._EndNode = value; }
@@ -184,21 +184,21 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DAG.BDAG: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("NodeSum=").append(getNodeSum()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EdgeSum=").append(getEdgeSum()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("StartNode=").append(getStartNode()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("EndNode=").append(getEndNode()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DAG.BDAG: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("NodeSum=").append(getNodeSum()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("EdgeSum=").append(getEdgeSum()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("StartNode=").append(getStartNode()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndNode=").append(getEndNode()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -209,8 +209,8 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -316,50 +316,50 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _NodeSum = vlog.longValue(); break;
-                case 2: _EdgeSum = vlog.longValue(); break;
-                case 3: _StartNode = vlog.stringValue(); break;
-                case 4: _EndNode = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _NodeSum = _v_.longValue(); break;
+                case 2: _EdgeSum = _v_.longValue(); break;
+                case 3: _StartNode = _v_.stringValue(); break;
+                case 4: _EndNode = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setNodeSum(rs.getLong(_parents_name_ + "NodeSum"));
-        setEdgeSum(rs.getLong(_parents_name_ + "EdgeSum"));
-        setStartNode(rs.getString(_parents_name_ + "StartNode"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setNodeSum(_r_.getLong(_pn_ + "NodeSum"));
+        setEdgeSum(_r_.getLong(_pn_ + "EdgeSum"));
+        setStartNode(_r_.getString(_pn_ + "StartNode"));
         if (getStartNode() == null)
             setStartNode("");
-        setEndNode(rs.getString(_parents_name_ + "EndNode"));
+        setEndNode(_r_.getString(_pn_ + "EndNode"));
         if (getEndNode() == null)
             setEndNode("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "NodeSum", getNodeSum());
-        st.appendLong(_parents_name_ + "EdgeSum", getEdgeSum());
-        st.appendString(_parents_name_ + "StartNode", getStartNode());
-        st.appendString(_parents_name_ + "EndNode", getEndNode());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "NodeSum", getNodeSum());
+        _s_.appendLong(_pn_ + "EdgeSum", getEdgeSum());
+        _s_.appendString(_pn_ + "StartNode", getStartNode());
+        _s_.appendString(_pn_ + "EndNode", getEndNode());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NodeSum", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EdgeSum", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "StartNode", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "EndNode", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "NodeSum", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "EdgeSum", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "StartNode", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "EndNode", "string", "", ""));
+        return _v_;
     }
 }

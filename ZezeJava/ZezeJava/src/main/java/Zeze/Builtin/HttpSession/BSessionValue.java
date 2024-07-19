@@ -16,40 +16,40 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     public long getCreateTime() {
         if (!isManaged())
             return _CreateTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _CreateTime;
-        var log = (Log__CreateTime)txn.getLog(objectId() + 1);
+        var log = (Log__CreateTime)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _CreateTime;
     }
 
-    public void setCreateTime(long value) {
+    public void setCreateTime(long _v_) {
         if (!isManaged()) {
-            _CreateTime = value;
+            _CreateTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__CreateTime(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__CreateTime(this, 1, _v_));
     }
 
     @Override
     public long getExpireTime() {
         if (!isManaged())
             return _ExpireTime;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ExpireTime;
-        var log = (Log__ExpireTime)txn.getLog(objectId() + 2);
+        var log = (Log__ExpireTime)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ExpireTime;
     }
 
-    public void setExpireTime(long value) {
+    public void setExpireTime(long _v_) {
         if (!isManaged()) {
-            _ExpireTime = value;
+            _ExpireTime = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ExpireTime(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ExpireTime(this, 2, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, String> getProperties() {
@@ -83,11 +83,11 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
         _unknown_ = null;
     }
 
-    public void assign(BSessionValue other) {
-        setCreateTime(other.getCreateTime());
-        setExpireTime(other.getExpireTime());
-        _Properties.assign(other._Properties);
-        _unknown_ = other._unknown_;
+    public void assign(BSessionValue _o_) {
+        setCreateTime(_o_.getCreateTime());
+        setExpireTime(_o_.getExpireTime());
+        _Properties.assign(_o_._Properties);
+        _unknown_ = _o_._unknown_;
     }
 
     public BSessionValue copyIfManaged() {
@@ -96,15 +96,15 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
 
     @Override
     public BSessionValue copy() {
-        var copy = new BSessionValue();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BSessionValue();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BSessionValue a, BSessionValue b) {
-        BSessionValue save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BSessionValue _a_, BSessionValue _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -113,14 +113,14 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     }
 
     private static final class Log__CreateTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__CreateTime(BSessionValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__CreateTime(BSessionValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSessionValue)getBelong())._CreateTime = value; }
     }
 
     private static final class Log__ExpireTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpireTime(BSessionValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ExpireTime(BSessionValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BSessionValue)getBelong())._ExpireTime = value; }
@@ -128,31 +128,31 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HttpSession.BSessionValue: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("CreateTime=").append(getCreateTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ExpireTime=").append(getExpireTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Properties={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HttpSession.BSessionValue: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("CreateTime=").append(getCreateTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExpireTime=").append(getExpireTime()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Properties={");
         if (!_Properties.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Properties.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Properties.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -163,8 +163,8 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -265,13 +265,13 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Properties.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Properties.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Properties.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Properties.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -285,42 +285,42 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _CreateTime = vlog.longValue(); break;
-                case 2: _ExpireTime = vlog.longValue(); break;
-                case 3: _Properties.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _CreateTime = _v_.longValue(); break;
+                case 2: _ExpireTime = _v_.longValue(); break;
+                case 3: _Properties.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setCreateTime(rs.getLong(_parents_name_ + "CreateTime"));
-        setExpireTime(rs.getLong(_parents_name_ + "ExpireTime"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Properties", _Properties, rs.getString(_parents_name_ + "Properties"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setCreateTime(_r_.getLong(_pn_ + "CreateTime"));
+        setExpireTime(_r_.getLong(_pn_ + "ExpireTime"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Properties", _Properties, _r_.getString(_pn_ + "Properties"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "CreateTime", getCreateTime());
-        st.appendLong(_parents_name_ + "ExpireTime", getExpireTime());
-        st.appendString(_parents_name_ + "Properties", Zeze.Serialize.Helper.encodeJson(_Properties));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "CreateTime", getCreateTime());
+        _s_.appendLong(_pn_ + "ExpireTime", getExpireTime());
+        _s_.appendString(_pn_ + "Properties", Zeze.Serialize.Helper.encodeJson(_Properties));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CreateTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ExpireTime", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Properties", "map", "string", "string"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "CreateTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ExpireTime", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Properties", "map", "string", "string"));
+        return _v_;
     }
 }

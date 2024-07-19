@@ -15,40 +15,40 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     public long getDistributeId() {
         if (!isManaged())
             return _DistributeId;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _DistributeId;
-        var log = (Log__DistributeId)txn.getLog(objectId() + 1);
+        var log = (Log__DistributeId)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DistributeId;
     }
 
-    public void setDistributeId(long value) {
+    public void setDistributeId(long _v_) {
         if (!isManaged()) {
-            _DistributeId = value;
+            _DistributeId = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__DistributeId(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__DistributeId(this, 1, _v_));
     }
 
     @Override
     public boolean isAtomicAll() {
         if (!isManaged())
             return _AtomicAll;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _AtomicAll;
-        var log = (Log__AtomicAll)txn.getLog(objectId() + 2);
+        var log = (Log__AtomicAll)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _AtomicAll;
     }
 
-    public void setAtomicAll(boolean value) {
+    public void setAtomicAll(boolean _v_) {
         if (!isManaged()) {
-            _AtomicAll = value;
+            _AtomicAll = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__AtomicAll(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__AtomicAll(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -70,26 +70,26 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
 
     @Override
     public Zeze.Builtin.HotDistribute.BTryDistribute.Data toData() {
-        var data = new Zeze.Builtin.HotDistribute.BTryDistribute.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.HotDistribute.BTryDistribute.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.HotDistribute.BTryDistribute.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.HotDistribute.BTryDistribute.Data)_o_);
     }
 
-    public void assign(BTryDistribute.Data other) {
-        setDistributeId(other._DistributeId);
-        setAtomicAll(other._AtomicAll);
+    public void assign(BTryDistribute.Data _o_) {
+        setDistributeId(_o_._DistributeId);
+        setAtomicAll(_o_._AtomicAll);
         _unknown_ = null;
     }
 
-    public void assign(BTryDistribute other) {
-        setDistributeId(other.getDistributeId());
-        setAtomicAll(other.isAtomicAll());
-        _unknown_ = other._unknown_;
+    public void assign(BTryDistribute _o_) {
+        setDistributeId(_o_.getDistributeId());
+        setAtomicAll(_o_.isAtomicAll());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTryDistribute copyIfManaged() {
@@ -98,15 +98,15 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
 
     @Override
     public BTryDistribute copy() {
-        var copy = new BTryDistribute();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTryDistribute();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTryDistribute a, BTryDistribute b) {
-        BTryDistribute save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTryDistribute _a_, BTryDistribute _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -115,14 +115,14 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     }
 
     private static final class Log__DistributeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__DistributeId(BTryDistribute bean, int varId, long value) { super(bean, varId, value); }
+        public Log__DistributeId(BTryDistribute _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTryDistribute)getBelong())._DistributeId = value; }
     }
 
     private static final class Log__AtomicAll extends Zeze.Transaction.Logs.LogBool {
-        public Log__AtomicAll(BTryDistribute bean, int varId, boolean value) { super(bean, varId, value); }
+        public Log__AtomicAll(BTryDistribute _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTryDistribute)getBelong())._AtomicAll = value; }
@@ -130,19 +130,19 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(getDistributeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AtomicAll=").append(isAtomicAll()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(getDistributeId()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AtomicAll=").append(isAtomicAll()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -153,8 +153,8 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -232,39 +232,39 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _DistributeId = vlog.longValue(); break;
-                case 2: _AtomicAll = vlog.booleanValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _DistributeId = _v_.longValue(); break;
+                case 2: _AtomicAll = _v_.booleanValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setDistributeId(rs.getLong(_parents_name_ + "DistributeId"));
-        setAtomicAll(rs.getBoolean(_parents_name_ + "AtomicAll"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setDistributeId(_r_.getLong(_pn_ + "DistributeId"));
+        setAtomicAll(_r_.getBoolean(_pn_ + "AtomicAll"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "DistributeId", getDistributeId());
-        st.appendBoolean(_parents_name_ + "AtomicAll", isAtomicAll());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "DistributeId", getDistributeId());
+        _s_.appendBoolean(_pn_ + "AtomicAll", isAtomicAll());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DistributeId", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "AtomicAll", "bool", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "DistributeId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "AtomicAll", "bool", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -278,16 +278,16 @@ public static final class Data extends Zeze.Transaction.Data {
         return _DistributeId;
     }
 
-    public void setDistributeId(long value) {
-        _DistributeId = value;
+    public void setDistributeId(long _v_) {
+        _DistributeId = _v_;
     }
 
     public boolean isAtomicAll() {
         return _AtomicAll;
     }
 
-    public void setAtomicAll(boolean value) {
-        _AtomicAll = value;
+    public void setAtomicAll(boolean _v_) {
+        _AtomicAll = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -308,37 +308,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.HotDistribute.BTryDistribute toBean() {
-        var bean = new Zeze.Builtin.HotDistribute.BTryDistribute();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.HotDistribute.BTryDistribute();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BTryDistribute)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BTryDistribute)_o_);
     }
 
-    public void assign(BTryDistribute other) {
-        _DistributeId = other.getDistributeId();
-        _AtomicAll = other.isAtomicAll();
+    public void assign(BTryDistribute _o_) {
+        _DistributeId = _o_.getDistributeId();
+        _AtomicAll = _o_.isAtomicAll();
     }
 
-    public void assign(BTryDistribute.Data other) {
-        _DistributeId = other._DistributeId;
-        _AtomicAll = other._AtomicAll;
+    public void assign(BTryDistribute.Data _o_) {
+        _DistributeId = _o_._DistributeId;
+        _AtomicAll = _o_._AtomicAll;
     }
 
     @Override
     public BTryDistribute.Data copy() {
-        var copy = new BTryDistribute.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTryDistribute.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTryDistribute.Data a, BTryDistribute.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTryDistribute.Data _a_, BTryDistribute.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -353,19 +353,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("DistributeId=").append(_DistributeId).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("AtomicAll=").append(_AtomicAll).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(_DistributeId).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("AtomicAll=").append(_AtomicAll).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -374,8 +374,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

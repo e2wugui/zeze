@@ -12,8 +12,8 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
         super(-2094601796, "Zeze_Builtin_Online_tonline");
     }
 
-    public tonline(String suffix) {
-        super(-2094601796, "Zeze_Builtin_Online_tonline", suffix);
+    public tonline(String _s_) {
+        super(-2094601796, "Zeze_Builtin_Online_tonline", _s_);
     }
 
     @Override
@@ -45,17 +45,17 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     @Override
-    public String decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public String decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         String _v_;
-        _v_ = rs.getString("__key");
+        _v_ = _s_.getString("__key");
         if (_v_ == null)
             _v_ = "";
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, String _v_) {
-        st.appendString("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, String _v_) {
+        _s_.appendString("__key", _v_);
     }
 
     @Override
@@ -64,7 +64,7 @@ public final class tonline extends TableX<String, Zeze.Builtin.Online.BOnlines>
     }
 
     @Override
-    public Zeze.Builtin.Online.BOnlinesReadOnly getReadOnly(String key) {
-        return get(key);
+    public Zeze.Builtin.Online.BOnlinesReadOnly getReadOnly(String _k_) {
+        return get(_k_);
     }
 }

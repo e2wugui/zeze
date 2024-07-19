@@ -15,20 +15,20 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     public int getCapacity() {
         if (!isManaged())
             return _Capacity;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Capacity;
-        var log = (Log__Capacity)txn.getLog(objectId() + 1);
+        var log = (Log__Capacity)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Capacity;
     }
 
-    public void setCapacity(int value) {
+    public void setCapacity(int _v_) {
         if (!isManaged()) {
-            _Capacity = value;
+            _Capacity = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Capacity(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Capacity(this, 1, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
@@ -60,12 +60,12 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         _unknown_ = null;
     }
 
-    public void assign(BBag other) {
-        setCapacity(other.getCapacity());
+    public void assign(BBag _o_) {
+        setCapacity(_o_.getCapacity());
         _Items.clear();
-        for (var e : other._Items.entrySet())
-            _Items.put(e.getKey(), e.getValue().copy());
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Items.entrySet())
+            _Items.put(_e_.getKey(), _e_.getValue().copy());
+        _unknown_ = _o_._unknown_;
     }
 
     public BBag copyIfManaged() {
@@ -74,15 +74,15 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     @Override
     public BBag copy() {
-        var copy = new BBag();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BBag();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BBag a, BBag b) {
-        BBag save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BBag _a_, BBag _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     private static final class Log__Capacity extends Zeze.Transaction.Logs.LogInt {
-        public Log__Capacity(BBag bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Capacity(BBag _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BBag)getBelong())._Capacity = value; }
@@ -99,32 +99,32 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BBag: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Capacity=").append(getCapacity()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Items={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BBag: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Capacity=").append(getCapacity()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Items={");
         if (!_Items.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Items.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Items.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -135,8 +135,8 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -224,13 +224,13 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Items.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Items.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Items.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Items.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -246,38 +246,38 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Capacity = vlog.intValue(); break;
-                case 2: _Items.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Capacity = _v_.intValue(); break;
+                case 2: _Items.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setCapacity(rs.getInt(_parents_name_ + "Capacity"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Items", _Items, rs.getString(_parents_name_ + "Items"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setCapacity(_r_.getInt(_pn_ + "Capacity"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Items", _Items, _r_.getString(_pn_ + "Items"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendInt(_parents_name_ + "Capacity", getCapacity());
-        st.appendString(_parents_name_ + "Items", Zeze.Serialize.Helper.encodeJson(_Items));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendInt(_pn_ + "Capacity", getCapacity());
+        _s_.appendString(_pn_ + "Items", Zeze.Serialize.Helper.encodeJson(_Items));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Capacity", "int", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Items", "map", "int", "Zeze.Builtin.Game.Bag.BItem"));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Capacity", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Items", "map", "int", "Zeze.Builtin.Game.Bag.BItem"));
+        return _v_;
     }
 }

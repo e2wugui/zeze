@@ -21,160 +21,160 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     public long getItem0() {
         if (!isManaged())
             return _Item0;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item0;
-        var log = (Log__Item0)txn.getLog(objectId() + 1);
+        var log = (Log__Item0)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Item0;
     }
 
-    public void setItem0(long value) {
+    public void setItem0(long _v_) {
         if (!isManaged()) {
-            _Item0 = value;
+            _Item0 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item0(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item0(this, 1, _v_));
     }
 
     @Override
     public long getItem1() {
         if (!isManaged())
             return _Item1;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item1;
-        var log = (Log__Item1)txn.getLog(objectId() + 2);
+        var log = (Log__Item1)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Item1;
     }
 
-    public void setItem1(long value) {
+    public void setItem1(long _v_) {
         if (!isManaged()) {
-            _Item1 = value;
+            _Item1 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item1(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item1(this, 2, _v_));
     }
 
     @Override
     public long getItem2() {
         if (!isManaged())
             return _Item2;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item2;
-        var log = (Log__Item2)txn.getLog(objectId() + 3);
+        var log = (Log__Item2)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Item2;
     }
 
-    public void setItem2(long value) {
+    public void setItem2(long _v_) {
         if (!isManaged()) {
-            _Item2 = value;
+            _Item2 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item2(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item2(this, 3, _v_));
     }
 
     @Override
     public long getItem3() {
         if (!isManaged())
             return _Item3;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item3;
-        var log = (Log__Item3)txn.getLog(objectId() + 4);
+        var log = (Log__Item3)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Item3;
     }
 
-    public void setItem3(long value) {
+    public void setItem3(long _v_) {
         if (!isManaged()) {
-            _Item3 = value;
+            _Item3 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item3(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item3(this, 4, _v_));
     }
 
     @Override
     public long getItem4() {
         if (!isManaged())
             return _Item4;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item4;
-        var log = (Log__Item4)txn.getLog(objectId() + 5);
+        var log = (Log__Item4)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Item4;
     }
 
-    public void setItem4(long value) {
+    public void setItem4(long _v_) {
         if (!isManaged()) {
-            _Item4 = value;
+            _Item4 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item4(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item4(this, 5, _v_));
     }
 
     @Override
     public long getItem5() {
         if (!isManaged())
             return _Item5;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item5;
-        var log = (Log__Item5)txn.getLog(objectId() + 6);
+        var log = (Log__Item5)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _Item5;
     }
 
-    public void setItem5(long value) {
+    public void setItem5(long _v_) {
         if (!isManaged()) {
-            _Item5 = value;
+            _Item5 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item5(this, 6, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item5(this, 6, _v_));
     }
 
     @Override
     public long getItem6() {
         if (!isManaged())
             return _Item6;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item6;
-        var log = (Log__Item6)txn.getLog(objectId() + 7);
+        var log = (Log__Item6)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _Item6;
     }
 
-    public void setItem6(long value) {
+    public void setItem6(long _v_) {
         if (!isManaged()) {
-            _Item6 = value;
+            _Item6 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item6(this, 7, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item6(this, 7, _v_));
     }
 
     @Override
     public long getItem7() {
         if (!isManaged())
             return _Item7;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Item7;
-        var log = (Log__Item7)txn.getLog(objectId() + 8);
+        var log = (Log__Item7)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _Item7;
     }
 
-    public void setItem7(long value) {
+    public void setItem7(long _v_) {
         if (!isManaged()) {
-            _Item7 = value;
+            _Item7 = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Item7(this, 8, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Item7(this, 8, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -206,16 +206,16 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         _unknown_ = null;
     }
 
-    public void assign(BValue other) {
-        setItem0(other.getItem0());
-        setItem1(other.getItem1());
-        setItem2(other.getItem2());
-        setItem3(other.getItem3());
-        setItem4(other.getItem4());
-        setItem5(other.getItem5());
-        setItem6(other.getItem6());
-        setItem7(other.getItem7());
-        _unknown_ = other._unknown_;
+    public void assign(BValue _o_) {
+        setItem0(_o_.getItem0());
+        setItem1(_o_.getItem1());
+        setItem2(_o_.getItem2());
+        setItem3(_o_.getItem3());
+        setItem4(_o_.getItem4());
+        setItem5(_o_.getItem5());
+        setItem6(_o_.getItem6());
+        setItem7(_o_.getItem7());
+        _unknown_ = _o_._unknown_;
     }
 
     public BValue copyIfManaged() {
@@ -224,15 +224,15 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
 
     @Override
     public BValue copy() {
-        var copy = new BValue();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BValue();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BValue a, BValue b) {
-        BValue save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BValue _a_, BValue _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -241,56 +241,56 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     private static final class Log__Item0 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item0(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item0(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item0 = value; }
     }
 
     private static final class Log__Item1 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item1(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item1(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item1 = value; }
     }
 
     private static final class Log__Item2 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item2(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item2(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item2 = value; }
     }
 
     private static final class Log__Item3 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item3(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item3(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item3 = value; }
     }
 
     private static final class Log__Item4 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item4(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item4(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item4 = value; }
     }
 
     private static final class Log__Item5 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item5(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item5(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item5 = value; }
     }
 
     private static final class Log__Item6 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item6(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item6(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item6 = value; }
     }
 
     private static final class Log__Item7 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item7(BValue bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Item7(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BValue)getBelong())._Item7 = value; }
@@ -298,25 +298,25 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.BoolList.BValue: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Item0=").append(getItem0()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item1=").append(getItem1()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item2=").append(getItem2()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item3=").append(getItem3()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item4=").append(getItem4()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item5=").append(getItem5()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item6=").append(getItem6()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Item7=").append(getItem7()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.BoolList.BValue: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item0=").append(getItem0()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item1=").append(getItem1()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item2=").append(getItem2()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item3=").append(getItem3()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item4=").append(getItem4()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item5=").append(getItem5()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item6=").append(getItem6()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item7=").append(getItem7()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -327,8 +327,8 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -498,62 +498,62 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _Item0 = vlog.longValue(); break;
-                case 2: _Item1 = vlog.longValue(); break;
-                case 3: _Item2 = vlog.longValue(); break;
-                case 4: _Item3 = vlog.longValue(); break;
-                case 5: _Item4 = vlog.longValue(); break;
-                case 6: _Item5 = vlog.longValue(); break;
-                case 7: _Item6 = vlog.longValue(); break;
-                case 8: _Item7 = vlog.longValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _Item0 = _v_.longValue(); break;
+                case 2: _Item1 = _v_.longValue(); break;
+                case 3: _Item2 = _v_.longValue(); break;
+                case 4: _Item3 = _v_.longValue(); break;
+                case 5: _Item4 = _v_.longValue(); break;
+                case 6: _Item5 = _v_.longValue(); break;
+                case 7: _Item6 = _v_.longValue(); break;
+                case 8: _Item7 = _v_.longValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setItem0(rs.getLong(_parents_name_ + "Item0"));
-        setItem1(rs.getLong(_parents_name_ + "Item1"));
-        setItem2(rs.getLong(_parents_name_ + "Item2"));
-        setItem3(rs.getLong(_parents_name_ + "Item3"));
-        setItem4(rs.getLong(_parents_name_ + "Item4"));
-        setItem5(rs.getLong(_parents_name_ + "Item5"));
-        setItem6(rs.getLong(_parents_name_ + "Item6"));
-        setItem7(rs.getLong(_parents_name_ + "Item7"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setItem0(_r_.getLong(_pn_ + "Item0"));
+        setItem1(_r_.getLong(_pn_ + "Item1"));
+        setItem2(_r_.getLong(_pn_ + "Item2"));
+        setItem3(_r_.getLong(_pn_ + "Item3"));
+        setItem4(_r_.getLong(_pn_ + "Item4"));
+        setItem5(_r_.getLong(_pn_ + "Item5"));
+        setItem6(_r_.getLong(_pn_ + "Item6"));
+        setItem7(_r_.getLong(_pn_ + "Item7"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "Item0", getItem0());
-        st.appendLong(_parents_name_ + "Item1", getItem1());
-        st.appendLong(_parents_name_ + "Item2", getItem2());
-        st.appendLong(_parents_name_ + "Item3", getItem3());
-        st.appendLong(_parents_name_ + "Item4", getItem4());
-        st.appendLong(_parents_name_ + "Item5", getItem5());
-        st.appendLong(_parents_name_ + "Item6", getItem6());
-        st.appendLong(_parents_name_ + "Item7", getItem7());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "Item0", getItem0());
+        _s_.appendLong(_pn_ + "Item1", getItem1());
+        _s_.appendLong(_pn_ + "Item2", getItem2());
+        _s_.appendLong(_pn_ + "Item3", getItem3());
+        _s_.appendLong(_pn_ + "Item4", getItem4());
+        _s_.appendLong(_pn_ + "Item5", getItem5());
+        _s_.appendLong(_pn_ + "Item6", getItem6());
+        _s_.appendLong(_pn_ + "Item7", getItem7());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Item0", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Item1", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item2", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Item3", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Item4", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Item5", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Item6", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Item7", "long", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Item0", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Item1", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Item2", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Item3", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Item4", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Item5", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Item6", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(8, "Item7", "long", "", ""));
+        return _v_;
     }
 }

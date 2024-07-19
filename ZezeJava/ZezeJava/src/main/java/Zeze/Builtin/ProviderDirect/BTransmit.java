@@ -18,22 +18,22 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public String getActionName() {
         if (!isManaged())
             return _ActionName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ActionName;
-        var log = (Log__ActionName)txn.getLog(objectId() + 1);
+        var log = (Log__ActionName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ActionName;
     }
 
-    public void setActionName(String value) {
-        if (value == null)
+    public void setActionName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ActionName = value;
+            _ActionName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ActionName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ActionName(this, 1, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<Long> getRoles() {
@@ -49,64 +49,64 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public long getSender() {
         if (!isManaged())
             return _Sender;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Sender;
-        var log = (Log__Sender)txn.getLog(objectId() + 3);
+        var log = (Log__Sender)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Sender;
     }
 
-    public void setSender(long value) {
+    public void setSender(long _v_) {
         if (!isManaged()) {
-            _Sender = value;
+            _Sender = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Sender(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Sender(this, 3, _v_));
     }
 
     @Override
     public Zeze.Net.Binary getParameter() {
         if (!isManaged())
             return _Parameter;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Parameter;
-        var log = (Log__Parameter)txn.getLog(objectId() + 4);
+        var log = (Log__Parameter)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Parameter;
     }
 
-    public void setParameter(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParameter(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Parameter = value;
+            _Parameter = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Parameter(this, 4, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Parameter(this, 4, _v_));
     }
 
     @Override
     public String getOnlineSetName() {
         if (!isManaged())
             return _OnlineSetName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _OnlineSetName;
-        var log = (Log__OnlineSetName)txn.getLog(objectId() + 5);
+        var log = (Log__OnlineSetName)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _OnlineSetName;
     }
 
-    public void setOnlineSetName(String value) {
-        if (value == null)
+    public void setOnlineSetName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _OnlineSetName = value;
+            _OnlineSetName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__OnlineSetName(this, 5, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__OnlineSetName(this, 5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -146,33 +146,33 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     @Override
     public Zeze.Builtin.ProviderDirect.BTransmit.Data toData() {
-        var data = new Zeze.Builtin.ProviderDirect.BTransmit.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.ProviderDirect.BTransmit.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.ProviderDirect.BTransmit.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.ProviderDirect.BTransmit.Data)_o_);
     }
 
-    public void assign(BTransmit.Data other) {
-        setActionName(other._ActionName);
+    public void assign(BTransmit.Data _o_) {
+        setActionName(_o_._ActionName);
         _Roles.clear();
-        _Roles.addAll(other._Roles);
-        setSender(other._Sender);
-        setParameter(other._Parameter);
-        setOnlineSetName(other._OnlineSetName);
+        _Roles.addAll(_o_._Roles);
+        setSender(_o_._Sender);
+        setParameter(_o_._Parameter);
+        setOnlineSetName(_o_._OnlineSetName);
         _unknown_ = null;
     }
 
-    public void assign(BTransmit other) {
-        setActionName(other.getActionName());
-        _Roles.assign(other._Roles);
-        setSender(other.getSender());
-        setParameter(other.getParameter());
-        setOnlineSetName(other.getOnlineSetName());
-        _unknown_ = other._unknown_;
+    public void assign(BTransmit _o_) {
+        setActionName(_o_.getActionName());
+        _Roles.assign(_o_._Roles);
+        setSender(_o_.getSender());
+        setParameter(_o_.getParameter());
+        setOnlineSetName(_o_.getOnlineSetName());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTransmit copyIfManaged() {
@@ -181,15 +181,15 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     @Override
     public BTransmit copy() {
-        var copy = new BTransmit();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTransmit();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTransmit a, BTransmit b) {
-        BTransmit save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTransmit _a_, BTransmit _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -198,28 +198,28 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     private static final class Log__ActionName extends Zeze.Transaction.Logs.LogString {
-        public Log__ActionName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ActionName(BTransmit _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransmit)getBelong())._ActionName = value; }
     }
 
     private static final class Log__Sender extends Zeze.Transaction.Logs.LogLong {
-        public Log__Sender(BTransmit bean, int varId, long value) { super(bean, varId, value); }
+        public Log__Sender(BTransmit _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransmit)getBelong())._Sender = value; }
     }
 
     private static final class Log__Parameter extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Parameter(BTransmit bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Parameter(BTransmit _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransmit)getBelong())._Parameter = value; }
     }
 
     private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__OnlineSetName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
+        public Log__OnlineSetName(BTransmit _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTransmit)getBelong())._OnlineSetName = value; }
@@ -227,32 +227,32 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ActionName=").append(getActionName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Roles={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ActionName=").append(getActionName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Roles={");
         if (!_Roles.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Roles) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Roles) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Sender=").append(getSender()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(getParameter()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Sender=").append(getSender()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Parameter=").append(getParameter()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -263,8 +263,8 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -386,13 +386,13 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Roles.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Roles.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Roles.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Roles.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -408,55 +408,55 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ActionName = vlog.stringValue(); break;
-                case 2: _Roles.followerApply(vlog); break;
-                case 3: _Sender = vlog.longValue(); break;
-                case 4: _Parameter = vlog.binaryValue(); break;
-                case 5: _OnlineSetName = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ActionName = _v_.stringValue(); break;
+                case 2: _Roles.followerApply(_v_); break;
+                case 3: _Sender = _v_.longValue(); break;
+                case 4: _Parameter = _v_.binaryValue(); break;
+                case 5: _OnlineSetName = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setActionName(rs.getString(_parents_name_ + "ActionName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setActionName(_r_.getString(_pn_ + "ActionName"));
         if (getActionName() == null)
             setActionName("");
-        Zeze.Serialize.Helper.decodeJsonSet(_Roles, Long.class, rs.getString(_parents_name_ + "Roles"));
-        setSender(rs.getLong(_parents_name_ + "Sender"));
-        setParameter(new Zeze.Net.Binary(rs.getBytes(_parents_name_ + "Parameter")));
-        setOnlineSetName(rs.getString(_parents_name_ + "OnlineSetName"));
+        Zeze.Serialize.Helper.decodeJsonSet(_Roles, Long.class, _r_.getString(_pn_ + "Roles"));
+        setSender(_r_.getLong(_pn_ + "Sender"));
+        setParameter(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Parameter")));
+        setOnlineSetName(_r_.getString(_pn_ + "OnlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ActionName", getActionName());
-        st.appendString(_parents_name_ + "Roles", Zeze.Serialize.Helper.encodeJson(_Roles));
-        st.appendLong(_parents_name_ + "Sender", getSender());
-        st.appendBinary(_parents_name_ + "Parameter", getParameter());
-        st.appendString(_parents_name_ + "OnlineSetName", getOnlineSetName());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ActionName", getActionName());
+        _s_.appendString(_pn_ + "Roles", Zeze.Serialize.Helper.encodeJson(_Roles));
+        _s_.appendLong(_pn_ + "Sender", getSender());
+        _s_.appendBinary(_pn_ + "Parameter", getParameter());
+        _s_.appendString(_pn_ + "OnlineSetName", getOnlineSetName());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ActionName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Roles", "set", "", "long"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Sender", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Parameter", "binary", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "OnlineSetName", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ActionName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Roles", "set", "", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Sender", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Parameter", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "OnlineSetName", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -473,48 +473,48 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ActionName;
     }
 
-    public void setActionName(String value) {
-        if (value == null)
+    public void setActionName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ActionName = value;
+        _ActionName = _v_;
     }
 
     public java.util.HashSet<Long> getRoles() {
         return _Roles;
     }
 
-    public void setRoles(java.util.HashSet<Long> value) {
-        if (value == null)
+    public void setRoles(java.util.HashSet<Long> _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Roles = value;
+        _Roles = _v_;
     }
 
     public long getSender() {
         return _Sender;
     }
 
-    public void setSender(long value) {
-        _Sender = value;
+    public void setSender(long _v_) {
+        _Sender = _v_;
     }
 
     public Zeze.Net.Binary getParameter() {
         return _Parameter;
     }
 
-    public void setParameter(Zeze.Net.Binary value) {
-        if (value == null)
+    public void setParameter(Zeze.Net.Binary _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _Parameter = value;
+        _Parameter = _v_;
     }
 
     public String getOnlineSetName() {
         return _OnlineSetName;
     }
 
-    public void setOnlineSetName(String value) {
-        if (value == null)
+    public void setOnlineSetName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _OnlineSetName = value;
+        _OnlineSetName = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -553,45 +553,45 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.ProviderDirect.BTransmit toBean() {
-        var bean = new Zeze.Builtin.ProviderDirect.BTransmit();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.ProviderDirect.BTransmit();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BTransmit)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BTransmit)_o_);
     }
 
-    public void assign(BTransmit other) {
-        _ActionName = other.getActionName();
+    public void assign(BTransmit _o_) {
+        _ActionName = _o_.getActionName();
         _Roles.clear();
-        _Roles.addAll(other._Roles);
-        _Sender = other.getSender();
-        _Parameter = other.getParameter();
-        _OnlineSetName = other.getOnlineSetName();
+        _Roles.addAll(_o_._Roles);
+        _Sender = _o_.getSender();
+        _Parameter = _o_.getParameter();
+        _OnlineSetName = _o_.getOnlineSetName();
     }
 
-    public void assign(BTransmit.Data other) {
-        _ActionName = other._ActionName;
+    public void assign(BTransmit.Data _o_) {
+        _ActionName = _o_._ActionName;
         _Roles.clear();
-        _Roles.addAll(other._Roles);
-        _Sender = other._Sender;
-        _Parameter = other._Parameter;
-        _OnlineSetName = other._OnlineSetName;
+        _Roles.addAll(_o_._Roles);
+        _Sender = _o_._Sender;
+        _Parameter = _o_._Parameter;
+        _OnlineSetName = _o_._OnlineSetName;
     }
 
     @Override
     public BTransmit.Data copy() {
-        var copy = new BTransmit.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTransmit.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTransmit.Data a, BTransmit.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTransmit.Data _a_, BTransmit.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -606,32 +606,32 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ActionName=").append(_ActionName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Roles={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ActionName=").append(_ActionName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Roles={");
         if (!_Roles.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _item_ : _Roles) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Item=").append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _v_ : _Roles) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Sender=").append(_Sender).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Parameter=").append(_Parameter).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("OnlineSetName=").append(_OnlineSetName).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Sender=").append(_Sender).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Parameter=").append(_Parameter).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(_OnlineSetName).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -640,8 +640,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

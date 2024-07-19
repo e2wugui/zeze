@@ -17,12 +17,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_4(Zeze.Transaction.Bean _b_) {
+        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(_b_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long typeId) {
-        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_4(long _t_) {
+        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(_t_);
     }
 
     private final Zeze.Transaction.DynamicBean _Data;
@@ -31,32 +31,32 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         return new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
 
-    public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean bean) {
-        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(bean);
+    public static long getSpecialTypeIdFromBean_5(Zeze.Transaction.Bean _b_) {
+        return Zeze.Collections.DepartmentTree.getSpecialTypeIdFromBean(_b_);
     }
 
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_5(long typeId) {
-        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(typeId);
+    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_5(long _t_) {
+        return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(_t_);
     }
 
     @Override
     public long getParentDepartment() {
         if (!isManaged())
             return _ParentDepartment;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ParentDepartment;
-        var log = (Log__ParentDepartment)txn.getLog(objectId() + 1);
+        var log = (Log__ParentDepartment)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ParentDepartment;
     }
 
-    public void setParentDepartment(long value) {
+    public void setParentDepartment(long _v_) {
         if (!isManaged()) {
-            _ParentDepartment = value;
+            _ParentDepartment = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ParentDepartment(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ParentDepartment(this, 1, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
@@ -72,22 +72,22 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     public String getName() {
         if (!isManaged())
             return _Name;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Name;
-        var log = (Log__Name)txn.getLog(objectId() + 3);
+        var log = (Log__Name)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Name;
     }
 
-    public void setName(String value) {
-        if (value == null)
+    public void setName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Name = value;
+            _Name = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Name(this, 3, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Name(this, 3, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> getManagers() {
@@ -141,15 +141,15 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         _unknown_ = null;
     }
 
-    public void assign(BDepartmentTreeNode other) {
-        setParentDepartment(other.getParentDepartment());
-        _Childs.assign(other._Childs);
-        setName(other.getName());
+    public void assign(BDepartmentTreeNode _o_) {
+        setParentDepartment(_o_.getParentDepartment());
+        _Childs.assign(_o_._Childs);
+        setName(_o_.getName());
         _Managers.clear();
-        for (var e : other._Managers.entrySet())
-            _Managers.put(e.getKey(), e.getValue().copy());
-        _Data.assign(other._Data);
-        _unknown_ = other._unknown_;
+        for (var _e_ : _o_._Managers.entrySet())
+            _Managers.put(_e_.getKey(), _e_.getValue().copy());
+        _Data.assign(_o_._Data);
+        _unknown_ = _o_._unknown_;
     }
 
     public BDepartmentTreeNode copyIfManaged() {
@@ -158,15 +158,15 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     @Override
     public BDepartmentTreeNode copy() {
-        var copy = new BDepartmentTreeNode();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDepartmentTreeNode();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDepartmentTreeNode a, BDepartmentTreeNode b) {
-        BDepartmentTreeNode save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDepartmentTreeNode _a_, BDepartmentTreeNode _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -175,14 +175,14 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     private static final class Log__ParentDepartment extends Zeze.Transaction.Logs.LogLong {
-        public Log__ParentDepartment(BDepartmentTreeNode bean, int varId, long value) { super(bean, varId, value); }
+        public Log__ParentDepartment(BDepartmentTreeNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDepartmentTreeNode)getBelong())._ParentDepartment = value; }
     }
 
     private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
-        public Log__Name(BDepartmentTreeNode bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Name(BDepartmentTreeNode _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDepartmentTreeNode)getBelong())._Name = value; }
@@ -190,48 +190,48 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ParentDepartment=").append(getParentDepartment()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Childs={");
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ParentDepartment=").append(getParentDepartment()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Childs={");
         if (!_Childs.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Childs.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(_kv_.getValue()).append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Childs.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Managers={");
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Managers={");
         if (!_Managers.isEmpty()) {
-            sb.append(System.lineSeparator());
-            level += 4;
-            for (var _kv_ : _Managers.entrySet()) {
-                sb.append(Zeze.Util.Str.indent(level)).append("Key=").append(_kv_.getKey()).append(',').append(System.lineSeparator());
-                sb.append(Zeze.Util.Str.indent(level)).append("Value=").append(System.lineSeparator());
-                _kv_.getValue().getBean().buildString(sb, level + 4);
-                sb.append(',').append(System.lineSeparator());
+            _s_.append(System.lineSeparator());
+            _l_ += 4;
+            for (var _e_ : _Managers.entrySet()) {
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
+                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
+                _e_.getValue().getBean().buildString(_s_, _l_ + 4);
+                _s_.append(',').append(System.lineSeparator());
             }
-            level -= 4;
-            sb.append(Zeze.Util.Str.indent(level));
+            _l_ -= 4;
+            _s_.append(Zeze.Util.Str.indent(_l_));
         }
-        sb.append('}').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Data=").append(System.lineSeparator());
-        _Data.getBean().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append('}').append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Data=").append(System.lineSeparator());
+        _Data.getBean().buildString(_s_, _l_ + 4);
+        _s_.append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -242,8 +242,8 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -389,17 +389,17 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Childs.initRootInfo(root, this);
-        _Managers.initRootInfo(root, this);
-        _Data.initRootInfo(root, this);
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Childs.initRootInfo(_r_, this);
+        _Managers.initRootInfo(_r_, this);
+        _Data.initRootInfo(_r_, this);
     }
 
     @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo root) {
-        _Childs.initRootInfoWithRedo(root, this);
-        _Managers.initRootInfoWithRedo(root, this);
-        _Data.initRootInfoWithRedo(root, this);
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Childs.initRootInfoWithRedo(_r_, this);
+        _Managers.initRootInfoWithRedo(_r_, this);
+        _Data.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -415,52 +415,52 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ParentDepartment = vlog.longValue(); break;
-                case 2: _Childs.followerApply(vlog); break;
-                case 3: _Name = vlog.stringValue(); break;
-                case 4: _Managers.followerApply(vlog); break;
-                case 5: _Data.followerApply(vlog); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ParentDepartment = _v_.longValue(); break;
+                case 2: _Childs.followerApply(_v_); break;
+                case 3: _Name = _v_.stringValue(); break;
+                case 4: _Managers.followerApply(_v_); break;
+                case 5: _Data.followerApply(_v_); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setParentDepartment(rs.getLong(_parents_name_ + "ParentDepartment"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", _Childs, rs.getString(_parents_name_ + "Childs"));
-        setName(rs.getString(_parents_name_ + "Name"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setParentDepartment(_r_.getLong(_pn_ + "ParentDepartment"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", _Childs, _r_.getString(_pn_ + "Childs"));
+        setName(_r_.getString(_pn_ + "Name"));
         if (getName() == null)
             setName("");
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", _Managers, rs.getString(_parents_name_ + "Managers"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, rs.getString(_parents_name_ + "Data"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", _Managers, _r_.getString(_pn_ + "Managers"));
+        Zeze.Serialize.Helper.decodeJsonDynamic(_Data, _r_.getString(_pn_ + "Data"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendLong(_parents_name_ + "ParentDepartment", getParentDepartment());
-        st.appendString(_parents_name_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
-        st.appendString(_parents_name_ + "Name", getName());
-        st.appendString(_parents_name_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
-        st.appendString(_parents_name_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "ParentDepartment", getParentDepartment());
+        _s_.appendString(_pn_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
+        _s_.appendString(_pn_ + "Name", getName());
+        _s_.appendString(_pn_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
+        _s_.appendString(_pn_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ParentDepartment", "long", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Childs", "map", "string", "long"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Name", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Managers", "map", "string", "dynamic"));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ParentDepartment", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Childs", "map", "string", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Name", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Managers", "map", "string", "dynamic"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
+        return _v_;
     }
 }

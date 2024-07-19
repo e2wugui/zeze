@@ -14,22 +14,22 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
     public String getTopic() {
         if (!isManaged())
             return _topic;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _topic;
-        var log = (Log__topic)txn.getLog(objectId() + 1);
+        var log = (Log__topic)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _topic;
     }
 
-    public void setTopic(String value) {
-        if (value == null)
+    public void setTopic(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _topic = value;
+            _topic = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__topic(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__topic(this, 1, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -52,24 +52,24 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
 
     @Override
     public Zeze.Builtin.Token.BTopic.Data toData() {
-        var data = new Zeze.Builtin.Token.BTopic.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Token.BTopic.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Token.BTopic.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Token.BTopic.Data)_o_);
     }
 
-    public void assign(BTopic.Data other) {
-        setTopic(other._topic);
+    public void assign(BTopic.Data _o_) {
+        setTopic(_o_._topic);
         _unknown_ = null;
     }
 
-    public void assign(BTopic other) {
-        setTopic(other.getTopic());
-        _unknown_ = other._unknown_;
+    public void assign(BTopic _o_) {
+        setTopic(_o_.getTopic());
+        _unknown_ = _o_._unknown_;
     }
 
     public BTopic copyIfManaged() {
@@ -78,15 +78,15 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
 
     @Override
     public BTopic copy() {
-        var copy = new BTopic();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTopic();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTopic a, BTopic b) {
-        BTopic save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTopic _a_, BTopic _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -95,7 +95,7 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
     }
 
     private static final class Log__topic extends Zeze.Transaction.Logs.LogString {
-        public Log__topic(BTopic bean, int varId, String value) { super(bean, varId, value); }
+        public Log__topic(BTopic _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BTopic)getBelong())._topic = value; }
@@ -103,18 +103,18 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BTopic: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("topic=").append(getTopic()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BTopic: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("topic=").append(getTopic()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -125,8 +125,8 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -184,37 +184,37 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _topic = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _topic = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setTopic(rs.getString(_parents_name_ + "topic"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setTopic(_r_.getString(_pn_ + "topic"));
         if (getTopic() == null)
             setTopic("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "topic", getTopic());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "topic", getTopic());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "topic", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "topic", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -227,10 +227,10 @@ public static final class Data extends Zeze.Transaction.Data {
         return _topic;
     }
 
-    public void setTopic(String value) {
-        if (value == null)
+    public void setTopic(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _topic = value;
+        _topic = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -252,35 +252,35 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Token.BTopic toBean() {
-        var bean = new Zeze.Builtin.Token.BTopic();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Token.BTopic();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BTopic)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BTopic)_o_);
     }
 
-    public void assign(BTopic other) {
-        _topic = other.getTopic();
+    public void assign(BTopic _o_) {
+        _topic = _o_.getTopic();
     }
 
-    public void assign(BTopic.Data other) {
-        _topic = other._topic;
+    public void assign(BTopic.Data _o_) {
+        _topic = _o_._topic;
     }
 
     @Override
     public BTopic.Data copy() {
-        var copy = new BTopic.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BTopic.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BTopic.Data a, BTopic.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BTopic.Data _a_, BTopic.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -295,18 +295,18 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Token.BTopic: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("topic=").append(_topic).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Token.BTopic: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("topic=").append(_topic).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -315,8 +315,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

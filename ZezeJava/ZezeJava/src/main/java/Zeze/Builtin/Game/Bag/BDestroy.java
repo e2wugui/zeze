@@ -15,42 +15,42 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     public String getBagName() {
         if (!isManaged())
             return _BagName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _BagName;
-        var log = (Log__BagName)txn.getLog(objectId() + 1);
+        var log = (Log__BagName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _BagName;
     }
 
-    public void setBagName(String value) {
-        if (value == null)
+    public void setBagName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _BagName = value;
+            _BagName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__BagName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__BagName(this, 1, _v_));
     }
 
     @Override
     public int getPosition() {
         if (!isManaged())
             return _Position;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _Position;
-        var log = (Log__Position)txn.getLog(objectId() + 2);
+        var log = (Log__Position)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Position;
     }
 
-    public void setPosition(int value) {
+    public void setPosition(int _v_) {
         if (!isManaged()) {
-            _Position = value;
+            _Position = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__Position(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__Position(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -73,10 +73,10 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         _unknown_ = null;
     }
 
-    public void assign(BDestroy other) {
-        setBagName(other.getBagName());
-        setPosition(other.getPosition());
-        _unknown_ = other._unknown_;
+    public void assign(BDestroy _o_) {
+        setBagName(_o_.getBagName());
+        setPosition(_o_.getPosition());
+        _unknown_ = _o_._unknown_;
     }
 
     public BDestroy copyIfManaged() {
@@ -85,15 +85,15 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
 
     @Override
     public BDestroy copy() {
-        var copy = new BDestroy();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BDestroy();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BDestroy a, BDestroy b) {
-        BDestroy save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BDestroy _a_, BDestroy _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -102,14 +102,14 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Logs.LogString {
-        public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
+        public Log__BagName(BDestroy _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDestroy)getBelong())._BagName = value; }
     }
 
     private static final class Log__Position extends Zeze.Transaction.Logs.LogInt {
-        public Log__Position(BDestroy bean, int varId, int value) { super(bean, varId, value); }
+        public Log__Position(BDestroy _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BDestroy)getBelong())._Position = value; }
@@ -117,19 +117,19 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Bag.BDestroy: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Position=").append(getPosition()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BDestroy: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Position=").append(getPosition()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -140,8 +140,8 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -219,40 +219,40 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _BagName = vlog.stringValue(); break;
-                case 2: _Position = vlog.intValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _BagName = _v_.stringValue(); break;
+                case 2: _Position = _v_.intValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setBagName(rs.getString(_parents_name_ + "BagName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setBagName(_r_.getString(_pn_ + "BagName"));
         if (getBagName() == null)
             setBagName("");
-        setPosition(rs.getInt(_parents_name_ + "Position"));
+        setPosition(_r_.getInt(_pn_ + "Position"));
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "BagName", getBagName());
-        st.appendInt(_parents_name_ + "Position", getPosition());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "BagName", getBagName());
+        _s_.appendInt(_pn_ + "Position", getPosition());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BagName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Position", "int", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "BagName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Position", "int", "", ""));
+        return _v_;
     }
 }

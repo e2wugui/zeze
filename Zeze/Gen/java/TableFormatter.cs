@@ -38,8 +38,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"        super({table.Id}, \"{table.Space.Path("_", table.Name)}\");");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public " + table.Name + "(String suffix) {");
-            sw.WriteLine($"        super({table.Id}, \"{table.Space.Path("_", table.Name)}\", suffix);");
+            sw.WriteLine("    public " + table.Name + "(String _s_) {");
+            sw.WriteLine($"        super({table.Id}, \"{table.Space.Path("_", table.Name)}\", _s_);");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
@@ -81,21 +81,21 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             if (table.IsAutoKey)
             {
-                sw.WriteLine("    public long insert(" + value + " value) {");
+                sw.WriteLine("    public long insert(" + value + " _v_) {");
                 sw.WriteLine("        //noinspection DataFlowIssue");
-                sw.WriteLine("        long key = getAutoKey().next();");
-                sw.WriteLine("        insert(key, value);");
-                sw.WriteLine("        return key;");
+                sw.WriteLine("        long _k_ = getAutoKey().next();");
+                sw.WriteLine("        insert(_k_, _v_);");
+                sw.WriteLine("        return _k_;");
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }
             if (table.IsAutoKeyRandom)
             {
-                sw.WriteLine("    public Zeze.Net.Binary insert(" + value + " value) {");
-                sw.WriteLine("        var key = Zeze.Util.Random.nextBinary(16);");
-                sw.WriteLine("        while (!tryAdd(key, value))");
-                sw.WriteLine("            key = Zeze.Util.Random.nextBinary(16);");
-                sw.WriteLine("        return key;");
+                sw.WriteLine("    public Zeze.Net.Binary insert(" + value + " _v_) {");
+                sw.WriteLine("        var _k_ = Zeze.Util.Random.nextBinary(16);");
+                sw.WriteLine("        while (!tryAdd(_k_, _v_))");
+                sw.WriteLine("            _k_ = Zeze.Util.Random.nextBinary(16);");
+                sw.WriteLine("        return _k_;");
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }
@@ -117,21 +117,21 @@ namespace Zeze.Gen.java
             sw.WriteLine();
 
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public " + keyboxing + " decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {");
+            sw.WriteLine("    public " + keyboxing + " decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {");
             if (table.KeyType.IsBean)
-                sw.WriteLine("        var parents = new java.util.ArrayList<String>();");
+                sw.WriteLine("        var _p_ = new java.util.ArrayList<String>();");
             var hasParentName = new bool[1];
             table.KeyType.Accept(new Define("_v_", sw, "        "));
-            table.KeyType.Accept(new DecodeResultSet("__key", "_v_", -1, "rs", sw, "        ", hasParentName, true));
+            table.KeyType.Accept(new DecodeResultSet("__key", "_v_", -1, "_s_", sw, "        ", hasParentName, true));
             sw.WriteLine("        return _v_;");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, " + keyboxing + " _v_) {");
+            sw.WriteLine("    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, " + keyboxing + " _v_) {");
             if (table.KeyType.IsBean)
-                sw.WriteLine("        var parents = new java.util.ArrayList<String>();");
+                sw.WriteLine("        var _p_ = new java.util.ArrayList<String>();");
             var hasParentName2 = new bool[1];
-            table.KeyType.Accept(new EncodeSQLStatement("__key", null, "_v_", -1, "st", sw, "        ", hasParentName2, true));
+            table.KeyType.Accept(new EncodeSQLStatement("__key", null, "_v_", -1, "_s_", sw, "        ", hasParentName2, true));
             sw.WriteLine("    }");
             sw.WriteLine();
 
@@ -141,8 +141,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} key) {{");
-            sw.WriteLine($"        return get(key);");
+            sw.WriteLine($"    public {value}ReadOnly getReadOnly({keyboxing} _k_) {{");
+            sw.WriteLine($"        return get(_k_);");
             sw.WriteLine("    }");
             //sw.WriteLine();
             //CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);

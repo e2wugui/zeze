@@ -15,44 +15,44 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     public String getServiceName() {
         if (!isManaged())
             return _ServiceName;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)txn.getLog(objectId() + 1);
+        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
-    public void setServiceName(String value) {
-        if (value == null)
+    public void setServiceName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceName = value;
+            _ServiceName = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__ServiceName(this, 1, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__ServiceName(this, 1, _v_));
     }
 
     @Override
     public String getVersionNo() {
         if (!isManaged())
             return _VersionNo;
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (txn == null)
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
             return _VersionNo;
-        var log = (Log__VersionNo)txn.getLog(objectId() + 2);
+        var log = (Log__VersionNo)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _VersionNo;
     }
 
-    public void setVersionNo(String value) {
-        if (value == null)
+    public void setVersionNo(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _VersionNo = value;
+            _VersionNo = _v_;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        txn.putLog(new Log__VersionNo(this, 2, value));
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Log__VersionNo(this, 2, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -80,26 +80,26 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
 
     @Override
     public Zeze.Builtin.Zoker.BCommitService.Data toData() {
-        var data = new Zeze.Builtin.Zoker.BCommitService.Data();
-        data.assign(this);
-        return data;
+        var _d_ = new Zeze.Builtin.Zoker.BCommitService.Data();
+        _d_.assign(this);
+        return _d_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Data other) {
-        assign((Zeze.Builtin.Zoker.BCommitService.Data)other);
+    public void assign(Zeze.Transaction.Data _o_) {
+        assign((Zeze.Builtin.Zoker.BCommitService.Data)_o_);
     }
 
-    public void assign(BCommitService.Data other) {
-        setServiceName(other._ServiceName);
-        setVersionNo(other._VersionNo);
+    public void assign(BCommitService.Data _o_) {
+        setServiceName(_o_._ServiceName);
+        setVersionNo(_o_._VersionNo);
         _unknown_ = null;
     }
 
-    public void assign(BCommitService other) {
-        setServiceName(other.getServiceName());
-        setVersionNo(other.getVersionNo());
-        _unknown_ = other._unknown_;
+    public void assign(BCommitService _o_) {
+        setServiceName(_o_.getServiceName());
+        setVersionNo(_o_.getVersionNo());
+        _unknown_ = _o_._unknown_;
     }
 
     public BCommitService copyIfManaged() {
@@ -108,15 +108,15 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
 
     @Override
     public BCommitService copy() {
-        var copy = new BCommitService();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BCommitService();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BCommitService a, BCommitService b) {
-        BCommitService save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BCommitService _a_, BCommitService _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -125,14 +125,14 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     }
 
     private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BCommitService bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ServiceName(BCommitService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BCommitService)getBelong())._ServiceName = value; }
     }
 
     private static final class Log__VersionNo extends Zeze.Transaction.Logs.LogString {
-        public Log__VersionNo(BCommitService bean, int varId, String value) { super(bean, varId, value); }
+        public Log__VersionNo(BCommitService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
 
         @Override
         public void commit() { ((BCommitService)getBelong())._VersionNo = value; }
@@ -140,19 +140,19 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("VersionNo=").append(getVersionNo()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("VersionNo=").append(getVersionNo()).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;
@@ -163,8 +163,8 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     private byte[] _unknown_;
@@ -235,43 +235,43 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
 
     @SuppressWarnings("unchecked")
     @Override
-    public void followerApply(Zeze.Transaction.Log log) {
-        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-        if (vars == null)
+    public void followerApply(Zeze.Transaction.Log _l_) {
+        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
+        if (_vs_ == null)
             return;
-        for (var it = vars.iterator(); it.moveToNext(); ) {
-            var vlog = it.value();
-            switch (vlog.getVariableId()) {
-                case 1: _ServiceName = vlog.stringValue(); break;
-                case 2: _VersionNo = vlog.stringValue(); break;
+        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
+            var _v_ = _i_.value();
+            switch (_v_.getVariableId()) {
+                case 1: _ServiceName = _v_.stringValue(); break;
+                case 2: _VersionNo = _v_.stringValue(); break;
             }
         }
     }
 
     @Override
-    public void decodeResultSet(java.util.ArrayList<String> parents, java.sql.ResultSet rs) throws java.sql.SQLException {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        setServiceName(rs.getString(_parents_name_ + "ServiceName"));
+    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setServiceName(_r_.getString(_pn_ + "ServiceName"));
         if (getServiceName() == null)
             setServiceName("");
-        setVersionNo(rs.getString(_parents_name_ + "VersionNo"));
+        setVersionNo(_r_.getString(_pn_ + "VersionNo"));
         if (getVersionNo() == null)
             setVersionNo("");
     }
 
     @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> parents, Zeze.Serialize.SQLStatement st) {
-        var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
-        st.appendString(_parents_name_ + "ServiceName", getServiceName());
-        st.appendString(_parents_name_ + "VersionNo", getVersionNo());
+    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendString(_pn_ + "ServiceName", getServiceName());
+        _s_.appendString(_pn_ + "VersionNo", getVersionNo());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var vars = super.variables();
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
-        vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "VersionNo", "string", "", ""));
-        return vars;
+        var _v_ = super.variables();
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServiceName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "VersionNo", "string", "", ""));
+        return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
@@ -285,20 +285,20 @@ public static final class Data extends Zeze.Transaction.Data {
         return _ServiceName;
     }
 
-    public void setServiceName(String value) {
-        if (value == null)
+    public void setServiceName(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _ServiceName = value;
+        _ServiceName = _v_;
     }
 
     public String getVersionNo() {
         return _VersionNo;
     }
 
-    public void setVersionNo(String value) {
-        if (value == null)
+    public void setVersionNo(String _v_) {
+        if (_v_ == null)
             throw new IllegalArgumentException();
-        _VersionNo = value;
+        _VersionNo = _v_;
     }
 
     @SuppressWarnings("deprecation")
@@ -325,37 +325,37 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public Zeze.Builtin.Zoker.BCommitService toBean() {
-        var bean = new Zeze.Builtin.Zoker.BCommitService();
-        bean.assign(this);
-        return bean;
+        var _b_ = new Zeze.Builtin.Zoker.BCommitService();
+        _b_.assign(this);
+        return _b_;
     }
 
     @Override
-    public void assign(Zeze.Transaction.Bean other) {
-        assign((BCommitService)other);
+    public void assign(Zeze.Transaction.Bean _o_) {
+        assign((BCommitService)_o_);
     }
 
-    public void assign(BCommitService other) {
-        _ServiceName = other.getServiceName();
-        _VersionNo = other.getVersionNo();
+    public void assign(BCommitService _o_) {
+        _ServiceName = _o_.getServiceName();
+        _VersionNo = _o_.getVersionNo();
     }
 
-    public void assign(BCommitService.Data other) {
-        _ServiceName = other._ServiceName;
-        _VersionNo = other._VersionNo;
+    public void assign(BCommitService.Data _o_) {
+        _ServiceName = _o_._ServiceName;
+        _VersionNo = _o_._VersionNo;
     }
 
     @Override
     public BCommitService.Data copy() {
-        var copy = new BCommitService.Data();
-        copy.assign(this);
-        return copy;
+        var _c_ = new BCommitService.Data();
+        _c_.assign(this);
+        return _c_;
     }
 
-    public static void swap(BCommitService.Data a, BCommitService.Data b) {
-        var save = a.copy();
-        a.assign(b);
-        b.assign(save);
+    public static void swap(BCommitService.Data _a_, BCommitService.Data _b_) {
+        var _s_ = _a_.copy();
+        _a_.assign(_b_);
+        _b_.assign(_s_);
     }
 
     @Override
@@ -370,19 +370,19 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.append(System.lineSeparator()).toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("VersionNo=").append(_VersionNo).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
+        _l_ += 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
+        _s_.append(Zeze.Util.Str.indent(_l_)).append("VersionNo=").append(_VersionNo).append(System.lineSeparator());
+        _l_ -= 4;
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     @Override
@@ -391,8 +391,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public void preAllocSize(int size) {
-        _PRE_ALLOC_SIZE_ = size;
+    public void preAllocSize(int _s_) {
+        _PRE_ALLOC_SIZE_ = _s_;
     }
 
     @Override

@@ -13,8 +13,8 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
         super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers");
     }
 
-    public tRoleOfflineTimers(String suffix) {
-        super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers", suffix);
+    public tRoleOfflineTimers(String _s_) {
+        super(689434588, "Zeze_Builtin_Game_Online_tRoleOfflineTimers", _s_);
     }
 
     @Override
@@ -44,15 +44,15 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
     }
 
     @Override
-    public Long decodeKeyResultSet(java.sql.ResultSet rs) throws java.sql.SQLException {
+    public Long decodeKeyResultSet(java.sql.ResultSet _s_) throws java.sql.SQLException {
         long _v_;
-        _v_ = rs.getLong("__key");
+        _v_ = _s_.getLong("__key");
         return _v_;
     }
 
     @Override
-    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement st, Long _v_) {
-        st.appendLong("__key", _v_);
+    public void encodeKeySQLStatement(Zeze.Serialize.SQLStatement _s_, Long _v_) {
+        _s_.appendLong("__key", _v_);
     }
 
     @Override
@@ -61,7 +61,7 @@ public final class tRoleOfflineTimers extends TableX<Long, Zeze.Builtin.Timer.BO
     }
 
     @Override
-    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Long key) {
-        return get(key);
+    public Zeze.Builtin.Timer.BOfflineTimersReadOnly getReadOnly(Long _k_) {
+        return get(_k_);
     }
 }
