@@ -41,9 +41,8 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 
 	@SuppressWarnings("unchecked")
 	public void copyTo(Map.Entry<K, VReadOnly> @NotNull [] array, int arrayIndex) {
-		int index = arrayIndex;
 		for (var e : map.entrySet())
-			array[index++] = (Map.Entry<K, VReadOnly>)e;
+			array[arrayIndex++] = (Map.Entry<K, VReadOnly>)e;
 	}
 
 	public @NotNull Set<K> keySet() {

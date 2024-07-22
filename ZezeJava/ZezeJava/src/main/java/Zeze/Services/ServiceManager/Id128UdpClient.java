@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Id128UdpClient {
-	private static final @NotNull Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpClient.class);
 	private static final int eSoTimeoutTick = 15;
 	private static final int eMaxUdpPacketSize = 256;
 	private static final int eSendImmediatelyGuard = 1; // >1会导致Simulate测试跑得太慢,还需要分析原因

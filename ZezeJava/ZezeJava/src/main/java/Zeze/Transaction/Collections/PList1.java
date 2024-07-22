@@ -107,7 +107,7 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
 		}
-		var old = list.get(index);
+		V old = list.get(index);
 		list = list.minus(index);
 		return old;
 	}
@@ -118,7 +118,7 @@ public class PList1<V> extends PList<V> {
 			return false;
 		if (items instanceof PList1)
 			items = ((PList1<? extends V>)items).getList(); // more stable
-		for (var v : items) {
+		for (V v : items) {
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
@@ -143,9 +143,11 @@ public class PList1<V> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.removeAll((Collection<V>)c);
 		}
-		var oldList = list;
-		list = list.minusAll(c);
-		return oldList != list;
+		var newList = list.minusAll(c);
+		if (newList == list)
+			return false;
+		list = newList;
+		return true;
 	}
 
 	@Override

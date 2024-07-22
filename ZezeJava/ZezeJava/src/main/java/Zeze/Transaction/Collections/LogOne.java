@@ -10,9 +10,9 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogOne<V extends Bean> extends LogBean {
-	public V value;
-	public LogBean logBean;
-	public final Meta1<V> meta;
+	V value;
+	LogBean logBean;
+	private final Meta1<V> meta;
 
 	@SuppressWarnings("unchecked")
 	public LogOne(@NotNull V value) {
@@ -65,24 +65,22 @@ public class LogOne<V extends Bean> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
-			((CollOne<V>)getThis())._Value = value;
-		}
+		if (value != null) // value是否真的可以为null,目前没看到哪里可以让它为null
+			((CollOne<V>)getThis()).value = value;
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (null != value) { // value是否真的可以为null,目前没看到哪里可以让它为null
+		if (value != null) { // value是否真的可以为null,目前没看到哪里可以让它为null
 			bb.WriteBool(true);
 			value.encode(bb);
 		} else {
-			bb.WriteBool(false); // Value Tag
-			if (null != logBean) {
+			bb.WriteBool(false); // value tag
+			if (logBean != null) {
 				bb.WriteBool(true);
 				logBean.encode(bb);
-			} else {
+			} else
 				bb.WriteBool(false);
-			}
 		}
 	}
 
@@ -97,12 +95,9 @@ public class LogOne<V extends Bean> extends LogBean {
 				Task.forceThrow(e);
 			}
 			value.decode(bb);
-		} else {
-			var hasLogBean = bb.ReadBool();
-			if (hasLogBean) {
-				logBean = new LogBean();
-				logBean.decode(bb);
-			}
+		} else if (bb.ReadBool()) { // hasLogBean
+			logBean = new LogBean();
+			logBean.decode(bb);
 		}
 	}
 

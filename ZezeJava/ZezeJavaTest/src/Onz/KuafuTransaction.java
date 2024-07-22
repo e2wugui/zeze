@@ -27,7 +27,7 @@ public class KuafuTransaction extends OnzTransaction<BKuafu.Data, BKuafuResult.D
 		var future1 = super.callProcedureAsync("zeze1", "kuafu", a1, r1);
 
 		var a2 = new BKuafu.Data();
-		a2.setAccount(account1);
+		a2.setAccount(account2);
 		a2.setMoney(-money);
 		var r2 = new BKuafuResult.Data();
 		var future2 = super.callProcedureAsync("zeze2", "kuafu", a2, r2);

@@ -54,10 +54,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final @Nullable V put(@NotNull K key, @NotNull V value) {
-		var exist = getValue().get(key);
+		V exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
-		replaced.put(key, value);
 		removed.remove(key);
+		replaced.put(key, value);
 		return exist;
 	}
 
@@ -66,15 +66,16 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		if (newMap != getValue()) {
 			setValue(newMap);
 			for (var e : m.entrySet()) {
-				replaced.put(e.getKey(), e.getValue());
-				removed.remove(e.getKey());
+				K k = e.getKey();
+				removed.remove(k);
+				replaced.put(k, e.getValue());
 			}
 		}
 	}
 
 	public final @Nullable V remove(@NotNull K key) {
-		var old = getValue().get(key);
-		if (null != old) {
+		V old = getValue().get(key);
+		if (old != null) {
 			setValue(getValue().minus(key));
 			replaced.remove(key);
 			removed.add(key);
@@ -83,7 +84,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final boolean remove(@NotNull K key, @NotNull V value) {
-		var old = getValue().get(key);
+		V old = getValue().get(key);
 		if (value.equals(old)) {
 			setValue(getValue().minus(key));
 			replaced.remove(key);
@@ -94,9 +95,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	}
 
 	public final void clear() {
-		for (var key : getValue().keySet()) {
-			replaced.remove(key);
-			removed.add(key);
+		for (var ks : getValue().keySet()) {
+			replaced.remove(ks);
+			removed.add(ks);
 		}
 		setValue(Empty.map());
 	}
@@ -106,14 +107,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		bb.WriteUInt(replaced.size());
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
-		for (var p : replaced.entrySet()) {
-			keyEncoder.accept(bb, p.getKey());
-			valueEncoder.accept(bb, p.getValue());
+		for (var e : replaced.entrySet()) {
+			keyEncoder.accept(bb, e.getKey());
+			valueEncoder.accept(bb, e.getValue());
 		}
 
 		bb.WriteUInt(removed.size());
-		for (var r : removed)
-			keyEncoder.accept(bb, r);
+		for (K k : removed)
+			keyEncoder.accept(bb, k);
 	}
 
 	@Override
@@ -122,9 +123,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
-			var key = keyDecoder.apply(bb);
-			var value = valueDecoder.apply(bb);
-			replaced.put(key, value);
+			K k = keyDecoder.apply(bb);
+			V v = valueDecoder.apply(bb);
+			replaced.put(k, v);
 		}
 
 		removed.clear();
@@ -134,7 +135,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void endSavepoint(@NotNull Savepoint currentSp) {
-		var log = currentSp.getLog(getLogKey());
+		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogMap1<K, V>)log;
@@ -149,13 +150,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
 		for (var e : another.replaced.entrySet()) {
 			// replace 1,2,3 remove 4
-			replaced.put(e.getKey(), e.getValue());
-			removed.remove(e.getKey());
+			K k = e.getKey();
+			removed.remove(k);
+			replaced.put(k, e.getValue());
 		}
-		for (var e : another.removed) {
+		for (K k : another.removed) {
 			// replace 2,3 remove 1,4
-			replaced.remove(e);
-			removed.add(e);
+			replaced.remove(k);
+			removed.add(k);
 		}
 	}
 

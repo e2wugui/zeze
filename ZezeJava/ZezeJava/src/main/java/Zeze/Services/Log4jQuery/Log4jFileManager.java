@@ -15,6 +15,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Util.OutInt;
+import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,6 +24,8 @@ import java.util.concurrent.locks.ReentrantLock;
  * 静态管理所有Log4jFile。Index。监控rotate。
  */
 public class Log4jFileManager extends ReentrantLock {
+	private static final @NotNull Logger logger = LogManager.getLogger(Log4jFileManager.class);
+
 	public static class Log4jFile {
 		public volatile File file;
 		public final LogIndex index;
@@ -38,7 +41,6 @@ public class Log4jFileManager extends ReentrantLock {
 	}
 
 	private final ArrayList<Log4jFile> files = new ArrayList<>();
-	private static final Logger logger = LogManager.getLogger();
 	private final FileCreateDetector fileCreateDetector;
 	private final String logFileBegin;
 	private final String logFileEnd;

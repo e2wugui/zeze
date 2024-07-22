@@ -25,7 +25,7 @@ import org.rocksdb.RocksDBException;
  * AllocateId128 server
  */
 public class Id128UdpServer {
-	private static final @NotNull Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(Id128UdpServer.class);
 
 	private static class Id128Context extends FastLock {
 		final Id128 current = new Id128();

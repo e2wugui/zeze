@@ -10,9 +10,10 @@ import java.nio.file.WatchService;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class FileCreateDetector {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(FileCreateDetector.class);
 	private final WatchService watchService;
 	private final Path watchDir;
 	private final Thread watchThread;

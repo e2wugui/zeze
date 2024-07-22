@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class Verify {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(Verify.class);
 
 	public static void run(Application zeze) throws Exception {
 		var applyDb = new ApplyDatabaseMemory();

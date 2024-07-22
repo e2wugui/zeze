@@ -41,11 +41,11 @@ public class LogSet1<V> extends LogSet<V> {
 		return removed;
 	}
 
-	public final boolean Add(@NotNull V item) {
+	public final boolean add(@NotNull V item) {
 		var newSet = getValue().plus(item);
 		if (newSet != getValue()) {
-			added.add(item);
 			removed.remove(item);
+			added.add(item);
 			setValue(newSet);
 			return true;
 		}
@@ -55,9 +55,9 @@ public class LogSet1<V> extends LogSet<V> {
 	public final boolean addAll(@NotNull Collection<? extends V> c) {
 		var newSet = getValue().plusAll(c);
 		if (newSet != getValue()) {
-			for (var item : c) {
-				added.add(item);
-				removed.remove(item);
+			for (V v : c) {
+				removed.remove(v);
+				added.add(v);
 			}
 			setValue(newSet);
 			return true;
@@ -68,8 +68,8 @@ public class LogSet1<V> extends LogSet<V> {
 	public final boolean remove(@NotNull V item) {
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
-			removed.add(item);
 			added.remove(item);
+			removed.add(item);
 			setValue(newSet);
 			return true;
 		}
@@ -79,9 +79,9 @@ public class LogSet1<V> extends LogSet<V> {
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
 		var newSet = getValue().minusAll(c);
 		if (newSet != getValue()) {
-			for (var i : c) {
-				removed.add(i);
-				added.remove(i);
+			for (V v : c) {
+				added.remove(v);
+				removed.add(v);
 			}
 			setValue(newSet);
 			return true;
@@ -90,8 +90,8 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final void clear() {
-		for (var e : getValue())
-			remove(e);
+		for (V v : getValue())
+			remove(v);
 		setValue(Empty.set());
 	}
 
@@ -100,12 +100,12 @@ public class LogSet1<V> extends LogSet<V> {
 		var encoder = meta.valueEncoder;
 
 		bb.WriteUInt(added.size());
-		for (var e : added)
-			encoder.accept(bb, e);
+		for (V v : added)
+			encoder.accept(bb, v);
 
 		bb.WriteUInt(removed.size());
-		for (var e : removed)
-			encoder.accept(bb, e);
+		for (V v : removed)
+			encoder.accept(bb, v);
 	}
 
 	@Override
@@ -123,7 +123,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public void endSavepoint(@NotNull Savepoint currentSp) {
-		var log = currentSp.getLog(getLogKey());
+		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogSet1<V>)log;
@@ -134,12 +134,12 @@ public class LogSet1<V> extends LogSet<V> {
 	}
 
 	public final void merge(@NotNull LogSet1<V> from) {
-		// Put,Remove 需要确认有没有顺序问题
+		// add,remove 需要确认有没有顺序问题
 		// this: add 1,3 remove 2,4 nest: add 2 remove 1
-		for (var e : from.added)
-			Add(e); // replace 1,2,3 remove 4
-		for (var e : from.removed)
-			remove(e); // replace 2,3 remove 1,4
+		for (V v : from.added)
+			add(v); // replace 1,2,3 remove 4
+		for (V v : from.removed)
+			remove(v); // replace 2,3 remove 1,4
 	}
 
 	@Override
@@ -155,9 +155,9 @@ public class LogSet1<V> extends LogSet<V> {
 	@Override
 	public @NotNull String toString() {
 		var sb = new StringBuilder();
-		sb.append(" Added:");
+		sb.append(" added:");
 		ByteBuffer.BuildSortedString(sb, added);
-		sb.append(" Removed:");
+		sb.append(" removed:");
 		ByteBuffer.BuildSortedString(sb, removed);
 		return sb.toString();
 	}

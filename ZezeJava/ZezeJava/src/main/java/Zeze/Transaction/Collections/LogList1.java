@@ -63,34 +63,34 @@ public class LogList1<V> extends LogList<V> {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
-		var index = list.size();
+		int index = list.size();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 		return true;
 	}
 
 	public boolean addAll(@NotNull Collection<? extends V> items) {
-		var addIndex = getValue().size();
+		int addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
-		for (var item : items)
+		for (V item : items)
 			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
 		return true;
 	}
 
 	public final boolean removeAll(@NotNull Collection<? extends V> c) {
 		var result = false;
-		for (var o : c) {
-			if (remove(o))
+		for (V v : c) {
+			if (remove(v))
 				result = true; // 只要有一个删除成功，就认为成功：removeAll的定义是发生了改变就返回true。
 		}
 		return result;
 	}
 
 	public final boolean remove(@NotNull V item) {
-		var index = getValue().indexOf(item);
+		int index = getValue().indexOf(item);
 		if (index < 0)
 			return false;
 		remove(index);
@@ -110,7 +110,7 @@ public class LogList1<V> extends LogList<V> {
 
 	public @Nullable V set(int index, @NotNull V item) {
 		var list = getValue();
-		var old = list.get(index);
+		V old = list.get(index);
 		setValue(list.with(index, item));
 		opLogs.add(new OpLog<>(OpLog.OP_MODIFY, index, item));
 		return old;
@@ -118,7 +118,7 @@ public class LogList1<V> extends LogList<V> {
 
 	public @Nullable V remove(int index) {
 		var list = getValue();
-		var old = list.get(index);
+		V old = list.get(index);
 		setValue(list.minus(index));
 		opLogs.add(new OpLog<>(OpLog.OP_REMOVE, index, null));
 		return old;
@@ -132,9 +132,8 @@ public class LogList1<V> extends LogList<V> {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
-				if (opLog.op < OpLog.OP_REMOVE) {
+				if (opLog.op < OpLog.OP_REMOVE)
 					encoder.accept(bb, opLog.value);
-				}
 			}
 		}
 	}
@@ -152,7 +151,7 @@ public class LogList1<V> extends LogList<V> {
 
 	@Override
 	public void endSavepoint(@NotNull Savepoint currentSp) {
-		var log = currentSp.getLog(getLogKey());
+		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogList1<V>)log;

@@ -30,7 +30,7 @@ public class PSet1<V> extends PSet<V> {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return setLog.Add(item);
+			return setLog.add(item);
 		}
 		var newSet = set.plus(item);
 		if (newSet == set)
@@ -60,7 +60,7 @@ public class PSet1<V> extends PSet<V> {
 			return false;
 		if (c instanceof PSet1)
 			c = ((PSet1<? extends V>)c).getSet(); // more stable
-		for (var v : c) {
+		for (V v : c) {
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
@@ -122,7 +122,7 @@ public class PSet1<V> extends PSet<V> {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogSet1<V>)_log;
-		set = set.plusAll(log.getAdded()).minusAll(log.getRemoved());
+		set = set.minusAll(log.getRemoved()).plusAll(log.getAdded());
 	}
 
 	public void assign(@NotNull PSet1<V> pset) {
@@ -149,7 +149,7 @@ public class PSet1<V> extends PSet<V> {
 		var tmp = getSet();
 		bb.WriteUInt(tmp.size());
 		var encoder = meta.valueEncoder;
-		for (var e : tmp)
+		for (V e : tmp)
 			encoder.accept(bb, e);
 	}
 

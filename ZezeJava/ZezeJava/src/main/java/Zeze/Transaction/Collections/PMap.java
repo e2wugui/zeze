@@ -6,13 +6,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
-	public @NotNull org.pcollections.PMap<K, V> map = Empty.map();
+	@NotNull org.pcollections.PMap<K, V> map = Empty.map();
 
 	@Override
 	public final @Nullable V get(@NotNull Object key) {
@@ -34,10 +35,8 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	public abstract void clear();
 
 	public final void copyTo(Map.Entry<K, V> @NotNull [] array, int arrayIndex) {
-		int index = arrayIndex;
-		for (var e : getMap().entrySet()) {
-			array[index++] = e;
-		}
+		for (var e : getMap().entrySet())
+			array[arrayIndex++] = e;
 	}
 
 	public final @NotNull org.pcollections.PMap<K, V> getMap() {
@@ -46,7 +45,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 			if (txn == null)
 				return map;
 			//noinspection DataFlowIssue
-			var log = txn.getLog(parent().objectId() + variableId());
+			Log log = txn.getLog(parent().objectId() + variableId());
 			if (log == null)
 				return map;
 			@SuppressWarnings("unchecked")

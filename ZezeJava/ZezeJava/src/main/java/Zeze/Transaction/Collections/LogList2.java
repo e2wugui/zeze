@@ -42,14 +42,14 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public boolean addAll(@NotNull Collection<? extends V> items) {
-		var addIndex = getValue().size();
+		int addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
-		for (var item : items) {
+		for (V item : items) {
 			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
 			addSet.add(item);
 		}
@@ -92,7 +92,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void endSavepoint(@NotNull Savepoint currentSp) {
-		var log = currentSp.getLog(getLogKey());
+		Log log = currentSp.getLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogList2<V>)log;
@@ -147,11 +147,6 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		}
 		bb.WriteUInt(changed.size());
 		for (var e : changed.entrySet()) {
-			/*
-			System.out.println(e.getKey().getClass().getName()
-					+ " " + e.getKey().getThis().getClass().getName()
-					+ " typeId=" + e.getKey().getTypeId());
-			// */
 			LogMap2.encodeLogBean(bb, e.getKey());
 			bb.WriteUInt(e.getValue().value);
 		}
@@ -173,26 +168,26 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	public void decode(@NotNull IByteBuffer bb) {
 		changed.clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var value = LogMap2.decodeLogBean(bb);
-			var index = bb.ReadUInt();
-			changed.put(value, new OutInt(index));
+			var logBean = LogMap2.decodeLogBean(bb);
+			int index = bb.ReadUInt();
+			changed.put(logBean, new OutInt(index));
 		}
 
 		// super.decode(bb);
 		opLogs.clear();
-		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
-			int op = bb.ReadUInt();
-			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-			V value = null;
-			if (op < OpLog.OP_REMOVE) {
-				try {
-					value = (V)meta.valueFactory.invoke();
-				} catch (Throwable e) { // MethodHandle.invoke
-					Task.forceThrow(e);
+		try {
+			for (int logSize = bb.ReadUInt(); --logSize >= 0; ) {
+				int op = bb.ReadUInt();
+				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+				V v = null;
+				if (op < OpLog.OP_REMOVE) {
+					v = (V)meta.valueFactory.invoke();
+					v.decode(bb);
 				}
-				value.decode(bb);
+				opLogs.add(new OpLog<>(op, index, v));
 			}
-			opLogs.add(new OpLog<>(op, index, value));
+		} catch (Throwable e) { // MethodHandle.invoke
+			Task.forceThrow(e);
 		}
 	}
 

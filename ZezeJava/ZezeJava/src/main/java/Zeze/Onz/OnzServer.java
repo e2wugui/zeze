@@ -30,6 +30,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 
@@ -41,7 +42,7 @@ import org.rocksdb.WriteOptions;
  * 不同的server实例功能可以交叉也可以完全不同，
  */
 public class OnzServer extends AbstractOnz {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(OnzServer.class);
 
 	private final OnzAgent onzAgent;
 	private final boolean sharedServiceManager;

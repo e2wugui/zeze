@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
-	private static final @NotNull Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(ApplyTable.class);
 	private final Lru<K, V> lru = new Lru<>(4096);
 	private final @NotNull IApplyTable table;
 	private final @NotNull TableX<K, V> originTable;

@@ -22,9 +22,10 @@ import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class OnzTransaction<A extends Data, R extends Data> extends ReentrantLock {
-	protected static final Logger logger = LogManager.getLogger();
+	protected static final @NotNull Logger logger = LogManager.getLogger(OnzTransaction.class);
 
 	private OnzServer onzServer;
 	private int flushMode = Onz.eFlushImmediately;

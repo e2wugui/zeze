@@ -55,10 +55,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.add(item);
 		}
-		var newList = list.plus(item);
-		if (newList == list)
-			return false;
-		list = newList;
+		list = list.plus(item);
 		return true;
 	}
 
@@ -103,7 +100,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.set(index, item);
 		}
-		var old = list.get(index);
+		V old = list.get(index);
 		list = list.with(index, item);
 		return old;
 	}
@@ -132,7 +129,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.remove(index);
 		}
-		var old = list.get(index);
+		V old = list.get(index);
 		list = list.minus(index);
 		return old;
 	}
@@ -144,14 +141,14 @@ public class PList2<V extends Bean> extends PList<V> {
 		if (items instanceof PList2)
 			items = ((PList2<? extends V>)items).getList(); // more stable
 		if (isManaged()) {
-			for (var item : items)
-				item.initRootInfoWithRedo(rootInfo, this);
+			for (V v : items)
+				v.initRootInfoWithRedo(rootInfo, this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.addAll(items);
 		}
-		for (var v : items) {
+		for (V v : items) {
 			if (v == null)
 				throw new IllegalArgumentException("null item");
 		}
@@ -169,9 +166,11 @@ public class PList2<V extends Bean> extends PList<V> {
 					parent().objectId() + variableId(), this::createLogBean);
 			return listLog.removeAll((Collection<? extends V>)c);
 		}
-		var oldV = list;
-		list = list.minusAll(c);
-		return oldV != list;
+		var newList = list.minusAll(c);
+		if (newList == list)
+			return false;
+		list = newList;
+		return true;
 	}
 
 	@Override
@@ -181,7 +180,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		var tmpList = new ArrayList<V>(size());
 		if (isManaged()) {
 			for (V v : this) {
-				var newV = operator.apply(v);
+				V newV = operator.apply(v);
 				if (newV != v)
 					newV.initRootInfoWithRedo(rootInfo, this);
 				tmpList.add(newV);
@@ -251,24 +250,24 @@ public class PList2<V extends Bean> extends PList<V> {
 				break;
 			}
 		}
-		list = tmp;
 
 		// apply changed
 		for (var e : log.getChanged().entrySet()) {
-			var item = list.get(e.getValue().value);
-			item.followerApply(e.getKey());
+			V v = tmp.get(e.getValue().value);
+			v.followerApply(e.getKey());
 		}
+		list = tmp;
 	}
 
 	@Override
 	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
-		for (var v : list)
+		for (V v : list)
 			v.initRootInfo(root, this);
 	}
 
 	@Override
 	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
-		for (var v : list)
+		for (V v : list)
 			v.initRootInfoWithRedo(root, this);
 	}
 
@@ -283,19 +282,19 @@ public class PList2<V extends Bean> extends PList<V> {
 	public void encode(@NotNull ByteBuffer bb) {
 		var tmp = getList();
 		bb.WriteUInt(tmp.size());
-		for (var e : tmp)
-			e.encode(bb);
+		for (V v : tmp)
+			v.encode(bb);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
-				V value = (V)meta.valueFactory.invoke();
-				value.decode(bb);
-				add(value);
+				@SuppressWarnings("unchecked")
+				V v = (V)meta.valueFactory.invoke();
+				v.decode(bb);
+				add(v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);

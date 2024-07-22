@@ -72,23 +72,24 @@ public class PMap1<K, V> extends PMap<K, V> {
 			return mapLog.remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
-		var exist = map.get(key);
+		V exist = map.get(key);
 		map = map.minus(key);
 		return exist;
 	}
 
 	@Override
 	public boolean remove(@NotNull Entry<K, V> item) {
+		K k = item.getKey();
+		V v = item.getValue();
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return mapLog.remove(item.getKey(), item.getValue());
+			return mapLog.remove(k, v);
 		}
-		var old = map;
-		var exist = old.get(item.getKey());
-		if (exist != null && exist.equals(item.getValue())) {
-			map = map.minus(item.getKey());
+		V exist = map.get(k);
+		if (exist != null && exist.equals(v)) {
+			map = map.minus(k);
 			return true;
 		}
 		return false;
@@ -160,9 +161,9 @@ public class PMap1<K, V> extends PMap<K, V> {
 		var keyDecoder = meta.keyDecoder;
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var key = keyDecoder.apply(bb);
-			var value = valueDecoder.apply(bb);
-			put(key, value);
+			K k = keyDecoder.apply(bb);
+			V v = valueDecoder.apply(bb);
+			put(k, v);
 		}
 	}
 }

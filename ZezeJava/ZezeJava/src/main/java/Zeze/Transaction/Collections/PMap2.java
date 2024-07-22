@@ -42,7 +42,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	}
 
 	public @NotNull V getOrAdd(@NotNull K key) {
-		var exist = get(key);
+		V exist = get(key);
 		if (exist == null) {
 			exist = createValue();
 			put(key, exist);
@@ -68,7 +68,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			return mapLog.put(key, value);
 		}
 		value.mapKey(key);
-		var oldV = map.get(key);
+		V oldV = map.get(key);
 		map = map.plus(key, value);
 		return oldV;
 	}
@@ -82,11 +82,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		if (isManaged()) {
 			for (var e : m.entrySet()) {
-				if (e.getKey() == null)
+				K k = e.getKey();
+				if (k == null)
 					throw new IllegalArgumentException("null key");
-				var v = e.getValue();
+				V v = e.getValue();
 				v.initRootInfoWithRedo(rootInfo, this);
-				v.mapKey(e.getKey());
+				v.mapKey(k);
 			}
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
@@ -94,9 +95,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			mapLog.putAll(m);
 		} else {
 			for (var e : m.entrySet()) {
-				if (e.getKey() == null)
+				K k = e.getKey();
+				if (k == null)
 					throw new IllegalArgumentException("null key");
-				e.getValue().mapKey(e.getKey());
+				e.getValue().mapKey(k);
 			}
 			map = map.plusAll(m);
 		}
@@ -111,23 +113,24 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			return mapLog.remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
-		var exist = map.get(key);
+		V exist = map.get(key);
 		map = map.minus(key);
 		return exist;
 	}
 
 	@Override
 	public boolean remove(@NotNull Entry<K, V> item) {
+		K k = item.getKey();
+		V v = item.getValue();
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return mapLog.remove(item.getKey(), item.getValue());
+			return mapLog.remove(k, v);
 		}
-		var old = map;
-		var exist = old.get(item.getKey());
-		if (exist != null && exist.equals(item.getValue())) {
-			map = map.minus(item.getKey());
+		V exist = map.get(k);
+		if (exist != null && exist.equals(v)) {
+			map = map.minus(k);
 			return true;
 		}
 		return false;
@@ -151,14 +154,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = map;
-		for (var put : log.getReplaced().values())
-			put.initRootInfo(rootInfo, this);
+		for (V v : log.getReplaced().values())
+			v.initRootInfo(rootInfo, this);
 		tmp = tmp.minusAll(log.getRemoved()).plusAll(log.getReplaced());
 
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
-			var k = e.getKey();
-			Bean value = tmp.get(k);
+			Bean value = tmp.get(e.getKey());
 			value.followerApply(e.getValue()); // value NullPointerException if not exist.
 		}
 		map = tmp;
@@ -175,13 +177,13 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	@Override
 	protected void initChildrenRootInfo(@NotNull Record.RootInfo root) {
-		for (var v : map.values())
+		for (V v : map.values())
 			v.initRootInfo(root, this);
 	}
 
 	@Override
 	protected void initChildrenRootInfoWithRedo(@NotNull Record.RootInfo root) {
-		for (var v : map.values())
+		for (V v : map.values())
 			v.initRootInfoWithRedo(root, this);
 	}
 
@@ -203,17 +205,17 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		clear();
 		var decoder = meta.keyDecoder;
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
-				var key = decoder.apply(bb);
-				V value = (V)meta.valueFactory.invoke();
-				value.decode(bb);
-				put(key, value);
+				K k = decoder.apply(bb);
+				@SuppressWarnings("unchecked")
+				V v = (V)meta.valueFactory.invoke();
+				v.decode(bb);
+				put(k, v);
 			}
 		} catch (Throwable e) { // MethodHandle.invoke
 			Task.forceThrow(e);

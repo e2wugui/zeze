@@ -16,10 +16,11 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Checkpoint {
-	static final Logger logger = LogManager.getLogger();
+	static final @NotNull Logger logger = LogManager.getLogger(Checkpoint.class);
 
 	private final ArrayList<Database> databases = new ArrayList<>();
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();

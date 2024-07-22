@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public abstract class PSet<V> extends Collection implements Set<V> {
-	public @NotNull org.pcollections.PSet<V> set = Empty.set();
+	@NotNull org.pcollections.PSet<V> set = Empty.set();
 
 	@Override
 	public abstract boolean add(@NotNull V item);
@@ -64,10 +64,8 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 	}
 
 	public final void copyTo(V @NotNull [] array, int arrayIndex) {
-		int index = arrayIndex;
-		for (var e : getSet()) {
-			array[index++] = e;
-		}
+		for (V v : getSet())
+			array[arrayIndex++] = v;
 	}
 
 	@Override

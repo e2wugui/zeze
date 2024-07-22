@@ -12,8 +12,9 @@ import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3;
 import Zeze.Serialize.Vector3Int;
 import Zeze.Serialize.Vector4;
-import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -22,6 +23,8 @@ import org.jetbrains.annotations.NotNull;
  * 用于其他非 bean 的日志时，也需要构造一个 bean，用来包装日志。
  */
 public abstract class Log implements Serializable {
+	private static final @NotNull Logger logger = LogManager.getLogger(Log.class);
+
 	public enum Category {
 		eHistory, // 只有这个类被会被收集到增量日志里面
 		eUser, // 用户自定义
@@ -34,11 +37,11 @@ public abstract class Log implements Serializable {
 		var ins = s.get();
 		var old = factorys.putIfAbsent(ins.getTypeId(), s);
 		if (old == null)
-			LogBean.logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
+			logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
 		else {
 			var oldIns = old.get();
 			if (!oldIns.getTypeName().equals(ins.getTypeName())) {
-				LogBean.logger.error("register duplicated log typeId({}): {} & {}",
+				logger.error("register duplicated log typeId({}): {} & {}",
 						ins.getTypeId(), oldIns.getTypeName(), ins.getTypeName());
 			}
 		}

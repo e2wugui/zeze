@@ -8,12 +8,9 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class LogBean extends Log {
-	public static final Logger logger = LogManager.getLogger();
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
 	private IntHashMap<Log> variables;
@@ -71,7 +68,7 @@ public class LogBean extends Log {
 		if (vars != null) {
 			bb.WriteUInt(vars.size());
 			for (var it = vars.iterator(); it.moveToNext(); ) {
-				var log = it.value();
+				Log log = it.value();
 				bb.WriteInt4(log.getTypeId());
 				bb.WriteUInt(log.getVariableId());
 				log.encode(bb);
@@ -88,10 +85,10 @@ public class LogBean extends Log {
 			var variables = getVariablesOrNew();
 			variables.clear();
 			for (; n > 0; --n) {
-				var typeId = bb.ReadInt4();
-				var log = create(typeId);
+				int typeId = bb.ReadInt4();
+				Log log = create(typeId);
 
-				var varId = bb.ReadUInt();
+				int varId = bb.ReadUInt();
 				log.setVariableId(varId);
 				log.decode(bb);
 
@@ -125,7 +122,7 @@ public class LogBean extends Log {
 	}
 
 	public static LogBean decodeLogBean(IByteBuffer bb) {
-		var type = bb.ReadByte();
+		int type = bb.ReadByte();
 		LogBean logBean;
 		switch (type) {
 		case 0:

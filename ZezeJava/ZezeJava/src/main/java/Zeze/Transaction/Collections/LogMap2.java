@@ -54,12 +54,12 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			built = true;
 			for (var c : changed) {
 				@SuppressWarnings("unchecked")
-				var key = (K)c.getThis().mapKey();
-				if (!getReplaced().containsKey(key) // 新增的值是最新的，它的changed忽略。
-						&& !getRemoved().contains(key) // 删除的值不用管了，它的changed忽略。
-						&& getValue().containsKey(key) // 当前容器中必须存在key，加入以后产生了日志又被删除会违背这个条件。
+				K k = (K)c.getThis().mapKey();
+				if (!getReplaced().containsKey(k) // 新增的值是最新的，它的changed忽略。
+						&& !getRemoved().contains(k) // 删除的值不用管了，它的changed忽略。
+						&& getValue().containsKey(k) // 当前容器中必须存在key，加入以后产生了日志又被删除会违背这个条件。
 				)
-					changedWithKey.put(key, c);
+					changedWithKey.put(k, c);
 			}
 			return true;
 		}
@@ -69,9 +69,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	public void mergeChangedToReplaced() {
 		if (buildChangedWithKey()) {
-			for (var e : changedWithKey.entrySet()) {
+			for (var e : changedWithKey.entrySet())
 				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
-			}
 		}
 	}
 
@@ -90,38 +89,37 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 		// super.encode(bb);
 		bb.WriteUInt(getReplaced().size());
-		for (var p : getReplaced().entrySet()) {
-			keyEncoder.accept(bb, p.getKey());
-			p.getValue().encode(bb);
+		for (var e : getReplaced().entrySet()) {
+			keyEncoder.accept(bb, e.getKey());
+			e.getValue().encode(bb);
 		}
 		bb.WriteUInt(getRemoved().size());
-		for (var r : getRemoved())
-			keyEncoder.accept(bb, r);
+		for (K k : getRemoved())
+			keyEncoder.accept(bb, k);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		changedWithKey.clear();
 		var keyDecoder = meta.keyDecoder;
 		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var key = keyDecoder.apply(bb);
-			changedWithKey.put(key, decodeLogBean(bb));
+			K k = keyDecoder.apply(bb);
+			changedWithKey.put(k, decodeLogBean(bb));
 		}
 		built = true;
 
 		// super.decode(bb);
 		getReplaced().clear();
-		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var key = keyDecoder.apply(bb);
-			V value;
-			try {
-				value = (V)meta.valueFactory.invoke();
-			} catch (Throwable e) { // MethodHandle.invoke
-				throw Task.forceThrow(e);
+		try {
+			for (int i = bb.ReadUInt(); i > 0; i--) {
+				K k = keyDecoder.apply(bb);
+				@SuppressWarnings("unchecked")
+				V v = (V)meta.valueFactory.invoke();
+				v.decode(bb);
+				getReplaced().put(k, v);
 			}
-			value.decode(bb);
-			getReplaced().put(key, value);
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw Task.forceThrow(e);
 		}
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)

@@ -9,16 +9,18 @@ import java.util.Map;
 import Zeze.Application;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DeadlockBreaker extends ThreadHelper {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(DeadlockBreaker.class);
 
 	/**
 	 * @return root thread group
 	 */
-	public static ThreadGroup getRootThreadGroup() {
+	public static @NotNull ThreadGroup getRootThreadGroup() {
 		ThreadGroup root = Thread.currentThread().getThreadGroup();
-		for (ThreadGroup p = root.getParent(); null != p; p = p.getParent())
+		for (ThreadGroup p = root.getParent(); p != null; p = p.getParent())
 			root = p;
 		return root;
 	}
@@ -31,7 +33,7 @@ public class DeadlockBreaker extends ThreadHelper {
 	 *                groups that are subgroups of the thread group.
 	 * @return thread in the group
 	 */
-	public static Map<Long, Thread> enumerate(ThreadGroup group, boolean recurse) {
+	public static @NotNull Map<Long, Thread> enumerate(@NotNull ThreadGroup group, boolean recurse) {
 		Thread[] threads = new Thread[512];
 		while (true) {
 			int size = group.enumerate(threads, recurse);
@@ -51,13 +53,13 @@ public class DeadlockBreaker extends ThreadHelper {
 		}
 	}
 
-	private final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-	private final ThreadGroup rootThreadGroup;
+	private final @NotNull ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+	private final @NotNull Application zeze;
+	private final @NotNull ThreadGroup rootThreadGroup;
 	private int sleepIdleMs = 1000;
-	private final Application zeze;
 	private int detectCount = 0;
 
-	public DeadlockBreaker(Application zeze) {
+	public DeadlockBreaker(@NotNull Application zeze) {
 		super("Zeze.Util.DeadlockBreaker");
 		this.zeze = zeze;
 		rootThreadGroup = getRootThreadGroup();
@@ -70,10 +72,8 @@ public class DeadlockBreaker extends ThreadHelper {
 				if (detect()) {
 					sleepIdleMs = 2000;
 					detectCount++;
-					if (detectCount >= 3) {
-						// 向 daemon 报告。
-						zeze.getAchillesHeelDaemon().deadlockReport();
-					}
+					if (detectCount >= 3)
+						zeze.getAchillesHeelDaemon().deadlockReport(); // 向 daemon 报告。
 				} else {
 					detectCount = 0;
 					sleepIdleMs *= 2;
@@ -98,19 +98,19 @@ public class DeadlockBreaker extends ThreadHelper {
 	private boolean detect() {
 		// 返回死锁的线程。 可能包含多个环。 以及等待环上的线程。
 		long[] deadlockedThreadIds = threadMXBean.findDeadlockedThreads();
-		if (null == deadlockedThreadIds)
+		if (deadlockedThreadIds == null)
 			return false;
 
 		// 构建死锁线程信息映射。
 		var deadlockedThreads = new HashMap<Long, ThreadInfo>();
-		for (ThreadInfo tinfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
+		for (ThreadInfo tInfo : threadMXBean.getThreadInfo(deadlockedThreadIds,
 				threadMXBean.isObjectMonitorUsageSupported(), threadMXBean.isSynchronizerUsageSupported())) {
 			try {
 				// getLockOwnerId == -1。不在等待被其他线程拥有的锁. 肯定不是环的一部分。
 				// 这种情况按道理不可能发生在findDeadlockedThreads的结果中。
 				// 如果出现，一般是并发访问造成的，如线程被销毁了。这里简单的忽略掉。
-				if (null != tinfo && tinfo.getLockOwnerId() != -1)
-					deadlockedThreads.put(tinfo.getThreadId(), tinfo);
+				if (tInfo != null && tInfo.getLockOwnerId() != -1)
+					deadlockedThreads.put(tInfo.getThreadId(), tInfo);
 			} catch (Exception e) {
 				// 并发访问： 在构建过程中，线程发生了变动。忽略这种错误。
 				logger.debug("critical exception");
@@ -127,92 +127,75 @@ public class DeadlockBreaker extends ThreadHelper {
 
 		// 检测死锁环，从环中随机挑选一个线程，尝试执行中断操作。
 		while (!deadlockedThreads.isEmpty()) {
-			Map<Long, ThreadInfo> cycle = new HashMap<>();
-			ThreadInfo tinfo = deadlockedThreads.entrySet().iterator().next().getValue();
+			var cycle = new HashMap<Long, ThreadInfo>();
+			ThreadInfo tInfo = deadlockedThreads.entrySet().iterator().next().getValue();
 			do {
-				if (null != cycle.put(tinfo.getThreadId(), tinfo)) {
+				if (cycle.put(tInfo.getThreadId(), tInfo) != null) {
 					// cycle found.
 
 					// dump interrupt info
 					StringBuilder sb = new StringBuilder("Angel.interrupt thread \"");
-					sb.append(tinfo.getThreadName()).append("\" Id=")
-							.append(tinfo.getThreadId());
+					sb.append(tInfo.getThreadName()).append("\" Id=")
+							.append(tInfo.getThreadId());
 					sb.append(" in cycle:\n");
 					for (ThreadInfo info : cycle.values()) // 打印的时候把挂在环上的线程也打出来。
 						dumpThreadInfoTo(info, sb);
 					logger.fatal(sb);
 
 					// interrupt thread
-					allThreads = interrupt(tinfo, allThreads);
+					allThreads = interrupt(tInfo, allThreads);
 
 					// break and try to find another cycle
 					break;
 				}
-			} while ((tinfo = deadlockedThreads.get(tinfo.getLockOwnerId())) != null);
+			} while ((tInfo = deadlockedThreads.get(tInfo.getLockOwnerId())) != null);
 			// 删除已经被处理的线程。cycle是完整的环，或者是那些等待的环已被打破剩下的孤立枝节。
 			deadlockedThreads.keySet().removeAll(cycle.keySet());
 		}
 		return true;
 	}
 
-	public static void dumpThreadInfoTo(ThreadInfo tinfo, StringBuilder sb) {
-		sb.append('"').append(tinfo.getThreadName()).append('"');
-		sb.append(" Id=").append(tinfo.getThreadId()).append(' ');
-		sb.append(tinfo.getThreadState());
-		if (tinfo.getLockName() != null) {
-			sb.append(" on ").append(tinfo.getLockName());
-		}
-		if (tinfo.getLockOwnerName() != null) {
-			sb.append(" owned by \"").append(tinfo.getLockOwnerName()).append("\" Id=").append(tinfo.getLockOwnerId());
-		}
-		if (tinfo.isSuspended()) {
+	public static void dumpThreadInfoTo(@NotNull ThreadInfo tInfo, @NotNull StringBuilder sb) {
+		sb.append('"').append(tInfo.getThreadName()).append('"');
+		sb.append(" Id=").append(tInfo.getThreadId()).append(' ').append(tInfo.getThreadState());
+		if (tInfo.getLockName() != null)
+			sb.append(" on ").append(tInfo.getLockName());
+		if (tInfo.getLockOwnerName() != null)
+			sb.append(" owned by \"").append(tInfo.getLockOwnerName()).append("\" Id=").append(tInfo.getLockOwnerId());
+		if (tInfo.isSuspended())
 			sb.append(" (suspended)");
-		}
-		if (tinfo.isInNative()) {
+		if (tInfo.isInNative())
 			sb.append(" (in native)");
-		}
 		sb.append('\n');
-		StackTraceElement[] stackTrace = tinfo.getStackTrace();
+		StackTraceElement[] stackTrace = tInfo.getStackTrace();
 		int i = 0;
 		for (; i < stackTrace.length && i < MAX_DEPTH; i++) {
 			StackTraceElement ste = stackTrace[i];
-			sb.append("\tat ").append(ste.toString());
-			sb.append('\n');
-			if (i == 0 && tinfo.getLockInfo() != null) {
-				Thread.State ts = tinfo.getThreadState();
-				switch (ts) {
+			sb.append("\tat ").append(ste.toString()).append('\n');
+			if (i == 0 && tInfo.getLockInfo() != null) {
+				switch (tInfo.getThreadState()) {
 				case BLOCKED:
-					sb.append("\t-  blocked on ").append(tinfo.getLockInfo());
-					sb.append('\n');
+					sb.append("\t-  blocked on ").append(tInfo.getLockInfo()).append('\n');
 					break;
 				case WAITING:
 				case TIMED_WAITING:
-					sb.append("\t-  waiting on ").append(tinfo.getLockInfo());
-					sb.append('\n');
+					sb.append("\t-  waiting on ").append(tInfo.getLockInfo()).append('\n');
 					break;
 				}
 			}
-
-			for (var mi : tinfo.getLockedMonitors()) {
-				if (mi.getLockedStackDepth() == i) {
-					sb.append("\t-  locked ").append(mi);
-					sb.append('\n');
-				}
+			for (var mi : tInfo.getLockedMonitors()) {
+				if (mi.getLockedStackDepth() == i)
+					sb.append("\t-  locked ").append(mi).append('\n');
 			}
 		}
-		if (i < stackTrace.length) {
-			sb.append("\t...");
-			sb.append('\n');
-		}
+		if (i < stackTrace.length)
+			sb.append("\t...\n");
 
-		LockInfo[] locks = tinfo.getLockedSynchronizers();
+		LockInfo[] locks = tInfo.getLockedSynchronizers();
 		if (locks.length > 0) {
-			sb.append("\n\tNumber of locked synchronizers = ").append(locks.length);
-			sb.append('\n');
-			for (LockInfo li : locks) {
-				sb.append("\t- ").append(li);
-				sb.append('\n');
-			}
+			sb.append("\n\tNumber of locked synchronizes = ").append(locks.length).append('\n');
+			for (LockInfo li : locks)
+				sb.append("\t- ").append(li).append('\n');
 		}
 		sb.append('\n');
 	}
@@ -220,20 +203,20 @@ public class DeadlockBreaker extends ThreadHelper {
 	/**
 	 * 中断线程，吃掉所有错误。
 	 */
-	private Map<Long, Thread> interrupt(ThreadInfo tinfo, Map<Long, Thread> allThreads) {
+	private @Nullable Map<Long, Thread> interrupt(@NotNull ThreadInfo tInfo, @Nullable Map<Long, Thread> allThreads) {
 		try {
 			// 当死锁线程不是Worker时，查找系统内的所有线程，也尝试中断。
-			if (null == allThreads)
+			if (allThreads == null)
 				allThreads = enumerate(rootThreadGroup, true);
 
-			Thread thread = allThreads.get(tinfo.getThreadId());
-			if (null != thread) {
+			var thread = allThreads.get(tInfo.getThreadId());
+			if (thread != null) {
 				thread.interrupt();
 				return allThreads;
 			}
-			logger.info("thread not found: {}", tinfo);
+			logger.info("thread not found: {}", tInfo);
 		} catch (Throwable e) { // logger.fatal
-			logger.fatal(tinfo, e);
+			logger.fatal(tInfo, e);
 		}
 		return allThreads;
 	}

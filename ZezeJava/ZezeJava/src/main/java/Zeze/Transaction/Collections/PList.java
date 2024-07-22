@@ -14,7 +14,7 @@ import org.pcollections.Empty;
 import org.pcollections.PVector;
 
 public abstract class PList<V> extends Collection implements List<V> {
-	public @NotNull PVector<V> list = Empty.vector();
+	@NotNull PVector<V> list = Empty.vector();
 
 	@Override
 	public abstract boolean add(@NotNull V item);
@@ -63,9 +63,8 @@ public abstract class PList<V> extends Collection implements List<V> {
 	}
 
 	public final void copyTo(V @NotNull [] array, int arrayIndex) {
-		var data = getList();
-		for (var e : data)
-			array[arrayIndex++] = e;
+		for (V v : getList())
+			array[arrayIndex++] = v;
 	}
 
 	@Override
@@ -121,7 +120,7 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 			@Override
 			public V next() {
-				var v = it.next();
+				V v = it.next();
 				index = Math.abs(index) + 1;
 				return v;
 			}

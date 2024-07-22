@@ -6,40 +6,41 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 public class ThreadHelper extends Thread {
-	private static final Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(ThreadHelper.class);
 
 	private volatile boolean running = true;
 	private boolean idle = true;
 	private final ReentrantLock thisLock = new ReentrantLock();
 	private final Condition thisCond = thisLock.newCondition();
 
-	public Condition getThisCond() {
-		return thisCond;
-	}
-
-	public Lock getThisLock() {
-		return thisLock;
-	}
-
-	public ThreadHelper(String name) {
+	public ThreadHelper(@NotNull String name) {
 		super(name);
 		this.setDaemon(true);
 	}
 
-	public ThreadHelper(String name, boolean daemon) {
+	public ThreadHelper(@NotNull String name, boolean daemon) {
 		super(name);
 		this.setDaemon(daemon);
 	}
 
-	public ThreadHelper(Runnable task, String name, boolean daemon) {
+	public ThreadHelper(@NotNull Runnable task, @NotNull String name, boolean daemon) {
 		super(task, name);
 		this.setDaemon(daemon);
 	}
 
 	public final boolean isRunning() {
 		return running;
+	}
+
+	public @NotNull Lock getThisLock() {
+		return thisLock;
+	}
+
+	public @NotNull Condition getThisCond() {
+		return thisCond;
 	}
 
 	/**
@@ -76,8 +77,6 @@ public class ThreadHelper extends Thread {
 	 * 挂起当前线程一段时间。
 	 * <p>
 	 * 通过 shutdown 或者 wakeup 打断。
-	 *
-	 * @param ms ms
 	 */
 	public final void sleepIdle(long ms) {
 		thisLock.lock();
@@ -94,7 +93,7 @@ public class ThreadHelper extends Thread {
 		}
 	}
 
-	public Runnable cock() {
+	public @NotNull Runnable cock() {
 		return ThreadHelper.this::wakeup;
 	}
 }

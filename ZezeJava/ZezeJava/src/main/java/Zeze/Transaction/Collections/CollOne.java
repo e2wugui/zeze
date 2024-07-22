@@ -14,32 +14,29 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class CollOne<V extends Bean> extends Collection {
-	@NotNull V _Value;
+	@NotNull V value;
 
-	public CollOne(@NotNull V init, @Nullable Class<V> valueClass) {
-		_Value = init;
+	public CollOne(@NotNull V value, @Nullable Class<V> valueClass) {
+		this.value = value;
 	}
 
 	public @NotNull V getValue() {
 		if (!isManaged())
-			return _Value;
+			return value;
 
 		var txn = Transaction.getCurrent();
-		if (null == txn)
-			return _Value;
+		if (txn == null)
+			return value;
 
 		//noinspection DataFlowIssue
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)txn.getLog(parent().objectId() + variableId());
-		if (null == log)
-			return _Value;
-
-		return log.value;
+		return log != null ? log.value : value;
 	}
 
 	public void setValue(@NotNull V value) {
 		//noinspection ConstantValue
-		if (null == value)
+		if (value == null)
 			throw new NullPointerException("value");
 
 		if (isManaged()) {
@@ -50,9 +47,8 @@ public final class CollOne<V extends Bean> extends Collection {
 			var log = (LogOne<V>)Transaction.getCurrentVerifyWrite(this)
 					.logGetOrAdd(parent().objectId() + variableId(), this::createLogBean);
 			log.setValue(value);
-		} else {
-			_Value = value;
-		}
+		} else
+			this.value = value;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -86,8 +82,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
-		var Value = getValue();
-		Value.decode(bb);
+		getValue().decode(bb);
 	}
 
 	@Override
@@ -109,11 +104,10 @@ public final class CollOne<V extends Bean> extends Collection {
 	public void followerApply(@NotNull Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogOne<V>)_log;
-		if (null != log.value) { // value是否真的可以为null,目前没看到哪里可以让它为null
-			_Value = log.value;
-		} else if (null != log.logBean) {
-			_Value.followerApply(log.logBean);
-		}
+		if (log.value != null) // value是否真的可以为null,目前没看到哪里可以让它为null
+			value = log.value;
+		else if (log.logBean != null)
+			value.followerApply(log.logBean);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -129,11 +123,11 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
-		_Value.encodeSQLStatement(parents, st);
+		value.encodeSQLStatement(parents, st);
 	}
 
 	@Override
 	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		_Value.decodeResultSet(parents, rs);
+		value.decodeResultSet(parents, rs);
 	}
 }
