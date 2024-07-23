@@ -138,9 +138,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		public void decode(IByteBuffer bb) {
 			// TypePacket 外面解析。
 			command = bb.ReadInt();
-			for (int count = bb.ReadUInt(); count > 0; --count) {
+			for (int count = bb.ReadUInt(); count > 0; count--)
 				serialIds.add(bb.ReadLong());
-			}
 		}
 
 		@Override
@@ -178,18 +177,18 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 
 			// start auto resend timer.
 			packet.resendTimerTask = Task.scheduleUnsafe(3000, 3000, () -> sendTo(peer, packet));
-			sendTo(peer, packet);
-			return true;
+			return sendTo(peer, packet);
 		}
 	}
 
-	private void sendTo(SocketAddress peer, Serializable p) {
+	private boolean sendTo(SocketAddress peer, Serializable p) {
 		try {
 			var bb = ByteBuffer.Allocate(512);
 			p.encode(bb);
-			datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.WriteIndex), peer);
+			return datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.WriteIndex), peer)
+					== bb.size();
 		} catch (IOException e) {
-			Task.forceThrow(e);
+			throw Task.forceThrow(e);
 		}
 	}
 
@@ -209,9 +208,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	}
 
 	private void tryDispatchRecvWindow(Session session) {
-		for (long serialId = session.lastDispatchedSerialId + 1;
-			 serialId <= session.maxRecvPacketSerialId;
-			 ++serialId) {
+		for (long serialId = session.lastDispatchedSerialId; ++serialId <= session.maxRecvPacketSerialId; ) {
 			var p = session.recvWindow.get(serialId);
 			if (p == null)
 				break; // 仍然有乱序的包没有到达，等待。
@@ -236,9 +233,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			session = dynamicCreateSession(source);
 
 		if (session != null) {
-			if (packet.serialId <= session.lastDispatchedSerialId) {
+			if (packet.serialId <= session.lastDispatchedSerialId)
 				return; // skip duplicate packet.
-			}
 
 			if (packet.serialId > session.maxRecvPacketSerialId)
 				session.maxRecvPacketSerialId = packet.serialId;
@@ -262,9 +258,8 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			// 请求重发。
 			var resend = new Control();
 			resend.command = Control.Resend;
-			for (var serialId = session.lastDispatchedSerialId + 1; serialId < session.maxRecvPacketSerialId; ++serialId) {
+			for (var serialId = session.lastDispatchedSerialId; ++serialId < session.maxRecvPacketSerialId; )
 				resend.serialIds.add(serialId);
-			}
 			sendTo(source, resend);
 			return;
 		}
@@ -300,7 +295,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 		case Control.Resend:
 			for (var it = control.serialIds.iterator(); it.moveToNext(); ) {
 				var packet = session.sendWindow.get(it.value());
-				if (null != packet)
+				if (packet != null)
 					sendTo(session.peer, packet);
 				// else skip 重发请求的包已经不在Window中，此时可能是重复的Resend请求。
 			}

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Server extends Service {
 	private final LogService logService;
-	private Log4jFileManager manager;
+	// private Log4jFileManager manager;
 
 	public Server(LogService logService, Config config) {
 		super("Zeze.LogService.Server", config);
@@ -25,7 +25,7 @@ public class Server extends Service {
 	@Override
 	public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
 		var agent = (ServerUserState)so.getUserState();
-		if (null != agent)
+		if (agent != null)
 			agent.close();
 		super.OnSocketClose(so, e);
 	}

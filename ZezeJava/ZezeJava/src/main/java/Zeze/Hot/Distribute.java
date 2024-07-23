@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
@@ -194,9 +192,7 @@ public class Distribute {
 	}
 
 	private static boolean checkDistributeFutures(ArrayList<HotAgent> hotAgents,
-												  ArrayList<TryDistribute> tryDistributes)
-			throws ExecutionException, InterruptedException, TimeoutException {
-
+												  ArrayList<TryDistribute> tryDistributes) {
 		for (var i = 0; i < hotAgents.size(); ++i) {
 			var rpc = tryDistributes.get(i);
 			assert rpc.getFuture() != null;

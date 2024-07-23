@@ -1875,7 +1875,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessLoginRequestOnlineSet(rpc);
 	}
 
-	private long ProcessLoginRequestOnlineSet(Login rpc) throws Exception {
+	private long ProcessLoginRequestOnlineSet(Login rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),

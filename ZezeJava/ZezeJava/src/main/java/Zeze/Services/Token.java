@@ -428,8 +428,7 @@ public final class Token extends AbstractToken {
 		}
 	}
 
-	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock)
-			throws Exception {
+	private static boolean moveToDB(@NotNull TokenState state, @NotNull ByteBuffer bb, boolean waitLock) {
 		FastLock lock = null;
 		try {
 			var k = state.key.getBytes(StandardCharsets.UTF_8);

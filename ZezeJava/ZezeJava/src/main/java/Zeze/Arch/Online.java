@@ -1559,7 +1559,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		providerApp.zeze.newProcedure(() -> tryRemoveLocal(account), "Online.redirectRemoveLocal").call();
 	}
 
-	private void tryRedirectRemoveLocal(int serverId, @NotNull String account) throws Exception {
+	private void tryRedirectRemoveLocal(int serverId, @NotNull String account) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId))
 			redirectRemoveLocal(serverId, account);

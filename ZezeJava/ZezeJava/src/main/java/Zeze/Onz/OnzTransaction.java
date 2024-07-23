@@ -128,7 +128,7 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 		return newCall.value;
 	}
 
-	private void endSaga() throws ExecutionException, InterruptedException {
+	private void endSaga() {
 		// 执行过程中发生异常或者错误不能到达这里，而是rollback里面的cancelSaga。
 		var futures = new ArrayList<TaskCompletionSource<?>>();
 		for (var e : zezeSagas.entrySet()) {

@@ -86,7 +86,7 @@ public class QueryHandlerManager {
 			return ((QueryHandler<Object, Object>)queryHandler).invoke(cast(paramClass, (String)o));
 		}
 
-		private static Object cast(@NotNull Class<?> clazz, String str) throws ReflectiveOperationException {
+		private static Object cast(@NotNull Class<?> clazz, String str) {
 			if (clazz == String.class)
 				return str;
 			switch (clazz.getName()) {

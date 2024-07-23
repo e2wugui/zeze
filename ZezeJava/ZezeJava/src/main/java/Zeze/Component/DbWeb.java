@@ -113,7 +113,7 @@ public class DbWeb extends AbstractDbWeb {
 		}
 	}
 
-	private static Object parseKey(TableX<?, ?> table, String key) throws ReflectiveOperationException {
+	private static Object parseKey(TableX<?, ?> table, String key) {
 		Object k;
 		var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 		if (keyType == Long.class)

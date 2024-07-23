@@ -26,7 +26,6 @@ public class HistoryModule extends AbstractHistoryModule {
 		}
 	}
 
-
 	public void stop() {
 		lock();
 		try {
@@ -65,7 +64,8 @@ public class HistoryModule extends AbstractHistoryModule {
 
 		// todo 结果丢失了类型；
 		//  根据需求，调整 ApplyHelper 吧。
-		var affects = applyHelper.apply(count != null ? Integer.parseInt(count) : 1);
+		// var affects =
+		applyHelper.apply(count != null ? Integer.parseInt(count) : 1);
 
 		x.sendPlainText(HttpResponseStatus.OK, "OK");
 	}

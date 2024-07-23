@@ -7,7 +7,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 向 Consul 注册 HttpServer 服务，便于第三方（比如Ngnix)发现。
+ * 向 Consul 注册 HttpServer 服务，便于第三方（比如Nginx)发现。
  * todo 为了支持更多注册和管理，可能需要抽象一个接口。先不写。
  */
 public class Consul {
@@ -69,7 +69,7 @@ public class Consul {
 		services.clear();
 	}
 
-	private static void passiveKeepAlive(@NotNull HttpExchange x) throws Exception {
+	private static void passiveKeepAlive(@NotNull HttpExchange x) {
 		x.sendPlainText(HttpResponseStatus.OK, ""); // todo consul被动保活结果有没有什么规定
 	}
 }

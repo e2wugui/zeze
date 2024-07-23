@@ -11,15 +11,19 @@ import org.jgrapht.graph.DirectedAcyclicGraph;
 
 public class DAG<V extends Bean> {
 	public static final BeanFactory beanFactory = new BeanFactory();
+
 	public static long getSpecialTypeIdFromBean(Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
 	}
+
 	public static Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
+
 	public MethodHandle getValueConstructor() {
 		return valueConstructor;
 	}
+
 	public Module getModule() {
 		return module;
 	}
@@ -27,23 +31,25 @@ public class DAG<V extends Bean> {
 	public String getName() {
 		return name;
 	}
+
 	final DirectedAcyclicGraph<BDAGNodeKey, DefaultEdge> graph = new DirectedAcyclicGraph<>(DefaultEdge.class);
 
-	public boolean addNode(long id, V value) throws Exception {
+	public void addNode(long id, V value) throws Exception {
 //		var nodeIdKey = new BDAGNodeKey(name, Long.toString(id));
 		var nodeNode = new BDAGNode();
 		nodeNode.getValue().setBean(value);
 		checkValid();
-		return true;
 	}
-	public boolean addEdge(long from, long to) throws Exception {
+
+	public void addEdge(long from, long to) throws Exception {
 		checkValid();
-		return true;
 	}
+
 	public void checkValid() throws Exception {
 		if (!isValid())
 			throw new Exception("DAG is invalid."); // 让异常提示更加智能
 	}
+
 	public boolean isEmpty() {
 		return graph.vertexSet().isEmpty();
 	}
@@ -75,18 +81,17 @@ public class DAG<V extends Bean> {
 		this.name = name;
 		this.valueConstructor = beanFactory.register(valueClass);
 	}
+
 	private final Module module;
 	private final String name;
 	private final MethodHandle valueConstructor;
+
 	/**
 	 * 检查有向图合法
 	 * 1. 无环
 	 */
-	private boolean isValid() {
-		return isNoCycle();
-	}
 	@SuppressWarnings("MethodMayBeStatic")
-	private boolean isNoCycle() {
-		return true;
+	private boolean isValid() {
+		return true; // TODO
 	}
 }
