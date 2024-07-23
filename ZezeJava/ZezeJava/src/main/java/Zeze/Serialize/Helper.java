@@ -16,14 +16,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Helper {
-	public static Vector2 decodeVector2(@NotNull ArrayList<String> parents, @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Vector2 decodeVector2(@NotNull ArrayList<String> parents,
+												 @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
 		return new Vector2(x, y);
 	}
 
-	public static Vector3 decodeVector3(@NotNull ArrayList<String> parents, @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Vector3 decodeVector3(@NotNull ArrayList<String> parents,
+												 @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -31,7 +33,8 @@ public class Helper {
 		return new Vector3(x, y, z);
 	}
 
-	public static Vector4 decodeVector4(@NotNull ArrayList<String> parents, @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Vector4 decodeVector4(@NotNull ArrayList<String> parents,
+												 @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -40,8 +43,8 @@ public class Helper {
 		return new Vector4(x, y, z, w);
 	}
 
-	public static Quaternion decodeQuaternion(@NotNull ArrayList<String> parents,
-											  @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Quaternion decodeQuaternion(@NotNull ArrayList<String> parents,
+													   @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getFloat(_parents_name_ + "x");
 		var y = rs.getFloat(_parents_name_ + "y");
@@ -50,16 +53,16 @@ public class Helper {
 		return new Quaternion(x, y, z, w);
 	}
 
-	public static Vector2Int decodeVector2Int(@NotNull ArrayList<String> parents,
-											  @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Vector2Int decodeVector2Int(@NotNull ArrayList<String> parents,
+													   @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getInt(_parents_name_ + "x");
 		var y = rs.getInt(_parents_name_ + "y");
 		return new Vector2Int(x, y);
 	}
 
-	public static Vector3Int decodeVector3Int(@NotNull ArrayList<String> parents,
-											  @NotNull ResultSet rs) throws SQLException {
+	public static @NotNull Vector3Int decodeVector3Int(@NotNull ArrayList<String> parents,
+													   @NotNull ResultSet rs) throws SQLException {
 		var _parents_name_ = Zeze.Transaction.Bean.parentsToName(parents);
 		var x = rs.getInt(_parents_name_ + "x");
 		var y = rs.getInt(_parents_name_ + "y");

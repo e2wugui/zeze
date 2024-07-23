@@ -1,15 +1,17 @@
 package Zeze.Transaction;
 
 import Zeze.Util.LongConcurrentHashMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class TableKey implements Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
 	public static final LongConcurrentHashMap<String> tables = new LongConcurrentHashMap<>();
 
 	private final int id;
-	private final Object key;
+	private final @NotNull Object key;
 
-	public TableKey(int id, Object key) {
+	public TableKey(int id, @NotNull Object key) {
 		this.id = id;
 		this.key = key;
 	}
@@ -18,24 +20,19 @@ public final class TableKey implements Comparable<TableKey> {
 		return id;
 	}
 
-	public Object getKey() {
+	public @NotNull Object getKey() {
 		return key;
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 17;
-		result = prime * result + id;
-		result = prime * result + key.hashCode();
-		return result;
+		return id * 31 + key.hashCode();
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
 			return true;
-		}
 
 		if (obj instanceof TableKey) {
 			TableKey another = (TableKey)obj;
@@ -46,13 +43,13 @@ public final class TableKey implements Comparable<TableKey> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public int compareTo(TableKey other) {
+	public int compareTo(@NotNull TableKey other) {
 		int c = Integer.compare(id, other.id);
 		return c != 0 ? c : ((Comparable<Object>)key).compareTo(other.key);
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		return String.format("tkey(%s:%s)", tables.get(id), key);
 	}
 }

@@ -13,7 +13,7 @@ public abstract class LogSpecial<TBean extends Bean, TValue> extends Log {
 	}
 
 	@Override
-	public Category category() {
+	public @NotNull Category category() {
 		return Category.eSpecial;
 	}
 

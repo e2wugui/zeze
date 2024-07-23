@@ -27,7 +27,7 @@ import redis.clients.jedis.params.ScanParams;
 // hget, hset, hdel, hscan
 // multi, exec, discard
 public class DatabaseRedis extends Database {
-	private static final Logger logger = LogManager.getLogger(DatabaseRedis.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(DatabaseRedis.class);
 
 	private final @NotNull JedisPool pool;
 
@@ -228,7 +228,7 @@ public class DatabaseRedis extends Database {
 
 		public static @NotNull InUse decode(byte @Nullable [] bytes) {
 			var inUse = new InUse();
-			if (null != bytes)
+			if (bytes != null)
 				inUse.decode(ByteBuffer.Wrap(bytes));
 			return inUse;
 		}
@@ -343,7 +343,7 @@ public class DatabaseRedis extends Database {
 																  long version) {
 			try (var jedis = pool.getResource()) {
 				var exist = getDataWithVersion(jedis, key.CopyIf());
-				if (null != exist && exist.version != version)
+				if (exist != null && exist.version != version)
 					return KV.create(version, false);
 				var dv = new DataWithVersion();
 				dv.data = data;
@@ -364,7 +364,7 @@ public class DatabaseRedis extends Database {
 
 		private static @Nullable DataWithVersion getDataWithVersion(@NotNull Jedis jedis, byte @NotNull [] field) {
 			var value = jedis.hget(keyDataVersion, field);
-			if (null == value)
+			if (value == null)
 				return null; // no data version
 			return DataWithVersion.decode(value);
 		}

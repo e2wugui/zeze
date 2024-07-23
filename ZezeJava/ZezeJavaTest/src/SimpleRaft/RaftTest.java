@@ -31,8 +31,7 @@ public final class RaftTest {
 			raft = new Raft(this, RAFT_COUNT, id, curTime);
 		}
 
-		@NotNull
-		Raft getRaft() {
+		@NotNull Raft getRaft() {
 			return raft;
 		}
 
@@ -58,8 +57,7 @@ public final class RaftTest {
 			envs[id].events.addLast(obj);
 		}
 
-		@Nullable
-		Object recvClientEvent() {
+		@Nullable Object recvClientEvent() {
 			return clientEvents.pollFirst();
 		}
 

@@ -1,8 +1,10 @@
 package Zeze.Net;
 
+import org.jetbrains.annotations.NotNull;
+
 // RFC2118
 public class Decompress implements Codec {
-	protected final Codec sink;
+	protected final @NotNull Codec sink;
 	protected int rem;
 	protected int pos;
 	protected int off = -1;
@@ -12,7 +14,7 @@ public class Decompress implements Codec {
 	public static class DecompressException extends CodecException {
 	}
 
-	public Decompress(Codec sink) {
+	public Decompress(@NotNull Codec sink) {
 		this.sink = sink;
 	}
 

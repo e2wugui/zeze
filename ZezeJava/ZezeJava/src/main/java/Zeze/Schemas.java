@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  * 所以这个功能暂时先不提供了。
  */
 public class Schemas implements Serializable {
-	private static final Logger logger = LogManager.getLogger(Schemas.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Schemas.class);
 
 	public static final class Checked {
 		private Bean previous;
@@ -58,21 +58,16 @@ public class Schemas implements Serializable {
 
 		@Override
 		public int hashCode() {
-			final int _prime_ = 31;
-			int _h_ = 0;
-			_h_ = _h_ * _prime_ + getPrevious().name.hashCode();
-			_h_ = _h_ * _prime_ + getCurrent().name.hashCode();
-			return _h_;
+			return previous.name.hashCode() * 31 + current.name.hashCode();
 		}
 
 		@Override
 		public boolean equals(@Nullable Object obj) {
-			if (this == obj) {
+			if (this == obj)
 				return true;
-			}
 			boolean tempVar = obj instanceof Checked;
 			Checked other = tempVar ? (Checked)obj : null;
-			return (tempVar) && getPrevious() == other.getPrevious() && getCurrent() == other.getCurrent();
+			return tempVar && previous == other.previous && current == other.current;
 		}
 	}
 
@@ -135,32 +130,32 @@ public class Schemas implements Serializable {
 		}
 
 		public @Nullable CheckResult getCheckResult(Bean previous, Bean current) {
-			var tempVar = new Schemas.Checked();
+			var tempVar = new Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
-			return getChecked().get(tempVar);
+			return checked.get(tempVar);
 		}
 
 		public void addCheckResult(Bean previous, Bean current, @NotNull CheckResult result) {
-			var tempVar = new Schemas.Checked();
+			var tempVar = new Checked();
 			tempVar.setPrevious(previous);
 			tempVar.setCurrent(current);
-			if (null != getChecked().put(tempVar, result))
+			if (checked.put(tempVar, result) != null)
 				throw new IllegalStateException("duplicate var in Checked Map");
 		}
 
 		public void update() {
-			for (var result : getChecked().values())
+			for (var result : checked.values())
 				result.update();
 		}
 	}
 
 	public static class Type implements Serializable {
-		public String name;
-		public String keyName = "";
-		public String valueName = "";
-		public transient Type key;
-		public transient Type value;
+		public @NotNull String name = "";
+		public @NotNull String keyName = "";
+		public @NotNull String valueName = "";
+		public transient @Nullable Type key;
+		public transient @Nullable Type value;
 
 		private static final Map<String, Integer> compatibleTable = new HashMap<>();
 
@@ -290,7 +285,7 @@ public class Schemas implements Serializable {
 
 		public @NotNull String toSqlType(boolean isKey) {
 			var sqlType = sqlTypeTable.get(name);
-			if (null == sqlType)
+			if (sqlType == null)
 				throw new UnsupportedOperationException("unknown sql type=" + name);
 			if (name.equals("string") && isKey)
 				return "VARCHAR(256)";
@@ -359,10 +354,10 @@ public class Schemas implements Serializable {
 
 	public static class Variable implements Serializable {
 		public int id;
-		public String name;
-		public String typeName;
-		public String keyName = "";
-		public String valueName = "";
+		public @NotNull String name = "";
+		public @NotNull String typeName = "";
+		public @NotNull String keyName = "";
+		public @NotNull String valueName = "";
 		public transient Type type;
 
 		// 如果是dynamic，下面的变量定义它静态包含的可能的Beans；
@@ -467,12 +462,12 @@ public class Schemas implements Serializable {
 		public Bean() {
 		}
 
-		public Bean(String name, boolean isBeanKey) {
+		public Bean(@NotNull String name, boolean isBeanKey) {
 			this.name = name;
 			this.isBeanKey = isBeanKey;
 		}
 
-		public String getName() {
+		public @NotNull String getName() {
 			return name;
 		}
 
@@ -506,8 +501,8 @@ public class Schemas implements Serializable {
 
 			Bean beanOther = (Bean)other;
 
-			CheckResult result = context.getCheckResult(beanOther, this);
-			if (null != result) {
+			var result = context.getCheckResult(beanOther, this);
+			if (result != null) {
 				result.addUpdate(update, updateVariable);
 				return true;
 			}
@@ -520,7 +515,7 @@ public class Schemas implements Serializable {
 			// 先检查是不是反悔
 			for (var vOldDeleted : beanOther.deletedVars.values()) {
 				var vThis = variables.get(vOldDeleted.id);
-				if (null != vThis) {
+				if (vThis != null) {
 					if (context.getConfig().getAllowSchemasReuseVariableIdWithSameType()
 							&& vThis.isCompatible(getName(), vOldDeleted, context)) {
 						// 反悔
@@ -538,7 +533,7 @@ public class Schemas implements Serializable {
 			for (var e : beanOther.variables.entrySet()) {
 				var vOther = e.getValue();
 				var vThis = variables.get(vOther.id);
-				if (null != vThis) {
+				if (vThis != null) {
 					if (!vThis.isCompatible(getName(), vOther, context)) {
 						// 正常比较。
 						logger.error("Not Compatible Variable={}.{} Can Not Reuse Deleted Variable.Id",
@@ -786,13 +781,13 @@ public class Schemas implements Serializable {
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var table = new Table();
 			table.decode(bb);
-			if (null != tables.put(table.name, table))
+			if (tables.put(table.name, table) != null)
 				throw new IllegalStateException("duplicate table=" + table.name);
 		}
 		for (int count = bb.ReadInt(); count > 0; --count) {
 			var bean = new Bean();
 			bean.decode(bb);
-			if (null != beans.put(bean.name, bean))
+			if (beans.put(bean.name, bean) != null)
 				throw new IllegalStateException("duplicate bean=" + bean.name);
 		}
 		// 新增的appPublishVersion在旧版里面可能没有。
@@ -1031,7 +1026,7 @@ public class Schemas implements Serializable {
 	/*
 	public Schemas.RelationalTable diffRelationalTable(Schemas.RelationalTable cur) {
 		var other = tables.get(cur.tableName);
-		if (null != other) {
+		if (other != null) {
 			other.buildRelationalColumns(cur.previous);
 			cur.diff();
 		}
@@ -1048,7 +1043,7 @@ public class Schemas implements Serializable {
 		// build other. prepare to alter.
 		// is null if new table
 		logger.info("current.columns={}", relational.current);
-		if (null != other) {
+		if (other != null) {
 			other.buildRelationalColumns(relational.previous);
 			logger.info("previous.columns={}", relational.previous);
 			relational.diff();

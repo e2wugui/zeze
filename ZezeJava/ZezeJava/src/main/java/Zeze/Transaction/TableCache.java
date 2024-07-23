@@ -10,6 +10,8 @@ import Zeze.Util.Factory;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
@@ -25,18 +27,18 @@ import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
  * 这样，这个类就不通用了。通用类需要包装，多创建一个对象，还需要包装接口。
  */
 public class TableCache<K extends Comparable<K>, V extends Bean> {
-	private static final Logger logger = LogManager.getLogger(TableCache.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(TableCache.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
-	private final TableX<K, V> table;
-	private final ConcurrentHashMap<K, Record1<K, V>> dataMap;
+	private final @NotNull TableX<K, V> table;
+	private final @NotNull ConcurrentHashMap<K, Record1<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
 	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
-	private Future<?> timerNewHot;
-	private Future<?> timerClean;
+	private @Nullable Future<?> timerNewHot;
+	private @Nullable Future<?> timerClean;
 
-	TableCache(Application ignoredApp, TableX<K, V> table) {
+	TableCache(Application ignoredApp, @NotNull TableX<K, V> table) {
 		this.table = table;
 		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
 		newLruHot();
@@ -50,7 +52,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		timerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::cleanNow);
 	}
 
-	final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
+	final @NotNull ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
 		return dataMap;
 	}
 
@@ -60,7 +62,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return Math.max(table.getTableConf().getCacheInitialCapacity(), 31);
 	}
 
-	public long walkKey(TableWalkKey<K> callback) throws Exception {
+	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
@@ -81,7 +83,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		lruQueue.add(newLru);
 	}
 
-	public final Record1<K, V> getOrAdd(K key, Factory<Record1<K, V>> valueFactory) {
+	public final @NotNull Record1<K, V> getOrAdd(@NotNull K key, @NotNull Factory<Record1<K, V>> valueFactory) {
 		var lruHot = this.lruHot;
 		var result = dataMap.get(key);
 		if (result == null) { // slow-path
@@ -109,7 +111,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	/**
 	 * 内部特殊使用，不调整 Lru。
 	 */
-	final Record1<K, V> get(K key) {
+	final @Nullable Record1<K, V> get(K key) {
 		return dataMap.get(key);
 	}
 
@@ -132,7 +134,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		while (lruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
 			var node = lruQueue.poll();
-			if (null == node)
+			if (node == null)
 				break;
 			polls.add(node);
 			nodeCount++;
@@ -166,9 +168,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			int recordCount = 0, nodeCount = 0;
 			while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
 				var node = lruQueue.peek();
-				if (null == node || node == lruHot) { // 热点。不回收。
+				if (node == null || node == lruHot) // 热点。不回收。
 					break;
-				}
 
 				for (var e : node.entrySet()) {
 					if (tryRemoveRecord(e))
@@ -216,7 +217,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// under lockey.writeLock and record.fairLock
-	void remove(K k, Record1<K, V> r) {
+	void remove(@NotNull K k, @NotNull Record1<K, V> r) {
 		if (dataMap.remove(k, r)) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
@@ -231,11 +232,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			r.setState(StateRemoved); // 也确保已删除状态
 	}
 
-	private void remove(Map.Entry<K, Record1<K, V>> p) {
+	private void remove(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		remove(p.getKey(), p.getValue());
 	}
 
-	private boolean tryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		if (table.getStorage() == null) {
 			/* 不支持内存表cache同步。
 			if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
@@ -278,7 +279,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true;
 	}
 
-	private boolean tryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
+	private boolean tryRemoveRecord(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		// lockey 第一优先，和事务并发。
 		final TableKey tkey = new TableKey(table.getId(), p.getKey());
 		final Locks locks = table.getZeze().getLocks();

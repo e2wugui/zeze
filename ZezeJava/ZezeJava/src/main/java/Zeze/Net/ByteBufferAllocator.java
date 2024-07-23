@@ -1,9 +1,10 @@
 package Zeze.Net;
 
 import java.nio.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
 
 public interface ByteBufferAllocator {
-	ByteBuffer alloc();
+	@NotNull ByteBuffer alloc();
 
-	void free(ByteBuffer bb);
+	void free(@NotNull ByteBuffer bb);
 }

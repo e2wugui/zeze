@@ -1,10 +1,11 @@
 package Zeze.Net;
 
 import java.util.Arrays;
+import org.jetbrains.annotations.NotNull;
 
 // RFC2118
 public class Compress implements Codec {
-	private final Codec sink;
+	private final @NotNull Codec sink;
 	private int pos;
 	private int rem;
 	private final byte[] dict = new byte[8192];
@@ -15,7 +16,7 @@ public class Compress implements Codec {
 	private int match_len;
 	private boolean flushed = true;
 
-	public Compress(Codec sink) {
+	public Compress(@NotNull Codec sink) {
 		this.sink = sink;
 		Arrays.fill(hash, (short)-1);
 	}

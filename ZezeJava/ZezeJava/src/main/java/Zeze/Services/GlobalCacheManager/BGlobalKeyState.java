@@ -5,11 +5,12 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.Id128;
+import org.jetbrains.annotations.Nullable;
 
 public class BGlobalKeyState implements Serializable {
 	public Binary globalKey; // 没有初始化，使用时注意
 	public int state;
-	public Id128 reducedTid; // 被降级方的事务Id
+	public @Nullable Id128 reducedTid; // 被降级方的事务Id
 
 	@Override
 	public void decode(IByteBuffer bb) {

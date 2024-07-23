@@ -160,8 +160,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
-	@NotNull
-	TimerHandle findTimerHandle(@NotNull String handleClassName) throws ReflectiveOperationException {
+	@NotNull TimerHandle findTimerHandle(@NotNull String handleClassName) throws ReflectiveOperationException {
 		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
@@ -752,23 +751,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			Transaction.whileCommit(() -> cancelFuture(timerId));
 	}
 
-	@NotNull
-	tAccountTimers tAccountTimers() {
+	@NotNull tAccountTimers tAccountTimers() {
 		return _tAccountTimers;
 	}
 
-	@NotNull
-	tIndexs tIndexs() {
+	@NotNull tIndexs tIndexs() {
 		return _tIndexs;
 	}
 
-	@NotNull
-	tNodes tNodes() {
+	@NotNull tNodes tNodes() {
 		return _tNodes;
 	}
 
-	@NotNull
-	tAccountOfflineTimers tAccountOfflineTimers() {
+	@NotNull tAccountOfflineTimers tAccountOfflineTimers() {
 		return _tAccountOfflineTimers;
 	}
 

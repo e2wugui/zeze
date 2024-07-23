@@ -25,7 +25,7 @@ public abstract class Data implements Serializable, Cloneable {
 	}
 
 	@Override
-	public Data clone() {
+	public @NotNull Data clone() {
 		try {
 			return (Data)super.clone();
 		} catch (CloneNotSupportedException e) {

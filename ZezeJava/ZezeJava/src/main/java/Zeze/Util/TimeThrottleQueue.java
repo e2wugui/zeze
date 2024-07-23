@@ -24,8 +24,8 @@ public class TimeThrottleQueue implements TimeThrottle {
 	/**
 	 * seconds 秒内限制 limit 个 mark。
 	 *
-	 * @param seconds 限制时间范围。
-	 * @param limit   限制数量。
+	 * @param seconds 限制时间范围
+	 * @param limit   限制数量
 	 */
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
 		if (seconds < 1 || limit < 1 || bandwidthLimit < 1)
@@ -44,7 +44,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 	public boolean checkNow(int size) {
 		var now = System.currentTimeMillis();
 		var start = now - expire;
-		for (var t = marks.peek(); null != t; t = marks.peek()) {
+		for (var t = marks.peek(); t != null; t = marks.peek()) {
 			if (t.timestamp > start)
 				break;
 			bandwidth -= t.size;

@@ -103,13 +103,11 @@ public class Selectors extends ReentrantLock {
 		return readBufferSize;
 	}
 
-	@NotNull
-	ArrayList<ByteBuffer> getBbGlobalPool() {
+	@NotNull ArrayList<ByteBuffer> getBbGlobalPool() {
 		return bbGlobalPool;
 	}
 
-	@NotNull
-	FastLock getBbGlobalPoolLock() {
+	@NotNull FastLock getBbGlobalPoolLock() {
 		return bbGlobalPoolLock;
 	}
 

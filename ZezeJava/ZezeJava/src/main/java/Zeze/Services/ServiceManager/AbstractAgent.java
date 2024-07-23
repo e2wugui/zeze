@@ -152,7 +152,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 	}
 
 	protected abstract boolean allocateAsync(@NotNull String globalName, int allocCount,
-											 ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
+											 @NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback);
 
 	public abstract void start() throws Exception;
 

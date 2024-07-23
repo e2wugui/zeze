@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 public abstract class AppBase extends ReentrantLock {
 	public abstract Application getZeze();
 
-	public @Nullable IModule[] createRedirectModules(Class<?> @NotNull [] moduleClasses) {
+	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull Class<?> @NotNull [] moduleClasses) {
 		var modules = GenModule.instance.createRedirectModules(this, moduleClasses);
 		if (GenModule.instance.genFileSrcRoot != null) {
 			System.out.println("---------------");
@@ -25,23 +25,23 @@ public abstract class AppBase extends ReentrantLock {
 	// 先改成 protected 看看。
 	protected final ConcurrentHashMap<String, Zeze.IModule> modules = new ConcurrentHashMap<>();
 
-	public ConcurrentMap<String, IModule> getModules() {
+	public @NotNull ConcurrentMap<String, IModule> getModules() {
 		return modules;
 	}
 
-	public void addModule(IModule module) {
+	public void addModule(@NotNull IModule module) {
 		modules.put(module.getName(), module);
 	}
 
-	public void removeModule(IModule module) {
+	public void removeModule(@NotNull IModule module) {
 		modules.remove(module.getName());
 	}
 
-	public void removeModule(String moduleName) {
+	public void removeModule(@NotNull String moduleName) {
 		modules.remove(moduleName);
 	}
 
-	public void createZeze(Config config) throws Exception {
+	public void createZeze(@Nullable Config config) throws Exception {
 		throw new UnsupportedOperationException();
 	}
 
@@ -55,13 +55,11 @@ public abstract class AppBase extends ReentrantLock {
 
 	/**
 	 * 新增的接口。为了兼容，这里不抛出异常。
-	 *
-	 * @throws Exception exception
 	 */
 	public void startLastModules() throws Exception {
 	}
 
-	public HttpServer getHttpServer() {
+	public @Nullable HttpServer getHttpServer() {
 		return null;
 	}
 }

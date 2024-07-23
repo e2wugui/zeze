@@ -61,7 +61,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Application extends ReentrantLock {
-	static final Logger logger = LogManager.getLogger(Application.class);
+	static final @NotNull Logger logger = LogManager.getLogger(Application.class);
 
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
@@ -70,9 +70,9 @@ public final class Application extends ReentrantLock {
 	private final ConcurrentHashMap<String, Table> tableNameMap = new ConcurrentHashMap<>();
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
-	private @Nullable AutoKey.Module autoKey;
+	private AutoKey.Module autoKey;
 	@Deprecated // 暂时保留
-	private @Nullable AutoKeyOld.Module autoKeyOld;
+	private AutoKeyOld.Module autoKeyOld;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
@@ -81,14 +81,10 @@ public final class Application extends ReentrantLock {
 	private AchillesHeelDaemon achillesHeelDaemon;
 	private DeadlockBreaker deadlockBreaker;
 	private Checkpoint checkpoint;
-	private Future<?> flushWhenReduceTimerTask;
+	private @Nullable Future<?> flushWhenReduceTimerTask;
 	private Schemas schemas;
-	private Schemas schemasPrevious; // maybe null
-	private final ProcedureLockWatcher procedureLockWatcher;
-
-	public ProcedureLockWatcher getProcedureLockWatcher() {
-		return procedureLockWatcher;
-	}
+	private @Nullable Schemas schemasPrevious;
+	private final @NotNull ProcedureLockWatcher procedureLockWatcher;
 
 	public enum StartState {
 		eStopped,
@@ -96,15 +92,36 @@ public final class Application extends ReentrantLock {
 		eStarted,
 	}
 
-	private StartState startState = StartState.eStopped;
+	private @NotNull StartState startState = StartState.eStopped;
 	public RedirectBase redirect;
 
-	private Auth auth;
+	private @Nullable Auth auth;
 	private Onz onz;
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
 
-	public HotHandle<EventDispatcher.EventHandle> getHotHandle() {
+	/**
+	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
+	 * 1. 不需要加入到Databases里面。
+	 * 2. 不需要在里面注册表(Database.AddTable)。
+	 * 3. Flush的时候特殊处理。see Checkpoint。
+	 */
+	private DatabaseRocksDb LocalRocksCacheDb;
+
+	private @Nullable Dbh2AgentManager dbh2AgentManager;
+	private HotManager hotManager;
+
+	private AppBase appBase;
+	private ProviderApp providerApp;
+
+	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
+	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
+
+	public @NotNull ProcedureLockWatcher getProcedureLockWatcher() {
+		return procedureLockWatcher;
+	}
+
+	public @NotNull HotHandle<EventDispatcher.EventHandle> getHotHandle() {
 		return hotHandle;
 	}
 
@@ -116,33 +133,21 @@ public final class Application extends ReentrantLock {
 		if (isStart())
 			throw new IllegalStateException("must enable auth before start.");
 
-		if (null != auth)
+		if (auth != null)
 			throw new IllegalStateException("auth has enabled.");
-
 		auth = new Auth(this);
 	}
 
-	public Auth getAuth() {
+	public @Nullable Auth getAuth() {
 		return auth;
 	}
 
-	/**
-	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
-	 * 1. 不需要加入到Databases里面。
-	 * 2. 不需要在里面注册表(Database.AddTable)。
-	 * 3. Flush的时候特殊处理。see Checkpoint。
-	 */
-	private DatabaseRocksDb LocalRocksCacheDb;
-
-	private Dbh2AgentManager dbh2AgentManager;
-	private HotManager hotManager;
-
 	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
 	// caller必须外部调用得到。
-	public void verifyCallerCold(Class<?> caller) {
+	public void verifyCallerCold(@NotNull Class<?> caller) {
 		var callerCl = caller.getClassLoader();
 		// 只限制我们自己的HotModule，其他都允许。
-		if (null != hotManager && HotManager.isHotModule(callerCl))
+		if (hotManager != null && HotManager.isHotModule(callerCl))
 			throw new IllegalStateException("caller must not hot.");
 	}
 
@@ -154,12 +159,12 @@ public final class Application extends ReentrantLock {
 		return hotManager;
 	}
 
-	public Dbh2AgentManager getDbh2AgentManager() {
+	public @Nullable Dbh2AgentManager getDbh2AgentManager() {
 		return dbh2AgentManager;
 	}
 
-	public Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
-		if (null == dbh2AgentManager)
+	public @NotNull Dbh2AgentManager tryNewDbh2AgentManager() throws Exception {
+		if (dbh2AgentManager == null)
 			dbh2AgentManager = new Dbh2AgentManager(serviceManager, conf);
 		return dbh2AgentManager;
 	}
@@ -168,12 +173,12 @@ public final class Application extends ReentrantLock {
 		this(solutionName, null);
 	}
 
-	public static AbstractAgent createServiceManager(Config conf, String raftSessionNamePrefix) throws Exception {
+	public static @Nullable AbstractAgent createServiceManager(@NotNull Config conf,
+															   @NotNull String raftSessionNamePrefix) throws Exception {
 		switch (conf.getServiceManager()) {
 		case "raft":
-			if (conf.getServiceManagerConf().getSessionName().isEmpty()) {
+			if (conf.getServiceManagerConf().getSessionName().isEmpty())
 				conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
-			}
 			return new ServiceManagerAgentWithRaft(conf);
 
 		case "disable":
@@ -192,7 +197,6 @@ public final class Application extends ReentrantLock {
 			throw new IllegalStateException("serverId too big. > 16383.");
 		procedureLockWatcher = new ProcedureLockWatcher(this);
 
-		// Start Thread Pool
 		Task.tryInitThreadPool(this); // 确保Task线程池已经建立,如需定制,在createZeze前先手动初始化
 
 		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
@@ -206,13 +210,9 @@ public final class Application extends ReentrantLock {
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			historyModule = new HistoryModule(this);
 			delayRemove = new DelayRemove(this);
-
 			onz = new Onz(this);
 		}
 	}
-
-	private AppBase appBase;
-	private ProviderApp providerApp; // maybe null
 
 	public AppBase getAppBase() {
 		return appBase;
@@ -241,7 +241,7 @@ public final class Application extends ReentrantLock {
 		return conf.isNoDatabase() || conf.getServerId() < 0;
 	}
 
-	public HashMap<String, Database> getDatabases() {
+	public @NotNull HashMap<String, Database> getDatabases() {
 		return databases;
 	}
 
@@ -288,11 +288,11 @@ public final class Application extends ReentrantLock {
 		return schemas;
 	}
 
-	public Schemas getSchemasPrevious() {
+	public @Nullable Schemas getSchemasPrevious() {
 		return schemasPrevious;
 	}
 
-	public void setSchemas(@NotNull Schemas value) {
+	public void setSchemas(Schemas value) {
 		schemas = value;
 	}
 
@@ -319,16 +319,13 @@ public final class Application extends ReentrantLock {
 		return db;
 	}
 
-	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
-	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
-
 	// Hot Install 内部使用。
 	public void __install_prepare__() {
 		hotUpgradeMemoryTables.clear();
 		replaceTableRecent.clear();
 	}
 
-	public Schemas __upgrade_schemas__(Schemas schemas) {
+	public @Nullable Schemas __upgrade_schemas__(@Nullable Schemas schemas) {
 		var current = this.schemas;
 		this.schemasPrevious = null;
 		this.schemas = schemas;
@@ -346,7 +343,7 @@ public final class Application extends ReentrantLock {
 		replaceTableRecent.clear();
 	}
 
-	public ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
+	public @NotNull ArrayList<HotUpgradeMemoryTable> __get_upgrade_memory_table__() {
 		return hotUpgradeMemoryTables;
 	}
 
@@ -359,7 +356,7 @@ public final class Application extends ReentrantLock {
 		var db = getDatabase(dbName);
 		if (exist == table)
 			return db; // 热更回滚导致反复重新注册，如果存在的表就是自己，不再执行后面的操作。
-		if (null != exist) {
+		if (exist != null) {
 			// 1. exist.isMemory() || table.isMemory()
 			// 内存表配置发生改变，不会继承数据。【需要再次确认一下能不能重用这个处理流程，大概可以。】
 			// 2. !exist.isMemory() && !table.isMemory()
@@ -387,7 +384,7 @@ public final class Application extends ReentrantLock {
 		return db;
 	}
 
-	public StartState getStartState() {
+	public @NotNull StartState getStartState() {
 		return startState;
 	}
 
@@ -418,7 +415,7 @@ public final class Application extends ReentrantLock {
 		return Collections.unmodifiableMap(tableNameMap);
 	}
 
-	public Database getDatabase(@NotNull String name) {
+	public @NotNull Database getDatabase(@NotNull String name) {
 		var db = databases.get(name);
 		if (db == null)
 			throw new IllegalStateException("database not exist name=" + name);
@@ -426,13 +423,11 @@ public final class Application extends ReentrantLock {
 	}
 
 	public @NotNull AutoKey getAutoKey(@NotNull String name) {
-		//noinspection DataFlowIssue
 		return autoKey.getOrAdd(name);
 	}
 
 	@Deprecated // 暂时保留
 	public @NotNull AutoKeyOld getAutoKeyOld(@NotNull String name) {
-		//noinspection DataFlowIssue
 		return autoKeyOld.getOrAdd(name);
 	}
 
@@ -551,7 +546,7 @@ public final class Application extends ReentrantLock {
 				var newData = ByteBuffer.Allocate(1024);
 				schemas.encode(newData);
 				var versionRc = defaultDb.getDirectOperates().saveDataWithSameVersion(keyOfSchemas, newData, version);
-				if (null == versionRc || versionRc.getValue())
+				if (versionRc == null || versionRc.getValue())
 					break;
 			}
 		}
@@ -673,7 +668,6 @@ public final class Application extends ReentrantLock {
 			} else
 				addShutdownHook();
 
-			// Start ServiceManager
 			var serviceManagerConf = conf.getServiceConf(Agent.defaultServiceName);
 			if (serviceManagerConf != null && serviceManager != null) {
 				serviceManager.start();
@@ -705,25 +699,24 @@ public final class Application extends ReentrantLock {
 					}
 				}
 
-				this.deadlockBreaker = new DeadlockBreaker(this);
+				deadlockBreaker = new DeadlockBreaker(this);
 				// Checkpoint
 				checkpoint = new Checkpoint(this, conf.getCheckpointMode(), databases.values(), serverId);
 				checkpoint.start(conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 				// start last
-				if (null != achillesHeelDaemon)
+				if (achillesHeelDaemon != null)
 					achillesHeelDaemon.start();
 				startState = StartState.eStarted;
 
 				delayRemove.start();
 				if (auth != null)
 					auth.start();
-				if (timer != null) {
+				if (timer != null)
 					timer.loadCustomClassAnd();
-				}
-				if (null != deadlockBreaker)
+				if (deadlockBreaker != null)
 					deadlockBreaker.start();
-				if (null != onz)
+				if (onz != null)
 					onz.start();
 			} else
 				startState = StartState.eStarted;
@@ -735,13 +728,13 @@ public final class Application extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
-			if (null != onz) {
+			if (onz != null) {
 				onz.stop();
 				onz = null;
 			}
 
-			if (null != deadlockBreaker) {
-				this.deadlockBreaker.shutdown();
+			if (deadlockBreaker != null) {
+				deadlockBreaker.shutdown();
 				deadlockBreaker = null;
 			}
 

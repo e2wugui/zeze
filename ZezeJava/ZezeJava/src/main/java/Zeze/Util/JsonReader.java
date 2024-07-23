@@ -307,8 +307,7 @@ public final class JsonReader {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable
-	Object parse(@Nullable Object obj, int b) throws ReflectiveOperationException {
+	@Nullable Object parse(@Nullable Object obj, int b) throws ReflectiveOperationException {
 		//noinspection EnhancedSwitchMigration
 		switch (b) { //@formatter:off
 		case '{': return parseMap0(obj instanceof Map ? (Map<String, Object>) obj : null);
@@ -327,8 +326,7 @@ public final class JsonReader {
 		return next() == '[' ? parseArray0(c) : c;
 	}
 
-	@NotNull
-	Collection<Object> parseArray0(@Nullable Collection<Object> c) throws ReflectiveOperationException {
+	@NotNull Collection<Object> parseArray0(@Nullable Collection<Object> c) throws ReflectiveOperationException {
 		if (c == null)
 			c = new ArrayList<>();
 		for (int b = skipNext(); b != ']'; b = skipVar(']'))
@@ -367,8 +365,7 @@ public final class JsonReader {
 		return next() == '{' ? parseMap0(m) : m;
 	}
 
-	@NotNull
-	Map<String, Object> parseMap0(@Nullable Map<String, Object> m) throws ReflectiveOperationException {
+	@NotNull Map<String, Object> parseMap0(@Nullable Map<String, Object> m) throws ReflectiveOperationException {
 		if (m == null)
 			m = new HashMap<>();
 		for (int b = skipNext(); b != '}'; b = skipVar('}')) {

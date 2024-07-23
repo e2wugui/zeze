@@ -2,22 +2,23 @@ package Zeze.Net;
 
 import java.io.Closeable;
 import Zeze.Util.ZstdFactory;
+import org.jetbrains.annotations.NotNull;
 
 public final class DecompressZstd implements Codec, Closeable {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 
-	private final Codec sink;
-	private final ZstdFactory.ZstdDecompressStream ds;
-	private final byte[] srcBuf;
+	private final @NotNull Codec sink;
+	private final @NotNull ZstdFactory.ZstdDecompressStream ds;
+	private final byte @NotNull [] srcBuf;
 	private int srcBufLen;
 
-	public DecompressZstd(Codec sink) {
+	public DecompressZstd(@NotNull Codec sink) {
 		this.sink = sink;
 		ds = ZstdFactory.newDecompressStream();
 		srcBuf = new byte[DEFAULT_SRC_BUF_SIZE];
 	}
 
-	public DecompressZstd(Codec sink, int srcBufSize, int dstBufSize) {
+	public DecompressZstd(@NotNull Codec sink, int srcBufSize, int dstBufSize) {
 		this.sink = sink;
 		ds = ZstdFactory.newDecompressStream(dstBufSize);
 		srcBuf = new byte[Math.max(srcBufSize, 1)];
@@ -33,7 +34,7 @@ public final class DecompressZstd implements Codec, Closeable {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
 		if (srcBufLen > 0) {
 			int n = Math.min(srcBuf.length - srcBufLen, len);
 			System.arraycopy(data, off, srcBuf, srcBufLen, n);

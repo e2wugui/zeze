@@ -22,24 +22,25 @@ import org.jetbrains.annotations.Nullable;
 public final class Checkpoint {
 	static final @NotNull Logger logger = LogManager.getLogger(Checkpoint.class);
 
+	final @NotNull Application zeze;
+	private final @NotNull CheckpointMode mode;
+	private final @NotNull Thread checkpointThread;
 	private final ArrayList<Database> databases = new ArrayList<>();
 	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
-	private final CheckpointMode mode;
-	private final Thread checkpointThread;
-	final Application zeze;
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
 	private volatile boolean isRunning;
 	private ArrayList<Runnable> actionCurrent;
-	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
+	private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
-	public Checkpoint(Application zeze, CheckpointMode mode, int serverId) {
+	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
 	}
 
-	public Checkpoint(Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
+	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, @Nullable Iterable<Database> dbs,
+					  int serverId) {
 		this.zeze = zeze;
 		this.mode = mode;
 		if (dbs != null)
@@ -50,27 +51,25 @@ public final class Checkpoint {
 		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));
 	}
 
-	public CheckpointMode getCheckpointMode() {
-		return mode;
-	}
-
-	public Application getZeze() {
+	public @NotNull Application getZeze() {
 		return zeze;
 	}
 
+	public @NotNull CheckpointMode getCheckpointMode() {
+		return mode;
+	}
+
 	public void enterFlushReadLock() {
-		if (mode == CheckpointMode.Period) {
+		if (mode == CheckpointMode.Period)
 			flushReadWriteLock.readLock().lock();
-		}
 	}
 
 	public void exitFlushReadLock() {
-		if (mode == CheckpointMode.Period) {
+		if (mode == CheckpointMode.Period)
 			flushReadWriteLock.readLock().unlock();
-		}
 	}
 
-	public Checkpoint add(Iterable<Database> databases) {
+	public @NotNull Checkpoint add(@NotNull Iterable<Database> databases) {
 		for (var db : databases) {
 			if (!this.databases.contains(db))
 				this.databases.add(db);
@@ -100,12 +99,10 @@ public final class Checkpoint {
 		} finally {
 			lock.unlock();
 		}
-		if (null != checkpointThread) {
-			try {
-				checkpointThread.join();
-			} catch (InterruptedException e) {
-				Task.forceThrow(e);
-			}
+		try {
+			checkpointThread.join();
+		} catch (InterruptedException e) {
+			Task.forceThrow(e);
 		}
 	}
 
@@ -132,14 +129,12 @@ public final class Checkpoint {
 				switch (mode) {
 				case Period:
 					checkpointPeriod();
-					for (var action : actionCurrent) {
+					for (var action : actionCurrent)
 						action.run();
-					}
 					lock.lock();
 					try {
-						if (!actionPending.isEmpty()) {
+						if (!actionPending.isEmpty())
 							continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
-						}
 					} finally {
 						lock.unlock();
 					}
@@ -181,7 +176,7 @@ public final class Checkpoint {
 	 * 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
 	 * 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
 	 */
-	public void addActionAndPulse(Runnable action) {
+	public void addActionAndPulse(@NotNull Runnable action) {
 		final var r = flushReadWriteLock.readLock();
 		r.lock();
 		try {
@@ -274,16 +269,17 @@ public final class Checkpoint {
 		}
 	}
 
-	public void flush(Transaction trans, OnzProcedure onzProcedure, @Nullable History history) {
+	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable History history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.dirty)
 				records.add(ar.atomicTupleRecord.record);
 		}
-		flush(records, null != onzProcedure ? Set.of(onzProcedure) : Set.of(), history);
+		flush(records, onzProcedure != null ? Set.of(onzProcedure) : Set.of(), history);
 	}
 
-	public void flush(Iterable<Record> rs, Set<OnzProcedure> onzProcedures, @Nullable History history) {
+	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
+					  @Nullable History history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = zeze.getLocalRocksCacheDb().beginTransaction();
 
@@ -294,7 +290,7 @@ public final class Checkpoint {
 				if (r.getTable().getStorage() != null) {
 					var database = r.getTable().getStorage().getDatabaseTable().getDatabase();
 					r.setDatabaseTransactionTmp(dts.computeIfAbsent(database, Database::beginTransaction));
-					if (null != r.getTable().getOldTable()) {
+					if (r.getTable().getOldTable() != null) {
 						database = r.getTable().getOldTable().getDatabase();
 						r.setDatabaseTransactionOldTmp(dts.computeIfAbsent(database, Database::beginTransaction));
 					}
@@ -306,32 +302,30 @@ public final class Checkpoint {
 					: null;
 
 			// 编码
-			if (null != history)
+			if (history != null)
 				history.encode0();
 
-			for (var r : rs) {
+			for (var r : rs)
 				r.encode0();
-			}
 			OnzProcedure.sendFlushAndWait(onzProcedures);
 			// 保存到数据库中
 			for (var r : rs) {
+				//noinspection DataFlowIssue
 				r.flush(r.getDatabaseTransactionTmp(), localCacheTransaction);
 			}
-			if (null != history) {
+			if (history != null) {
 				var storage = ((Table)historyTable).getStorage();
-				assert storage != null;
+				//noinspection DataFlowIssue
 				history.flush(storage.getDatabaseTable(), historyTransaction);
 			}
 			// 提交。
-			for (var t : dts.values()) {
+			for (var t : dts.values())
 				t.commit();
-			}
 			localCacheTransaction.commit();
 			try {
 				// 清除编码状态
-				for (var r : rs) {
+				for (var r : rs)
 					r.cleanup();
-				}
 			} catch (Throwable e) { // halt
 				logger.fatal("Flush Cleanup Exception", e);
 				LogManager.shutdown();
@@ -368,13 +362,12 @@ public final class Checkpoint {
 	}
 
 	// under lock(rs)
-	public void flush(RelativeRecordSet rs) {
+	public void flush(@NotNull RelativeRecordSet rs) {
 		// rs.MergeTo == null &&  check outside
 		if (rs.getRecordSet() != null) {
 			flush(rs.getRecordSet(), rs.getOnzProcedures(), rs.getHistory());
-			for (var r : rs.getRecordSet()) {
+			for (var r : rs.getRecordSet())
 				r.setDirty(false);
-			}
 		}
 	}
 }

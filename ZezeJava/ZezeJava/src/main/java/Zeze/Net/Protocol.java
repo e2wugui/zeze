@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class Protocol<TArgument extends Serializable> implements Serializable {
 	public static final int HEADER_SIZE = 12; // moduleId[4] + protocolId[4] + size[4]
-	private static final Logger logger = LogManager.getLogger(Protocol.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Protocol.class);
 	private static final LongConcurrentHashMap<Class<? extends Protocol<?>>> protocolClasses = new LongConcurrentHashMap<>();
 	private static final @NotNull VarHandle userStateHandle;
 	protected static final IOException noHandlerException = new IOException("noHandler");

@@ -30,14 +30,14 @@ public class HttpSession extends AbstractHttpSession {
 
 		public @Nullable String getProperty(@NotNull String key) {
 			var value = _tSession.get(cookieSessionId);
-			if (null != value)
+			if (value != null)
 				return value.getProperties().get(key);
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
 
 		public void setProperty(@NotNull String key, @NotNull String value) {
 			var tValue = _tSession.get(cookieSessionId);
-			if (null != tValue)
+			if (tValue != null)
 				tValue.getProperties().put(key, value);
 			throw new IllegalStateException("CookieSession not exist." + cookieSessionId);
 		}
@@ -119,8 +119,7 @@ public class HttpSession extends AbstractHttpSession {
 		zeze.getAppBase().removeModule(this);
 	}
 
-	@NotNull
-	Zeze.Builtin.HttpSession.tSession tSession() {
+	@NotNull Zeze.Builtin.HttpSession.tSession tSession() {
 		return _tSession;
 	}
 

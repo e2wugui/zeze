@@ -8,9 +8,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Counters extends ReentrantLock {
-	private static volatile boolean enable = false;
+	private static volatile boolean enable;
 
 	public static void setEnable(boolean value) {
 		enable = value;
@@ -20,17 +22,17 @@ public class Counters extends ReentrantLock {
 		return enable;
 	}
 
-	private final String name;
+	private final @NotNull String name;
 	private final ConcurrentSkipListMap<String, LongAdder> counters = new ConcurrentSkipListMap<>();
 	private long period;
-	private Future<?> future;
+	private @Nullable Future<?> future;
 	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。
 
 	public Counters() {
 		this("");
 	}
 
-	public Counters(String name) {
+	public Counters(@NotNull String name) {
 		this.name = name;
 	}
 
@@ -42,13 +44,13 @@ public class Counters extends ReentrantLock {
 		if (period <= 0)
 			throw new IllegalArgumentException("period <= 0");
 
-		if (null != future)
+		if (future != null)
 			future.cancel(false);
 		this.period = period;
 		future = Task.scheduleUnsafe(period, period, this::report);
 	}
 
-	public void increment(String name) {
+	public void increment(@NotNull String name) {
 		if (enable)
 			counters.computeIfAbsent(name, __ -> new LongAdder()).increment();
 	}

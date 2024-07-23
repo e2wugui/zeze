@@ -7,7 +7,6 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 public class LogList1<V> extends LogList<V> {
@@ -108,7 +107,7 @@ public class LogList1<V> extends LogList<V> {
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, index, item));
 	}
 
-	public @Nullable V set(int index, @NotNull V item) {
+	public @NotNull V set(int index, @NotNull V item) {
 		var list = getValue();
 		V old = list.get(index);
 		setValue(list.with(index, item));
@@ -116,7 +115,7 @@ public class LogList1<V> extends LogList<V> {
 		return old;
 	}
 
-	public @Nullable V remove(int index) {
+	public @NotNull V remove(int index) {
 		var list = getValue();
 		V old = list.get(index);
 		setValue(list.minus(index));

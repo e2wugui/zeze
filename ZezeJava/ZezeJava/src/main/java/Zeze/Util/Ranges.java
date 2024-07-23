@@ -1,13 +1,14 @@
 package Zeze.Util;
 
 import java.util.ArrayList;
+import org.jetbrains.annotations.NotNull;
 
 public final class Ranges {
 	public static final class Range {
 		private final int first; // [first, last)
 		private final int last;
 
-		public Range(String[] pair) {
+		public Range(String @NotNull [] pair) {
 			first = Integer.parseInt(pair[0]);
 			last = pair.length > 1 ? Integer.parseInt(pair[1]) + 1 : first + 1;
 			if (first < 0 || last < 0 || first >= last) {
@@ -22,19 +23,19 @@ public final class Ranges {
 			this.last = last;
 		}
 
-		public boolean hasIntersection(Range r) {
+		public boolean hasIntersection(@NotNull Range r) {
 			return !(r.last <= first || r.first >= last);
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			if (first + 1 == last) {
 				return String.valueOf(first);
 			}
 			return first + "-" + last;
 		}
 
-		public boolean include(Range r) {
+		public boolean include(@NotNull Range r) {
 			return r.first >= first && r.last <= last;
 		}
 	}
@@ -44,7 +45,7 @@ public final class Ranges {
 	public Ranges() {
 	}
 
-	public Ranges(String str) {
+	public Ranges(@NotNull String str) {
 		for (String s : str.split(",", -1)) {
 			if (s.isEmpty())
 				continue;
@@ -57,12 +58,12 @@ public final class Ranges {
 		}
 	}
 
-	public void checkAdd(Ranges rs) {
+	public void checkAdd(@NotNull Ranges rs) {
 		for (Range r : rs.ranges)
 			checkAdd(r);
 	}
 
-	public void checkAdd(Range r) {
+	public void checkAdd(@NotNull Range r) {
 		for (Range _r : ranges) {
 			if (_r.hasIntersection(r))
 				throw new IllegalStateException(ranges + " checkAdd " + r);
@@ -74,7 +75,7 @@ public final class Ranges {
 		checkAdd(new Range(type, type + 1));
 	}
 
-	public boolean include(Ranges rs) {
+	public boolean include(@NotNull Ranges rs) {
 		for (Range r : rs.ranges) {
 			if (include(r))
 				return true;
@@ -82,7 +83,7 @@ public final class Ranges {
 		return false;
 	}
 
-	public boolean include(Range r) {
+	public boolean include(@NotNull Range r) {
 		for (Range _r : ranges) {
 			if (_r.include(r))
 				return true;
@@ -90,12 +91,12 @@ public final class Ranges {
 		return false;
 	}
 
-	public void assertInclude(Range r) {
+	public void assertInclude(@NotNull Range r) {
 		if (!include(r))
 			throw new AssertionError(ranges + " NOT Include " + r);
 	}
 
-	public void assertInclude(Ranges rs) {
+	public void assertInclude(@NotNull Ranges rs) {
 		for (Range r : rs.ranges)
 			assertInclude(r);
 	}

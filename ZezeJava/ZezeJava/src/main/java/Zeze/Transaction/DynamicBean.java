@@ -32,6 +32,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			return bean;
 		//noinspection DataFlowIssue
 		var log = (LogDynamic)txn.getLog(parent().objectId() + variableId());
+		//noinspection DataFlowIssue
 		return log != null ? log.value : bean;
 	}
 

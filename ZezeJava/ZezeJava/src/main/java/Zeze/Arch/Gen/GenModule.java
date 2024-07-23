@@ -97,7 +97,8 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
-	public IModule[] createRedirectModules(@NotNull AppBase userApp, Class<?> @NotNull [] moduleClasses) {
+	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull AppBase userApp,
+															   @NotNull Class<?> @NotNull [] moduleClasses) {
 		lock();
 		try {
 			int i = 0, n = moduleClasses.length;

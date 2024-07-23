@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * <p>
  * Locks原来使用 单个容器管理锁，效率太低：
@@ -14,14 +16,14 @@ public class Locks<T extends Lockey<T>> {
 	private static final int MAX_SEGMENTS = 1 << 16; // slightly conservative
 	private final int segmentShift;
 	private final int segmentMask;
-	private final Segment<T>[] segments;
+	private final @NotNull Segment<T> @NotNull [] segments;
 
 	/* ---------------- hash算法和映射规则都是来自 ConcurrentHashMap. -------------- */
 
 	/**
 	 * Returns the segment that should be used for key with given hash.
 	 */
-	private Segment<T> segmentFor(T lockey) {
+	private @NotNull Segment<T> segmentFor(T lockey) {
 		/*
 		 * Applies a supplemental hash function to a given hashCode, which defends
 		 * against poor quality hash functions. This is critical because
@@ -48,13 +50,11 @@ public class Locks<T extends Lockey<T>> {
 
 	@SuppressWarnings("unchecked")
 	public Locks(int concurrencyLevel) {
-		if (concurrencyLevel <= 0) {
+		if (concurrencyLevel <= 0)
 			throw new IllegalArgumentException();
-		}
 
-		if (concurrencyLevel > MAX_SEGMENTS) {
+		if (concurrencyLevel > MAX_SEGMENTS)
 			concurrencyLevel = MAX_SEGMENTS;
-		}
 
 		// Find power-of-two sizes best matching arguments
 		int sShift = 0;
@@ -66,16 +66,15 @@ public class Locks<T extends Lockey<T>> {
 		segmentShift = 32 - sShift;
 		segmentMask = sSize - 1;
 		segments = new Segment[sSize];
-		for (int i = 0; i < segments.length; ++i) {
+		for (int i = 0; i < segments.length; ++i)
 			segments[i] = new Segment<>();
-		}
 	}
 
 	/* ------------- 实现 --------------- */
 	private static final class Segment<T extends Lockey<T>> extends FastLock {
 		private final WeakHashSet<T> locks = new WeakHashSet<>();
 
-		public boolean contains(T key) {
+		public boolean contains(@NotNull T key) {
 			lock();
 			try {
 				// 需要lock，get不是线程安全的
@@ -85,7 +84,7 @@ public class Locks<T extends Lockey<T>> {
 			}
 		}
 
-		public T get(T key) {
+		public @NotNull T get(@NotNull T key) {
 			lock();
 			try {
 				var exist = locks.get(key);
@@ -99,11 +98,11 @@ public class Locks<T extends Lockey<T>> {
 		}
 	}
 
-	public boolean contains(T lockey) {
+	public boolean contains(@NotNull T lockey) {
 		return segmentFor(lockey).contains(lockey);
 	}
 
-	public T get(T lockey) {
+	public @NotNull T get(@NotNull T lockey) {
 		return segmentFor(lockey).get(lockey);
 	}
 }

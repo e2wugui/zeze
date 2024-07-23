@@ -145,7 +145,7 @@ public final class Helper {
 	}
 
 	// 枚举并输出本机的所有网卡的所有IP地址
-	public static void main(String[] args) throws Exception {
+	public static void main(String @NotNull [] args) throws Exception {
 		System.out.println("@internal: " + selectOneIpAddress(true));
 		System.out.println("@external: " + selectOneIpAddress(false));
 		System.out.println("Loopback : " + InetAddress.getLoopbackAddress());

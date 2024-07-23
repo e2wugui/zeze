@@ -5,10 +5,11 @@ import java.io.InputStream;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdDecompressStream;
+import org.jetbrains.annotations.NotNull;
 
 public final class DecompressMppcZstd extends Decompress implements Closeable {
 	public static final class CodecInputStream extends InputStream {
-		private final ByteBuffer buffer = ByteBuffer.Allocate(0);
+		private final @NotNull ByteBuffer buffer = ByteBuffer.Allocate(0);
 
 		@Override
 		public int available() {
@@ -21,7 +22,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 		}
 
 		@Override
-		public int read(byte[] b, int off, int len) {
+		public int read(byte @NotNull [] b, int off, int len) {
 			int size = buffer.size();
 			if (size <= 0)
 				return -1;
@@ -45,20 +46,20 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 			buffer.WriteByte(b);
 		}
 
-		public void write(byte[] b, int off, int len) {
+		public void write(byte @NotNull [] b, int off, int len) {
 			if (buffer.ReadIndex >= 0x8000)
 				shrink();
 			buffer.Append(b, off, len);
 		}
 	}
 
-	private final ZstdDecompressStream ds;
-	private final byte[] srcBuf;
+	private final @NotNull ZstdDecompressStream ds;
+	private final byte @NotNull [] srcBuf;
 	private int srcBufLen;
 	private int blockState = -1; // -1:no block; -2:read block; >=0:read blockSize
 	private int blockSize;
 
-	public DecompressMppcZstd(Codec sink, int srcBufSize, int dstBufSize) {
+	public DecompressMppcZstd(@NotNull Codec sink, int srcBufSize, int dstBufSize) {
 		super(sink);
 		ds = ZstdFactory.newDecompressStream(dstBufSize);
 		srcBuf = new byte[srcBufSize];
@@ -102,7 +103,7 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 	}
 
 	@Override
-	public void update(byte[] data, int pos, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int pos, int len) throws CodecException {
 		for (int end = pos + len; pos < end; ) {
 			if (blockState == -1) {
 				super.update(data[pos++]);

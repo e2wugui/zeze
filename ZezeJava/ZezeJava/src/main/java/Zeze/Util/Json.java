@@ -40,8 +40,7 @@ public final class Json implements Cloneable {
 	static final int TYPE_MAP_FLAG = 0x30; // Map<String, 1~12> (parser only needs clear() & put(k,v))
 
 	public interface KeyReader {
-		@NotNull
-		Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
+		@NotNull Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
 	}
 
 	public interface Creator<T> {
@@ -76,16 +75,14 @@ public final class Json implements Cloneable {
 					? ((ParameterizedType)geneType).getActualTypeArguments() : null;
 		}
 
-		@NotNull
-		public String getName() {
+		public @NotNull String getName() {
 			return new String(name, StandardCharsets.UTF_8);
 		}
 	}
 
 	public interface Parser<T> {
-		@Nullable
-		T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
-				@Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
+		@Nullable T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
+						  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
 		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta,
@@ -353,8 +350,7 @@ public final class Json implements Cloneable {
 			writer = w;
 		}
 
-		@Nullable
-		FieldMeta get(int hash) {
+		@Nullable FieldMeta get(int hash) {
 			for (FieldMeta fm = valueTable[hash & (valueTable.length - 1)]; fm != null; fm = fm.next)
 				if (fm.hash == hash)
 					return fm;
@@ -493,8 +489,7 @@ public final class Json implements Cloneable {
 		if (!BYTE_STRING) // for JDK8-
 			return new String(buf, pos, end - pos, StandardCharsets.ISO_8859_1);
 		@SuppressWarnings("null")
-		@NotNull
-		String str = (String)unsafe.allocateInstance(String.class);
+		@NotNull String str = (String)unsafe.allocateInstance(String.class);
 		unsafe.putObject(str, STRING_VALUE_OFFSET, Arrays.copyOfRange(buf, pos, end)); // for JDK9+
 		return str;
 	}

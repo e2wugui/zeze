@@ -1,6 +1,8 @@
 package Zeze.Util;
 
 import Zeze.Net.SocketOptions;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface TimeThrottle extends AutoCloseable {
 	boolean checkNow(int size);
@@ -9,13 +11,14 @@ public interface TimeThrottle extends AutoCloseable {
 	default void close() {
 	}
 
-	static TimeThrottle create(SocketOptions options) {
+	static @Nullable TimeThrottle create(@NotNull SocketOptions options) {
 		return create(options.getTimeThrottle(), options.getTimeThrottleSeconds(),
 				options.getTimeThrottleLimit(), options.getTimeThrottleBandwidth());
 	}
 
-	static TimeThrottle create(String name, Integer seconds, Integer limit, Integer bandwidth) {
-		if (null == name || name.isBlank() || null == seconds || null == limit || null == bandwidth)
+	static @Nullable TimeThrottle create(@Nullable String name, @Nullable Integer seconds, @Nullable Integer limit,
+										 @Nullable Integer bandwidth) {
+		if (name == null || name.isBlank() || seconds == null || limit == null || bandwidth == null)
 			return null;
 
 		switch (name) {

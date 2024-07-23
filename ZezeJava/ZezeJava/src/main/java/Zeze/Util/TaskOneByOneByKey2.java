@@ -20,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * 另外由于不用临界区,shutdown和加任务的并发很难做,所以暂时不支持shutdown,也不支持cancel了.
  */
 public final class TaskOneByOneByKey2 extends ReentrantLock {
-	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey2.class);
 	private static final @NotNull VarHandle vhSubmitted;
 
 	static {
@@ -31,7 +31,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 	}
 
-	private final TaskOneByOne @NotNull [] concurrency;
+	private final @NotNull TaskOneByOne @NotNull [] concurrency;
 	private final int hashMask;
 	private final @Nullable Executor executor;
 
@@ -156,7 +156,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull Procedure procedure,
-													  @Nullable DispatchMode mode) {
+										 @Nullable DispatchMode mode) {
 		lock();
 		try {
 			if (keys.isEmpty())
@@ -179,7 +179,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	public <T> void executeCyclicBarrier(@NotNull Collection<T> keys, @NotNull String actionName,
-													  @NotNull Action0 action, @Nullable DispatchMode mode) {
+										 @NotNull Action0 action, @Nullable DispatchMode mode) {
 		lock();
 		try {
 			if (keys.isEmpty())
@@ -293,7 +293,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		concurrency[hash(key) & hashMask].execute(action, name, mode);
 	}
 
-	private TaskOneByOne bucket(@NotNull Object key) {
+	private @NotNull TaskOneByOne bucket(@NotNull Object key) {
 		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 

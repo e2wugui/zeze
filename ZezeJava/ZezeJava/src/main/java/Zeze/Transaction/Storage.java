@@ -5,10 +5,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Storage<K extends Comparable<K>, V extends Bean> {
-	private static final Logger logger = LogManager.getLogger(Storage.class);
-	private final Table table;
+	private static final @NotNull Logger logger = LogManager.getLogger(Storage.class);
+	private final @NotNull Table table;
 	private final @NotNull Database.Table databaseTable;
 	private final ConcurrentHashMap<K, Record1<K, V>> changed = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<K, Record1<K, V>> encoded = new ConcurrentHashMap<>();
@@ -26,7 +27,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		databaseTable = database.openTable(tableName, table.getId());
 	}
 
-	public Table getTable() {
+	public @NotNull Table getTable() {
 		return table;
 	}
 
@@ -34,7 +35,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		return databaseTable;
 	}
 
-	public void onRecordChanged(Record1<K, V> r) {
+	public void onRecordChanged(@NotNull Record1<K, V> r) {
 		changed.put(r.getObjectKey(), r);
 	}
 
@@ -97,7 +98,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return flush record count
 	 */
-	public int flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
+	public int flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
+					 @Nullable Database.Transaction lct) {
 		for (var v : snapshot.values())
 			v.flush(t, tss, lct);
 		return snapshot.size();

@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
-	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
 	// private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private final Application zz;
@@ -280,9 +280,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@Override
 		public void keepAlive() {
-			if (null == getConfig())
-				return; // not login
-
 			var rpc = new KeepAlive();
 			raftClient.send(rpc, p -> {
 				if (!rpc.isTimeout() && (rpc.getResultCode() == 0 || rpc.getResultCode() == Procedure.RaftApplied))

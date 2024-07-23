@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.Nullable;
 
 public class GoBackZeze extends Error {
 	public GoBackZeze(Throwable cause) {
@@ -19,7 +20,7 @@ public class GoBackZeze extends Error {
 	}
 
 	@Contract("_, _ -> fail")
-	public static void Throw(String msg, Throwable cause) {
+	public static void Throw(String msg, @Nullable Throwable cause) {
 		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 }

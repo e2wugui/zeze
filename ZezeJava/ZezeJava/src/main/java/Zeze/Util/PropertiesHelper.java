@@ -8,22 +8,24 @@ import java.util.Map;
 import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 public final class PropertiesHelper {
-	private static final Logger logger = LogManager.getLogger(PropertiesHelper.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(PropertiesHelper.class);
 
 	private PropertiesHelper() {
 	}
 
-	public static String getString(Map<String, String> anyProps, String key, String def) {
+	@Contract("_, _, null -> null")
+	public static String getString(@NotNull Map<String, String> anyProps, @NotNull String key, String def) {
 		var value = anyProps.get(key);
-		return null != value ? value : def;
+		return value != null ? value : def;
 	}
 
-	public static int getInt(Map<String, String> anyProps, String key, int def) {
+	public static int getInt(@NotNull Map<String, String> anyProps, @NotNull String key, int def) {
 		var value = anyProps.get(key);
-		return null != value ? Integer.parseInt(value) : def;
+		return value != null ? Integer.parseInt(value) : def;
 	}
 
 	/**
@@ -31,9 +33,6 @@ public final class PropertiesHelper {
 	 * 1. -key不能重名，重复时，保留第一个，其他丢弃。
 	 * 2. value 不存在时，设为""写入Properties。
 	 * 3. 只支持按空格简单分割，不支持双引号括起来的值。
-	 *
-	 * @param props string
-	 * @return Properties
 	 */
 	public static @NotNull Properties parse(@NotNull String props) {
 		var args = props.split(" ");
@@ -126,6 +125,7 @@ public final class PropertiesHelper {
 		}
 	}
 
+	@Contract("_, null -> null")
 	public static String getString(@NotNull String key, String def) {
 		var value = System.getProperty(key);
 		return value != null ? value : def;

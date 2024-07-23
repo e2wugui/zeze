@@ -6,11 +6,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface IApplyTable {
-	@NotNull
-	String getTableName();
+	@NotNull String getTableName();
 
-	@Nullable
-	Binary get(byte @NotNull [] key, int offset, int length);
+	@Nullable Binary get(byte @NotNull [] key, int offset, int length);
 
 	void put(byte @NotNull [] key, int keyOffset, int keyLength,
 			 byte @NotNull [] value, int valueOffset, int valueLength) throws Exception;
@@ -19,6 +17,7 @@ public interface IApplyTable {
 
 	/**
 	 * 注意这个操作可能很慢，谨慎使用。
+	 *
 	 * @return true if empty.
 	 */
 	boolean isEmpty() throws Exception;

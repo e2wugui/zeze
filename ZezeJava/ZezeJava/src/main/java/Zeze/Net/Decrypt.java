@@ -4,18 +4,19 @@ import java.nio.ByteBuffer;
 import javax.crypto.Cipher;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
+import org.jetbrains.annotations.NotNull;
 
 public class Decrypt implements Codec {
-	private final Codec sink;
-	private final Cipher cipher;
-	private final ByteBuffer ivr;
-	private final ByteBuffer ivw;
-	private final byte[] iv;
-	private final byte[] in;
-	private final byte[] out;
+	private final @NotNull Codec sink;
+	private final @NotNull Cipher cipher;
+	private final @NotNull ByteBuffer ivr;
+	private final @NotNull ByteBuffer ivw;
+	private final byte @NotNull [] iv;
+	private final byte @NotNull [] in;
+	private final byte @NotNull [] out;
 	private int count = 0;
 
-	public Decrypt(Codec sink, byte[] key) throws CodecException {
+	public Decrypt(@NotNull Codec sink, byte @NotNull [] key) throws CodecException {
 		this.sink = sink;
 		iv = new byte[16];
 		in = new byte[16];
@@ -61,7 +62,7 @@ public class Decrypt implements Codec {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
 		int i = off;
 		len += off;
 		if (count < 0) {
@@ -82,8 +83,8 @@ public class Decrypt implements Codec {
 			sink.update(out, 0, 16);
 			count = 0;
 		}
-		int nblocks = (len - i) >> 4;
-		for (int j = 0; j < nblocks; j++) {
+		int blocks = (len - i) >> 4;
+		for (int j = 0; j < blocks; j++) {
 			succeed();
 			for (int k = 0; k < 16; k++) {
 				byte c = data[i + j * 16 + k];
@@ -92,7 +93,7 @@ public class Decrypt implements Codec {
 			}
 			sink.update(out, 0, 16);
 		}
-		for (i += nblocks << 4; i < len; i++)
+		for (i += blocks << 4; i < len; i++)
 			in[count++] = data[i];
 	}
 

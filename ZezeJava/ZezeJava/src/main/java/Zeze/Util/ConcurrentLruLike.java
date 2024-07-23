@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ConcurrentLruLike<K, V> {
-	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
 	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
 	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
@@ -225,7 +225,7 @@ public class ConcurrentLruLike<K, V> {
 		while (lruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
 			var node = lruQueue.poll();
-			if (null == node)
+			if (node == null)
 				break;
 			polls.add(node);
 			nodeCount++;

@@ -37,11 +37,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWithRaft {
-	static final Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
-	private final Agent raftClient;
+	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerAgentWithRaft.class);
+	private final @NotNull Agent raftClient;
+	private volatile @NotNull TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 
 	@Override
-	public Threading getThreading() {
+	public @NotNull Threading getThreading() {
 		throw new UnsupportedOperationException();
 	}
 
@@ -58,7 +59,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		// super.tid128UdpClient = new Id128UdpClient(0, raftClient.getClient());
 	}
 
-	private void raftOnSetLeader(Agent agent) {
+	private void raftOnSetLeader(@NotNull Agent agent) {
 		var client = agent.getClient();
 		if (client == null)
 			return;
@@ -86,7 +87,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 
 	////////////////////////////////////////////////////////////////////////
 	@Override
-	protected long ProcessKeepAliveRequest(KeepAlive r) throws Exception {
+	protected long ProcessKeepAliveRequest(@NotNull KeepAlive r) throws Exception {
 		if (onKeepAlive != null)
 			Task.getCriticalThreadPool().execute(onKeepAlive);
 		r.SendResult();
@@ -94,7 +95,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessOfflineNotifyRequest(OfflineNotify r) throws Exception {
+	protected long ProcessOfflineNotifyRequest(@NotNull OfflineNotify r) throws Exception {
 		try {
 			if (triggerOfflineNotify(r.Argument)) {
 				r.SendResult();
@@ -108,7 +109,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessEditRequest(Edit r) {
+	protected long ProcessEditRequest(@NotNull Edit r) {
 		for (var it = r.Argument.getRemove().iterator(); it.hasNext(); /**/) {
 			var unReg = it.next();
 			var state = subscribeStates.get(unReg.getServiceName());
@@ -139,7 +140,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected long ProcessSetServerLoadRequest(SetServerLoad r) throws Exception {
+	protected long ProcessSetServerLoadRequest(@NotNull SetServerLoad r) throws Exception {
 		loads.put(r.Argument.getName(), r.Argument);
 		if (onSetServerLoad != null) {
 			Task.getCriticalThreadPool().execute(() -> {
@@ -155,8 +156,8 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected boolean allocateAsync(String globalName, int allocCount,
-									ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
+	protected boolean allocateAsync(@NotNull String globalName, int allocCount,
+									@NotNull ProtocolHandle<Rpc<BAllocateIdArgument, BAllocateIdResult>> callback) {
 		if (allocCount < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -174,7 +175,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	protected void allocate(AutoKey autoKey, int pool) {
+	protected void allocate(@NotNull AutoKey autoKey, int pool) {
 		if (pool < 1)
 			throw new IllegalArgumentException();
 		var r = new AllocateId();
@@ -184,8 +185,6 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		if (r.getResultCode() == 0) // setCurrentAndCount is in super.
 			setCurrentAndCount(autoKey, r.Result.getStartId(), r.Result.getCount());
 	}
-
-	private volatile TaskCompletionSource<Boolean> loginFuture = new TaskCompletionSource<>();
 
 	private void waitLoginReady() {
 		var volatileTmp = loginFuture;
@@ -203,7 +202,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 		throw new IllegalStateException("login timeout.");
 	}
 
-	private TaskCompletionSource<Boolean> startNewLogin() {
+	private @NotNull TaskCompletionSource<Boolean> startNewLogin() {
 		lock();
 		try {
 			loginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
@@ -231,7 +230,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	}
 
 	@Override
-	public CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument arg) {
+	public @NotNull CompletableFuture<List<SubscribeState>> subscribeServicesAsync(@NotNull BSubscribeArgument arg) {
 		waitLoginReady();
 		logger.debug("subscribeServicesAsync: {}", arg);
 		var cf = new CompletableFuture<List<SubscribeState>>();
@@ -289,10 +288,7 @@ public class ServiceManagerAgentWithRaft extends AbstractServiceManagerAgentWith
 	@Override
 	public void close() {
 		try {
-			var tmp = loginFuture;
-			if (null != tmp) {
-				tmp.cancel(true);
-			}
+			loginFuture.cancel(true);
 			raftClient.sendForWait(new NormalClose()).await();
 			raftClient.stop();
 		} catch (Throwable e) { // rethrow

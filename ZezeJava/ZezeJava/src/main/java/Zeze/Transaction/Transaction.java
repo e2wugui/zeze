@@ -18,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
-	private static final Logger logger = LogManager.getLogger(Transaction.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
 	private static final int perfIndexTransactionRedo = PerfCounter.instance.registerCountIndex("Transaction.Redo");
 	private static final int perfIndexTransactionRedoAndReleaseLock = PerfCounter.instance.registerCountIndex("Transaction.RedoAndReleaseLock");
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
@@ -71,6 +71,7 @@ public final class Transaction {
 	private final ArrayList<Runnable> redoActions = new ArrayList<>();
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
+	private final AtomicLong totalTransaction = new AtomicLong();
 
 	private Transaction() {
 	}
@@ -79,8 +80,7 @@ public final class Transaction {
 		return procedureStack;
 	}
 
-	@NotNull
-	TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
+	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return accessedRecords;
 	}
 
@@ -201,7 +201,7 @@ public final class Transaction {
 
 	public static void tryWhileRedo(@NotNull Runnable action) {
 		var txn = getCurrent();
-		if (null != txn)
+		if (txn != null)
 			txn.redoActions.add(action);
 	}
 
@@ -209,9 +209,8 @@ public final class Transaction {
 		// 这个目前仅用来重置Bean.RootInfo。
 		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		var current = getCurrent();
-		if (null != current) {
+		if (current != null)
 			current.redoBeans.add(b);
-		}
 	}
 
 	public static void whileCommit(@NotNull Runnable action) {
@@ -398,8 +397,6 @@ public final class Transaction {
 		}
 	}
 
-	private final AtomicLong totalTransaction = new AtomicLong();
-
 	private void triggerActions(@NotNull Procedure procedure) {
 		for (var action : actions) {
 			try {
@@ -429,14 +426,14 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	public void setOnzProcedure(OnzProcedure onzProcedure) {
+	public void setOnzProcedure(@Nullable OnzProcedure onzProcedure) {
 		this.onzProcedure = onzProcedure;
 	}
 
 	private void finalCommit(@NotNull Procedure proc) throws Exception {
 		// onz patch: onz事务执行阶段的2段式同步等待。
 		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
-		if (null != onzProcedure) {
+		if (onzProcedure != null) {
 			onzProcedure.sendReadyAndWait();
 			if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
 				flushMode = onzProcedure;
@@ -457,10 +454,10 @@ public final class Transaction {
 					if (v.dirty) {
 						v.atomicTupleRecord.record.commit(v);
 						var newValue = v.atomicTupleRecord.record.getSoftValue();
-						if (null != newValue) {
+						if (newValue != null) {
 							// 如果newValue为null，表示记录被删除，以后再次PutValue，version从0重新开始。
 							var oldValue = v.atomicTupleRecord.strongRef;
-							var oldVersion = null != oldValue ? oldValue.version() : 0;
+							var oldVersion = oldValue != null ? oldValue.version() : 0;
 							newValue.version(oldVersion + 1);
 						}
 					} else if (v.atomicTupleRecord.strongRef == null) {
@@ -524,9 +521,8 @@ public final class Transaction {
 	}
 
 	private void finalRollback(@NotNull Procedure procedure, boolean executeRollbackAction) {
-		for (var ra : accessedRecords.values()) {
+		for (var ra : accessedRecords.values())
 			ra.atomicTupleRecord.record.setNotFresh();
-		}
 		savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		state = TransactionState.Completed;
 		try {
@@ -559,6 +555,7 @@ public final class Transaction {
 				// 4. 删除条件（AND）
 				// a) timestamp 不变
 				// b) value == null，这是保护性，限定条件，使得功能仅限于cache.remove，专用。
+				//noinspection DataFlowIssue
 				var lockey = getLockey(ra.tableKey());
 				lockey.enterReadLock();
 				try {
@@ -581,17 +578,14 @@ public final class Transaction {
 
 	public void verifyRecordForWrite(@NotNull Bean bean) {
 		//noinspection DataFlowIssue
-		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
+		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved)
 			throwRedo(); // 这个错误需要redo。不是逻辑错误。
-		}
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
-		if (ra == null) {
+		if (ra == null)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.tableKey());
-		}
-		if (bean.rootInfo.getRecord() != ra.atomicTupleRecord.record) {
+		if (bean.rootInfo.getRecord() != ra.atomicTupleRecord.record)
 			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.tableKey());
-		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
 		if (ra.atomicTupleRecord.record.getTable().getZeze().getConfig().getFastRedoWhenConflict()
@@ -607,7 +601,8 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private static @NotNull CheckResult _check_(Procedure procedure, boolean writeLock, @NotNull RecordAccessed e) {
+	private static @NotNull CheckResult _check_(@NotNull Procedure procedure, boolean writeLock,
+												@NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {
@@ -663,12 +658,12 @@ public final class Transaction {
 		}
 	}
 
-	@NotNull
-	Lockey getLockey(TableKey key) {
+	@NotNull Lockey getLockey(@NotNull TableKey key) {
 		return locks.get(key);
 	}
 
-	private @NotNull CheckResult lockAndCheck(Procedure procedure, @NotNull Map.Entry<TableKey, RecordAccessed> e) {
+	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure,
+											  @NotNull Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);
@@ -676,7 +671,7 @@ public final class Transaction {
 		return _check_(procedure, writeLock, e.getValue());
 	}
 
-	private @NotNull CheckResult lockAndCheck(Procedure procedure) {
+	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure) {
 		var level = procedure.getTransactionLevel();
 		boolean allRead = true;
 		var saveSize = savepoints.size();
@@ -692,17 +687,15 @@ public final class Transaction {
 					if (log.getBean() == null)
 						continue;
 
-					TableKey tkey = log.getBean().tableKey();
+					var tkey = log.getBean().tableKey();
 					if (tkey == null)
 						logger.error("impossible! log bean({}): {}", log.getBean().getClass().getName(), log.getBean());
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.dirty = true;
 						allRead = false;
-					} else {
-						// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+					} else // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
 						logger.error("impossible! record not found.");
-					}
 				}
 			}
 		}
@@ -730,8 +723,7 @@ public final class Transaction {
 		int index = 0;
 		int n = holdLocks.size();
 		final var ite = accessedRecords.entrySet().iterator();
-		var e = ite.hasNext() ? ite.next() : null;
-		while (null != e) {
+		for (var e = ite.hasNext() ? ite.next() : null; e != null; ) {
 			// 如果 holdLocks 全部被对比完毕，直接锁定它
 			if (index >= n) {
 				var r = lockAndCheck(procedure, e);
@@ -777,7 +769,7 @@ public final class Transaction {
 					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
 					return r;
 				}
-				++index;
+				index++;
 				e = ite.hasNext() ? ite.next() : null;
 				continue;
 			}
@@ -786,8 +778,8 @@ public final class Transaction {
 			if (c < 0) {
 				// 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
 				int unlockEndIndex = index;
-				for (; unlockEndIndex < n && holdLocks.get(unlockEndIndex).getTableKey().compareTo(e.getKey()) < 0; ++unlockEndIndex)
-					holdLocks.get(unlockEndIndex).exitLock();
+				while (unlockEndIndex < n && holdLocks.get(unlockEndIndex).getTableKey().compareTo(e.getKey()) < 0)
+					holdLocks.get(unlockEndIndex++).exitLock();
 				holdLocks.subList(index, unlockEndIndex).clear();
 				n = holdLocks.size();
 				// 重新从当前 e 继续锁。

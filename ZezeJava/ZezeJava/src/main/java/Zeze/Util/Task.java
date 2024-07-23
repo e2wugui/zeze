@@ -36,22 +36,18 @@ public final class Task {
 	// 默认不开启热更，这个实现希望能被优化掉，几乎不造成影响。
 	// 开启热更时，由App.HotManager初始化的时候设置。
 	@SuppressWarnings("CanBeFinal")
-	public static volatile Factory<HotGuard> hotGuard = () -> null;
+	public static volatile @NotNull Factory<HotGuard> hotGuard = () -> null;
 	private static final FastLock taskLock = new FastLock();
 	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
 
-	public static TaskOneByOneByKey getOneByOne() {
-		return oneByOne;
-	}
-
 	public interface ILogAction {
-		void run(Throwable ex, long result, Protocol<?> p, String actionName);
+		void run(@Nullable Throwable ex, long result, @Nullable Protocol<?> p, @NotNull String actionName);
 	}
 
 	@SuppressWarnings("CanBeFinal")
 	public static volatile long defaultTimeout = 120_000; // 2 minutes
 
-	static final Logger logger = LogManager.getLogger(Task.class);
+	static final @NotNull Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
 	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -70,6 +66,10 @@ public final class Task {
 
 	public static boolean inJUnitTest() {
 		return System.getProperty("sun.java.command").split(" ")[0].endsWith(".JUnitStarter");
+	}
+
+	public static @NotNull TaskOneByOneByKey getOneByOne() {
+		return oneByOne;
 	}
 
 	public static ExecutorService getThreadPool() {
@@ -176,12 +176,12 @@ public final class Task {
 	}
 
 	// 注意必须使用try包装,确保create和close配对
-	public static ThreadDiagnosable.Timeout createTimeout(long timeout) {
+	public static @NotNull ThreadDiagnosable.Timeout createTimeout(long timeout) {
 		return new ThreadDiagnosable.Timeout(timeout);
 	}
 
 	// 注意必须使用try包装,确保create和close配对
-	public static ThreadDiagnosable.Critical enterCritical(boolean critical) {
+	public static @NotNull ThreadDiagnosable.Critical enterCritical(boolean critical) {
 		return new ThreadDiagnosable.Critical(critical);
 	}
 
@@ -526,7 +526,7 @@ public final class Task {
 	public static void logAndStatistics(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
 										boolean IsRequestSaved, @Nullable String aName) {
 		var protocolName = p != null ? p.getClass().getName() : "?";
-		var actionName = null != aName ? aName : IsRequestSaved ? protocolName : protocolName + ":Response";
+		var actionName = aName != null ? aName : IsRequestSaved ? protocolName : protocolName + ":Response";
 		var tmpVolatile = logAction;
 		if (tmpVolatile != null) {
 			try {

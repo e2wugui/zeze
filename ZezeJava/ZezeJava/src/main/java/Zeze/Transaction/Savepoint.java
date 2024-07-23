@@ -2,23 +2,25 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import Zeze.Util.LongHashMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Savepoint {
-	private LongHashMap<Log> logs; // key:objectId+varId
+	private @Nullable LongHashMap<Log> logs; // key:objectId+varId
 	// private final LongHashMap<Log> Newly = new LongHashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
-	private ArrayList<Action> actions;
+	private @Nullable ArrayList<Action> actions;
 
-	LongHashMap<Log>.Iterator logIterator() {
+	@Nullable LongHashMap<Log>.Iterator logIterator() {
 		var logs = this.logs;
 		return logs != null ? logs.iterator() : null;
 	}
 
-	public Log getLog(long logKey) {
+	public @Nullable Log getLog(long logKey) {
 		var logs = this.logs;
 		return logs != null ? logs.get(logKey) : null;
 	}
 
-	public void putLog(Log log) {
+	public void putLog(@NotNull Log log) {
 		var logs = this.logs;
 		if (logs == null)
 			this.logs = logs = new LongHashMap<>();
@@ -26,7 +28,7 @@ public final class Savepoint {
 		// Newly.put(log.getLogKey(), log);
 	}
 
-	Savepoint beginSavepoint() {
+	@NotNull Savepoint beginSavepoint() {
 		var sp = new Savepoint();
 		var logs = this.logs;
 		if (logs != null) {
@@ -44,31 +46,31 @@ public final class Savepoint {
 	}
 
 	static final class Action {
-		public ActionType actionType;
-		public final Runnable action;
+		public @NotNull ActionType actionType;
+		public final @NotNull Runnable action;
 
-		public Action(ActionType actionType, Runnable action) {
+		public Action(@NotNull ActionType actionType, @NotNull Runnable action) {
 			this.actionType = actionType;
 			this.action = action;
 		}
 	}
 
-	private ArrayList<Action> getActionsForAdd() {
+	private @NotNull ArrayList<Action> getActionsForAdd() {
 		var a = actions;
 		if (a == null)
 			actions = a = new ArrayList<>();
 		return a;
 	}
 
-	void addCommitAction(Runnable action) {
+	void addCommitAction(@NotNull Runnable action) {
 		getActionsForAdd().add(new Action(ActionType.COMMIT, action));
 	}
 
-	void addRollbackAction(Runnable action) {
+	void addRollbackAction(@NotNull Runnable action) {
 		getActionsForAdd().add(new Action(ActionType.ROLLBACK, action));
 	}
 
-	void mergeCommitFrom(Savepoint next) {
+	void mergeCommitFrom(@NotNull Savepoint next) {
 		var nextLogs = next.logs;
 		if (nextLogs != null)
 			nextLogs.foreachValue(log -> log.endSavepoint(this));
@@ -77,7 +79,7 @@ public final class Savepoint {
 			getActionsForAdd().addAll(nextActions);
 	}
 
-	void mergeRollbackFrom(Savepoint next) {
+	void mergeRollbackFrom(@NotNull Savepoint next) {
 		var nextActions = next.actions;
 		if (nextActions != null) {
 			for (Action action : nextActions) {
@@ -90,7 +92,7 @@ public final class Savepoint {
 		}
 	}
 
-	void mergeCommitActions(ArrayList<Action> transactionActions) {
+	void mergeCommitActions(@NotNull ArrayList<Action> transactionActions) {
 		var a = actions;
 		if (a != null) {
 			for (Action action : a) {
@@ -100,7 +102,7 @@ public final class Savepoint {
 		}
 	}
 
-	void mergeRollbackActions(ArrayList<Action> transactionActions) {
+	void mergeRollbackActions(@NotNull ArrayList<Action> transactionActions) {
 		var a = actions;
 		if (a != null) {
 			for (Action action : a) {

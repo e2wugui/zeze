@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class Rpc<TArgument extends Serializable, TResult extends Serializable> extends Protocol<TArgument> {
-	protected static final Logger logger = LogManager.getLogger(Rpc.class);
+	protected static final @NotNull Logger logger = LogManager.getLogger(Rpc.class);
 
 	public TResult Result;
 	protected transient @Nullable Binary resultEncoded; // 如果设置了这个，发送结果的时候，优先使用这个编码过的。

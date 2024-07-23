@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class ProcedureLockWatcher {
-	private static final Logger logger = LogManager.getLogger(ProcedureLockWatcher.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ProcedureLockWatcher.class);
 	private final int procedureLockWatcherMin;
 	private final ConcurrentHashMap<String, AtomicInteger> procedureMaxLocks = new ConcurrentHashMap<>();
 

@@ -43,7 +43,7 @@ public class PersistentAtomicLong {
 				var lock = fs.getChannel().lock();
 				try {
 					var line = fs.readLine();
-					if (null != line) {
+					if (line != null) {
 						allocatedEnd = Long.parseLong(line);
 						currentId.set(allocatedEnd);
 					}
@@ -138,7 +138,7 @@ public class PersistentAtomicLong {
 							return; // has allocated. concurrent.
 						fs.seek(0);
 						var line = fs.readLine();
-						var last = (null == line || line.isEmpty()) ? 0L : Long.parseLong(line);
+						var last = (line == null || line.isEmpty()) ? 0L : Long.parseLong(line);
 						var allocateSize = fund.next();
 						if (allocateSize < count)
 							allocateSize += count;

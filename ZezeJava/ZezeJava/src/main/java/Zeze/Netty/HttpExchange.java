@@ -203,7 +203,7 @@ public class HttpExchange {
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
-	public ChannelHandlerContext context() {
+	public @NotNull ChannelHandlerContext context() {
 		return context;
 	}
 

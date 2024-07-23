@@ -4,9 +4,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class ShutdownHook {
-	private static final Logger logger = LogManager.getLogger(ShutdownHook.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ShutdownHook.class);
 	private static final LinkedHashMap<Object, Action0> shutdownActions = new LinkedHashMap<>();
 	private static final FastLock shutdownActionsLock = new FastLock();
 
@@ -41,11 +43,11 @@ public final class ShutdownHook {
 		// 只用来确保上面的static块已执行
 	}
 
-	public static void add(Action0 action) {
+	public static void add(@NotNull Action0 action) {
 		add(new Object(), action);
 	}
 
-	public static void add(Object key, Action0 action) {
+	public static void add(@NotNull Object key, @NotNull Action0 action) {
 		shutdownActionsLock.lock();
 		try {
 			shutdownActions.put(key, action);
@@ -54,7 +56,7 @@ public final class ShutdownHook {
 		}
 	}
 
-	public static Action0 remove(Object key) {
+	public static @Nullable Action0 remove(@NotNull Object key) {
 		shutdownActionsLock.lock();
 		try {
 			return shutdownActions.remove(key);

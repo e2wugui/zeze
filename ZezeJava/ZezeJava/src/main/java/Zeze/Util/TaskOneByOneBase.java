@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class TaskOneByOneBase extends ReentrantLock {
 	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
-													  @Nullable Action0 cancel, @Nullable DispatchMode mode) {
+															   @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		lock();
 		try {
 			if (keys.isEmpty())
@@ -36,8 +36,8 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	}
 
 	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull String actionName,
-													  @NotNull Action0 action, @Nullable Action0 cancel,
-													  @Nullable DispatchMode mode) {
+															   @NotNull Action0 action, @Nullable Action0 cancel,
+															   @Nullable DispatchMode mode) {
 		lock();
 		try {
 			if (keys.isEmpty())
@@ -191,21 +191,22 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	}
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
-	protected void execute(int key, TaskOneByOneQueue.Task task) {
+	protected void execute(int key, @NotNull TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 为了避免装箱,这里区分出类型,子类需要优化的时候重载.
-	protected void execute(long key, TaskOneByOneQueue.Task task) {
+	protected void execute(long key, @NotNull TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
 	// 其他类型.
-	protected void execute(Object key, TaskOneByOneQueue.Task task) {
+	protected void execute(@NotNull Object key, @NotNull TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueue(key), task);
 	}
 
-	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task) {
+	protected static void executeAndUnlock(@NotNull TaskOneByOneQueue lockedQueue,
+										   @NotNull TaskOneByOneQueue.Task task) {
 		Runnable submit;
 		try {
 			submit = lockedQueue.submit(task);
@@ -216,7 +217,8 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 			submit.run();
 	}
 
-	protected static void executeAndUnlock(TaskOneByOneQueue lockedQueue, TaskOneByOneQueue.Task task, int lockTimes) {
+	protected static void executeAndUnlock(@NotNull TaskOneByOneQueue lockedQueue,
+										   @NotNull TaskOneByOneQueue.Task task, int lockTimes) {
 		Runnable submit;
 		try {
 			submit = lockedQueue.submit(task);

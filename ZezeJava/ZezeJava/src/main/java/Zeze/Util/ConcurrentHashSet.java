@@ -29,7 +29,7 @@ public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Ite
 		var result = false;
 		for (var e : entrySet()) {
 			if (c.contains(e.getKey()))
-				result |= null != remove(e.getKey());
+				result |= remove(e.getKey()) != null;
 		}
 		return result;
 	}
@@ -58,15 +58,13 @@ public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, T> implements Ite
 	}
 
 	/*
-	@NotNull
 	@Override
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		return keySet().toArray();
 	}
 
-	@NotNull
 	@Override
-	public <T1> T1[] toArray(@NotNull T1[] a) {
+	public <T1> T1 @NotNull [] toArray(@NotNull T1[] a) {
 		return keySet().toArray(a);
 	}
 	*/

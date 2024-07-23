@@ -12,17 +12,18 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class GlobalClient extends Service {
 	private static final IOException loginException = new IOException("login failed");
 	private static final IOException reloginTimeoutException = new IOException("relogin timeout");
 
-	public GlobalClient(GlobalAgent agent, Application zeze) {
+	public GlobalClient(@NotNull GlobalAgent agent, @Nullable Application zeze) {
 		super(agent.getZeze().getProjectName() + ".GlobalClient", zeze);
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) {
 		// HandshakeDone 在 login|reLogin 完成以后才设置。
 
 		var agent = (GlobalAgent.Agent)so.getUserState();
@@ -80,21 +81,24 @@ public final class GlobalClient extends Service {
 	}
 
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb, @NotNull ProtocolFactoryHandle<?> factoryHandle,
+								 @Nullable AsyncSocket so) throws Exception {
 		// 不支持事务
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
 	}
 
 	@Override
-	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public void dispatchProtocol(@NotNull Protocol<?> p,
+								 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
 		Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), p));
 	}
 
 	@Override
-	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
-															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	public <P extends Protocol<?>>
+	void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
+							 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// global rpc 没有异步调用，仅仅future.setResult。直接io线程调用。
 		try {
 			responseHandle.handle(rpc);
@@ -102,5 +106,4 @@ public final class GlobalClient extends Service {
 			logger.error("Agent.NetClient.dispatchRpcResponse", e);
 		}
 	}
-
 }

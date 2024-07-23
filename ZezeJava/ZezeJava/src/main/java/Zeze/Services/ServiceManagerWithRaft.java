@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 
 public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
@@ -38,13 +39,13 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
-	private static final Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
-	private final Rocks rocks;
-	private final Table<String, BAutoKey> tableAutoKey;
-	private final Table<String, BId128> tableId128;
-	private final Table<String, BSession> tableSession;
-	private final Table<String, BLoadObservers> tableLoadObservers;
-	private final Table<String, BServerState> tableServerState;
+	private static final @NotNull Logger logger = LogManager.getLogger(ServiceManagerWithRaft.class);
+	private final @NotNull Rocks rocks;
+	private final @NotNull Table<String, BAutoKey> tableAutoKey;
+	private final @NotNull Table<String, BId128> tableId128;
+	private final @NotNull Table<String, BSession> tableSession;
+	private final @NotNull Table<String, BLoadObservers> tableLoadObservers;
+	private final @NotNull Table<String, BServerState> tableServerState;
 	private final HashMap<Integer, Future<?>> offlineNotifyFutures = new HashMap<>();
 
 	// 需要从配置文件中读取，把这个引用加入：Zeze.Config.AddCustomize
@@ -58,7 +59,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 								  boolean RocksDbWriteOptionSync) throws Exception {
 		PerfCounter.instance.tryStartScheduledLog();
 
-		if (null == config)
+		if (config == null)
 			config = Config.load();
 		config.parseCustomize(conf);
 

@@ -14,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Changes {
-	private static final Logger logger = LogManager.getLogger(Changes.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Changes.class);
 
 	private final LongHashMap<LogBean> beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<@NotNull TableKey, @NotNull Record> records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
@@ -52,7 +52,7 @@ public final class Changes {
 		private final HashSet<LogBean> logBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> logBeans = new IdentityHashMap<>();
-		private Bean value;
+		private @Nullable Bean value;
 		private int state;
 
 		public Record(@NotNull Table table) {
@@ -73,7 +73,7 @@ public final class Changes {
 			return logBeans;
 		}
 
-		public Bean getValue() {
+		public @Nullable Bean getValue() {
 			return value;
 		}
 
@@ -88,7 +88,7 @@ public final class Changes {
 		public void collect(@NotNull RecordAccessed ar) {
 			if (ar.committedPutLog != null) { // put or remove
 				var put = ar.committedPutLog.getValue();
-				if (null != put) {
+				if (put != null) {
 					value = put; // put
 					state = Put;
 				} else {
@@ -112,6 +112,7 @@ public final class Changes {
 			case Remove:
 				break;
 			case Put:
+				//noinspection DataFlowIssue
 				value.encode(bb);
 				break;
 			case Edit:
@@ -150,7 +151,7 @@ public final class Changes {
 	public void collect(@NotNull Bean recent, @NotNull Log log) {
 		// is table has listener
 		//noinspection DataFlowIssue
-		if (!isHistory && null == listeners.get(recent.rootInfo.getRecord().getTable()))
+		if (!isHistory && listeners.get(recent.rootInfo.getRecord().getTable()) == null)
 			return;
 
 		Bean belong = log.getBelong();
@@ -158,7 +159,7 @@ public final class Changes {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 			var r = records.get(recent.tableKey());
 			if (r == null) {
-				assert recent.rootInfo != null;
+				//noinspection DataFlowIssue
 				r = new Record(recent.rootInfo.getRecord().getTable());
 				//noinspection DataFlowIssue
 				records.put(recent.tableKey(), r);
@@ -184,7 +185,7 @@ public final class Changes {
 
 	public void collectRecord(@NotNull RecordAccessed ar) {
 		// is table has listener
-		if (!isHistory && null == listeners.get(ar.atomicTupleRecord.record.getTable()))
+		if (!isHistory && listeners.get(ar.atomicTupleRecord.record.getTable()) == null)
 			return;
 
 		var tkey = ar.tableKey();

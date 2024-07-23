@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -11,13 +10,15 @@ import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
  */
 public final class DatabaseMemory extends Database implements Database.Operates {
 	private static final HashMap<ByteBuffer, DataWithVersion> dataWithVersions = new HashMap<>();
-	private static final byte[] removed = ByteBuffer.Empty;
+	private static final byte @NotNull [] removed = ByteBuffer.Empty;
 	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -30,22 +31,22 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 	}
 
-	public DatabaseMemory(Application zeze, DatabaseConf conf) {
+	public DatabaseMemory(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : this);
 	}
 
 	@Override
-	public int clearInUse(int localId, String global) {
+	public int clearInUse(int localId, @NotNull String global) {
 		return 0;
 	}
 
 	@Override
-	public void setInUse(int localId, String global) {
+	public void setInUse(int localId, @NotNull String global) {
 	}
 
 	@Override
-	public DataWithVersion getDataWithVersion(ByteBuffer key) {
+	public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 		lock();
 		try {
 			var exist = dataWithVersions.get(key);
@@ -61,7 +62,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	}
 
 	@Override
-	public KV<Long, Boolean> saveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+	public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+															  long version) {
 		lock();
 		try {
 			var exist = dataWithVersions.get(key);
@@ -118,22 +120,22 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		public void close() {
 		}
 
-		public void remove(String tableName, ByteBuffer key) {
+		public void remove(@NotNull String tableName, @NotNull ByteBuffer key) {
 			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), removed);
 		}
 
-		public void replace(String tableName, ByteBuffer key, ByteBuffer value) {
+		public void replace(@NotNull String tableName, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), value.Copy());
 		}
 	}
 
 	@Override
-	public Transaction beginTransaction() {
+	public @NotNull Transaction beginTransaction() {
 		return new MemTrans();
 	}
 
 	@Override
-	public Database.Table openTable(String name, int id) {
+	public @NotNull Database.Table openTable(@NotNull String name, int id) {
 		lock.writeLock().lock();
 		try {
 			var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
@@ -146,7 +148,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	// 仅支持从一个db原子的查询数据。
 
 	// 多表原子查询。
-	public HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(Map<String, Set<ByteBuffer>> tableKeys) {
+	public @NotNull HashMap<String, Map<ByteBuffer, ByteBuffer>> finds(
+			@NotNull Map<String, Set<ByteBuffer>> tableKeys) {
 		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>(tableKeys.size());
 		for (var tks : tableKeys.entrySet())
 			result.put(tks.getKey(), new HashMap<>(tks.getValue().size()));
@@ -175,7 +178,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 	}
 
 	// 单表原子查询
-	public HashMap<ByteBuffer, ByteBuffer> finds(String tableName, Set<ByteBuffer> keys) {
+	public @NotNull HashMap<ByteBuffer, ByteBuffer> finds(@NotNull String tableName, @NotNull Set<ByteBuffer> keys) {
 		var result = new HashMap<ByteBuffer, ByteBuffer>(keys.size());
 		// System.err.println("finds for: " + tableName + " keys.size=" + keys.size());
 		lock.readLock().lock();
@@ -198,27 +201,20 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		return result;
 	}
 
-	private static class ByteBufferComparator implements Comparator<ByteBuffer> {
-		@Override
-		public int compare(ByteBuffer o1, ByteBuffer o2) {
-			return o1.compareTo(o2);
-		}
-	}
-
 	public final class TableMemory extends Database.AbstractKVTable {
-		private final String name;
-		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(new ByteBufferComparator());
+		private final @NotNull String name;
+		private final TreeMap<ByteBuffer, byte[]> map = new TreeMap<>(ByteBuffer::compareTo);
 
-		public TableMemory(String name) {
+		public TableMemory(@NotNull String name) {
 			this.name = name;
 		}
 
 		@Override
-		public DatabaseMemory getDatabase() {
+		public @NotNull DatabaseMemory getDatabase() {
 			return DatabaseMemory.this;
 		}
 
-		public String getName() {
+		public @NotNull String getName() {
 			return name;
 		}
 
@@ -228,7 +224,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer find(ByteBuffer key) {
+		public @Nullable ByteBuffer find(@NotNull ByteBuffer key) {
 			lock.readLock().lock();
 			try {
 				var value = map.get(key);
@@ -239,12 +235,12 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public void remove(Transaction t, ByteBuffer key) {
+		public void remove(@NotNull Transaction t, @NotNull ByteBuffer key) {
 			((MemTrans)t).remove(name, key);
 		}
 
 		@Override
-		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+		public void replace(@NotNull Transaction t, @NotNull ByteBuffer key, @NotNull ByteBuffer value) {
 			((MemTrans)t).replace(name, key, value);
 		}
 
@@ -264,7 +260,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walk(TableWalkHandleRaw callback) throws Exception {
+		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			byte[][] values;
 			int i = 0, n;
@@ -290,7 +286,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkKey(TableWalkKeyRaw callback) throws Exception {
+		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
@@ -308,7 +304,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkDesc(TableWalkHandleRaw callback) throws Exception {
+		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			byte[][] values;
 			int i = 0, n;
@@ -334,7 +330,7 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public long walkKeyDesc(TableWalkKeyRaw callback) throws Exception {
+		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
 			ByteBuffer[] keys;
 			lock.readLock().lock();
 			try {
@@ -352,7 +348,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -388,7 +385,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -419,7 +417,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();
@@ -455,7 +454,8 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 
 		@Override
-		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (proposeLimit <= 0)
 				return null;
 			final var keys = new ArrayList<ByteBuffer>();

@@ -11,13 +11,15 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Cache extends ReentrantLock {
-	private final String name;
-	private final Function<String, CacheObject> loader;
-	private final BiFunction<String, ByteBuffer, CacheObject> decoder;
+	private final @NotNull String name;
+	private final @NotNull Function<String, CacheObject> loader;
+	private final @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder;
 	private RocksDB db;
 	private ConcurrentLruLike<String, CacheObject> lru;
 	private volatile long todayDays;
@@ -31,7 +33,8 @@ public class Cache extends ReentrantLock {
 	 * @param loader      根据id装载对象实例的。
 	 * @param decoder     根据id和数据创建出对象实例。
 	 */
-	public Cache(String name, int lruCapacity, Function<String, CacheObject> loader, BiFunction<String, ByteBuffer, CacheObject> decoder) throws RocksDBException {
+	public Cache(@NotNull String name, int lruCapacity, @NotNull Function<String, CacheObject> loader,
+				 @NotNull BiFunction<String, ByteBuffer, CacheObject> decoder) throws RocksDBException {
 		this.name = name;
 		this.loader = loader;
 		this.decoder = decoder;
@@ -45,7 +48,7 @@ public class Cache extends ReentrantLock {
 	}
 
 	public void close() throws IOException {
-		if (null != todayFile)
+		if (todayFile != null)
 			todayFile.close();
 
 		db.close();
@@ -53,12 +56,12 @@ public class Cache extends ReentrantLock {
 		lru = null;
 	}
 
-	public CacheObject get(String id) throws RocksDBException, IOException {
+	public @Nullable CacheObject get(@NotNull String id) throws RocksDBException, IOException {
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
 
 		var value = lru.get(id);
-		if (null != value) {
+		if (value != null) {
 			if (!CacheObject.isNull(value))
 				return value;
 
@@ -76,7 +79,7 @@ public class Cache extends ReentrantLock {
 		var key = ByteBuffer.Allocate(128);
 		key.WriteString(id);
 		var bytes = db.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
-		if (null != bytes) {
+		if (bytes != null) {
 			// decoder
 			var bb = ByteBuffer.Wrap(bytes);
 			bb.ReadString(); // skip cacheId.
@@ -86,7 +89,7 @@ public class Cache extends ReentrantLock {
 
 		// do user loader to load object.
 		value = loader.apply(id);
-		if (null != value)
+		if (value != null)
 			dbSave(value);
 		else
 			value = new CacheObject.NullCache();
@@ -96,7 +99,7 @@ public class Cache extends ReentrantLock {
 		return lru.getOrAdd(id, () -> tmpLambda);
 	}
 
-	private void dbSave(CacheObject value) throws RocksDBException, IOException {
+	private void dbSave(@NotNull CacheObject value) throws RocksDBException, IOException {
 		var id = value.cacheId();
 		if (id.isEmpty())
 			throw new IllegalArgumentException();
@@ -112,7 +115,7 @@ public class Cache extends ReentrantLock {
 		today().write((id + "\n").getBytes(StandardCharsets.UTF_8));
 	}
 
-	private FileOutputStream today() throws IOException {
+	private @NotNull FileOutputStream today() throws IOException {
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
 		// 第一次执行时，如果nowDays等于0（即days的初始值），会返回null。
 		// 这种情况就不处理了。
@@ -121,7 +124,7 @@ public class Cache extends ReentrantLock {
 			try {
 				if (todayDays != nowDays) {
 					todayDays = nowDays;
-					if (null != todayFile)
+					if (todayFile != null)
 						todayFile.close();
 					todayFile = new FileOutputStream(Paths.get(name, "days_" + todayDays).toFile());
 				}
@@ -149,7 +152,7 @@ public class Cache extends ReentrantLock {
 		}
 	}
 
-	private void tryRemove(File file) throws IOException, RocksDBException {
+	private void tryRemove(@NotNull File file) throws IOException, RocksDBException {
 		try (var r = new BufferedReader(new FileReader(file, StandardCharsets.UTF_8))) {
 			for (var id = r.readLine(); id != null; id = r.readLine()) {
 				if (lru.get(id) != null)

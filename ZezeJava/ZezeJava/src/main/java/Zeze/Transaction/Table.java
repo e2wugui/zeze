@@ -127,15 +127,15 @@ public abstract class Table {
 
 	public abstract Schemas.RelationalTable getRelationalTable();
 
-	public abstract void open(Table exist, Application app);
+	public abstract void open(@NotNull Table exist, @NotNull Application app);
 
 	public abstract void disable();
 
 	public abstract DatabaseRocksDb.Table getLocalRocksCacheTable();
 
-	public abstract long walkMemoryAny(TableWalkHandle<Object, Bean> handle) throws Exception;
+	public abstract long walkMemoryAny(@NotNull TableWalkHandle<Object, Bean> handle) throws Exception;
 
-	public abstract void __direct_put_cache__(Object key, Bean value, int state);
+	public abstract void __direct_put_cache__(@NotNull Object key, @NotNull Bean value, int state);
 
 	public abstract @NotNull ByteBuffer encodeKey(@NotNull Object key);
 

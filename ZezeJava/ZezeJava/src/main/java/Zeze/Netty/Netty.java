@@ -86,7 +86,7 @@ public class Netty implements Closeable {
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String @NotNull [] args) throws Exception {
 		String host = null;
 		int port = 0;
 		int threads = 1;

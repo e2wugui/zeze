@@ -15,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class Selector extends Thread implements ByteBufferAllocator {
-	private static final Logger logger = LogManager.getLogger(Selector.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Selector.class);
 
 	// 以下常量为临时兼容,以后会去掉,应该改用Selectors里的
 	public static final int DEFAULT_BUFFER_SIZE = 32 * 1024; // 单个buffer的字节容量
@@ -51,8 +51,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		return selectors;
 	}
 
-	@NotNull
-	ByteBuffer getReadBuffer() {
+	@NotNull ByteBuffer getReadBuffer() {
 		return readBuffer;
 	}
 
@@ -125,8 +124,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 		bbPool.add(bb);
 	}
 
-	@NotNull
-	SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
+	@NotNull SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
 		try {
 			SelectionKey key = sc.register(selector, ops, handle);
 			// 当引擎线程执行register时，wakeup会导致一次多余唤醒。

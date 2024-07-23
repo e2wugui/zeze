@@ -11,17 +11,18 @@ import Zeze.Services.ServiceManager.AbstractAgent;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.PropertiesHelper;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.jetbrains.annotations.NotNull;
 
 public class LinksInfo extends AbstractLinksInfo {
 	private final Netty netty = new Netty();
-	private final HttpServer httpServer;
+	private final @NotNull HttpServer httpServer;
 	private final AbstractAgent agent;
 	private String defaultLinkServiceName;
 
 	public LinksInfo() throws Exception {
 		var conf = Config.load();
 		agent = Application.createServiceManager(conf, "LinksInfo");
-		if (null == agent)
+		if (agent == null)
 			throw new IllegalStateException("agent is null. check your config for ServiceManager.");
 		httpServer = new HttpServer();
 		RegisterHttpServlet(httpServer);
@@ -39,13 +40,13 @@ public class LinksInfo extends AbstractLinksInfo {
 		netty.close();
 	}
 
-	public void subscribeLinkService(String linkServiceName) {
-		if (null == defaultLinkServiceName)
+	public void subscribeLinkService(@NotNull String linkServiceName) {
+		if (defaultLinkServiceName == null)
 			defaultLinkServiceName = linkServiceName;
 		agent.subscribeService(new BSubscribeInfo(linkServiceName));
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String @NotNull [] args) throws Exception {
 		var linksInfo = new LinksInfo();
 		linksInfo.start();
 		for (var i = 0; i < args.length; ++i) {

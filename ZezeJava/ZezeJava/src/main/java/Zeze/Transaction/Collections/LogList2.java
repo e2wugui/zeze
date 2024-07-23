@@ -72,7 +72,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public @Nullable V set(int index, @NotNull V item) {
+	public @NotNull V set(int index, @NotNull V item) {
 		V old = super.set(index, item);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();
@@ -82,7 +82,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 	}
 
 	@Override
-	public @Nullable V remove(int index) {
+	public @NotNull V remove(int index) {
 		V old = super.remove(index);
 		if (addSet == null)
 			addSet = new IdentityHashSet<>();

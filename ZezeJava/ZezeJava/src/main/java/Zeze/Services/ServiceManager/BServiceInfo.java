@@ -44,11 +44,11 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		return passiveIp;
 	}
 
-	public Long getSessionId() {
+	public @Nullable Long getSessionId() {
 		return sessionId;
 	}
 
-	public void setSessionId(Long sessionId) {
+	public void setSessionId(@NotNull Long sessionId) {
 		this.sessionId = sessionId;
 	}
 
@@ -142,11 +142,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 17;
-		result = prime * result + serviceName.hashCode();
-		result = prime * result + serviceIdentity.hashCode();
-		return result;
+		return serviceName.hashCode() * 31 + serviceIdentity.hashCode();
 	}
 
 	/**
@@ -163,15 +159,13 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 
 	@Override
 	public boolean equals(@Nullable Object obj) {
-		if (obj == this) {
+		if (obj == this)
 			return true;
-		}
 
 		if (obj instanceof BServiceInfo) {
 			var other = (BServiceInfo)obj;
 			// 版本分类存储，同一个集合的版本肯定相等，这里不需要判断版本。
-			return serviceName.equals(other.serviceName)
-					&& serviceIdentity.equals(other.serviceIdentity);
+			return serviceName.equals(other.serviceName) && serviceIdentity.equals(other.serviceIdentity);
 		}
 		return false;
 	}

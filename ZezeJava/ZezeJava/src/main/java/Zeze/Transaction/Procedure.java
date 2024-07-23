@@ -59,11 +59,11 @@ public class Procedure {
 		void run(@Nullable Throwable ex, long result, @NotNull Procedure p, @NotNull String message);
 	}
 
-	private static final Logger logger = LogManager.getLogger(Procedure.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Procedure.class);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
 	public static final boolean ENABLE_TRACE_LOG = logger.isTraceEnabled();
 	@SuppressWarnings("CanBeFinal")
-	public static ILogAction logAction = Procedure::defaultLogAction;
+	public static @Nullable ILogAction logAction = Procedure::defaultLogAction;
 
 	public static void defaultLogAction(@Nullable Throwable ex, long result, @NotNull Procedure p,
 										@NotNull String message) {
@@ -137,7 +137,7 @@ public class Procedure {
 	 */
 	public final long call() {
 		long result = Exception;
-		Transaction currentT = Transaction.getCurrent();
+		var currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			long timeBegin = System.nanoTime();
 			try {

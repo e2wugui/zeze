@@ -17,15 +17,11 @@ import org.jetbrains.annotations.Nullable;
  * 构造的时候，可以通过参数控制总的队列数量。
  */
 public final class TaskOneByOneByKey extends TaskOneByOneBase {
-	private static final Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneByKey.class);
 
-	private final TaskOneByOneQueue @NotNull [] concurrency;
+	private final @NotNull TaskOneByOneQueue @NotNull [] concurrency;
 	private final int hashMask;
 	private final @Nullable Executor executor;
-
-	public Executor getExecutor() {
-		return executor;
-	}
 
 	public TaskOneByOneByKey(@Nullable Executor executor) {
 		this(2048, executor);
@@ -61,13 +57,17 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 		return Integer.compareUnsigned(index, concurrency.length) < 0 ? concurrency[index].size() : -1; // 可能有并发问题导致结果不准确,但通常问题不大
 	}
 
+	public @Nullable Executor getExecutor() {
+		return executor;
+	}
+
 	@Override
-	protected void execute(int key, TaskOneByOneQueue.Task task) {
+	protected void execute(int key, @NotNull TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueueWithHash(key), task);
 	}
 
 	@Override
-	protected void execute(long key, TaskOneByOneQueue.Task task) {
+	protected void execute(long key, @NotNull TaskOneByOneQueue.Task task) {
 		executeAndUnlock(getAndLockQueueWithHash(Long.hashCode(key)), task);
 	}
 
@@ -76,7 +76,7 @@ public final class TaskOneByOneByKey extends TaskOneByOneBase {
 		return getAndLockQueueWithHash(key.hashCode());
 	}
 
-	private TaskOneByOneQueue getAndLockQueueWithHash(int hash) {
+	private @NotNull TaskOneByOneQueue getAndLockQueueWithHash(int hash) {
 		var queue = concurrency[hash(hash) & hashMask];
 		queue.lock();
 		return queue;

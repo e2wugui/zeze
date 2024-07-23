@@ -48,7 +48,7 @@ import org.jetbrains.annotations.Nullable;
       进而导致客户端无法发送或产生堆积,此时发送方应主动丢弃. 记录的日志时间戳由服务器端在写入时确定. 过时的日志文件需要其它清理手段.
 */
 public final class BinLogger extends ReentrantLock {
-	private static final Logger logger = LogManager.getLogger(BinLogger.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(BinLogger.class);
 	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
 	private static final int perfIndexWriteLog = PerfCounter.instance.registerCountIndex("BinLogger.WriteLog");
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
@@ -578,7 +578,7 @@ public final class BinLogger extends ReentrantLock {
 		}
 	}
 
-	public static void main(String @NotNull [] args) throws Exception {
+	public static void main(@NotNull String @NotNull [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

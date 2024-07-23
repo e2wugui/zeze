@@ -5,22 +5,23 @@ import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class GlobalAgentBase extends ReentrantLock {
-	private static final Logger logger = LogManager.getLogger(GlobalAgentBase.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalAgentBase.class);
 
-	public final Application zeze;
-	private AchillesHeelConfig config;
+	public final @NotNull Application zeze;
+	private @NotNull AchillesHeelConfig config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int globalCacheManagerHashIndex;
-	private volatile Releaser releaser;
+	private volatile @Nullable Releaser releaser;
 
-	public GlobalAgentBase(Application zeze) {
+	public GlobalAgentBase(@NotNull Application zeze) {
 		this.zeze = zeze;
-		config = new AchillesHeelConfig(1500, 10000, 60 * 1000);
 	}
 
-	public final AchillesHeelConfig getConfig() {
+	public final @NotNull AchillesHeelConfig getConfig() {
 		return config;
 	}
 
@@ -48,7 +49,7 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 		Timeout,
 	}
 
-	public CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
+	public @NotNull CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
 		var r = releaser;
 		if (r == null)
 			return CheckReleaseResult.NoRelease;
@@ -68,11 +69,20 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	}
 
 	public static class Releaser extends Thread {
-		public final Application zeze;
+		public final @NotNull Application zeze;
 		public final int globalIndex;
 		public final long startTime = System.currentTimeMillis();
-		public final Runnable endAction;
-		private volatile boolean done = false;
+		public final @Nullable Runnable endAction;
+		private volatile boolean done;
+
+		public Releaser(@NotNull Application zeze, int index, @Nullable Runnable endAction) {
+			super("Global.Releaser");
+			setDaemon(true);
+			this.endAction = endAction;
+			this.zeze = zeze;
+			this.globalIndex = index;
+			logger.info("Global.Releaser Start...");
+		}
 
 		public final boolean isCompletedSuccessfully() {
 			if (done) {
@@ -83,22 +93,12 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 			return false;
 		}
 
-		public Releaser(Application zeze, int index, Runnable endAction) {
-			super("Global.Releaser");
-			setDaemon(true);
-			logger.info("Global.Releaser Start...");
-			this.endAction = endAction;
-			this.zeze = zeze;
-			this.globalIndex = index;
-		}
-
 		@Override
 		public void run() {
 			zeze.getDatabases().values().parallelStream().forEach(database ->
 					database.getTables().parallelStream().forEach(table -> {
-						if (!table.isMemory()) {
+						if (!table.isMemory())
 							table.reduceInvalidAllLocalOnly(globalIndex);
-						}
 					}));
 			logger.warn("Global.Releaser Checkpoint Start ...");
 			zeze.checkpointRun();
@@ -111,11 +111,12 @@ public abstract class GlobalAgentBase extends ReentrantLock {
 	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
-	public void startRelease(Application zeze, Runnable endAction) {
+	public void startRelease(@NotNull Application zeze, @Nullable Runnable endAction) {
 		lock();
 		try {
-			releaser = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
-			releaser.start();
+			var r = new Releaser(zeze, globalCacheManagerHashIndex, endAction);
+			releaser = r;
+			r.start();
 		} finally {
 			unlock();
 		}

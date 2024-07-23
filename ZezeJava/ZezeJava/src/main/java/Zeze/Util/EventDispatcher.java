@@ -6,7 +6,7 @@ import Zeze.Transaction.DispatchMode;
 import org.jetbrains.annotations.NotNull;
 
 public class EventDispatcher {
-	// private static final Logger logger = LogManager.getLogger(EventDispatcher.class);
+	// private static final @NotNull Logger logger = LogManager.getLogger(EventDispatcher.class);
 
 	@FunctionalInterface
 	public interface EventHandle {
@@ -26,7 +26,7 @@ public class EventDispatcher {
 		RunThread,
 	}
 
-	private final Application zeze;
+	private final @NotNull Application zeze;
 	private final @NotNull String name;
 	private final ConcurrentLinkedQueue<HandleClass> runEmbedEvents = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<HandleClass> runProcedureEvents = new ConcurrentLinkedQueue<>();
@@ -51,7 +51,7 @@ public class EventDispatcher {
 		return name;
 	}
 
-	private ConcurrentLinkedQueue<HandleClass> getQueue(Mode mode) {
+	private @NotNull ConcurrentLinkedQueue<HandleClass> getQueue(@NotNull Mode mode) {
 		switch (mode) {
 		case RunEmbed:
 			return runEmbedEvents;
@@ -63,12 +63,13 @@ public class EventDispatcher {
 			throw new IllegalArgumentException("Unknown mode=" + mode);
 		}
 	}
+
 	/**
 	 * 注册事件处理函数，如果在事件触发过程中执行注册,则等下次再触发
 	 *
 	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
 	 */
-	public Canceler addHot(@NotNull Mode mode, @NotNull Class<? extends EventHandle> handleClass) {
+	public @NotNull Canceler addHot(@NotNull Mode mode, @NotNull Class<? extends EventHandle> handleClass) {
 		var events = getQueue(mode);
 		var handle = new HandleClass(handleClass.getName(), null);
 		events.offer(handle);
@@ -80,7 +81,7 @@ public class EventDispatcher {
 	 *
 	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
 	 */
-	public Canceler add(@NotNull Mode mode, @NotNull EventHandle handle_) {
+	public @NotNull Canceler add(@NotNull Mode mode, @NotNull EventHandle handle_) {
 		zeze.verifyCallerCold(StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		var events = getQueue(mode);
 		var handle = new HandleClass(null, handle_);
@@ -99,9 +100,9 @@ public class EventDispatcher {
 						DispatchMode.Normal);
 			} else {
 				Task.run(() -> {
-					var h = zeze.getHotHandle().findHandle(zeze, handle.className);
-					h.invoke(sender, arg);
-				}, "EventDispatch." + name + ".runAsync " + handle.className,
+							var h = zeze.getHotHandle().findHandle(zeze, handle.className);
+							h.invoke(sender, arg);
+						}, "EventDispatch." + name + ".runAsync " + handle.className,
 						DispatchMode.Normal);
 			}
 		}
@@ -110,7 +111,7 @@ public class EventDispatcher {
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public long triggerEmbed(@NotNull Object sender, EventArgument arg) throws Exception {
 		for (var handle : runEmbedEvents) {
-			if (null != handle.handle) {
+			if (handle.handle != null) {
 				var ret = handle.handle.invoke(sender, arg);
 				if (ret != 0)
 					return ret;
@@ -125,9 +126,9 @@ public class EventDispatcher {
 	}
 
 	// 在当前线程中，创建新的存储过程并嵌套执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public void triggerProcedure(@NotNull Application app, Object sender, EventArgument arg) {
+	public void triggerProcedure(@NotNull Application app, @NotNull Object sender, EventArgument arg) {
 		for (var handle : runProcedureEvents) {
-			if (null != handle.handle) {
+			if (handle.handle != null) {
 				Task.call(app.newProcedure(() -> {
 					// 忽略嵌套的存储的执行。
 					handle.handle.invoke(sender, arg);

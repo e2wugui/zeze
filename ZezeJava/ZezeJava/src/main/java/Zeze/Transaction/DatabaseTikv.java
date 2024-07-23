@@ -283,7 +283,7 @@ public class DatabaseTikv extends Database {
 					break;
 			}
 			//noinspection ConstantValue
-			return null == lastKey ? null : ByteBuffer.Wrap(lastKey);
+			return lastKey != null ? ByteBuffer.Wrap(lastKey) : null;
 			*/
 		}
 

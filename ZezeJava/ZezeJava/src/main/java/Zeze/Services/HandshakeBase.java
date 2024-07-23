@@ -28,15 +28,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class HandshakeBase extends Service {
-	private static final Logger logger = LogManager.getLogger(HandshakeBase.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(HandshakeBase.class);
 
 	private final LongHashSet handshakeProtocols = new LongHashSet();
 
 	static class Context {
-		final BigInteger dhRandom;
-		Future<?> timeoutTask;
+		final @NotNull BigInteger dhRandom;
+		@Nullable Future<?> timeoutTask;
 
-		Context(BigInteger random) {
+		Context(@NotNull BigInteger random) {
 			dhRandom = random;
 		}
 	}
@@ -48,7 +48,7 @@ public class HandshakeBase extends Service {
 		super(name, config);
 	}
 
-	public HandshakeBase(String name, Application app) {
+	public HandshakeBase(@NotNull String name, @Nullable Application app) {
 		super(name, app);
 	}
 
@@ -71,12 +71,12 @@ public class HandshakeBase extends Service {
 		}
 	}
 
-	private static long processKeepAliveRequest(KeepAlive r) {
+	private static long processKeepAliveRequest(@NotNull KeepAlive r) {
 		r.SendResult();
 		return 0L;
 	}
 
-	private long processCHandshakeDone(CHandshakeDone p) throws Exception {
+	private long processCHandshakeDone(@NotNull CHandshakeDone p) throws Exception {
 		p.getSender().verifySecurity();
 		OnHandshakeDone(p.getSender());
 		return 0L;
@@ -110,7 +110,7 @@ public class HandshakeBase extends Service {
 		return Constant.eCompressTypeMppc;
 	}
 
-	private long processCHandshake(CHandshake p) {
+	private long processCHandshake(@NotNull CHandshake p) {
 		try {
 			byte[] inputKey = null;
 			byte[] outputKey = null;
@@ -178,7 +178,7 @@ public class HandshakeBase extends Service {
 		}
 	}
 
-	private long processSHandshake0(SHandshake0 p) {
+	private long processSHandshake0(@NotNull SHandshake0 p) {
 		try {
 			if (p.Argument.encryptType != Constant.eEncryptTypeDisable
 					|| p.Argument.compressS2c != Constant.eCompressTypeDisable
@@ -194,7 +194,7 @@ public class HandshakeBase extends Service {
 		return 0L;
 	}
 
-	private long processSHandshake(SHandshake p) {
+	private long processSHandshake(@NotNull SHandshake p) {
 		Context ctx = null;
 		try {
 			ctx = dhContext.remove(p.getSender().getSessionId());
@@ -241,7 +241,7 @@ public class HandshakeBase extends Service {
 		return Constant.eCompressTypeMppc; // 使用最老的压缩。
 	}
 
-	protected final void startHandshake(BSHandshake0Argument arg, AsyncSocket so) {
+	protected final void startHandshake(@NotNull BSHandshake0Argument arg, @NotNull AsyncSocket so) {
 		try {
 			var ctx = new Context(Helper.makeDHRandom());
 			if (null != dhContext.putIfAbsent(so.getSessionId(), ctx)) {

@@ -14,10 +14,10 @@ import org.jetbrains.annotations.NotNull;
 
 public class GlobalCacheManagerPerf extends ReentrantLock {
 	private static final int ACQUIRE_STATE_COUNT = 3;
-	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 
-	private final String perfName;
-	private final AtomicLong serialIdGenerator;
+	private final @NotNull String perfName;
+	private final @NotNull AtomicLong serialIdGenerator;
 	private long lastSerialId;
 
 	private final ConcurrentHashMap<Protocol<?>, Long> acquires = new ConcurrentHashMap<>();

@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 
 public class GlobalCacheManagerWithRaft
 		extends AbstractGlobalCacheManagerWithRaft implements Closeable, GlobalCacheManagerConst {
@@ -50,7 +51,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private static final boolean ENABLE_PERF = true;
-	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final int GlobalSerialIdAtomicLongIndex = 0;
 
@@ -82,7 +83,7 @@ public class GlobalCacheManagerWithRaft
 	private final AtomicLong serialId = new AtomicLong();
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+	public @NotNull GlobalCacheManagerServer.GCMConfig getGcmConfig() {
 		return gcmConfig;
 	}
 

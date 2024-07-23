@@ -60,7 +60,7 @@ import org.jetbrains.annotations.Nullable;
 
 // token续期服务. 跟初始设置的ttl如何兼顾? 覆盖还是选最大值? 目前暂无计划, 等有需求再说
 public final class Token extends AbstractToken {
-	private static final Logger logger = LogManager.getLogger(Token.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Token.class);
 	private static final int DEFAULT_PORT = 5003;
 	private static final int TOKEN_CHAR_USED = 62; // 10+26+26
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
@@ -69,7 +69,7 @@ public final class Token extends AbstractToken {
 	private static final int perfIndexTokenSoftRefClean = PerfCounter.instance.registerCountIndex("TokenSoftRefClean");
 	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
 	private static final FastLock tokenRefCleanerLock = new FastLock();
-	private static Thread tokenRefCleaner;
+	private static @Nullable Thread tokenRefCleaner;
 
 	static {
 		int i = 0;
@@ -256,7 +256,7 @@ public final class Token extends AbstractToken {
 			return new PubTopic(new BPubTopic.Data(topic, content, broadcast)).Send(connector.getSocket(), handler);
 		}
 
-		protected long ProcessNotifyTopic(NotifyTopic p) {
+		protected long ProcessNotifyTopic(@NotNull NotifyTopic p) {
 			var handler = notifyTopicHandlers.get(p.Argument.getTopic());
 			if (handler == null)
 				return Procedure.NotImplement;
@@ -335,7 +335,8 @@ public final class Token extends AbstractToken {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so)
+		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
+									 @NotNull ProtocolFactoryHandle<?> factoryHandle, @Nullable AsyncSocket so)
 				throws Exception {
 			try {
 				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
@@ -347,8 +348,8 @@ public final class Token extends AbstractToken {
 
 	// TokenState+Object+key+lock+context+CHM.Note+CHM.table: 80+16+(24+16+24)+32+(24+16+X)+32+4 = 268+X bytes
 	private static final class TokenState extends SoftReference<Object> {
-		final Token token;
-		final String key;
+		final @NotNull Token token;
+		final @NotNull String key;
 		final FastLock lock = new FastLock();
 		final @Nullable InetSocketAddress remoteAddr;
 		final @NotNull Binary context; // 绑定的上下文
@@ -405,8 +406,7 @@ public final class Token extends AbstractToken {
 			// bb.ReadLong(); // count
 		}
 
-		@NotNull
-		ByteBuffer encode(@Nullable ByteBuffer bb) {
+		@NotNull ByteBuffer encode(@Nullable ByteBuffer bb) {
 			if (bb == null)
 				bb = ByteBuffer.Allocate(32);
 			bb.WriteByte(remoteAddr != null ? 1 : 0);
@@ -421,8 +421,7 @@ public final class Token extends AbstractToken {
 			return bb;
 		}
 
-		@NotNull
-		String getRemoteAddr() {
+		@NotNull String getRemoteAddr() {
 			var addr = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() : null;
 			return addr != null ? addr : "";
 		}
@@ -662,7 +661,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessNewTokenRequest(Zeze.Builtin.Token.NewToken r) {
+	protected long ProcessNewTokenRequest(@NotNull Zeze.Builtin.Token.NewToken r) {
 		var arg = r.Argument;
 		var ttl = arg.getTtl();
 		if (ttl <= 0) {
@@ -687,7 +686,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessGetTokenRequest(Zeze.Builtin.Token.GetToken r) {
+	protected long ProcessGetTokenRequest(@NotNull Zeze.Builtin.Token.GetToken r) {
 		var arg = r.Argument;
 		var res = r.Result;
 		var token = arg.getToken();
@@ -740,7 +739,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessTokenStatusRequest(TokenStatus r) {
+	protected long ProcessTokenStatusRequest(@NotNull TokenStatus r) {
 		var res = r.Result;
 		res.setNewCount(newCounter.sum());
 		res.setCurCount(tokenMap.size());
@@ -752,7 +751,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessSubTopicRequest(SubTopic r) {
+	protected long ProcessSubTopicRequest(@NotNull SubTopic r) {
 		var session = ((TokenServer.Session)r.getSender().getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
@@ -768,7 +767,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessUnsubTopicRequest(UnsubTopic r) {
+	protected long ProcessUnsubTopicRequest(@NotNull UnsubTopic r) {
 		var session = ((TokenServer.Session)r.getSender().getUserState());
 		if (session == null) {
 			r.SendResultCode(-1);
@@ -784,7 +783,7 @@ public final class Token extends AbstractToken {
 	}
 
 	@Override
-	protected long ProcessPubTopicRequest(PubTopic r) {
+	protected long ProcessPubTopicRequest(@NotNull PubTopic r) {
 		var service = r.getService();
 		if (!(service instanceof TokenServer)) {
 			r.SendResultCode(-1);
@@ -838,7 +837,7 @@ public final class Token extends AbstractToken {
 		return Procedure.Success;
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(@NotNull String @NotNull [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

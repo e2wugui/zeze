@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
@@ -49,11 +50,11 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	private static final boolean ENABLE_PERF = true;
-	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerServer.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerServer.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	private static final GlobalCacheManagerServer instance = new GlobalCacheManagerServer();
 
-	public static GlobalCacheManagerServer getInstance() {
+	public static @NotNull GlobalCacheManagerServer getInstance() {
 		return instance;
 	}
 
@@ -485,7 +486,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
-						}else {
+						} else {
 							reduceResultState.value = r.Result.state;
 							reduceTid.value = r.Result.reducedTid;
 						}
@@ -635,7 +636,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
 							reduceResultState.value = StateReduceRpcTimeout;
-						}else {
+						} else {
 							reduceResultState.value = r.Result.state;
 							reduceTid.value = r.Result.reducedTid;
 						}
@@ -1028,7 +1029,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(@NotNull String @NotNull [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

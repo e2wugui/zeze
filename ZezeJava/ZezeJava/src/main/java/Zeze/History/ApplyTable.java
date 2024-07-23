@@ -56,6 +56,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 			break;
 
 		case Changes.Record.Put:
+			//noinspection DataFlowIssue
 			put(key, (V)logRecord.getValue());
 			break;
 

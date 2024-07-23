@@ -56,8 +56,8 @@ public abstract class Record extends ReentrantLock {
 	private boolean fresh;
 	private long acquireTime;
 
-	private Database.Transaction databaseTransactionTmp;
-	private Database.Transaction databaseTransactionOldTmp;
+	private @Nullable Database.Transaction databaseTransactionTmp;
+	private @Nullable Database.Transaction databaseTransactionOldTmp;
 
 	public Record(@Nullable Bean value) {
 		super(true);
@@ -145,19 +145,19 @@ public abstract class Record extends ReentrantLock {
 		fresh = true;
 	}
 
-	final Database.Transaction getDatabaseTransactionTmp() {
+	final @Nullable Database.Transaction getDatabaseTransactionTmp() {
 		return databaseTransactionTmp;
 	}
 
-	final Database.Transaction getDatabaseTransactionOldTmp() {
+	final @Nullable Database.Transaction getDatabaseTransactionOldTmp() {
 		return databaseTransactionOldTmp;
 	}
 
-	final void setDatabaseTransactionTmp(Database.Transaction value) {
+	final void setDatabaseTransactionTmp(@Nullable Database.Transaction value) {
 		databaseTransactionTmp = value;
 	}
 
-	final void setDatabaseTransactionOldTmp(Database.Transaction value) {
+	final void setDatabaseTransactionOldTmp(@Nullable Database.Transaction value) {
 		databaseTransactionOldTmp = value;
 	}
 

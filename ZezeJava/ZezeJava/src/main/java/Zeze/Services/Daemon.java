@@ -28,11 +28,13 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Daemon {
 	public static final String propertyNamePort = "Zeze.ProcessDaemon.Port";
 	public static final String propertyNameClearInUse = "Zeze.Database.ClearInUse";
-	private static final Logger logger = LogManager.getLogger(Daemon.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Daemon.class);
 
 	// Key Is ServerId。每个Server对应一个Monitor。
 	// 正常使用是一个Daemon对应一个Server。
@@ -43,13 +45,11 @@ public class Daemon {
 
 	private static final LongConcurrentHashMap<PendingPacket> pendings = new LongConcurrentHashMap<>();
 	private static final FastLock pendingsLock = new FastLock();
-	private static volatile Future<?> timer;
+	private static volatile @Nullable Future<?> timer;
 
 	public static long getLongProperty(String name, long def) {
 		var p = System.getProperty(name);
-		if (null == p || p.isBlank())
-			return def;
-		return Long.parseLong(p);
+		return p != null && !p.isBlank() ? Long.parseLong(p) : def;
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -209,6 +209,7 @@ public class Daemon {
 								}
 							}
 						});
+						//noinspection DataFlowIssue
 						ShutdownHook.add(() -> timer.cancel(false));
 					}
 				} finally {

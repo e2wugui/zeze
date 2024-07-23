@@ -9,7 +9,8 @@ public final class ProcedureStatistics {
 	private ProcedureStatistics() {
 	}
 
-	public static TimerFuture<?> watch(@NotNull String procedureName, long reachPerSecond, @NotNull Runnable handle) {
+	public static @NotNull TimerFuture<?> watch(@NotNull String procedureName, long reachPerSecond,
+												@NotNull Runnable handle) {
 		var watcher = new Watcher(procedureName, reachPerSecond, handle);
 		return Task.scheduleUnsafe(Watcher.CheckPeriod, Watcher.CheckPeriod, watcher::check);
 	}
@@ -19,10 +20,10 @@ public final class ProcedureStatistics {
 
 		private final @NotNull String procedureName;
 		private final long reach;
-		private final Runnable reachHandle;
+		private final @NotNull Runnable reachHandle;
 		private long last;
 
-		Watcher(@NotNull String procedureName, long reachPerSecond, Runnable handle) {
+		Watcher(@NotNull String procedureName, long reachPerSecond, @NotNull Runnable handle) {
 			this.procedureName = procedureName;
 			last = getTotalCount(procedureName);
 			reach = reachPerSecond;

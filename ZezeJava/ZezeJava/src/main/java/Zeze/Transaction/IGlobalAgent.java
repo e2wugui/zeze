@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
-		private static final @NotNull AcquireResult[] successResults = new AcquireResult[4];
+		private static final @NotNull AcquireResult @NotNull [] successResults = new AcquireResult[4];
 
 		static {
 			for (int i = 0; i < successResults.length; i++)
@@ -21,9 +21,9 @@ public interface IGlobalAgent extends Closeable {
 
 		public final long resultCode;
 		public final int resultState;
-		public final Id128 reducedTid;
+		public final @Nullable Id128 reducedTid;
 
-		public AcquireResult(long code, int state, Id128 reducedTid) {
+		public AcquireResult(long code, int state, @Nullable Id128 reducedTid) {
 			resultCode = code;
 			resultState = state;
 			this.reducedTid = reducedTid;
@@ -34,7 +34,7 @@ public interface IGlobalAgent extends Closeable {
 
 	int getGlobalCacheManagerHashIndex(@NotNull Binary gkey);
 
-	GlobalAgentBase getAgent(int index);
+	@NotNull GlobalAgentBase getAgent(int index);
 
 	int getAgentCount();
 }

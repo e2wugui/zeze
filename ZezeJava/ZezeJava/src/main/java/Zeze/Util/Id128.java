@@ -6,6 +6,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.BeanKey;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneable {
 	public static final Id128 Zero = new Id128() {
@@ -146,7 +147,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
 		if (!(o instanceof Id128))
@@ -169,7 +170,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 		return new BigInteger(bytes, 7, 17).toString();
 	}
 
-	public void buildString(StringBuilder sb, int level) {
+	public void buildString(@NotNull StringBuilder sb, int level) {
 		sb.append(Str.indent(level)).append(this);
 	}
 }

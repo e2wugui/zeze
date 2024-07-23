@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
-	private static final Logger logger = LogManager.getLogger(Record1.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(Record1.class);
 	private static final boolean isTraceEnabled = logger.isTraceEnabled();
 	private static final @NotNull VarHandle LRU_NODE_HANDLE;
 
@@ -38,13 +38,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private boolean existInBackDatabase;
 	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
-	private Id128 tid;
+	private @Nullable Id128 tid;
 
-	public void setTid(Id128 tid) {
+	public void setTid(@Nullable Id128 tid) {
 		this.tid = tid;
 	}
 
-	public Id128 getTid() {
+	public @Nullable Id128 getTid() {
 		return tid;
 	}
 
@@ -58,8 +58,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return getSoftValue() != null || !getDirty() && table.getLocalRocksCacheTable().containsKey(table, key);
 	}
 
-	@Nullable
-	V copyValue() {
+	@Nullable V copyValue() {
 		var v = getSoftValue();
 		if (v != null) {
 			var lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
@@ -79,8 +78,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return table.getLocalRocksCacheTable().find(table, key);
 	}
 
-	@Nullable
-	V loadValue() {
+	@Nullable V loadValue() {
 		@SuppressWarnings("unchecked")
 		var v = (V)getSoftValue();
 		if (v == null && !getDirty()) {
@@ -107,8 +105,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		existInBackDatabase = value;
 	}
 
-	@Nullable
-	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
+	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
 	}
 
@@ -117,8 +114,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@SuppressWarnings("unchecked")
-	@Nullable
-	ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+	@Nullable ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
 		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
 	}
 
@@ -163,9 +159,10 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	public void commit(@NotNull RecordAccessed accessed) {
 		enterFairLock();
 		try {
-			if (null != accessed.committedPutLog) {
-				setSoftValue(accessed.committedPutLog.getValue());
-				if (table.isMemory() && accessed.committedPutLog.getValue() == null) {
+			var committedPutLog = accessed.committedPutLog;
+			if (committedPutLog != null) {
+				setSoftValue(committedPutLog.getValue());
+				if (table.isMemory() && committedPutLog.getValue() == null) {
 					// 记录删除并且是内存表，马上删除。
 					table.getCache().remove(key, this);
 					return; // 内存表已经删除，done
@@ -187,9 +184,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		switch (table.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
-			if (table.getStorage() != null) {
+			if (table.getStorage() != null)
 				table.getStorage().onRecordChanged(this);
-			}
 			break;
 		case Table:
 			setDirty(true);
@@ -272,12 +268,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
 		//    see this.Flush
 		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
-		existInBackDatabase = null != snapshotValue;
+		existInBackDatabase = snapshotValue != null;
 	}
 
 	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
 			   @Nullable Database.Transaction lct) {
-		if (null != table.getOldTable()) {
+		if (table.getOldTable() != null) {
 			// will clear in Cleanup.
 			setDatabaseTransactionOldTmp(tss.get(table.getOldTable().getDatabase()));
 		}
@@ -289,30 +285,29 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		if (!getDirty())
 			return;
 
-		if (null != snapshotValue) {
+		if (snapshotValue != null) {
 			// changed
-			if (table.getStorage() != null) {
-				table.getStorage().getDatabaseTable().replace(t, snapshotKey, snapshotValue);
-			}
-			if (null != lct) {
+			var storage = table.getStorage();
+			if (storage != null)
+				storage.getDatabaseTable().replace(t, snapshotKey, snapshotValue);
+			if (lct != null)
 				table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
-			}
 		} else {
 			// removed
 			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-				if (table.getStorage() != null) {
-					table.getStorage().getDatabaseTable().remove(t, snapshotKey);
-				}
-				if (null != lct) {
+				var storage = table.getStorage();
+				if (storage != null)
+					storage.getDatabaseTable().remove(t, snapshotKey);
+				if (lct != null)
 					table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
-				}
 			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。
-			if (null != getDatabaseTransactionOldTmp()) {
+			var databaseTransactionOldTmp = getDatabaseTransactionOldTmp();
+			if (databaseTransactionOldTmp != null) {
 				//noinspection DataFlowIssue
-				table.getOldTable().remove(getDatabaseTransactionOldTmp(), snapshotKey);
+				table.getOldTable().remove(databaseTransactionOldTmp, snapshotKey);
 			}
 		}
 	}

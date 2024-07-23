@@ -90,8 +90,7 @@ public final class JsonWriter {
 	private static final byte[] EMPTY = new byte[0];
 
 	public interface BlockAllocator {
-		@NotNull
-		Block alloc(int minLen);
+		@NotNull Block alloc(int minLen);
 
 		default @NotNull Block alloc() {
 			return alloc(4096);

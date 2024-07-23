@@ -55,11 +55,11 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	}
 
 	private static final boolean ENABLE_PERF = true;
-	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
 	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	private static final GlobalCacheManagerAsyncServer instance = new GlobalCacheManagerAsyncServer();
 
-	public static GlobalCacheManagerAsyncServer getInstance() {
+	public static @NotNull GlobalCacheManagerAsyncServer getInstance() {
 		return instance;
 	}
 
@@ -996,7 +996,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			sessionId = 0; // 清除网络状态。
 		}
 
-		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
+		boolean tryBindSocket(@NotNull AsyncSocket newSocket, int globalCacheManagerHashIndex, boolean login) {
 			lock();
 			try {
 				if (login) {
@@ -1018,7 +1018,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 					// old socket not exist or has lost.
 					sessionId = newSocket.getSessionId();
 					newSocket.setUserState(this);
-					globalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+					this.globalCacheManagerHashIndex = globalCacheManagerHashIndex;
 					return true;
 				}
 				// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
@@ -1062,9 +1062,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		@Nullable
-		Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
-							   @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
+		@Nullable Reduce reduceWaitLater(@NotNull Binary gkey, long fresh,
+										 @NotNull ProtocolHandle<Rpc<BGlobalKeyState, BGlobalKeyState>> handle) {
 			try {
 				if (System.currentTimeMillis() - lastErrorTime < instance.achillesHeelConfig.globalForbidPeriod)
 					return null;
@@ -1131,7 +1130,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		}
 	}
 
-	public static void main(String[] args) throws Exception {
+	public static void main(@NotNull String @NotNull [] args) throws Exception {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

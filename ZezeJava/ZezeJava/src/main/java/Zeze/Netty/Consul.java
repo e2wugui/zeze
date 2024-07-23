@@ -16,7 +16,7 @@ public class Consul {
 	private final @NotNull ConsulClient client;
 	private final ConcurrentHashMap<HttpServer, String> services = new ConcurrentHashMap<>();
 
-	public Consul(String consulHost) {
+	public Consul(@NotNull String consulHost) {
 		client = new ConsulClient(consulHost);
 	}
 

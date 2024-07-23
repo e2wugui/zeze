@@ -15,6 +15,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class OnzProcedure implements FuncLong {
 	private static final @NotNull Logger logger = LogManager.getLogger(OnzProcedure.class);
@@ -123,18 +124,17 @@ public class OnzProcedure implements FuncLong {
 	}
 
 	// helper
-	public static void sendFlushAndWait(Set<OnzProcedure> onzProcedures) {
-		if (null != onzProcedures) {
+	public static void sendFlushAndWait(@Nullable Set<OnzProcedure> onzProcedures) {
+		if (onzProcedures != null) {
 			// send all
 			var futures = new ArrayList<TaskCompletionSource<Long>>();
 			for (var onz : onzProcedures) {
-				if (null != onz && onz.isEnd())
+				if (onz != null && onz.isEnd())
 					futures.add(onz.sendFlushReady());
 			}
 			// wait all
-			for (var future : futures) {
+			for (var future : futures)
 				future.await();
-			}
 		}
 	}
 }

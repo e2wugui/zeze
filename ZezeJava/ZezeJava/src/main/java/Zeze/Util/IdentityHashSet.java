@@ -4,10 +4,12 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class IdentityHashSet<T> implements Cloneable {
 	private int size;
-	private T[] keyTable;
+	private @Nullable T @NotNull [] keyTable;
 	private final float loadFactor;
 	private int threshold;
 	private int shift;
@@ -31,12 +33,12 @@ public class IdentityHashSet<T> implements Cloneable {
 		keyTable = (T[])new Object[tableSize];
 	}
 
-	public IdentityHashSet(Collection<? extends T> c) {
+	public IdentityHashSet(@NotNull Collection<? extends T> c) {
 		this(c.size());
 		addAll(c);
 	}
 
-	public IdentityHashSet(IdentityHashSet<? extends T> set) {
+	public IdentityHashSet(@NotNull IdentityHashSet<? extends T> set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
 		loadFactor = set.loadFactor;
@@ -49,7 +51,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		return 1 << 32 - Integer.numberOfLeadingZeros(cap - 1);
 	}
 
-	private int hash(Object key) {
+	private int hash(@NotNull Object key) {
 		return (int)(System.identityHashCode(key) * 0x9E3779B97F4A7C15L >>> shift);
 	}
 
@@ -73,7 +75,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		return size == 0;
 	}
 
-	public boolean contains(Object key) {
+	public boolean contains(@NotNull Object key) {
 		T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
@@ -83,21 +85,21 @@ public class IdentityHashSet<T> implements Cloneable {
 		return true;
 	}
 
-	public boolean containsAll(Collection<?> c) {
+	public boolean containsAll(@NotNull Collection<?> c) {
 		for (Object e : c)
 			if (e != null && !contains(e))
 				return false;
 		return true;
 	}
 
-	public boolean containsAll(IdentityHashSet<?> set) {
+	public boolean containsAll(@NotNull IdentityHashSet<?> set) {
 		for (Object e : set.keyTable)
 			if (e != null && !contains(e))
 				return false;
 		return true;
 	}
 
-	public boolean add(T key) {
+	public boolean add(@NotNull T key) {
 		T[] kt = keyTable;
 		for (int i = hash(key), m = kt.length - 1; ; i = (i + 1) & m) {
 			T k = kt[i];
@@ -112,19 +114,19 @@ public class IdentityHashSet<T> implements Cloneable {
 		}
 	}
 
-	public void addAll(Collection<? extends T> c) {
+	public void addAll(@NotNull Collection<? extends T> c) {
 		for (T k : c)
 			if (k != null)
 				add(k);
 	}
 
-	public void addAll(IdentityHashSet<? extends T> set) {
+	public void addAll(@NotNull IdentityHashSet<? extends T> set) {
 		for (T k : set.keyTable)
 			if (k != null)
 				add(k);
 	}
 
-	public boolean remove(Object key) {
+	public boolean remove(@NotNull Object key) {
 		T[] kt = keyTable;
 		int m = kt.length - 1;
 		int i = hash(key);
@@ -144,7 +146,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		return true;
 	}
 
-	public boolean removeAll(Collection<?> c) {
+	public boolean removeAll(@NotNull Collection<?> c) {
 		boolean r = false;
 		for (Object k : c)
 			if (k != null)
@@ -152,7 +154,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		return r;
 	}
 
-	public boolean removeAll(IdentityHashSet<?> set) {
+	public boolean removeAll(@NotNull IdentityHashSet<?> set) {
 		boolean r = false;
 		for (Object k : set.keyTable)
 			if (k != null)
@@ -210,7 +212,7 @@ public class IdentityHashSet<T> implements Cloneable {
 		keyTable = kt;
 	}
 
-	public Object[] toArray() {
+	public Object @NotNull [] toArray() {
 		Object[] a = new Object[size];
 		int i = 0;
 		for (T k : keyTable)
@@ -220,7 +222,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <A> A[] toArray(A[] a) {
+	public <A> A @NotNull [] toArray(A @NotNull [] a) {
 		int size = this.size;
 		if (a.length < size)
 			a = (A[])Array.newInstance(a.getClass().getComponentType(), size);
@@ -231,17 +233,17 @@ public class IdentityHashSet<T> implements Cloneable {
 		return a;
 	}
 
-	public void foreach(Consumer<T> consumer) {
+	public void foreach(@NotNull Consumer<T> consumer) {
 		for (T k : keyTable)
 			if (k != null)
 				consumer.accept(k);
 	}
 
 	public interface SetPredicate<T> {
-		boolean test(IdentityHashSet<T> set, T key);
+		boolean test(@NotNull IdentityHashSet<T> set, @NotNull T key);
 	}
 
-	public boolean foreachTest(SetPredicate<T> tester) {
+	public boolean foreachTest(@NotNull SetPredicate<T> tester) {
 		for (T k : keyTable)
 			if (k != null && !tester.test(this, k))
 				return false;
@@ -259,17 +261,18 @@ public class IdentityHashSet<T> implements Cloneable {
 			return false;
 		}
 
-		public T value() {
+		public @NotNull T value() {
+			//noinspection DataFlowIssue
 			return keyTable[idx];
 		}
 	}
 
-	public Iterator iterator() {
+	public @NotNull Iterator iterator() {
 		return new Iterator();
 	}
 
 	@Override
-	public IdentityHashSet<T> clone() throws CloneNotSupportedException {
+	public @NotNull IdentityHashSet<T> clone() throws CloneNotSupportedException {
 		@SuppressWarnings("unchecked")
 		IdentityHashSet<T> set = (IdentityHashSet<T>)super.clone();
 		set.keyTable = keyTable.clone();
@@ -277,7 +280,7 @@ public class IdentityHashSet<T> implements Cloneable {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
 		StringBuilder sb = new StringBuilder(32).append('{');

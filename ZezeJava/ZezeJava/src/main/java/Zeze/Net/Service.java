@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Service extends ReentrantLock {
-	protected static final Logger logger = LogManager.getLogger(Service.class);
+	protected static final @NotNull Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong staticSessionIdAtomicLong = new AtomicLong(1);
 	private static final @NotNull VarHandle closedRecvCountHandle, closedRecvSizeHandle;
 	private static final @NotNull VarHandle closedSendCountHandle, closedSendSizeHandle, closedSendRawSizeHandle;

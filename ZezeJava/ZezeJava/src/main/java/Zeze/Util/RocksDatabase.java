@@ -26,7 +26,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		RocksDB.loadLibrary();
 	}
 
-	private static final Logger logger = LogManager.getLogger(RocksDatabase.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(RocksDatabase.class);
 	private static final LRUCache dbCache = new LRUCache(Str.parseLongSize(System.getProperty("rocksdbCache"), 64 << 20));
 	private static final TableFormatConfig tableCfg = new BlockBasedTableConfig().setBlockCache(dbCache);
 	private static final long dbBuffer = Str.parseLongSize(System.getProperty("rocksdbBuffer"), 64 << 20);

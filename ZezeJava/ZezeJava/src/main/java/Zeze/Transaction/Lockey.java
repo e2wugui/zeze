@@ -4,9 +4,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Lockey implements Zeze.Util.Lockey<Lockey> {
-	private final TableKey tableKey;
+	private final @NotNull TableKey tableKey;
 	private ReentrantReadWriteLock rwLock;
 
 	/**
@@ -15,11 +17,11 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	 *
 	 * @param key table key
 	 */
-	public Lockey(TableKey key) {
+	public Lockey(@NotNull TableKey key) {
 		tableKey = key;
 	}
 
-	public TableKey getTableKey() {
+	public @NotNull TableKey getTableKey() {
 		return tableKey;
 	}
 
@@ -133,7 +135,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	@Override
-	public int compareTo(Lockey other) {
+	public int compareTo(@Nullable Lockey other) {
 		if (other == null)
 			return 1; // null always small
 		return tableKey.compareTo(other.tableKey);
@@ -145,7 +147,7 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		return obj instanceof Lockey && tableKey.equals(((Lockey)obj).tableKey);

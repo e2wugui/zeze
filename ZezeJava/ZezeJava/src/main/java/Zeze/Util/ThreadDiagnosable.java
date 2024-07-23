@@ -4,11 +4,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.DeadlockBreaker.MAX_DEPTH;
 
 public final class ThreadDiagnosable {
-	private static final Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(ThreadDiagnosable.class);
 	private static final AtomicLong currentSerial = new AtomicLong();
 	private static final ConcurrentHashSet<Timeout> timeouts = new ConcurrentHashSet<>();
 	public static volatile boolean disableInterrupt = Reflect.inDebugMode;
@@ -58,17 +59,12 @@ public final class ThreadDiagnosable {
 		thread.start();
 	}
 
-	public static void formatStackTrace(StackTraceElement[] stackTrace, StringBuilder sb) {
+	public static void formatStackTrace(@NotNull StackTraceElement @NotNull [] stackTrace, @NotNull StringBuilder sb) {
 		int i = 0;
-		for (; i < stackTrace.length && i < MAX_DEPTH; i++) {
-			var ste = stackTrace[i];
-			sb.append("\tat ").append(ste.toString());
-			sb.append('\n');
-		}
-		if (i < stackTrace.length) {
-			sb.append("\t...");
-			sb.append('\n');
-		}
+		for (; i < stackTrace.length && i < MAX_DEPTH; i++)
+			sb.append("\tat ").append(stackTrace[i]).append('\n');
+		if (i < stackTrace.length)
+			sb.append("\t...\n");
 	}
 
 	// 停止诊断检测。

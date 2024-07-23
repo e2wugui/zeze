@@ -154,7 +154,7 @@ public class Profiler {
 		return t.profiler.beginContext(name);
 	}
 
-	public static @Nullable Context begin(Object... names) {
+	public static @Nullable Context begin(@NotNull Object... names) {
 		return begin((Object)names);
 	}
 
@@ -198,7 +198,7 @@ public class Profiler {
 		return sb.toString();
 	}
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String @NotNull [] args) throws InterruptedException {
 		var p = new Profiler();
 		p.startTime = System.nanoTime();
 		try (var ignored = p.beginContext("aa")) {

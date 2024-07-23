@@ -6,12 +6,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import Zeze.Net.AsyncSocket;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CommandConsole {
-	private String buffer = "";
+	private @NotNull String buffer = "";
 	private final HashMap<String, Command> commands = new HashMap<>();
 
-	static CommandConsole dup(CommandConsole cc) {
+	static @NotNull CommandConsole dup(@NotNull CommandConsole cc) {
 		var dup = new CommandConsole();
 		dup.commands.putAll(cc.commands);
 		return dup;
@@ -19,26 +21,26 @@ public class CommandConsole {
 
 	@FunctionalInterface
 	public interface Command {
-		void run(AsyncSocket sender, List<String> arguments);
+		void run(@NotNull AsyncSocket sender, @NotNull List<String> arguments);
 	}
 
 	public static class Options {
 		public final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
 		public final List<String> others = new ArrayList<>();
 
-		public String property(String name) {
+		public @Nullable String property(@NotNull String name) {
 			return properties.get(name);
 		}
 
-		public List<String> others() {
+		public @NotNull List<String> others() {
 			return others;
 		}
 
-		public boolean contains(String name) {
+		public boolean contains(@NotNull String name) {
 			return properties.containsKey(name);
 		}
 
-		private void buildProperty(String property) {
+		private void buildProperty(@NotNull String property) {
 			var i = property.indexOf('=');
 			if (i >= 0)
 				properties.put(property.substring(0, i), property.substring(i + 1));
@@ -46,7 +48,7 @@ public class CommandConsole {
 				properties.put(property, null);
 		}
 
-		public void buildJvm(List<String> args) {
+		public void buildJvm(@NotNull List<String> args) {
 			for (String arg : args) {
 				if (arg.startsWith("-D"))
 					buildProperty(arg.substring(2));
@@ -56,17 +58,17 @@ public class CommandConsole {
 		}
 
 		@Override
-		public String toString() {
+		public @NotNull String toString() {
 			return properties.toString() + others;
 		}
 
-		public static Options parseJvm(List<String> args) {
+		public static @NotNull Options parseJvm(@NotNull List<String> args) {
 			var options = new Options();
 			options.buildJvm(args);
 			return options;
 		}
 
-		public static Options parseProperty(List<String> args) {
+		public static @NotNull Options parseProperty(@NotNull List<String> args) {
 			var options = new Options();
 			for (var arg : args)
 				options.buildProperty(arg);
@@ -74,25 +76,25 @@ public class CommandConsole {
 		}
 	}
 
-	public void register(String name, Command cmd) {
-		if (null != commands.putIfAbsent(name, cmd))
+	public void register(@NotNull String name, @NotNull Command cmd) {
+		if (commands.putIfAbsent(name, cmd) != null)
 			throw new IllegalStateException("duplicate command: " + name);
 	}
 
-	public void input(AsyncSocket sender, byte[] bytes) {
+	public void input(@NotNull AsyncSocket sender, byte @NotNull [] bytes) {
 		input(sender, new String(bytes, StandardCharsets.UTF_8));
 	}
 
-	public void input(AsyncSocket sender, byte[] bytes, int offset, int size) {
+	public void input(@NotNull AsyncSocket sender, byte @NotNull [] bytes, int offset, int size) {
 		input(sender, new String(bytes, offset, size, StandardCharsets.UTF_8));
 	}
 
-	public void input(AsyncSocket sender, String str) {
+	public void input(@NotNull AsyncSocket sender, @NotNull String str) {
 		buffer += str;
 		tryParseLine(sender);
 	}
 
-	public void tryParseLine(AsyncSocket sender) {
+	public void tryParseLine(@NotNull AsyncSocket sender) {
 		for (var lineEnd = buffer.indexOf('\n'); lineEnd >= 0; lineEnd = buffer.indexOf('\n')) {
 			var line = buffer.substring(0, lineEnd);
 			var words = parseWords(line);
@@ -111,7 +113,7 @@ public class CommandConsole {
 		}
 	}
 
-	public static ArrayList<String> parseWords(String line) {
+	public static @NotNull ArrayList<String> parseWords(@NotNull String line) {
 		var quotBegin = -1;
 		var wordBegin = 0;
 		var words = new ArrayList<String>();
@@ -151,18 +153,19 @@ public class CommandConsole {
 		return words;
 	}
 
-	private static void dump(AsyncSocket sender, List<String> args) {
+	private static void dump(@NotNull AsyncSocket sender, @NotNull List<String> args) {
 		System.out.println(args);
 		System.out.println(Options.parseJvm(args));
 		System.out.println(Options.parseProperty(args));
 	}
 
-	public static void main(String[] args) {
+	public static void main(String @NotNull [] args) {
 		var cc = new CommandConsole();
 		cc.register("a", CommandConsole::dump);
 		cc.register("2", CommandConsole::dump);
 		cc.register("3", CommandConsole::dump);
 
+		//noinspection DataFlowIssue
 		cc.input(null, "a -Dn1=v -D\"n3=v v\" d -Dn2=\"v v\" \"x x\"\n");
 		//cc.input(null, "2  xx  -b\t-c cc\n3 -4\n");
 	}

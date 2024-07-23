@@ -3,12 +3,13 @@ package Zeze.Net;
 import java.io.Closeable;
 import Zeze.Util.ZstdFactory;
 import Zeze.Util.ZstdFactory.ZstdCompressStream;
+import org.jetbrains.annotations.NotNull;
 
 public final class CompressMppcZstd extends Compress implements Closeable {
 	public static final class SinkWrapper implements Codec {
-		private final Codec sink;
+		private final @NotNull Codec sink;
 
-		public SinkWrapper(Codec sink) {
+		public SinkWrapper(@NotNull Codec sink) {
 			this.sink = sink;
 		}
 
@@ -19,7 +20,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 		}
 
 		@Override
-		public void update(byte[] b, int off, int len) {
+		public void update(byte @NotNull [] b, int off, int len) {
 			while (len >= 0x80) {
 				sink.update((byte)(len | 0x80));
 				len >>= 7;
@@ -35,11 +36,11 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 		}
 	}
 
-	private final SinkWrapper sinkWrapper;
-	private final ZstdCompressStream cs;
+	private final @NotNull SinkWrapper sinkWrapper;
+	private final @NotNull ZstdCompressStream cs;
 	private boolean blockMode;
 
-	public CompressMppcZstd(Codec sink, int dstBufSize, int compressLevel, int windowLog) {
+	public CompressMppcZstd(@NotNull Codec sink, int dstBufSize, int compressLevel, int windowLog) {
 		super(sink);
 		sinkWrapper = new SinkWrapper(sink);
 		cs = ZstdFactory.newCompressStream(dstBufSize, compressLevel, windowLog);
@@ -53,7 +54,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 	}
 
 	@Override
-	public void update(byte[] data, int off, int len) throws CodecException {
+	public void update(byte @NotNull [] data, int off, int len) throws CodecException {
 		if (blockMode)
 			flushBlock();
 		super.update(data, off, len);
@@ -67,7 +68,7 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 			super.flush();
 	}
 
-	public void updateBlock(byte[] data, int off, int len) {
+	public void updateBlock(byte @NotNull [] data, int off, int len) {
 		if (!blockMode) {
 			blockMode = true;
 			putBits(0xc000 + 0x1fff, 16); // block mode

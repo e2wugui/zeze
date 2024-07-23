@@ -48,7 +48,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	public final @Nullable TableKey tableKey() {
-		return rootInfo == null ? null : rootInfo.getTableKey();
+		return rootInfo != null ? rootInfo.getTableKey() : null;
 	}
 
 	public final @Nullable Bean parent() {
@@ -271,7 +271,7 @@ public abstract class Bean implements Serializable {
 		return sb.toString();
 	}
 
-	public Bean toPrevious() {
+	public @NotNull Bean toPrevious() {
 		return this;
 	}
 

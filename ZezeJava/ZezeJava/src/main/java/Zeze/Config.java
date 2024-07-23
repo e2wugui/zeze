@@ -29,8 +29,7 @@ import org.w3c.dom.NodeList;
 
 public final class Config {
 	public interface ICustomize {
-		@NotNull
-		String getName();
+		@NotNull String getName();
 
 		void parse(@NotNull Element self);
 	}
@@ -703,7 +702,7 @@ public final class Config {
 
 			case "CustomizeConf":
 				var cname = e.getAttribute("Name").trim();
-				if (null != customizes.putIfAbsent(cname, e))
+				if (customizes.putIfAbsent(cname, e) != null)
 					throw new IllegalStateException("duplicate customize name=" + cname);
 				break;
 
@@ -940,13 +939,13 @@ public final class Config {
 			case "MySql":
 				databaseType = DbType.MySql;
 				druidConf = new DruidConf(self);
-				if (null == druidConf.driverClassName)
+				if (druidConf.driverClassName == null)
 					druidConf.driverClassName = "com.mysql.cj.jdbc.Driver";
 				break;
 			case "SqlServer":
 				databaseType = DbType.SqlServer;
 				druidConf = new DruidConf(self);
-				if (null == druidConf.driverClassName)
+				if (druidConf.driverClassName == null)
 					druidConf.driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 				break;
 			case "Tikv":

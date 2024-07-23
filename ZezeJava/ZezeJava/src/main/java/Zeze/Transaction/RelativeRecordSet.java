@@ -27,7 +27,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	// 采用链表，可以O(1)处理Merge，但是由于Merge的时候需要更新Record所属的关联集合，
 	// 所以避免不了遍历，那就使用HashSet，遍历吧。
 	// 可做的小优化：把Count小的关联集合Merge到大的里面。
-	private HashSet<Record> recordSet;
+	private @Nullable HashSet<Record> recordSet;
 	private volatile @Nullable RelativeRecordSet mergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 	private @Nullable Set<OnzProcedure> onzProcedures;
 	private volatile @Nullable History history;
@@ -48,13 +48,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 			h.addLogChanges(logChanges); // 这是锁内的，可以不考虑这个警告。怎么去除？
 	}
 
-	@Nullable
-	HashSet<Record> getRecordSet() {
+	@Nullable HashSet<Record> getRecordSet() {
 		return recordSet;
 	}
 
-	@Nullable
-	RelativeRecordSet getMergeTo() {
+	@Nullable RelativeRecordSet getMergeTo() {
 		return mergeTo;
 	}
 
@@ -137,7 +135,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			return; // done
 
 		case Period:
-			if (null != onzProcedure)
+			if (onzProcedure != null)
 				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
 			commit.run();
 			collectChanges.call(); // skip result, 这个模式不支持History.
@@ -239,21 +237,18 @@ public final class RelativeRecordSet extends ReentrantLock {
 							   @NotNull TreeMap<String, ArrayList<Object>> groupTrans,
 							   @NotNull RelativeRecordSet result) {
 		var groupResult = new TreeMap<String, ArrayList<Object>>();
-		if (null != result.recordSet) {
-			for (var r : result.recordSet) {
+		if (result.recordSet != null) {
+			for (var r : result.recordSet)
 				groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
-			}
 		}
-		for (var locked : groupLocked) {
+		for (var locked : groupLocked)
 			verify(locked, groupResult);
-		}
 		verify(groupTrans, groupResult);
 		if (!groupResult.isEmpty()) {
 			groupResult.clear(); // reuse this var
-			if (null != result.recordSet) {
-				for (var r : result.recordSet) {
+			if (result.recordSet != null) {
+				for (var r : result.recordSet)
 					groupResult.computeIfAbsent(r.getTable().getName(), __ -> new ArrayList<>()).add(r.getObjectKey());
-				}
 			}
 			Checkpoint.logger.info("locked.size={} trans.size={}\nlocked:{}\ntrans:{}\nresult:{}",
 					groupLocked.size(), groupTrans.size(), groupLocked, groupTrans, groupResult);
@@ -282,8 +277,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static RelativeRecordSet _merge_(
-			@NotNull ArrayList<RelativeRecordSet> locked, @NotNull Transaction trans, boolean allRead) {
+	private static RelativeRecordSet _merge_(@NotNull ArrayList<RelativeRecordSet> locked,
+											 @NotNull Transaction trans, boolean allRead) {
 		// find largest
 		var largest = locked.get(0);
 		for (int index = 1; index < locked.size(); ++index) {
@@ -330,7 +325,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			int n = locked.size();
 			final var itRrs = all.values().iterator();
 			var rrs = itRrs.hasNext() ? itRrs.next() : null;
-			while (null != rrs) {
+			while (rrs != null) {
 				if (index >= n) {
 					if (_lock_and_check_(locked, all, rrs, transAccessRecords)) {
 						rrs = itRrs.hasNext() ? itRrs.next() : null;
@@ -342,17 +337,15 @@ public final class RelativeRecordSet extends ReentrantLock {
 				var curSet = locked.get(index);
 				int c = Long.compare(curSet.id, rrs.id);
 				if (c == 0) {
-					++index;
+					index++;
 					rrs = itRrs.hasNext() ? itRrs.next() : null;
 					continue;
 				}
 				if (c < 0) {
 					// 释放掉不需要的锁（已经被Delete了，Has Flush）。
 					int unlockEndIndex = index;
-					for (; unlockEndIndex < n && locked.get(unlockEndIndex).id < rrs.id;
-						 ++unlockEndIndex) {
-						locked.get(unlockEndIndex).unlock();
-					}
+					while (unlockEndIndex < n && locked.get(unlockEndIndex).id < rrs.id)
+						locked.get(unlockEndIndex++).unlock();
 					locked.subList(index, unlockEndIndex).clear();
 					n = locked.size();
 					// 重新从当前 rrs 继续锁。
@@ -360,9 +353,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 				}
 				// RelativeRecordSets发生了变化，并且出现排在当前已经锁住对象前面的集合。
 				// 从当前位置释放锁，再次尝试。
-				for (int i = index; i < n; ++i) {
+				for (int i = index; i < n; i++)
 					locked.get(i).unlock();
-				}
 				locked.subList(index, n).clear();
 				n = locked.size();
 				// 重新从当前 rrs 继续锁。
@@ -387,10 +379,11 @@ public final class RelativeRecordSet extends ReentrantLock {
 				// 进入 deleted 以后，rrs.recordSet 不再发生变化。只读，锁外使用。
 				//Checkpoint.logger.info("deleted rrs=" + rrs.id);
 				for (var r : transAccessRecords) {
+					//noinspection DataFlowIssue
 					if (rrs.recordSet.contains(r)) {
 						var volatileTmp = r.getRelativeRecordSet();
 						all.putIfAbsent(volatileTmp.id, volatileTmp);
-						//if (null == all.putIfAbsent(volatileTmp.id, volatileTmp))
+						//if (all.putIfAbsent(volatileTmp.id, volatileTmp) == null)
 						//	Checkpoint.logger.info("deleted rrs=" + rrs.id + " get rrs=" + volatileTmp.id);
 					}
 				}
@@ -427,7 +420,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 
 		private int add(@NotNull RelativeRecordSet rrs) {
-			if (null != sortedRrs.putIfAbsent(rrs.id, rrs))
+			if (sortedRrs.putIfAbsent(rrs.id, rrs) != null)
 				throw new IllegalStateException("duplicate rrs");
 			return sortedRrs.size();
 		}
@@ -446,12 +439,14 @@ public final class RelativeRecordSet extends ReentrantLock {
 					for (var rrs : sortedRrs.values()) {
 						rrs.lock();
 						locks.add(rrs);
+						//noinspection DataFlowIssue
 						nr += rrs.recordSet.size();
 					}
 				} else {
 					for (var rrs : sortedRrs.values()) {
 						rrs.lock();
 						locks.add(rrs);
+						//noinspection DataFlowIssue
 						nr += rrs.recordSet.size();
 					}
 				}
@@ -483,8 +478,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 				sortedRrs.clear();
 
 				// verify
-				if (null != DatabaseRocksDb.verifyAction)
-					DatabaseRocksDb.verifyAction.run();
+				var verifyAction = DatabaseRocksDb.verifyAction;
+				if (verifyAction != null)
+					verifyAction.run();
 			} finally {
 				locks.forEach(RelativeRecordSet::unlock);
 				Checkpoint.logger.trace("flush: {} rrs, {} ns", n, System.nanoTime() - timeBegin);

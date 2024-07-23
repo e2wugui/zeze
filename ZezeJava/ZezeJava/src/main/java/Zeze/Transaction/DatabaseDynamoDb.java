@@ -94,7 +94,7 @@ public class DatabaseDynamoDb extends Database {
 		public DataWithVersion getDataWithVersion(ByteBuffer key) {
 			var result = new DataWithVersion();
 			var bb = dataWithVersion.find(key);
-			if (null != bb)
+			if (bb != null)
 				result.decode(bb);
 			return result;
 		}
@@ -173,8 +173,7 @@ public class DatabaseDynamoDb extends Database {
 			keyPrimary.put("key", new AttributeValue().withB(java.nio.ByteBuffer.wrap(key.Bytes, key.ReadIndex, key.size())));
 			var req = new GetItemRequest(name, keyPrimary);
 			var item = dynamoDbClient.getItem(req).getItem();
-
-			if (null == item)
+			if (item == null)
 				return null;
 
 			var value = item.get("value").getB();

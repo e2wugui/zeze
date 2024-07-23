@@ -37,8 +37,7 @@ public class Raft {
 
 		int random(int max); // return [0, max)
 
-		@Nullable
-		Object recvEvent(); // return null if no event
+		@Nullable Object recvEvent(); // return null if no event
 
 		void sendEvent(int id, @NotNull Object obj);
 
@@ -48,11 +47,9 @@ public class Raft {
 
 		Log getLog(long index); // return null if not exist
 
-		@NotNull
-		Log @NotNull [] getLogs(long indexBegin, long indexEnd); // [indexBegin, indexEnd)
+		@NotNull Log @NotNull [] getLogs(long indexBegin, long indexEnd); // [indexBegin, indexEnd)
 
-		@Nullable
-		Log getLogByKey(long key); // return null if not exist
+		@Nullable Log getLogByKey(long key); // return null if not exist
 
 		boolean appendLog(@NotNull Log log); // return false if this log(key) is already appended
 

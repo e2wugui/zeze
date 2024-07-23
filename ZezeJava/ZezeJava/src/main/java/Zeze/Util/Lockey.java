@@ -1,5 +1,7 @@
 package Zeze.Util;
 
-public interface Lockey<Subclass> extends Comparable<Subclass>{
-	Subclass alloc();
+import org.jetbrains.annotations.NotNull;
+
+public interface Lockey<Subclass> extends Comparable<Subclass> {
+	@NotNull Subclass alloc();
 }

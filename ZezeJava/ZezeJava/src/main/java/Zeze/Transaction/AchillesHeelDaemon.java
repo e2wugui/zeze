@@ -18,6 +18,8 @@ import Zeze.Util.FastLock;
 import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 【问题】 Server失联，Global回收记录锁怎么处理？
@@ -110,14 +112,14 @@ import org.apache.logging.log4j.Logger;
  */
 
 public class AchillesHeelDaemon {
-	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 
-	private final Application zeze;
-	private final GlobalAgentBase[] agents;
-	private final ThreadDaemon td;
-	private final ProcessDaemon pd;
+	private final @NotNull Application zeze;
+	private final GlobalAgentBase @NotNull [] agents;
+	private final @Nullable ThreadDaemon td;
+	private final @Nullable ProcessDaemon pd;
 
-	public AchillesHeelDaemon(Application zeze, GlobalAgentBase[] agents) throws Exception {
+	public AchillesHeelDaemon(@NotNull Application zeze, GlobalAgentBase @NotNull [] agents) throws Exception {
 		this.zeze = zeze;
 		this.agents = agents.clone();
 		var peerPort = System.getProperty(Daemon.propertyNamePort);
@@ -167,19 +169,19 @@ public class AchillesHeelDaemon {
 		}
 	}
 
-	public void setProcessDaemonActiveTime(GlobalAgentBase agent, long value) {
+	public void setProcessDaemonActiveTime(@NotNull GlobalAgentBase agent, long value) {
 		if (pd != null)
 			pd.setActiveTime(agent, value);
 	}
 
 	private final class ProcessDaemon extends Thread {
 		private final DatagramSocket udpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
-		private final SocketAddress daemonSocketAddress;
-		private final String fileName;
-		private final RandomAccessFile raf;
-		private final FileChannel channel;
+		private final @NotNull SocketAddress daemonSocketAddress;
+		private final @NotNull String fileName;
+		private final @NotNull RandomAccessFile raf;
+		private final @NotNull FileChannel channel;
 		private final FastLock channelLock = new FastLock();
-		private final MappedByteBuffer mmap;
+		private final @NotNull MappedByteBuffer mmap;
 		private final long[] lastReportTime = new long[agents.length];
 		private volatile boolean running = true;
 
@@ -197,7 +199,7 @@ public class AchillesHeelDaemon {
 					new Daemon.Register(zeze.getConfig().getServerId(), agents.length, fileName));
 		}
 
-		public void setActiveTime(GlobalAgentBase agent, long value) {
+		public void setActiveTime(@NotNull GlobalAgentBase agent, long value) {
 			// 优化！活动时间设置很频繁，降低报告频率。
 			var reportDiff = agent.getActiveTime() - lastReportTime[agent.globalCacheManagerHashIndex];
 			if (reportDiff < 1000)
@@ -259,9 +261,6 @@ public class AchillesHeelDaemon {
 					var now = System.currentTimeMillis();
 					for (GlobalAgentBase agent : agents) {
 						var config = agent.getConfig();
-						if (config == null)
-							continue; // skip agent not login
-
 						var idle = now - agent.getActiveTime();
 						if (idle > config.serverKeepAliveIdleTimeout) {
 							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
@@ -323,9 +322,6 @@ public class AchillesHeelDaemon {
 					for (int i = 0; i < agents.length; i++) {
 						var agent = agents[i];
 						var config = agent.getConfig();
-						if (config == null)
-							continue; // skip agent not login
-
 						var rr = agent.checkReleaseTimeout(now, config.serverReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 							logger.fatal("global release timeout. index={}", i);

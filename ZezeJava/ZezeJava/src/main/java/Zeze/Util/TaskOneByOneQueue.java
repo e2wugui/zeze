@@ -13,11 +13,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class TaskOneByOneQueue extends ReentrantLock {
-	private static final Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneQueue.class);
 	private final @NotNull Condition cond = newCondition();
 	private final BatchTask batch = new BatchTask();
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
-	private final Executor executor;
+	private final @Nullable Executor executor;
 	private boolean isShutdown;
 	private boolean removed;
 
@@ -29,7 +29,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		return removed;
 	}
 
-	public TaskOneByOneQueue(Executor executor) {
+	public TaskOneByOneQueue(@Nullable Executor executor) {
 		this.executor = executor;
 	}
 
@@ -55,7 +55,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		public void prepare() {
 			if (!queue.isEmpty()) {
 				var max = Math.min(queue.size(), 1000);
-				if (null == tasks || max > tasks.length)
+				if (tasks == null || max > tasks.length)
 					tasks = new Task[max];
 				mode = queue.peekFirst().mode;
 				var i = 0;
@@ -403,8 +403,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		@Override
-		@NotNull
-		public String getName() {
+		public @NotNull String getName() {
 			return procedure.getActionName();
 		}
 
@@ -425,8 +424,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 
 		@Override
-		@NotNull
-		public String getName() {
+		public @NotNull String getName() {
 			return actionName;
 		}
 
