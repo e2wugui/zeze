@@ -41,16 +41,14 @@ public final class BDAGEdgeKey implements Zeze.Transaction.BeanKey, Comparable<B
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        _s_.append(System.lineSeparator());
         return _s_.toString();
     }
 
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DAG.BDAGEdgeKey: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ValueId=").append(_ValueId).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Collections.DAG.BDAGEdgeKey: {\n");
+        _s_.append(_i1_).append("Name=").append(_Name).append(",\n");
+        _s_.append(_i1_).append("ValueId=").append(_ValueId).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

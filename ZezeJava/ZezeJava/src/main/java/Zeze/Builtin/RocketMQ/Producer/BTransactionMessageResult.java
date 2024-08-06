@@ -114,16 +114,15 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Result=").append(isResult()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Timestamp=").append(getTimestamp()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult: {\n");
+        _s_.append(_i1_).append("Result=").append(isResult()).append(",\n");
+        _s_.append(_i1_).append("Timestamp=").append(getTimestamp()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

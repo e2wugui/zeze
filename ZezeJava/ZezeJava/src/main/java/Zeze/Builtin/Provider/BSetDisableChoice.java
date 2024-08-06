@@ -100,15 +100,14 @@ public final class BSetDisableChoice extends Zeze.Transaction.Bean implements BS
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BSetDisableChoice: {\n");
+        _s_.append(_i1_).append("DisableChoice=").append(isDisableChoice()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -285,15 +284,14 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BSetDisableChoice: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BSetDisableChoice: {\n");
+        _s_.append(_i1_).append("DisableChoice=").append(_DisableChoice).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

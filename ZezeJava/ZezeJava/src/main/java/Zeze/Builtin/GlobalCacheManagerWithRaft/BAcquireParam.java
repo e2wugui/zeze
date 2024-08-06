@@ -120,16 +120,15 @@ public final class BAcquireParam extends Zeze.Transaction.Bean implements BAcqui
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("GlobalKey=").append(getGlobalKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(getState()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAcquireParam: {\n");
+        _s_.append(_i1_).append("GlobalKey=").append(getGlobalKey()).append(",\n");
+        _s_.append(_i1_).append("State=").append(getState()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

@@ -59,26 +59,23 @@ public class BSend implements Serializable {
 	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		buildString(sb, 0);
-		return sb.append(System.lineSeparator()).toString();
+		return sb.toString();
 	}
 
 	public void buildString(@NotNull StringBuilder sb, int level) {
-		sb.append(Str.indent(level)).append("Zeze.Arch.Beans.BSend: {").append(System.lineSeparator());
-		level += 4;
-		sb.append(Str.indent(level)).append("linkSids=[");
+		var i1 = Str.indent(level + 4);
+		var i2 = Str.indent(level + 8);
+		sb.append("Zeze.Arch.Beans.BSend: {\n");
+		sb.append(i1).append("linkSids=[");
 		if (!_linkSids.isEmpty()) {
-			sb.append(System.lineSeparator());
-			level += 4;
-			for (int i = 0, n = _linkSids.size(); i < n; i++) {
-				sb.append(Str.indent(level)).append("Item=").append(_linkSids.get(i)).append(',').append(System.lineSeparator());
-			}
-			level -= 4;
-			sb.append(Str.indent(level));
+			sb.append('\n');
+			for (int i = 0, n = _linkSids.size(); i < n; i++)
+				sb.append(i2).append("Item=").append(_linkSids.get(i)).append(",\n");
+			sb.append(i1);
 		}
-		sb.append(']').append(',').append(System.lineSeparator());
-		sb.append(Str.indent(level)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
-		sb.append(Str.indent(level)).append("protocolWholeData=").append(_protocolWholeData).append(System.lineSeparator());
-		level -= 4;
+		sb.append("],\n");
+		sb.append(i1).append("protocolType=").append(getProtocolType()).append(",\n");
+		sb.append(i1).append("protocolWholeData=").append(_protocolWholeData).append('\n');
 		sb.append(Str.indent(level)).append('}');
 	}
 

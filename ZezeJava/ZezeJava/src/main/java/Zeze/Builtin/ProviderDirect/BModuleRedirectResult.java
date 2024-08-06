@@ -169,17 +169,16 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(getModuleId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(getParams()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(getModuleId()).append(",\n");
+        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
+        _s_.append(_i1_).append("Params=").append(getParams()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -430,17 +429,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(_Params).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(_ModuleId).append(",\n");
+        _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
+        _s_.append(_i1_).append("Params=").append(_Params).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

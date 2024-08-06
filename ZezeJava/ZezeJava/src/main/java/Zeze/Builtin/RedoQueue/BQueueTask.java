@@ -217,19 +217,18 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.RedoQueue.BQueueTask: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("QueueName=").append(getQueueName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskType=").append(getTaskType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskId=").append(getTaskId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TaskParam=").append(getTaskParam()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("PrevTaskId=").append(getPrevTaskId()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.RedoQueue.BQueueTask: {\n");
+        _s_.append(_i1_).append("QueueName=").append(getQueueName()).append(",\n");
+        _s_.append(_i1_).append("TaskType=").append(getTaskType()).append(",\n");
+        _s_.append(_i1_).append("TaskId=").append(getTaskId()).append(",\n");
+        _s_.append(_i1_).append("TaskParam=").append(getTaskParam()).append(",\n");
+        _s_.append(_i1_).append("PrevTaskId=").append(getPrevTaskId()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

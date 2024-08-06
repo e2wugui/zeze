@@ -64,28 +64,26 @@ public final class BJobs extends Zeze.Transaction.Bean implements BJobsReadOnly 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.DelayRemove.BJobs: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Jobs={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.DelayRemove.BJobs: {\n");
+        _s_.append(_i1_).append("Jobs={");
         if (!_Jobs.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Jobs.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
-                _e_.getValue().buildString(_s_, _l_ + 4);
-                _s_.append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=");
+                _e_.getValue().buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

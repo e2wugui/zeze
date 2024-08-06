@@ -213,18 +213,17 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BKick: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("linksid=").append(getLinksid()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(getDesc()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("control=").append(getControl()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BKick: {\n");
+        _s_.append(_i1_).append("linksid=").append(getLinksid()).append(",\n");
+        _s_.append(_i1_).append("code=").append(getCode()).append(",\n");
+        _s_.append(_i1_).append("desc=").append(getDesc()).append(",\n");
+        _s_.append(_i1_).append("control=").append(getControl()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -521,18 +520,17 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BKick: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("linksid=").append(_linksid).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(_code).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(_desc).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("control=").append(_control).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BKick: {\n");
+        _s_.append(_i1_).append("linksid=").append(_linksid).append(",\n");
+        _s_.append(_i1_).append("code=").append(_code).append(",\n");
+        _s_.append(_i1_).append("desc=").append(_desc).append(",\n");
+        _s_.append(_i1_).append("control=").append(_control).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

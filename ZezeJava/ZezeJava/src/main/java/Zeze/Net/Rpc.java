@@ -362,7 +362,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public @NotNull String toString() {
-		return String.format("%s IsRequest=%b SessionId=%d ResultCode=%d%n\tArgument=%s%n\tResult=%s",
+		return String.format("%s IsRequest=%b SessionId=%d ResultCode=%d\nArgument=%s\nResult=%s",
 				getClass().getName(), isRequest, sessionId, getResultCode(), Argument, Result);
 	}
 }

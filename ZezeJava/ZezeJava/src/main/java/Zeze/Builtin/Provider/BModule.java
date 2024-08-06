@@ -156,16 +156,15 @@ public final class BModule extends Zeze.Transaction.Bean implements BModuleReadO
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ChoiceType=").append(getChoiceType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConfigType=").append(getConfigType()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BModule: {\n");
+        _s_.append(_i1_).append("ChoiceType=").append(getChoiceType()).append(",\n");
+        _s_.append(_i1_).append("ConfigType=").append(getConfigType()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -393,16 +392,15 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BModule: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ChoiceType=").append(_ChoiceType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConfigType=").append(_ConfigType).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BModule: {\n");
+        _s_.append(_i1_).append("ChoiceType=").append(_ChoiceType).append(",\n");
+        _s_.append(_i1_).append("ConfigType=").append(_ConfigType).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

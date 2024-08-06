@@ -27,24 +27,21 @@ public final class BSendResult implements Serializable {
 	public String toString() {
 		var sb = new StringBuilder();
 		buildString(sb, 0);
-		return sb.append(System.lineSeparator()).toString();
+		return sb.toString();
 	}
 
 	public void buildString(StringBuilder sb, int level) {
-		sb.append(Str.indent(level)).append("Zeze.Arch.Beans.BSendResult: {").append(System.lineSeparator());
-		level += 4;
-		sb.append(Str.indent(level)).append("ErrorLinkSids=[");
+		var i1 = Str.indent(level + 4);
+		var i2 = Str.indent(level + 8);
+		sb.append("Zeze.Arch.Beans.BSendResult: {\n");
+		sb.append(i1).append("ErrorLinkSids=[");
 		if (!_ErrorLinkSids.isEmpty()) {
-			sb.append(System.lineSeparator());
-			level += 4;
-			for (int i = 0, n = _ErrorLinkSids.size(); i < n; i++) {
-				sb.append(Str.indent(level)).append("Item=").append(_ErrorLinkSids.get(i)).append(',').append(System.lineSeparator());
-			}
-			level -= 4;
-			sb.append(Str.indent(level));
+			sb.append('\n');
+			for (int i = 0, n = _ErrorLinkSids.size(); i < n; i++)
+				sb.append(i2).append("Item=").append(_ErrorLinkSids.get(i)).append(",\n");
+			sb.append(i1);
 		}
-		sb.append(']').append(System.lineSeparator());
-		level -= 4;
+		sb.append("]\n");
 		sb.append(Str.indent(level)).append('}');
 	}
 

@@ -271,33 +271,31 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BOnline: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Link=").append(System.lineSeparator());
-        getLink().buildString(_s_, _l_ + 4);
-        _s_.append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyMark={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Online.BOnline: {\n");
+        _s_.append(_i1_).append("Link=");
+        getLink().buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
+        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
+        _s_.append(_i1_).append("ReliableNotifyMark={");
         if (!_ReliableNotifyMark.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _ReliableNotifyMark) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LogoutVersion=").append(getLogoutVersion()).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("},\n");
+        _s_.append(_i1_).append("ReliableNotifyIndex=").append(getReliableNotifyIndex()).append(",\n");
+        _s_.append(_i1_).append("ReliableNotifyConfirmIndex=").append(getReliableNotifyConfirmIndex()).append(",\n");
+        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
+        _s_.append(_i1_).append("LogoutVersion=").append(getLogoutVersion()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

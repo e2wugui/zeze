@@ -298,25 +298,24 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.Queue.BQueue: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HeadNodeId=").append(getHeadNodeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TailNodeId=").append(getTailNodeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Count=").append(getCount()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LastNodeId=").append(getLastNodeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoadSerialNo=").append(getLoadSerialNo()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HeadNodeKey=").append(System.lineSeparator());
-        getHeadNodeKey().buildString(_s_, _l_ + 4);
-        _s_.append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TailNodeKey=").append(System.lineSeparator());
-        getTailNodeKey().buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Collections.Queue.BQueue: {\n");
+        _s_.append(_i1_).append("HeadNodeId=").append(getHeadNodeId()).append(",\n");
+        _s_.append(_i1_).append("TailNodeId=").append(getTailNodeId()).append(",\n");
+        _s_.append(_i1_).append("Count=").append(getCount()).append(",\n");
+        _s_.append(_i1_).append("LastNodeId=").append(getLastNodeId()).append(",\n");
+        _s_.append(_i1_).append("LoadSerialNo=").append(getLoadSerialNo()).append(",\n");
+        _s_.append(_i1_).append("HeadNodeKey=");
+        getHeadNodeKey().buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
+        _s_.append(_i1_).append("TailNodeKey=");
+        getTailNodeKey().buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

@@ -278,23 +278,22 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BTransmitCronTimer: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimerId=").append(getTimerId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("CronTimer=").append(System.lineSeparator());
-        _CronTimer.buildString(_s_, _l_ + 4);
-        _s_.append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HandleClass=").append(getHandleClass()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("CustomClass=").append(getCustomClass()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("CustomBean=").append(getCustomBean()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Hot=").append(isHot()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Timer.BTransmitCronTimer: {\n");
+        _s_.append(_i1_).append("TimerId=").append(getTimerId()).append(",\n");
+        _s_.append(_i1_).append("CronTimer=");
+        _CronTimer.buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
+        _s_.append(_i1_).append("HandleClass=").append(getHandleClass()).append(",\n");
+        _s_.append(_i1_).append("CustomClass=").append(getCustomClass()).append(",\n");
+        _s_.append(_i1_).append("CustomBean=").append(getCustomBean()).append(",\n");
+        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
+        _s_.append(_i1_).append("Hot=").append(isHot()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

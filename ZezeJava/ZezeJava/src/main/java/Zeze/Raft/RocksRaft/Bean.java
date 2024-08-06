@@ -97,6 +97,6 @@ public abstract class Bean implements Serializable {
 	}
 
 	public void buildString(StringBuilder sb, int level) {
-		sb.append(Str.indent(level)).append("{}").append(System.lineSeparator());
+		sb.append(Str.indent(level)).append("{}\n");
 	}
 }

@@ -1053,7 +1053,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			int n = sb.length();
 			if (n > 0)
 				sb.setLength(n - 1);
-			var idsStr = sb.append('@').append('*').toString();
+			var idsStr = sb.append("@*").toString();
 			AsyncSocket.log("Send", idsStr, p);
 		}
 		sendAllOnlines(roleIds, typeId, new Binary(p.encode()));

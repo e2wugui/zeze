@@ -67,13 +67,11 @@ public class DatagramSession {
 		ByteBuffer bb;
 		if (encrypt == null) {
 			bb = ByteBuffer.Allocate(8 + 8 + size);
-			bb.WriteLong8(sessionId);
-			bb.WriteLong8(serialId);
+			bb.WriteLong8s(sessionId, serialId);
 			bb.Append(packet, offset, size);
 		} else {
 			var bc = new BufferCodec(8 + 8 + 8 + size);
-			bc.WriteLong8(sessionId);
-			bc.WriteLong8(serialId);
+			bc.WriteLong8s(sessionId, serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
 			encrypt.update(packet, offset, size);
@@ -93,13 +91,11 @@ public class DatagramSession {
 		ByteBuffer bb;
 		if (encrypt == null) {
 			bb = ByteBuffer.Allocate(Math.min(8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
-			bb.WriteLong8(sessionId);
-			bb.WriteLong8(serialId);
+			bb.WriteLong8s(sessionId, serialId);
 			p.encodeWithHead(bb);
 		} else {
 			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
-			bc.WriteLong8(sessionId);
-			bc.WriteLong8(serialId);
+			bc.WriteLong8s(sessionId, serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
 			var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));

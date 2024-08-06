@@ -214,20 +214,19 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BPrepareBatch: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Master=").append(getMaster()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Database=").append(getDatabase()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Table=").append(getTable()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Batch=").append(System.lineSeparator());
-        _Batch.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BPrepareBatch: {\n");
+        _s_.append(_i1_).append("Master=").append(getMaster()).append(",\n");
+        _s_.append(_i1_).append("Database=").append(getDatabase()).append(",\n");
+        _s_.append(_i1_).append("Table=").append(getTable()).append(",\n");
+        _s_.append(_i1_).append("Batch=");
+        _Batch.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -544,20 +543,19 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BPrepareBatch: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Master=").append(_Master).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Database=").append(_Database).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Table=").append(_Table).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Batch=").append(System.lineSeparator());
-        _Batch.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BPrepareBatch: {\n");
+        _s_.append(_i1_).append("Master=").append(_Master).append(",\n");
+        _s_.append(_i1_).append("Database=").append(_Database).append(",\n");
+        _s_.append(_i1_).append("Table=").append(_Table).append(",\n");
+        _s_.append(_i1_).append("Batch=");
+        _Batch.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

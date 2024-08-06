@@ -62,26 +62,24 @@ public final class BRoleAuth extends Zeze.Transaction.Bean implements BRoleAuthR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Auth.BRoleAuth: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Auths={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Auth.BRoleAuth: {\n");
+        _s_.append(_i1_).append("Auths={");
         if (!_Auths.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Auths.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

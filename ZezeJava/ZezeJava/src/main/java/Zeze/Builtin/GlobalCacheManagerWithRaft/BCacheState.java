@@ -91,26 +91,24 @@ public final class BCacheState extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("AcquireStatePending").append('=').append(getAcquireStatePending()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Modify").append('=').append(getModify()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Share").append("=[").append(System.lineSeparator());
-        level += 4;
+    public void buildString(StringBuilder _s_, int _l_) {
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.GlobalCacheManagerWithRaft.BCacheState: {\n");
+        _s_.append(_i1_).append("AcquireStatePending=").append(getAcquireStatePending()).append(",\n");
+        _s_.append(_i1_).append("Modify=").append(getModify()).append(",\n");
+        _s_.append(_i1_).append("Share=[\n");
         for (var _item_ : getShare()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(_i2_).append("Item=").append(_item_).append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(_i1_).append("]\n");
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

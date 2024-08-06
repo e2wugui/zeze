@@ -152,19 +152,18 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BItem: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Number=").append(getNumber()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(System.lineSeparator());
-        _Item.getBean().buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Game.Bag.BItem: {\n");
+        _s_.append(_i1_).append("Id=").append(getId()).append(",\n");
+        _s_.append(_i1_).append("Number=").append(getNumber()).append(",\n");
+        _s_.append(_i1_).append("Item=");
+        _Item.getBean().buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

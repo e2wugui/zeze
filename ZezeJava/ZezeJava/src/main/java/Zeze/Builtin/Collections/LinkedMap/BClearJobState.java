@@ -150,17 +150,16 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.LinkedMap.BClearJobState: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HeadNodeId=").append(getHeadNodeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TailNodeId=").append(getTailNodeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LinkedMapName=").append(getLinkedMapName()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Collections.LinkedMap.BClearJobState: {\n");
+        _s_.append(_i1_).append("HeadNodeId=").append(getHeadNodeId()).append(",\n");
+        _s_.append(_i1_).append("TailNodeId=").append(getTailNodeId()).append(",\n");
+        _s_.append(_i1_).append("LinkedMapName=").append(getLinkedMapName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

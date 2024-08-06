@@ -118,27 +118,25 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BSplitPut: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("fromTransaction=").append(isFromTransaction()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Puts={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Dbh2.BSplitPut: {\n");
+        _s_.append(_i1_).append("fromTransaction=").append(isFromTransaction()).append(",\n");
+        _s_.append(_i1_).append("Puts={");
         if (!_Puts.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Puts.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -380,27 +378,25 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BSplitPut: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("fromTransaction=").append(_fromTransaction).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Puts={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Dbh2.BSplitPut: {\n");
+        _s_.append(_i1_).append("fromTransaction=").append(_fromTransaction).append(",\n");
+        _s_.append(_i1_).append("Puts={");
         if (!_Puts.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Puts.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

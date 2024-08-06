@@ -251,22 +251,21 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BOfflineRoleCustom: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimerName=").append(getTimerName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HandleName=").append(getHandleName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("CustomData=").append(System.lineSeparator());
-        _CustomData.getBean().buildString(_s_, _l_ + 4);
-        _s_.append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Timer.BOfflineRoleCustom: {\n");
+        _s_.append(_i1_).append("TimerName=").append(getTimerName()).append(",\n");
+        _s_.append(_i1_).append("RoleId=").append(getRoleId()).append(",\n");
+        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
+        _s_.append(_i1_).append("HandleName=").append(getHandleName()).append(",\n");
+        _s_.append(_i1_).append("CustomData=");
+        _CustomData.getBean().buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
+        _s_.append(_i1_).append("OnlineSetName=").append(getOnlineSetName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

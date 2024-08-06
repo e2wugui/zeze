@@ -62,29 +62,25 @@ public final class BServiceInfosVersionRocks extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceInfos").append("=[").append(System.lineSeparator());
-        level += 4;
+    public void buildString(StringBuilder _s_, int _l_) {
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfosVersionRocks: {\n");
+        _s_.append(_i1_).append("ServiceInfos=[\n");
         for (var _kv_ : getServiceInfos().entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+            _s_.append(_i2_).append("Key=").append(_kv_.getKey()).append(",\n");
+            _s_.append(_i2_).append("Value=");
+            _kv_.getValue().buildString(_s_, _l_ + 12);
+            _s_.append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(_i1_).append("]\n");
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

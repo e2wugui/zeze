@@ -300,22 +300,21 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.BoolList.BValue: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item0=").append(getItem0()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item1=").append(getItem1()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item2=").append(getItem2()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item3=").append(getItem3()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item4=").append(getItem4()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item5=").append(getItem5()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item6=").append(getItem6()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Item7=").append(getItem7()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Collections.BoolList.BValue: {\n");
+        _s_.append(_i1_).append("Item0=").append(getItem0()).append(",\n");
+        _s_.append(_i1_).append("Item1=").append(getItem1()).append(",\n");
+        _s_.append(_i1_).append("Item2=").append(getItem2()).append(",\n");
+        _s_.append(_i1_).append("Item3=").append(getItem3()).append(",\n");
+        _s_.append(_i1_).append("Item4=").append(getItem4()).append(",\n");
+        _s_.append(_i1_).append("Item5=").append(getItem5()).append(",\n");
+        _s_.append(_i1_).append("Item6=").append(getItem6()).append(",\n");
+        _s_.append(_i1_).append("Item7=").append(getItem7()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

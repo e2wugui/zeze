@@ -204,8 +204,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public final void encodeWithHead(@NotNull ByteBuffer bb) {
-		bb.WriteInt4(getModuleId());
-		bb.WriteInt4(getProtocolId());
+		bb.WriteInt4s(getModuleId(), getProtocolId());
 		int saveSize = bb.BeginWriteWithSize4();
 		encode(bb);
 		bb.EndWriteWithSize4(saveSize);
@@ -389,6 +388,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 	@Override
 	public @NotNull String toString() {
-		return String.format("%s ResultCode=%d%n\tArgument=%s", getClass().getName(), resultCode, Argument);
+		return String.format("%s ResultCode=%d\nArgument=%s", getClass().getName(), resultCode, Argument);
 	}
 }

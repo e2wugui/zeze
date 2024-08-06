@@ -85,17 +85,16 @@ public final class BEndMove extends Zeze.Transaction.Bean implements BEndMoveRea
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BEndMove: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("To=").append(System.lineSeparator());
-        _To.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.Master.BEndMove: {\n");
+        _s_.append(_i1_).append("To=");
+        _To.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -292,17 +291,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.Master.BEndMove: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("To=").append(System.lineSeparator());
-        _To.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.Master.BEndMove: {\n");
+        _s_.append(_i1_).append("To=");
+        _To.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

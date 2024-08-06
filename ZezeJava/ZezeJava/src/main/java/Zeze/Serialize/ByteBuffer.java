@@ -370,6 +370,10 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		intBeHandler.set(Bytes, writeIndex, v);
 	}
 
+	public void WriteInt4s(int v0, int v1) {
+		WriteLong8(((long)v1 << 32) + (v0 & 0xffff_ffffL));
+	}
+
 	public void WriteInt4s(int @NotNull [] buf, int offset, int length) {
 		int n = length * 4;
 		EnsureWrite(n);
@@ -409,6 +413,14 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 		int writeIndex = WriteIndex;
 		WriteIndex = writeIndex + 8;
 		longBeHandler.set(Bytes, writeIndex, v);
+	}
+
+	public void WriteLong8s(long v0, long v1) {
+		EnsureWrite(16);
+		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + 16;
+		longLeHandler.set(Bytes, writeIndex, v0);
+		longLeHandler.set(Bytes, writeIndex + 8, v1);
 	}
 
 	public void WriteLong8s(long @NotNull [] buf, int offset, int length) {
@@ -460,29 +472,29 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			EnsureWrite(2);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
+			WriteIndex = writeIndex + 2;
 			bytes[writeIndex] = (byte)((u >> 8) + 0x80);
 			bytes[writeIndex + 1] = (byte)u;
-			WriteIndex = writeIndex + 2;
 		} else if (u < 0x20_0000) { // 110x xxxx +2B
 			EnsureWrite(3);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
+			WriteIndex = writeIndex + 3;
 			bytes[writeIndex] = (byte)((u >> 16) + 0xc0);
 			bytes[writeIndex + 1] = (byte)(u >> 8);
 			bytes[writeIndex + 2] = (byte)u;
-			WriteIndex = writeIndex + 3;
 		} else if (u < 0x1000_0000) { // 1110 xxxx +3B
 			EnsureWrite(4);
 			int writeIndex = WriteIndex;
-			intBeHandler.set(Bytes, writeIndex, v + 0xe000_0000);
 			WriteIndex = writeIndex + 4;
+			intBeHandler.set(Bytes, writeIndex, v + 0xe000_0000);
 		} else { // 1111 0000 +4B
 			EnsureWrite(5);
 			byte[] bytes = Bytes;
 			int writeIndex = WriteIndex;
+			WriteIndex = writeIndex + 5;
 			bytes[writeIndex] = (byte)0xf0;
 			intBeHandler.set(bytes, writeIndex + 1, v);
-			WriteIndex = writeIndex + 5;
 		}
 	}
 
@@ -542,58 +554,58 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 				EnsureWrite(2);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 2;
 				bytes[writeIndex] = (byte)((v >> 8) + 0x40);
 				bytes[writeIndex + 1] = (byte)v;
-				WriteIndex = writeIndex + 2;
 			} else if (v < 0x10_0000) { // 0110 xxxx +2B
 				EnsureWrite(3);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 3;
 				bytes[writeIndex] = (byte)((v >> 16) + 0x60);
 				bytes[writeIndex + 1] = (byte)(v >> 8);
 				bytes[writeIndex + 2] = (byte)v;
-				WriteIndex = writeIndex + 3;
 			} else if (v < 0x800_0000) { // 0111 0xxx +3B
 				EnsureWrite(4);
 				int writeIndex = WriteIndex;
-				intBeHandler.set(Bytes, writeIndex, (int)v + 0x7000_0000);
 				WriteIndex = writeIndex + 4;
+				intBeHandler.set(Bytes, writeIndex, (int)v + 0x7000_0000);
 			} else if (v < 0x4_0000_0000L) { // 0111 10xx +4B
 				EnsureWrite(5);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 5;
 				bytes[writeIndex] = (byte)((v >> 32) + 0x78);
 				intBeHandler.set(bytes, writeIndex + 1, (int)v);
-				WriteIndex = writeIndex + 5;
 			} else if (v < 0x200_0000_0000L) { // 0111 110x +5B
 				EnsureWrite(6);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 6;
 				bytes[writeIndex] = (byte)((v >> 40) + 0x7c);
 				bytes[writeIndex + 1] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 2, (int)v);
-				WriteIndex = writeIndex + 6;
 			} else if (v < 0x1_0000_0000_0000L) { // 0111 1110 +6B
 				EnsureWrite(7);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 7;
 				bytes[writeIndex] = (byte)0x7e;
 				bytes[writeIndex + 1] = (byte)(v >> 40);
 				bytes[writeIndex + 2] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 3, (int)v);
-				WriteIndex = writeIndex + 7;
 			} else if (v < 0x80_0000_0000_0000L) { // 0111 1111 0 +7B
 				EnsureWrite(8);
 				int writeIndex = WriteIndex;
-				longBeHandler.set(Bytes, writeIndex, v + 0x7f00_0000_0000_0000L);
 				WriteIndex = writeIndex + 8;
+				longBeHandler.set(Bytes, writeIndex, v + 0x7f00_0000_0000_0000L);
 			} else { // 0111 1111 1 +8B
 				EnsureWrite(9);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 9;
 				bytes[writeIndex] = (byte)0x7f;
 				longBeHandler.set(bytes, writeIndex + 1, v + 0x8000_0000_0000_0000L);
-				WriteIndex = writeIndex + 9;
 			}
 		} else {
 			if (v >= -0x40) { // 11xx xxxx
@@ -603,58 +615,58 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 				EnsureWrite(2);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 2;
 				bytes[writeIndex] = (byte)((v >> 8) - 0x40);
 				bytes[writeIndex + 1] = (byte)v;
-				WriteIndex = writeIndex + 2;
 			} else if (v >= -0x10_0000) { // 1001 xxxx +2B
 				EnsureWrite(3);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 3;
 				bytes[writeIndex] = (byte)((v >> 16) - 0x60);
 				bytes[writeIndex + 1] = (byte)(v >> 8);
 				bytes[writeIndex + 2] = (byte)v;
-				WriteIndex = writeIndex + 3;
 			} else if (v >= -0x800_0000) { // 1000 1xxx +3B
 				EnsureWrite(4);
 				int writeIndex = WriteIndex;
-				intBeHandler.set(Bytes, writeIndex, (int)v - 0x7000_0000);
 				WriteIndex = writeIndex + 4;
+				intBeHandler.set(Bytes, writeIndex, (int)v - 0x7000_0000);
 			} else if (v >= -0x4_0000_0000L) { // 1000 01xx +4B
 				EnsureWrite(5);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 5;
 				bytes[writeIndex] = (byte)((v >> 32) - 0x78);
 				intBeHandler.set(bytes, writeIndex + 1, (int)v);
-				WriteIndex = writeIndex + 5;
 			} else if (v >= -0x200_0000_0000L) { // 1000 001x +5B
 				EnsureWrite(6);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 6;
 				bytes[writeIndex] = (byte)((v >> 40) - 0x7c);
 				bytes[writeIndex + 1] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 2, (int)v);
-				WriteIndex = writeIndex + 6;
 			} else if (v >= -0x1_0000_0000_0000L) { // 1000 0001 +6B
 				EnsureWrite(7);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 7;
 				bytes[writeIndex] = (byte)0x81;
 				bytes[writeIndex + 1] = (byte)(v >> 40);
 				bytes[writeIndex + 2] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 3, (int)v);
-				WriteIndex = writeIndex + 7;
 			} else if (v >= -0x80_0000_0000_0000L) { // 1000 0000 1 +7B
 				EnsureWrite(8);
 				int writeIndex = WriteIndex;
-				longBeHandler.set(Bytes, writeIndex, v - 0x7f00_0000_0000_0000L);
 				WriteIndex = writeIndex + 8;
+				longBeHandler.set(Bytes, writeIndex, v - 0x7f00_0000_0000_0000L);
 			} else { // 1000 0000 0 +8B
 				EnsureWrite(9);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 9;
 				bytes[writeIndex] = (byte)0x80;
 				longBeHandler.set(bytes, writeIndex + 1, v - 0x8000_0000_0000_0000L);
-				WriteIndex = writeIndex + 9;
 			}
 		}
 	}
@@ -686,102 +698,102 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 				EnsureWrite(2);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 2;
 				bytes[writeIndex] = (byte)((v >> 8) + 0x80);
 				bytes[writeIndex + 1] = (byte)v;
-				WriteIndex = writeIndex + 2;
 				return;
 			}
 			if (v < 0x20_0000) { // 110x xxxx +2B
 				EnsureWrite(3);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 3;
 				bytes[writeIndex] = (byte)((v >> 16) + 0xc0);
 				bytes[writeIndex + 1] = (byte)(v >> 8);
 				bytes[writeIndex + 2] = (byte)v;
-				WriteIndex = writeIndex + 3;
 				return;
 			}
 			if (v < 0x1000_0000) { // 1110 xxxx +3B
 				EnsureWrite(4);
 				int writeIndex = WriteIndex;
-				intBeHandler.set(Bytes, writeIndex, (int)v + 0xe000_0000);
 				WriteIndex = writeIndex + 4;
+				intBeHandler.set(Bytes, writeIndex, (int)v + 0xe000_0000);
 				return;
 			}
 			if (v < 0x8_0000_0000L) { // 1111 0xxx +4B
 				EnsureWrite(5);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 5;
 				bytes[writeIndex] = (byte)((v >> 32) + 0xf0);
 				intBeHandler.set(bytes, writeIndex + 1, (int)v);
-				WriteIndex = writeIndex + 5;
 				return;
 			}
 			if (v < 0x400_0000_0000L) { // 1111 10xx +5B
 				EnsureWrite(6);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 6;
 				bytes[writeIndex] = (byte)((v >> 40) + 0xf8);
 				bytes[writeIndex + 1] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 2, (int)v);
-				WriteIndex = writeIndex + 6;
 				return;
 			}
 			if (v < 0x2_0000_0000_0000L) { // 1111 110x +6B
 				EnsureWrite(7);
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
+				WriteIndex = writeIndex + 7;
 				bytes[writeIndex] = (byte)((v >> 48) + 0xfc);
 				bytes[writeIndex + 1] = (byte)(v >> 40);
 				bytes[writeIndex + 2] = (byte)(v >> 32);
 				intBeHandler.set(bytes, writeIndex + 3, (int)v);
-				WriteIndex = writeIndex + 7;
 				return;
 			}
 			if (v < 0x100_0000_0000_0000L) { // 1111 1110 +7B
 				EnsureWrite(8);
 				int writeIndex = WriteIndex;
-				longBeHandler.set(Bytes, writeIndex, v + 0xfe00_0000_0000_0000L);
 				WriteIndex = writeIndex + 8;
+				longBeHandler.set(Bytes, writeIndex, v + 0xfe00_0000_0000_0000L);
 				return;
 			}
 		}
 		EnsureWrite(9); // 1111 1111 +8B
 		byte[] bytes = Bytes;
 		int writeIndex = WriteIndex;
+		WriteIndex = writeIndex + 9;
 		bytes[writeIndex] = (byte)0xff;
 		longBeHandler.set(bytes, writeIndex + 1, v);
-		WriteIndex = writeIndex + 9;
 	}
 
 	public void WriteVector2(@NotNull Vector2 v) {
 		EnsureWrite(8);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
+		WriteIndex = i + 8;
 		intLeHandler.set(bytes, i, Float.floatToRawIntBits(v.x));
 		intLeHandler.set(bytes, i + 4, Float.floatToRawIntBits(v.y));
-		WriteIndex = i + 8;
 	}
 
 	public void WriteVector3(@NotNull Vector3 v) {
 		EnsureWrite(12);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
+		WriteIndex = i + 12;
 		intLeHandler.set(bytes, i, Float.floatToRawIntBits(v.x));
 		intLeHandler.set(bytes, i + 4, Float.floatToRawIntBits(v.y));
 		intLeHandler.set(bytes, i + 8, Float.floatToRawIntBits(v.z));
-		WriteIndex = i + 12;
 	}
 
 	public void WriteVector4(@NotNull Vector4 v) {
 		EnsureWrite(16);
 		byte[] bytes = Bytes;
 		int i = WriteIndex;
+		WriteIndex = i + 16;
 		intLeHandler.set(bytes, i, Float.floatToRawIntBits(v.x));
 		intLeHandler.set(bytes, i + 4, Float.floatToRawIntBits(v.y));
 		intLeHandler.set(bytes, i + 8, Float.floatToRawIntBits(v.z));
 		intLeHandler.set(bytes, i + 12, Float.floatToRawIntBits(v.w));
-		WriteIndex = i + 16;
 	}
 
 	public void WriteQuaternion(@NotNull Quaternion v) {

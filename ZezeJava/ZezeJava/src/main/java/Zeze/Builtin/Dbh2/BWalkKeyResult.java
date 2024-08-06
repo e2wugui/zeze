@@ -150,27 +150,25 @@ public final class BWalkKeyResult extends Zeze.Transaction.Bean implements BWalk
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalkKeyResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Keys=[");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Dbh2.BWalkKeyResult: {\n");
+        _s_.append(_i1_).append("Keys=[");
         if (!_Keys.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Keys) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append(']').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketEnd=").append(isBucketEnd()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketRefuse=").append(isBucketRefuse()).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("],\n");
+        _s_.append(_i1_).append("BucketEnd=").append(isBucketEnd()).append(",\n");
+        _s_.append(_i1_).append("BucketRefuse=").append(isBucketRefuse()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -437,27 +435,25 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalkKeyResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Keys=[");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Dbh2.BWalkKeyResult: {\n");
+        _s_.append(_i1_).append("Keys=[");
         if (!_Keys.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Keys) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append(']').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketEnd=").append(_BucketEnd).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BucketRefuse=").append(_BucketRefuse).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("],\n");
+        _s_.append(_i1_).append("BucketEnd=").append(_BucketEnd).append(",\n");
+        _s_.append(_i1_).append("BucketRefuse=").append(_BucketRefuse).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

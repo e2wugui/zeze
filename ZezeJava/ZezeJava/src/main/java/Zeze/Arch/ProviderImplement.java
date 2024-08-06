@@ -149,8 +149,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 							bb.SkipLong(); // resultCode
 						var sessionId = bb.ReadLong();
 						bb = ByteBuffer.Allocate(24);
-						bb.WriteInt4(Protocol.getModuleId(typeId));
-						bb.WriteInt4(Protocol.getProtocolId(typeId));
+						bb.WriteInt4s(Protocol.getModuleId(typeId), Protocol.getProtocolId(typeId));
 						int saveSize = bb.BeginWriteWithSize4();
 						bb.WriteUInt(FamilyClass.Response | FamilyClass.BitResultCode);
 						bb.WriteLong(Procedure.Busy);

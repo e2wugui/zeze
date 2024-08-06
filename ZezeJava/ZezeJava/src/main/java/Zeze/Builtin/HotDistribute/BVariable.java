@@ -248,19 +248,18 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(getName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Type=").append(getType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(getValue()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.HotDistribute.BVariable: {\n");
+        _s_.append(_i1_).append("Id=").append(getId()).append(",\n");
+        _s_.append(_i1_).append("Name=").append(getName()).append(",\n");
+        _s_.append(_i1_).append("Type=").append(getType()).append(",\n");
+        _s_.append(_i1_).append("Key=").append(getKey()).append(",\n");
+        _s_.append(_i1_).append("Value=").append(getValue()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -592,19 +591,18 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BVariable: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Type=").append(_Type).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_Value).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.HotDistribute.BVariable: {\n");
+        _s_.append(_i1_).append("Id=").append(_Id).append(",\n");
+        _s_.append(_i1_).append("Name=").append(_Name).append(",\n");
+        _s_.append(_i1_).append("Type=").append(_Type).append(",\n");
+        _s_.append(_i1_).append("Key=").append(_Key).append(",\n");
+        _s_.append(_i1_).append("Value=").append(_Value).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

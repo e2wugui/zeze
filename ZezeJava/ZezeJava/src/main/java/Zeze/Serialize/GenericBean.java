@@ -176,14 +176,15 @@ public class GenericBean {
 
 	public @NotNull StringBuilder buildString(@NotNull StringBuilder sb, int level) {
 		sb.append('{');
+		String i1, i2;
 		if (level >= 0) {
-			level += INDENT;
+			i1 = Str.indent(level + INDENT);
+			i2 = Str.indent(level + INDENT * 2);
 			sb.append('\n');
-		}
+		} else
+			i1 = i2 = "";
 		for (var e : fields.entrySet()) {
-			if (level > 0)
-				sb.append(Str.indent(level));
-			sb.append(e.getKey()).append(':').append(' ');
+			sb.append(i1).append(e.getKey()).append(": ");
 			var v = e.getValue();
 			if (v instanceof Number)
 				sb.append(v);
@@ -200,17 +201,11 @@ public class GenericBean {
 							sb.append(' ').append(n).append(',');
 						sb.setCharAt(sb.length() - 1, ' ');
 					} else {
-						level += INDENT;
 						for (var o : list) {
-							sb.append('\n');
-							if (level > 0)
-								sb.append(Str.indent(level));
-							buildString(sb, level, o);
+							sb.append('\n').append(i2);
+							buildString(sb, level + INDENT * 2, o);
 						}
-						sb.append('\n');
-						level -= INDENT;
-						if (level > 0)
-							sb.append(Str.indent(level));
+						sb.append('\n').append(i1);
 					}
 				}
 				sb.append(']');
@@ -218,31 +213,25 @@ public class GenericBean {
 				var map = (Map<?, ?>)v;
 				sb.append('{');
 				if (!map.isEmpty()) {
-					level += INDENT;
 					for (var e2 : map.entrySet()) {
-						sb.append('\n');
-						if (level > 0)
-							sb.append(Str.indent(level));
+						sb.append('\n').append(i2);
 						var k2 = e2.getKey();
 						var v2 = e2.getValue();
 						buildString(sb, -1, k2);
-						sb.append(':').append(' ');
-						buildString(sb, level, v2);
+						sb.append(": ");
+						buildString(sb, level + INDENT * 2, v2);
 					}
-					sb.append('\n');
-					level -= INDENT;
-					if (level > 0)
-						sb.append(Str.indent(level));
+					sb.append('\n').append(i1);
 				}
 				sb.append('}');
 			} else if (v instanceof GenericBean)
-				((GenericBean)v).buildString(sb, level);
+				((GenericBean)v).buildString(sb, level + INDENT);
 			else
 				sb.append(v);
 			sb.append('\n');
 		}
 		if (level > 0)
-			sb.append(Str.indent(level - INDENT));
+			sb.append(Str.indent(level));
 		sb.append('}');
 		return sb;
 	}

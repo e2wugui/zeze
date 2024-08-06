@@ -81,7 +81,7 @@ public final class BitConverter {
 			}
 			sb.append("...");
 		}
-		sb.append('[').append('+').append(len - limit).append(']');
+		sb.append("[+").append(len - limit).append(']');
 		if (limit2 > 0) {
 			sb.append("...");
 			offset += len - limit2;

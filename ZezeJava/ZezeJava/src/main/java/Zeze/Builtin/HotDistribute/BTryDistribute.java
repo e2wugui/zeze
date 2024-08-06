@@ -132,16 +132,15 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(getDistributeId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("AtomicAll=").append(isAtomicAll()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.HotDistribute.BTryDistribute: {\n");
+        _s_.append(_i1_).append("DistributeId=").append(getDistributeId()).append(",\n");
+        _s_.append(_i1_).append("AtomicAll=").append(isAtomicAll()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -355,16 +354,15 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.HotDistribute.BTryDistribute: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DistributeId=").append(_DistributeId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("AtomicAll=").append(_AtomicAll).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.HotDistribute.BTryDistribute: {\n");
+        _s_.append(_i1_).append("DistributeId=").append(_DistributeId).append(",\n");
+        _s_.append(_i1_).append("AtomicAll=").append(_AtomicAll).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

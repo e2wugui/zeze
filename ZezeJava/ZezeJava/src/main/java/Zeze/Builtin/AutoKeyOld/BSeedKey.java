@@ -35,16 +35,14 @@ public final class BSeedKey implements Zeze.Transaction.BeanKey, Comparable<BSee
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        _s_.append(System.lineSeparator());
         return _s_.toString();
     }
 
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.AutoKeyOld.BSeedKey: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyName=").append(_KeyName).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.AutoKeyOld.BSeedKey: {\n");
+        _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
+        _s_.append(_i1_).append("KeyName=").append(_KeyName).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

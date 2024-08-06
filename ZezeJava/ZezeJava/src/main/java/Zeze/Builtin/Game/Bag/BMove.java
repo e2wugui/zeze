@@ -181,18 +181,17 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Bag.BMove: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BagName=").append(getBagName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("PositionFrom=").append(getPositionFrom()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("PositionTo=").append(getPositionTo()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("number=").append(getNumber()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Game.Bag.BMove: {\n");
+        _s_.append(_i1_).append("BagName=").append(getBagName()).append(",\n");
+        _s_.append(_i1_).append("PositionFrom=").append(getPositionFrom()).append(",\n");
+        _s_.append(_i1_).append("PositionTo=").append(getPositionTo()).append(",\n");
+        _s_.append(_i1_).append("number=").append(getNumber()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

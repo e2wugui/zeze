@@ -219,21 +219,20 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(getId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Limit=").append(getLimit()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OffsetFactor=").append(getOffsetFactor()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Reset=").append(isReset()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Condition=").append(System.lineSeparator());
-        _Condition.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.LogService.BBrowse: {\n");
+        _s_.append(_i1_).append("Id=").append(getId()).append(",\n");
+        _s_.append(_i1_).append("Limit=").append(getLimit()).append(",\n");
+        _s_.append(_i1_).append("OffsetFactor=").append(getOffsetFactor()).append(",\n");
+        _s_.append(_i1_).append("Reset=").append(isReset()).append(",\n");
+        _s_.append(_i1_).append("Condition=");
+        _Condition.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -563,21 +562,20 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BBrowse: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Id=").append(_Id).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Limit=").append(_Limit).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OffsetFactor=").append(_OffsetFactor).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Reset=").append(_Reset).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Condition=").append(System.lineSeparator());
-        _Condition.buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.LogService.BBrowse: {\n");
+        _s_.append(_i1_).append("Id=").append(_Id).append(",\n");
+        _s_.append(_i1_).append("Limit=").append(_Limit).append(",\n");
+        _s_.append(_i1_).append("OffsetFactor=").append(_OffsetFactor).append(",\n");
+        _s_.append(_i1_).append("Reset=").append(_Reset).append(",\n");
+        _s_.append(_i1_).append("Condition=");
+        _Condition.buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

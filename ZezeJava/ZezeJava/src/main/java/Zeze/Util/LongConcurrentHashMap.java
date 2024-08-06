@@ -560,7 +560,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 				sb.append(v == this ? "(this Map)" : v);
 				if ((p = it.advance()) == null)
 					break;
-				sb.append(',').append(' ');
+				sb.append(", ");
 			}
 		}
 		return sb.append('}').toString();

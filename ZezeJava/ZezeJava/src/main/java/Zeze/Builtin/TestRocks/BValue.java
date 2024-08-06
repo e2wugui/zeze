@@ -286,64 +286,52 @@ public final class BValue extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.TestRocks.BValue: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Int").append('=').append(getInt()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Bool").append('=').append(isBool()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Float").append('=').append(getFloat()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("double").append('=').append(getDouble()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("String").append('=').append(getString()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Binary").append('=').append(getBinary()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SetInt").append("=[").append(System.lineSeparator());
-        level += 4;
+    public void buildString(StringBuilder _s_, int _l_) {
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.TestRocks.BValue: {\n");
+        _s_.append(_i1_).append("Int=").append(getInt()).append(",\n");
+        _s_.append(_i1_).append("Bool=").append(isBool()).append(",\n");
+        _s_.append(_i1_).append("Float=").append(getFloat()).append(",\n");
+        _s_.append(_i1_).append("double=").append(getDouble()).append(",\n");
+        _s_.append(_i1_).append("String=").append(getString()).append(",\n");
+        _s_.append(_i1_).append("Binary=").append(getBinary()).append(",\n");
+        _s_.append(_i1_).append("SetInt=[\n");
         for (var _item_ : getSetInt()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
+            _s_.append(_i2_).append("Item=").append(_item_).append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SetBeankey").append("=[").append(System.lineSeparator());
-        level += 4;
+        _s_.append(_i1_).append("],\n");
+        _s_.append(_i1_).append("SetBeankey=[\n");
         for (var _item_ : getSetBeankey()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(System.lineSeparator());
-            _item_.buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
+            _s_.append(_i2_).append("Item=");
+            _item_.buildString(_s_, _l_ + 12);
+            _s_.append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MapInt").append("=[").append(System.lineSeparator());
-        level += 4;
+        _s_.append(_i1_).append("],\n");
+        _s_.append(_i1_).append("MapInt=[\n");
         for (var _kv_ : getMapInt().entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(_kv_.getValue()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+            _s_.append(_i2_).append("Key=").append(_kv_.getKey()).append(",\n");
+            _s_.append(_i2_).append("Value=").append(_kv_.getValue()).append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("MapBean").append("=[").append(System.lineSeparator());
-        level += 4;
+        _s_.append(_i1_).append("],\n");
+        _s_.append(_i1_).append("MapBean=[\n");
         for (var _kv_ : getMapBean().entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().buildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+            _s_.append(_i2_).append("Key=").append(_kv_.getKey()).append(",\n");
+            _s_.append(_i2_).append("Value=");
+            _kv_.getValue().buildString(_s_, _l_ + 12);
+            _s_.append(",\n");
         }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Beankey").append('=').append(System.lineSeparator());
-        getBeankey().buildString(sb, level + 4);
-        sb.append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+        _s_.append(_i1_).append("],\n");
+        _s_.append(_i1_).append("Beankey=");
+        getBeankey().buildString(_s_, _l_ + 8);
+        _s_.append('\n');
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

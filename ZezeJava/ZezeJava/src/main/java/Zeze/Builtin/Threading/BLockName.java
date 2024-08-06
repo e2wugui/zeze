@@ -38,18 +38,16 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        _s_.append(System.lineSeparator());
         return _s_.toString();
     }
 
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Threading.BLockName: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("GlobalThreadId=").append(System.lineSeparator());
-        _GlobalThreadId.buildString(_s_, _l_ + 4);
-        _s_.append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Name=").append(_Name).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Threading.BLockName: {\n");
+        _s_.append(_i1_).append("GlobalThreadId=");
+        _GlobalThreadId.buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
+        _s_.append(_i1_).append("Name=").append(_Name).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

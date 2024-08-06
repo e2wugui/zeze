@@ -42,17 +42,15 @@ public final class BLink implements Zeze.Transaction.BeanKey, Comparable<BLink> 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        _s_.append(System.lineSeparator());
         return _s_.toString();
     }
 
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Online.BLink: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LinkName=").append(_LinkName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LinkSid=").append(_LinkSid).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("State=").append(_State).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Online.BLink: {\n");
+        _s_.append(_i1_).append("LinkName=").append(_LinkName).append(",\n");
+        _s_.append(_i1_).append("LinkSid=").append(_LinkSid).append(",\n");
+        _s_.append(_i1_).append("State=").append(_State).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

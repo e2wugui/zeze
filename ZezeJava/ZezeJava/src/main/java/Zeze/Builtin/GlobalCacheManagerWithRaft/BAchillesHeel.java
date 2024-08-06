@@ -150,17 +150,16 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("SecureKey=").append(getSecureKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("GlobalCacheManagerHashIndex=").append(getGlobalCacheManagerHashIndex()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.GlobalCacheManagerWithRaft.BAchillesHeel: {\n");
+        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
+        _s_.append(_i1_).append("SecureKey=").append(getSecureKey()).append(",\n");
+        _s_.append(_i1_).append("GlobalCacheManagerHashIndex=").append(getGlobalCacheManagerHashIndex()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

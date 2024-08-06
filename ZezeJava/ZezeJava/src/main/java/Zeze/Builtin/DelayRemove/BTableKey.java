@@ -155,17 +155,16 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.DelayRemove.BTableKey: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EncodedKey=").append(getEncodedKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EnqueueTime=").append(getEnqueueTime()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.DelayRemove.BTableKey: {\n");
+        _s_.append(_i1_).append("TableName=").append(getTableName()).append(",\n");
+        _s_.append(_i1_).append("EncodedKey=").append(getEncodedKey()).append(",\n");
+        _s_.append(_i1_).append("EnqueueTime=").append(getEnqueueTime()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

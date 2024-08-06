@@ -695,7 +695,7 @@ public class LongHashMap<V> implements Cloneable {
 		final int n = Math.min(kt.length, 20);
 		int i = 0;
 		if (hasZeroValue)
-			sb.append('0').append('=').append(zeroValue);
+			sb.append("0=").append(zeroValue);
 		else {
 			for (; i < n; i++) {
 				final long k = kt[i];

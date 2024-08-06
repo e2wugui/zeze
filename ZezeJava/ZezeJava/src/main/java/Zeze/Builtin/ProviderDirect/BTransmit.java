@@ -229,29 +229,27 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ActionName=").append(getActionName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Roles={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.ProviderDirect.BTransmit: {\n");
+        _s_.append(_i1_).append("ActionName=").append(getActionName()).append(",\n");
+        _s_.append(_i1_).append("Roles={");
         if (!_Roles.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Roles) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Sender=").append(getSender()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Parameter=").append(getParameter()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("},\n");
+        _s_.append(_i1_).append("Sender=").append(getSender()).append(",\n");
+        _s_.append(_i1_).append("Parameter=").append(getParameter()).append(",\n");
+        _s_.append(_i1_).append("OnlineSetName=").append(getOnlineSetName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -608,29 +606,27 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BTransmit: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ActionName=").append(_ActionName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Roles={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.ProviderDirect.BTransmit: {\n");
+        _s_.append(_i1_).append("ActionName=").append(_ActionName).append(",\n");
+        _s_.append(_i1_).append("Roles={");
         if (!_Roles.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Roles) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Sender=").append(_Sender).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Parameter=").append(_Parameter).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(_OnlineSetName).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("},\n");
+        _s_.append(_i1_).append("Sender=").append(_Sender).append(",\n");
+        _s_.append(_i1_).append("Parameter=").append(_Parameter).append(",\n");
+        _s_.append(_i1_).append("OnlineSetName=").append(_OnlineSetName).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

@@ -20,8 +20,7 @@ public class Benchmark {
 		var elapsedTime = endTime - startTime;
 		var seconds = (double)elapsedTime / 1_000_000_000;
 		var cpuPercent = cpu / seconds;
-		System.out.printf(
-				"%s tasks/s=%.2f tasks=%d time=%.2fs cpu=%.2fs concurrent=%.2f%n",
+		System.out.printf("%s tasks/s=%.2f tasks=%d time=%.2fs cpu=%.2fs concurrent=%.2f\n",
 				name, (tasks / seconds), tasks, seconds, cpu, cpuPercent);
 		return seconds;
 	}

@@ -179,17 +179,16 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("from=").append(getFrom()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(getCode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(getDesc()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.LinkdBase.BReportError: {\n");
+        _s_.append(_i1_).append("from=").append(getFrom()).append(",\n");
+        _s_.append(_i1_).append("code=").append(getCode()).append(",\n");
+        _s_.append(_i1_).append("desc=").append(getDesc()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -452,17 +451,16 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LinkdBase.BReportError: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("from=").append(_from).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("code=").append(_code).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("desc=").append(_desc).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.LinkdBase.BReportError: {\n");
+        _s_.append(_i1_).append("from=").append(_from).append(",\n");
+        _s_.append(_i1_).append("code=").append(_code).append(",\n");
+        _s_.append(_i1_).append("desc=").append(_desc).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

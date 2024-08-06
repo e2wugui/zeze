@@ -247,24 +247,23 @@ public final class BServiceInfoRocks extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceName").append('=').append(getServiceName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIdentity").append('=').append(getServiceIdentity()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PassiveIp").append('=').append(getPassiveIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("PassivePort").append('=').append(getPassivePort()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ExtraInfo").append('=').append(getExtraInfo()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("SessionName").append('=').append(getSessionName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Version").append('=').append(getVersion()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ServiceManagerWithRaft.BServiceInfoRocks: {\n");
+        _s_.append(_i1_).append("ServiceName=").append(getServiceName()).append(",\n");
+        _s_.append(_i1_).append("ServiceIdentity=").append(getServiceIdentity()).append(",\n");
+        _s_.append(_i1_).append("PassiveIp=").append(getPassiveIp()).append(",\n");
+        _s_.append(_i1_).append("PassivePort=").append(getPassivePort()).append(",\n");
+        _s_.append(_i1_).append("ExtraInfo=").append(getExtraInfo()).append(",\n");
+        _s_.append(_i1_).append("SessionName=").append(getSessionName()).append(",\n");
+        _s_.append(_i1_).append("Version=").append(getVersion()).append('\n');
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

@@ -255,22 +255,21 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BOfflineAccountCustom: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimerName=").append(getTimerName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Account=").append(getAccount()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ClientId=").append(getClientId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("LoginVersion=").append(getLoginVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HandleName=").append(getHandleName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("CustomData=").append(System.lineSeparator());
-        _CustomData.getBean().buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Timer.BOfflineAccountCustom: {\n");
+        _s_.append(_i1_).append("TimerName=").append(getTimerName()).append(",\n");
+        _s_.append(_i1_).append("Account=").append(getAccount()).append(",\n");
+        _s_.append(_i1_).append("ClientId=").append(getClientId()).append(",\n");
+        _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
+        _s_.append(_i1_).append("HandleName=").append(getHandleName()).append(",\n");
+        _s_.append(_i1_).append("CustomData=");
+        _CustomData.getBean().buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

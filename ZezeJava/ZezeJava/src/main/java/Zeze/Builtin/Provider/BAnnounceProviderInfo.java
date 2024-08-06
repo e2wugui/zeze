@@ -276,20 +276,19 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceIdentity=").append(getServiceIdentity()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectIp=").append(getProviderDirectIp()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectPort=").append(getProviderDirectPort()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppVersion=").append(getAppVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(isDisableChoice()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {\n");
+        _s_.append(_i1_).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(",\n");
+        _s_.append(_i1_).append("ServiceIdentity=").append(getServiceIdentity()).append(",\n");
+        _s_.append(_i1_).append("ProviderDirectIp=").append(getProviderDirectIp()).append(",\n");
+        _s_.append(_i1_).append("ProviderDirectPort=").append(getProviderDirectPort()).append(",\n");
+        _s_.append(_i1_).append("AppVersion=").append(getAppVersion()).append(",\n");
+        _s_.append(_i1_).append("DisableChoice=").append(isDisableChoice()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -647,20 +646,19 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceIdentity=").append(_ServiceIdentity).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectIp=").append(_ProviderDirectIp).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProviderDirectPort=").append(_ProviderDirectPort).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("AppVersion=").append(_AppVersion).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DisableChoice=").append(_DisableChoice).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BAnnounceProviderInfo: {\n");
+        _s_.append(_i1_).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(",\n");
+        _s_.append(_i1_).append("ServiceIdentity=").append(_ServiceIdentity).append(",\n");
+        _s_.append(_i1_).append("ProviderDirectIp=").append(_ProviderDirectIp).append(",\n");
+        _s_.append(_i1_).append("ProviderDirectPort=").append(_ProviderDirectPort).append(",\n");
+        _s_.append(_i1_).append("AppVersion=").append(_AppVersion).append(",\n");
+        _s_.append(_i1_).append("DisableChoice=").append(_DisableChoice).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

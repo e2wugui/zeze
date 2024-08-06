@@ -186,18 +186,17 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DAG.BDAG: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("NodeSum=").append(getNodeSum()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EdgeSum=").append(getEdgeSum()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("StartNode=").append(getStartNode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndNode=").append(getEndNode()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Collections.DAG.BDAG: {\n");
+        _s_.append(_i1_).append("NodeSum=").append(getNodeSum()).append(",\n");
+        _s_.append(_i1_).append("EdgeSum=").append(getEdgeSum()).append(",\n");
+        _s_.append(_i1_).append("StartNode=").append(getStartNode()).append(",\n");
+        _s_.append(_i1_).append("EndNode=").append(getEndNode()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

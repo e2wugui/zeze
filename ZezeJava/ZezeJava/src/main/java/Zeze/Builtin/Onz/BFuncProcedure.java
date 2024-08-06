@@ -239,19 +239,18 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnzTid=").append(getOnzTid()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncName=").append(getFuncName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncArgument=").append(getFuncArgument()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushMode=").append(getFlushMode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushTimeout=").append(getFlushTimeout()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Onz.BFuncProcedure: {\n");
+        _s_.append(_i1_).append("OnzTid=").append(getOnzTid()).append(",\n");
+        _s_.append(_i1_).append("FuncName=").append(getFuncName()).append(",\n");
+        _s_.append(_i1_).append("FuncArgument=").append(getFuncArgument()).append(",\n");
+        _s_.append(_i1_).append("FlushMode=").append(getFlushMode()).append(",\n");
+        _s_.append(_i1_).append("FlushTimeout=").append(getFlushTimeout()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -572,19 +571,18 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Onz.BFuncProcedure: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnzTid=").append(_OnzTid).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncName=").append(_FuncName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FuncArgument=").append(_FuncArgument).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushMode=").append(_FlushMode).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("FlushTimeout=").append(_FlushTimeout).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Onz.BFuncProcedure: {\n");
+        _s_.append(_i1_).append("OnzTid=").append(_OnzTid).append(",\n");
+        _s_.append(_i1_).append("FuncName=").append(_FuncName).append(",\n");
+        _s_.append(_i1_).append("FuncArgument=").append(_FuncArgument).append(",\n");
+        _s_.append(_i1_).append("FlushMode=").append(_FlushMode).append(",\n");
+        _s_.append(_i1_).append("FlushTimeout=").append(_FlushTimeout).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

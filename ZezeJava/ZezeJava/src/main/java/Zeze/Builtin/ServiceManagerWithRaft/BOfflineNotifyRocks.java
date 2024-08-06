@@ -161,21 +161,20 @@ public final class BOfflineNotifyRocks extends Zeze.Raft.RocksRaft.Bean {
 
     @Override
     public String toString() {
-        var sb = new StringBuilder();
-        buildString(sb, 0);
-        return sb.append(System.lineSeparator()).toString();
+        var _s_ = new StringBuilder();
+        buildString(_s_, 0);
+        return _s_.toString();
     }
 
     @Override
-    public void buildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks: {").append(System.lineSeparator());
-        level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NotifyId").append('=').append(getNotifyId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NotifySerialId").append('=').append(getNotifySerialId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("NotifyContext").append('=').append(getNotifyContext()).append(System.lineSeparator());
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append('}');
+    public void buildString(StringBuilder _s_, int _l_) {
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ServiceManagerWithRaft.BOfflineNotifyRocks: {\n");
+        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
+        _s_.append(_i1_).append("NotifyId=").append(getNotifyId()).append(",\n");
+        _s_.append(_i1_).append("NotifySerialId=").append(getNotifySerialId()).append(",\n");
+        _s_.append(_i1_).append("NotifyContext=").append(getNotifyContext()).append('\n');
+        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

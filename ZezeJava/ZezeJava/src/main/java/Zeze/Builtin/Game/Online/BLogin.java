@@ -120,16 +120,15 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Online.BLogin: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RoleId=").append(getRoleId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OnlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Game.Online.BLogin: {\n");
+        _s_.append(_i1_).append("RoleId=").append(getRoleId()).append(",\n");
+        _s_.append(_i1_).append("OnlineSetName=").append(getOnlineSetName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

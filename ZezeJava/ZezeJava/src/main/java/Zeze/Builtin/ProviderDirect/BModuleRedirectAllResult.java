@@ -257,33 +257,31 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(getModuleId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(getServerId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("SourceProvider=").append(getSourceProvider()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(getMethodFullName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("SessionId=").append(getSessionId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Hashs={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(getModuleId()).append(",\n");
+        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
+        _s_.append(_i1_).append("SourceProvider=").append(getSourceProvider()).append(",\n");
+        _s_.append(_i1_).append("MethodFullName=").append(getMethodFullName()).append(",\n");
+        _s_.append(_i1_).append("SessionId=").append(getSessionId()).append(",\n");
+        _s_.append(_i1_).append("Hashs={");
         if (!_Hashs.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Hashs.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
-                _e_.getValue().buildString(_s_, _l_ + 4);
-                _s_.append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=");
+                _e_.getValue().buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -674,33 +672,31 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServerId=").append(_ServerId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("SourceProvider=").append(_SourceProvider).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("SessionId=").append(_SessionId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Hashs={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllResult: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(_ModuleId).append(",\n");
+        _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
+        _s_.append(_i1_).append("SourceProvider=").append(_SourceProvider).append(",\n");
+        _s_.append(_i1_).append("MethodFullName=").append(_MethodFullName).append(",\n");
+        _s_.append(_i1_).append("SessionId=").append(_SessionId).append(",\n");
+        _s_.append(_i1_).append("Hashs={");
         if (!_Hashs.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Hashs.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
-                _e_.getValue().buildString(_s_, _l_ + 4);
-                _s_.append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=");
+                _e_.getValue().buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

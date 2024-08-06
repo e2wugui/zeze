@@ -86,7 +86,7 @@ public final class PerfCounter extends FastLock {
 			var sb = new StringBuilder();
 			sb.append(name).append(':').append(succRatio).append('%');
 			for (var it = (last ? resultMapLast : resultMap).entryIterator(); it.moveToNext(); )
-				sb.append(',').append(' ').append(it.key()).append(':').append(it.value().sum());
+				sb.append(", ").append(it.key()).append(':').append(it.value().sum());
 			return sb.toString();
 		}
 
@@ -488,20 +488,20 @@ public final class PerfCounter extends FastLock {
 					.append(" free/total/max:").append(runtime.freeMemory() >> 20)
 					.append('/').append(runtime.totalMemory() >> 20).append('/').append(runtime.maxMemory() >> 20)
 					.append("M direct:").append(getReservedDirectMemory() >> 20).append('/')
-					.append(getMaxDirectMemory() >> 20).append('M').append(',')
-					.append(getTotalDirectCapacity() >> 20).append('M').append('/').append(getDirectCount())
+					.append(getMaxDirectMemory() >> 20).append("M,")
+					.append(getTotalDirectCapacity() >> 20).append("M/").append(getDirectCount())
 					.append(" commit/free/all:").append(osBean.getCommittedVirtualMemorySize() >> 20).append('/')
 					.append(osBean.getFreePhysicalMemorySize() >> 20).append('+')
 					.append(osBean.getFreeSwapSpaceSize() >> 20).append('/')
 					.append(osBean.getTotalPhysicalMemorySize() >> 20).append('+')
 					.append(osBean.getTotalSwapSpaceSize() >> 20)
-					.append("M]\n [run: ").append(procCountAll).append(',').append(' ')
+					.append("M]\n [run: ").append(procCountAll).append(", ")
 					.append(procTimeAll / 1_000_000).append("ms]\n");
 			rList.sort((ri0, ri1) -> Long.signum(ri1.lastProcTime - ri0.lastProcTime));
 			for (int i = 0, n = Math.min(rList.size(), PERF_COUNT); i < n; i++) {
 				var ri = rList.get(i);
 				var perTime = ri.lastProcTime / ri.lastProcCount;
-				sb.append(' ').append(' ').append(ri.name).append(':').append(' ').append(ri.lastProcTime / 1_000_000)
+				sb.append("  ").append(ri.name).append(": ").append(ri.lastProcTime / 1_000_000)
 						.append("ms = ").append(ri.lastProcCount).append(" * ")
 						.append(numFormatter.format(perTime)).append("ns\n");
 			}
@@ -532,7 +532,7 @@ public final class PerfCounter extends FastLock {
 				pi.idleCount = 0;
 				pList.add(pi);
 			}
-			sb.append(" [recv: ").append(procCountAll).append(',').append(' ').append(recvSizeAll / 1000).append("K, ")
+			sb.append(" [recv: ").append(procCountAll).append(", ").append(recvSizeAll / 1000).append("K, ")
 					.append(procTimeAll / 1_000_000).append("ms]\n");
 			pList.sort((pi0, pi1) -> Long.signum(pi1.lastProcTime - pi0.lastProcTime));
 			for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
@@ -541,21 +541,21 @@ public final class PerfCounter extends FastLock {
 					continue;
 				var perTime = pi.lastProcTime / pi.lastProcCount;
 				var perSize = pi.lastRecvSize / pi.lastProcCount;
-				sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastProcTime / 1_000_000)
+				sb.append("  ").append(pi.name).append(": ").append(pi.lastProcTime / 1_000_000)
 						.append("ms = ").append(pi.lastProcCount).append(" * ")
 						.append(numFormatter.format(perTime)).append("ns,")
-						.append(numFormatter.format(perSize)).append('B').append('\n');
+						.append(numFormatter.format(perSize)).append("B\n");
 			}
-			sb.append(" [send: ").append(sendCountAll).append(',').append(' ').append(sendSizeAll / 1000).append("K]\n");
+			sb.append(" [send: ").append(sendCountAll).append(", ").append(sendSizeAll / 1000).append("K]\n");
 			pList.sort((pi0, pi1) -> Long.signum(pi1.lastSendSize - pi0.lastSendSize));
 			for (int i = 0, n = Math.min(pList.size(), PERF_COUNT); i < n; i++) {
 				var pi = pList.get(i);
 				if (pi.lastSendCount == 0)
 					break;
 				var perSize = pi.lastSendSize / pi.lastSendCount;
-				sb.append(' ').append(' ').append(pi.name).append(':').append(' ').append(pi.lastSendSize / 1_000)
+				sb.append("  ").append(pi.name).append(": ").append(pi.lastSendSize / 1_000)
 						.append("K = ").append(pi.lastSendCount).append(" * ")
-						.append(numFormatter.format(perSize)).append('B').append('\n');
+						.append(numFormatter.format(perSize)).append("B\n");
 			}
 
 			var procedureTotal = 0L;
@@ -592,18 +592,18 @@ public final class PerfCounter extends FastLock {
 				return c != 0 ? Long.signum(c) : Long.signum(pi1.totalCount - pi0.totalCount);
 			});
 			for (int i = 0, n = Math.min(prList.size(), PERF_COUNT); i < n; i++)
-				sb.append(' ').append(' ').append(prList.get(i)).append('\n');
+				sb.append("  ").append(prList.get(i)).append('\n');
 
 			var tList = new ArrayList<TableInfo>(tableInfoMap.size());
 			for (var ti : tableInfoMap)
 				tList.add(ti.checkpointAndReset());
-			sb.append(" [table: ").append(tList.size()).append(']').append('\n');
+			sb.append(" [table: ").append(tList.size()).append("]\n");
 			int n = Math.min(tList.size(), PERF_COUNT);
 			if (n > 0) {
 				tList.sort((ti0, ti1) -> Long.signum(ti1.lockCount - ti0.lockCount));
-				sb.append(' ').append(' ').append(TableInfo.getLogTitle()).append('\n');
+				sb.append("  ").append(TableInfo.getLogTitle()).append('\n');
 				for (int i = 0; i < n; i++)
-					sb.append(' ').append(' ').append(tList.get(i)).append('\n');
+					sb.append("  ").append(tList.get(i)).append('\n');
 			}
 
 			var cList = new ArrayList<CountInfo>(countInfos.length);
@@ -620,7 +620,7 @@ public final class PerfCounter extends FastLock {
 				cList.sort((ci0, ci1) -> Long.signum(ci1.lastCount - ci0.lastCount));
 				sb.append(" [count]\n");
 				for (var ci : cList)
-					sb.append(' ').append(' ').append(ci.name).append(':').append(' ').append(ci.lastCount).append('\n');
+					sb.append("  ").append(ci.name).append(": ").append(ci.lastCount).append('\n');
 			}
 
 			return lastLog = sb.toString();

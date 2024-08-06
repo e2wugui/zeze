@@ -10,11 +10,11 @@
 		<Null name="Null" />
 
 		<Console name="Console" target="SYSTEM_OUT">
-			<PatternLayout pattern="%d{HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+			<PatternLayout pattern="%d{HH:mm:ss.SSS} %5p [%t] %c{1}: %m\n" />
 		</Console>
 
 		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}">
-			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m\n" />
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
 				<SizeBasedTriggeringPolicy size="100 MB" />
@@ -24,7 +24,7 @@
 
 		<RollingFile name="ErrorLog" fileName="${path}/${name}_error${ext}" filePattern="${path}/${name}_error.%d{yy-MM-dd}-%i${ext}">
 			<ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY" />
-			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m\n" />
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1" modulate="true" />
 				<SizeBasedTriggeringPolicy size="100 MB" />

@@ -149,16 +149,15 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReturnCode=").append(getReturnCode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(getParams()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {\n");
+        _s_.append(_i1_).append("ReturnCode=").append(getReturnCode()).append(",\n");
+        _s_.append(_i1_).append("Params=").append(getParams()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -377,16 +376,15 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ReturnCode=").append(_ReturnCode).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(_Params).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash: {\n");
+        _s_.append(_i1_).append("ReturnCode=").append(_ReturnCode).append(",\n");
+        _s_.append(_i1_).append("Params=").append(_Params).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

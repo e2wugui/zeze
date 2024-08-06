@@ -55,19 +55,17 @@ public final class BConcurrentKey implements Zeze.Transaction.BeanKey, Comparabl
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        _s_.append(System.lineSeparator());
         return _s_.toString();
     }
 
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Game.Rank.BConcurrentKey: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RankType=").append(_RankType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ConcurrentId=").append(_ConcurrentId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TimeType=").append(_TimeType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Year=").append(_Year).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Offset=").append(_Offset).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Game.Rank.BConcurrentKey: {\n");
+        _s_.append(_i1_).append("RankType=").append(_RankType).append(",\n");
+        _s_.append(_i1_).append("ConcurrentId=").append(_ConcurrentId).append(",\n");
+        _s_.append(_i1_).append("TimeType=").append(_TimeType).append(",\n");
+        _s_.append(_i1_).append("Year=").append(_Year).append(",\n");
+        _s_.append(_i1_).append("Offset=").append(_Offset).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

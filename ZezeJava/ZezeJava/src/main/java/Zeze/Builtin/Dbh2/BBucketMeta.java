@@ -253,19 +253,18 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBucketMeta: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DatabaseName=").append(getDatabaseName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TableName=").append(getTableName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyFirst=").append(getKeyFirst()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyLast=").append(getKeyLast()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RaftConfig=").append(getRaftConfig()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BBucketMeta: {\n");
+        _s_.append(_i1_).append("DatabaseName=").append(getDatabaseName()).append(",\n");
+        _s_.append(_i1_).append("TableName=").append(getTableName()).append(",\n");
+        _s_.append(_i1_).append("KeyFirst=").append(getKeyFirst()).append(",\n");
+        _s_.append(_i1_).append("KeyLast=").append(getKeyLast()).append(",\n");
+        _s_.append(_i1_).append("RaftConfig=").append(getRaftConfig()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -593,19 +592,18 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BBucketMeta: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("DatabaseName=").append(_DatabaseName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("TableName=").append(_TableName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyFirst=").append(_KeyFirst).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("KeyLast=").append(_KeyLast).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RaftConfig=").append(_RaftConfig).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BBucketMeta: {\n");
+        _s_.append(_i1_).append("DatabaseName=").append(_DatabaseName).append(",\n");
+        _s_.append(_i1_).append("TableName=").append(_TableName).append(",\n");
+        _s_.append(_i1_).append("KeyFirst=").append(_KeyFirst).append(",\n");
+        _s_.append(_i1_).append("KeyLast=").append(_KeyLast).append(",\n");
+        _s_.append(_i1_).append("RaftConfig=").append(_RaftConfig).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

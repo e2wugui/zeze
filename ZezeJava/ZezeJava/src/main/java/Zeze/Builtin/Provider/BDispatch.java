@@ -318,21 +318,20 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(getLinkSid()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(getAccount()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(getProtocolType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolData=").append(getProtocolData()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(getContext()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("contextx=").append(getContextx()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("onlineSetName=").append(getOnlineSetName()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BDispatch: {\n");
+        _s_.append(_i1_).append("linkSid=").append(getLinkSid()).append(",\n");
+        _s_.append(_i1_).append("account=").append(getAccount()).append(",\n");
+        _s_.append(_i1_).append("protocolType=").append(getProtocolType()).append(",\n");
+        _s_.append(_i1_).append("protocolData=").append(getProtocolData()).append(",\n");
+        _s_.append(_i1_).append("context=").append(getContext()).append(",\n");
+        _s_.append(_i1_).append("contextx=").append(getContextx()).append(",\n");
+        _s_.append(_i1_).append("onlineSetName=").append(getOnlineSetName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -730,21 +729,20 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Provider.BDispatch: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("linkSid=").append(_linkSid).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("account=").append(_account).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolType=").append(_protocolType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("protocolData=").append(_protocolData).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("context=").append(_context).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("contextx=").append(_contextx).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("onlineSetName=").append(_onlineSetName).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Provider.BDispatch: {\n");
+        _s_.append(_i1_).append("linkSid=").append(_linkSid).append(",\n");
+        _s_.append(_i1_).append("account=").append(_account).append(",\n");
+        _s_.append(_i1_).append("protocolType=").append(_protocolType).append(",\n");
+        _s_.append(_i1_).append("protocolData=").append(_protocolData).append(",\n");
+        _s_.append(_i1_).append("context=").append(_context).append(",\n");
+        _s_.append(_i1_).append("contextx=").append(_contextx).append(",\n");
+        _s_.append(_i1_).append("onlineSetName=").append(_onlineSetName).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

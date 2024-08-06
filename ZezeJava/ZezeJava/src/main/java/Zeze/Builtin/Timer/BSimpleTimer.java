@@ -399,25 +399,24 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Timer.BSimpleTimer: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Delay=").append(getDelay()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Period=").append(getPeriod()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RemainTimes=").append(getRemainTimes()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HappenTimes=").append(getHappenTimes()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("StartTime=").append(getStartTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("NextExpectedTime=").append(getNextExpectedTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExpectedTime=").append(getExpectedTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HappenTime=").append(getHappenTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("MissfirePolicy=").append(getMissfirePolicy()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("OneByOneKey=").append(getOneByOneKey()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Timer.BSimpleTimer: {\n");
+        _s_.append(_i1_).append("Delay=").append(getDelay()).append(",\n");
+        _s_.append(_i1_).append("Period=").append(getPeriod()).append(",\n");
+        _s_.append(_i1_).append("RemainTimes=").append(getRemainTimes()).append(",\n");
+        _s_.append(_i1_).append("HappenTimes=").append(getHappenTimes()).append(",\n");
+        _s_.append(_i1_).append("StartTime=").append(getStartTime()).append(",\n");
+        _s_.append(_i1_).append("EndTime=").append(getEndTime()).append(",\n");
+        _s_.append(_i1_).append("NextExpectedTime=").append(getNextExpectedTime()).append(",\n");
+        _s_.append(_i1_).append("ExpectedTime=").append(getExpectedTime()).append(",\n");
+        _s_.append(_i1_).append("HappenTime=").append(getHappenTime()).append(",\n");
+        _s_.append(_i1_).append("MissfirePolicy=").append(getMissfirePolicy()).append(",\n");
+        _s_.append(_i1_).append("OneByOneKey=").append(getOneByOneKey()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

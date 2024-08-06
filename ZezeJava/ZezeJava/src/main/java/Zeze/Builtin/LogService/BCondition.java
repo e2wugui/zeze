@@ -223,29 +223,27 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BCondition: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BeginTime=").append(getBeginTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndTime=").append(getEndTime()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Words=[");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.LogService.BCondition: {\n");
+        _s_.append(_i1_).append("BeginTime=").append(getBeginTime()).append(",\n");
+        _s_.append(_i1_).append("EndTime=").append(getEndTime()).append(",\n");
+        _s_.append(_i1_).append("Words=[");
         if (!_Words.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Words) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append(']').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ContainsType=").append(getContainsType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Pattern=").append(getPattern()).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("],\n");
+        _s_.append(_i1_).append("ContainsType=").append(getContainsType()).append(",\n");
+        _s_.append(_i1_).append("Pattern=").append(getPattern()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -594,29 +592,27 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.LogService.BCondition: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("BeginTime=").append(_BeginTime).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("EndTime=").append(_EndTime).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Words=[");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.LogService.BCondition: {\n");
+        _s_.append(_i1_).append("BeginTime=").append(_BeginTime).append(",\n");
+        _s_.append(_i1_).append("EndTime=").append(_EndTime).append(",\n");
+        _s_.append(_i1_).append("Words=[");
         if (!_Words.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _v_ : _Words) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Item=").append(_v_).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append(']').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ContainsType=").append(_ContainsType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Pattern=").append(_Pattern).append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("],\n");
+        _s_.append(_i1_).append("ContainsType=").append(_ContainsType).append(",\n");
+        _s_.append(_i1_).append("Pattern=").append(_Pattern).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

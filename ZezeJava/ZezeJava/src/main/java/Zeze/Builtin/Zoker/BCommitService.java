@@ -142,16 +142,15 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(getServiceName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("VersionNo=").append(getVersionNo()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Zoker.BCommitService: {\n");
+        _s_.append(_i1_).append("ServiceName=").append(getServiceName()).append(",\n");
+        _s_.append(_i1_).append("VersionNo=").append(getVersionNo()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -372,16 +371,15 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Zoker.BCommitService: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceName=").append(_ServiceName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("VersionNo=").append(_VersionNo).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Zoker.BCommitService: {\n");
+        _s_.append(_i1_).append("ServiceName=").append(_ServiceName).append(",\n");
+        _s_.append(_i1_).append("VersionNo=").append(_VersionNo).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

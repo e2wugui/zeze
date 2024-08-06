@@ -192,45 +192,41 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Root=").append(getRoot()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Managers={");
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+        _s_.append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot: {\n");
+        _s_.append(_i1_).append("Root=").append(getRoot()).append(",\n");
+        _s_.append(_i1_).append("Managers={");
         if (!_Managers.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Managers.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(System.lineSeparator());
-                _e_.getValue().getBean().buildString(_s_, _l_ + 4);
-                _s_.append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=");
+                _e_.getValue().getBean().buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("NextDepartmentId=").append(getNextDepartmentId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Childs={");
+        _s_.append("},\n");
+        _s_.append(_i1_).append("NextDepartmentId=").append(getNextDepartmentId()).append(",\n");
+        _s_.append(_i1_).append("Childs={");
         if (!_Childs.isEmpty()) {
-            _s_.append(System.lineSeparator());
-            _l_ += 4;
+            _s_.append('\n');
             for (var _e_ : _Childs.entrySet()) {
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_e_.getKey()).append(',').append(System.lineSeparator());
-                _s_.append(Zeze.Util.Str.indent(_l_)).append("Value=").append(_e_.getValue()).append(',').append(System.lineSeparator());
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
-            _l_ -= 4;
-            _s_.append(Zeze.Util.Str.indent(_l_));
+            _s_.append(_i1_);
         }
-        _s_.append('}').append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Data=").append(System.lineSeparator());
-        _Data.getBean().buildString(_s_, _l_ + 4);
-        _s_.append(System.lineSeparator());
-        _l_ -= 4;
+        _s_.append("},\n");
+        _s_.append(_i1_).append("Data=");
+        _Data.getBean().buildString(_s_, _l_ + 8);
+        _s_.append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

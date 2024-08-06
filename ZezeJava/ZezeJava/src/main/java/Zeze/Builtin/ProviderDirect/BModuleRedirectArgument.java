@@ -371,23 +371,22 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectArgument: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(getModuleId()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCode=").append(getHashCode()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RedirectType=").append(getRedirectType()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(getMethodFullName()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(getParams()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(getVersion()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(getKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("NoOneByOne=").append(isNoOneByOne()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectArgument: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(getModuleId()).append(",\n");
+        _s_.append(_i1_).append("HashCode=").append(getHashCode()).append(",\n");
+        _s_.append(_i1_).append("RedirectType=").append(getRedirectType()).append(",\n");
+        _s_.append(_i1_).append("MethodFullName=").append(getMethodFullName()).append(",\n");
+        _s_.append(_i1_).append("Params=").append(getParams()).append(",\n");
+        _s_.append(_i1_).append("ServiceNamePrefix=").append(getServiceNamePrefix()).append(",\n");
+        _s_.append(_i1_).append("Version=").append(getVersion()).append(",\n");
+        _s_.append(_i1_).append("Key=").append(getKey()).append(",\n");
+        _s_.append(_i1_).append("NoOneByOne=").append(isNoOneByOne()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -838,23 +837,22 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.ProviderDirect.BModuleRedirectArgument: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ModuleId=").append(_ModuleId).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("HashCode=").append(_HashCode).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("RedirectType=").append(_RedirectType).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("MethodFullName=").append(_MethodFullName).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Params=").append(_Params).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Version=").append(_Version).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Key=").append(_Key).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("NoOneByOne=").append(_NoOneByOne).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectArgument: {\n");
+        _s_.append(_i1_).append("ModuleId=").append(_ModuleId).append(",\n");
+        _s_.append(_i1_).append("HashCode=").append(_HashCode).append(",\n");
+        _s_.append(_i1_).append("RedirectType=").append(_RedirectType).append(",\n");
+        _s_.append(_i1_).append("MethodFullName=").append(_MethodFullName).append(",\n");
+        _s_.append(_i1_).append("Params=").append(_Params).append(",\n");
+        _s_.append(_i1_).append("ServiceNamePrefix=").append(_ServiceNamePrefix).append(",\n");
+        _s_.append(_i1_).append("Version=").append(_Version).append(",\n");
+        _s_.append(_i1_).append("Key=").append(_Key).append(",\n");
+        _s_.append(_i1_).append("NoOneByOne=").append(_NoOneByOne).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 

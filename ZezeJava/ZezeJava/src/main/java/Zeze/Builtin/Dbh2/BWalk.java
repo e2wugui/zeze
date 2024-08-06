@@ -206,18 +206,17 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeLimit=").append(getProposeLimit()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Desc=").append(isDesc()).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Prefix=").append(getPrefix()).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BWalk: {\n");
+        _s_.append(_i1_).append("ExclusiveStartKey=").append(getExclusiveStartKey()).append(",\n");
+        _s_.append(_i1_).append("ProposeLimit=").append(getProposeLimit()).append(",\n");
+        _s_.append(_i1_).append("Desc=").append(isDesc()).append(",\n");
+        _s_.append(_i1_).append("Prefix=").append(getPrefix()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -501,18 +500,17 @@ public static final class Data extends Zeze.Transaction.Data {
     public String toString() {
         var _s_ = new StringBuilder();
         buildString(_s_, 0);
-        return _s_.append(System.lineSeparator()).toString();
+        return _s_.toString();
     }
 
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Zeze.Builtin.Dbh2.BWalk: {").append(System.lineSeparator());
-        _l_ += 4;
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("ProposeLimit=").append(_ProposeLimit).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Desc=").append(_Desc).append(',').append(System.lineSeparator());
-        _s_.append(Zeze.Util.Str.indent(_l_)).append("Prefix=").append(_Prefix).append(System.lineSeparator());
-        _l_ -= 4;
+        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        _s_.append("Zeze.Builtin.Dbh2.BWalk: {\n");
+        _s_.append(_i1_).append("ExclusiveStartKey=").append(_ExclusiveStartKey).append(",\n");
+        _s_.append(_i1_).append("ProposeLimit=").append(_ProposeLimit).append(",\n");
+        _s_.append(_i1_).append("Desc=").append(_Desc).append(",\n");
+        _s_.append(_i1_).append("Prefix=").append(_Prefix).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
