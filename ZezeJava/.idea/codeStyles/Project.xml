@@ -32,7 +32,6 @@
       <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1" />
       <option name="INDENT_CASE_FROM_SWITCH" value="false" />
       <option name="SPACE_AFTER_TYPE_CAST" value="false" />
-      <option name="METHOD_ANNOTATION_WRAP" value="0" />
       <indentOptions>
         <option name="USE_TAB_CHARACTER" value="true" />
       </indentOptions>

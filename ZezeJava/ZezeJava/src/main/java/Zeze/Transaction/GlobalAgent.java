@@ -65,7 +65,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		}
 
 		@Contract("_, _ -> fail")
-		private static void throwException(String msg, Throwable cause) {
+		private static void throwException(@NotNull String msg, @Nullable Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.throwAbort(msg, cause);
@@ -87,10 +87,10 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 			try {
 				var so = connector.TryGetReadySocket();
 				return so != null ? so : connector.WaitReady();
-			} catch (Throwable abort) { // rethrow RuntimeException
+			} catch (Throwable e) { // rethrow RuntimeException
 				setFastFail();
-				throwException("GlobalAgent Login Failed", abort);
-				throw abort; // never run here
+				throwException("GlobalAgent Login Failed", e);
+				throw e; // never run here
 			}
 		}
 
@@ -202,12 +202,12 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				return null;
 			}
 			rpc.SendForWait(socket, agent.getConfig().acquireTimeout).get();
-		} catch (Throwable e) { // rethrow Error or RuntimeException
+		} catch (Throwable e) { // rethrow GoBackZeze
 			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
 			var trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new GoBackZeze("Acquire", e);
-			trans.throwAbort("Acquire", e);
+				throw new GoBackZeze("Acquire Failed", e);
+			trans.throwAbort("Acquire Failed", e);
 			// never run here
 		}
 		/*
@@ -221,10 +221,11 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
 				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
 			var tableId = (int)ByteBuffer.ToLong(gkey.bytesUnsafe(), gkey.getOffset(), Math.min(4, gkey.size()));
+			var msg = "Acquire Failed: " + gkey + " tableId=" + tableId;
 			var trans = Transaction.getCurrent();
 			if (trans == null)
-				throw new GoBackZeze("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId);
-			trans.throwAbort("GlobalAgent.Acquire Failed: " + gkey + " tableId=" + tableId, null);
+				throw new GoBackZeze(msg);
+			trans.throwAbort(msg, null);
 			// never run here
 		}
 		var rc = rpc.getResultCode();

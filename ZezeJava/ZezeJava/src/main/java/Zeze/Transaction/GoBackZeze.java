@@ -1,26 +1,11 @@
 package Zeze.Transaction;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.Nullable;
-
 public class GoBackZeze extends Error {
-	public GoBackZeze(Throwable cause) {
-		super(cause);
-	}
-
 	public GoBackZeze(String msg) {
 		super(msg);
 	}
 
 	public GoBackZeze(String msg, Throwable cause) {
 		super(msg, cause);
-	}
-
-	public GoBackZeze() {
-	}
-
-	@Contract("_, _ -> fail")
-	public static void Throw(String msg, @Nullable Throwable cause) {
-		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 }

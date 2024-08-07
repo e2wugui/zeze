@@ -236,7 +236,7 @@ public final class Transaction {
 	void setAlwaysReleaseLockWhenRedo() {
 		alwaysReleaseLockWhenRedo = true;
 		if (!holdLocks.isEmpty())
-			throwRedo();
+			throwRedo("Redo: AlwaysReleaseLock");
 	}
 
 	/**
@@ -579,7 +579,7 @@ public final class Transaction {
 	public void verifyRecordForWrite(@NotNull Bean bean) {
 		//noinspection DataFlowIssue
 		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved)
-			throwRedo(); // 这个错误需要redo。不是逻辑错误。
+			throwRedo("Redo: StateRemoved"); // 这个错误需要redo。不是逻辑错误。
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
 		if (ra == null)
@@ -591,7 +591,7 @@ public final class Transaction {
 		if (ra.atomicTupleRecord.record.getTable().getZeze().getConfig().getFastRedoWhenConflict()
 				&& state != TransactionState.Completed
 				&& ra.atomicTupleRecord.record.getTimestamp() != ra.atomicTupleRecord.timestamp) {
-			throwRedo();
+			throwRedo("Redo: FastRedoWhenConflict");
 		}
 	}
 
@@ -803,27 +803,27 @@ public final class Transaction {
 	}
 
 	@Contract("_, _ -> fail")
-	public void throwAbort(@Nullable String msg, @Nullable Throwable cause) {
+	public void throwAbort(@NotNull String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.Abort;
-		GoBackZeze.Throw(msg, cause);
+		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 
 	@Contract("_, _ -> fail")
-	public void throwRedoAndReleaseLock(@Nullable String msg, @Nullable Throwable cause) {
+	public void throwRedoAndReleaseLock(@NotNull String msg, @Nullable Throwable cause) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
-		GoBackZeze.Throw(msg, cause);
+		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 
-	@Contract("-> fail")
-	public void throwRedo() {
+	@Contract("_ -> fail")
+	public void throwRedo(@NotNull String msg) {
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;
-		GoBackZeze.Throw("Redo", null);
+		throw new GoBackZeze(msg);
 	}
 
 	public void verifyRunning() {
