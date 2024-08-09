@@ -12,6 +12,21 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
     private int _ServerId; // 目标server的id。
     private Zeze.Net.Binary _Params;
 
+    private static final java.lang.invoke.VarHandle vh_ModuleId;
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_Params;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ModuleId = _l_.findVarHandle(BModuleRedirectResult.class, "_ModuleId", int.class);
+            vh_ServerId = _l_.findVarHandle(BModuleRedirectResult.class, "_ServerId", int.class);
+            vh_Params = _l_.findVarHandle(BModuleRedirectResult.class, "_Params", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getModuleId() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ModuleId;
-        var log = (Log__ModuleId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ModuleId;
     }
 
@@ -29,7 +44,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ModuleId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ModuleId, _v_));
     }
 
     @Override
@@ -39,7 +54,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ServerId;
     }
 
@@ -49,7 +64,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ServerId, _v_));
     }
 
     @Override
@@ -59,7 +74,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Params;
-        var log = (Log__Params)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Params;
     }
 
@@ -71,7 +86,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Params(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_Params, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -142,27 +157,6 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean implement
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ModuleId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ModuleId(BModuleRedirectResult _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectResult)getBelong())._ModuleId = value; }
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BModuleRedirectResult _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectResult)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Params(BModuleRedirectResult _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectResult)getBelong())._Params = value; }
     }
 
     @Override

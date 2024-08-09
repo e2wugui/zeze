@@ -14,6 +14,25 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     private Zeze.Net.Binary _TaskParam; // 任务参数。
     private long _PrevTaskId; // 上一个任务编号，用来发现错误。
 
+    private static final java.lang.invoke.VarHandle vh_QueueName;
+    private static final java.lang.invoke.VarHandle vh_TaskType;
+    private static final java.lang.invoke.VarHandle vh_TaskId;
+    private static final java.lang.invoke.VarHandle vh_TaskParam;
+    private static final java.lang.invoke.VarHandle vh_PrevTaskId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_QueueName = _l_.findVarHandle(BQueueTask.class, "_QueueName", String.class);
+            vh_TaskType = _l_.findVarHandle(BQueueTask.class, "_TaskType", int.class);
+            vh_TaskId = _l_.findVarHandle(BQueueTask.class, "_TaskId", long.class);
+            vh_TaskParam = _l_.findVarHandle(BQueueTask.class, "_TaskParam", Zeze.Net.Binary.class);
+            vh_PrevTaskId = _l_.findVarHandle(BQueueTask.class, "_PrevTaskId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getQueueName() {
         if (!isManaged())
@@ -21,7 +40,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _QueueName;
-        var log = (Log__QueueName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _QueueName;
     }
 
@@ -33,7 +52,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__QueueName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_QueueName, _v_));
     }
 
     @Override
@@ -43,7 +62,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TaskType;
-        var log = (Log__TaskType)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TaskType;
     }
 
@@ -53,7 +72,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TaskType(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_TaskType, _v_));
     }
 
     @Override
@@ -63,7 +82,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TaskId;
-        var log = (Log__TaskId)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _TaskId;
     }
 
@@ -73,7 +92,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TaskId(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_TaskId, _v_));
     }
 
     @Override
@@ -83,7 +102,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TaskParam;
-        var log = (Log__TaskParam)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _TaskParam;
     }
 
@@ -95,7 +114,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TaskParam(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_TaskParam, _v_));
     }
 
     @Override
@@ -105,7 +124,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _PrevTaskId;
-        var log = (Log__PrevTaskId)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _PrevTaskId;
     }
 
@@ -115,7 +134,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__PrevTaskId(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_PrevTaskId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -176,41 +195,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__QueueName extends Zeze.Transaction.Logs.LogString {
-        public Log__QueueName(BQueueTask _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueTask)getBelong())._QueueName = value; }
-    }
-
-    private static final class Log__TaskType extends Zeze.Transaction.Logs.LogInt {
-        public Log__TaskType(BQueueTask _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueTask)getBelong())._TaskType = value; }
-    }
-
-    private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TaskId(BQueueTask _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueTask)getBelong())._TaskId = value; }
-    }
-
-    private static final class Log__TaskParam extends Zeze.Transaction.Logs.LogBinary {
-        public Log__TaskParam(BQueueTask _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueTask)getBelong())._TaskParam = value; }
-    }
-
-    private static final class Log__PrevTaskId extends Zeze.Transaction.Logs.LogLong {
-        public Log__PrevTaskId(BQueueTask _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueTask)getBelong())._PrevTaskId = value; }
     }
 
     @Override

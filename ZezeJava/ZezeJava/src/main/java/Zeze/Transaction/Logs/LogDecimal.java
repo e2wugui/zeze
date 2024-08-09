@@ -1,5 +1,6 @@
 package Zeze.Transaction.Logs;
 
+import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import Zeze.Net.Binary;
@@ -12,15 +13,18 @@ import org.jetbrains.annotations.NotNull;
 public class LogDecimal extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<decimal>");
 
+	private final VarHandle vh;
 	public BigDecimal value;
 
-	public LogDecimal(Bean belong, int varId, BigDecimal value) {
+	public LogDecimal(Bean belong, int varId, VarHandle vh, BigDecimal value) {
 		setBelong(belong);
 		setVariableId(varId);
+		this.vh = vh;
 		this.value = value;
 	}
 
 	public LogDecimal() {
+		vh = null;
 	}
 
 	@Override
@@ -35,7 +39,7 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void commit() {
-		throw new UnsupportedOperationException();
+		vh.set(getBelong(), value);
 	}
 
 	@Override

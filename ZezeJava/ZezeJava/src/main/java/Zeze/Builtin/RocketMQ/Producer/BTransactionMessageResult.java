@@ -11,6 +11,19 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     private boolean _Result;
     private long _Timestamp;
 
+    private static final java.lang.invoke.VarHandle vh_Result;
+    private static final java.lang.invoke.VarHandle vh_Timestamp;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Result = _l_.findVarHandle(BTransactionMessageResult.class, "_Result", boolean.class);
+            vh_Timestamp = _l_.findVarHandle(BTransactionMessageResult.class, "_Timestamp", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public boolean isResult() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Result;
-        var log = (Log__Result)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Result;
     }
 
@@ -28,7 +41,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Result(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 1, vh_Result, _v_));
     }
 
     @Override
@@ -38,7 +51,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Timestamp;
-        var log = (Log__Timestamp)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Timestamp;
     }
 
@@ -48,7 +61,7 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Timestamp(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_Timestamp, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -94,20 +107,6 @@ public final class BTransactionMessageResult extends Zeze.Transaction.Bean imple
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Result extends Zeze.Transaction.Logs.LogBool {
-        public Log__Result(BTransactionMessageResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransactionMessageResult)getBelong())._Result = value; }
-    }
-
-    private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
-        public Log__Timestamp(BTransactionMessageResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransactionMessageResult)getBelong())._Timestamp = value; }
     }
 
     @Override

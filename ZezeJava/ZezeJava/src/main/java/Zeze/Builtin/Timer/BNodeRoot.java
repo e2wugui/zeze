@@ -13,6 +13,23 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
     private long _LoadSerialNo; // 每次启动时都递增的序列号, 用来处理跟接管的并发
     private long _Version; // 最高的定时器版本(tIndexs.Version), 用于被接管时判断
 
+    private static final java.lang.invoke.VarHandle vh_HeadNodeId;
+    private static final java.lang.invoke.VarHandle vh_TailNodeId;
+    private static final java.lang.invoke.VarHandle vh_LoadSerialNo;
+    private static final java.lang.invoke.VarHandle vh_Version;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_HeadNodeId = _l_.findVarHandle(BNodeRoot.class, "_HeadNodeId", long.class);
+            vh_TailNodeId = _l_.findVarHandle(BNodeRoot.class, "_TailNodeId", long.class);
+            vh_LoadSerialNo = _l_.findVarHandle(BNodeRoot.class, "_LoadSerialNo", long.class);
+            vh_Version = _l_.findVarHandle(BNodeRoot.class, "_Version", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getHeadNodeId() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _HeadNodeId;
     }
 
@@ -30,7 +47,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HeadNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_HeadNodeId, _v_));
     }
 
     @Override
@@ -40,7 +57,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TailNodeId;
     }
 
@@ -50,7 +67,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TailNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_TailNodeId, _v_));
     }
 
     @Override
@@ -60,7 +77,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoadSerialNo;
-        var log = (Log__LoadSerialNo)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LoadSerialNo;
     }
 
@@ -70,7 +87,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoadSerialNo(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_LoadSerialNo, _v_));
     }
 
     @Override
@@ -80,7 +97,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Version;
-        var log = (Log__Version)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Version;
     }
 
@@ -90,7 +107,7 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Version(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_Version, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -142,34 +159,6 @@ public final class BNodeRoot extends Zeze.Transaction.Bean implements BNodeRootR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__HeadNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__HeadNodeId(BNodeRoot _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNodeRoot)getBelong())._HeadNodeId = value; }
-    }
-
-    private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TailNodeId(BNodeRoot _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNodeRoot)getBelong())._TailNodeId = value; }
-    }
-
-    private static final class Log__LoadSerialNo extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoadSerialNo(BNodeRoot _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNodeRoot)getBelong())._LoadSerialNo = value; }
-    }
-
-    private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
-        public Log__Version(BNodeRoot _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNodeRoot)getBelong())._Version = value; }
     }
 
     @Override

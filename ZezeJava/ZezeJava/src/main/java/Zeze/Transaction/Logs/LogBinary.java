@@ -1,5 +1,6 @@
 package Zeze.Transaction.Logs;
 
+import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
@@ -13,15 +14,18 @@ import org.jetbrains.annotations.NotNull;
 public class LogBinary extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<binary>");
 
+	private final VarHandle vh;
 	public Binary value;
 
-	public LogBinary(Bean belong, int varId, Binary value) {
+	public LogBinary(Bean belong, int varId, VarHandle vh, Binary value) {
 		setBelong(belong);
 		setVariableId(varId);
+		this.vh = vh;
 		this.value = value;
 	}
 
 	public LogBinary() {
+		vh = null;
 	}
 
 	@Override
@@ -36,7 +40,7 @@ public class LogBinary extends Log {
 
 	@Override
 	public void commit() {
-		throw new UnsupportedOperationException();
+		vh.set(getBelong(), value);
 	}
 
 	@Override

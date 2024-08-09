@@ -42,6 +42,21 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     private long _LoginVersion; // 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
     private long _SerialId; // 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
 
+    private static final java.lang.invoke.VarHandle vh_RoleId;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_SerialId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_RoleId = _l_.findVarHandle(BGameOnlineTimer.class, "_RoleId", long.class);
+            vh_LoginVersion = _l_.findVarHandle(BGameOnlineTimer.class, "_LoginVersion", long.class);
+            vh_SerialId = _l_.findVarHandle(BGameOnlineTimer.class, "_SerialId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getRoleId() {
         if (!isManaged())
@@ -49,7 +64,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RoleId;
-        var log = (Log__RoleId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _RoleId;
     }
 
@@ -59,7 +74,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RoleId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_RoleId, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getTimerObj() {
@@ -104,7 +119,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -114,7 +129,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_LoginVersion, _v_));
     }
 
     @Override
@@ -124,7 +139,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SerialId;
-        var log = (Log__SerialId)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _SerialId;
     }
 
@@ -134,7 +149,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SerialId(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_SerialId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -187,27 +202,6 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
-        public Log__RoleId(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGameOnlineTimer)getBelong())._RoleId = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGameOnlineTimer)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SerialId(BGameOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGameOnlineTimer)getBelong())._SerialId = value; }
     }
 
     @Override

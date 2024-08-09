@@ -11,6 +11,19 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     private String _BagName;
     private int _Position;
 
+    private static final java.lang.invoke.VarHandle vh_BagName;
+    private static final java.lang.invoke.VarHandle vh_Position;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_BagName = _l_.findVarHandle(BDestroy.class, "_BagName", String.class);
+            vh_Position = _l_.findVarHandle(BDestroy.class, "_Position", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getBagName() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _BagName;
-        var log = (Log__BagName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _BagName;
     }
 
@@ -30,7 +43,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__BagName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_BagName, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Position;
-        var log = (Log__Position)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Position;
     }
 
@@ -50,7 +63,7 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Position(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Position, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -99,20 +112,6 @@ public final class BDestroy extends Zeze.Transaction.Bean implements BDestroyRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__BagName extends Zeze.Transaction.Logs.LogString {
-        public Log__BagName(BDestroy _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDestroy)getBelong())._BagName = value; }
-    }
-
-    private static final class Log__Position extends Zeze.Transaction.Logs.LogInt {
-        public Log__Position(BDestroy _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDestroy)getBelong())._Position = value; }
     }
 
     @Override

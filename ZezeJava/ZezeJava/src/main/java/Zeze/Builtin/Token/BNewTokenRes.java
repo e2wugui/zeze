@@ -10,6 +10,17 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
 
     private String _token; // 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是24个半角字符(大小写字母和数字组合)
 
+    private static final java.lang.invoke.VarHandle vh_token;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_token = _l_.findVarHandle(BNewTokenRes.class, "_token", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getToken() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _token;
-        var log = (Log__token)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _token;
     }
 
@@ -29,7 +40,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__token(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_token, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -92,13 +103,6 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__token extends Zeze.Transaction.Logs.LogString {
-        public Log__token(BNewTokenRes _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNewTokenRes)getBelong())._token = value; }
     }
 
     @Override

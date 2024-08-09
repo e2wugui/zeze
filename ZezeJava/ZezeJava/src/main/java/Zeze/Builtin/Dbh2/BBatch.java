@@ -26,6 +26,21 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         __zeze_map_key__ = _v_;
     }
 
+    private static final java.lang.invoke.VarHandle vh_QueryIp;
+    private static final java.lang.invoke.VarHandle vh_QueryPort;
+    private static final java.lang.invoke.VarHandle vh_Tid;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_QueryIp = _l_.findVarHandle(BBatch.class, "_QueryIp", String.class);
+            vh_QueryPort = _l_.findVarHandle(BBatch.class, "_QueryPort", int.class);
+            vh_Tid = _l_.findVarHandle(BBatch.class, "_Tid", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     public Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> getPuts() {
         return _Puts;
     }
@@ -51,7 +66,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _QueryIp;
-        var log = (Log__QueryIp)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _QueryIp;
     }
 
@@ -63,7 +78,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__QueryIp(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_QueryIp, _v_));
     }
 
     @Override
@@ -73,7 +88,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _QueryPort;
-        var log = (Log__QueryPort)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _QueryPort;
     }
 
@@ -83,7 +98,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__QueryPort(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_QueryPort, _v_));
     }
 
     @Override
@@ -93,7 +108,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Tid;
-        var log = (Log__Tid)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Tid;
     }
 
@@ -103,7 +118,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Tid(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_Tid, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -190,27 +205,6 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__QueryIp extends Zeze.Transaction.Logs.LogString {
-        public Log__QueryIp(BBatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBatch)getBelong())._QueryIp = value; }
-    }
-
-    private static final class Log__QueryPort extends Zeze.Transaction.Logs.LogInt {
-        public Log__QueryPort(BBatch _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBatch)getBelong())._QueryPort = value; }
-    }
-
-    private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Tid(BBatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBatch)getBelong())._Tid = value; }
     }
 
     @Override

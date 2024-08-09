@@ -35,6 +35,29 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     private Zeze.Builtin.Collections.Queue.BQueueNodeKey _HeadNodeKey;
     private Zeze.Builtin.Collections.Queue.BQueueNodeKey _TailNodeKey;
 
+    private static final java.lang.invoke.VarHandle vh_HeadNodeId;
+    private static final java.lang.invoke.VarHandle vh_TailNodeId;
+    private static final java.lang.invoke.VarHandle vh_Count;
+    private static final java.lang.invoke.VarHandle vh_LastNodeId;
+    private static final java.lang.invoke.VarHandle vh_LoadSerialNo;
+    private static final java.lang.invoke.VarHandle vh_HeadNodeKey;
+    private static final java.lang.invoke.VarHandle vh_TailNodeKey;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_HeadNodeId = _l_.findVarHandle(BQueue.class, "_HeadNodeId", long.class);
+            vh_TailNodeId = _l_.findVarHandle(BQueue.class, "_TailNodeId", long.class);
+            vh_Count = _l_.findVarHandle(BQueue.class, "_Count", long.class);
+            vh_LastNodeId = _l_.findVarHandle(BQueue.class, "_LastNodeId", long.class);
+            vh_LoadSerialNo = _l_.findVarHandle(BQueue.class, "_LoadSerialNo", long.class);
+            vh_HeadNodeKey = _l_.findVarHandle(BQueue.class, "_HeadNodeKey", Zeze.Builtin.Collections.Queue.BQueueNodeKey.class);
+            vh_TailNodeKey = _l_.findVarHandle(BQueue.class, "_TailNodeKey", Zeze.Builtin.Collections.Queue.BQueueNodeKey.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getHeadNodeId() {
         if (!isManaged())
@@ -42,7 +65,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _HeadNodeId;
     }
 
@@ -52,7 +75,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HeadNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_HeadNodeId, _v_));
     }
 
     @Override
@@ -62,7 +85,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TailNodeId;
     }
 
@@ -72,7 +95,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TailNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_TailNodeId, _v_));
     }
 
     @Override
@@ -82,7 +105,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Count;
-        var log = (Log__Count)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Count;
     }
 
@@ -92,7 +115,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Count(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Count, _v_));
     }
 
     @Override
@@ -102,7 +125,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LastNodeId;
-        var log = (Log__LastNodeId)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _LastNodeId;
     }
 
@@ -112,7 +135,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LastNodeId(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_LastNodeId, _v_));
     }
 
     @Override
@@ -122,7 +145,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoadSerialNo;
-        var log = (Log__LoadSerialNo)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _LoadSerialNo;
     }
 
@@ -132,7 +155,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoadSerialNo(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_LoadSerialNo, _v_));
     }
 
     @Override
@@ -142,7 +165,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HeadNodeKey;
-        var log = (Log__HeadNodeKey)_t_.getLog(objectId() + 6);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _HeadNodeKey;
     }
 
@@ -154,7 +178,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HeadNodeKey(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 6, vh_HeadNodeKey, _v_));
     }
 
     @Override
@@ -164,7 +188,8 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TailNodeKey;
-        var log = (Log__TailNodeKey)_t_.getLog(objectId() + 7);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _TailNodeKey;
     }
 
@@ -176,7 +201,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TailNodeKey(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 7, vh_TailNodeKey, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -243,55 +268,6 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__HeadNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__HeadNodeId(BQueue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._HeadNodeId = value; }
-    }
-
-    private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TailNodeId(BQueue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._TailNodeId = value; }
-    }
-
-    private static final class Log__Count extends Zeze.Transaction.Logs.LogLong {
-        public Log__Count(BQueue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._Count = value; }
-    }
-
-    private static final class Log__LastNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__LastNodeId(BQueue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._LastNodeId = value; }
-    }
-
-    private static final class Log__LoadSerialNo extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoadSerialNo(BQueue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._LoadSerialNo = value; }
-    }
-
-    private static final class Log__HeadNodeKey extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey> {
-        public Log__HeadNodeKey(BQueue _b_, int _i_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_) { super(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._HeadNodeKey = value; }
-    }
-
-    private static final class Log__TailNodeKey extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey> {
-        public Log__TailNodeKey(BQueue _b_, int _i_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_) { super(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueue)getBelong())._TailNodeKey = value; }
     }
 
     @Override

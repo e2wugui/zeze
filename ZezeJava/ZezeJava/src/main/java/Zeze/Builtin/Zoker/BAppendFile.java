@@ -13,6 +13,23 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     private long _Offset;
     private Zeze.Net.Binary _Chunk;
 
+    private static final java.lang.invoke.VarHandle vh_ServiceName;
+    private static final java.lang.invoke.VarHandle vh_FileName;
+    private static final java.lang.invoke.VarHandle vh_Offset;
+    private static final java.lang.invoke.VarHandle vh_Chunk;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceName = _l_.findVarHandle(BAppendFile.class, "_ServiceName", String.class);
+            vh_FileName = _l_.findVarHandle(BAppendFile.class, "_FileName", String.class);
+            vh_Offset = _l_.findVarHandle(BAppendFile.class, "_Offset", long.class);
+            vh_Chunk = _l_.findVarHandle(BAppendFile.class, "_Chunk", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceName() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
@@ -32,7 +49,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceName, _v_));
     }
 
     @Override
@@ -42,7 +59,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FileName;
-        var log = (Log__FileName)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _FileName;
     }
 
@@ -54,7 +71,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FileName(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_FileName, _v_));
     }
 
     @Override
@@ -64,7 +81,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Offset;
-        var log = (Log__Offset)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Offset;
     }
 
@@ -74,7 +91,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Offset(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Offset, _v_));
     }
 
     @Override
@@ -84,7 +101,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Chunk;
-        var log = (Log__Chunk)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Chunk;
     }
 
@@ -96,7 +113,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Chunk(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_Chunk, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -177,34 +194,6 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BAppendFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAppendFile)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
-        public Log__FileName(BAppendFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAppendFile)getBelong())._FileName = value; }
-    }
-
-    private static final class Log__Offset extends Zeze.Transaction.Logs.LogLong {
-        public Log__Offset(BAppendFile _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAppendFile)getBelong())._Offset = value; }
-    }
-
-    private static final class Log__Chunk extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Chunk(BAppendFile _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAppendFile)getBelong())._Chunk = value; }
     }
 
     @Override

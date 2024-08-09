@@ -12,6 +12,21 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     private Zeze.Net.Binary _contextx;
     private String _onlineSetName;
 
+    private static final java.lang.invoke.VarHandle vh_context;
+    private static final java.lang.invoke.VarHandle vh_contextx;
+    private static final java.lang.invoke.VarHandle vh_onlineSetName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_context = _l_.findVarHandle(BUserState.class, "_context", String.class);
+            vh_contextx = _l_.findVarHandle(BUserState.class, "_contextx", Zeze.Net.Binary.class);
+            vh_onlineSetName = _l_.findVarHandle(BUserState.class, "_onlineSetName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getContext() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _context;
-        var log = (Log__context)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _context;
     }
 
@@ -31,7 +46,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__context(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_context, _v_));
     }
 
     @Override
@@ -41,7 +56,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _contextx;
-        var log = (Log__contextx)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _contextx;
     }
 
@@ -53,7 +68,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__contextx(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_contextx, _v_));
     }
 
     @Override
@@ -63,7 +78,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _onlineSetName;
-        var log = (Log__onlineSetName)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _onlineSetName;
     }
 
@@ -75,7 +90,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__onlineSetName(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_onlineSetName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -152,27 +167,6 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
-        public Log__context(BUserState _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BUserState)getBelong())._context = value; }
-    }
-
-    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
-        public Log__contextx(BUserState _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BUserState)getBelong())._contextx = value; }
-    }
-
-    private static final class Log__onlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__onlineSetName(BUserState _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BUserState)getBelong())._onlineSetName = value; }
     }
 
     @Override

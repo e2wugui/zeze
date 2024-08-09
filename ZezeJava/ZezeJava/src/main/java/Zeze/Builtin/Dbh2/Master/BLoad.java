@@ -10,6 +10,17 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 
     private double _Load;
 
+    private static final java.lang.invoke.VarHandle vh_Load;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Load = _l_.findVarHandle(BLoad.class, "_Load", double.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public double getLoad() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Load;
-        var log = (Log__Load)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogDouble)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Load;
     }
 
@@ -27,7 +38,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Load(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogDouble(this, 1, vh_Load, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Load extends Zeze.Transaction.Logs.LogDouble {
-        public Log__Load(BLoad _b_, int _i_, double _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLoad)getBelong())._Load = value; }
     }
 
     @Override

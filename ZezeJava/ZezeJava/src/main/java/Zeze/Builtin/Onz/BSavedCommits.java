@@ -11,6 +11,17 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
     private int _State;
     private final Zeze.Transaction.Collections.PSet1<String> _Onzs;
 
+    private static final java.lang.invoke.VarHandle vh_State;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_State = _l_.findVarHandle(BSavedCommits.class, "_State", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getState() {
         if (!isManaged())
@@ -18,7 +29,7 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _State;
-        var log = (Log__State)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _State;
     }
 
@@ -28,7 +39,7 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__State(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_State, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<String> getOnzs() {
@@ -105,13 +116,6 @@ public final class BSavedCommits extends Zeze.Transaction.Bean implements BSaved
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
-        public Log__State(BSavedCommits _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSavedCommits)getBelong())._State = value; }
     }
 
     @Override

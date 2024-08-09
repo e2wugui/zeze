@@ -10,6 +10,17 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
 
     private long _Tid;
 
+    private static final java.lang.invoke.VarHandle vh_Tid;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Tid = _l_.findVarHandle(BBatchTid.class, "_Tid", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getTid() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Tid;
-        var log = (Log__Tid)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Tid;
     }
 
@@ -27,7 +38,7 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Tid(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Tid, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BBatchTid extends Zeze.Transaction.Bean implements BBatchTidR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Tid extends Zeze.Transaction.Logs.LogLong {
-        public Log__Tid(BBatchTid _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBatchTid)getBelong())._Tid = value; }
     }
 
     @Override

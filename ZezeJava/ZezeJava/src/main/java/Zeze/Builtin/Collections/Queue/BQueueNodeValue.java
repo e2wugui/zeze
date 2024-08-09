@@ -23,6 +23,17 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         return Zeze.Collections.Queue.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final java.lang.invoke.VarHandle vh_Timestamp;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Timestamp = _l_.findVarHandle(BQueueNodeValue.class, "_Timestamp", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getTimestamp() {
         if (!isManaged())
@@ -30,7 +41,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Timestamp;
-        var log = (Log__Timestamp)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Timestamp;
     }
 
@@ -40,7 +51,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Timestamp(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Timestamp, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -96,13 +107,6 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQue
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
-        public Log__Timestamp(BQueueNodeValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueNodeValue)getBelong())._Timestamp = value; }
     }
 
     @Override

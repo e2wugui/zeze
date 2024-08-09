@@ -43,6 +43,23 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     private long _LoginVersion; // 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
     private long _SerialId; // 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
 
+    private static final java.lang.invoke.VarHandle vh_Account;
+    private static final java.lang.invoke.VarHandle vh_ClientId;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_SerialId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Account = _l_.findVarHandle(BArchOnlineTimer.class, "_Account", String.class);
+            vh_ClientId = _l_.findVarHandle(BArchOnlineTimer.class, "_ClientId", String.class);
+            vh_LoginVersion = _l_.findVarHandle(BArchOnlineTimer.class, "_LoginVersion", long.class);
+            vh_SerialId = _l_.findVarHandle(BArchOnlineTimer.class, "_SerialId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getAccount() {
         if (!isManaged())
@@ -50,7 +67,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Account;
-        var log = (Log__Account)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Account;
     }
 
@@ -62,7 +79,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Account(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Account, _v_));
     }
 
     @Override
@@ -72,7 +89,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ClientId;
-        var log = (Log__ClientId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ClientId;
     }
 
@@ -84,7 +101,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ClientId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_ClientId, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getTimerObj() {
@@ -129,7 +146,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -139,7 +156,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_LoginVersion, _v_));
     }
 
     @Override
@@ -149,7 +166,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SerialId;
-        var log = (Log__SerialId)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _SerialId;
     }
 
@@ -159,7 +176,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SerialId(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_SerialId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -221,34 +238,6 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
-        public Log__Account(BArchOnlineTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BArchOnlineTimer)getBelong())._Account = value; }
-    }
-
-    private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
-        public Log__ClientId(BArchOnlineTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BArchOnlineTimer)getBelong())._ClientId = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BArchOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BArchOnlineTimer)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SerialId(BArchOnlineTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BArchOnlineTimer)getBelong())._SerialId = value; }
     }
 
     @Override

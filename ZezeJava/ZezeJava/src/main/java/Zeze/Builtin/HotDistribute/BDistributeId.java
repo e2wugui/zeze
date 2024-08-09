@@ -10,6 +10,17 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
 
     private long _DistributeId;
 
+    private static final java.lang.invoke.VarHandle vh_DistributeId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_DistributeId = _l_.findVarHandle(BDistributeId.class, "_DistributeId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getDistributeId() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _DistributeId;
-        var log = (Log__DistributeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DistributeId;
     }
 
@@ -27,7 +38,7 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__DistributeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_DistributeId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BDistributeId extends Zeze.Transaction.Bean implements BDistr
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__DistributeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__DistributeId(BDistributeId _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDistributeId)getBelong())._DistributeId = value; }
     }
 
     @Override

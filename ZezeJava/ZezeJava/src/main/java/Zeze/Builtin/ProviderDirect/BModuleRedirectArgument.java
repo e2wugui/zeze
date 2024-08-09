@@ -18,6 +18,33 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     private int _Key; // 用于处理请求和回复时作为TaskOneByOne的key
     private boolean _NoOneByOne; // 是否禁用TaskOneByOne处理请求和回复
 
+    private static final java.lang.invoke.VarHandle vh_ModuleId;
+    private static final java.lang.invoke.VarHandle vh_HashCode;
+    private static final java.lang.invoke.VarHandle vh_RedirectType;
+    private static final java.lang.invoke.VarHandle vh_MethodFullName;
+    private static final java.lang.invoke.VarHandle vh_Params;
+    private static final java.lang.invoke.VarHandle vh_ServiceNamePrefix;
+    private static final java.lang.invoke.VarHandle vh_Version;
+    private static final java.lang.invoke.VarHandle vh_Key;
+    private static final java.lang.invoke.VarHandle vh_NoOneByOne;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ModuleId = _l_.findVarHandle(BModuleRedirectArgument.class, "_ModuleId", int.class);
+            vh_HashCode = _l_.findVarHandle(BModuleRedirectArgument.class, "_HashCode", int.class);
+            vh_RedirectType = _l_.findVarHandle(BModuleRedirectArgument.class, "_RedirectType", int.class);
+            vh_MethodFullName = _l_.findVarHandle(BModuleRedirectArgument.class, "_MethodFullName", String.class);
+            vh_Params = _l_.findVarHandle(BModuleRedirectArgument.class, "_Params", Zeze.Net.Binary.class);
+            vh_ServiceNamePrefix = _l_.findVarHandle(BModuleRedirectArgument.class, "_ServiceNamePrefix", String.class);
+            vh_Version = _l_.findVarHandle(BModuleRedirectArgument.class, "_Version", int.class);
+            vh_Key = _l_.findVarHandle(BModuleRedirectArgument.class, "_Key", int.class);
+            vh_NoOneByOne = _l_.findVarHandle(BModuleRedirectArgument.class, "_NoOneByOne", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getModuleId() {
         if (!isManaged())
@@ -25,7 +52,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ModuleId;
-        var log = (Log__ModuleId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ModuleId;
     }
 
@@ -35,7 +62,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ModuleId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ModuleId, _v_));
     }
 
     @Override
@@ -45,7 +72,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HashCode;
-        var log = (Log__HashCode)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _HashCode;
     }
 
@@ -55,7 +82,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HashCode(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_HashCode, _v_));
     }
 
     @Override
@@ -65,7 +92,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RedirectType;
-        var log = (Log__RedirectType)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _RedirectType;
     }
 
@@ -75,7 +102,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RedirectType(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_RedirectType, _v_));
     }
 
     @Override
@@ -85,7 +112,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _MethodFullName;
-        var log = (Log__MethodFullName)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _MethodFullName;
     }
 
@@ -97,7 +124,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__MethodFullName(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_MethodFullName, _v_));
     }
 
     @Override
@@ -107,7 +134,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Params;
-        var log = (Log__Params)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Params;
     }
 
@@ -119,7 +146,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Params(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 5, vh_Params, _v_));
     }
 
     @Override
@@ -129,7 +156,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceNamePrefix;
-        var log = (Log__ServiceNamePrefix)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _ServiceNamePrefix;
     }
 
@@ -141,7 +168,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceNamePrefix(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 6, vh_ServiceNamePrefix, _v_));
     }
 
     @Override
@@ -151,7 +178,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Version;
-        var log = (Log__Version)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _Version;
     }
 
@@ -161,7 +188,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Version(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 7, vh_Version, _v_));
     }
 
     @Override
@@ -171,7 +198,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Key;
-        var log = (Log__Key)_t_.getLog(objectId() + 8);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _Key;
     }
 
@@ -181,7 +208,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Key(this, 8, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 8, vh_Key, _v_));
     }
 
     @Override
@@ -191,7 +218,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NoOneByOne;
-        var log = (Log__NoOneByOne)_t_.getLog(objectId() + 9);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 9);
         return log != null ? log.value : _NoOneByOne;
     }
 
@@ -201,7 +228,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NoOneByOne(this, 9, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 9, vh_NoOneByOne, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -302,69 +329,6 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean impleme
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ModuleId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ModuleId(BModuleRedirectArgument _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._ModuleId = value; }
-    }
-
-    private static final class Log__HashCode extends Zeze.Transaction.Logs.LogInt {
-        public Log__HashCode(BModuleRedirectArgument _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._HashCode = value; }
-    }
-
-    private static final class Log__RedirectType extends Zeze.Transaction.Logs.LogInt {
-        public Log__RedirectType(BModuleRedirectArgument _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._RedirectType = value; }
-    }
-
-    private static final class Log__MethodFullName extends Zeze.Transaction.Logs.LogString {
-        public Log__MethodFullName(BModuleRedirectArgument _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._MethodFullName = value; }
-    }
-
-    private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Params(BModuleRedirectArgument _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._Params = value; }
-    }
-
-    private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceNamePrefix(BModuleRedirectArgument _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._ServiceNamePrefix = value; }
-    }
-
-    private static final class Log__Version extends Zeze.Transaction.Logs.LogInt {
-        public Log__Version(BModuleRedirectArgument _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._Version = value; }
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogInt {
-        public Log__Key(BModuleRedirectArgument _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._Key = value; }
-    }
-
-    private static final class Log__NoOneByOne extends Zeze.Transaction.Logs.LogBool {
-        public Log__NoOneByOne(BModuleRedirectArgument _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectArgument)getBelong())._NoOneByOne = value; }
     }
 
     @Override

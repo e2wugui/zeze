@@ -13,6 +13,23 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     private String _StartNode; // 有向图的起点ValueId（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
     private String _EndNode; // 有向图的终点（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
 
+    private static final java.lang.invoke.VarHandle vh_NodeSum;
+    private static final java.lang.invoke.VarHandle vh_EdgeSum;
+    private static final java.lang.invoke.VarHandle vh_StartNode;
+    private static final java.lang.invoke.VarHandle vh_EndNode;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_NodeSum = _l_.findVarHandle(BDAG.class, "_NodeSum", long.class);
+            vh_EdgeSum = _l_.findVarHandle(BDAG.class, "_EdgeSum", long.class);
+            vh_StartNode = _l_.findVarHandle(BDAG.class, "_StartNode", String.class);
+            vh_EndNode = _l_.findVarHandle(BDAG.class, "_EndNode", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getNodeSum() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NodeSum;
-        var log = (Log__NodeSum)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _NodeSum;
     }
 
@@ -30,7 +47,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NodeSum(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_NodeSum, _v_));
     }
 
     @Override
@@ -40,7 +57,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EdgeSum;
-        var log = (Log__EdgeSum)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _EdgeSum;
     }
 
@@ -50,7 +67,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EdgeSum(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_EdgeSum, _v_));
     }
 
     @Override
@@ -60,7 +77,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _StartNode;
-        var log = (Log__StartNode)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _StartNode;
     }
 
@@ -72,7 +89,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__StartNode(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_StartNode, _v_));
     }
 
     @Override
@@ -82,7 +99,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EndNode;
-        var log = (Log__EndNode)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _EndNode;
     }
 
@@ -94,7 +111,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EndNode(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_EndNode, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -152,34 +169,6 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__NodeSum extends Zeze.Transaction.Logs.LogLong {
-        public Log__NodeSum(BDAG _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAG)getBelong())._NodeSum = value; }
-    }
-
-    private static final class Log__EdgeSum extends Zeze.Transaction.Logs.LogLong {
-        public Log__EdgeSum(BDAG _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAG)getBelong())._EdgeSum = value; }
-    }
-
-    private static final class Log__StartNode extends Zeze.Transaction.Logs.LogString {
-        public Log__StartNode(BDAG _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAG)getBelong())._StartNode = value; }
-    }
-
-    private static final class Log__EndNode extends Zeze.Transaction.Logs.LogString {
-        public Log__EndNode(BDAG _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAG)getBelong())._EndNode = value; }
     }
 
     @Override

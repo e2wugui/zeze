@@ -13,6 +13,23 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     private long _time; // 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
     private String _addr; // 请求分配此token的IP地址
 
+    private static final java.lang.invoke.VarHandle vh_context;
+    private static final java.lang.invoke.VarHandle vh_count;
+    private static final java.lang.invoke.VarHandle vh_time;
+    private static final java.lang.invoke.VarHandle vh_addr;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_context = _l_.findVarHandle(BGetTokenRes.class, "_context", Zeze.Net.Binary.class);
+            vh_count = _l_.findVarHandle(BGetTokenRes.class, "_count", long.class);
+            vh_time = _l_.findVarHandle(BGetTokenRes.class, "_time", long.class);
+            vh_addr = _l_.findVarHandle(BGetTokenRes.class, "_addr", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getContext() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _context;
-        var log = (Log__context)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _context;
     }
 
@@ -32,7 +49,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__context(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_context, _v_));
     }
 
     @Override
@@ -42,7 +59,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _count;
-        var log = (Log__count)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _count;
     }
 
@@ -52,7 +69,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__count(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_count, _v_));
     }
 
     @Override
@@ -62,7 +79,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _time;
-        var log = (Log__time)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _time;
     }
 
@@ -72,7 +89,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__time(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_time, _v_));
     }
 
     @Override
@@ -82,7 +99,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _addr;
-        var log = (Log__addr)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _addr;
     }
 
@@ -94,7 +111,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__addr(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_addr, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -172,34 +189,6 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__context extends Zeze.Transaction.Logs.LogBinary {
-        public Log__context(BGetTokenRes _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenRes)getBelong())._context = value; }
-    }
-
-    private static final class Log__count extends Zeze.Transaction.Logs.LogLong {
-        public Log__count(BGetTokenRes _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenRes)getBelong())._count = value; }
-    }
-
-    private static final class Log__time extends Zeze.Transaction.Logs.LogLong {
-        public Log__time(BGetTokenRes _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenRes)getBelong())._time = value; }
-    }
-
-    private static final class Log__addr extends Zeze.Transaction.Logs.LogString {
-        public Log__addr(BGetTokenRes _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenRes)getBelong())._addr = value; }
     }
 
     @Override

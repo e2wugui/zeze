@@ -13,6 +13,21 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
     private String _State; // Running,Stopped
     private String _Ps; // some ps result ...
 
+    private static final java.lang.invoke.VarHandle vh_ServiceName;
+    private static final java.lang.invoke.VarHandle vh_State;
+    private static final java.lang.invoke.VarHandle vh_Ps;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceName = _l_.findVarHandle(BService.class, "_ServiceName", String.class);
+            vh_State = _l_.findVarHandle(BService.class, "_State", String.class);
+            vh_Ps = _l_.findVarHandle(BService.class, "_Ps", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceName() {
         if (!isManaged())
@@ -20,7 +35,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
@@ -32,7 +47,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceName, _v_));
     }
 
     @Override
@@ -42,7 +57,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _State;
-        var log = (Log__State)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _State;
     }
 
@@ -54,7 +69,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__State(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_State, _v_));
     }
 
     @Override
@@ -64,7 +79,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Ps;
-        var log = (Log__Ps)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Ps;
     }
 
@@ -76,7 +91,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Ps(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_Ps, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -153,27 +168,6 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BService)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__State extends Zeze.Transaction.Logs.LogString {
-        public Log__State(BService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BService)getBelong())._State = value; }
-    }
-
-    private static final class Log__Ps extends Zeze.Transaction.Logs.LogString {
-        public Log__Ps(BService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BService)getBelong())._Ps = value; }
     }
 
     @Override

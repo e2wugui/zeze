@@ -39,6 +39,19 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final java.lang.invoke.VarHandle vh_Root;
+    private static final java.lang.invoke.VarHandle vh_NextDepartmentId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Root = _l_.findVarHandle(BDepartmentRoot.class, "_Root", String.class);
+            vh_NextDepartmentId = _l_.findVarHandle(BDepartmentRoot.class, "_NextDepartmentId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getRoot() {
         if (!isManaged())
@@ -46,7 +59,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Root;
-        var log = (Log__Root)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Root;
     }
 
@@ -58,7 +71,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Root(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Root, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> getManagers() {
@@ -77,7 +90,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextDepartmentId;
-        var log = (Log__NextDepartmentId)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _NextDepartmentId;
     }
 
@@ -87,7 +100,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextDepartmentId(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_NextDepartmentId, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
@@ -172,20 +185,6 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Root extends Zeze.Transaction.Logs.LogString {
-        public Log__Root(BDepartmentRoot _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDepartmentRoot)getBelong())._Root = value; }
-    }
-
-    private static final class Log__NextDepartmentId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextDepartmentId(BDepartmentRoot _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDepartmentRoot)getBelong())._NextDepartmentId = value; }
     }
 
     @Override

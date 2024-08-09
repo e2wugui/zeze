@@ -10,6 +10,17 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
 
     private long _NodeId; // KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
 
+    private static final java.lang.invoke.VarHandle vh_NodeId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_NodeId = _l_.findVarHandle(BLinkedMapNodeId.class, "_NodeId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getNodeId() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NodeId;
-        var log = (Log__NodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _NodeId;
     }
 
@@ -27,7 +38,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_NodeId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -70,13 +81,6 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean implements BLi
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__NodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NodeId(BLinkedMapNodeId _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMapNodeId)getBelong())._NodeId = value; }
     }
 
     @Override

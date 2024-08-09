@@ -10,6 +10,17 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
 
     private long _Id;
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BSession.class, "_Id", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getId() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -27,7 +38,7 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Id, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BSession extends Zeze.Transaction.Bean implements BSessionRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogLong {
-        public Log__Id(BSession _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSession)getBelong())._Id = value; }
     }
 
     @Override

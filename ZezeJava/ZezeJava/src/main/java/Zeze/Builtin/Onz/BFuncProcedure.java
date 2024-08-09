@@ -15,6 +15,25 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     private int _FlushMode;
     private int _FlushTimeout;
 
+    private static final java.lang.invoke.VarHandle vh_OnzTid;
+    private static final java.lang.invoke.VarHandle vh_FuncName;
+    private static final java.lang.invoke.VarHandle vh_FuncArgument;
+    private static final java.lang.invoke.VarHandle vh_FlushMode;
+    private static final java.lang.invoke.VarHandle vh_FlushTimeout;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_OnzTid = _l_.findVarHandle(BFuncProcedure.class, "_OnzTid", long.class);
+            vh_FuncName = _l_.findVarHandle(BFuncProcedure.class, "_FuncName", String.class);
+            vh_FuncArgument = _l_.findVarHandle(BFuncProcedure.class, "_FuncArgument", Zeze.Net.Binary.class);
+            vh_FlushMode = _l_.findVarHandle(BFuncProcedure.class, "_FlushMode", int.class);
+            vh_FlushTimeout = _l_.findVarHandle(BFuncProcedure.class, "_FlushTimeout", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getOnzTid() {
         if (!isManaged())
@@ -22,7 +41,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OnzTid;
-        var log = (Log__OnzTid)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _OnzTid;
     }
 
@@ -32,7 +51,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OnzTid(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_OnzTid, _v_));
     }
 
     @Override
@@ -42,7 +61,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FuncName;
-        var log = (Log__FuncName)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _FuncName;
     }
 
@@ -54,7 +73,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FuncName(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_FuncName, _v_));
     }
 
     @Override
@@ -64,7 +83,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FuncArgument;
-        var log = (Log__FuncArgument)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _FuncArgument;
     }
 
@@ -76,7 +95,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FuncArgument(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_FuncArgument, _v_));
     }
 
     @Override
@@ -86,7 +105,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FlushMode;
-        var log = (Log__FlushMode)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _FlushMode;
     }
 
@@ -96,7 +115,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FlushMode(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_FlushMode, _v_));
     }
 
     @Override
@@ -106,7 +125,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FlushTimeout;
-        var log = (Log__FlushTimeout)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _FlushTimeout;
     }
 
@@ -116,7 +135,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FlushTimeout(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 5, vh_FlushTimeout, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -198,41 +217,6 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__OnzTid extends Zeze.Transaction.Logs.LogLong {
-        public Log__OnzTid(BFuncProcedure _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedure)getBelong())._OnzTid = value; }
-    }
-
-    private static final class Log__FuncName extends Zeze.Transaction.Logs.LogString {
-        public Log__FuncName(BFuncProcedure _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedure)getBelong())._FuncName = value; }
-    }
-
-    private static final class Log__FuncArgument extends Zeze.Transaction.Logs.LogBinary {
-        public Log__FuncArgument(BFuncProcedure _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedure)getBelong())._FuncArgument = value; }
-    }
-
-    private static final class Log__FlushMode extends Zeze.Transaction.Logs.LogInt {
-        public Log__FlushMode(BFuncProcedure _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedure)getBelong())._FlushMode = value; }
-    }
-
-    private static final class Log__FlushTimeout extends Zeze.Transaction.Logs.LogInt {
-        public Log__FlushTimeout(BFuncProcedure _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedure)getBelong())._FlushTimeout = value; }
     }
 
     @Override

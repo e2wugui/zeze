@@ -14,6 +14,25 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     private Zeze.Net.Binary _KeyLast;
     private String _RaftConfig;
 
+    private static final java.lang.invoke.VarHandle vh_DatabaseName;
+    private static final java.lang.invoke.VarHandle vh_TableName;
+    private static final java.lang.invoke.VarHandle vh_KeyFirst;
+    private static final java.lang.invoke.VarHandle vh_KeyLast;
+    private static final java.lang.invoke.VarHandle vh_RaftConfig;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_DatabaseName = _l_.findVarHandle(BBucketMeta.class, "_DatabaseName", String.class);
+            vh_TableName = _l_.findVarHandle(BBucketMeta.class, "_TableName", String.class);
+            vh_KeyFirst = _l_.findVarHandle(BBucketMeta.class, "_KeyFirst", Zeze.Net.Binary.class);
+            vh_KeyLast = _l_.findVarHandle(BBucketMeta.class, "_KeyLast", Zeze.Net.Binary.class);
+            vh_RaftConfig = _l_.findVarHandle(BBucketMeta.class, "_RaftConfig", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getDatabaseName() {
         if (!isManaged())
@@ -21,7 +40,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _DatabaseName;
-        var log = (Log__DatabaseName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DatabaseName;
     }
 
@@ -33,7 +52,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__DatabaseName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_DatabaseName, _v_));
     }
 
     @Override
@@ -43,7 +62,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TableName;
-        var log = (Log__TableName)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TableName;
     }
 
@@ -55,7 +74,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TableName(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_TableName, _v_));
     }
 
     @Override
@@ -65,7 +84,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _KeyFirst;
-        var log = (Log__KeyFirst)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _KeyFirst;
     }
 
@@ -77,7 +96,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__KeyFirst(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_KeyFirst, _v_));
     }
 
     @Override
@@ -87,7 +106,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _KeyLast;
-        var log = (Log__KeyLast)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _KeyLast;
     }
 
@@ -99,7 +118,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__KeyLast(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_KeyLast, _v_));
     }
 
     @Override
@@ -109,7 +128,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RaftConfig;
-        var log = (Log__RaftConfig)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _RaftConfig;
     }
 
@@ -121,7 +140,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RaftConfig(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_RaftConfig, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -212,41 +231,6 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__DatabaseName extends Zeze.Transaction.Logs.LogString {
-        public Log__DatabaseName(BBucketMeta _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketMeta)getBelong())._DatabaseName = value; }
-    }
-
-    private static final class Log__TableName extends Zeze.Transaction.Logs.LogString {
-        public Log__TableName(BBucketMeta _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketMeta)getBelong())._TableName = value; }
-    }
-
-    private static final class Log__KeyFirst extends Zeze.Transaction.Logs.LogBinary {
-        public Log__KeyFirst(BBucketMeta _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketMeta)getBelong())._KeyFirst = value; }
-    }
-
-    private static final class Log__KeyLast extends Zeze.Transaction.Logs.LogBinary {
-        public Log__KeyLast(BBucketMeta _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketMeta)getBelong())._KeyLast = value; }
-    }
-
-    private static final class Log__RaftConfig extends Zeze.Transaction.Logs.LogString {
-        public Log__RaftConfig(BBucketMeta _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketMeta)getBelong())._RaftConfig = value; }
     }
 
     @Override

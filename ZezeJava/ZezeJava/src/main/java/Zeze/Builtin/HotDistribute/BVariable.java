@@ -14,6 +14,25 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     private String _Key;
     private String _Value;
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+    private static final java.lang.invoke.VarHandle vh_Name;
+    private static final java.lang.invoke.VarHandle vh_Type;
+    private static final java.lang.invoke.VarHandle vh_Key;
+    private static final java.lang.invoke.VarHandle vh_Value;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BVariable.class, "_Id", int.class);
+            vh_Name = _l_.findVarHandle(BVariable.class, "_Name", String.class);
+            vh_Type = _l_.findVarHandle(BVariable.class, "_Type", String.class);
+            vh_Key = _l_.findVarHandle(BVariable.class, "_Key", String.class);
+            vh_Value = _l_.findVarHandle(BVariable.class, "_Value", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getId() {
         if (!isManaged())
@@ -21,7 +40,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -31,7 +50,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_Id, _v_));
     }
 
     @Override
@@ -41,7 +60,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Name;
-        var log = (Log__Name)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Name;
     }
 
@@ -53,7 +72,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Name(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_Name, _v_));
     }
 
     @Override
@@ -63,7 +82,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Type;
-        var log = (Log__Type)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Type;
     }
 
@@ -75,7 +94,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Type(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_Type, _v_));
     }
 
     @Override
@@ -85,7 +104,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Key;
-        var log = (Log__Key)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Key;
     }
 
@@ -97,7 +116,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Key(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_Key, _v_));
     }
 
     @Override
@@ -107,7 +126,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Value;
-        var log = (Log__Value)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Value;
     }
 
@@ -119,7 +138,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Value(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_Value, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -207,41 +226,6 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogInt {
-        public Log__Id(BVariable _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BVariable)getBelong())._Id = value; }
-    }
-
-    private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
-        public Log__Name(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BVariable)getBelong())._Name = value; }
-    }
-
-    private static final class Log__Type extends Zeze.Transaction.Logs.LogString {
-        public Log__Type(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BVariable)getBelong())._Type = value; }
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogString {
-        public Log__Key(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BVariable)getBelong())._Key = value; }
-    }
-
-    private static final class Log__Value extends Zeze.Transaction.Logs.LogString {
-        public Log__Value(BVariable _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BVariable)getBelong())._Value = value; }
     }
 
     @Override

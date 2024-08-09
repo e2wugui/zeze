@@ -12,6 +12,19 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     private boolean _BucketEnd;
     private boolean _BucketRefuse;
 
+    private static final java.lang.invoke.VarHandle vh_BucketEnd;
+    private static final java.lang.invoke.VarHandle vh_BucketRefuse;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_BucketEnd = _l_.findVarHandle(BWalkResult.class, "_BucketEnd", boolean.class);
+            vh_BucketRefuse = _l_.findVarHandle(BWalkResult.class, "_BucketRefuse", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Dbh2.BWalkKeyValue> getKeyValues() {
         return _KeyValues;
     }
@@ -28,7 +41,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _BucketEnd;
-        var log = (Log__BucketEnd)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _BucketEnd;
     }
 
@@ -38,7 +51,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__BucketEnd(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 2, vh_BucketEnd, _v_));
     }
 
     @Override
@@ -48,7 +61,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _BucketRefuse;
-        var log = (Log__BucketRefuse)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _BucketRefuse;
     }
 
@@ -58,7 +71,7 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__BucketRefuse(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 3, vh_BucketRefuse, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -136,20 +149,6 @@ public final class BWalkResult extends Zeze.Transaction.Bean implements BWalkRes
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__BucketEnd extends Zeze.Transaction.Logs.LogBool {
-        public Log__BucketEnd(BWalkResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalkResult)getBelong())._BucketEnd = value; }
-    }
-
-    private static final class Log__BucketRefuse extends Zeze.Transaction.Logs.LogBool {
-        public Log__BucketRefuse(BWalkResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalkResult)getBelong())._BucketRefuse = value; }
     }
 
     @Override

@@ -11,6 +11,19 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     private String _token; // 请求token
     private long _maxCount; // 此值＞0且请求token次数(包括当前请求)≥此值时,服务器会清除此token及绑定的所有状态(当前请求仍然能正常获得)
 
+    private static final java.lang.invoke.VarHandle vh_token;
+    private static final java.lang.invoke.VarHandle vh_maxCount;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_token = _l_.findVarHandle(BGetTokenArg.class, "_token", String.class);
+            vh_maxCount = _l_.findVarHandle(BGetTokenArg.class, "_maxCount", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getToken() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _token;
-        var log = (Log__token)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _token;
     }
 
@@ -30,7 +43,7 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__token(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_token, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _maxCount;
-        var log = (Log__maxCount)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _maxCount;
     }
 
@@ -50,7 +63,7 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__maxCount(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_maxCount, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -117,20 +130,6 @@ public final class BGetTokenArg extends Zeze.Transaction.Bean implements BGetTok
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__token extends Zeze.Transaction.Logs.LogString {
-        public Log__token(BGetTokenArg _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenArg)getBelong())._token = value; }
-    }
-
-    private static final class Log__maxCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__maxCount(BGetTokenArg _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetTokenArg)getBelong())._maxCount = value; }
     }
 
     @Override

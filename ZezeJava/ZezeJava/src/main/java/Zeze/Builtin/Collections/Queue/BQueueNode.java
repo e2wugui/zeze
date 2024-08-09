@@ -13,6 +13,19 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
     private Zeze.Builtin.Collections.Queue.BQueueNodeKey _NextNodeKey; // NodeId为0表示已到达结尾。
 
+    private static final java.lang.invoke.VarHandle vh_NextNodeId;
+    private static final java.lang.invoke.VarHandle vh_NextNodeKey;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_NextNodeId = _l_.findVarHandle(BQueueNode.class, "_NextNodeId", long.class);
+            vh_NextNodeKey = _l_.findVarHandle(BQueueNode.class, "_NextNodeKey", Zeze.Builtin.Collections.Queue.BQueueNodeKey.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getNextNodeId() {
         if (!isManaged())
@@ -20,7 +33,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _NextNodeId;
     }
 
@@ -30,7 +43,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_NextNodeId, _v_));
     }
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> getValues() {
@@ -49,7 +62,8 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextNodeKey;
-        var log = (Log__NextNodeKey)_t_.getLog(objectId() + 3);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey>)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _NextNodeKey;
     }
 
@@ -61,7 +75,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextNodeKey(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 3, vh_NextNodeKey, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -118,20 +132,6 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextNodeId(BQueueNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueNode)getBelong())._NextNodeId = value; }
-    }
-
-    private static final class Log__NextNodeKey extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.Queue.BQueueNodeKey> {
-        public Log__NextNodeKey(BQueueNode _b_, int _i_, Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_) { super(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BQueueNode)getBelong())._NextNodeKey = value; }
     }
 
     @Override

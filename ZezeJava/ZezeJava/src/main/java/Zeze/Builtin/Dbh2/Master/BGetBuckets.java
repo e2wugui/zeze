@@ -11,6 +11,19 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
     private String _Database;
     private String _Table;
 
+    private static final java.lang.invoke.VarHandle vh_Database;
+    private static final java.lang.invoke.VarHandle vh_Table;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Database = _l_.findVarHandle(BGetBuckets.class, "_Database", String.class);
+            vh_Table = _l_.findVarHandle(BGetBuckets.class, "_Table", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getDatabase() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Database;
-        var log = (Log__Database)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Database;
     }
 
@@ -30,7 +43,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Database(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Database, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Table;
-        var log = (Log__Table)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Table;
     }
 
@@ -52,7 +65,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Table(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_Table, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -122,20 +135,6 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
-        public Log__Database(BGetBuckets _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetBuckets)getBelong())._Database = value; }
-    }
-
-    private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
-        public Log__Table(BGetBuckets _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetBuckets)getBelong())._Table = value; }
     }
 
     @Override

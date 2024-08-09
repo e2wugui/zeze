@@ -10,6 +10,17 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
 
     private long _Offset;
 
+    private static final java.lang.invoke.VarHandle vh_Offset;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Offset = _l_.findVarHandle(BOpenFileResult.class, "_Offset", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getOffset() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Offset;
-        var log = (Log__Offset)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Offset;
     }
 
@@ -27,7 +38,7 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Offset(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Offset, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BOpenFileResult extends Zeze.Transaction.Bean implements BOpe
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Offset extends Zeze.Transaction.Logs.LogLong {
-        public Log__Offset(BOpenFileResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOpenFileResult)getBelong())._Offset = value; }
     }
 
     @Override

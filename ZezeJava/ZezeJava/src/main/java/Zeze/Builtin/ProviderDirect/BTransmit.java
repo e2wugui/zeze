@@ -14,6 +14,23 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     private Zeze.Net.Binary _Parameter; // encoded bean
     private String _OnlineSetName;
 
+    private static final java.lang.invoke.VarHandle vh_ActionName;
+    private static final java.lang.invoke.VarHandle vh_Sender;
+    private static final java.lang.invoke.VarHandle vh_Parameter;
+    private static final java.lang.invoke.VarHandle vh_OnlineSetName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ActionName = _l_.findVarHandle(BTransmit.class, "_ActionName", String.class);
+            vh_Sender = _l_.findVarHandle(BTransmit.class, "_Sender", long.class);
+            vh_Parameter = _l_.findVarHandle(BTransmit.class, "_Parameter", Zeze.Net.Binary.class);
+            vh_OnlineSetName = _l_.findVarHandle(BTransmit.class, "_OnlineSetName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getActionName() {
         if (!isManaged())
@@ -21,7 +38,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ActionName;
-        var log = (Log__ActionName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ActionName;
     }
 
@@ -33,7 +50,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ActionName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ActionName, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<Long> getRoles() {
@@ -52,7 +69,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Sender;
-        var log = (Log__Sender)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Sender;
     }
 
@@ -62,7 +79,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Sender(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Sender, _v_));
     }
 
     @Override
@@ -72,7 +89,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Parameter;
-        var log = (Log__Parameter)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Parameter;
     }
 
@@ -84,7 +101,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Parameter(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_Parameter, _v_));
     }
 
     @Override
@@ -94,7 +111,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OnlineSetName;
-        var log = (Log__OnlineSetName)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _OnlineSetName;
     }
 
@@ -106,7 +123,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OnlineSetName(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_OnlineSetName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -195,34 +212,6 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ActionName extends Zeze.Transaction.Logs.LogString {
-        public Log__ActionName(BTransmit _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmit)getBelong())._ActionName = value; }
-    }
-
-    private static final class Log__Sender extends Zeze.Transaction.Logs.LogLong {
-        public Log__Sender(BTransmit _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmit)getBelong())._Sender = value; }
-    }
-
-    private static final class Log__Parameter extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Parameter(BTransmit _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmit)getBelong())._Parameter = value; }
-    }
-
-    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__OnlineSetName(BTransmit _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmit)getBelong())._OnlineSetName = value; }
     }
 
     @Override

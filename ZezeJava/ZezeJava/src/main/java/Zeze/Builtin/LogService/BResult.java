@@ -11,6 +11,17 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> _Logs;
     private boolean _Remain;
 
+    private static final java.lang.invoke.VarHandle vh_Remain;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Remain = _l_.findVarHandle(BResult.class, "_Remain", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.LogService.BLog> getLogs() {
         return _Logs;
     }
@@ -27,7 +38,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Remain;
-        var log = (Log__Remain)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Remain;
     }
 
@@ -37,7 +48,7 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Remain(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 2, vh_Remain, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -111,13 +122,6 @@ public final class BResult extends Zeze.Transaction.Bean implements BResultReadO
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Remain extends Zeze.Transaction.Logs.LogBool {
-        public Log__Remain(BResult _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BResult)getBelong())._Remain = value; }
     }
 
     @Override

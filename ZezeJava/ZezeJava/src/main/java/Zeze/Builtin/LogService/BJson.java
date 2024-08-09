@@ -10,6 +10,17 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
 
     private String _Json;
 
+    private static final java.lang.invoke.VarHandle vh_Json;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Json = _l_.findVarHandle(BJson.class, "_Json", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getJson() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Json;
-        var log = (Log__Json)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Json;
     }
 
@@ -29,7 +40,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Json(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Json, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -92,13 +103,6 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Json extends Zeze.Transaction.Logs.LogString {
-        public Log__Json(BJson _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BJson)getBelong())._Json = value; }
     }
 
     @Override

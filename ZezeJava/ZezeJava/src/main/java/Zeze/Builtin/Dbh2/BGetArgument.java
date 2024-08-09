@@ -12,6 +12,21 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     private String _Table; // 用来纠错
     private Zeze.Net.Binary _Key;
 
+    private static final java.lang.invoke.VarHandle vh_Database;
+    private static final java.lang.invoke.VarHandle vh_Table;
+    private static final java.lang.invoke.VarHandle vh_Key;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Database = _l_.findVarHandle(BGetArgument.class, "_Database", String.class);
+            vh_Table = _l_.findVarHandle(BGetArgument.class, "_Table", String.class);
+            vh_Key = _l_.findVarHandle(BGetArgument.class, "_Key", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getDatabase() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Database;
-        var log = (Log__Database)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Database;
     }
 
@@ -31,7 +46,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Database(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Database, _v_));
     }
 
     @Override
@@ -41,7 +56,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Table;
-        var log = (Log__Table)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Table;
     }
 
@@ -53,7 +68,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Table(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_Table, _v_));
     }
 
     @Override
@@ -63,7 +78,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Key;
-        var log = (Log__Key)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Key;
     }
 
@@ -75,7 +90,7 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Key(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_Key, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -152,27 +167,6 @@ public final class BGetArgument extends Zeze.Transaction.Bean implements BGetArg
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
-        public Log__Database(BGetArgument _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetArgument)getBelong())._Database = value; }
-    }
-
-    private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
-        public Log__Table(BGetArgument _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetArgument)getBelong())._Table = value; }
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BGetArgument _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BGetArgument)getBelong())._Key = value; }
     }
 
     @Override

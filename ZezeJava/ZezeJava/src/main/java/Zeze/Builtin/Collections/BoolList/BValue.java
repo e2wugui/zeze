@@ -17,6 +17,31 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     private long _Item6;
     private long _Item7;
 
+    private static final java.lang.invoke.VarHandle vh_Item0;
+    private static final java.lang.invoke.VarHandle vh_Item1;
+    private static final java.lang.invoke.VarHandle vh_Item2;
+    private static final java.lang.invoke.VarHandle vh_Item3;
+    private static final java.lang.invoke.VarHandle vh_Item4;
+    private static final java.lang.invoke.VarHandle vh_Item5;
+    private static final java.lang.invoke.VarHandle vh_Item6;
+    private static final java.lang.invoke.VarHandle vh_Item7;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Item0 = _l_.findVarHandle(BValue.class, "_Item0", long.class);
+            vh_Item1 = _l_.findVarHandle(BValue.class, "_Item1", long.class);
+            vh_Item2 = _l_.findVarHandle(BValue.class, "_Item2", long.class);
+            vh_Item3 = _l_.findVarHandle(BValue.class, "_Item3", long.class);
+            vh_Item4 = _l_.findVarHandle(BValue.class, "_Item4", long.class);
+            vh_Item5 = _l_.findVarHandle(BValue.class, "_Item5", long.class);
+            vh_Item6 = _l_.findVarHandle(BValue.class, "_Item6", long.class);
+            vh_Item7 = _l_.findVarHandle(BValue.class, "_Item7", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getItem0() {
         if (!isManaged())
@@ -24,7 +49,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item0;
-        var log = (Log__Item0)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Item0;
     }
 
@@ -34,7 +59,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item0(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Item0, _v_));
     }
 
     @Override
@@ -44,7 +69,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item1;
-        var log = (Log__Item1)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Item1;
     }
 
@@ -54,7 +79,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item1(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_Item1, _v_));
     }
 
     @Override
@@ -64,7 +89,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item2;
-        var log = (Log__Item2)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Item2;
     }
 
@@ -74,7 +99,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item2(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Item2, _v_));
     }
 
     @Override
@@ -84,7 +109,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item3;
-        var log = (Log__Item3)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Item3;
     }
 
@@ -94,7 +119,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item3(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_Item3, _v_));
     }
 
     @Override
@@ -104,7 +129,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item4;
-        var log = (Log__Item4)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Item4;
     }
 
@@ -114,7 +139,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item4(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_Item4, _v_));
     }
 
     @Override
@@ -124,7 +149,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item5;
-        var log = (Log__Item5)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _Item5;
     }
 
@@ -134,7 +159,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item5(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 6, vh_Item5, _v_));
     }
 
     @Override
@@ -144,7 +169,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item6;
-        var log = (Log__Item6)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _Item6;
     }
 
@@ -154,7 +179,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item6(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 7, vh_Item6, _v_));
     }
 
     @Override
@@ -164,7 +189,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Item7;
-        var log = (Log__Item7)_t_.getLog(objectId() + 8);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _Item7;
     }
 
@@ -174,7 +199,7 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Item7(this, 8, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 8, vh_Item7, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -238,62 +263,6 @@ public final class BValue extends Zeze.Transaction.Bean implements BValueReadOnl
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Item0 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item0(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item0 = value; }
-    }
-
-    private static final class Log__Item1 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item1(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item1 = value; }
-    }
-
-    private static final class Log__Item2 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item2(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item2 = value; }
-    }
-
-    private static final class Log__Item3 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item3(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item3 = value; }
-    }
-
-    private static final class Log__Item4 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item4(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item4 = value; }
-    }
-
-    private static final class Log__Item5 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item5(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item5 = value; }
-    }
-
-    private static final class Log__Item6 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item6(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item6 = value; }
-    }
-
-    private static final class Log__Item7 extends Zeze.Transaction.Logs.LogLong {
-        public Log__Item7(BValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BValue)getBelong())._Item7 = value; }
     }
 
     @Override

@@ -14,6 +14,23 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     private boolean _Reset;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.LogService.BCondition> _Condition;
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+    private static final java.lang.invoke.VarHandle vh_Limit;
+    private static final java.lang.invoke.VarHandle vh_OffsetFactor;
+    private static final java.lang.invoke.VarHandle vh_Reset;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BBrowse.class, "_Id", long.class);
+            vh_Limit = _l_.findVarHandle(BBrowse.class, "_Limit", int.class);
+            vh_OffsetFactor = _l_.findVarHandle(BBrowse.class, "_OffsetFactor", float.class);
+            vh_Reset = _l_.findVarHandle(BBrowse.class, "_Reset", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getId() {
         if (!isManaged())
@@ -21,7 +38,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -31,7 +48,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Id, _v_));
     }
 
     @Override
@@ -41,7 +58,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Limit;
-        var log = (Log__Limit)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Limit;
     }
 
@@ -51,7 +68,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Limit(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Limit, _v_));
     }
 
     @Override
@@ -61,7 +78,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OffsetFactor;
-        var log = (Log__OffsetFactor)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogFloat)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _OffsetFactor;
     }
 
@@ -71,7 +88,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OffsetFactor(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogFloat(this, 3, vh_OffsetFactor, _v_));
     }
 
     @Override
@@ -81,7 +98,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Reset;
-        var log = (Log__Reset)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Reset;
     }
 
@@ -91,7 +108,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Reset(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 4, vh_Reset, _v_));
     }
 
     public Zeze.Builtin.LogService.BCondition getCondition() {
@@ -185,34 +202,6 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogLong {
-        public Log__Id(BBrowse _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBrowse)getBelong())._Id = value; }
-    }
-
-    private static final class Log__Limit extends Zeze.Transaction.Logs.LogInt {
-        public Log__Limit(BBrowse _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBrowse)getBelong())._Limit = value; }
-    }
-
-    private static final class Log__OffsetFactor extends Zeze.Transaction.Logs.LogFloat {
-        public Log__OffsetFactor(BBrowse _b_, int _i_, float _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBrowse)getBelong())._OffsetFactor = value; }
-    }
-
-    private static final class Log__Reset extends Zeze.Transaction.Logs.LogBool {
-        public Log__Reset(BBrowse _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBrowse)getBelong())._Reset = value; }
     }
 
     @Override

@@ -14,6 +14,23 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     private final Zeze.Transaction.Collections.PMap1<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> _Changes;
     private long _Timestamp;
 
+    private static final java.lang.invoke.VarHandle vh_GlobalSerialId;
+    private static final java.lang.invoke.VarHandle vh_ProtocolClassName;
+    private static final java.lang.invoke.VarHandle vh_ProtocolArgument;
+    private static final java.lang.invoke.VarHandle vh_Timestamp;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_GlobalSerialId = _l_.findVarHandle(BLogChanges.class, "_GlobalSerialId", Zeze.Util.Id128.class);
+            vh_ProtocolClassName = _l_.findVarHandle(BLogChanges.class, "_ProtocolClassName", String.class);
+            vh_ProtocolArgument = _l_.findVarHandle(BLogChanges.class, "_ProtocolArgument", Zeze.Net.Binary.class);
+            vh_Timestamp = _l_.findVarHandle(BLogChanges.class, "_Timestamp", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Util.Id128 getGlobalSerialId() {
         if (!isManaged())
@@ -21,7 +38,8 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _GlobalSerialId;
-        var log = (Log__GlobalSerialId)_t_.getLog(objectId() + 1);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128>)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _GlobalSerialId;
     }
 
@@ -33,7 +51,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__GlobalSerialId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Util.Id128.class, this, 1, vh_GlobalSerialId, _v_));
     }
 
     @Override
@@ -43,7 +61,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProtocolClassName;
-        var log = (Log__ProtocolClassName)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ProtocolClassName;
     }
 
@@ -55,7 +73,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProtocolClassName(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_ProtocolClassName, _v_));
     }
 
     @Override
@@ -65,7 +83,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProtocolArgument;
-        var log = (Log__ProtocolArgument)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _ProtocolArgument;
     }
 
@@ -77,7 +95,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProtocolArgument(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_ProtocolArgument, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<Zeze.Builtin.HistoryModule.BTableKey, Zeze.Net.Binary> getChanges() {
@@ -96,7 +114,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Timestamp;
-        var log = (Log__Timestamp)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Timestamp;
     }
 
@@ -106,7 +124,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Timestamp(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_Timestamp, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -195,34 +213,6 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__GlobalSerialId extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Util.Id128> {
-        public Log__GlobalSerialId(BLogChanges _b_, int _i_, Zeze.Util.Id128 _v_) { super(Zeze.Util.Id128.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLogChanges)getBelong())._GlobalSerialId = value; }
-    }
-
-    private static final class Log__ProtocolClassName extends Zeze.Transaction.Logs.LogString {
-        public Log__ProtocolClassName(BLogChanges _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLogChanges)getBelong())._ProtocolClassName = value; }
-    }
-
-    private static final class Log__ProtocolArgument extends Zeze.Transaction.Logs.LogBinary {
-        public Log__ProtocolArgument(BLogChanges _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLogChanges)getBelong())._ProtocolArgument = value; }
-    }
-
-    private static final class Log__Timestamp extends Zeze.Transaction.Logs.LogLong {
-        public Log__Timestamp(BLogChanges _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLogChanges)getBelong())._Timestamp = value; }
     }
 
     @Override

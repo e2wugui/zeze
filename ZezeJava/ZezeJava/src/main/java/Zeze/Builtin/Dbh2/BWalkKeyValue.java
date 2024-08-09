@@ -11,6 +11,19 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
     private Zeze.Net.Binary _Key;
     private Zeze.Net.Binary _Value;
 
+    private static final java.lang.invoke.VarHandle vh_Key;
+    private static final java.lang.invoke.VarHandle vh_Value;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Key = _l_.findVarHandle(BWalkKeyValue.class, "_Key", Zeze.Net.Binary.class);
+            vh_Value = _l_.findVarHandle(BWalkKeyValue.class, "_Value", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getKey() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Key;
-        var log = (Log__Key)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Key;
     }
 
@@ -30,7 +43,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Key(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_Key, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Value;
-        var log = (Log__Value)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Value;
     }
 
@@ -52,7 +65,7 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Value(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_Value, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -122,20 +135,6 @@ public final class BWalkKeyValue extends Zeze.Transaction.Bean implements BWalkK
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BWalkKeyValue _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalkKeyValue)getBelong())._Key = value; }
-    }
-
-    private static final class Log__Value extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Value(BWalkKeyValue _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalkKeyValue)getBelong())._Value = value; }
     }
 
     @Override

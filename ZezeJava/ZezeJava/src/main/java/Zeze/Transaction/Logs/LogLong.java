@@ -1,5 +1,6 @@
 package Zeze.Transaction.Logs;
 
+import java.lang.invoke.VarHandle;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
@@ -9,15 +10,18 @@ import org.jetbrains.annotations.NotNull;
 public class LogLong extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<long>");
 
+	private final VarHandle vh;
 	public long value;
 
-	public LogLong(Bean belong, int varId, long value) {
+	public LogLong(Bean belong, int varId, VarHandle vh, long value) {
 		setBelong(belong);
 		setVariableId(varId);
+		this.vh = vh;
 		this.value = value;
 	}
 
 	public LogLong() {
+		vh = null;
 	}
 
 	@Override
@@ -32,7 +36,7 @@ public class LogLong extends Log {
 
 	@Override
 	public void commit() {
-		throw new UnsupportedOperationException();
+		vh.set(getBelong(), value);
 	}
 
 	@Override

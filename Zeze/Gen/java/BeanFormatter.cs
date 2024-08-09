@@ -188,7 +188,8 @@ namespace Zeze.Gen.java
                     // || vt is TypeVector3Int
                     // || vt is TypeVector4
                     // || vt is TypeQuaternion
-                    ? "final " : "";
+                    ? "final "
+                    : "";
 
                 if (vt is Bean)
                     sw.WriteLine($"    private {final}Zeze.Transaction.Collections.CollOne<{TypeName.GetName(vt)}> {v.NamePrivate};{v.Comment}");
@@ -247,7 +248,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();
-            Log.Make(bean, sw, "    ");
+            // Log.Make(bean, sw, "    ");
             Tostring.Make(bean, sw, "    ", false);
             Encode.Make(bean, sw, "    ", bean.Base == "");
             Decode.Make(bean, sw, "    ", bean.Base == "");

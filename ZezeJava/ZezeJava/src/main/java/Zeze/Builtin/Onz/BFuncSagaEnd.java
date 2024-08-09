@@ -12,6 +12,21 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     private boolean _Cancel;
     private Zeze.Net.Binary _FuncArgument;
 
+    private static final java.lang.invoke.VarHandle vh_OnzTid;
+    private static final java.lang.invoke.VarHandle vh_Cancel;
+    private static final java.lang.invoke.VarHandle vh_FuncArgument;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_OnzTid = _l_.findVarHandle(BFuncSagaEnd.class, "_OnzTid", long.class);
+            vh_Cancel = _l_.findVarHandle(BFuncSagaEnd.class, "_Cancel", boolean.class);
+            vh_FuncArgument = _l_.findVarHandle(BFuncSagaEnd.class, "_FuncArgument", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getOnzTid() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OnzTid;
-        var log = (Log__OnzTid)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _OnzTid;
     }
 
@@ -29,7 +44,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OnzTid(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_OnzTid, _v_));
     }
 
     @Override
@@ -39,7 +54,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Cancel;
-        var log = (Log__Cancel)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Cancel;
     }
 
@@ -49,7 +64,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Cancel(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 2, vh_Cancel, _v_));
     }
 
     @Override
@@ -59,7 +74,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FuncArgument;
-        var log = (Log__FuncArgument)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _FuncArgument;
     }
 
@@ -71,7 +86,7 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FuncArgument(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_FuncArgument, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -142,27 +157,6 @@ public final class BFuncSagaEnd extends Zeze.Transaction.Bean implements BFuncSa
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__OnzTid extends Zeze.Transaction.Logs.LogLong {
-        public Log__OnzTid(BFuncSagaEnd _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncSagaEnd)getBelong())._OnzTid = value; }
-    }
-
-    private static final class Log__Cancel extends Zeze.Transaction.Logs.LogBool {
-        public Log__Cancel(BFuncSagaEnd _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncSagaEnd)getBelong())._Cancel = value; }
-    }
-
-    private static final class Log__FuncArgument extends Zeze.Transaction.Logs.LogBinary {
-        public Log__FuncArgument(BFuncSagaEnd _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncSagaEnd)getBelong())._FuncArgument = value; }
     }
 
     @Override

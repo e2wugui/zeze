@@ -19,6 +19,33 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     private String _OneByOneKey; // timer触发时所用的OneByOne队列key
     private long _HappenTimes; // 已经触发的次数, 触发前自增
 
+    private static final java.lang.invoke.VarHandle vh_CronExpression;
+    private static final java.lang.invoke.VarHandle vh_NextExpectedTime;
+    private static final java.lang.invoke.VarHandle vh_ExpectedTime;
+    private static final java.lang.invoke.VarHandle vh_HappenTime;
+    private static final java.lang.invoke.VarHandle vh_RemainTimes;
+    private static final java.lang.invoke.VarHandle vh_EndTime;
+    private static final java.lang.invoke.VarHandle vh_MissfirePolicy;
+    private static final java.lang.invoke.VarHandle vh_OneByOneKey;
+    private static final java.lang.invoke.VarHandle vh_HappenTimes;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_CronExpression = _l_.findVarHandle(BCronTimer.class, "_CronExpression", String.class);
+            vh_NextExpectedTime = _l_.findVarHandle(BCronTimer.class, "_NextExpectedTime", long.class);
+            vh_ExpectedTime = _l_.findVarHandle(BCronTimer.class, "_ExpectedTime", long.class);
+            vh_HappenTime = _l_.findVarHandle(BCronTimer.class, "_HappenTime", long.class);
+            vh_RemainTimes = _l_.findVarHandle(BCronTimer.class, "_RemainTimes", long.class);
+            vh_EndTime = _l_.findVarHandle(BCronTimer.class, "_EndTime", long.class);
+            vh_MissfirePolicy = _l_.findVarHandle(BCronTimer.class, "_MissfirePolicy", int.class);
+            vh_OneByOneKey = _l_.findVarHandle(BCronTimer.class, "_OneByOneKey", String.class);
+            vh_HappenTimes = _l_.findVarHandle(BCronTimer.class, "_HappenTimes", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getCronExpression() {
         if (!isManaged())
@@ -26,7 +53,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _CronExpression;
-        var log = (Log__CronExpression)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _CronExpression;
     }
 
@@ -38,7 +65,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__CronExpression(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_CronExpression, _v_));
     }
 
     @Override
@@ -48,7 +75,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextExpectedTime;
-        var log = (Log__NextExpectedTime)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _NextExpectedTime;
     }
 
@@ -58,7 +85,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextExpectedTime(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_NextExpectedTime, _v_));
     }
 
     @Override
@@ -68,7 +95,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ExpectedTime;
-        var log = (Log__ExpectedTime)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _ExpectedTime;
     }
 
@@ -78,7 +105,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ExpectedTime(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_ExpectedTime, _v_));
     }
 
     @Override
@@ -88,7 +115,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HappenTime;
-        var log = (Log__HappenTime)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _HappenTime;
     }
 
@@ -98,7 +125,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HappenTime(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_HappenTime, _v_));
     }
 
     @Override
@@ -108,7 +135,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RemainTimes;
-        var log = (Log__RemainTimes)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _RemainTimes;
     }
 
@@ -118,7 +145,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RemainTimes(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_RemainTimes, _v_));
     }
 
     @Override
@@ -128,7 +155,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EndTime;
-        var log = (Log__EndTime)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _EndTime;
     }
 
@@ -138,7 +165,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EndTime(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 6, vh_EndTime, _v_));
     }
 
     @Override
@@ -148,7 +175,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _MissfirePolicy;
-        var log = (Log__MissfirePolicy)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _MissfirePolicy;
     }
 
@@ -158,7 +185,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__MissfirePolicy(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 7, vh_MissfirePolicy, _v_));
     }
 
     @Override
@@ -168,7 +195,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OneByOneKey;
-        var log = (Log__OneByOneKey)_t_.getLog(objectId() + 8);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _OneByOneKey;
     }
 
@@ -180,7 +207,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OneByOneKey(this, 8, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 8, vh_OneByOneKey, _v_));
     }
 
     @Override
@@ -190,7 +217,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HappenTimes;
-        var log = (Log__HappenTimes)_t_.getLog(objectId() + 9);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 9);
         return log != null ? log.value : _HappenTimes;
     }
 
@@ -200,7 +227,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HappenTimes(this, 9, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 9, vh_HappenTimes, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -273,69 +300,6 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__CronExpression extends Zeze.Transaction.Logs.LogString {
-        public Log__CronExpression(BCronTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._CronExpression = value; }
-    }
-
-    private static final class Log__NextExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextExpectedTime(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._NextExpectedTime = value; }
-    }
-
-    private static final class Log__ExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpectedTime(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._ExpectedTime = value; }
-    }
-
-    private static final class Log__HappenTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTime(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._HappenTime = value; }
-    }
-
-    private static final class Log__RemainTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__RemainTimes(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._RemainTimes = value; }
-    }
-
-    private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTime(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._EndTime = value; }
-    }
-
-    private static final class Log__MissfirePolicy extends Zeze.Transaction.Logs.LogInt {
-        public Log__MissfirePolicy(BCronTimer _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._MissfirePolicy = value; }
-    }
-
-    private static final class Log__OneByOneKey extends Zeze.Transaction.Logs.LogString {
-        public Log__OneByOneKey(BCronTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._OneByOneKey = value; }
-    }
-
-    private static final class Log__HappenTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTimes(BCronTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCronTimer)getBelong())._HappenTimes = value; }
     }
 
     @Override

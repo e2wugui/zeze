@@ -11,6 +11,17 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
     private long _ReliableNotifyIndex; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
+    private static final java.lang.invoke.VarHandle vh_ReliableNotifyIndex;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ReliableNotifyIndex = _l_.findVarHandle(BReliableNotify.class, "_ReliableNotifyIndex", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getNotifies() {
         return _Notifies;
     }
@@ -27,7 +38,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ReliableNotifyIndex;
-        var log = (Log__ReliableNotifyIndex)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ReliableNotifyIndex;
     }
 
@@ -37,7 +48,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ReliableNotifyIndex(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_ReliableNotifyIndex, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -86,13 +97,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyIndex(BReliableNotify _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BReliableNotify)getBelong())._ReliableNotifyIndex = value; }
     }
 
     @Override

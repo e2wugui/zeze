@@ -10,6 +10,17 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
 
     private int _Count;
 
+    private static final java.lang.invoke.VarHandle vh_Count;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Count = _l_.findVarHandle(BBucketCount.class, "_Count", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getCount() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Count;
-        var log = (Log__Count)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Count;
     }
 
@@ -27,7 +38,7 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Count(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_Count, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -87,13 +98,6 @@ public final class BBucketCount extends Zeze.Transaction.Bean implements BBucket
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Count extends Zeze.Transaction.Logs.LogInt {
-        public Log__Count(BBucketCount _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBucketCount)getBelong())._Count = value; }
     }
 
     @Override

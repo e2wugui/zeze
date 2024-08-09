@@ -14,6 +14,23 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
     private long _SerialId; // 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
     private long _Version; // 创建时记下当前timer所属server的版本
 
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_NodeId;
+    private static final java.lang.invoke.VarHandle vh_SerialId;
+    private static final java.lang.invoke.VarHandle vh_Version;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServerId = _l_.findVarHandle(BIndex.class, "_ServerId", int.class);
+            vh_NodeId = _l_.findVarHandle(BIndex.class, "_NodeId", long.class);
+            vh_SerialId = _l_.findVarHandle(BIndex.class, "_SerialId", long.class);
+            vh_Version = _l_.findVarHandle(BIndex.class, "_Version", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getServerId() {
         if (!isManaged())
@@ -21,7 +38,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServerId;
     }
 
@@ -31,7 +48,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ServerId, _v_));
     }
 
     @Override
@@ -41,7 +58,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NodeId;
-        var log = (Log__NodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _NodeId;
     }
 
@@ -51,7 +68,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_NodeId, _v_));
     }
 
     @Override
@@ -61,7 +78,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SerialId;
-        var log = (Log__SerialId)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _SerialId;
     }
 
@@ -71,7 +88,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SerialId(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_SerialId, _v_));
     }
 
     @Override
@@ -81,7 +98,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Version;
-        var log = (Log__Version)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Version;
     }
 
@@ -91,7 +108,7 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Version(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_Version, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -143,34 +160,6 @@ public final class BIndex extends Zeze.Transaction.Bean implements BIndexReadOnl
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BIndex _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BIndex)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__NodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NodeId(BIndex _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BIndex)getBelong())._NodeId = value; }
-    }
-
-    private static final class Log__SerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SerialId(BIndex _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BIndex)getBelong())._SerialId = value; }
-    }
-
-    private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
-        public Log__Version(BIndex _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BIndex)getBelong())._Version = value; }
     }
 
     @Override

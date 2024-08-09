@@ -11,6 +11,17 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     private int _Capacity;
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
 
+    private static final java.lang.invoke.VarHandle vh_Capacity;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Capacity = _l_.findVarHandle(BBag.class, "_Capacity", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getCapacity() {
         if (!isManaged())
@@ -18,7 +29,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Capacity;
-        var log = (Log__Capacity)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Capacity;
     }
 
@@ -28,7 +39,7 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Capacity(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_Capacity, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
@@ -88,13 +99,6 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Capacity extends Zeze.Transaction.Logs.LogInt {
-        public Log__Capacity(BBag _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BBag)getBelong())._Capacity = value; }
     }
 
     @Override

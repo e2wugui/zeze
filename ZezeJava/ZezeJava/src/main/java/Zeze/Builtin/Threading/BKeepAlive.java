@@ -11,6 +11,19 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     private int _ServerId;
     private long _AppSerialId;
 
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_AppSerialId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServerId = _l_.findVarHandle(BKeepAlive.class, "_ServerId", int.class);
+            vh_AppSerialId = _l_.findVarHandle(BKeepAlive.class, "_AppSerialId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getServerId() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServerId;
     }
 
@@ -28,7 +41,7 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ServerId, _v_));
     }
 
     @Override
@@ -38,7 +51,7 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _AppSerialId;
-        var log = (Log__AppSerialId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _AppSerialId;
     }
 
@@ -48,7 +61,7 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__AppSerialId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_AppSerialId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -112,20 +125,6 @@ public final class BKeepAlive extends Zeze.Transaction.Bean implements BKeepAliv
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BKeepAlive _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKeepAlive)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__AppSerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__AppSerialId(BKeepAlive _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKeepAlive)getBelong())._AppSerialId = value; }
     }
 
     @Override

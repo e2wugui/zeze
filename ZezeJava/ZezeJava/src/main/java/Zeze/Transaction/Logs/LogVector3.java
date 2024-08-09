@@ -1,5 +1,6 @@
 package Zeze.Transaction.Logs;
 
+import java.lang.invoke.VarHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Quaternion;
@@ -13,16 +14,18 @@ import org.jetbrains.annotations.NotNull;
 public class LogVector3 extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<vector3>");
 
+	private final VarHandle vh;
 	public Vector3 value;
 
-	public LogVector3(Bean belong, int varId, Vector3 value) {
+	public LogVector3(Bean belong, int varId, VarHandle vh, Vector3 value) {
 		setBelong(belong);
 		setVariableId(varId);
+		this.vh = vh;
 		this.value = value;
 	}
 
 	public LogVector3() {
-
+		vh = null;
 	}
 
 	@Override
@@ -37,7 +40,7 @@ public class LogVector3 extends Log {
 
 	@Override
 	public void commit() {
-		throw new UnsupportedOperationException();
+		vh.set(getBelong(), value);
 	}
 
 	@Override

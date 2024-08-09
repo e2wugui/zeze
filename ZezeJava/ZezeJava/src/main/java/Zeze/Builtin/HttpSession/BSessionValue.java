@@ -12,6 +12,19 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     private long _ExpireTime;
     private final Zeze.Transaction.Collections.PMap1<String, String> _Properties;
 
+    private static final java.lang.invoke.VarHandle vh_CreateTime;
+    private static final java.lang.invoke.VarHandle vh_ExpireTime;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_CreateTime = _l_.findVarHandle(BSessionValue.class, "_CreateTime", long.class);
+            vh_ExpireTime = _l_.findVarHandle(BSessionValue.class, "_ExpireTime", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getCreateTime() {
         if (!isManaged())
@@ -19,7 +32,7 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _CreateTime;
-        var log = (Log__CreateTime)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _CreateTime;
     }
 
@@ -29,7 +42,7 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__CreateTime(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_CreateTime, _v_));
     }
 
     @Override
@@ -39,7 +52,7 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ExpireTime;
-        var log = (Log__ExpireTime)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ExpireTime;
     }
 
@@ -49,7 +62,7 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ExpireTime(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_ExpireTime, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, String> getProperties() {
@@ -110,20 +123,6 @@ public final class BSessionValue extends Zeze.Transaction.Bean implements BSessi
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__CreateTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__CreateTime(BSessionValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSessionValue)getBelong())._CreateTime = value; }
-    }
-
-    private static final class Log__ExpireTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpireTime(BSessionValue _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSessionValue)getBelong())._ExpireTime = value; }
     }
 
     @Override

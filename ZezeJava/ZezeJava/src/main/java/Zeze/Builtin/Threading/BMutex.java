@@ -11,6 +11,19 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     private Zeze.Builtin.Threading.BLockName _LockName;
     private int _TimeoutMs;
 
+    private static final java.lang.invoke.VarHandle vh_LockName;
+    private static final java.lang.invoke.VarHandle vh_TimeoutMs;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_LockName = _l_.findVarHandle(BMutex.class, "_LockName", Zeze.Builtin.Threading.BLockName.class);
+            vh_TimeoutMs = _l_.findVarHandle(BMutex.class, "_TimeoutMs", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Builtin.Threading.BLockName getLockName() {
         if (!isManaged())
@@ -18,7 +31,8 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LockName;
-        var log = (Log__LockName)_t_.getLog(objectId() + 1);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName>)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _LockName;
     }
 
@@ -30,7 +44,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LockName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Threading.BLockName.class, this, 1, vh_LockName, _v_));
     }
 
     @Override
@@ -40,7 +54,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TimeoutMs;
-        var log = (Log__TimeoutMs)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TimeoutMs;
     }
 
@@ -50,7 +64,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TimeoutMs(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_TimeoutMs, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -117,20 +131,6 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__LockName extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Threading.BLockName> {
-        public Log__LockName(BMutex _b_, int _i_, Zeze.Builtin.Threading.BLockName _v_) { super(Zeze.Builtin.Threading.BLockName.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMutex)getBelong())._LockName = value; }
-    }
-
-    private static final class Log__TimeoutMs extends Zeze.Transaction.Logs.LogInt {
-        public Log__TimeoutMs(BMutex _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMutex)getBelong())._TimeoutMs = value; }
     }
 
     @Override

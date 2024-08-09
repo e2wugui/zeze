@@ -12,6 +12,19 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     private Zeze.Builtin.Collections.DAG.BDAGNodeKey _From; // 有向图中有向边的起点
     private Zeze.Builtin.Collections.DAG.BDAGNodeKey _To; // 有向图中有向边的终点
 
+    private static final java.lang.invoke.VarHandle vh_From;
+    private static final java.lang.invoke.VarHandle vh_To;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_From = _l_.findVarHandle(BDAGEdge.class, "_From", Zeze.Builtin.Collections.DAG.BDAGNodeKey.class);
+            vh_To = _l_.findVarHandle(BDAGEdge.class, "_To", Zeze.Builtin.Collections.DAG.BDAGNodeKey.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Builtin.Collections.DAG.BDAGNodeKey getFrom() {
         if (!isManaged())
@@ -19,7 +32,8 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _From;
-        var log = (Log__From)_t_.getLog(objectId() + 1);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _From;
     }
 
@@ -31,7 +45,7 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__From(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, this, 1, vh_From, _v_));
     }
 
     @Override
@@ -41,7 +55,8 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _To;
-        var log = (Log__To)_t_.getLog(objectId() + 2);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey>)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _To;
     }
 
@@ -53,7 +68,7 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__To(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, this, 2, vh_To, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -105,20 +120,6 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__From extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey> {
-        public Log__From(BDAGEdge _b_, int _i_, Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAGEdge)getBelong())._From = value; }
-    }
-
-    private static final class Log__To extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Collections.DAG.BDAGNodeKey> {
-        public Log__To(BDAGEdge _b_, int _i_, Zeze.Builtin.Collections.DAG.BDAGNodeKey _v_) { super(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDAGEdge)getBelong())._To = value; }
     }
 
     @Override

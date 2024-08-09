@@ -11,6 +11,19 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     private Zeze.Net.Binary _context; // token绑定的自定义上下文
     private long _ttl; // 存活时长(毫秒). 超时会被自动清除token及绑定的所有状态
 
+    private static final java.lang.invoke.VarHandle vh_context;
+    private static final java.lang.invoke.VarHandle vh_ttl;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_context = _l_.findVarHandle(BNewTokenArg.class, "_context", Zeze.Net.Binary.class);
+            vh_ttl = _l_.findVarHandle(BNewTokenArg.class, "_ttl", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getContext() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _context;
-        var log = (Log__context)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _context;
     }
 
@@ -30,7 +43,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__context(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_context, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ttl;
-        var log = (Log__ttl)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ttl;
     }
 
@@ -50,7 +63,7 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ttl(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_ttl, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -117,20 +130,6 @@ public final class BNewTokenArg extends Zeze.Transaction.Bean implements BNewTok
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__context extends Zeze.Transaction.Logs.LogBinary {
-        public Log__context(BNewTokenArg _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNewTokenArg)getBelong())._context = value; }
-    }
-
-    private static final class Log__ttl extends Zeze.Transaction.Logs.LogLong {
-        public Log__ttl(BNewTokenArg _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNewTokenArg)getBelong())._ttl = value; }
     }
 
     @Override

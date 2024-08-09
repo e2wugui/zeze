@@ -16,6 +16,27 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     private long _AppVersion; // 4段版本号(a.b.c.d),从高到低依次占16位,a位不兼容,b位向后兼容,c和d前后兼容
     private boolean _DisableChoice;
 
+    private static final java.lang.invoke.VarHandle vh_ServiceNamePrefix;
+    private static final java.lang.invoke.VarHandle vh_ServiceIdentity;
+    private static final java.lang.invoke.VarHandle vh_ProviderDirectIp;
+    private static final java.lang.invoke.VarHandle vh_ProviderDirectPort;
+    private static final java.lang.invoke.VarHandle vh_AppVersion;
+    private static final java.lang.invoke.VarHandle vh_DisableChoice;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceNamePrefix = _l_.findVarHandle(BAnnounceProviderInfo.class, "_ServiceNamePrefix", String.class);
+            vh_ServiceIdentity = _l_.findVarHandle(BAnnounceProviderInfo.class, "_ServiceIdentity", String.class);
+            vh_ProviderDirectIp = _l_.findVarHandle(BAnnounceProviderInfo.class, "_ProviderDirectIp", String.class);
+            vh_ProviderDirectPort = _l_.findVarHandle(BAnnounceProviderInfo.class, "_ProviderDirectPort", int.class);
+            vh_AppVersion = _l_.findVarHandle(BAnnounceProviderInfo.class, "_AppVersion", long.class);
+            vh_DisableChoice = _l_.findVarHandle(BAnnounceProviderInfo.class, "_DisableChoice", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceNamePrefix() {
         if (!isManaged())
@@ -23,7 +44,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceNamePrefix;
-        var log = (Log__ServiceNamePrefix)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceNamePrefix;
     }
 
@@ -35,7 +56,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceNamePrefix(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceNamePrefix, _v_));
     }
 
     @Override
@@ -45,7 +66,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceIdentity;
-        var log = (Log__ServiceIdentity)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ServiceIdentity;
     }
 
@@ -57,7 +78,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceIdentity(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_ServiceIdentity, _v_));
     }
 
     @Override
@@ -67,7 +88,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProviderDirectIp;
-        var log = (Log__ProviderDirectIp)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _ProviderDirectIp;
     }
 
@@ -79,7 +100,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProviderDirectIp(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_ProviderDirectIp, _v_));
     }
 
     @Override
@@ -89,7 +110,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProviderDirectPort;
-        var log = (Log__ProviderDirectPort)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _ProviderDirectPort;
     }
 
@@ -99,7 +120,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProviderDirectPort(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_ProviderDirectPort, _v_));
     }
 
     @Override
@@ -109,7 +130,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _AppVersion;
-        var log = (Log__AppVersion)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _AppVersion;
     }
 
@@ -119,7 +140,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__AppVersion(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_AppVersion, _v_));
     }
 
     @Override
@@ -129,7 +150,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _DisableChoice;
-        var log = (Log__DisableChoice)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _DisableChoice;
     }
 
@@ -139,7 +160,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__DisableChoice(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 6, vh_DisableChoice, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -228,48 +249,6 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceNamePrefix(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._ServiceNamePrefix = value; }
-    }
-
-    private static final class Log__ServiceIdentity extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceIdentity(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._ServiceIdentity = value; }
-    }
-
-    private static final class Log__ProviderDirectIp extends Zeze.Transaction.Logs.LogString {
-        public Log__ProviderDirectIp(BAnnounceProviderInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._ProviderDirectIp = value; }
-    }
-
-    private static final class Log__ProviderDirectPort extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProviderDirectPort(BAnnounceProviderInfo _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._ProviderDirectPort = value; }
-    }
-
-    private static final class Log__AppVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__AppVersion(BAnnounceProviderInfo _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._AppVersion = value; }
-    }
-
-    private static final class Log__DisableChoice extends Zeze.Transaction.Logs.LogBool {
-        public Log__DisableChoice(BAnnounceProviderInfo _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAnnounceProviderInfo)getBelong())._DisableChoice = value; }
     }
 
     @Override

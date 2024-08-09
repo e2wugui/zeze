@@ -10,6 +10,17 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
 
     private long _NextId;
 
+    private static final java.lang.invoke.VarHandle vh_NextId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_NextId = _l_.findVarHandle(BAutoKey.class, "_NextId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getNextId() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextId;
-        var log = (Log__NextId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _NextId;
     }
 
@@ -27,7 +38,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_NextId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -70,13 +81,6 @@ public final class BAutoKey extends Zeze.Transaction.Bean implements BAutoKeyRea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__NextId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextId(BAutoKey _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAutoKey)getBelong())._NextId = value; }
     }
 
     @Override

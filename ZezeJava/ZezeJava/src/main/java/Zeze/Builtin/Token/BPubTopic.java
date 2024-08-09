@@ -12,6 +12,21 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     private Zeze.Net.Binary _content; // 内容
     private boolean _broadcast; // false:只随机通知一个订阅者; true:通知所有订阅者
 
+    private static final java.lang.invoke.VarHandle vh_topic;
+    private static final java.lang.invoke.VarHandle vh_content;
+    private static final java.lang.invoke.VarHandle vh_broadcast;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_topic = _l_.findVarHandle(BPubTopic.class, "_topic", String.class);
+            vh_content = _l_.findVarHandle(BPubTopic.class, "_content", Zeze.Net.Binary.class);
+            vh_broadcast = _l_.findVarHandle(BPubTopic.class, "_broadcast", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getTopic() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _topic;
-        var log = (Log__topic)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _topic;
     }
 
@@ -31,7 +46,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__topic(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_topic, _v_));
     }
 
     @Override
@@ -41,7 +56,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _content;
-        var log = (Log__content)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _content;
     }
 
@@ -53,7 +68,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__content(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_content, _v_));
     }
 
     @Override
@@ -63,7 +78,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _broadcast;
-        var log = (Log__broadcast)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _broadcast;
     }
 
@@ -73,7 +88,7 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__broadcast(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 3, vh_broadcast, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -147,27 +162,6 @@ public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__topic extends Zeze.Transaction.Logs.LogString {
-        public Log__topic(BPubTopic _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPubTopic)getBelong())._topic = value; }
-    }
-
-    private static final class Log__content extends Zeze.Transaction.Logs.LogBinary {
-        public Log__content(BPubTopic _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPubTopic)getBelong())._content = value; }
-    }
-
-    private static final class Log__broadcast extends Zeze.Transaction.Logs.LogBool {
-        public Log__broadcast(BPubTopic _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPubTopic)getBelong())._broadcast = value; }
     }
 
     @Override

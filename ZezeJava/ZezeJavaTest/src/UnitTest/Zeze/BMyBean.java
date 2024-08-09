@@ -21,7 +21,7 @@ public class BMyBean extends Bean {
 
 	private static class MyLog extends Zeze.Transaction.Logs.LogInt {
 		public MyLog(BMyBean bean, int value) {
-			super(bean, 0, value);
+			super(bean, 0, null, value);
 		}
 
 		@Override

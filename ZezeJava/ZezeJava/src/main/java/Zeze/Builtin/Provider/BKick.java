@@ -25,6 +25,23 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     private String _desc; // for debug
     private int _control;
 
+    private static final java.lang.invoke.VarHandle vh_linksid;
+    private static final java.lang.invoke.VarHandle vh_code;
+    private static final java.lang.invoke.VarHandle vh_desc;
+    private static final java.lang.invoke.VarHandle vh_control;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_linksid = _l_.findVarHandle(BKick.class, "_linksid", long.class);
+            vh_code = _l_.findVarHandle(BKick.class, "_code", int.class);
+            vh_desc = _l_.findVarHandle(BKick.class, "_desc", String.class);
+            vh_control = _l_.findVarHandle(BKick.class, "_control", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getLinksid() {
         if (!isManaged())
@@ -32,7 +49,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _linksid;
-        var log = (Log__linksid)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _linksid;
     }
 
@@ -42,7 +59,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__linksid(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_linksid, _v_));
     }
 
     @Override
@@ -52,7 +69,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _code;
-        var log = (Log__code)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _code;
     }
 
@@ -62,7 +79,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__code(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_code, _v_));
     }
 
     @Override
@@ -72,7 +89,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _desc;
-        var log = (Log__desc)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _desc;
     }
 
@@ -84,7 +101,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__desc(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_desc, _v_));
     }
 
     @Override
@@ -94,7 +111,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _control;
-        var log = (Log__control)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _control;
     }
 
@@ -104,7 +121,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__control(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_control, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -179,34 +196,6 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__linksid extends Zeze.Transaction.Logs.LogLong {
-        public Log__linksid(BKick _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKick)getBelong())._linksid = value; }
-    }
-
-    private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
-        public Log__code(BKick _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKick)getBelong())._code = value; }
-    }
-
-    private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
-        public Log__desc(BKick _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKick)getBelong())._desc = value; }
-    }
-
-    private static final class Log__control extends Zeze.Transaction.Logs.LogInt {
-        public Log__control(BKick _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BKick)getBelong())._control = value; }
     }
 
     @Override

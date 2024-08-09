@@ -17,6 +17,29 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     private Zeze.Net.Binary _contextx; // SetUserState
     private String _onlineSetName; // SetUserState
 
+    private static final java.lang.invoke.VarHandle vh_linkSid;
+    private static final java.lang.invoke.VarHandle vh_account;
+    private static final java.lang.invoke.VarHandle vh_protocolType;
+    private static final java.lang.invoke.VarHandle vh_protocolData;
+    private static final java.lang.invoke.VarHandle vh_context;
+    private static final java.lang.invoke.VarHandle vh_contextx;
+    private static final java.lang.invoke.VarHandle vh_onlineSetName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_linkSid = _l_.findVarHandle(BDispatch.class, "_linkSid", long.class);
+            vh_account = _l_.findVarHandle(BDispatch.class, "_account", String.class);
+            vh_protocolType = _l_.findVarHandle(BDispatch.class, "_protocolType", long.class);
+            vh_protocolData = _l_.findVarHandle(BDispatch.class, "_protocolData", Zeze.Net.Binary.class);
+            vh_context = _l_.findVarHandle(BDispatch.class, "_context", String.class);
+            vh_contextx = _l_.findVarHandle(BDispatch.class, "_contextx", Zeze.Net.Binary.class);
+            vh_onlineSetName = _l_.findVarHandle(BDispatch.class, "_onlineSetName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getLinkSid() {
         if (!isManaged())
@@ -24,7 +47,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _linkSid;
-        var log = (Log__linkSid)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _linkSid;
     }
 
@@ -34,7 +57,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__linkSid(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_linkSid, _v_));
     }
 
     @Override
@@ -44,7 +67,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _account;
-        var log = (Log__account)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _account;
     }
 
@@ -56,7 +79,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__account(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_account, _v_));
     }
 
     @Override
@@ -66,7 +89,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _protocolType;
-        var log = (Log__protocolType)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _protocolType;
     }
 
@@ -76,7 +99,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__protocolType(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_protocolType, _v_));
     }
 
     @Override
@@ -86,7 +109,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _protocolData;
-        var log = (Log__protocolData)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _protocolData;
     }
 
@@ -98,7 +121,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__protocolData(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_protocolData, _v_));
     }
 
     @Override
@@ -108,7 +131,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _context;
-        var log = (Log__context)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _context;
     }
 
@@ -120,7 +143,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__context(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_context, _v_));
     }
 
     @Override
@@ -130,7 +153,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _contextx;
-        var log = (Log__contextx)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _contextx;
     }
 
@@ -142,7 +165,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__contextx(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 6, vh_contextx, _v_));
     }
 
     @Override
@@ -152,7 +175,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _onlineSetName;
-        var log = (Log__onlineSetName)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _onlineSetName;
     }
 
@@ -164,7 +187,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__onlineSetName(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 7, vh_onlineSetName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -263,55 +286,6 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__linkSid extends Zeze.Transaction.Logs.LogLong {
-        public Log__linkSid(BDispatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._linkSid = value; }
-    }
-
-    private static final class Log__account extends Zeze.Transaction.Logs.LogString {
-        public Log__account(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._account = value; }
-    }
-
-    private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
-        public Log__protocolType(BDispatch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._protocolType = value; }
-    }
-
-    private static final class Log__protocolData extends Zeze.Transaction.Logs.LogBinary {
-        public Log__protocolData(BDispatch _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._protocolData = value; }
-    }
-
-    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
-        public Log__context(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._context = value; }
-    }
-
-    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
-        public Log__contextx(BDispatch _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._contextx = value; }
-    }
-
-    private static final class Log__onlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__onlineSetName(BDispatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDispatch)getBelong())._onlineSetName = value; }
     }
 
     @Override

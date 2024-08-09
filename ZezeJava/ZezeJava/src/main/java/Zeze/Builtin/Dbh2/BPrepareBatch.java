@@ -25,6 +25,21 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         __zeze_map_key__ = _v_;
     }
 
+    private static final java.lang.invoke.VarHandle vh_Master;
+    private static final java.lang.invoke.VarHandle vh_Database;
+    private static final java.lang.invoke.VarHandle vh_Table;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Master = _l_.findVarHandle(BPrepareBatch.class, "_Master", String.class);
+            vh_Database = _l_.findVarHandle(BPrepareBatch.class, "_Database", String.class);
+            vh_Table = _l_.findVarHandle(BPrepareBatch.class, "_Table", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getMaster() {
         if (!isManaged())
@@ -32,7 +47,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Master;
-        var log = (Log__Master)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Master;
     }
 
@@ -44,7 +59,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Master(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Master, _v_));
     }
 
     @Override
@@ -54,7 +69,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Database;
-        var log = (Log__Database)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Database;
     }
 
@@ -66,7 +81,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Database(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_Database, _v_));
     }
 
     @Override
@@ -76,7 +91,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Table;
-        var log = (Log__Table)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Table;
     }
 
@@ -88,7 +103,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Table(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_Table, _v_));
     }
 
     public Zeze.Builtin.Dbh2.BBatch getBatch() {
@@ -187,27 +202,6 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Master extends Zeze.Transaction.Logs.LogString {
-        public Log__Master(BPrepareBatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPrepareBatch)getBelong())._Master = value; }
-    }
-
-    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
-        public Log__Database(BPrepareBatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPrepareBatch)getBelong())._Database = value; }
-    }
-
-    private static final class Log__Table extends Zeze.Transaction.Logs.LogString {
-        public Log__Table(BPrepareBatch _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BPrepareBatch)getBelong())._Table = value; }
     }
 
     @Override

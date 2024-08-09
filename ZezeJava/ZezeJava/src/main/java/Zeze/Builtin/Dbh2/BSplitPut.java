@@ -11,6 +11,17 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     private boolean _fromTransaction;
     private final Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> _Puts; // 包含delete，用Binary.Empty表示。
 
+    private static final java.lang.invoke.VarHandle vh_fromTransaction;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_fromTransaction = _l_.findVarHandle(BSplitPut.class, "_fromTransaction", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public boolean isFromTransaction() {
         if (!isManaged())
@@ -18,7 +29,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _fromTransaction;
-        var log = (Log__fromTransaction)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _fromTransaction;
     }
 
@@ -28,7 +39,7 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__fromTransaction(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 1, vh_fromTransaction, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<Zeze.Net.Binary, Zeze.Net.Binary> getPuts() {
@@ -105,13 +116,6 @@ public final class BSplitPut extends Zeze.Transaction.Bean implements BSplitPutR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__fromTransaction extends Zeze.Transaction.Logs.LogBool {
-        public Log__fromTransaction(BSplitPut _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSplitPut)getBelong())._fromTransaction = value; }
     }
 
     @Override

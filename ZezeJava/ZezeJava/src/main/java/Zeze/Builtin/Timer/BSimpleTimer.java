@@ -21,6 +21,37 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     private int _MissfirePolicy; // 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
     private String _OneByOneKey; // timer触发时所用的OneByOne队列key
 
+    private static final java.lang.invoke.VarHandle vh_Delay;
+    private static final java.lang.invoke.VarHandle vh_Period;
+    private static final java.lang.invoke.VarHandle vh_RemainTimes;
+    private static final java.lang.invoke.VarHandle vh_HappenTimes;
+    private static final java.lang.invoke.VarHandle vh_StartTime;
+    private static final java.lang.invoke.VarHandle vh_EndTime;
+    private static final java.lang.invoke.VarHandle vh_NextExpectedTime;
+    private static final java.lang.invoke.VarHandle vh_ExpectedTime;
+    private static final java.lang.invoke.VarHandle vh_HappenTime;
+    private static final java.lang.invoke.VarHandle vh_MissfirePolicy;
+    private static final java.lang.invoke.VarHandle vh_OneByOneKey;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Delay = _l_.findVarHandle(BSimpleTimer.class, "_Delay", long.class);
+            vh_Period = _l_.findVarHandle(BSimpleTimer.class, "_Period", long.class);
+            vh_RemainTimes = _l_.findVarHandle(BSimpleTimer.class, "_RemainTimes", long.class);
+            vh_HappenTimes = _l_.findVarHandle(BSimpleTimer.class, "_HappenTimes", long.class);
+            vh_StartTime = _l_.findVarHandle(BSimpleTimer.class, "_StartTime", long.class);
+            vh_EndTime = _l_.findVarHandle(BSimpleTimer.class, "_EndTime", long.class);
+            vh_NextExpectedTime = _l_.findVarHandle(BSimpleTimer.class, "_NextExpectedTime", long.class);
+            vh_ExpectedTime = _l_.findVarHandle(BSimpleTimer.class, "_ExpectedTime", long.class);
+            vh_HappenTime = _l_.findVarHandle(BSimpleTimer.class, "_HappenTime", long.class);
+            vh_MissfirePolicy = _l_.findVarHandle(BSimpleTimer.class, "_MissfirePolicy", int.class);
+            vh_OneByOneKey = _l_.findVarHandle(BSimpleTimer.class, "_OneByOneKey", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getDelay() {
         if (!isManaged())
@@ -28,7 +59,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Delay;
-        var log = (Log__Delay)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Delay;
     }
 
@@ -38,7 +69,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Delay(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Delay, _v_));
     }
 
     @Override
@@ -48,7 +79,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Period;
-        var log = (Log__Period)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Period;
     }
 
@@ -58,7 +89,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Period(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_Period, _v_));
     }
 
     @Override
@@ -68,7 +99,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RemainTimes;
-        var log = (Log__RemainTimes)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _RemainTimes;
     }
 
@@ -78,7 +109,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RemainTimes(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_RemainTimes, _v_));
     }
 
     @Override
@@ -88,7 +119,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HappenTimes;
-        var log = (Log__HappenTimes)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _HappenTimes;
     }
 
@@ -98,7 +129,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HappenTimes(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_HappenTimes, _v_));
     }
 
     @Override
@@ -108,7 +139,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _StartTime;
-        var log = (Log__StartTime)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _StartTime;
     }
 
@@ -118,7 +149,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__StartTime(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_StartTime, _v_));
     }
 
     @Override
@@ -128,7 +159,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EndTime;
-        var log = (Log__EndTime)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _EndTime;
     }
 
@@ -138,7 +169,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EndTime(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 6, vh_EndTime, _v_));
     }
 
     @Override
@@ -148,7 +179,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextExpectedTime;
-        var log = (Log__NextExpectedTime)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _NextExpectedTime;
     }
 
@@ -158,7 +189,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextExpectedTime(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 7, vh_NextExpectedTime, _v_));
     }
 
     @Override
@@ -168,7 +199,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ExpectedTime;
-        var log = (Log__ExpectedTime)_t_.getLog(objectId() + 8);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 8);
         return log != null ? log.value : _ExpectedTime;
     }
 
@@ -178,7 +209,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ExpectedTime(this, 8, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 8, vh_ExpectedTime, _v_));
     }
 
     @Override
@@ -188,7 +219,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HappenTime;
-        var log = (Log__HappenTime)_t_.getLog(objectId() + 9);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 9);
         return log != null ? log.value : _HappenTime;
     }
 
@@ -198,7 +229,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HappenTime(this, 9, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 9, vh_HappenTime, _v_));
     }
 
     @Override
@@ -208,7 +239,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _MissfirePolicy;
-        var log = (Log__MissfirePolicy)_t_.getLog(objectId() + 10);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 10);
         return log != null ? log.value : _MissfirePolicy;
     }
 
@@ -218,7 +249,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__MissfirePolicy(this, 10, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 10, vh_MissfirePolicy, _v_));
     }
 
     @Override
@@ -228,7 +259,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OneByOneKey;
-        var log = (Log__OneByOneKey)_t_.getLog(objectId() + 11);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 11);
         return log != null ? log.value : _OneByOneKey;
     }
 
@@ -240,7 +271,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OneByOneKey(this, 11, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 11, vh_OneByOneKey, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -316,83 +347,6 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Delay extends Zeze.Transaction.Logs.LogLong {
-        public Log__Delay(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._Delay = value; }
-    }
-
-    private static final class Log__Period extends Zeze.Transaction.Logs.LogLong {
-        public Log__Period(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._Period = value; }
-    }
-
-    private static final class Log__RemainTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__RemainTimes(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._RemainTimes = value; }
-    }
-
-    private static final class Log__HappenTimes extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTimes(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._HappenTimes = value; }
-    }
-
-    private static final class Log__StartTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__StartTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._StartTime = value; }
-    }
-
-    private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._EndTime = value; }
-    }
-
-    private static final class Log__NextExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextExpectedTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._NextExpectedTime = value; }
-    }
-
-    private static final class Log__ExpectedTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__ExpectedTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._ExpectedTime = value; }
-    }
-
-    private static final class Log__HappenTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__HappenTime(BSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._HappenTime = value; }
-    }
-
-    private static final class Log__MissfirePolicy extends Zeze.Transaction.Logs.LogInt {
-        public Log__MissfirePolicy(BSimpleTimer _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._MissfirePolicy = value; }
-    }
-
-    private static final class Log__OneByOneKey extends Zeze.Transaction.Logs.LogString {
-        public Log__OneByOneKey(BSimpleTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSimpleTimer)getBelong())._OneByOneKey = value; }
     }
 
     @Override

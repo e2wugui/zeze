@@ -13,6 +13,19 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 
+    private static final java.lang.invoke.VarHandle vh_PrevNodeId;
+    private static final java.lang.invoke.VarHandle vh_NextNodeId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_PrevNodeId = _l_.findVarHandle(BLinkedMapNode.class, "_PrevNodeId", long.class);
+            vh_NextNodeId = _l_.findVarHandle(BLinkedMapNode.class, "_NextNodeId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getPrevNodeId() {
         if (!isManaged())
@@ -20,7 +33,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _PrevNodeId;
-        var log = (Log__PrevNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _PrevNodeId;
     }
 
@@ -30,7 +43,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__PrevNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_PrevNodeId, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _NextNodeId;
     }
 
@@ -50,7 +63,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_NextNodeId, _v_));
     }
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
@@ -113,20 +126,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean implements BLink
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__PrevNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__PrevNodeId(BLinkedMapNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMapNode)getBelong())._PrevNodeId = value; }
-    }
-
-    private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextNodeId(BLinkedMapNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMapNode)getBelong())._NextNodeId = value; }
     }
 
     @Override

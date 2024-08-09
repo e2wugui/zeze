@@ -10,6 +10,17 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
 
     private String _Database;
 
+    private static final java.lang.invoke.VarHandle vh_Database;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Database = _l_.findVarHandle(BCreateDatabase.class, "_Database", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getDatabase() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Database;
-        var log = (Log__Database)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Database;
     }
 
@@ -29,7 +40,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Database(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Database, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -92,13 +103,6 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Database extends Zeze.Transaction.Logs.LogString {
-        public Log__Database(BCreateDatabase _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCreateDatabase)getBelong())._Database = value; }
     }
 
     @Override

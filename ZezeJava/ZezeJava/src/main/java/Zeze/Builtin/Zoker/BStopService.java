@@ -11,6 +11,19 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
     private String _ServiceName;
     private boolean _Force; // like kill -9
 
+    private static final java.lang.invoke.VarHandle vh_ServiceName;
+    private static final java.lang.invoke.VarHandle vh_Force;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceName = _l_.findVarHandle(BStopService.class, "_ServiceName", String.class);
+            vh_Force = _l_.findVarHandle(BStopService.class, "_Force", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceName() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
@@ -30,7 +43,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceName, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Force;
-        var log = (Log__Force)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Force;
     }
 
@@ -50,7 +63,7 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Force(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 2, vh_Force, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -117,20 +130,6 @@ public final class BStopService extends Zeze.Transaction.Bean implements BStopSe
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BStopService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BStopService)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__Force extends Zeze.Transaction.Logs.LogBool {
-        public Log__Force(BStopService _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BStopService)getBelong())._Force = value; }
     }
 
     @Override

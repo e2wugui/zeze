@@ -13,6 +13,21 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
     private boolean _Reset;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.LogService.BCondition> _Condition;
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+    private static final java.lang.invoke.VarHandle vh_Limit;
+    private static final java.lang.invoke.VarHandle vh_Reset;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BSearch.class, "_Id", long.class);
+            vh_Limit = _l_.findVarHandle(BSearch.class, "_Limit", int.class);
+            vh_Reset = _l_.findVarHandle(BSearch.class, "_Reset", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getId() {
         if (!isManaged())
@@ -20,7 +35,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -30,7 +45,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Id, _v_));
     }
 
     @Override
@@ -40,7 +55,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Limit;
-        var log = (Log__Limit)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Limit;
     }
 
@@ -50,7 +65,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Limit(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Limit, _v_));
     }
 
     @Override
@@ -60,7 +75,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Reset;
-        var log = (Log__Reset)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Reset;
     }
 
@@ -70,7 +85,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Reset(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 3, vh_Reset, _v_));
     }
 
     public Zeze.Builtin.LogService.BCondition getCondition() {
@@ -160,27 +175,6 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogLong {
-        public Log__Id(BSearch _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSearch)getBelong())._Id = value; }
-    }
-
-    private static final class Log__Limit extends Zeze.Transaction.Logs.LogInt {
-        public Log__Limit(BSearch _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSearch)getBelong())._Limit = value; }
-    }
-
-    private static final class Log__Reset extends Zeze.Transaction.Logs.LogBool {
-        public Log__Reset(BSearch _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSearch)getBelong())._Reset = value; }
     }
 
     @Override

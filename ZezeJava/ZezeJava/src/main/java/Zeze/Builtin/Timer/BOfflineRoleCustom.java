@@ -29,6 +29,25 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
 
     private String _OnlineSetName; // 客户端名
 
+    private static final java.lang.invoke.VarHandle vh_TimerName;
+    private static final java.lang.invoke.VarHandle vh_RoleId;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_HandleName;
+    private static final java.lang.invoke.VarHandle vh_OnlineSetName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_TimerName = _l_.findVarHandle(BOfflineRoleCustom.class, "_TimerName", String.class);
+            vh_RoleId = _l_.findVarHandle(BOfflineRoleCustom.class, "_RoleId", long.class);
+            vh_LoginVersion = _l_.findVarHandle(BOfflineRoleCustom.class, "_LoginVersion", long.class);
+            vh_HandleName = _l_.findVarHandle(BOfflineRoleCustom.class, "_HandleName", String.class);
+            vh_OnlineSetName = _l_.findVarHandle(BOfflineRoleCustom.class, "_OnlineSetName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getTimerName() {
         if (!isManaged())
@@ -36,7 +55,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TimerName;
-        var log = (Log__TimerName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _TimerName;
     }
 
@@ -48,7 +67,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TimerName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_TimerName, _v_));
     }
 
     @Override
@@ -58,7 +77,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _RoleId;
-        var log = (Log__RoleId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _RoleId;
     }
 
@@ -68,7 +87,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__RoleId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_RoleId, _v_));
     }
 
     @Override
@@ -78,7 +97,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -88,7 +107,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_LoginVersion, _v_));
     }
 
     @Override
@@ -98,7 +117,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HandleName;
-        var log = (Log__HandleName)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _HandleName;
     }
 
@@ -110,7 +129,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HandleName(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_HandleName, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getCustomData() {
@@ -129,7 +148,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OnlineSetName;
-        var log = (Log__OnlineSetName)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _OnlineSetName;
     }
 
@@ -141,7 +160,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OnlineSetName(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 6, vh_OnlineSetName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -210,41 +229,6 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__TimerName extends Zeze.Transaction.Logs.LogString {
-        public Log__TimerName(BOfflineRoleCustom _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOfflineRoleCustom)getBelong())._TimerName = value; }
-    }
-
-    private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
-        public Log__RoleId(BOfflineRoleCustom _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOfflineRoleCustom)getBelong())._RoleId = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BOfflineRoleCustom _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOfflineRoleCustom)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__HandleName extends Zeze.Transaction.Logs.LogString {
-        public Log__HandleName(BOfflineRoleCustom _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOfflineRoleCustom)getBelong())._HandleName = value; }
-    }
-
-    private static final class Log__OnlineSetName extends Zeze.Transaction.Logs.LogString {
-        public Log__OnlineSetName(BOfflineRoleCustom _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOfflineRoleCustom)getBelong())._OnlineSetName = value; }
     }
 
     @Override

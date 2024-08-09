@@ -23,6 +23,19 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         __zeze_map_key__ = _v_;
     }
 
+    private static final java.lang.invoke.VarHandle vh_ReturnCode;
+    private static final java.lang.invoke.VarHandle vh_Params;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ReturnCode = _l_.findVarHandle(BModuleRedirectAllHash.class, "_ReturnCode", long.class);
+            vh_Params = _l_.findVarHandle(BModuleRedirectAllHash.class, "_Params", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getReturnCode() {
         if (!isManaged())
@@ -30,7 +43,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ReturnCode;
-        var log = (Log__ReturnCode)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ReturnCode;
     }
 
@@ -40,7 +53,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ReturnCode(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_ReturnCode, _v_));
     }
 
     @Override
@@ -50,7 +63,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Params;
-        var log = (Log__Params)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Params;
     }
 
@@ -62,7 +75,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Params(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_Params, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -129,20 +142,6 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean implemen
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ReturnCode extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReturnCode(BModuleRedirectAllHash _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllHash)getBelong())._ReturnCode = value; }
-    }
-
-    private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Params(BModuleRedirectAllHash _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllHash)getBelong())._Params = value; }
     }
 
     @Override

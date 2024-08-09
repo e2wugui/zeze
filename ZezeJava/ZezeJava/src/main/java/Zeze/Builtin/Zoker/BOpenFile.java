@@ -11,6 +11,19 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
     private String _ServiceName;
     private String _FileName;
 
+    private static final java.lang.invoke.VarHandle vh_ServiceName;
+    private static final java.lang.invoke.VarHandle vh_FileName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceName = _l_.findVarHandle(BOpenFile.class, "_ServiceName", String.class);
+            vh_FileName = _l_.findVarHandle(BOpenFile.class, "_FileName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceName() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
@@ -30,7 +43,7 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceName, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FileName;
-        var log = (Log__FileName)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _FileName;
     }
 
@@ -52,7 +65,7 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FileName(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_FileName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -122,20 +135,6 @@ public final class BOpenFile extends Zeze.Transaction.Bean implements BOpenFileR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BOpenFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOpenFile)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
-        public Log__FileName(BOpenFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOpenFile)getBelong())._FileName = value; }
     }
 
     @Override

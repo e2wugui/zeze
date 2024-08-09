@@ -12,6 +12,21 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
     private int _Port;
     private Zeze.Net.Binary _Extra;
 
+    private static final java.lang.invoke.VarHandle vh_Ip;
+    private static final java.lang.invoke.VarHandle vh_Port;
+    private static final java.lang.invoke.VarHandle vh_Extra;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Ip = _l_.findVarHandle(BLinkInfo.class, "_Ip", String.class);
+            vh_Port = _l_.findVarHandle(BLinkInfo.class, "_Port", int.class);
+            vh_Extra = _l_.findVarHandle(BLinkInfo.class, "_Extra", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getIp() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Ip;
-        var log = (Log__Ip)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Ip;
     }
 
@@ -31,7 +46,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Ip(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Ip, _v_));
     }
 
     @Override
@@ -41,7 +56,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Port;
-        var log = (Log__Port)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Port;
     }
 
@@ -51,7 +66,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Port(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Port, _v_));
     }
 
     @Override
@@ -61,7 +76,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Extra;
-        var log = (Log__Extra)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Extra;
     }
 
@@ -73,7 +88,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Extra(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_Extra, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -147,27 +162,6 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Ip extends Zeze.Transaction.Logs.LogString {
-        public Log__Ip(BLinkInfo _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkInfo)getBelong())._Ip = value; }
-    }
-
-    private static final class Log__Port extends Zeze.Transaction.Logs.LogInt {
-        public Log__Port(BLinkInfo _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkInfo)getBelong())._Port = value; }
-    }
-
-    private static final class Log__Extra extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Extra(BLinkInfo _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkInfo)getBelong())._Extra = value; }
     }
 
     @Override

@@ -12,6 +12,19 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
+    private static final java.lang.invoke.VarHandle vh_protocolType;
+    private static final java.lang.invoke.VarHandle vh_protocolWholeData;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_protocolType = _l_.findVarHandle(BSend.class, "_protocolType", long.class);
+            vh_protocolWholeData = _l_.findVarHandle(BSend.class, "_protocolWholeData", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     public Zeze.Transaction.Collections.PList1<Long> getLinkSids() {
         return _linkSids;
     }
@@ -28,7 +41,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _protocolType;
-        var log = (Log__protocolType)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _protocolType;
     }
 
@@ -38,7 +51,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__protocolType(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_protocolType, _v_));
     }
 
     @Override
@@ -48,7 +61,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _protocolWholeData;
-        var log = (Log__protocolWholeData)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _protocolWholeData;
     }
 
@@ -60,7 +73,7 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__protocolWholeData(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_protocolWholeData, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -135,20 +148,6 @@ public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
-        public Log__protocolType(BSend _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSend)getBelong())._protocolType = value; }
-    }
-
-    private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
-        public Log__protocolWholeData(BSend _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSend)getBelong())._protocolWholeData = value; }
     }
 
     @Override

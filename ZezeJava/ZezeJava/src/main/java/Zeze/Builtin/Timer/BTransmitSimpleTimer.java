@@ -16,6 +16,27 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     private long _LoginVersion;
     private boolean _Hot;
 
+    private static final java.lang.invoke.VarHandle vh_TimerId;
+    private static final java.lang.invoke.VarHandle vh_HandleClass;
+    private static final java.lang.invoke.VarHandle vh_CustomClass;
+    private static final java.lang.invoke.VarHandle vh_CustomBean;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_Hot;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_TimerId = _l_.findVarHandle(BTransmitSimpleTimer.class, "_TimerId", String.class);
+            vh_HandleClass = _l_.findVarHandle(BTransmitSimpleTimer.class, "_HandleClass", String.class);
+            vh_CustomClass = _l_.findVarHandle(BTransmitSimpleTimer.class, "_CustomClass", String.class);
+            vh_CustomBean = _l_.findVarHandle(BTransmitSimpleTimer.class, "_CustomBean", Zeze.Net.Binary.class);
+            vh_LoginVersion = _l_.findVarHandle(BTransmitSimpleTimer.class, "_LoginVersion", long.class);
+            vh_Hot = _l_.findVarHandle(BTransmitSimpleTimer.class, "_Hot", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getTimerId() {
         if (!isManaged())
@@ -23,7 +44,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TimerId;
-        var log = (Log__TimerId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _TimerId;
     }
 
@@ -35,7 +56,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TimerId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_TimerId, _v_));
     }
 
     public Zeze.Builtin.Timer.BSimpleTimer getSimpleTimer() {
@@ -58,7 +79,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HandleClass;
-        var log = (Log__HandleClass)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _HandleClass;
     }
 
@@ -70,7 +91,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HandleClass(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_HandleClass, _v_));
     }
 
     @Override
@@ -80,7 +101,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _CustomClass;
-        var log = (Log__CustomClass)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _CustomClass;
     }
 
@@ -92,7 +113,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__CustomClass(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_CustomClass, _v_));
     }
 
     @Override
@@ -102,7 +123,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _CustomBean;
-        var log = (Log__CustomBean)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _CustomBean;
     }
 
@@ -114,7 +135,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__CustomBean(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 5, vh_CustomBean, _v_));
     }
 
     @Override
@@ -124,7 +145,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -134,7 +155,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 6, vh_LoginVersion, _v_));
     }
 
     @Override
@@ -144,7 +165,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Hot;
-        var log = (Log__Hot)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _Hot;
     }
 
@@ -154,7 +175,7 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Hot(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 7, vh_Hot, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -230,48 +251,6 @@ public final class BTransmitSimpleTimer extends Zeze.Transaction.Bean implements
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__TimerId extends Zeze.Transaction.Logs.LogString {
-        public Log__TimerId(BTransmitSimpleTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._TimerId = value; }
-    }
-
-    private static final class Log__HandleClass extends Zeze.Transaction.Logs.LogString {
-        public Log__HandleClass(BTransmitSimpleTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._HandleClass = value; }
-    }
-
-    private static final class Log__CustomClass extends Zeze.Transaction.Logs.LogString {
-        public Log__CustomClass(BTransmitSimpleTimer _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._CustomClass = value; }
-    }
-
-    private static final class Log__CustomBean extends Zeze.Transaction.Logs.LogBinary {
-        public Log__CustomBean(BTransmitSimpleTimer _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._CustomBean = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BTransmitSimpleTimer _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__Hot extends Zeze.Transaction.Logs.LogBool {
-        public Log__Hot(BTransmitSimpleTimer _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTransmitSimpleTimer)getBelong())._Hot = value; }
     }
 
     @Override

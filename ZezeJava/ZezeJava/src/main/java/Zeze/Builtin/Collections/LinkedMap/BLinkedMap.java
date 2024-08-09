@@ -13,6 +13,23 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
 
+    private static final java.lang.invoke.VarHandle vh_HeadNodeId;
+    private static final java.lang.invoke.VarHandle vh_TailNodeId;
+    private static final java.lang.invoke.VarHandle vh_Count;
+    private static final java.lang.invoke.VarHandle vh_LastNodeId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_HeadNodeId = _l_.findVarHandle(BLinkedMap.class, "_HeadNodeId", long.class);
+            vh_TailNodeId = _l_.findVarHandle(BLinkedMap.class, "_TailNodeId", long.class);
+            vh_Count = _l_.findVarHandle(BLinkedMap.class, "_Count", long.class);
+            vh_LastNodeId = _l_.findVarHandle(BLinkedMap.class, "_LastNodeId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getHeadNodeId() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _HeadNodeId;
     }
 
@@ -30,7 +47,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HeadNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_HeadNodeId, _v_));
     }
 
     @Override
@@ -40,7 +57,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TailNodeId;
     }
 
@@ -50,7 +67,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TailNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_TailNodeId, _v_));
     }
 
     @Override
@@ -60,7 +77,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Count;
-        var log = (Log__Count)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Count;
     }
 
@@ -70,7 +87,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Count(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Count, _v_));
     }
 
     @Override
@@ -80,7 +97,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LastNodeId;
-        var log = (Log__LastNodeId)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _LastNodeId;
     }
 
@@ -90,7 +107,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LastNodeId(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_LastNodeId, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -142,34 +159,6 @@ public final class BLinkedMap extends Zeze.Transaction.Bean implements BLinkedMa
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__HeadNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__HeadNodeId(BLinkedMap _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMap)getBelong())._HeadNodeId = value; }
-    }
-
-    private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TailNodeId(BLinkedMap _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMap)getBelong())._TailNodeId = value; }
-    }
-
-    private static final class Log__Count extends Zeze.Transaction.Logs.LogLong {
-        public Log__Count(BLinkedMap _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMap)getBelong())._Count = value; }
-    }
-
-    private static final class Log__LastNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__LastNodeId(BLinkedMap _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMap)getBelong())._LastNodeId = value; }
     }
 
     @Override

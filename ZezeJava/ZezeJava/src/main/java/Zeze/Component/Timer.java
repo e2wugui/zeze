@@ -585,7 +585,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
 								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-								 @Nullable Bean customData, String oneByOneKey) {
+								 @Nullable Bean customData, @NotNull String oneByOneKey) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var index = _tIndexs.get(timerId);
@@ -660,7 +660,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 								 int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-								 @Nullable Bean customData, String oneByOneKey) throws ParseException {
+								 @Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var index = _tIndexs.get(timerId);
@@ -681,7 +681,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull String cron, long times,
 							  long endTime, int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-							  @Nullable Bean customData, String oneByOneKey) {
+							  @Nullable Bean customData, @NotNull String oneByOneKey) {
 		if (timerFutures.containsKey(timerId)) { // 在调度中
 			var root = _tNodeRoot.get(zeze.getConfig().getServerId());
 			if (root != null) {

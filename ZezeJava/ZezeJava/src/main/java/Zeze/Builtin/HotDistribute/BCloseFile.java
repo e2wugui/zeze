@@ -11,6 +11,19 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     private String _FileName;
     private Zeze.Net.Binary _Md5;
 
+    private static final java.lang.invoke.VarHandle vh_FileName;
+    private static final java.lang.invoke.VarHandle vh_Md5;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_FileName = _l_.findVarHandle(BCloseFile.class, "_FileName", String.class);
+            vh_Md5 = _l_.findVarHandle(BCloseFile.class, "_Md5", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getFileName() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FileName;
-        var log = (Log__FileName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _FileName;
     }
 
@@ -30,7 +43,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FileName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_FileName, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Md5;
-        var log = (Log__Md5)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Md5;
     }
 
@@ -52,7 +65,7 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Md5(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_Md5, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -122,20 +135,6 @@ public final class BCloseFile extends Zeze.Transaction.Bean implements BCloseFil
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__FileName extends Zeze.Transaction.Logs.LogString {
-        public Log__FileName(BCloseFile _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCloseFile)getBelong())._FileName = value; }
-    }
-
-    private static final class Log__Md5 extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Md5(BCloseFile _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCloseFile)getBelong())._Md5 = value; }
     }
 
     @Override

@@ -10,6 +10,17 @@ public final class BFuncProcedureResult extends Zeze.Transaction.Bean implements
 
     private Zeze.Net.Binary _FuncResult;
 
+    private static final java.lang.invoke.VarHandle vh_FuncResult;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_FuncResult = _l_.findVarHandle(BFuncProcedureResult.class, "_FuncResult", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getFuncResult() {
         if (!isManaged())
@@ -17,7 +28,7 @@ public final class BFuncProcedureResult extends Zeze.Transaction.Bean implements
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _FuncResult;
-        var log = (Log__FuncResult)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _FuncResult;
     }
 
@@ -29,7 +40,7 @@ public final class BFuncProcedureResult extends Zeze.Transaction.Bean implements
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__FuncResult(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_FuncResult, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -92,13 +103,6 @@ public final class BFuncProcedureResult extends Zeze.Transaction.Bean implements
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__FuncResult extends Zeze.Transaction.Logs.LogBinary {
-        public Log__FuncResult(BFuncProcedureResult _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BFuncProcedureResult)getBelong())._FuncResult = value; }
     }
 
     @Override

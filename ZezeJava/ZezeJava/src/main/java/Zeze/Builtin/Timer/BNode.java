@@ -13,6 +13,19 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     private long _NextNodeId; // 节点双链表的后一个节点ID, tNodes表的key, 循环指向,不应该无效
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> _Timers; // 该节点的所有timer, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID), 数量上限是Zeze.Component.Timer.CountPerNode(50)
 
+    private static final java.lang.invoke.VarHandle vh_PrevNodeId;
+    private static final java.lang.invoke.VarHandle vh_NextNodeId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_PrevNodeId = _l_.findVarHandle(BNode.class, "_PrevNodeId", long.class);
+            vh_NextNodeId = _l_.findVarHandle(BNode.class, "_NextNodeId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getPrevNodeId() {
         if (!isManaged())
@@ -20,7 +33,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _PrevNodeId;
-        var log = (Log__PrevNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _PrevNodeId;
     }
 
@@ -30,7 +43,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__PrevNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_PrevNodeId, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _NextNodeId;
-        var log = (Log__NextNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _NextNodeId;
     }
 
@@ -50,7 +63,7 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__NextNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_NextNodeId, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Timer.BTimer> getTimers() {
@@ -113,20 +126,6 @@ public final class BNode extends Zeze.Transaction.Bean implements BNodeReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__PrevNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__PrevNodeId(BNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNode)getBelong())._PrevNodeId = value; }
-    }
-
-    private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__NextNodeId(BNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BNode)getBelong())._NextNodeId = value; }
     }
 
     @Override

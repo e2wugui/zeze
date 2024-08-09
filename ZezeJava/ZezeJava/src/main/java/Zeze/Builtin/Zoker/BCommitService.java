@@ -11,6 +11,19 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     private String _ServiceName;
     private String _VersionNo;
 
+    private static final java.lang.invoke.VarHandle vh_ServiceName;
+    private static final java.lang.invoke.VarHandle vh_VersionNo;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServiceName = _l_.findVarHandle(BCommitService.class, "_ServiceName", String.class);
+            vh_VersionNo = _l_.findVarHandle(BCommitService.class, "_VersionNo", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getServiceName() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServiceName;
-        var log = (Log__ServiceName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServiceName;
     }
 
@@ -30,7 +43,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServiceName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_ServiceName, _v_));
     }
 
     @Override
@@ -40,7 +53,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _VersionNo;
-        var log = (Log__VersionNo)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _VersionNo;
     }
 
@@ -52,7 +65,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__VersionNo(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_VersionNo, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -122,20 +135,6 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServiceName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServiceName(BCommitService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCommitService)getBelong())._ServiceName = value; }
-    }
-
-    private static final class Log__VersionNo extends Zeze.Transaction.Logs.LogString {
-        public Log__VersionNo(BCommitService _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCommitService)getBelong())._VersionNo = value; }
     }
 
     @Override

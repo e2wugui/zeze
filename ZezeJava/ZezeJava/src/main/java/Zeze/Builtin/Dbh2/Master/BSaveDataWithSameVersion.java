@@ -17,6 +17,21 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     private Zeze.Net.Binary _Data;
     private long _Version;
 
+    private static final java.lang.invoke.VarHandle vh_Key;
+    private static final java.lang.invoke.VarHandle vh_Data;
+    private static final java.lang.invoke.VarHandle vh_Version;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Key = _l_.findVarHandle(BSaveDataWithSameVersion.class, "_Key", Zeze.Net.Binary.class);
+            vh_Data = _l_.findVarHandle(BSaveDataWithSameVersion.class, "_Data", Zeze.Net.Binary.class);
+            vh_Version = _l_.findVarHandle(BSaveDataWithSameVersion.class, "_Version", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getKey() {
         if (!isManaged())
@@ -24,7 +39,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Key;
-        var log = (Log__Key)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Key;
     }
 
@@ -36,7 +51,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Key(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_Key, _v_));
     }
 
     @Override
@@ -46,7 +61,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Data;
-        var log = (Log__Data)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Data;
     }
 
@@ -58,7 +73,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Data(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_Data, _v_));
     }
 
     @Override
@@ -68,7 +83,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Version;
-        var log = (Log__Version)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Version;
     }
 
@@ -78,7 +93,7 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Version(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Version, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -152,27 +167,6 @@ public final class BSaveDataWithSameVersion extends Zeze.Transaction.Bean implem
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Key extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Key(BSaveDataWithSameVersion _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSaveDataWithSameVersion)getBelong())._Key = value; }
-    }
-
-    private static final class Log__Data extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Data(BSaveDataWithSameVersion _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSaveDataWithSameVersion)getBelong())._Data = value; }
-    }
-
-    private static final class Log__Version extends Zeze.Transaction.Logs.LogLong {
-        public Log__Version(BSaveDataWithSameVersion _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BSaveDataWithSameVersion)getBelong())._Version = value; }
     }
 
     @Override

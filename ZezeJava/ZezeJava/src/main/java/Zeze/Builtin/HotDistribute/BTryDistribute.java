@@ -11,6 +11,19 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     private long _DistributeId;
     private boolean _AtomicAll;
 
+    private static final java.lang.invoke.VarHandle vh_DistributeId;
+    private static final java.lang.invoke.VarHandle vh_AtomicAll;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_DistributeId = _l_.findVarHandle(BTryDistribute.class, "_DistributeId", long.class);
+            vh_AtomicAll = _l_.findVarHandle(BTryDistribute.class, "_AtomicAll", boolean.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getDistributeId() {
         if (!isManaged())
@@ -18,7 +31,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _DistributeId;
-        var log = (Log__DistributeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _DistributeId;
     }
 
@@ -28,7 +41,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__DistributeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_DistributeId, _v_));
     }
 
     @Override
@@ -38,7 +51,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _AtomicAll;
-        var log = (Log__AtomicAll)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _AtomicAll;
     }
 
@@ -48,7 +61,7 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__AtomicAll(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 2, vh_AtomicAll, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -112,20 +125,6 @@ public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryD
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__DistributeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__DistributeId(BTryDistribute _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTryDistribute)getBelong())._DistributeId = value; }
-    }
-
-    private static final class Log__AtomicAll extends Zeze.Transaction.Logs.LogBool {
-        public Log__AtomicAll(BTryDistribute _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTryDistribute)getBelong())._AtomicAll = value; }
     }
 
     @Override

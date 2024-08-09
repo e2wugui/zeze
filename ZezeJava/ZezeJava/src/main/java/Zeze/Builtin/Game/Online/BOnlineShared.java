@@ -27,6 +27,23 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         return Zeze.Game.Online.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final java.lang.invoke.VarHandle vh_Account;
+    private static final java.lang.invoke.VarHandle vh_Link;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_LogoutVersion;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Account = _l_.findVarHandle(BOnlineShared.class, "_Account", String.class);
+            vh_Link = _l_.findVarHandle(BOnlineShared.class, "_Link", Zeze.Builtin.Game.Online.BLink.class);
+            vh_LoginVersion = _l_.findVarHandle(BOnlineShared.class, "_LoginVersion", long.class);
+            vh_LogoutVersion = _l_.findVarHandle(BOnlineShared.class, "_LogoutVersion", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getAccount() {
         if (!isManaged())
@@ -34,7 +51,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Account;
-        var log = (Log__Account)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Account;
     }
 
@@ -46,7 +63,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Account(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Account, _v_));
     }
 
     @Override
@@ -56,7 +73,8 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Link;
-        var log = (Log__Link)_t_.getLog(objectId() + 2);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink>)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Link;
     }
 
@@ -68,7 +86,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Link(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Game.Online.BLink.class, this, 2, vh_Link, _v_));
     }
 
     @Override
@@ -78,7 +96,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -88,7 +106,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_LoginVersion, _v_));
     }
 
     @Override
@@ -98,7 +116,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LogoutVersion;
-        var log = (Log__LogoutVersion)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _LogoutVersion;
     }
 
@@ -108,7 +126,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LogoutVersion(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_LogoutVersion, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getUserData() {
@@ -179,34 +197,6 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
-        public Log__Account(BOnlineShared _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnlineShared)getBelong())._Account = value; }
-    }
-
-    private static final class Log__Link extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Game.Online.BLink> {
-        public Log__Link(BOnlineShared _b_, int _i_, Zeze.Builtin.Game.Online.BLink _v_) { super(Zeze.Builtin.Game.Online.BLink.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnlineShared)getBelong())._Link = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BOnlineShared _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnlineShared)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__LogoutVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LogoutVersion(BOnlineShared _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnlineShared)getBelong())._LogoutVersion = value; }
     }
 
     @Override

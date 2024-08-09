@@ -39,6 +39,19 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         return Zeze.Collections.DepartmentTree.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final java.lang.invoke.VarHandle vh_ParentDepartment;
+    private static final java.lang.invoke.VarHandle vh_Name;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ParentDepartment = _l_.findVarHandle(BDepartmentTreeNode.class, "_ParentDepartment", long.class);
+            vh_Name = _l_.findVarHandle(BDepartmentTreeNode.class, "_Name", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getParentDepartment() {
         if (!isManaged())
@@ -46,7 +59,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ParentDepartment;
-        var log = (Log__ParentDepartment)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ParentDepartment;
     }
 
@@ -56,7 +69,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ParentDepartment(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_ParentDepartment, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
@@ -75,7 +88,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Name;
-        var log = (Log__Name)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Name;
     }
 
@@ -87,7 +100,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Name(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_Name, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> getManagers() {
@@ -172,20 +185,6 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ParentDepartment extends Zeze.Transaction.Logs.LogLong {
-        public Log__ParentDepartment(BDepartmentTreeNode _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDepartmentTreeNode)getBelong())._ParentDepartment = value; }
-    }
-
-    private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
-        public Log__Name(BDepartmentTreeNode _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BDepartmentTreeNode)getBelong())._Name = value; }
     }
 
     @Override

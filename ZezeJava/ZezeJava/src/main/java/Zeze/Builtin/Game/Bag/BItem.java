@@ -36,6 +36,19 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         __zeze_map_key__ = _v_;
     }
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+    private static final java.lang.invoke.VarHandle vh_Number;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BItem.class, "_Id", int.class);
+            vh_Number = _l_.findVarHandle(BItem.class, "_Number", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getId() {
         if (!isManaged())
@@ -43,7 +56,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -53,7 +66,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_Id, _v_));
     }
 
     @Override
@@ -63,7 +76,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Number;
-        var log = (Log__Number)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _Number;
     }
 
@@ -73,7 +86,7 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Number(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_Number, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getItem() {
@@ -132,20 +145,6 @@ public final class BItem extends Zeze.Transaction.Bean implements BItemReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogInt {
-        public Log__Id(BItem _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BItem)getBelong())._Id = value; }
-    }
-
-    private static final class Log__Number extends Zeze.Transaction.Logs.LogInt {
-        public Log__Number(BItem _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BItem)getBelong())._Number = value; }
     }
 
     @Override

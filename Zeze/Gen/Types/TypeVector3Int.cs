@@ -41,7 +41,7 @@ namespace Zeze.Gen.Types
 		public override string Name => "vector3int";
 		public override bool IsNeedNegativeCheck => false;
 
-		public override bool IsImmutable => false;
+		public override bool IsImmutable => true;
 		public override bool IsJavaPrimitive => false;
 	}
 }

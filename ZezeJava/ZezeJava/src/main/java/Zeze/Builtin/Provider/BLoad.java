@@ -17,6 +17,23 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     private int _OnlineNew; // 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
     private int _Overload; // 过载保护类型。参见上面的枚举定义。
 
+    private static final java.lang.invoke.VarHandle vh_Online;
+    private static final java.lang.invoke.VarHandle vh_ProposeMaxOnline;
+    private static final java.lang.invoke.VarHandle vh_OnlineNew;
+    private static final java.lang.invoke.VarHandle vh_Overload;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Online = _l_.findVarHandle(BLoad.class, "_Online", int.class);
+            vh_ProposeMaxOnline = _l_.findVarHandle(BLoad.class, "_ProposeMaxOnline", int.class);
+            vh_OnlineNew = _l_.findVarHandle(BLoad.class, "_OnlineNew", int.class);
+            vh_Overload = _l_.findVarHandle(BLoad.class, "_Overload", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getOnline() {
         if (!isManaged())
@@ -24,7 +41,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Online;
-        var log = (Log__Online)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Online;
     }
 
@@ -34,7 +51,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Online(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_Online, _v_));
     }
 
     @Override
@@ -44,7 +61,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProposeMaxOnline;
-        var log = (Log__ProposeMaxOnline)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ProposeMaxOnline;
     }
 
@@ -54,7 +71,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProposeMaxOnline(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ProposeMaxOnline, _v_));
     }
 
     @Override
@@ -64,7 +81,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _OnlineNew;
-        var log = (Log__OnlineNew)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _OnlineNew;
     }
 
@@ -74,7 +91,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__OnlineNew(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_OnlineNew, _v_));
     }
 
     @Override
@@ -84,7 +101,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Overload;
-        var log = (Log__Overload)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Overload;
     }
 
@@ -94,7 +111,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Overload(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_Overload, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -166,34 +183,6 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Online extends Zeze.Transaction.Logs.LogInt {
-        public Log__Online(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLoad)getBelong())._Online = value; }
-    }
-
-    private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProposeMaxOnline(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLoad)getBelong())._ProposeMaxOnline = value; }
-    }
-
-    private static final class Log__OnlineNew extends Zeze.Transaction.Logs.LogInt {
-        public Log__OnlineNew(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLoad)getBelong())._OnlineNew = value; }
-    }
-
-    private static final class Log__Overload extends Zeze.Transaction.Logs.LogInt {
-        public Log__Overload(BLoad _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLoad)getBelong())._Overload = value; }
     }
 
     @Override

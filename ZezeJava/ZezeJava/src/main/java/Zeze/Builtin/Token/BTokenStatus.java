@@ -13,6 +13,23 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     private int _connectCount; // 当前的网络连接数量
     private String _perfLog; // 最近生成的性能日志
 
+    private static final java.lang.invoke.VarHandle vh_newCount;
+    private static final java.lang.invoke.VarHandle vh_curCount;
+    private static final java.lang.invoke.VarHandle vh_connectCount;
+    private static final java.lang.invoke.VarHandle vh_perfLog;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_newCount = _l_.findVarHandle(BTokenStatus.class, "_newCount", long.class);
+            vh_curCount = _l_.findVarHandle(BTokenStatus.class, "_curCount", long.class);
+            vh_connectCount = _l_.findVarHandle(BTokenStatus.class, "_connectCount", int.class);
+            vh_perfLog = _l_.findVarHandle(BTokenStatus.class, "_perfLog", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getNewCount() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _newCount;
-        var log = (Log__newCount)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _newCount;
     }
 
@@ -30,7 +47,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__newCount(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_newCount, _v_));
     }
 
     @Override
@@ -40,7 +57,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _curCount;
-        var log = (Log__curCount)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _curCount;
     }
 
@@ -50,7 +67,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__curCount(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_curCount, _v_));
     }
 
     @Override
@@ -60,7 +77,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _connectCount;
-        var log = (Log__connectCount)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _connectCount;
     }
 
@@ -70,7 +87,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__connectCount(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_connectCount, _v_));
     }
 
     @Override
@@ -80,7 +97,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _perfLog;
-        var log = (Log__perfLog)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _perfLog;
     }
 
@@ -92,7 +109,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__perfLog(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_perfLog, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -167,34 +184,6 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__newCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__newCount(BTokenStatus _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTokenStatus)getBelong())._newCount = value; }
-    }
-
-    private static final class Log__curCount extends Zeze.Transaction.Logs.LogLong {
-        public Log__curCount(BTokenStatus _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTokenStatus)getBelong())._curCount = value; }
-    }
-
-    private static final class Log__connectCount extends Zeze.Transaction.Logs.LogInt {
-        public Log__connectCount(BTokenStatus _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTokenStatus)getBelong())._connectCount = value; }
-    }
-
-    private static final class Log__perfLog extends Zeze.Transaction.Logs.LogString {
-        public Log__perfLog(BTokenStatus _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTokenStatus)getBelong())._perfLog = value; }
     }
 
     @Override

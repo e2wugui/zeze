@@ -12,6 +12,21 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     private Zeze.Net.Binary _EncodedKey;
     private long _EnqueueTime;
 
+    private static final java.lang.invoke.VarHandle vh_TableName;
+    private static final java.lang.invoke.VarHandle vh_EncodedKey;
+    private static final java.lang.invoke.VarHandle vh_EnqueueTime;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_TableName = _l_.findVarHandle(BTableKey.class, "_TableName", String.class);
+            vh_EncodedKey = _l_.findVarHandle(BTableKey.class, "_EncodedKey", Zeze.Net.Binary.class);
+            vh_EnqueueTime = _l_.findVarHandle(BTableKey.class, "_EnqueueTime", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getTableName() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TableName;
-        var log = (Log__TableName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _TableName;
     }
 
@@ -31,7 +46,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TableName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_TableName, _v_));
     }
 
     @Override
@@ -41,7 +56,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EncodedKey;
-        var log = (Log__EncodedKey)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _EncodedKey;
     }
 
@@ -53,7 +68,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EncodedKey(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_EncodedKey, _v_));
     }
 
     @Override
@@ -63,7 +78,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EnqueueTime;
-        var log = (Log__EnqueueTime)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _EnqueueTime;
     }
 
@@ -73,7 +88,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EnqueueTime(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_EnqueueTime, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -128,27 +143,6 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__TableName extends Zeze.Transaction.Logs.LogString {
-        public Log__TableName(BTableKey _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTableKey)getBelong())._TableName = value; }
-    }
-
-    private static final class Log__EncodedKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__EncodedKey(BTableKey _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTableKey)getBelong())._EncodedKey = value; }
-    }
-
-    private static final class Log__EnqueueTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EnqueueTime(BTableKey _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BTableKey)getBelong())._EnqueueTime = value; }
     }
 
     @Override

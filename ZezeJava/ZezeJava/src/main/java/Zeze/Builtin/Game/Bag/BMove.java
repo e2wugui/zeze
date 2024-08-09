@@ -13,6 +13,23 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     private int _PositionTo;
     private int _number; // -1 表示全部
 
+    private static final java.lang.invoke.VarHandle vh_BagName;
+    private static final java.lang.invoke.VarHandle vh_PositionFrom;
+    private static final java.lang.invoke.VarHandle vh_PositionTo;
+    private static final java.lang.invoke.VarHandle vh_number;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_BagName = _l_.findVarHandle(BMove.class, "_BagName", String.class);
+            vh_PositionFrom = _l_.findVarHandle(BMove.class, "_PositionFrom", int.class);
+            vh_PositionTo = _l_.findVarHandle(BMove.class, "_PositionTo", int.class);
+            vh_number = _l_.findVarHandle(BMove.class, "_number", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getBagName() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _BagName;
-        var log = (Log__BagName)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _BagName;
     }
 
@@ -32,7 +49,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__BagName(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_BagName, _v_));
     }
 
     @Override
@@ -42,7 +59,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _PositionFrom;
-        var log = (Log__PositionFrom)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _PositionFrom;
     }
 
@@ -52,7 +69,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__PositionFrom(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_PositionFrom, _v_));
     }
 
     @Override
@@ -62,7 +79,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _PositionTo;
-        var log = (Log__PositionTo)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _PositionTo;
     }
 
@@ -72,7 +89,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__PositionTo(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_PositionTo, _v_));
     }
 
     @Override
@@ -82,7 +99,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _number;
-        var log = (Log__number)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _number;
     }
 
@@ -92,7 +109,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__number(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_number, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -147,34 +164,6 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__BagName extends Zeze.Transaction.Logs.LogString {
-        public Log__BagName(BMove _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMove)getBelong())._BagName = value; }
-    }
-
-    private static final class Log__PositionFrom extends Zeze.Transaction.Logs.LogInt {
-        public Log__PositionFrom(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMove)getBelong())._PositionFrom = value; }
-    }
-
-    private static final class Log__PositionTo extends Zeze.Transaction.Logs.LogInt {
-        public Log__PositionTo(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMove)getBelong())._PositionTo = value; }
-    }
-
-    private static final class Log__number extends Zeze.Transaction.Logs.LogInt {
-        public Log__number(BMove _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BMove)getBelong())._number = value; }
     }
 
     @Override

@@ -18,6 +18,23 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     private int _ContainsType;
     private String _Pattern;
 
+    private static final java.lang.invoke.VarHandle vh_BeginTime;
+    private static final java.lang.invoke.VarHandle vh_EndTime;
+    private static final java.lang.invoke.VarHandle vh_ContainsType;
+    private static final java.lang.invoke.VarHandle vh_Pattern;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_BeginTime = _l_.findVarHandle(BCondition.class, "_BeginTime", long.class);
+            vh_EndTime = _l_.findVarHandle(BCondition.class, "_EndTime", long.class);
+            vh_ContainsType = _l_.findVarHandle(BCondition.class, "_ContainsType", int.class);
+            vh_Pattern = _l_.findVarHandle(BCondition.class, "_Pattern", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getBeginTime() {
         if (!isManaged())
@@ -25,7 +42,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _BeginTime;
-        var log = (Log__BeginTime)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _BeginTime;
     }
 
@@ -35,7 +52,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__BeginTime(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_BeginTime, _v_));
     }
 
     @Override
@@ -45,7 +62,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _EndTime;
-        var log = (Log__EndTime)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _EndTime;
     }
 
@@ -55,7 +72,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__EndTime(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_EndTime, _v_));
     }
 
     public Zeze.Transaction.Collections.PList1<String> getWords() {
@@ -74,7 +91,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ContainsType;
-        var log = (Log__ContainsType)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _ContainsType;
     }
 
@@ -84,7 +101,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ContainsType(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 4, vh_ContainsType, _v_));
     }
 
     @Override
@@ -94,7 +111,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Pattern;
-        var log = (Log__Pattern)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _Pattern;
     }
 
@@ -106,7 +123,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Pattern(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_Pattern, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -189,34 +206,6 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__BeginTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__BeginTime(BCondition _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCondition)getBelong())._BeginTime = value; }
-    }
-
-    private static final class Log__EndTime extends Zeze.Transaction.Logs.LogLong {
-        public Log__EndTime(BCondition _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCondition)getBelong())._EndTime = value; }
-    }
-
-    private static final class Log__ContainsType extends Zeze.Transaction.Logs.LogInt {
-        public Log__ContainsType(BCondition _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCondition)getBelong())._ContainsType = value; }
-    }
-
-    private static final class Log__Pattern extends Zeze.Transaction.Logs.LogString {
-        public Log__Pattern(BCondition _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BCondition)getBelong())._Pattern = value; }
     }
 
     @Override

@@ -12,6 +12,21 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     private String _SecureKey;
     private int _GlobalCacheManagerHashIndex;
 
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_SecureKey;
+    private static final java.lang.invoke.VarHandle vh_GlobalCacheManagerHashIndex;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ServerId = _l_.findVarHandle(BAchillesHeel.class, "_ServerId", int.class);
+            vh_SecureKey = _l_.findVarHandle(BAchillesHeel.class, "_SecureKey", String.class);
+            vh_GlobalCacheManagerHashIndex = _l_.findVarHandle(BAchillesHeel.class, "_GlobalCacheManagerHashIndex", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getServerId() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ServerId;
     }
 
@@ -29,7 +44,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ServerId, _v_));
     }
 
     @Override
@@ -39,7 +54,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SecureKey;
-        var log = (Log__SecureKey)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _SecureKey;
     }
 
@@ -51,7 +66,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SecureKey(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 2, vh_SecureKey, _v_));
     }
 
     @Override
@@ -61,7 +76,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _GlobalCacheManagerHashIndex;
-        var log = (Log__GlobalCacheManagerHashIndex)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _GlobalCacheManagerHashIndex;
     }
 
@@ -71,7 +86,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__GlobalCacheManagerHashIndex(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_GlobalCacheManagerHashIndex, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -123,27 +138,6 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BAchillesHeel _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeel)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__SecureKey extends Zeze.Transaction.Logs.LogString {
-        public Log__SecureKey(BAchillesHeel _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeel)getBelong())._SecureKey = value; }
-    }
-
-    private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
-        public Log__GlobalCacheManagerHashIndex(BAchillesHeel _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeel)getBelong())._GlobalCacheManagerHashIndex = value; }
     }
 
     @Override

@@ -12,6 +12,21 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     private int _ServerProcessTime;
     private int _ServerReleaseTimeout;
 
+    private static final java.lang.invoke.VarHandle vh_MaxNetPing;
+    private static final java.lang.invoke.VarHandle vh_ServerProcessTime;
+    private static final java.lang.invoke.VarHandle vh_ServerReleaseTimeout;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_MaxNetPing = _l_.findVarHandle(BAchillesHeelConfig.class, "_MaxNetPing", int.class);
+            vh_ServerProcessTime = _l_.findVarHandle(BAchillesHeelConfig.class, "_ServerProcessTime", int.class);
+            vh_ServerReleaseTimeout = _l_.findVarHandle(BAchillesHeelConfig.class, "_ServerReleaseTimeout", int.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getMaxNetPing() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _MaxNetPing;
-        var log = (Log__MaxNetPing)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _MaxNetPing;
     }
 
@@ -29,7 +44,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__MaxNetPing(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_MaxNetPing, _v_));
     }
 
     @Override
@@ -39,7 +54,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerProcessTime;
-        var log = (Log__ServerProcessTime)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ServerProcessTime;
     }
 
@@ -49,7 +64,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerProcessTime(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ServerProcessTime, _v_));
     }
 
     @Override
@@ -59,7 +74,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerReleaseTimeout;
-        var log = (Log__ServerReleaseTimeout)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _ServerReleaseTimeout;
     }
 
@@ -69,7 +84,7 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerReleaseTimeout(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_ServerReleaseTimeout, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -118,27 +133,6 @@ public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__MaxNetPing extends Zeze.Transaction.Logs.LogInt {
-        public Log__MaxNetPing(BAchillesHeelConfig _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeelConfig)getBelong())._MaxNetPing = value; }
-    }
-
-    private static final class Log__ServerProcessTime extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerProcessTime(BAchillesHeelConfig _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeelConfig)getBelong())._ServerProcessTime = value; }
-    }
-
-    private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerReleaseTimeout(BAchillesHeelConfig _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BAchillesHeelConfig)getBelong())._ServerReleaseTimeout = value; }
     }
 
     @Override

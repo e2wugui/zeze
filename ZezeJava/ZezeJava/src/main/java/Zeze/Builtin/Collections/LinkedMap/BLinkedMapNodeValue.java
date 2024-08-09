@@ -23,6 +23,17 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         return Zeze.Collections.LinkedMap.createBeanFromSpecialTypeId(_t_);
     }
 
+    private static final java.lang.invoke.VarHandle vh_Id;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Id = _l_.findVarHandle(BLinkedMapNodeValue.class, "_Id", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public String getId() {
         if (!isManaged())
@@ -30,7 +41,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Id;
-        var log = (Log__Id)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Id;
     }
 
@@ -42,7 +53,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Id(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Id, _v_));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -101,13 +112,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Id extends Zeze.Transaction.Logs.LogString {
-        public Log__Id(BLinkedMapNodeValue _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BLinkedMapNodeValue)getBelong())._Id = value; }
     }
 
     @Override

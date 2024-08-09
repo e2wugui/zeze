@@ -28,6 +28,27 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         __zeze_map_key__ = _v_;
     }
 
+    private static final java.lang.invoke.VarHandle vh_Link;
+    private static final java.lang.invoke.VarHandle vh_LoginVersion;
+    private static final java.lang.invoke.VarHandle vh_ReliableNotifyIndex;
+    private static final java.lang.invoke.VarHandle vh_ReliableNotifyConfirmIndex;
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_LogoutVersion;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_Link = _l_.findVarHandle(BOnline.class, "_Link", Zeze.Builtin.Online.BLink.class);
+            vh_LoginVersion = _l_.findVarHandle(BOnline.class, "_LoginVersion", long.class);
+            vh_ReliableNotifyIndex = _l_.findVarHandle(BOnline.class, "_ReliableNotifyIndex", long.class);
+            vh_ReliableNotifyConfirmIndex = _l_.findVarHandle(BOnline.class, "_ReliableNotifyConfirmIndex", long.class);
+            vh_ServerId = _l_.findVarHandle(BOnline.class, "_ServerId", int.class);
+            vh_LogoutVersion = _l_.findVarHandle(BOnline.class, "_LogoutVersion", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Builtin.Online.BLink getLink() {
         if (!isManaged())
@@ -35,7 +56,8 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Link;
-        var log = (Log__Link)_t_.getLog(objectId() + 1);
+        @SuppressWarnings("unchecked")
+        var log = (Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink>)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _Link;
     }
 
@@ -47,7 +69,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Link(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Online.BLink.class, this, 1, vh_Link, _v_));
     }
 
     @Override
@@ -57,7 +79,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LoginVersion;
-        var log = (Log__LoginVersion)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _LoginVersion;
     }
 
@@ -67,7 +89,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LoginVersion(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_LoginVersion, _v_));
     }
 
     public Zeze.Transaction.Collections.PSet1<String> getReliableNotifyMark() {
@@ -86,7 +108,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ReliableNotifyIndex;
-        var log = (Log__ReliableNotifyIndex)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _ReliableNotifyIndex;
     }
 
@@ -96,7 +118,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ReliableNotifyIndex(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 4, vh_ReliableNotifyIndex, _v_));
     }
 
     @Override
@@ -106,7 +128,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ReliableNotifyConfirmIndex;
-        var log = (Log__ReliableNotifyConfirmIndex)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _ReliableNotifyConfirmIndex;
     }
 
@@ -116,7 +138,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ReliableNotifyConfirmIndex(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_ReliableNotifyConfirmIndex, _v_));
     }
 
     @Override
@@ -126,7 +148,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 6);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 6);
         return log != null ? log.value : _ServerId;
     }
 
@@ -136,7 +158,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 6, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 6, vh_ServerId, _v_));
     }
 
     @Override
@@ -146,7 +168,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LogoutVersion;
-        var log = (Log__LogoutVersion)_t_.getLog(objectId() + 7);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 7);
         return log != null ? log.value : _LogoutVersion;
     }
 
@@ -156,7 +178,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LogoutVersion(this, 7, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 7, vh_LogoutVersion, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -223,48 +245,6 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__Link extends Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.Online.BLink> {
-        public Log__Link(BOnline _b_, int _i_, Zeze.Builtin.Online.BLink _v_) { super(Zeze.Builtin.Online.BLink.class, _b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._Link = value; }
-    }
-
-    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LoginVersion(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._LoginVersion = value; }
-    }
-
-    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyIndex(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._ReliableNotifyIndex = value; }
-    }
-
-    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
-        public Log__ReliableNotifyConfirmIndex(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._ReliableNotifyConfirmIndex = value; }
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BOnline _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__LogoutVersion extends Zeze.Transaction.Logs.LogLong {
-        public Log__LogoutVersion(BOnline _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BOnline)getBelong())._LogoutVersion = value; }
     }
 
     @Override

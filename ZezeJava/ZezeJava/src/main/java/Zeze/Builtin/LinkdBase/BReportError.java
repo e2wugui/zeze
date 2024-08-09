@@ -22,6 +22,21 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     private int _code;
     private String _desc;
 
+    private static final java.lang.invoke.VarHandle vh_from;
+    private static final java.lang.invoke.VarHandle vh_code;
+    private static final java.lang.invoke.VarHandle vh_desc;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_from = _l_.findVarHandle(BReportError.class, "_from", int.class);
+            vh_code = _l_.findVarHandle(BReportError.class, "_code", int.class);
+            vh_desc = _l_.findVarHandle(BReportError.class, "_desc", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getFrom() {
         if (!isManaged())
@@ -29,7 +44,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _from;
-        var log = (Log__from)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _from;
     }
 
@@ -39,7 +54,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__from(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_from, _v_));
     }
 
     @Override
@@ -49,7 +64,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _code;
-        var log = (Log__code)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _code;
     }
 
@@ -59,7 +74,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__code(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_code, _v_));
     }
 
     @Override
@@ -69,7 +84,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _desc;
-        var log = (Log__desc)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _desc;
     }
 
@@ -81,7 +96,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__desc(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_desc, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -152,27 +167,6 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__from extends Zeze.Transaction.Logs.LogInt {
-        public Log__from(BReportError _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BReportError)getBelong())._from = value; }
-    }
-
-    private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
-        public Log__code(BReportError _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BReportError)getBelong())._code = value; }
-    }
-
-    private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
-        public Log__desc(BReportError _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BReportError)getBelong())._desc = value; }
     }
 
     @Override

@@ -15,6 +15,25 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
     private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 
+    private static final java.lang.invoke.VarHandle vh_ModuleId;
+    private static final java.lang.invoke.VarHandle vh_ServerId;
+    private static final java.lang.invoke.VarHandle vh_SourceProvider;
+    private static final java.lang.invoke.VarHandle vh_MethodFullName;
+    private static final java.lang.invoke.VarHandle vh_SessionId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ModuleId = _l_.findVarHandle(BModuleRedirectAllResult.class, "_ModuleId", int.class);
+            vh_ServerId = _l_.findVarHandle(BModuleRedirectAllResult.class, "_ServerId", int.class);
+            vh_SourceProvider = _l_.findVarHandle(BModuleRedirectAllResult.class, "_SourceProvider", long.class);
+            vh_MethodFullName = _l_.findVarHandle(BModuleRedirectAllResult.class, "_MethodFullName", String.class);
+            vh_SessionId = _l_.findVarHandle(BModuleRedirectAllResult.class, "_SessionId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public int getModuleId() {
         if (!isManaged())
@@ -22,7 +41,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ModuleId;
-        var log = (Log__ModuleId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ModuleId;
     }
 
@@ -32,7 +51,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ModuleId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ModuleId, _v_));
     }
 
     @Override
@@ -42,7 +61,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ServerId;
-        var log = (Log__ServerId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ServerId;
     }
 
@@ -52,7 +71,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ServerId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ServerId, _v_));
     }
 
     @Override
@@ -62,7 +81,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SourceProvider;
-        var log = (Log__SourceProvider)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _SourceProvider;
     }
 
@@ -72,7 +91,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SourceProvider(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_SourceProvider, _v_));
     }
 
     @Override
@@ -82,7 +101,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _MethodFullName;
-        var log = (Log__MethodFullName)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _MethodFullName;
     }
 
@@ -94,7 +113,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__MethodFullName(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_MethodFullName, _v_));
     }
 
     @Override
@@ -104,7 +123,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SessionId;
-        var log = (Log__SessionId)_t_.getLog(objectId() + 5);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 5);
         return log != null ? log.value : _SessionId;
     }
 
@@ -114,7 +133,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__SessionId(this, 5, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_SessionId, _v_));
     }
 
     public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashs() {
@@ -216,41 +235,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ModuleId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ModuleId(BModuleRedirectAllResult _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllResult)getBelong())._ModuleId = value; }
-    }
-
-    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
-        public Log__ServerId(BModuleRedirectAllResult _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllResult)getBelong())._ServerId = value; }
-    }
-
-    private static final class Log__SourceProvider extends Zeze.Transaction.Logs.LogLong {
-        public Log__SourceProvider(BModuleRedirectAllResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllResult)getBelong())._SourceProvider = value; }
-    }
-
-    private static final class Log__MethodFullName extends Zeze.Transaction.Logs.LogString {
-        public Log__MethodFullName(BModuleRedirectAllResult _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllResult)getBelong())._MethodFullName = value; }
-    }
-
-    private static final class Log__SessionId extends Zeze.Transaction.Logs.LogLong {
-        public Log__SessionId(BModuleRedirectAllResult _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BModuleRedirectAllResult)getBelong())._SessionId = value; }
     }
 
     @Override

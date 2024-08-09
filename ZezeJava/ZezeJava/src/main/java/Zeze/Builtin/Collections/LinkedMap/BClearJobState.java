@@ -12,6 +12,21 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     private long _TailNodeId;
     private String _LinkedMapName;
 
+    private static final java.lang.invoke.VarHandle vh_HeadNodeId;
+    private static final java.lang.invoke.VarHandle vh_TailNodeId;
+    private static final java.lang.invoke.VarHandle vh_LinkedMapName;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_HeadNodeId = _l_.findVarHandle(BClearJobState.class, "_HeadNodeId", long.class);
+            vh_TailNodeId = _l_.findVarHandle(BClearJobState.class, "_TailNodeId", long.class);
+            vh_LinkedMapName = _l_.findVarHandle(BClearJobState.class, "_LinkedMapName", String.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public long getHeadNodeId() {
         if (!isManaged())
@@ -19,7 +34,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _HeadNodeId;
-        var log = (Log__HeadNodeId)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _HeadNodeId;
     }
 
@@ -29,7 +44,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__HeadNodeId(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_HeadNodeId, _v_));
     }
 
     @Override
@@ -39,7 +54,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _TailNodeId;
-        var log = (Log__TailNodeId)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _TailNodeId;
     }
 
@@ -49,7 +64,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__TailNodeId(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_TailNodeId, _v_));
     }
 
     @Override
@@ -59,7 +74,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _LinkedMapName;
-        var log = (Log__LinkedMapName)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _LinkedMapName;
     }
 
@@ -71,7 +86,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__LinkedMapName(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_LinkedMapName, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -123,27 +138,6 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__HeadNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__HeadNodeId(BClearJobState _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BClearJobState)getBelong())._HeadNodeId = value; }
-    }
-
-    private static final class Log__TailNodeId extends Zeze.Transaction.Logs.LogLong {
-        public Log__TailNodeId(BClearJobState _b_, int _i_, long _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BClearJobState)getBelong())._TailNodeId = value; }
-    }
-
-    private static final class Log__LinkedMapName extends Zeze.Transaction.Logs.LogString {
-        public Log__LinkedMapName(BClearJobState _b_, int _i_, String _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BClearJobState)getBelong())._LinkedMapName = value; }
     }
 
     @Override

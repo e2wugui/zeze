@@ -27,6 +27,33 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
 
+            bool hasVH = false;
+            foreach (Variable var in bean.Variables)
+            {
+                if (var.VariableType.IsImmutable && !bean.Version.Equals(var.Name))
+                {
+                    sw.WriteLine($"{prefix}private static final java.lang.invoke.VarHandle vh_{var.Name};");
+                    hasVH = true;
+                }
+            }
+            if (hasVH)
+            {
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}static {{");
+                sw.WriteLine($"{prefix}    var _l_ = java.lang.invoke.MethodHandles.lookup();");
+                sw.WriteLine($"{prefix}    try {{");
+                foreach (Variable var in bean.Variables)
+                {
+                    if (var.VariableType.IsImmutable && !bean.Version.Equals(var.Name))
+                        sw.WriteLine($"{prefix}        vh_{var.Name} = _l_.findVarHandle({bean.Name}.class, \"{var.NamePrivate}\", {TypeName.GetName(var.VariableType)}.class);");
+                }
+                sw.WriteLine($"{prefix}    }} catch (ReflectiveOperationException _e_) {{");
+                sw.WriteLine($"{prefix}        throw Zeze.Util.Task.forceThrow(_e_);");
+                sw.WriteLine($"{prefix}    }}");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+            }
+
             foreach (Variable var in bean.Variables)
             {
                 if (bean.Version.Equals(var.Name))
@@ -85,7 +112,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
             sw.WriteLine(prefix + "    if (_t_ == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")_t_.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -95,13 +122,12 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    if (_v_ == null)");
                 sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             }
-
             sw.WriteLine(prefix + "    if (!isManaged()) {");
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = _v_;");
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + "    _t_.putLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, _v_));"); //
+            sw.WriteLine(prefix + "    _t_.putLog(new " + LogName.GetName(type) + $"(this, {var.Id}, vh_{var.Name}, _v_));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -222,7 +248,30 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            WriteProperty(type, true);
+            var typeName = TypeName.GetName(type);
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    if (!isManaged())");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
+            sw.WriteLine(prefix + "    if (_t_ == null)");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    @SuppressWarnings(\"unchecked\")");
+            sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
+            sw.WriteLine(prefix + "    if (_v_ == null)");
+            sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
+            sw.WriteLine(prefix + "    if (!isManaged()) {");
+            sw.WriteLine(prefix + "        " + var.NamePrivate + " = _v_;");
+            sw.WriteLine(prefix + "        return;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
+            sw.WriteLine(prefix + $"    _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>({TypeName.GetName(type)}.class, this, {var.Id}, vh_{var.Name}, _v_));");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public void Visit(TypeDynamic type)
@@ -247,7 +296,7 @@ namespace Zeze.Gen.java
                 //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
                 //sw.WriteLine();
             }
-            
+
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public {TypeName.GetName(type)}ReadOnly get{var.NameUpper1}ReadOnly() {{");
             sw.WriteLine($"{prefix}    return {var.NamePrivate};");

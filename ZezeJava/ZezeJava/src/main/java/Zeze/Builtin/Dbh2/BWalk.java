@@ -13,6 +13,23 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     private boolean _Desc;
     private Zeze.Net.Binary _Prefix;
 
+    private static final java.lang.invoke.VarHandle vh_ExclusiveStartKey;
+    private static final java.lang.invoke.VarHandle vh_ProposeLimit;
+    private static final java.lang.invoke.VarHandle vh_Desc;
+    private static final java.lang.invoke.VarHandle vh_Prefix;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_ExclusiveStartKey = _l_.findVarHandle(BWalk.class, "_ExclusiveStartKey", Zeze.Net.Binary.class);
+            vh_ProposeLimit = _l_.findVarHandle(BWalk.class, "_ProposeLimit", int.class);
+            vh_Desc = _l_.findVarHandle(BWalk.class, "_Desc", boolean.class);
+            vh_Prefix = _l_.findVarHandle(BWalk.class, "_Prefix", Zeze.Net.Binary.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
+
     @Override
     public Zeze.Net.Binary getExclusiveStartKey() {
         if (!isManaged())
@@ -20,7 +37,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ExclusiveStartKey;
-        var log = (Log__ExclusiveStartKey)_t_.getLog(objectId() + 1);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _ExclusiveStartKey;
     }
 
@@ -32,7 +49,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ExclusiveStartKey(this, 1, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 1, vh_ExclusiveStartKey, _v_));
     }
 
     @Override
@@ -42,7 +59,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _ProposeLimit;
-        var log = (Log__ProposeLimit)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
         return log != null ? log.value : _ProposeLimit;
     }
 
@@ -52,7 +69,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__ProposeLimit(this, 2, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ProposeLimit, _v_));
     }
 
     @Override
@@ -62,7 +79,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Desc;
-        var log = (Log__Desc)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogBool)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _Desc;
     }
 
@@ -72,7 +89,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Desc(this, 3, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBool(this, 3, vh_Desc, _v_));
     }
 
     @Override
@@ -82,7 +99,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _Prefix;
-        var log = (Log__Prefix)_t_.getLog(objectId() + 4);
+        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 4);
         return log != null ? log.value : _Prefix;
     }
 
@@ -94,7 +111,7 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Log__Prefix(this, 4, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 4, vh_Prefix, _v_));
     }
 
     @SuppressWarnings("deprecation")
@@ -172,34 +189,6 @@ public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly 
     @Override
     public long typeId() {
         return TYPEID;
-    }
-
-    private static final class Log__ExclusiveStartKey extends Zeze.Transaction.Logs.LogBinary {
-        public Log__ExclusiveStartKey(BWalk _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalk)getBelong())._ExclusiveStartKey = value; }
-    }
-
-    private static final class Log__ProposeLimit extends Zeze.Transaction.Logs.LogInt {
-        public Log__ProposeLimit(BWalk _b_, int _i_, int _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalk)getBelong())._ProposeLimit = value; }
-    }
-
-    private static final class Log__Desc extends Zeze.Transaction.Logs.LogBool {
-        public Log__Desc(BWalk _b_, int _i_, boolean _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalk)getBelong())._Desc = value; }
-    }
-
-    private static final class Log__Prefix extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Prefix(BWalk _b_, int _i_, Zeze.Net.Binary _v_) { super(_b_, _i_, _v_); }
-
-        @Override
-        public void commit() { ((BWalk)getBelong())._Prefix = value; }
     }
 
     @Override
