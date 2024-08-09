@@ -19,7 +19,7 @@ public final class Simulate {
 				"org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
 	}
 
-	static final Logger logger = LogManager.getLogger();
+	static final Logger logger = LogManager.getLogger(Simulate.class);
 
 	public final static int AppCount = 10;
 	public final static int BatchTaskCount = 50000;

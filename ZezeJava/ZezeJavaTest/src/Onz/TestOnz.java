@@ -14,6 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestOnz {
+	protected static final Logger logger = LogManager.getLogger(TestOnz.class);
+
 	private final App zeze2 = new App();
 	private OnzServer onzServer;
 
@@ -47,8 +49,6 @@ public class TestOnz {
 		result.setMoney(account.getMoney());
 		return 0;
 	}
-
-	protected static final Logger logger = LogManager.getLogger();
 
 	@Test
 	public void testOnz() throws Exception {

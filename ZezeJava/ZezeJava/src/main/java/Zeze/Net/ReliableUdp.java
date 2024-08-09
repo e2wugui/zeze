@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
  * 3 没有流量控制。
  */
 public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closeable {
-	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
+	private static final Logger logger = LogManager.getLogger(ReliableUdp.class);
 
 	public static final int TypePacket = 0;
 	public static final int TypeControl = 1;

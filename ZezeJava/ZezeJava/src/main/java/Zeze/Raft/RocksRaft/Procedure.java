@@ -10,7 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Procedure {
-	private static final Logger logger = LogManager.getLogger(Table.class);
+	private static final Logger logger = LogManager.getLogger(Procedure.class);
 
 	private Rocks rocks;
 	private FuncLong func;
