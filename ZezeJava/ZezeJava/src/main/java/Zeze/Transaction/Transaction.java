@@ -683,13 +683,13 @@ public final class Transaction {
 				while (it.moveToNext()) {
 					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
 					// 现在不会有这种情况，保留给未来扩展需要。
-					Log log = it.value();
-					if (log.getBean() == null)
+					var belong = it.value().getBelong();
+					if (belong == null)
 						continue;
 
-					var tkey = log.getBean().tableKey();
+					var tkey = belong.tableKey();
 					if (tkey == null)
-						logger.error("impossible! log bean({}): {}", log.getBean().getClass().getName(), log.getBean());
+						logger.error("impossible! log bean({}): {}", belong.getClass().getName(), belong);
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.dirty = true;

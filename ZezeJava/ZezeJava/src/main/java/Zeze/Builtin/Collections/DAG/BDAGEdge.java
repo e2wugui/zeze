@@ -45,7 +45,7 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, this, 1, vh_From, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_From, _v_));
     }
 
     @Override
@@ -68,7 +68,7 @@ public final class BDAGEdge extends Zeze.Transaction.Bean implements BDAGEdgeRea
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.DAG.BDAGNodeKey.class, this, 2, vh_To, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 2, vh_To, _v_));
     }
 
     @SuppressWarnings("deprecation")

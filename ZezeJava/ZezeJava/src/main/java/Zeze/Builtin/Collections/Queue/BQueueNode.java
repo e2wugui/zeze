@@ -75,7 +75,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 3, vh_NextNodeKey, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 3, vh_NextNodeKey, _v_));
     }
 
     @SuppressWarnings("deprecation")

@@ -110,12 +110,7 @@ public class PSet1<V> extends PSet<V> {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var log = new LogSet1<>(meta);
-		log.setBelong(parent());
-		log.setThis(this);
-		log.setVariableId(variableId());
-		log.setValue(set);
-		return log;
+		return new LogSet1<>(parent(), variableId(), this, set, meta);
 	}
 
 	@Override

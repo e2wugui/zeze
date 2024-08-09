@@ -18,13 +18,13 @@ public class LogBinary extends Log {
 	public Binary value;
 
 	public LogBinary(Bean belong, int varId, VarHandle vh, Binary value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogBinary() {
+	public LogBinary(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -40,6 +40,7 @@ public class LogBinary extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

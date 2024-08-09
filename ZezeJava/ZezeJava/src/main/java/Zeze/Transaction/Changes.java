@@ -66,7 +66,12 @@ public final class Changes {
 
 		public @Nullable Log getVariableLog(int variableId) {
 			var logBean = getLogBean();
-			return logBean != null ? logBean.getVariables().get(variableId) : null;
+			if (logBean != null) {
+				var variables = logBean.getVariables();
+				if (variables != null)
+					return variables.get(variableId);
+			}
+			return null;
 		}
 
 		public @NotNull IdentityHashMap<Bean, LogBean> getLogBeans() {
@@ -131,7 +136,7 @@ public final class Changes {
 				value.decode(bb);
 				break;
 			case Edit:
-				bb.decode(logBean, LogBean::new);
+				bb.decode(logBean, () -> new LogBean(null, 0, null));
 				break;
 			}
 		}
@@ -154,7 +159,7 @@ public final class Changes {
 		if (!isHistory && listeners.get(recent.rootInfo.getRecord().getTable()) == null)
 			return;
 
-		Bean belong = log.getBelong();
+		var belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 			var r = records.get(recent.tableKey());

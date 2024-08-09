@@ -11,20 +11,21 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class LogBeanKey<T extends Serializable> extends Log {
-	protected final Meta1<T> meta;
+	private final @NotNull Meta1<T> meta;
 	private final VarHandle vh;
 	public T value;
 
 	// 事务修改过程中不需要Factory。
-	public LogBeanKey(Class<T> beanClass, Bean belong, int varId, VarHandle vh, T value) {
-		setBelong(belong);
-		setVariableId(varId);
-		meta = Meta1.getBeanMeta(beanClass);
+	@SuppressWarnings("unchecked")
+	public LogBeanKey(Bean belong, int varId, VarHandle vh, @NotNull T value) {
+		super(belong, varId);
+		meta = Meta1.getBeanMeta((Class<T>)value.getClass());
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogBeanKey(Class<T> beanClass) {
+	public LogBeanKey(int varId, @NotNull Class<T> beanClass) {
+		super(null, varId);
 		meta = Meta1.getBeanMeta(beanClass);
 		vh = null;
 	}

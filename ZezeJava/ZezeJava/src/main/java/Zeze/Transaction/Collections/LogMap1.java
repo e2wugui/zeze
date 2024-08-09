@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
@@ -17,14 +18,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private final HashMap<K, V> replaced = new HashMap<>();
 	private final Set<K> removed = new HashSet<>();
 
-	public LogMap1(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
-		super(value);
+	public LogMap1(Bean belong, int varId, Bean self, @NotNull org.pcollections.PMap<K, V> value,
+				   @NotNull Meta2<K, V> meta) {
+		super(belong, varId, self, value);
 		this.meta = meta;
-	}
-
-	public LogMap1(@NotNull Class<K> keyClass, Class<V> valueClass) {
-		super(Empty.map()); // not used
-		this.meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
 	@Override
@@ -109,6 +106,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueEncoder = meta.valueEncoder;
 		for (var e : replaced.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
+			//noinspection DataFlowIssue
 			valueEncoder.accept(bb, e.getValue());
 		}
 
@@ -124,6 +122,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var valueDecoder = meta.valueDecoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			K k = keyDecoder.apply(bb);
+			//noinspection DataFlowIssue
 			V v = valueDecoder.apply(bb);
 			replaced.put(k, v);
 		}
@@ -163,11 +162,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogMap1<>(meta, getValue());
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		return dup;
+		return new LogMap1<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override

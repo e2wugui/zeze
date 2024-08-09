@@ -8,19 +8,22 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LogOne<V extends Bean> extends LogBean {
+	private final @NotNull Meta1<V> meta;
 	V value;
-	LogBean logBean;
-	private final Meta1<V> meta;
+	@Nullable LogBean logBean;
 
 	@SuppressWarnings("unchecked")
-	public LogOne(@NotNull V value) {
-		this.value = value;
+	public LogOne(Bean belong, int varId, Bean self, @NotNull V value) {
+		super(belong, varId, self);
 		meta = Meta1.getLogOneMeta((Class<V>)value.getClass()); // 事务本来使用不需要动态创建，但是getTypeId需要。
+		this.value = value;
 	}
 
-	public LogOne(@NotNull Class<V> beanClass) {
+	public LogOne(int varId, @NotNull Class<V> beanClass) {
+		super(null, varId, null);
 		meta = Meta1.getLogOneMeta(beanClass); // for decode
 	}
 
@@ -40,11 +43,7 @@ public class LogOne<V extends Bean> extends LogBean {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogOne<>(value);
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		return dup;
+		return new LogOne<>(getBelong(), getVariableId(), getThis(), value);
 	}
 
 	@Override
@@ -96,7 +95,7 @@ public class LogOne<V extends Bean> extends LogBean {
 			}
 			value.decode(bb);
 		} else if (bb.ReadBool()) { // hasLogBean
-			logBean = new LogBean();
+			logBean = new LogBean(null, 0, null);
 			logBean.decode(bb);
 		}
 	}

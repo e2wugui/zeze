@@ -14,13 +14,13 @@ public class LogByte extends Log {
 	public byte value;
 
 	public LogByte(Bean belong, int varId, VarHandle vh, byte value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogByte() {
+	public LogByte(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogByte extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

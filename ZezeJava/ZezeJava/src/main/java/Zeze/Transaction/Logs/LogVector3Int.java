@@ -18,13 +18,13 @@ public class LogVector3Int extends Log {
 	public Vector3Int value;
 
 	public LogVector3Int(Bean belong, int varId, VarHandle vh, Vector3Int value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogVector3Int() {
+	public LogVector3Int(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -40,6 +40,7 @@ public class LogVector3Int extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

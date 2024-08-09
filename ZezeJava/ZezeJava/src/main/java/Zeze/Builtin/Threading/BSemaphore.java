@@ -47,7 +47,7 @@ public final class BSemaphore extends Zeze.Transaction.Bean implements BSemaphor
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Threading.BLockName.class, this, 1, vh_LockName, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 1, vh_LockName, _v_));
     }
 
     @Override

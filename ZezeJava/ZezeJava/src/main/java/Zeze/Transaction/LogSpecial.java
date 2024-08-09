@@ -7,8 +7,7 @@ public abstract class LogSpecial<TBean extends Bean, TValue> extends Log {
 	private final @Nullable TValue value;
 
 	protected LogSpecial(@NotNull Bean bean, int varId, @Nullable TValue value) {
-		setBean(bean);
-		setVariableId(varId);
+		super(bean, varId);
 		this.value = value;
 	}
 
@@ -23,7 +22,7 @@ public abstract class LogSpecial<TBean extends Bean, TValue> extends Log {
 
 	@SuppressWarnings("unchecked")
 	public final TBean getBeanTyped() {
-		return (TBean)getBean();
+		return (TBean)getBelong();
 	}
 
 	@Override

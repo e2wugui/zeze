@@ -219,12 +219,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var log = new LogList2<>(meta);
-		log.setBelong(parent());
-		log.setThis(this);
-		log.setVariableId(variableId());
-		log.setValue(list);
-		return log;
+		return new LogList2<>(parent(), variableId(), this, list, meta);
 	}
 
 	@Override

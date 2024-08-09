@@ -89,7 +89,7 @@ public class Verify {
 			case Changes.Record.Edit:
 				sb.append("edit: [\n");
 				for (int i = 0, n = bb.ReadUInt(); i < n; i++) {
-					var lb = new LogBean();
+					var lb = new LogBean(null, 0, null);
 					lb.decode(bb);
 					sb.append(lb);
 				}

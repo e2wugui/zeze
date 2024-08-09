@@ -13,17 +13,14 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.pcollections.PVector;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
 	private final HashMap<LogBean, OutInt> changed = new HashMap<>(); // changed V logs. using in collect.
 	private @Nullable IdentityHashSet<V> addSet;
 
-	public LogList2(@NotNull Meta1<V> meta) {
-		super(meta);
-	}
-
-	public LogList2(@NotNull Class<V> valueClass) {
-		super(Meta1.getList2Meta(valueClass));
+	public LogList2(Bean belong, int varId, Bean self, @NotNull PVector<V> value, @NotNull Meta1<V> meta) {
+		super(belong, varId, self, value, meta);
 	}
 
 	public final @NotNull HashMap<LogBean, OutInt> getChanged() {
@@ -118,32 +115,25 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogList2<>(meta);
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		dup.setValue(getValue());
-		return dup;
+		return new LogList2<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
 		var curList = getValue();
-		if (curList != null) {
-			for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				var bean = e.getKey().getThis();
-				int idxExist = 0;
-				for (V v : curList) {
-					if (v == bean)
-						break;
-					idxExist++;
-				}
-				if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
-					it.remove();
-				else
-					e.getValue().value = idxExist;
+		for (var it = changed.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			var bean = e.getKey().getThis();
+			int idxExist = 0;
+			for (V v : curList) {
+				if (v == bean)
+					break;
+				idxExist++;
 			}
+			if (idxExist >= curList.size() || addSet != null && addSet.contains(bean))
+				it.remove();
+			else
+				e.getValue().value = idxExist;
 		}
 		bb.WriteUInt(changed.size());
 		for (var e : changed.entrySet()) {

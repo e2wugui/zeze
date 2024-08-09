@@ -188,6 +188,7 @@ public final class AutoKeyOld {
 		private final Range range;
 
 		public RangeLog(Range range) {
+			super(null, 0);
 			this.range = range;
 		}
 

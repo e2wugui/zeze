@@ -7,16 +7,21 @@ import org.jetbrains.annotations.NotNull;
 import org.pcollections.PVector;
 
 public abstract class LogList<V> extends LogBean {
-	private PVector<V> value;
+	private @NotNull PVector<V> value;
+
+	protected LogList(Bean belong, int varId, Bean self, @NotNull PVector<V> value) {
+		super(belong, varId, self);
+		this.value = value;
+	}
 
 	@Override
 	public abstract int getTypeId();
 
-	final PVector<V> getValue() {
+	final @NotNull PVector<V> getValue() {
 		return value;
 	}
 
-	final void setValue(PVector<V> value) {
+	final void setValue(@NotNull PVector<V> value) {
 		this.value = value;
 	}
 

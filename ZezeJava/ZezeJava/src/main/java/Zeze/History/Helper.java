@@ -17,6 +17,8 @@ import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSet1;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Transaction.Collections.Meta1;
+import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
@@ -39,23 +41,24 @@ import Zeze.Transaction.Logs.LogVector3Int;
 import Zeze.Transaction.Logs.LogVector4;
 import Zeze.Util.KV;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.pcollections.Empty;
 
 public class Helper {
 	public static class DependsResult {
 		public final HashSet<Class<?>> allBeans = new HashSet<>();
-
 		public final HashSet<Class<? extends Bean>> beans = new HashSet<>();
 		public final HashSet<Class<? extends Serializable>> beanKeys = new HashSet<>();
 		public final HashSet<Class<?>> list1 = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
-		public final HashMap<KV<Class<?>, Class<? extends Bean>>,
-				KV<ToLongFunction<Bean>, LongFunction<Bean>>> map2Dynamic = new HashMap<>();
+		public final HashMap<KV<Class<?>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
+				map2Dynamic = new HashMap<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 	}
 
-	public static void registerAllTableLogs(Application zeze) throws Exception {
+	public static void registerAllTableLogs(@NotNull Application zeze) throws Exception {
 		var result = new DependsResult();
 		for (var db : zeze.getDatabases().values()) {
 			for (var table : db.getTables()) {
@@ -88,7 +91,7 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsBean(Class<?> beanClass, DependsResult result) throws Exception {
+	public static void dependsBean(@NotNull Class<?> beanClass, @NotNull DependsResult result) throws Exception {
 		if (result.allBeans.add(beanClass)) {
 			var obj = beanClass.getConstructor().newInstance();
 			if (obj instanceof BeanKey) {
@@ -126,9 +129,9 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsList(String valueType, DependsResult result) throws Exception {
+	public static void dependsList(@NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
-		if (null != valueClass) {
+		if (valueClass != null) {
 			result.list1.add(valueClass);
 			return;
 		}
@@ -138,16 +141,15 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsMap(Class<?> beanClass, BVariable.Data v,
-								  String keyType, String valueType,
-								  DependsResult result) throws Exception {
+	public static void dependsMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
+								  @NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
-		if (null == keyClass) {
+		if (keyClass == null) {
 			keyClass = Class.forName(keyType); // must be BeanKey.
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
-		var is2 = null == valueClass;
+		var is2 = valueClass == null;
 		if (is2) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
@@ -168,16 +170,16 @@ public class Helper {
 		}
 	}
 
-	public static void dependsSet(String valueType, DependsResult result) throws Exception {
+	public static void dependsSet(@NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
-		if (null == valueClass) {
+		if (valueClass == null) {
 			valueClass = Class.forName(valueType); // must be beanKey
 			dependsBean(valueClass, result);
 		}
 		result.set1.add(valueClass);
 	}
 
-	public static Class<?> getBuiltinBoxingClass(String type) {
+	public static @Nullable Class<?> getBuiltinBoxingClass(@NotNull String type) {
 		switch (type) {
 		//@formatter:off
 		case "bool": return Boolean.class;
@@ -202,43 +204,43 @@ public class Helper {
 		return null;
 	}
 
-	public static boolean isBuiltinType(String type) {
+	public static boolean isBuiltinType(@NotNull String type) {
 		return getBuiltinBoxingClass(type) != null;
 	}
 
 	public static <T extends Serializable> void registerLogBeanKey(@NotNull Class<T> beanClass) {
-		Log.register(() -> new LogBeanKey<>(beanClass));
+		Log.register(varId -> new LogBeanKey<>(varId, beanClass));
 	}
 
 	public static <T> void registerLogList1(@NotNull Class<T> valueClass) {
-		Log.register(() -> new LogList1<>(valueClass));
+		Log.register(varId -> new LogList1<>(null, varId, null, Empty.vector(), Meta1.getList1Meta(valueClass)));
 	}
 
-	public static <V extends Bean> void registerLogList2(@NotNull Class<V> beanClass) {
-		Log.register(() -> new LogList2<>(beanClass));
+	public static <V extends Bean> void registerLogList2(@NotNull Class<V> valueClass) {
+		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), Meta1.getList2Meta(valueClass)));
 	}
 
 	public static <K, V> void registerLogMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(() -> new LogMap1<>(keyClass, valueClass));
+		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), Meta2.getMap1Meta(keyClass, valueClass)));
 	}
 
 	public static <K, V extends Bean> void registerLogMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		Log.register(() -> new LogMap2<>(keyClass, valueClass));
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), Meta2.getMap2Meta(keyClass, valueClass)));
 	}
 
-	public static <K, V extends Bean> void registerLogMap2Dynamic(
-			@NotNull Class<K> keyClass,
-			@NotNull ToLongFunction<Bean> get,
-			@NotNull LongFunction<Bean> create) {
-		Log.register(() -> new LogMap2<>(keyClass, get, create));
+	public static <K> void registerLogMap2Dynamic(@NotNull Class<K> keyClass,
+												  @NotNull ToLongFunction<Bean> get,
+												  @NotNull LongFunction<Bean> create) {
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(),
+				Meta2.createDynamicMapMeta(keyClass, get, create)));
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
-		Log.register(() -> new LogSet1<>(valueClass));
+		Log.register(varId -> new LogSet1<>(null, varId, null, Empty.set(), Meta1.getSet1Meta(valueClass)));
 	}
 
 	public static <V extends Bean> void registerLogOne(@NotNull Class<V> beanClass) {
-		Log.register(() -> new LogOne<>(beanClass));
+		Log.register(varId -> new LogOne<>(varId, beanClass));
 	}
 
 	public static void registerLogs() {
@@ -258,7 +260,7 @@ public class Helper {
 		Log.register(LogVector3Int::new);
 		Log.register(LogVector4::new);
 		Log.register(LogQuaternion::new);
-		Log.register(LogBean::new);
-		Log.register(LogDynamic::new);
+		Log.register(varId -> new LogBean(null, varId, null));
+		Log.register(varId -> new LogDynamic(null, varId, null));
 	}
 }

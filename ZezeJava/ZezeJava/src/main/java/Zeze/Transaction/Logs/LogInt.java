@@ -14,13 +14,13 @@ public class LogInt extends Log {
 	public int value;
 
 	public LogInt(Bean belong, int varId, VarHandle vh, int value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogInt() {
+	public LogInt(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogInt extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

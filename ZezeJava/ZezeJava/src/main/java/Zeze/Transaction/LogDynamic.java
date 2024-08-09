@@ -16,6 +16,10 @@ public class LogDynamic extends LogBean {
 	@Nullable Bean value;
 	@Nullable LogBean logBean;
 
+	public LogDynamic(Bean belong, int varId, Bean self) {
+		super(belong, varId, self);
+	}
+
 	@Override
 	public int getTypeId() {
 		return TYPE_ID;
@@ -23,10 +27,7 @@ public class LogDynamic extends LogBean {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogDynamic();
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
+		var dup = new LogDynamic(getBelong(), getVariableId(), getThis());
 		dup.specialTypeId = specialTypeId;
 		dup.value = value;
 		return dup;
@@ -113,7 +114,7 @@ public class LogDynamic extends LogBean {
 				Task.forceThrow(e);
 			}
 		} else if (bb.ReadBool()) { // hasLogBean
-			logBean = new LogBean(); // XXX 确认直接可以使用这个类？
+			logBean = new LogBean(null, 0, null); // XXX 确认直接可以使用这个类？
 			logBean.decode(bb);
 		}
 	}

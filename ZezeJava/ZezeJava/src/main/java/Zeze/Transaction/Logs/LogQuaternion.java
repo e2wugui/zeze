@@ -16,13 +16,13 @@ public class LogQuaternion extends Log {
 	public Quaternion value;
 
 	public LogQuaternion(Bean belong, int varId, VarHandle vh, Quaternion value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogQuaternion() {
+	public LogQuaternion(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -38,6 +38,7 @@ public class LogQuaternion extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

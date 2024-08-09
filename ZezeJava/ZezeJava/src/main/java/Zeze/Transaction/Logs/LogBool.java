@@ -14,13 +14,13 @@ public class LogBool extends Log {
 	public boolean value;
 
 	public LogBool(Bean belong, int varId, VarHandle vh, boolean value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogBool() {
+	public LogBool(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogBool extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

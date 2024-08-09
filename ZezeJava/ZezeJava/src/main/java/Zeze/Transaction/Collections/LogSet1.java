@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
@@ -15,12 +16,10 @@ public class LogSet1<V> extends LogSet<V> {
 	private final Set<V> added = new HashSet<>();
 	private final Set<V> removed = new HashSet<>();
 
-	public LogSet1(@NotNull Meta1<V> meta) {
+	public LogSet1(Bean belong, int varId, Bean self, @NotNull org.pcollections.PSet<V> value,
+				   @NotNull Meta1<V> meta) {
+		super(belong, varId, self, value);
 		this.meta = meta;
-	}
-
-	public LogSet1(@NotNull Class<V> valueClass) {
-		this.meta = Meta1.getSet1Meta(valueClass);
 	}
 
 	@Override
@@ -100,12 +99,16 @@ public class LogSet1<V> extends LogSet<V> {
 		var encoder = meta.valueEncoder;
 
 		bb.WriteUInt(added.size());
-		for (V v : added)
+		for (V v : added) {
+			//noinspection DataFlowIssue
 			encoder.accept(bb, v);
+		}
 
 		bb.WriteUInt(removed.size());
-		for (V v : removed)
+		for (V v : removed) {
+			//noinspection DataFlowIssue
 			encoder.accept(bb, v);
+		}
 	}
 
 	@Override
@@ -113,12 +116,16 @@ public class LogSet1<V> extends LogSet<V> {
 		var decoder = meta.valueDecoder;
 
 		added.clear();
-		for (int i = bb.ReadUInt(); i > 0; i--)
+		for (int i = bb.ReadUInt(); i > 0; i--) {
+			//noinspection DataFlowIssue
 			added.add(decoder.apply(bb));
+		}
 
 		removed.clear();
-		for (int i = bb.ReadUInt(); i > 0; i--)
+		for (int i = bb.ReadUInt(); i > 0; i--) {
+			//noinspection DataFlowIssue
 			removed.add(decoder.apply(bb));
+		}
 	}
 
 	@Override
@@ -144,12 +151,7 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogSet1<>(meta);
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		dup.setValue(getValue());
-		return dup;
+		return new LogSet1<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override

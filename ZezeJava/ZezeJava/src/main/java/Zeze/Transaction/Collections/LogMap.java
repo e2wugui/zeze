@@ -8,7 +8,8 @@ import org.jetbrains.annotations.NotNull;
 public abstract class LogMap<K, V> extends LogBean {
 	private @NotNull org.pcollections.PMap<K, V> value;
 
-	protected LogMap(@NotNull org.pcollections.PMap<K, V> value) {
+	protected LogMap(Bean belong, int varId, Bean self, @NotNull org.pcollections.PMap<K, V> value) {
+		super(belong, varId, self);
 		this.value = value;
 	}
 

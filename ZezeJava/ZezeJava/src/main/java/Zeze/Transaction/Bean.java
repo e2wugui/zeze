@@ -240,11 +240,7 @@ public abstract class Bean implements Serializable {
 	}
 
 	public @NotNull LogBean createLogBean() {
-		var log = new LogBean();
-		log.setBelong(parent);
-		log.setThis(this);
-		log.setVariableId(variableId);
-		return log;
+		return new LogBean(parent, variableId, this);
 	}
 
 	// 当Bean放到Table中时，用来支持数据版本号。

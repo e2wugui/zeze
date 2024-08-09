@@ -73,11 +73,7 @@ public final class CollOne<V extends Bean> extends Collection {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var log = new LogOne<>(getValue());
-		log.setBelong(parent());
-		log.setThis(this);
-		log.setVariableId(variableId());
-		return log;
+		return new LogOne<>(parent(), variableId(), this, getValue());
 	}
 
 	@Override

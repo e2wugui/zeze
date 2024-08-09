@@ -17,13 +17,13 @@ public class LogString extends Log {
 	public String value;
 
 	public LogString(Bean belong, int varId, VarHandle vh, String value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogString() {
+	public LogString(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -39,6 +39,7 @@ public class LogString extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

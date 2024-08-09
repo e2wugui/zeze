@@ -52,7 +52,7 @@ public final class Meta2<K, V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	public static <K, V> @NotNull Meta2<K, V> getMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		var map = map1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -61,8 +61,8 @@ public final class Meta2<K, V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
-																@NotNull Class<V> valueClass) {
+	public static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
+																	   @NotNull Class<V> valueClass) {
 		var map = map2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -70,9 +70,9 @@ public final class Meta2<K, V> {
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass, vc -> new Meta2<>("LogMap2:", map2HeadHash, keyClass, (Class<V>)vc));
 	}
 
-	static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
-																		 @NotNull ToLongFunction<Bean> get,
-																		 @NotNull LongFunction<Bean> create) {
+	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
+																				@NotNull ToLongFunction<Bean> get,
+																				@NotNull LongFunction<Bean> create) {
 		return new Meta2<>(keyClass, get, create);
 	}
 }

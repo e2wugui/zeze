@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import org.jetbrains.annotations.NotNull;
 import org.pcollections.Empty;
+import org.pcollections.PVector;
 
 public class LogList1<V> extends LogList<V> {
 	public static final class OpLog<V> {
@@ -35,12 +37,9 @@ public class LogList1<V> extends LogList<V> {
 	protected final @NotNull Meta1<V> meta;
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
 
-	public LogList1(@NotNull Meta1<V> meta) {
+	public LogList1(Bean belong, int varId, Bean self, @NotNull PVector<V> value, @NotNull Meta1<V> meta) {
+		super(belong, varId, self, value);
 		this.meta = meta;
-	}
-
-	public LogList1(@NotNull Class<V> valueClass) {
-		meta = Meta1.getList1Meta(valueClass);
 	}
 
 	@Override
@@ -131,8 +130,10 @@ public class LogList1<V> extends LogList<V> {
 			bb.WriteUInt(opLog.op);
 			if (opLog.op < OpLog.OP_CLEAR) {
 				bb.WriteUInt(opLog.index);
-				if (opLog.op < OpLog.OP_REMOVE)
+				if (opLog.op < OpLog.OP_REMOVE) {
+					//noinspection DataFlowIssue
 					encoder.accept(bb, opLog.value);
+				}
 			}
 		}
 	}
@@ -144,6 +145,7 @@ public class LogList1<V> extends LogList<V> {
 		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
 			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+			//noinspection DataFlowIssue
 			opLogs.add(new OpLog<>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
 	}
@@ -170,12 +172,7 @@ public class LogList1<V> extends LogList<V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogList1<>(meta);
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		dup.setValue(getValue());
-		return dup;
+		return new LogList1<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	@Override

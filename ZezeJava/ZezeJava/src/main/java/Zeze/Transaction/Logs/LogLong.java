@@ -14,13 +14,13 @@ public class LogLong extends Log {
 	public long value;
 
 	public LogLong(Bean belong, int varId, VarHandle vh, long value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogLong() {
+	public LogLong(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogLong extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

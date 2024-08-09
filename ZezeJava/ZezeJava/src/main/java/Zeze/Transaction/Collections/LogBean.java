@@ -9,12 +9,18 @@ import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LogBean extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Collections.LogBean");
 
-	private IntHashMap<Log> variables;
-	private Bean self;
+	private final Bean self;
+	private @Nullable IntHashMap<Log> variables;
+
+	public LogBean(Bean belong, int varId, Bean self) {
+		super(belong, varId);
+		this.self = self;
+	}
 
 	@Override
 	public Category category() {
@@ -26,7 +32,7 @@ public class LogBean extends Log {
 		return TYPE_ID;
 	}
 
-	public final IntHashMap<Log> getVariables() {
+	public final @Nullable IntHashMap<Log> getVariables() {
 		return variables;
 	}
 
@@ -39,10 +45,6 @@ public class LogBean extends Log {
 
 	public final Bean getThis() {
 		return self;
-	}
-
-	public final void setThis(Bean value) {
-		self = value;
 	}
 
 	@Override
@@ -86,12 +88,9 @@ public class LogBean extends Log {
 			variables.clear();
 			for (; n > 0; --n) {
 				int typeId = bb.ReadInt4();
-				Log log = create(typeId);
-
 				int varId = bb.ReadUInt();
-				log.setVariableId(varId);
+				Log log = create(typeId, varId);
 				log.decode(bb);
-
 				variables.put(varId, log);
 			}
 		} else if (variables != null)
@@ -112,7 +111,7 @@ public class LogBean extends Log {
 		return sb.toString();
 	}
 
-	public static void encodeLogBean(ByteBuffer bb, LogBean logBean) {
+	public static void encodeLogBean(@NotNull ByteBuffer bb, @NotNull LogBean logBean) {
 		// 使用byte，未来可能扩展其他LogBean子类。
 		if (logBean instanceof LogDynamic)
 			bb.WriteByte(1);
@@ -121,15 +120,15 @@ public class LogBean extends Log {
 		logBean.encode(bb);
 	}
 
-	public static LogBean decodeLogBean(IByteBuffer bb) {
+	public static @NotNull LogBean decodeLogBean(@NotNull IByteBuffer bb) {
 		int type = bb.ReadByte();
 		LogBean logBean;
 		switch (type) {
 		case 0:
-			logBean = new LogBean();
+			logBean = new LogBean(null, 0, null);
 			break;
 		case 1:
-			logBean = new LogDynamic();
+			logBean = new LogDynamic(null, 0, null);
 			break;
 		default:
 			throw new RuntimeException("unknown logBean subclass type=" + type);

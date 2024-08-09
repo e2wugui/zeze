@@ -17,13 +17,13 @@ public class LogDecimal extends Log {
 	public BigDecimal value;
 
 	public LogDecimal(Bean belong, int varId, VarHandle vh, BigDecimal value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogDecimal() {
+	public LogDecimal(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -39,6 +39,7 @@ public class LogDecimal extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

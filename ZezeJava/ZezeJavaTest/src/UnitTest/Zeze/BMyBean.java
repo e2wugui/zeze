@@ -26,7 +26,7 @@ public class BMyBean extends Bean {
 
 		@Override
 		public void commit() {
-			((BMyBean)getBean())._i = value;
+			((BMyBean)getBelong())._i = value;
 		}
 	}
 

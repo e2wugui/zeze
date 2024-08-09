@@ -178,7 +178,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 6, vh_HeadNodeKey, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 6, vh_HeadNodeKey, _v_));
     }
 
     @Override
@@ -201,7 +201,7 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Collections.Queue.BQueueNodeKey.class, this, 7, vh_TailNodeKey, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 7, vh_TailNodeKey, _v_));
     }
 
     @SuppressWarnings("deprecation")

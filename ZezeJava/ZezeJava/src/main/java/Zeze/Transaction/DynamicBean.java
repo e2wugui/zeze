@@ -206,11 +206,7 @@ public final class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 	@Override
 	public @NotNull LogBean createLogBean() {
-		var dLog = new LogDynamic();
-		dLog.setBelong(parent());
-		dLog.setThis(this);
-		dLog.setVariableId(variableId());
-		return dLog;
+		return new LogDynamic(parent(), variableId(), this);
 	}
 
 	@Override

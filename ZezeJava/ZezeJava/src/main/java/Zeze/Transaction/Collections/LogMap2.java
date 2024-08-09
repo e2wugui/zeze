@@ -3,8 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.LongFunction;
-import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -12,24 +10,15 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
-import org.pcollections.Empty;
 
 public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private final Set<LogBean> changed = new HashSet<>(); // changed V logs. using in collect.
 	private final HashMap<K, LogBean> changedWithKey = new HashMap<>(); // changed with key. using in encode/decode followerApply
 	private boolean built;
 
-	public LogMap2(@NotNull Meta2<K, V> meta, @NotNull org.pcollections.PMap<K, V> value) {
-		super(meta, value);
-	}
-
-	public LogMap2(@NotNull Class<K> keyClass, Class<V> valueClass) {
-		super(Meta2.getMap2Meta(keyClass, valueClass), Empty.map());
-	}
-
-	// for dynamic
-	public LogMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
-		super(Meta2.createDynamicMapMeta(keyClass, get, create), Empty.map());
+	public LogMap2(Bean belong, int varId, Bean self, @NotNull org.pcollections.PMap<K, V> value,
+				   @NotNull Meta2<K, V> meta) {
+		super(belong, varId, self, value, meta);
 	}
 
 	public final @NotNull Set<LogBean> getChanged() {
@@ -42,11 +31,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 
 	@Override
 	public @NotNull Log beginSavepoint() {
-		var dup = new LogMap2<>(meta, getValue());
-		dup.setThis(getThis());
-		dup.setBelong(getBelong());
-		dup.setVariableId(getVariableId());
-		return dup;
+		return new LogMap2<>(getBelong(), getVariableId(), getThis(), getValue(), meta);
 	}
 
 	public boolean buildChangedWithKey() {

@@ -6,7 +6,12 @@ import Zeze.Transaction.Log;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class LogSet<V> extends LogBean {
-	private org.pcollections.PSet<V> value;
+	private @NotNull org.pcollections.PSet<V> value;
+
+	protected LogSet(Bean belong, int varId, Bean self, @NotNull org.pcollections.PSet<V> value) {
+		super(belong, varId, self);
+		this.value = value;
+	}
 
 	@Override
 	public abstract int getTypeId();

@@ -63,7 +63,7 @@ public final class Meta1<V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
+	public static <V> @NotNull Meta1<V> getList1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)list1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogList1:", list1HeadHash, (Class<V>)vc));
 	}
 
@@ -73,7 +73,7 @@ public final class Meta1<V> {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
+	public static <V> @NotNull Meta1<V> getSet1Meta(@NotNull Class<V> valueClass) {
 		return (Meta1<V>)set1Metas.computeIfAbsent(valueClass, vc -> new Meta1<>("LogSet1:", set1HeadHash, (Class<V>)vc));
 	}
 

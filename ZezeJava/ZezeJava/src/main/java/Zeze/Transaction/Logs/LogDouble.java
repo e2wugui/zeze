@@ -14,13 +14,13 @@ public class LogDouble extends Log {
 	public double value;
 
 	public LogDouble(Bean belong, int varId, VarHandle vh, double value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogDouble() {
+	public LogDouble(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogDouble extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

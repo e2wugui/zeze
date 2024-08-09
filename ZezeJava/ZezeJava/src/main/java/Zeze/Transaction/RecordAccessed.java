@@ -18,12 +18,12 @@ public final class RecordAccessed extends Bean {
 
 		@Override
 		public long getLogKey() {
-			return getBean().objectId();
+			return getBelong().objectId();
 		}
 
 		@Override
 		public void commit() {
-			((RecordAccessed)getBean()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
+			((RecordAccessed)getBelong()).committedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
 		}
 	}
 

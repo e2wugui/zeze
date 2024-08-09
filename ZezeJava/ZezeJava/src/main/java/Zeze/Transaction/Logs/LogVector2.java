@@ -20,13 +20,13 @@ public class LogVector2 extends Log {
 	public Vector2 value;
 
 	public LogVector2(Bean belong, int varId, VarHandle vh, Vector2 value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogVector2() {
+	public LogVector2(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -42,6 +42,7 @@ public class LogVector2 extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

@@ -14,13 +14,13 @@ public class LogShort extends Log {
 	public short value;
 
 	public LogShort(Bean belong, int varId, VarHandle vh, short value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogShort() {
+	public LogShort(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogShort extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 

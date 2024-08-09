@@ -269,7 +269,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
-            sw.WriteLine(prefix + $"    _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>({TypeName.GetName(type)}.class, this, {var.Id}, vh_{var.Name}, _v_));");
+            sw.WriteLine(prefix + $"    _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, {var.Id}, vh_{var.Name}, _v_));");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

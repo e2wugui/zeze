@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import java.math.BigDecimal;
-import java.util.function.Supplier;
+import java.util.function.IntFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -31,15 +31,15 @@ public abstract class Log implements Serializable {
 		eSpecial, // zeze内部特殊定义的log，也可能是用户自定义的。
 	}
 
-	private static final LongConcurrentHashMap<Supplier<Log>> factorys = new LongConcurrentHashMap<>();
+	private static final LongConcurrentHashMap<IntFunction<Log>> factorys = new LongConcurrentHashMap<>();
 
-	public static void register(@NotNull Supplier<Log> s) {
-		var ins = s.get();
+	public static void register(@NotNull IntFunction<Log> s) {
+		var ins = s.apply(0);
 		var old = factorys.putIfAbsent(ins.getTypeId(), s);
 		if (old == null)
 			logger.debug("register log typeId({}): {}", ins.getTypeId(), ins.getTypeName());
 		else {
-			var oldIns = old.get();
+			var oldIns = old.apply(0);
 			if (!oldIns.getTypeName().equals(ins.getTypeName())) {
 				logger.error("register duplicated log typeId({}): {} & {}",
 						ins.getTypeId(), oldIns.getTypeName(), ins.getTypeName());
@@ -47,15 +47,28 @@ public abstract class Log implements Serializable {
 		}
 	}
 
-	public static @NotNull Log create(int typeId) {
+	public static @NotNull Log create(int typeId, int varId) {
 		var factory = factorys.get(typeId);
 		if (factory != null)
-			return factory.get();
+			return factory.apply(varId);
 		throw new UnsupportedOperationException("unknown log typeId=" + typeId);
 	}
 
-	private Bean bean;
-	private int variableId;
+	private final Bean belong;
+	private final int varId;
+
+	protected Log(Bean belong, int varId) {
+		this.belong = belong;
+		this.varId = varId;
+	}
+
+	public final Bean getBelong() {
+		return belong;
+	}
+
+	public final int getVariableId() {
+		return varId;
+	}
 
 	public abstract @NotNull Category category();
 
@@ -66,31 +79,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public long getLogKey() {
-		return bean.objectId() + getVariableId();
-	}
-
-	public final Bean getBean() {
-		return bean;
-	}
-
-	public final void setBean(Bean value) {
-		bean = value;
-	}
-
-	public final Bean getBelong() {
-		return bean;
-	}
-
-	public final void setBelong(Bean value) {
-		bean = value;
-	}
-
-	public final int getVariableId() {
-		return variableId;
-	}
-
-	public final void setVariableId(int varId) {
-		variableId = varId;
+		return belong.objectId() + getVariableId();
 	}
 
 	public void collect(@NotNull Changes changes, @NotNull Bean recent, @NotNull Log vlog) {

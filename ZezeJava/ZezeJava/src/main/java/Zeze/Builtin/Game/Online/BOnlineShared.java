@@ -86,7 +86,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(Zeze.Builtin.Game.Online.BLink.class, this, 2, vh_Link, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBeanKey<>(this, 2, vh_Link, _v_));
     }
 
     @Override

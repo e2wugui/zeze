@@ -14,13 +14,13 @@ public class LogFloat extends Log {
 	public float value;
 
 	public LogFloat(Bean belong, int varId, VarHandle vh, float value) {
-		setBelong(belong);
-		setVariableId(varId);
+		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
 	}
 
-	public LogFloat() {
+	public LogFloat(int varId) {
+		super(null, varId);
 		vh = null;
 	}
 
@@ -36,6 +36,7 @@ public class LogFloat extends Log {
 
 	@Override
 	public void commit() {
+		//noinspection DataFlowIssue
 		vh.set(getBelong(), value);
 	}
 
