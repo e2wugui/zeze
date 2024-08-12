@@ -113,8 +113,8 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.LIST);
-		bb.WriteListType(2, ByteBuffer.INTEGER);
+		bb.WriteByte((1 << ByteBuffer.TAG_SHIFT) + ByteBuffer.LIST); // varId=1, type=LIST
+		bb.WriteListType(2, ByteBuffer.INTEGER); // LIST.size=2, LIST.type=INTEGER
 		bb.WriteLong(high);
 		bb.WriteLong(low);
 		bb.WriteByte(0); // end of bean
@@ -123,13 +123,13 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		int t = bb.ReadByte();
-		if (bb.ReadTagSize(t) == 1) {
-			t &= ByteBuffer.TAG_MASK;
+		if (bb.ReadTagSize(t) == 1) { // varId=1
+			t &= ByteBuffer.TAG_MASK; // type=LIST
 			if (t != ByteBuffer.LIST)
 				throw new IllegalStateException("decode Id128 error: type=" + t);
 			t = bb.ReadByte();
-			int n = bb.ReadTagSize(t);
-			t &= ByteBuffer.TAG_MASK;
+			int n = bb.ReadTagSize(t); // LIST.size=2
+			t &= ByteBuffer.TAG_MASK; // LIST.type=INTEGER
 			if (t != ByteBuffer.INTEGER)
 				throw new IllegalStateException("decode Id128 error: subtype=" + t);
 			if (n != 2)

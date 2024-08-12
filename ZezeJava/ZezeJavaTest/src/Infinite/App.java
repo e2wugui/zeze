@@ -4,11 +4,18 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Config;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.SQLStatement;
+import Zeze.Transaction.Database;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class App {
+	private static final Logger logger = LogManager.getLogger(App.class);
 	final demo.App app = new demo.App();
 	private final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
 	private final Config config;
@@ -79,6 +86,63 @@ public class App {
 		RunningTasks.add(task.IsProcedure()
 				? Task.runUnsafe(app.Zeze.newProcedure(task, name), DispatchMode.Normal)
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
+	}
+
+	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {
+		var t = System.nanoTime();
+		table.__ClearTableCacheUnsafe__();
+		//noinspection DataFlowIssue
+		var dbTable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
+		var txnWrap = new Object() {
+			Database.Transaction txn = dbTable.getDatabase().beginTransaction();
+			int n;
+			int total;
+		};
+
+		if (table.isUseRelationalMapping()) {
+			var sqlKey = new SQLStatement();
+			dbTable.walkDatabaseKey(table, k -> {
+				sqlKey.clear();
+				table.encodeKeySQLStatement(sqlKey, k);
+				var txn = txnWrap.txn;
+				dbTable.remove(txn, sqlKey);
+				if (++txnWrap.n >= 10000) {
+					txn.commit();
+					txn.close();
+					txnWrap.total += txnWrap.n;
+					txnWrap.n = 0;
+					txnWrap.txn = dbTable.getDatabase().beginTransaction();
+				}
+				return true;
+			});
+		} else {
+			var bb = ByteBuffer.Allocate(0);
+			((Database.AbstractKVTable)dbTable).walkKey(k -> {
+				var txn = txnWrap.txn;
+				bb.wraps(k);
+				dbTable.remove(txn, bb);
+				if (++txnWrap.n >= 10000) {
+					txn.commit();
+					txn.close();
+					txnWrap.total += txnWrap.n;
+					txnWrap.n = 0;
+					txnWrap.txn = dbTable.getDatabase().beginTransaction();
+				}
+				return true;
+			});
+		}
+		var txn = txnWrap.txn;
+		txn.commit();
+		txn.close();
+		txnWrap.total += txnWrap.n;
+		logger.info("clear table {}: {}, {} ms", table.getName(), txnWrap.total, (System.nanoTime() - t) / 1_000_000);
+	}
+
+	public void clearTables() throws Exception {
+		clearDbTable(app.demo_Module1.getTable1());
+		clearDbTable(app.demo_Module1.getTflush());
+		clearDbTable(app.demo_Module1.getTableCoverHistory());
+		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable());
 	}
 
 	public void startTest() {

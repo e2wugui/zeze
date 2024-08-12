@@ -36,11 +36,11 @@ public class Verify {
 			for (var r : value.getChanges().entrySet()) {
 				var applyTable = applyTables.computeIfAbsent(r.getKey().getTableId(), __ -> {
 					var tableName = TableKey.tables.get(r.getKey().getTableId());
-					if (null == tableName)
+					if (tableName == null)
 						throw new RuntimeException("table id not found. id=" + r.getKey().getTableId());
 					logger.info("history apply table {}", tableName);
 					var originTable = defaultDb.getTable(tableName);
-					if (null == originTable)
+					if (originTable == null)
 						throw new RuntimeException("table not found. name=" + tableName);
 					return originTable.createApplyTable(applyDb);
 				});

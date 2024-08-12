@@ -92,6 +92,8 @@ public final class Simulate {
 			Tasks.prepare();
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
+			if (Apps.get(0).app.Zeze.getConfig().isHistory())
+				Apps.get(0).clearTables();
 			for (var app : Apps) {
 				if (!app.app.Zeze.getConfig().isHistory())
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());

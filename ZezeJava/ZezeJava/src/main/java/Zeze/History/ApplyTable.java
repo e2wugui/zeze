@@ -32,11 +32,11 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 	public @Nullable V get(@NotNull K key) {
 		var value = lru.get(key);
-		if (null != value)
+		if (value != null)
 			return value;
 		var bbKey = originTable.encodeKey(key);
 		var valueRaw = table.get(bbKey.Bytes, bbKey.ReadIndex, bbKey.size());
-		if (null == valueRaw)
+		if (valueRaw == null)
 			return null;
 		value = originTable.newValue();
 		value.decode(ByteBuffer.Wrap(valueRaw));
@@ -62,7 +62,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 
 		case Changes.Record.Edit:
 			var value = get(key);
-			if (null == value)
+			if (value == null)
 				value = originTable.newValue();
 			var log = logRecord.getLogBean();
 			if (log != null)
@@ -94,13 +94,13 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		var i = 0;
 		// skip same line at head.
 		for (; i < a.length && i < b.length; ++i) {
-			if (!a[i].equals(b[i]) && (null == skipIfContains || !a[i].contains(skipIfContains)))
+			if (!a[i].equals(b[i]) && (skipIfContains == null || !a[i].contains(skipIfContains)))
 				break;
 		}
 		var aEnd = a.length - 1;
 		var bEnd = b.length - 1;
 		for (; aEnd > i && bEnd > i; aEnd--, bEnd--) {
-			if (!a[aEnd].equals(b[bEnd]) && (null == skipIfContains || !a[aEnd].contains(skipIfContains)))
+			if (!a[aEnd].equals(b[bEnd]) && (skipIfContains == null || !a[aEnd].contains(skipIfContains)))
 				break;
 		}
 
@@ -120,12 +120,11 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	public void verifyAndClear() throws Exception {
 		originTable.walk((key, value) -> {
 			var applyValue = get(key);
-			if (null == applyValue)
-				throw new RuntimeException("record miss. key=" + key);
+			if (applyValue == null)
+				throw new RuntimeException("record miss. key=" + key + ", table=" + originTable.getName());
 			if (!applyValue.equals(value)) {
 				var originText = value.toString();
 				var applyText = applyValue.toString();
-
 				throw new RuntimeException("record not equals. key=" + key + "\n"
 						+ diff(originText, applyText, applyValue.versionVarName() + "="));
 			}

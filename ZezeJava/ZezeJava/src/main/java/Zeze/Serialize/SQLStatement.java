@@ -9,6 +9,11 @@ public final class SQLStatement {
 	public final StringBuilder sql = new StringBuilder();
 	public final ArrayList<Object> params = new ArrayList<>();
 
+	public void clear() {
+		sql.setLength(0);
+		params.clear();
+	}
+
 	public void appendBoolean(@NotNull String columnName, boolean value) {
 		if (sql.length() > 0)
 			sql.append(", ");

@@ -175,6 +175,7 @@ public final class Tasks {
 					app.demo_Module1.getTable1().remove(key);
 				return 0L;
 			}, Table1Long2Add1.class.getName() + ".prepare").call();
+			app.Zeze.checkpointRun();
 		}
 
 		static final LongAdder commitCount = new LongAdder();
