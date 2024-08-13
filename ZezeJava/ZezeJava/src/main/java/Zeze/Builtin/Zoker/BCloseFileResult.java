@@ -24,11 +24,11 @@ public final class BCloseFileResult extends Zeze.Transaction.Bean implements BCl
         assign((Zeze.Builtin.Zoker.BCloseFileResult.Data)_o_);
     }
 
-    public void assign(BCloseFileResult.Data _o_) {
+    public void assign(@SuppressWarnings("unused") BCloseFileResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BCloseFileResult _o_) {
+    public void assign(@SuppressWarnings("unused") BCloseFileResult _o_) {
         _unknown_ = _o_._unknown_;
     }
 
@@ -150,10 +150,12 @@ public static final class Data extends Zeze.Transaction.Data {
         assign((BCloseFileResult)_o_);
     }
 
-    public void assign(BCloseFileResult _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BCloseFileResult _o_) {
     }
 
-    public void assign(BCloseFileResult.Data _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BCloseFileResult.Data _o_) {
     }
 
     @Override

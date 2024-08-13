@@ -38,7 +38,13 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
 
-            sw.WriteLine(prefix + "public void assign(" + bean.Name + " _o_) {");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "public void assign(" + bean.Name + " _o_) {");
+            else
+            {
+                sw.WriteLine(prefix + "@SuppressWarnings(\"EmptyMethod\")");
+                sw.WriteLine(prefix + "public void assign(@SuppressWarnings(\"unused\") " + bean.Name + " _o_) {");
+            }
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", !bean.OnlyData));
             sw.WriteLine(prefix + "}");
@@ -46,7 +52,13 @@ namespace Zeze.Gen.javadata
 
             if (!bean.OnlyData)
             {
-                sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data _o_) {");
+                if (bean.Variables.Count > 0)
+                    sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data _o_) {");
+                else
+                {
+                    sw.WriteLine(prefix + "@SuppressWarnings(\"EmptyMethod\")");
+                    sw.WriteLine(prefix + "public void assign(@SuppressWarnings(\"unused\") " + bean.Name + ".Data _o_) {");
+                }
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
                 sw.WriteLine(prefix + "}");

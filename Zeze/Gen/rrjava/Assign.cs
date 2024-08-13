@@ -11,7 +11,13 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "public void assign(" + bean.Name + " other) {");
+            else
+            {
+                sw.WriteLine(prefix + "@SuppressWarnings(\"EmptyMethod\")");
+                sw.WriteLine(prefix + "public void assign(@SuppressWarnings(\"unused\") " + bean.Name + " other) {");
+            }
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    "));
             sw.WriteLine(prefix + "}");

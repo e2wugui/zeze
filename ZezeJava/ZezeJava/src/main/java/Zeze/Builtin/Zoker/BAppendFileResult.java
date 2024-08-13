@@ -24,11 +24,11 @@ public final class BAppendFileResult extends Zeze.Transaction.Bean implements BA
         assign((Zeze.Builtin.Zoker.BAppendFileResult.Data)_o_);
     }
 
-    public void assign(BAppendFileResult.Data _o_) {
+    public void assign(@SuppressWarnings("unused") BAppendFileResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BAppendFileResult _o_) {
+    public void assign(@SuppressWarnings("unused") BAppendFileResult _o_) {
         _unknown_ = _o_._unknown_;
     }
 
@@ -150,10 +150,12 @@ public static final class Data extends Zeze.Transaction.Data {
         assign((BAppendFileResult)_o_);
     }
 
-    public void assign(BAppendFileResult _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BAppendFileResult _o_) {
     }
 
-    public void assign(BAppendFileResult.Data _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BAppendFileResult.Data _o_) {
     }
 
     @Override

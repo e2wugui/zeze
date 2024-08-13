@@ -24,11 +24,11 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean implements BA
         assign((Zeze.Builtin.Provider.BAnnounceLinkInfo.Data)_o_);
     }
 
-    public void assign(BAnnounceLinkInfo.Data _o_) {
+    public void assign(@SuppressWarnings("unused") BAnnounceLinkInfo.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BAnnounceLinkInfo _o_) {
+    public void assign(@SuppressWarnings("unused") BAnnounceLinkInfo _o_) {
         _unknown_ = _o_._unknown_;
     }
 
@@ -150,10 +150,12 @@ public static final class Data extends Zeze.Transaction.Data {
         assign((BAnnounceLinkInfo)_o_);
     }
 
-    public void assign(BAnnounceLinkInfo _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BAnnounceLinkInfo _o_) {
     }
 
-    public void assign(BAnnounceLinkInfo.Data _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BAnnounceLinkInfo.Data _o_) {
     }
 
     @Override

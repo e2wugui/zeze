@@ -27,7 +27,10 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + $"    assign(({bean.FullName}.Data)_o_);");
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
-                sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data _o_) {");
+                if (bean.Variables.Count > 0)
+                    sw.WriteLine(prefix + "public void assign(" + bean.Name + ".Data _o_) {");
+                else
+                    sw.WriteLine(prefix + "public void assign(@SuppressWarnings(\"unused\") " + bean.Name + ".Data _o_) {");
                 foreach (Variable var in bean.Variables)
                     var.VariableType.Accept(new Assign(var, sw, prefix + "    ", true));
                 if (withUnknown)
@@ -35,7 +38,10 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "}");
                 sw.WriteLine();
             }
-            sw.WriteLine(prefix + "public void assign(" + bean.Name + " _o_) {");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "public void assign(" + bean.Name + " _o_) {");
+            else
+                sw.WriteLine(prefix + "public void assign(@SuppressWarnings(\"unused\") " + bean.Name + " _o_) {");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Assign(var, sw, prefix + "    ", false));
             if (withUnknown)

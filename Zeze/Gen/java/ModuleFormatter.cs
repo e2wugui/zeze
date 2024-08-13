@@ -609,6 +609,7 @@ namespace Zeze.Gen.java
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
             var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
+            sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantThrows\", \"SameReturnValue\"})");
             sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");

@@ -24,11 +24,11 @@ public final class BCommitServiceResult extends Zeze.Transaction.Bean implements
         assign((Zeze.Builtin.Zoker.BCommitServiceResult.Data)_o_);
     }
 
-    public void assign(BCommitServiceResult.Data _o_) {
+    public void assign(@SuppressWarnings("unused") BCommitServiceResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BCommitServiceResult _o_) {
+    public void assign(@SuppressWarnings("unused") BCommitServiceResult _o_) {
         _unknown_ = _o_._unknown_;
     }
 
@@ -150,10 +150,12 @@ public static final class Data extends Zeze.Transaction.Data {
         assign((BCommitServiceResult)_o_);
     }
 
-    public void assign(BCommitServiceResult _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BCommitServiceResult _o_) {
     }
 
-    public void assign(BCommitServiceResult.Data _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BCommitServiceResult.Data _o_) {
     }
 
     @Override

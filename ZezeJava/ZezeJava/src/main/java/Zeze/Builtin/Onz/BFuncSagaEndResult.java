@@ -25,11 +25,11 @@ public final class BFuncSagaEndResult extends Zeze.Transaction.Bean implements B
         assign((Zeze.Builtin.Onz.BFuncSagaEndResult.Data)_o_);
     }
 
-    public void assign(BFuncSagaEndResult.Data _o_) {
+    public void assign(@SuppressWarnings("unused") BFuncSagaEndResult.Data _o_) {
         _unknown_ = null;
     }
 
-    public void assign(BFuncSagaEndResult _o_) {
+    public void assign(@SuppressWarnings("unused") BFuncSagaEndResult _o_) {
         _unknown_ = _o_._unknown_;
     }
 
@@ -152,10 +152,12 @@ public static final class Data extends Zeze.Transaction.Data {
         assign((BFuncSagaEndResult)_o_);
     }
 
-    public void assign(BFuncSagaEndResult _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BFuncSagaEndResult _o_) {
     }
 
-    public void assign(BFuncSagaEndResult.Data _o_) {
+    @SuppressWarnings("EmptyMethod")
+    public void assign(@SuppressWarnings("unused") BFuncSagaEndResult.Data _o_) {
     }
 
     @Override
