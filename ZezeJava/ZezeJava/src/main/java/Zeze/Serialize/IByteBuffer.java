@@ -413,7 +413,7 @@ public interface IByteBuffer {
 
 	@Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
 
-	default @Nullable byte[] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
+	default byte @Nullable [] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while (tag != 0) {
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());

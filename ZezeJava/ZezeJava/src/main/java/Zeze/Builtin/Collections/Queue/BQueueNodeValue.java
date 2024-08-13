@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BQueueNodeValue extends Zeze.Transaction.Bean implements BQueueNodeValueReadOnly {
     public static final long TYPEID = 486912310764000976L;
 

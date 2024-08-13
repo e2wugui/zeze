@@ -170,6 +170,7 @@ public class MasterDatabase {
 			var r = new CreateBucket();
 			r.Argument.assign(bucket);
 			// 用于manager服务器的需要replace RaftName.
+			//noinspection DynamicRegexReplaceableByCompiledPattern
 			r.Argument.setRaftConfig(r.Argument.getRaftConfig().replaceAll("RaftName", raftNames.get(i++)));
 			//System.out.println(r.Argument.getRaftConfig());
 			futures.add(r.SendForWait(e.socket, 30_000));

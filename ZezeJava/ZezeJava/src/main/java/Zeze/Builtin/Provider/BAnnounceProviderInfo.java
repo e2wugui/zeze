@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // gs to link
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implements BAnnounceProviderInfoReadOnly {
     public static final long TYPEID = 4964769950995033065L;
 
@@ -731,6 +731,29 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BAnnounceProviderInfo.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BAnnounceProviderInfo.Data)_o_;
+        if (!_ServiceNamePrefix.equals(_b_._ServiceNamePrefix))
+            return false;
+        if (!_ServiceIdentity.equals(_b_._ServiceIdentity))
+            return false;
+        if (!_ProviderDirectIp.equals(_b_._ProviderDirectIp))
+            return false;
+        if (_ProviderDirectPort != _b_._ProviderDirectPort)
+            return false;
+        if (_AppVersion != _b_._AppVersion)
+            return false;
+        if (_DisableChoice != _b_._DisableChoice)
+            return false;
+        return true;
     }
 }
 }

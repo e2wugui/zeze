@@ -397,6 +397,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public void addFileHandler(@NotNull String pathPrefix, @NotNull String fileRootPath, boolean canListPath,
 							   int fileCacheSeconds) {
 		var pathPrefixLen = pathPrefix.length();
+		//noinspection DynamicRegexReplaceableByCompiledPattern
 		var rootPath = fileRootPath.replaceFirst("[/\\\\]+$", "");
 		addPrefixHandler(pathPrefix, new HttpHandler(0, TransactionLevel.None, DispatchMode.Direct, x -> {
 			var subPath = x.path();

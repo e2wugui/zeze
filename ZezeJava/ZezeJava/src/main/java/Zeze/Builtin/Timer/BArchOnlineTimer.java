@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BArchOnlineTimerReadOnly {
     public static final long TYPEID = -1410268970794351805L;
 

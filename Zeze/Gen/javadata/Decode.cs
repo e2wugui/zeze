@@ -77,6 +77,7 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)

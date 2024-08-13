@@ -14,7 +14,7 @@ public final class BAllocateId128Result implements Serializable {
 		return startId;
 	}
 
-	public void setStartId(Id128 id128) {
+	public void setStartId(@NotNull Id128 id128) {
 		this.startId = id128;
 	}
 

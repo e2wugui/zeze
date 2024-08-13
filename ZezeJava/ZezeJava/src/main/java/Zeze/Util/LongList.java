@@ -263,7 +263,7 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 		return this;
 	}
 
-	public @NotNull void addAllTo(@NotNull Collection<Long> c) {
+	public void addAllTo(@NotNull Collection<Long> c) {
 		long[] buf = buffer;
 		for (int i = 0, n = count; i < n; i++)
 			c.add(buf[i]);

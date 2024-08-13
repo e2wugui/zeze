@@ -33,7 +33,7 @@ public final class PerfCounter extends FastLock {
 		long lastProcTime;
 		int idleCount; // 没收集到信息的轮数
 
-		RunInfo(String name) {
+		RunInfo(@NotNull String name) {
 			this.name = name;
 		}
 	}
@@ -162,7 +162,7 @@ public final class PerfCounter extends FastLock {
 		final LongAdder count = new LongAdder(); // 次数
 		long lastCount;
 
-		CountInfo(String name, boolean accumulate) {
+		CountInfo(@NotNull String name, boolean accumulate) {
 			this.name = name;
 			this.accumulate = accumulate;
 		}

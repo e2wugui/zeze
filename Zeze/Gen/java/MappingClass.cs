@@ -10,9 +10,9 @@ namespace Zeze.Gen.java
     {
         public string GenDir { get; }
         public string SrcDir { get; }
-        public Types.Bean Bean { get; }
+        public Bean Bean { get; }
 
-        public MappingClass(string genDir, string srcDir, Types.Bean bean)
+        public MappingClass(string genDir, string srcDir, Bean bean)
         {
             GenDir = genDir;
             SrcDir = srcDir;
@@ -26,8 +26,7 @@ namespace Zeze.Gen.java
                 Console.WriteLine($"WARNING: Mapping Class {Bean.FullName}. Invalid Dynamic Variable Count.");
                 return;
             }
-            List<Types.Bean> inherits = new();
-            inherits.Add(Bean);
+            List<Bean> inherits = new() { Bean };
             var clsName = Bean.MappingClassName(inherits);
             using var sw = Bean.Space.OpenWriter(GenDir, $"Mapping{clsName}.java");
             if (sw == null)
@@ -36,16 +35,17 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + Bean.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine($"public class Mapping{clsName} {{");
-            MakeCreateCode(sw, Bean, inherits);
+            MakeCreateCode(sw, Bean, inherits, true);
             sw.WriteLine($"}}");
-            sw.WriteLine();
         }
 
-        public void MakeCreateCode(StreamWriter sw, Types.Bean bean, List<Types.Bean> inherits)
+        public void MakeCreateCode(StreamWriter sw, Bean bean, List<Bean> inherits, bool isFirst = false)
         {
             MakeInheritClass(bean, inherits);
 
             var clsName = bean.MappingClassName(inherits);
+            if (!isFirst)
+                sw.WriteLine();
             sw.WriteLine($"    public static {clsName} create({BuildInherits(inherits)}) {{");
             var dVar = bean.GetFirstDynamicVariable(); // 一开始已经检查过Dynamic数量，这里直接查询即可。
             List<Bean> subBeans = new();
@@ -56,11 +56,11 @@ namespace Zeze.Gen.java
             }
             else
             {
-                var dDynamic = dVar.VariableType as TypeDynamic;
+                var dDynamic = (TypeDynamic)dVar.VariableType;
                 foreach (var subCls in dDynamic.DynamicParams.Beans)
                 {
                     var beanWithSpecialTypeIdArray = subCls.Split(':');
-                    var subBean = Types.Type.Compile(bean.Space, beanWithSpecialTypeIdArray[0]) as Types.Bean;
+                    var subBean = Types.Type.Compile(bean.Space, beanWithSpecialTypeIdArray[0]) as Bean;
                     subBeans.Add(subBean);
                 }
 
@@ -76,7 +76,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"        throw new UnsupportedOperationException(\"Unknown Dynamic Bean.\");");
             }
             sw.WriteLine($"    }}");
-            sw.WriteLine();
 
             // 深度搜索创建代码。
             foreach (var subBean in subBeans)
@@ -87,7 +86,7 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void MakeInheritClass(Bean bean, List<Types.Bean> inherits)
+        private void MakeInheritClass(Bean bean, List<Bean> inherits)
         {
             var clsName = bean.MappingClassName(inherits);
             using var sw = Bean.Space.OpenWriter(SrcDir, clsName + ".java", false); // 全部生成到Root的名字控件下。
@@ -96,7 +95,7 @@ namespace Zeze.Gen.java
             var inheritsParent = new List<Bean>();
             for (int i = 0; i < inherits.Count - 1; ++i)
                 inheritsParent.Add(inherits[i]);
-            var baseCls = inheritsParent.Count > 0 ? " extends " + inherits[inherits.Count - 1].MappingClassName(inheritsParent) : "";
+            var baseCls = inheritsParent.Count > 0 ? " extends " + inherits[^1].MappingClassName(inheritsParent) : "";
             sw.WriteLine("package " + Bean.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine($"public class {clsName} {baseCls} {{");
@@ -110,9 +109,9 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
-        public string BuildInherits(List<Types.Bean> inherits, bool isParam = true)
+        public string BuildInherits(List<Bean> inherits, bool isParam = true)
         {
-           var sb = new StringBuilder();
+            var sb = new StringBuilder();
             var first = true;
             for (var i = 0; i < inherits.Count; ++i)
             {
@@ -121,7 +120,7 @@ namespace Zeze.Gen.java
                 if (isParam)
                     sb.Append($"{dot}{inher.FullName} base{i}");
                 else
-                    sb.Append($"{dot} base{i}");
+                    sb.Append($"{dot}base{i}");
                 if (first)
                     first = false;
             }

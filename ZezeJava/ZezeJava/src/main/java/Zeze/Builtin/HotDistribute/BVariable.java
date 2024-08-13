@@ -4,7 +4,7 @@ package Zeze.Builtin.HotDistribute;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BVariable extends Zeze.Transaction.Bean implements BVariableReadOnly {
     public static final long TYPEID = 7877437207710416076L;
 
@@ -669,6 +669,27 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BVariable.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BVariable.Data)_o_;
+        if (_Id != _b_._Id)
+            return false;
+        if (!_Name.equals(_b_._Name))
+            return false;
+        if (!_Type.equals(_b_._Type))
+            return false;
+        if (!_Key.equals(_b_._Key))
+            return false;
+        if (!_Value.equals(_b_._Value))
+            return false;
+        return true;
     }
 }
 }

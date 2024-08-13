@@ -444,7 +444,7 @@ public final class BinLogger extends ReentrantLock {
 		@Override
 		public void dispatchProtocol(long typeId, @NotNull ByteBuffer bb,
 									 @NotNull ProtocolFactoryHandle<?> factoryHandle,
-									 @NotNull AsyncSocket so) {
+									 @Nullable AsyncSocket so) {
 			try {
 				decodeProtocol(typeId, bb, factoryHandle, so).handle(this, factoryHandle); // 直接跑在IO线程上
 			} catch (Throwable e) { // logger.error

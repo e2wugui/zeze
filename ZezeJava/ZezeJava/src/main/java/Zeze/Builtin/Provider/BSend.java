@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public class BSend extends Zeze.Transaction.Bean implements BSendReadOnly {
     public static final long TYPEID = 545774009128015305L;
 
@@ -548,6 +548,23 @@ public static class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSend.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSend.Data)_o_;
+        if (!_linkSids.equals(_b_._linkSids))
+            return false;
+        if (_protocolType != _b_._protocolType)
+            return false;
+        if (!_protocolWholeData.equals(_b_._protocolWholeData))
+            return false;
+        return true;
     }
 }
 }

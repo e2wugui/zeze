@@ -4,7 +4,7 @@ package Zeze.Builtin.Onz;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSavedCommits extends Zeze.Transaction.Bean implements BSavedCommitsReadOnly {
     public static final long TYPEID = -1411985262858884634L;
 
@@ -463,6 +463,21 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSavedCommits.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSavedCommits.Data)_o_;
+        if (_State != _b_._State)
+            return false;
+        if (!_Onzs.equals(_b_._Onzs))
+            return false;
+        return true;
     }
 }
 }

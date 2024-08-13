@@ -103,7 +103,8 @@ public class Raft {
 		final @NotNull Log @NotNull [] entries;
 		final long leaderCommit;
 
-		AppendEntries(long term, int leaderId, long prevLogIndex, long prevLogTerm, Log[] entries, long leaderCommit) {
+		AppendEntries(long term, int leaderId, long prevLogIndex, long prevLogTerm, @NotNull Log @NotNull [] entries,
+					  long leaderCommit) {
 			this.term = term;
 			this.leaderId = leaderId;
 			this.prevLogIndex = prevLogIndex;

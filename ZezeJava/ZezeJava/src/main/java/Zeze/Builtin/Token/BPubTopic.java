@@ -4,7 +4,7 @@ package Zeze.Builtin.Token;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BPubTopic extends Zeze.Transaction.Bean implements BPubTopicReadOnly {
     public static final long TYPEID = -1295819062894155861L;
 
@@ -496,6 +496,23 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BPubTopic.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BPubTopic.Data)_o_;
+        if (!_topic.equals(_b_._topic))
+            return false;
+        if (!_content.equals(_b_._content))
+            return false;
+        if (_broadcast != _b_._broadcast)
+            return false;
+        return true;
     }
 }
 }

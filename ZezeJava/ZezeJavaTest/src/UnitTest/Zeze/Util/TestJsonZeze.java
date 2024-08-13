@@ -69,6 +69,7 @@ public class TestJsonZeze extends TestCase {
 
 	// byte[], Binary, ByteBuffer
 	public void testBytes() throws ReflectiveOperationException {
+		//noinspection EqualsAndHashcode
 		class B {
 			byte[] b1;
 			Binary b2;
@@ -111,6 +112,7 @@ public class TestJsonZeze extends TestCase {
 
 	// IntList, LongList, FloatList, Vector3List, Vector3IntList
 	public void testList() throws ReflectiveOperationException {
+		//noinspection EqualsAndHashcode
 		class L {
 			IntList il;
 			LongList ll;
@@ -164,6 +166,7 @@ public class TestJsonZeze extends TestCase {
 
 	// IntHashSet, LongHashSet
 	public void testSet() throws ReflectiveOperationException {
+		//noinspection EqualsAndHashcode
 		class S {
 			IntHashSet is;
 			LongHashSet ls;
@@ -202,6 +205,7 @@ public class TestJsonZeze extends TestCase {
 
 	// IntHashMap, LongHashMap, LongMap
 	public void testMap() throws ReflectiveOperationException {
+		//noinspection EqualsAndHashcode
 		class M {
 			IntHashMap<Integer> im;
 			LongHashMap<Long> lm;

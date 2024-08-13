@@ -72,7 +72,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    return _o_ instanceof " + className + ';');
 
             sw.WriteLine(prefix + "}");
-            sw.WriteLine();
         }
 
         public Equal(Variable var, string another, bool isEquals, bool isData)

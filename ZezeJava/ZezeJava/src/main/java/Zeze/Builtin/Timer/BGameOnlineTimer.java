@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGameOnlineTimerReadOnly {
     public static final long TYPEID = -3455653027701280193L;
 

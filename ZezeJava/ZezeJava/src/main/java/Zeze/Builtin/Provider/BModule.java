@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // gs to link
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BModule extends Zeze.Transaction.Bean implements BModuleReadOnly {
     public static final long TYPEID = 5883923521926593765L;
 
@@ -449,6 +449,21 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModule.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModule.Data)_o_;
+        if (_ChoiceType != _b_._ChoiceType)
+            return false;
+        if (_ConfigType != _b_._ConfigType)
+            return false;
+        return true;
     }
 }
 }

@@ -5,8 +5,8 @@ namespace Zeze.Gen.java
 {
     public class HashCode : Visitor
     {
-		public static void Make(BeanKey bean, StreamWriter sw, string prefix, bool isData)
-		{
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix, bool isData)
+        {
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
             if (bean.VariablesIdOrder.Count > 0)
@@ -24,11 +24,12 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + "    return 0;");
             sw.WriteLine(prefix + "}");
-			sw.WriteLine();
-		}
+            sw.WriteLine();
+        }
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool isData)
         {
+            sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public int hashCode() {");
             if (bean.VariablesIdOrder.Count > 0)
@@ -48,7 +49,6 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + "    return 0;");
             sw.WriteLine(prefix + "}");
-            // sw.WriteLine();
         }
 
         readonly Variable var;

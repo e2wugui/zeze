@@ -279,7 +279,7 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 		t.walkMemory((key, value) -> {
-			walkTimes.value += 1;
+			walkTimes.value++;
 			walkedKeys.add(key);
 			return true;
 		});

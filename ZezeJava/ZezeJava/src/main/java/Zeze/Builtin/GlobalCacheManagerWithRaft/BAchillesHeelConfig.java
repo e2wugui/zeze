@@ -4,7 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BAchillesHeelConfig extends Zeze.Transaction.Bean implements BAchillesHeelConfigReadOnly {
     public static final long TYPEID = 6351123425648255834L;
 

@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTransmitAccountReadOnly {
     public static final long TYPEID = 2637210793748287339L;
 
@@ -712,6 +712,27 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTransmitAccount.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTransmitAccount.Data)_o_;
+        if (!_ActionName.equals(_b_._ActionName))
+            return false;
+        if (!_Parameter.equals(_b_._Parameter))
+            return false;
+        if (!_TargetAccounts.equals(_b_._TargetAccounts))
+            return false;
+        if (!_SenderAccount.equals(_b_._SenderAccount))
+            return false;
+        if (!_SenderClientId.equals(_b_._SenderClientId))
+            return false;
+        return true;
     }
 }
 }

@@ -1,5 +1,6 @@
 package Zeze.History;
 
+import java.util.regex.Pattern;
 import Zeze.Builtin.HistoryModule.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	private static final @NotNull Logger logger = LogManager.getLogger(ApplyTable.class);
+	private static final @NotNull Pattern diffPat = Pattern.compile("\r?\n");
 	private final Lru<K, V> lru = new Lru<>(4096);
 	private final @NotNull IApplyTable table;
 	private final @NotNull TableX<K, V> originTable;
@@ -88,8 +90,8 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 	}
 
 	public static String diff(String strA, String strB, String skipIfContains) {
-		var a = strA.split("\r?\n");
-		var b = strB.split("\r?\n");
+		var a = diffPat.split(strA);
+		var b = diffPat.split(strB);
 
 		var i = 0;
 		// skip same line at head.

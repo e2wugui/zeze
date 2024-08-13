@@ -197,7 +197,7 @@ public class Vector2IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull void addAllToVector(@NotNull Collection<Vector2Int> c) {
+	public void addAllToVector(@NotNull Collection<Vector2Int> c) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 1; i < n; i += 2)
 			c.add(new Vector2Int(buf[i], buf[i + 1]));

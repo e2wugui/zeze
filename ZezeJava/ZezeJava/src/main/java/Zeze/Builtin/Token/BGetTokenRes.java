@@ -4,7 +4,7 @@ package Zeze.Builtin.Token;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTokenResReadOnly {
     public static final long TYPEID = 4780430105301681046L;
 
@@ -575,6 +575,25 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetTokenRes.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetTokenRes.Data)_o_;
+        if (!_context.equals(_b_._context))
+            return false;
+        if (_count != _b_._count)
+            return false;
+        if (_time != _b_._time)
+            return false;
+        if (!_addr.equals(_b_._addr))
+            return false;
+        return true;
     }
 }
 }

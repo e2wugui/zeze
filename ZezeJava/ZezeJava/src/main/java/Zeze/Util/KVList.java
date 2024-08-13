@@ -303,7 +303,7 @@ public class KVList<K, V> implements Cloneable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull void addAllTo(@NotNull Collection<K> keys, @NotNull Collection<V> values) {
+	public void addAllTo(@NotNull Collection<K> keys, @NotNull Collection<V> values) {
 		Object[] ks = this.keys;
 		Object[] vs = this.values;
 		for (int i = 0, n = count; i < n; i++) {

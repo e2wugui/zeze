@@ -261,7 +261,7 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 		return this;
 	}
 
-	public @NotNull void addAllTo(@NotNull Collection<Float> c) {
+	public void addAllTo(@NotNull Collection<Float> c) {
 		float[] buf = buffer;
 		for (int i = 0, n = count; i < n; i++)
 			c.add(buf[i]);

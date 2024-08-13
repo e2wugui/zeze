@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean implements BModuleRedirectAllRequestReadOnly {
     public static final long TYPEID = -1938324199607833342L;
 
@@ -999,6 +999,35 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BModuleRedirectAllRequest.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BModuleRedirectAllRequest.Data)_o_;
+        if (_ModuleId != _b_._ModuleId)
+            return false;
+        if (_HashCodeConcurrentLevel != _b_._HashCodeConcurrentLevel)
+            return false;
+        if (!_HashCodes.equals(_b_._HashCodes))
+            return false;
+        if (_SourceProvider != _b_._SourceProvider)
+            return false;
+        if (_SessionId != _b_._SessionId)
+            return false;
+        if (!_MethodFullName.equals(_b_._MethodFullName))
+            return false;
+        if (!_Params.equals(_b_._Params))
+            return false;
+        if (!_ServiceNamePrefix.equals(_b_._ServiceNamePrefix))
+            return false;
+        if (_Version != _b_._Version)
+            return false;
+        return true;
     }
 }
 }

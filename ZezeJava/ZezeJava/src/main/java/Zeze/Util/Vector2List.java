@@ -197,7 +197,7 @@ public class Vector2List extends FloatList {
 		return this;
 	}
 
-	public @NotNull void addAllToVector(@NotNull Collection<Vector2> c) {
+	public void addAllToVector(@NotNull Collection<Vector2> c) {
 		float[] buf = buffer;
 		for (int i = 0, n = count - 1; i < n; i += 2)
 			c.add(new Vector2(buf[i], buf[i + 1]));

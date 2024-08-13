@@ -47,11 +47,11 @@ public class Procedure {
 		return protocolClassName;
 	}
 
-	public void setProtocolClassName(String protocolClassName) {
+	public void setProtocolClassName(@Nullable String protocolClassName) {
 		this.protocolClassName = protocolClassName;
 	}
 
-	public void setProtocolRawArgument(Binary protocolRawArgument) {
+	public void setProtocolRawArgument(@Nullable Binary protocolRawArgument) {
 		this.protocolRawArgument = protocolRawArgument;
 	}
 

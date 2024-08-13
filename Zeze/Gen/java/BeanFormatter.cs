@@ -81,8 +81,9 @@ namespace Zeze.Gen.java
             {
                 if (bean.Comment.Length > 0)
                     sw.WriteLine(bean.Comment);
-                var extraSuppress = bean.Interface == "" ? "" : ", \"override\"";
-                sw.WriteLine($"@SuppressWarnings({{\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\", \"UnusedAssignment\"{extraSuppress}}})");
+                var extraSuppress1 = bean.GenEquals ? "" : "\"EqualsAndHashcode\", ";
+                var extraSuppress2 = bean.Interface == "" ? "" : ", \"override\"";
+                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\", \"UnusedAssignment\"{extraSuppress2}}})");
                 var final = bean.Extendable ? "" : "final ";
                 var extraInterface = bean.Interface == "" ? "" : ", " + bean.Interface;
                 sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly{extraInterface} {{");
@@ -255,6 +256,7 @@ namespace Zeze.Gen.java
             Equal.Make(bean, sw, "    ", false); // 对Java项目来说因Zeze.History需要,所以必须生成
             if (bean.GenEquals)
                 HashCode.Make(bean, sw, "    ", false);
+            sw.WriteLine();
             InitChildrenTableKey.Make(bean, sw, "    ");
             // InitChildrenTableKey.MakeReset(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");

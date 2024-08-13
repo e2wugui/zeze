@@ -277,8 +277,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 		}
 	}
 
-	private static RelativeRecordSet _merge_(@NotNull ArrayList<RelativeRecordSet> locked,
-											 @NotNull Transaction trans, boolean allRead) {
+	private static @NotNull RelativeRecordSet _merge_(@NotNull ArrayList<RelativeRecordSet> locked,
+													  @NotNull Transaction trans, boolean allRead) {
 		// find largest
 		var largest = locked.get(0);
 		for (int index = 1; index < locked.size(); ++index) {

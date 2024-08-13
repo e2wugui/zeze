@@ -4,7 +4,7 @@ package Zeze.Builtin.HotDistribute;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTryDistribute extends Zeze.Transaction.Bean implements BTryDistributeReadOnly {
     public static final long TYPEID = -555413257891539268L;
 
@@ -411,6 +411,21 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTryDistribute.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTryDistribute.Data)_o_;
+        if (_DistributeId != _b_._DistributeId)
+            return false;
+        if (_AtomicAll != _b_._AtomicAll)
+            return false;
+        return true;
     }
 }
 }

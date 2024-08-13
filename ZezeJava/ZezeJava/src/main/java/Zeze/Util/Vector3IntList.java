@@ -216,7 +216,7 @@ public class Vector3IntList extends IntList {
 		return this;
 	}
 
-	public @NotNull void addAllToVector(@NotNull Collection<Vector3Int> c) {
+	public void addAllToVector(@NotNull Collection<Vector3Int> c) {
 		int[] buf = buffer;
 		for (int i = 0, n = count - 2; i < n; i += 3)
 			c.add(new Vector3Int(buf[i], buf[i + 1], buf[i + 2]));

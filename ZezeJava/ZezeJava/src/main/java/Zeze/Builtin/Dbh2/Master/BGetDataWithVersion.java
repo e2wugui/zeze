@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Master;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BGetDataWithVersion extends Zeze.Transaction.Bean implements BGetDataWithVersionReadOnly {
     public static final long TYPEID = 7905452008753397388L;
 
@@ -348,6 +348,19 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BGetDataWithVersion.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BGetDataWithVersion.Data)_o_;
+        if (!_Key.equals(_b_._Key))
+            return false;
+        return true;
     }
 }
 }

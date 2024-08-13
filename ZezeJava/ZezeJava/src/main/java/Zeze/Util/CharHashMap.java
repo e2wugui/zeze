@@ -73,7 +73,7 @@ public class CharHashMap<V> implements Cloneable {
 		return hasZeroValue;
 	}
 
-	public V getZeroValue() {
+	public @Nullable V getZeroValue() {
 		return zeroValue;
 	}
 

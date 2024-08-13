@@ -20,8 +20,9 @@ namespace Zeze.Gen.javadata
             var final = bean.Extendable ? "" : "final ";
             if (bean.OnlyData)
             {
-                var extraSuppress = bean.Interface == "" ? "" : ", \"override\"";
-                sw.WriteLine($"@SuppressWarnings({{\"ForLoopReplaceableByForEach\", \"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"{extraSuppress}}})");
+                var extraSuppress1 = bean.GenEquals ? "" : "\"EqualsAndHashcode\", ";
+                var extraSuppress2 = bean.Interface == "" ? "" : ", \"override\"";
+                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"ForLoopReplaceableByForEach\", \"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"UnusedAssignment\"{extraSuppress2}}})");
             }
             else
                 sw.WriteLine("@SuppressWarnings(\"ForLoopReplaceableByForEach\")");
@@ -174,12 +175,9 @@ namespace Zeze.Gen.javadata
             java.Tostring.Make(bean, sw, "    ", true);
             Encode.Make(bean, sw, "    ");
             Decode.Make(bean, sw, "    ");
+            java.Equal.Make(bean, sw, "    ", !bean.OnlyData);
             if (bean.GenEquals)
-            {
-                sw.WriteLine();
-                java.Equal.Make(bean, sw, "    ", !bean.OnlyData);
                 java.HashCode.Make(bean, sw, "    ", true);
-            }
             //NegativeCheck.Make(bean, sw, "    ");
         }
     }

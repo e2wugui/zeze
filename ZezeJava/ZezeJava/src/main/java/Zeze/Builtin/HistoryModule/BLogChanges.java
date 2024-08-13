@@ -4,7 +4,7 @@ package Zeze.Builtin.HistoryModule;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesReadOnly {
     public static final long TYPEID = 395935719895809559L;
 
@@ -736,6 +736,27 @@ public static class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BLogChanges.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BLogChanges.Data)_o_;
+        if (!_GlobalSerialId.equals(_b_._GlobalSerialId))
+            return false;
+        if (!_ProtocolClassName.equals(_b_._ProtocolClassName))
+            return false;
+        if (!_ProtocolArgument.equals(_b_._ProtocolArgument))
+            return false;
+        if (!_Changes.equals(_b_._Changes))
+            return false;
+        if (_Timestamp != _b_._Timestamp)
+            return false;
+        return true;
     }
 }
 }

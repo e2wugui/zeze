@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // linkd to client
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReportError extends Zeze.Transaction.Bean implements BReportErrorReadOnly {
     public static final long TYPEID = -947669033141460287L;
 
@@ -515,6 +515,23 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReportError.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReportError.Data)_o_;
+        if (_from != _b_._from)
+            return false;
+        if (_code != _b_._code)
+            return false;
+        if (!_desc.equals(_b_._desc))
+            return false;
+        return true;
     }
 }
 }

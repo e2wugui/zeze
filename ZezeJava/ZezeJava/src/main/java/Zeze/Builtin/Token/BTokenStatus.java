@@ -4,7 +4,7 @@ package Zeze.Builtin.Token;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenStatusReadOnly {
     public static final long TYPEID = 3897751576670303080L;
 
@@ -567,6 +567,25 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BTokenStatus.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BTokenStatus.Data)_o_;
+        if (_newCount != _b_._newCount)
+            return false;
+        if (_curCount != _b_._curCount)
+            return false;
+        if (_connectCount != _b_._connectCount)
+            return false;
+        if (!_perfLog.equals(_b_._perfLog))
+            return false;
+        return true;
     }
 }
 }

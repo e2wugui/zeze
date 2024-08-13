@@ -37,7 +37,7 @@ public final class Agent extends AbstractAgent {
 
 	private Threading threading;
 
-	public AgentClient getClient() {
+	public @NotNull AgentClient getClient() {
 		return client;
 	}
 

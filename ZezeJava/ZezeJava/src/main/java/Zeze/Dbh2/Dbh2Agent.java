@@ -163,12 +163,12 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return raftClient;
 	}
 
-	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, @Nullable byte[] prefix) {
+	public Walk walk(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix) {
 		var r = new Walk();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
-		if (null != prefix)
+		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();
@@ -176,12 +176,12 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		return r;
 	}
 
-	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc, @Nullable byte[] prefix) {
+	public WalkKey walkKey(Binary exclusiveStartKey, int proposeLimit, boolean desc, byte @Nullable [] prefix) {
 		var r = new WalkKey();
 		r.Argument.setExclusiveStartKey(exclusiveStartKey);
 		r.Argument.setProposeLimit(proposeLimit);
 		r.Argument.setDesc(desc);
-		if (null != prefix)
+		if (prefix != null)
 			r.Argument.setPrefix(new Binary(prefix));
 		r.setTimeout(config.getRpcTimeout());
 		raftClient.sendForWait(r).await();

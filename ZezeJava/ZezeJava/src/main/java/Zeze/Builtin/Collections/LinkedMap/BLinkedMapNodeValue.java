@@ -4,7 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements BLinkedMapNodeValueReadOnly {
     public static final long TYPEID = -6110801358414370128L;
 

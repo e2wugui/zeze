@@ -108,7 +108,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	private Future<?> verifyLocalTimer;
 
-	public ProviderApp getProviderApp() {
+	public @NotNull ProviderApp getProviderApp() {
 		return providerApp;
 	}
 

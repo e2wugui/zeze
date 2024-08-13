@@ -204,7 +204,7 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 			return serviceInfos.toString();
 		}
 
-		public BSubscribeInfo getSubscribeInfo() {
+		public @NotNull BSubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
 		}
 

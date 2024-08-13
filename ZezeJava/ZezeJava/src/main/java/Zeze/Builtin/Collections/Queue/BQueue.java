@@ -23,7 +23,7 @@ import Zeze.Serialize.IByteBuffer;
 				}
 				3. Splice两个Queue时，指向另一个Queue的NodeKey需要先处理好，即已经是新版的结构。现在的代码刚好符合。
 */
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnly {
     public static final long TYPEID = -4684745065046332255L;
 

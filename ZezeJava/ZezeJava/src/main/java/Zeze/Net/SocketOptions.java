@@ -55,7 +55,7 @@ public final class SocketOptions {
 		return overBandwidth;
 	}
 
-	public void setOverBandwidth(Long value) {
+	public void setOverBandwidth(@Nullable Long value) {
 		overBandwidth = value;
 	}
 

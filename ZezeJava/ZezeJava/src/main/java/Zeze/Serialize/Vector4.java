@@ -62,7 +62,7 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public @Nullable Vector4 normalized() {
+	public @NotNull Vector4 normalized() {
 		double magnitude = Math.sqrt((double)x * x + (double)y * y + (double)z * z + (double)w * w);
 		if (magnitude > 1e-6f) {
 			double f = 1 / magnitude;

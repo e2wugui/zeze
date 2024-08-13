@@ -4,7 +4,7 @@ package Zeze.Builtin.Threading;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BReadWriteLock extends Zeze.Transaction.Bean implements BReadWriteLockReadOnly {
     public static final long TYPEID = 5310988726582781550L;
 
@@ -510,6 +510,23 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BReadWriteLock.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BReadWriteLock.Data)_o_;
+        if (!_LockName.equals(_b_._LockName))
+            return false;
+        if (_OperateType != _b_._OperateType)
+            return false;
+        if (_TimeoutMs != _b_._TimeoutMs)
+            return false;
+        return true;
     }
 }
 }

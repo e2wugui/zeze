@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BWalk extends Zeze.Transaction.Bean implements BWalkReadOnly {
     public static final long TYPEID = 2689376469133093665L;
 
@@ -571,6 +571,25 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BWalk.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BWalk.Data)_o_;
+        if (!_ExclusiveStartKey.equals(_b_._ExclusiveStartKey))
+            return false;
+        if (_ProposeLimit != _b_._ProposeLimit)
+            return false;
+        if (_Desc != _b_._Desc)
+            return false;
+        if (!_Prefix.equals(_b_._Prefix))
+            return false;
+        return true;
     }
 }
 }

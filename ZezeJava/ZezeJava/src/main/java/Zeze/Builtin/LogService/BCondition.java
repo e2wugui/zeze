@@ -4,7 +4,7 @@ package Zeze.Builtin.LogService;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BCondition extends Zeze.Transaction.Bean implements BConditionReadOnly {
     public static final long TYPEID = -4711929821698256188L;
 
@@ -698,6 +698,27 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BCondition.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BCondition.Data)_o_;
+        if (_BeginTime != _b_._BeginTime)
+            return false;
+        if (_EndTime != _b_._EndTime)
+            return false;
+        if (!_Words.equals(_b_._Words))
+            return false;
+        if (_ContainsType != _b_._ContainsType)
+            return false;
+        if (!_Pattern.equals(_b_._Pattern))
+            return false;
+        return true;
     }
 }
 }

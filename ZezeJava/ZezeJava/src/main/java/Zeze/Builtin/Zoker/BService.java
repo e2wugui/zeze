@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // 服务：查询，启动，关闭
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BService extends Zeze.Transaction.Bean implements BServiceReadOnly {
     public static final long TYPEID = 8648379280162192984L;
 
@@ -512,6 +512,23 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BService.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BService.Data)_o_;
+        if (!_ServiceName.equals(_b_._ServiceName))
+            return false;
+        if (!_State.equals(_b_._State))
+            return false;
+        if (!_Ps.equals(_b_._Ps))
+            return false;
+        return true;
     }
 }
 }

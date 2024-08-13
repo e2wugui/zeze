@@ -32,6 +32,7 @@ public class HotAgent extends AbstractHotAgent {
 	private final Connector connector;
 
 	public HotAgent(String ipPort) {
+		//noinspection DynamicRegexReplaceableByCompiledPattern
 		var ipPorts = ipPort.split("[_:]");
 		var ip = ipPorts[0];
 		var port = Integer.parseInt(ipPorts[1]);

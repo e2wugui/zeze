@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnmodifiableView;
 import org.rocksdb.*;
 
 public class RocksDatabase extends ReentrantLock implements Closeable {
@@ -248,7 +249,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		return optimisticTransactionDb;
 	}
 
-	public @NotNull Map<String, Table> getTableMap() {
+	public @NotNull @UnmodifiableView Map<String, Table> getTableMap() {
 		var view = tableMapView;
 		if (view == null)
 			tableMapView = view = Collections.unmodifiableMap(tableMap);

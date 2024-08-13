@@ -59,6 +59,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 		var str = System.getProperty("protocolLogExcept");
 		if (str != null) {
+			//noinspection DynamicRegexReplaceableByCompiledPattern
 			for (var numStr : str.split("[^\\d\\-]")) {
 				if (!numStr.isBlank())
 					protocolLogExcept.add(Long.parseLong(numStr));

@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // Zeze.Transaction.Database.Operates 实现协议
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BSetInUse extends Zeze.Transaction.Bean implements BSetInUseReadOnly {
     public static final long TYPEID = -6535947444840410706L;
 
@@ -441,6 +441,21 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BSetInUse.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BSetInUse.Data)_o_;
+        if (_LocalId != _b_._LocalId)
+            return false;
+        if (!_Global.equals(_b_._Global))
+            return false;
+        return true;
     }
 }
 }

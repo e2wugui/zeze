@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly {
     public static final long TYPEID = -6855697390328479333L;
 
@@ -591,6 +591,25 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BKick.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BKick.Data)_o_;
+        if (_linksid != _b_._linksid)
+            return false;
+        if (_code != _b_._code)
+            return false;
+        if (!_desc.equals(_b_._desc))
+            return false;
+        if (_control != _b_._control)
+            return false;
+        return true;
     }
 }
 }

@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 // <enum name="eFlushPeriod" value="3"/>
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFuncProcedureReadOnly {
     public static final long TYPEID = 2028535493874213798L;
 
@@ -649,6 +649,27 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BFuncProcedure.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BFuncProcedure.Data)_o_;
+        if (_OnzTid != _b_._OnzTid)
+            return false;
+        if (!_FuncName.equals(_b_._FuncName))
+            return false;
+        if (!_FuncArgument.equals(_b_._FuncArgument))
+            return false;
+        if (_FlushMode != _b_._FlushMode)
+            return false;
+        if (_FlushTimeout != _b_._FlushTimeout)
+            return false;
+        return true;
     }
 }
 }

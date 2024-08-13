@@ -4,7 +4,7 @@ package Zeze.Builtin.Dbh2.Commit;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
+@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BPrepareBatches extends Zeze.Transaction.Bean implements BPrepareBatchesReadOnly {
     public static final long TYPEID = -2881093366329974312L;
 
@@ -407,6 +407,19 @@ public static final class Data extends Zeze.Transaction.Data {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+    }
+
+    @Override
+    public boolean equals(Object _o_) {
+        if (_o_ == this)
+            return true;
+        if (!(_o_ instanceof BPrepareBatches.Data))
+            return false;
+        //noinspection PatternVariableCanBeUsed
+        var _b_ = (BPrepareBatches.Data)_o_;
+        if (!_Datas.equals(_b_._Datas))
+            return false;
+        return true;
     }
 }
 }
