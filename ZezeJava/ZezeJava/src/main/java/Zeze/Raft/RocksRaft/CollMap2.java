@@ -130,16 +130,15 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	public void decode(IByteBuffer bb) {
 		clear();
 		var decoder = keyCodecFuncs.decoder;
-		for (int i = bb.ReadUInt(); i > 0; i--) {
-			var key = decoder.apply(bb);
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) { // MethodHandle.invoke
-				throw Task.forceThrow(e);
+		try {
+			for (int i = bb.ReadUInt(); i > 0; i--) {
+				var key = decoder.apply(bb);
+				V value = (V)valueFactory.invoke();
+				value.decode(bb);
+				put(key, value);
 			}
-			value.decode(bb);
-			put(key, value);
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw Task.forceThrow(e);
 		}
 	}
 }

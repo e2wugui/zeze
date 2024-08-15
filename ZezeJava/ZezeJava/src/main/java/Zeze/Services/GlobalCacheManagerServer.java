@@ -331,7 +331,6 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		rpc.Result.globalKey = rpc.Argument.globalKey;
 		rpc.Result.state = acquireState; // default success
 
-		long result = 0;
 		if (rpc.getSender().getUserState() == null) {
 			rpc.Result.state = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
@@ -345,10 +344,10 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					rpc.SendResultCode(0);
 					break;
 				case StateShare:
-					result = acquireShare(rpc); //await 方法内有等待
+					acquireShare(rpc); //await 方法内有等待
 					break;
 				case StateModify:
-					result = acquireModify(rpc); //await 方法内有等待
+					acquireModify(rpc); //await 方法内有等待
 					break;
 				default:
 					rpc.Result.state = StateInvalid;
@@ -363,7 +362,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 		if (ENABLE_PERF)
 			perf.onAcquireEnd(rpc, acquireState);
-		return result;
+		return 0;
 	}
 
 	private int release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
@@ -416,7 +415,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		}
 	}
 
-	private int acquireShare(Acquire rpc) throws InterruptedException {
+	private void acquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
@@ -438,7 +437,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								logger.debug("1 {} {} {}", sender, StateShare, cs);
 							rpc.Result.state = StateInvalid;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
-							return 0;
+							return;
 						}
 						break;
 					case StateModify:
@@ -447,7 +446,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								logger.debug("2 {} {} {}", sender, StateShare, cs);
 							rpc.Result.state = StateInvalid;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
-							return 0;
+							return;
 						}
 						break;
 					case StateRemoving:
@@ -477,7 +476,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 							logger.debug("4 {} {} {}", sender, StateShare, cs);
 						rpc.Result.state = StateModify;
 						rpc.SendResultCode(AcquireShareAlreadyIsModify);
-						return 0;
+						return;
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
@@ -521,7 +520,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// logger.error("XXX Fresh {} {} {}", sender, StateShare, cs);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);
-						return 0;
+						return;
 
 					default:
 						// 包含协议返回错误的值的情况。
@@ -535,7 +534,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// logger.error("XXX 8 {} {} {} {}", sender, StateShare, cs, reduceResultState.Value);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(AcquireShareFailed);
-						return 0;
+						return;
 					}
 
 					sender.acquired.put(gKey, StateShare);
@@ -547,7 +546,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						logger.debug("6 {} {} {}", sender, StateShare, cs);
 					rpc.Result.reducedTid = reduceTid.value;
 					rpc.SendResultCode(0);
-					return 0;
+					return;
 				}
 
 				sender.acquired.put(gKey, StateShare);
@@ -558,14 +557,14 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 					logger.debug("7 {} {} {}", sender, StateShare, cs);
 				rpc.Result.reducedTid = reduceTid.value;
 				rpc.SendResultCode(0);
-				return 0;
+				return;
 			} finally {
 				cs.unlock();
 			}
 		}
 	}
 
-	private int acquireModify(Acquire rpc) throws InterruptedException {
+	private void acquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.globalKey, CacheState::new);
@@ -588,7 +587,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								logger.debug("1 {} {} {}", sender, StateModify, cs);
 							rpc.Result.state = StateInvalid;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
-							return 0;
+							return;
 						}
 						break;
 					case StateModify:
@@ -597,7 +596,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 								logger.debug("2 {} {} {}", sender, StateModify, cs);
 							rpc.Result.state = StateInvalid;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
-							return 0;
+							return;
 						}
 						break;
 					case StateRemoving:
@@ -627,7 +626,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						cs.acquireStatePending = StateInvalid;
 						cs.signalAll(); //notify
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
-						return 0;
+						return;
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
@@ -666,7 +665,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// logger.error("XXX Fresh {} {} {}", sender, StateModify, cs);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);
-						return 0;
+						return;
 
 					default:
 						// case StateReduceRpcTimeout: // 11
@@ -679,7 +678,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						// logger.error("XXX 9 {} {} {} {}", sender, StateModify, cs, reduceResultState.Value);
 						rpc.Result.state = StateInvalid;
 						rpc.SendResultCode(AcquireModifyFailed);
-						return 0;
+						return;
 					}
 
 					sender.acquired.put(gKey, StateModify);
@@ -691,7 +690,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						logger.debug("6 {} {} {}", sender, StateModify, cs);
 					rpc.Result.reducedTid = reduceTid.value;
 					rpc.SendResultCode(0);
-					return 0;
+					return;
 				}
 
 				ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
@@ -806,7 +805,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				}
 				// 很好，网络失败不再看成成功，发现除了加break，
 				// 其他处理已经能包容这个改动，都不用动。
-				return 0;
+				return;
 			} finally {
 				cs.unlock();
 			}

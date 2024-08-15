@@ -247,9 +247,9 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				rpc.Result.globalKey = rpc.Argument.globalKey;
 				rpc.Result.state = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
-				return 0;
-			}
-			return table1.reduceInvalid(rpc, bb);
+			} else
+				table1.reduceInvalid(rpc, bb);
+			break;
 		}
 		case GlobalCacheManagerConst.StateShare: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.globalKey);
@@ -262,15 +262,16 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				rpc.Result.globalKey = rpc.Argument.globalKey;
 				rpc.Result.state = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
-				return 0;
-			}
-			return table.reduceShare(rpc, bb);
+			} else
+				table.reduceShare(rpc, bb);
+			break;
 		}
 		default:
 			rpc.Result = rpc.Argument;
 			rpc.SendResultCode(GlobalCacheManagerConst.ReduceErrorState);
-			return 0;
+			break;
 		}
+		return 0;
 	}
 
 	public void start() throws Exception {

@@ -48,7 +48,7 @@ public class Auth extends AbstractAuth {
 
 	public String getAccountAuth(String account, long typeId) {
 		var roleBean = _tAccountAuth.selectDirty(account);
-		if (null == roleBean)
+		if (roleBean == null)
 			return null;
 
 		for (var role : roleBean.getRoles()) {
@@ -56,20 +56,19 @@ public class Auth extends AbstractAuth {
 
 			// 首先查找具体协议权限
 			var flags = value.getAuths().get(typeId);
-			if (null != flags)
+			if (flags != null)
 				return flags;
 
 			// 不存在，查找模块权限
 			var moduleId = Protocol.getModuleId(typeId);
 			flags = value.getAuths().get(Protocol.makeTypeId(moduleId, 0));
-			if (null != flags)
+			if (flags != null)
 				return flags;
 		}
 		return null;
 	}
 
 	public void start() throws Exception {
-
 	}
 
 	public void stop() throws Exception {

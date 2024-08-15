@@ -10,7 +10,6 @@ import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.RocksRaft.Log1.LogBeanKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
@@ -176,7 +175,7 @@ public final class Transaction {
 	public long perform(Procedure procedure) throws Exception {
 		try {
 			var rc = procedure.call();
-			if (_lock_and_check_(TransactionLevel.Serializable)) {
+			if (_lock_and_check_(/*TransactionLevel.Serializable*/)) {
 				if (rc == 0) {
 					_final_commit_(procedure);
 				} else {
@@ -204,7 +203,7 @@ public final class Transaction {
 				_final_rollback_(procedure);
 				throw e;
 			}
-			if (_lock_and_check_(TransactionLevel.Serializable)) {
+			if (_lock_and_check_(/*TransactionLevel.Serializable*/)) {
 				_final_rollback_(procedure);
 				return Zeze.Transaction.Procedure.Exception;
 			}
@@ -244,8 +243,9 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
 	}
 
-	private boolean _lock_and_check_(@SuppressWarnings("SameParameterValue") TransactionLevel level) {
-		boolean allRead = true;
+	@SuppressWarnings("SameReturnValue")
+	private boolean _lock_and_check_(/*TransactionLevel level*/) {
+//		boolean allRead = true;
 		var saveSize = savepoints.size();
 		if (saveSize > 0) {
 			var it = savepoints.get(saveSize - 1).logIterator();
@@ -261,15 +261,14 @@ public final class Transaction {
 					var record = accessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);
-						allRead = false;
+//						allRead = false;
 					} else
 						logger.error("impossible! record not found."); // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
 				}
 			}
 		}
-		//noinspection IfStatementWithIdenticalBranches
-		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
-			return true; // 使用一个新的enum表示一下？
+//		if (allRead && level == TransactionLevel.AllowDirtyWhenAllRead)
+//			return true; // 使用一个新的enum表示一下？
 		return true;
 	}
 

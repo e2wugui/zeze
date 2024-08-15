@@ -111,9 +111,9 @@ public abstract class Table {
 		return false;
 	}
 
-	public abstract int reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
+	public abstract void reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
 
-	public abstract int reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
+	public abstract void reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey);
 
 	abstract void reduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 

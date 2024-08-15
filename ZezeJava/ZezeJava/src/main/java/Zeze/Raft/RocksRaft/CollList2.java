@@ -29,12 +29,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().logGetOrAdd(
 					parent().objectId() + variableId(), this::createLogBean);
-			return listLog.add(item);
-		}
-		var newList = list.plus(item);
-		if (newList == list)
-			return false;
-		list = newList;
+			listLog.add(item);
+		} else
+			list = list.plus(item);
 		return true;
 	}
 
@@ -179,15 +176,14 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public void decode(IByteBuffer bb) {
 		clear();
-		for (int i = bb.ReadUInt(); i > 0; i--) {
-			V value;
-			try {
-				value = (V)valueFactory.invoke();
-			} catch (Throwable e) { // MethodHandle.invoke
-				throw Task.forceThrow(e);
+		try {
+			for (int i = bb.ReadUInt(); i > 0; i--) {
+				V value = (V)valueFactory.invoke();
+				value.decode(bb);
+				add(value);
 			}
-			value.decode(bb);
-			add(value);
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw Task.forceThrow(e);
 		}
 	}
 }

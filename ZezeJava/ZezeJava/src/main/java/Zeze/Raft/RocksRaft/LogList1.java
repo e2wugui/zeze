@@ -49,13 +49,12 @@ public class LogList1<V> extends LogList<V> {
 		return opLogs;
 	}
 
-	public final boolean add(V item) {
+	public final void add(V item) {
 		if (item == null)
 			throw new IllegalArgumentException("null item");
 		var list = getValue();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));
-		return true;
 	}
 
 	public final boolean addAll(Collection<? extends V> items) {

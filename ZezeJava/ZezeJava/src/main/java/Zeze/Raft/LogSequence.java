@@ -362,7 +362,7 @@ public class LogSequence {
 		raft.lock();
 		try {
 			if (logs != null) {
-				logger.info("closeDb: {}, logs", raft.getRaftConfig().getDbHome());
+				logger.info("close logs: {}", raft.getRaftConfig().getDbHome());
 				logs.close();
 				logs = null;
 			}
@@ -370,7 +370,7 @@ public class LogSequence {
 			rafts = null;
 
 			if (database != null) {
-				logger.info("closeDb: {}, rafts", raft.getRaftConfig().getDbHome());
+				logger.info("close database: {}", raft.getRaftConfig().getDbHome());
 				database.close();
 				database = null;
 			}
@@ -839,7 +839,7 @@ public class LogSequence {
 				// 6. If existing log entry has same index and term as snapshot's
 				// last included entry, retain log entries following it and reply
 				var last = readLog(r.Argument.getLastIncludedIndex());
-				if (null != last && last.getTerm() == r.Argument.getLastIncludedTerm()) {
+				if (last != null && last.getTerm() == r.Argument.getLastIncludedTerm()) {
 					// 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
 					// 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
@@ -851,7 +851,7 @@ public class LogSequence {
 				// 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
 				// 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
 				// 【除了快照最后包含的日志，其他都删除。】
-				logger.info("closeDb: {}, logs", raft.getRaftConfig().getDbHome());
+				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
 				logs.close();
 				logs = null;
 				cancelPendingAppendLogFutures();

@@ -44,7 +44,7 @@ public class DistributeManager {
 		var file = new File(fileName);
 		var relativeCanonicalFileName = file.getCanonicalFile().toString();
 		var fileBin = files.remove(relativeCanonicalFileName);
-		if (null != fileBin) {
+		if (fileBin != null) {
 			fileBin.close();
 			var md5Local = fileBin.md5Digest();
 			return Arrays.compare(md5Local, md5.bytesUnsafe()) == 0;
@@ -52,9 +52,8 @@ public class DistributeManager {
 		return true;
 	}
 
-	public long commitDistribute() throws IOException {
+	public void commitDistribute() throws IOException {
 		var ready = Path.of(hotManager.getDistributeDir(), "ready");
 		Files.createFile(ready);
-		return 0;
 	}
 }

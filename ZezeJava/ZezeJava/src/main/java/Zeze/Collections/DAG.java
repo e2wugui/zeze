@@ -90,7 +90,7 @@ public class DAG<V extends Bean> {
 	 * 检查有向图合法
 	 * 1. 无环
 	 */
-	@SuppressWarnings("MethodMayBeStatic")
+	@SuppressWarnings({"MethodMayBeStatic", "SameReturnValue"})
 	private boolean isValid() {
 		return true; // TODO
 	}

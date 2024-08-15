@@ -122,9 +122,9 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendHandle(p, rpc));
 		ConnectorProxy leader = this.leader;
-		if (!ProxyAgent.send(client, proxyAgent, rpc,
-				leader, (null != leader) ? leader.getConnector().TryGetReadySocket() : null))
-			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
+		if (!ProxyAgent.send(client, proxyAgent, rpc, leader,
+				leader != null ? leader.getConnector().TryGetReadySocket() : null))
+			logger.debug("send failed: leader={}, rpc={}", leader, rpc);
 	}
 
 	private <TArgument extends Serializable, TResult extends Serializable>
@@ -143,7 +143,7 @@ public final class Agent {
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);
 			if (isDebugEnabled) {
-				logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
+				logger.debug("sendHandle Rpc={} RequestId={} ResultCode={} Sender={}",
 						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			}
 			return rpc.handle.applyAsLong(rpc);
@@ -174,7 +174,7 @@ public final class Agent {
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);
 			if (isDebugEnabled) {
-				logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
+				logger.debug("sendForWaitHandle Rpc={} RequestId={} ResultCode={} Sender={}",
 						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			}
 			rpc.future.setResult(rpc);
@@ -207,9 +207,9 @@ public final class Agent {
 
 		rpc.setResponseHandle(p -> sendForWaitHandle(p, rpc));
 		ConnectorProxy leader = this.leader;
-		if (!ProxyAgent.send(client, proxyAgent, rpc,
-				leader, (null != leader) ? leader.getConnector().TryGetReadySocket() : null))
-			logger.debug("Send failed: leader={}, rpc={}", leader, rpc);
+		if (!ProxyAgent.send(client, proxyAgent, rpc, leader,
+				leader != null ? leader.getConnector().TryGetReadySocket() : null))
+			logger.debug("sendForWait failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
 

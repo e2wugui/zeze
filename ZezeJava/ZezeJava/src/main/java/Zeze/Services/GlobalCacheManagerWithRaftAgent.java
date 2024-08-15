@@ -131,11 +131,10 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 				rpc.Result.setState(GlobalCacheManagerConst.StateInvalid);
 				rpc.SendResultCode(0);
-				return 0;
-			}
-			return table.reduceInvalid(new ReduceBridge(rpc), bb);
+			} else
+				table.reduceInvalid(new ReduceBridge(rpc), bb);
+			break;
 		}
-
 		case GlobalCacheManagerConst.StateShare: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.getGlobalKey());
 			var tableId = bb.ReadInt4();
@@ -147,16 +146,16 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 				rpc.Result.setState(GlobalCacheManagerConst.StateInvalid);
 				rpc.SendResultCode(0);
-				return 0;
-			}
-			return table.reduceShare(new ReduceBridge(rpc), bb);
+			} else
+				table.reduceShare(new ReduceBridge(rpc), bb);
+			break;
 		}
-
 		default:
 			rpc.Result = rpc.Argument;
 			rpc.SendResultCode(GlobalCacheManagerConst.ReduceErrorState);
-			return 0;
+			break;
 		}
+		return 0;
 	}
 
 	@Override

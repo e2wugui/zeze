@@ -459,11 +459,13 @@ public class Test {
 		int tryCount = 2;
 		for (int i = 0; i < tryCount; ++i) {
 			var check = checkCurrentCount(testName, false);
-			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-			logger.info("Check={} Step={} ExpectCount={} Errors={}", check, i, expectCount.get(), getErrorsString());
-			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+			logger.info("\n" +
+							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
+							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
+							"Check={} Step={} ExpectCount={} Errors={}\n" +
+							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n" +
+							"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+					check, i, expectCount.get(), getErrorsString());
 			if (check)
 				return true;
 			if (i < tryCount - 1)
@@ -819,9 +821,10 @@ public class Test {
 				raftConfig.setUniqueRequestExpiredDays(1);
 				raftConfig.setDbHome(Paths.get(raftName.replace(':', '_')).toString());
 				if (resetLog) {
-					logger.warn("------------------------------------------------");
-					logger.warn("- Reset Log {} -", raftConfig.getDbHome());
-					logger.warn("------------------------------------------------");
+					logger.warn("\n" +
+							"------------------------------------------------\n" +
+							"- Reset Log {} -\n" +
+							"------------------------------------------------", raftConfig.getDbHome());
 					// 只删除日志相关数据库。保留重复请求数据库。
 					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
 					LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));

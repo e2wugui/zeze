@@ -43,11 +43,6 @@ public class LinkdService extends HandshakeServer {
 		}
 	}
 
-	@Override
-	public void start() throws Exception {
-		super.start();
-	}
-
 	private void reportError(@NotNull Dispatch dispatch) {
 		// 如果是 rpc.request 直接返回Procedure.Busy错误。
 		// see Zeze.Net.Rpc.decode/encode

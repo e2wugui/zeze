@@ -1781,14 +1781,13 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return walkCount - removeCount;
 		}
 
-		public boolean add(long roleId) {
+		public void add(long roleId) {
 			walkCount++;
 			var aTime = localActiveTimes.get(roleId);
 			if (aTime != null && System.currentTimeMillis() - aTime > localActiveTimeout) {
 				roleIds.add(roleId);
 				removeCount++;
 			}
-			return true;
 		}
 
 		public void tryPerform() {

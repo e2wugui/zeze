@@ -141,7 +141,6 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			bb.WriteUInt(e.getValue().value);
 		}
 
-		// super.encode(bb);
 		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
@@ -163,7 +162,6 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			changed.put(logBean, new OutInt(index));
 		}
 
-		// super.decode(bb);
 		opLogs.clear();
 		try {
 			for (int logSize = bb.ReadUInt(); --logSize >= 0; ) {

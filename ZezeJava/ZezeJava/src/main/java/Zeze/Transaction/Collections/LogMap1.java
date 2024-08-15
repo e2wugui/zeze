@@ -101,9 +101,9 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteUInt(replaced.size());
 		var keyEncoder = meta.keyEncoder;
 		var valueEncoder = meta.valueEncoder;
+		bb.WriteUInt(replaced.size());
 		for (var e : replaced.entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
 			//noinspection DataFlowIssue

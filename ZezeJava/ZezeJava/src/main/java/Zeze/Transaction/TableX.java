@@ -283,7 +283,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final int reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
+	public final void reduceShare(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.globalKey = rpc.Argument.globalKey;
@@ -303,7 +303,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
-				return 0;
+				return;
 			}
 			r.enterFairLock();
 			try {
@@ -312,7 +312,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						logger.trace("reduceShare SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
-					return 0;
+					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
 				switch (r.getState()) {
@@ -322,37 +322,37 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
-
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceShare SendResult 2 {}", r);
-					rpc.SendResult();
-					return 0;
-
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceShare SendResult 2 {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				case StateShare:
 					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceShare SendResult 3 {}", r);
-					rpc.SendResult();
-					return 0;
-
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceShare SendResult 3 {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				case StateModify:
 					r.setState(StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
 					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceShare SendResult * {}", r);
-					rpc.SendResult();
-					return 0;
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceShare SendResult * {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
@@ -368,7 +368,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} finally {
 			lockey.exitWriteLock();
 		}
-		return 0;
 	}
 
 	private void flushWhenReduce(@NotNull Record r) {
@@ -386,7 +385,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final int reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
+	public final void reduceInvalid(@NotNull Reduce rpc, @NotNull ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 		rpc.Result.globalKey = rpc.Argument.globalKey;
@@ -410,7 +409,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (isTraceEnabled)
 					logger.trace("reduceInvalid SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
-				return 0;
+				return;
 			}
 			timeBegin = System.nanoTime();
 			r.enterFairLock();
@@ -425,7 +424,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						logger.trace("reduceInvalid SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
-					return 0;
+					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
 				switch (r.getState()) {
@@ -435,37 +434,38 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceInvalid SendResult 2 {}", r);
-					rpc.SendResult();
-					return 0;
-
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceInvalid SendResult 2 {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				case StateShare:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
 					// 不删除记录，让TableCache.CleanNow处理。
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceInvalid SendResult 3 {}", r);
-					rpc.SendResult();
-					return 0;
-
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceInvalid SendResult 3 {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				case StateModify:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					PerfCounter.instance.getOrAddTableInfo(getId()).reduceInvalid.increment();
-					if (r.getDirty())
-						break;
-					if (isTraceEnabled)
-						logger.trace("reduceInvalid SendResult * {}", r);
-					rpc.SendResult();
-					return 0;
+					if (!r.getDirty()) {
+						if (isTraceEnabled)
+							logger.trace("reduceInvalid SendResult * {}", r);
+						rpc.SendResult();
+						return;
+					}
+					break;
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
@@ -482,7 +482,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		} finally {
 			lockey.exitWriteLock();
 		}
-		return 0;
 	}
 
 	public final @NotNull Binary encodeGlobalKey(@NotNull K key) {

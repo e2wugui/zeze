@@ -5,7 +5,8 @@ import Zeze.Config;
 import Zeze.Util.Task;
 
 public class BenchServer {
-	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, @SuppressWarnings("SameParameterValue") String dbName) {
+	@SuppressWarnings("unused")
+	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, String dbName) {
 		var databaseConf = new Config.DatabaseConf();
 		databaseConf.setDatabaseType(Config.DbType.Dbh2);
 		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:10999/" + dbName);
@@ -13,7 +14,7 @@ public class BenchServer {
 		return new Database(null, dbh2AgentManager, databaseConf);
 	}
 
-	public static void main(String [] args) throws Exception {
+	public static void main(String[] args) throws Exception {
 		Task.tryInitThreadPool();
 
 		var master = new Zeze.Dbh2.Master.Main("zeze.xml");

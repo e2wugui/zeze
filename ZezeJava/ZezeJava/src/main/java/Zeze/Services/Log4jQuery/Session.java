@@ -38,7 +38,7 @@ public class Session implements AutoCloseable {
 	public TaskCompletionSource<BResult.Data> search(int limit, boolean reset,
 													 BCondition.Data condition) {
 		var r = new Search(new BSearch.Data(sessionId, limit, reset, condition));
-		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket());
+		return r.SendForWait(agent.__getLogServer(serverName).GetReadySocket(), 60_000);
 	}
 
 	public TaskCompletionSource<BResult.Data> browse(int limit, float offsetFactor, boolean reset,

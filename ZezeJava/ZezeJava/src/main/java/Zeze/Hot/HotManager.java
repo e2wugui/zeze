@@ -559,7 +559,7 @@ public class HotManager extends ClassLoader {
 		putJar(interfaceDst);
 		txn.whileRollback(() -> {
 			if (!interfaceDst.renameTo(interfaceSrc))
-				logger.error("uninstall {} -> {} fail", interfaceDst, interfaceSrc);
+				logger.error("uninstall interface {} -> {} fail", interfaceDst, interfaceSrc);
 		});
 		throwIfMatch("install2");
 
@@ -583,7 +583,7 @@ public class HotManager extends ClassLoader {
 
 		txn.whileRollback(() -> {
 			if (!moduleDstFile.renameTo(moduleSrc))
-				logger.error("uninstall {} -> {} fail", moduleDstFile, moduleSrc);
+				logger.error("uninstall module {} -> {} fail", moduleDstFile, moduleSrc);
 		});
 		throwIfMatch("install4");
 

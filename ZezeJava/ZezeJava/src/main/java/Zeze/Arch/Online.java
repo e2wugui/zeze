@@ -1492,17 +1492,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	class VerifyBatch {
 		final ArrayList<String> accounts = new ArrayList<>();
 
-		public boolean add(String account) {
+		public void add(String account) {
 			var aTime = localActiveTimes.get(account);
-			if (null != aTime && System.currentTimeMillis() - aTime > localActiveTimeout)
+			if (aTime != null && System.currentTimeMillis() - aTime > localActiveTimeout)
 				accounts.add(account);
-			return true;
 		}
 
 		public void tryPerform() {
-			if (accounts.size() > 20) {
+			if (accounts.size() > 20)
 				perform();
-			}
 		}
 
 		public void perform() {

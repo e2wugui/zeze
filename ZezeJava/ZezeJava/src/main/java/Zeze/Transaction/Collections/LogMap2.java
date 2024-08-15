@@ -72,7 +72,6 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			encodeLogBean(bb, e.getValue());
 		}
 
-		// super.encode(bb);
 		bb.WriteUInt(getReplaced().size());
 		for (var e : getReplaced().entrySet()) {
 			keyEncoder.accept(bb, e.getKey());
@@ -93,7 +92,6 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		}
 		built = true;
 
-		// super.decode(bb);
 		getReplaced().clear();
 		try {
 			for (int i = bb.ReadUInt(); i > 0; i--) {
