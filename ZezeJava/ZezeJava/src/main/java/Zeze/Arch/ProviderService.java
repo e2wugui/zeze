@@ -192,7 +192,7 @@ public class ProviderService extends HandshakeClient {
 		announce.Argument.setProviderDirectIp(providerApp.directIp);
 		announce.Argument.setProviderDirectPort(providerApp.directPort);
 		announce.Argument.setAppVersion(providerApp.zeze.getConfig().getAppVersion());
-		announce.Argument.setDisableChoice(disableChoice);
+		announce.Argument.setDisableChoice(disableChoice || providerApp.isUserDisableChoice());
 
 		announce.Send(so);
 
