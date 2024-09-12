@@ -31,7 +31,7 @@ public class DatabaseRedis extends Database {
 
 	private final @NotNull JedisPool pool;
 
-	public DatabaseRedis(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
+	public DatabaseRedis(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
 		try {
 			logger.info("open: {}", getDatabaseUrl());

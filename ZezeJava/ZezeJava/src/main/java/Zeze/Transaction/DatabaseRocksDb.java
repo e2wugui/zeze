@@ -17,7 +17,7 @@ import org.rocksdb.RocksDBException;
 public class DatabaseRocksDb extends Database {
 	private final @NotNull RocksDatabase rocksDb;
 
-	public DatabaseRocksDb(@NotNull Application zeze, @NotNull Config.DatabaseConf conf) {
+	public DatabaseRocksDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
 
 		var homePath = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();

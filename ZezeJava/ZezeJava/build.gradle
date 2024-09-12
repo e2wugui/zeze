@@ -2,17 +2,17 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.23.1'
-    implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
+    implementation 'org.apache.logging.log4j:log4j-api:2.24.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.24.0'
     implementation 'org.jetbrains:annotations:24.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
-    implementation 'org.rocksdb:rocksdbjni:9.4.0'
+    implementation 'org.rocksdb:rocksdbjni:9.5.2'
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.112.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.112.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.113.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.113.Final:linux-x86_64'
     implementation 'org.slf4j:slf4j-api:2.0.16'
-    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.23.1'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.0'
 
     // optional dependencies
     // for tikv
@@ -23,7 +23,7 @@ dependencies {
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
 
     // for redis(kvrocks,pika,tendis)
-    compileOnly 'redis.clients:jedis:5.1.4'
+    compileOnly 'redis.clients:jedis:5.1.5'
 
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.663'

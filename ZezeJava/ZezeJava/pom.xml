@@ -113,16 +113,16 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<log4j.version>2.23.1</log4j.version>
+		<log4j.version>2.40.0</log4j.version>
 		<annotations.version>24.1.0</annotations.version>
 		<pcollectons.version>4.0.2</pcollectons.version>
-		<rocksdbjni.version>9.4.0</rocksdbjni.version>
-		<netty.version>4.1.112.Final</netty.version>
+		<rocksdbjni.version>9.5.2</rocksdbjni.version>
+		<netty.version>4.1.113.Final</netty.version>
 		<slf4j.version>2.0.16</slf4j.version>
 		<tikv.version>3.3.5</tikv.version>
 		<druid.version>1.2.23</druid.version>
 		<mysql-connector-j.version>8.4.0</mysql-connector-j.version>
-		<jedis.version>5.1.4</jedis.version>
+		<jedis.version>5.1.5</jedis.version>
 		<aws-java-sdk-dynamodb.version>1.12.663</aws-java-sdk-dynamodb.version>
 		<fdb-java.version>7.3.33</fdb-java.version>
 		<rocketmq-client.version>4.9.8</rocketmq-client.version>
