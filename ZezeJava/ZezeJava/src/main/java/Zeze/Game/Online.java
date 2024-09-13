@@ -1227,12 +1227,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
-			logger.warn("link connector not found. name={}", linkName);
+			logger.warn("send({}): link connector not found. name={}", p.getTypeId(), linkName);
 			return false;
 		}
 		var link = connector.getSocket();
 		if (link == null) {
-			logger.warn("link socket not found. name={}", linkName);
+			logger.warn("send({}): link socket not found. name={}", p.getTypeId(), linkName);
 			return false;
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
@@ -1310,6 +1310,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}, "Online.triggerLinkBroken2")));
 	}
 
+	private static long getTypeId(@NotNull Binary fullEncodedProtocol) {
+		int moduleId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 0);
+		int protocolId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 4);
+		return Protocol.makeTypeId(moduleId, protocolId);
+	}
+
 	// 可在事务外执行
 	public int sendDirect(@NotNull Iterable<Long> roleIds, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean trySend) {
@@ -1324,15 +1330,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var roleId = it.value();
 			var onlineShared = _tOnlineShared.selectDirty(roleId);
 			if (onlineShared == null) {
-				if (!trySend)
-					logger.info("sendDirects: not found roleId={} in _tonline", roleId);
+				if (!trySend) {
+					logger.info("sendDirects({}): not found roleId={} in _tonline",
+							getTypeId(fullEncodedProtocol), roleId);
+				}
 				continue;
 			}
 			var link = onlineShared.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
-				if (!trySend)
-					logger.info("sendDirects: state={} != eLogined for roleId={}", state, roleId);
+				if (!trySend) {
+					logger.info("sendDirects({}): state={} != eLogined for roleId={}",
+							getTypeId(fullEncodedProtocol), state, roleId);
+				}
 				continue;
 			}
 			var linkName = link.getLinkName();
@@ -1369,28 +1379,34 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public boolean sendDirect(long roleId, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
 		var onlineShared = _tOnlineShared.selectDirty(roleId);
 		if (onlineShared == null) {
-			if (!trySend)
-				logger.info("sendDirect: not found roleId={} in _tonline", roleId);
+			if (!trySend) {
+				logger.info("sendDirect({}): not found roleId={} in _tonline",
+						getTypeId(fullEncodedProtocol), roleId);
+			}
 			return false;
 		}
 		var link = onlineShared.getLink();
 		var state = link.getState();
 		if (state != eLogined) {
-			if (!trySend)
-				logger.info("sendDirect: state={} != eLogined for roleId={}", state, roleId);
+			if (!trySend) {
+				logger.info("sendDirect({}): state={} != eLogined for roleId={}",
+						getTypeId(fullEncodedProtocol), state, roleId);
+			}
 			return false;
 		}
 		var linkName = link.getLinkName();
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
-			logger.warn("sendDirect: not found connector for linkName={} roleId={}", linkName, roleId);
+			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
 			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_a"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
-			logger.warn("sendDirect: not isHandshakeDone for linkName={} roleId={}", linkName, roleId);
+			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
 			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_b"));
@@ -1399,7 +1415,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 		var linkSocket = connector.getSocket();
 		if (linkSocket == null) {
-			logger.warn("sendDirect: closed connector for linkName={} roleId={}", linkName, roleId);
+			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
+					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
 			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_c"));

@@ -753,13 +753,13 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	public boolean send(@Nullable LoginKey loginKey, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		var connector = providerApp.providerService.getLinks().get(linkName);
-		if (null == connector) {
-			logger.warn("link connector not found. name={}", linkName);
+		if (connector == null) {
+			logger.warn("send({}): link connector not found. name={}", p.getTypeId(), linkName);
 			return false;
 		}
 		var link = connector.getSocket();
-		if (null == link) {
-			logger.warn("link socket not found. name={}", linkName);
+		if (link == null) {
+			logger.warn("send({}): link socket not found. name={}", p.getTypeId(), linkName);
 			return false;
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
@@ -840,6 +840,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}, "Online.triggerLinkBroken2")));
 	}
 
+	private static long getTypeId(@NotNull Binary fullEncodedProtocol) {
+		int moduleId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 0);
+		int protocolId = ByteBuffer.ToInt(fullEncodedProtocol.bytesUnsafe(), 4);
+		return Protocol.makeTypeId(moduleId, protocolId);
+	}
+
 	// 可在事务外执行
 	public int sendDirect(@NotNull Set<LoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean trySend) {
@@ -852,22 +858,26 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var clientId = loginKey.clientId;
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
-				if (!trySend)
-					logger.info("sendDirects: not found account={} in _tonline", account);
+				if (!trySend) {
+					logger.info("sendDirects({}): not found account={} in _tonline",
+							getTypeId(fullEncodedProtocol), account);
+				}
 				continue;
 			}
 			var login = online.getLogins().get(clientId);
 			if (login == null) {
-				if (!trySend)
-					logger.info("sendDirects: not found login for clientId={} account={}", clientId, account);
+				if (!trySend) {
+					logger.info("sendDirects({}): not found login for clientId={} account={}",
+							getTypeId(fullEncodedProtocol), clientId, account);
+				}
 				continue;
 			}
 			var link = login.getLink();
 			var state = link.getState();
 			if (state != eLogined) {
 				if (!trySend) {
-					logger.info("sendDirects: state={} != eLogined for clientId={} account={}",
-							state, clientId, account);
+					logger.info("sendDirects({}): state={} != eLogined for clientId={} account={}",
+							getTypeId(fullEncodedProtocol), state, clientId, account);
 				}
 				continue;
 			}
@@ -904,36 +914,42 @@ public class Online extends AbstractOnline implements HotUpgrade {
 							  @NotNull Binary fullEncodedProtocol, boolean trySend) {
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
-			if (!trySend)
-				logger.info("sendDirect: not found account={} in _tonline", account);
+			if (!trySend) {
+				logger.info("sendDirect({}): not found account={} in _tonline",
+						getTypeId(fullEncodedProtocol), account);
+			}
 			return false;
 		}
 		var login = online.getLogins().get(clientId);
 		if (login == null) {
-			if (!trySend)
-				logger.info("sendDirect: not found login for clientId={} account={}", clientId, account);
+			if (!trySend) {
+				logger.info("sendDirect({}): not found login for clientId={} account={}",
+						getTypeId(fullEncodedProtocol), clientId, account);
+			}
 			return false;
 		}
 
 		var link = login.getLink();
 		var state = link.getState();
 		if (state != eLogined) {
-			if (!trySend)
-				logger.info("sendDirect: state={} != eLogined for clientId={} account={}", state, clientId, account);
+			if (!trySend) {
+				logger.info("sendDirect({}): state={} != eLogined for clientId={} account={}",
+						getTypeId(fullEncodedProtocol), state, clientId, account);
+			}
 			return false;
 		}
 		var linkName = link.getLinkName();
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
-			logger.warn("sendDirect: not found connector for linkName={} account={} clientId={}",
-					linkName, account, clientId);
+			logger.warn("sendDirect({}): not found connector for linkName={} account={} clientId={}",
+					getTypeId(fullEncodedProtocol), linkName, account, clientId);
 			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
-			logger.warn("sendDirect: not isHandshakeDone for linkName={} account={} clientId={}",
-					linkName, account, clientId);
+			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} account={} clientId={}",
+					getTypeId(fullEncodedProtocol), linkName, account, clientId);
 			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
@@ -941,8 +957,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
 		var linkSocket = connector.getSocket();
 		if (linkSocket == null) {
-			logger.warn("sendDirect: closed connector for linkName={} account={} clientId={}",
-					linkName, account, clientId);
+			logger.warn("sendDirect({}): closed connector for linkName={} account={} clientId={}",
+					getTypeId(fullEncodedProtocol), linkName, account, clientId);
 			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1"));
 			return false;
@@ -1146,8 +1162,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var links = providerApp.providerService.getLinks();
 		var online = _tonline.selectDirty(account);
 		if (online == null) {
-			if (!trySend)
-				logger.info("sendAccountDirect: not found account={} in _tonline", account);
+			if (!trySend) {
+				logger.info("sendAccountDirect({}): not found account={} in _tonline",
+						getTypeId(fullEncodedProtocol), account);
+			}
 			return 0;
 		}
 		for (var e : online.getLogins()) {
@@ -1192,8 +1210,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		for (var account : accounts) {
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
-				if (!trySend)
-					logger.info("sendAccountsDirect: not found account={} in _tonline", account);
+				if (!trySend) {
+					logger.info("sendAccountsDirect({}): not found account={} in _tonline",
+							getTypeId(fullEncodedProtocol), account);
+				}
 				continue;
 			}
 			for (var e : online.getLogins()) {
