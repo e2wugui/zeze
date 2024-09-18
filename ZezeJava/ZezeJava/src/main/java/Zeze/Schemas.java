@@ -193,7 +193,7 @@ public class Schemas implements Serializable {
 		}
 
 		public boolean isCompatible(@NotNull String parent, @Nullable Type other, @NotNull Context context,
-									@NotNull Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
+									@Nullable Consumer<Bean> update, @Nullable Consumer<Bean> updateVariable) {
 			if (other == this)
 				return true;
 			if (other == null) {
