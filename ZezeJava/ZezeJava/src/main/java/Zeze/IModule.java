@@ -41,14 +41,12 @@ public interface IModule {
 	 * 整个程序关闭前，在这里执行任意关闭代码，这个主要用于多App测试的安全关闭，对于独立进程效果同Stop。
 	 */
 	default void StopBefore() throws Exception {
-
 	}
 
 	default void Initialize(@NotNull AppBase app) throws Exception {
 	}
 
 	default void Register() {
-
 	}
 
 	default void UnRegister() {
@@ -59,8 +57,6 @@ public interface IModule {
 	}
 
 	static long errorCode(int moduleId, int code) {
-		if (code < 0)
-			throw new IllegalArgumentException("code must greater than 0.");
 		return Protocol.makeTypeId(moduleId, code);
 	}
 
