@@ -15,7 +15,6 @@ public class HttpExchangeStreamWriter extends Writer {
 
 	public HttpExchangeStreamWriter(@NotNull HttpExchange x) {
 		this.x = x;
-		//noinspection VulnerableCodeUsages
 		x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 	}

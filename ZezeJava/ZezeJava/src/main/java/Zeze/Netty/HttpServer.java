@@ -60,7 +60,6 @@ import io.netty.util.ReferenceCountUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@SuppressWarnings("VulnerableCodeUsages")
 @Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	public static final @NotNull Charset defaultCharset = StandardCharsets.UTF_8;

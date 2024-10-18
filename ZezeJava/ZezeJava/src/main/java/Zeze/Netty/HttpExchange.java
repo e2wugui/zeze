@@ -72,7 +72,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.thymeleaf.context.Context;
 
-@SuppressWarnings("VulnerableCodeUsages")
 public class HttpExchange {
 	protected static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
 	protected static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接

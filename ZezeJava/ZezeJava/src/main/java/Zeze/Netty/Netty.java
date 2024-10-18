@@ -62,11 +62,9 @@ public class Netty implements Closeable {
 				.childHandler(handler);
 		ChannelFuture future;
 		if (host != null && !(host = host.trim()).isEmpty()) {
-			//noinspection VulnerableCodeUsages
 			future = bs.bind(host, port);
 			logger.info("startServer {} on {}:{}", handler.getClass().getName(), host, port);
 		} else {
-			//noinspection VulnerableCodeUsages
 			future = bs.bind(port);
 			logger.info("startServer {} on any:{}", handler.getClass().getName(), port);
 		}

@@ -9,6 +9,7 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Transaction.DynamicData;
 import Zeze.Util.Task;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +53,7 @@ public interface IByteBuffer {
 
 	void Reset();
 
+	@Contract("_ -> fail")
 	default void throwEnsureReadException(int size) {
 		throw new IllegalStateException("ensureRead " + getReadIndex() + '+' + size + " > " + getWriteIndex());
 	}

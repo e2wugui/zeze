@@ -294,7 +294,6 @@ public class DbWeb extends AbstractDbWeb {
 			var tableName = qm.get("t");
 			Objects.requireNonNull(tableName, "tableName");
 			var table = (TableX<?, ?>)zeze.getTable(tableName);
-			//noinspection VulnerableCodeUsages
 			x.beginStream(HttpResponseStatus.OK, HttpServer.setDate(new DefaultHttpHeaders())
 					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE));
 			beginStream = true;

@@ -22,6 +22,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -256,6 +257,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@SuppressWarnings("SameParameterValue")
+		@Contract("_, _ -> fail")
 		private static void throwException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
