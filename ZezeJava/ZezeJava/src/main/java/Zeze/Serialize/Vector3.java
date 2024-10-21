@@ -64,11 +64,6 @@ public class Vector3 extends Vector2 {
 	}
 
 	@Override
-	public @NotNull Vector3 clone() {
-		return (Vector3)super.clone();
-	}
-
-	@Override
 	public @NotNull String toString() {
 		return "Vector3(" + x + ',' + y + ',' + z + ')';
 	}

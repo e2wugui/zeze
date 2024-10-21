@@ -4,7 +4,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Vector2Int implements Comparable<Vector2Int>, Cloneable {
+public class Vector2Int implements Comparable<Vector2Int> {
 	public static final Vector2Int ZERO = new Vector2Int(0, 0);
 
 	public final int x;
@@ -48,15 +48,6 @@ public class Vector2Int implements Comparable<Vector2Int>, Cloneable {
 	@Override
 	public int hashCode() {
 		return x ^ y;
-	}
-
-	@Override
-	public @NotNull Vector2Int clone() {
-		try {
-			return (Vector2Int)super.clone();
-		} catch (CloneNotSupportedException e) {
-			throw Task.forceThrow(e);
-		}
 	}
 
 	@Override

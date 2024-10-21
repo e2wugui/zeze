@@ -24,6 +24,9 @@ public abstract class Data implements Serializable, Cloneable {
 		sb.append(Str.indent(level)).append('{').append(this).append('}');
 	}
 
+	/**
+	 * @return 浅拷贝. 深拷贝应该用copy方法
+	 */
 	@Override
 	public @NotNull Data clone() {
 		try {

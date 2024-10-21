@@ -93,7 +93,7 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	}
 
 	@Override
-	public Id128 clone() {
+	public @NotNull Id128 clone() {
 		try {
 			return (Id128)super.clone();
 		} catch (CloneNotSupportedException e) {

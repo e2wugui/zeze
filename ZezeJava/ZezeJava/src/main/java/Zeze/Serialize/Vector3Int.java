@@ -64,11 +64,6 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public @NotNull Vector3Int clone() {
-		return (Vector3Int)super.clone();
-	}
-
-	@Override
 	public @NotNull String toString() {
 		return "Vector3Int(" + x + ',' + y + ',' + z + ')';
 	}

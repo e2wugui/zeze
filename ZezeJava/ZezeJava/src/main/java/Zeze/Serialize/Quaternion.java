@@ -30,11 +30,6 @@ public class Quaternion extends Vector4 {
 	}
 
 	@Override
-	public @NotNull Quaternion clone() {
-		return (Quaternion)super.clone();
-	}
-
-	@Override
 	public @NotNull String toString() {
 		return "Quaternion(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
