@@ -6,40 +6,67 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 稳定(确定性)的随机算法, 用于多端同时以相同的种子获取随机值,能得到一致的结果(包括随机浮点数)
- * 需要保存64位整数状态(seed), 每次计算能得到32位的随机结果, 同一对象不是线程安全的
+ * 需要保存5个64位整数状态(seed), 每次计算能得到64位的随机结果, 同一对象不是线程安全的
+ * 基于lfsr258算法
  */
-public class StableRandom {
-	private static final long MULTIPLIER = 6364136223846793005L; // 源自 Donald Knuth
-	private static final long ADDEND = 1442695040888963407L; // 源自 Donald Knuth
-	private static final @NotNull ThreadLocal<StableRandom> rand =
-			ThreadLocal.withInitial(() -> new StableRandom(ThreadLocalRandom.current().nextLong()));
+public class StableRandom2 {
+	private static final @NotNull ThreadLocal<StableRandom2> rand =
+			ThreadLocal.withInitial(() -> {
+				var r = ThreadLocalRandom.current();
+				return new StableRandom2(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong());
+			});
 
-	private long seed;
+	private int bits;
+	private long v;
+	private long s1, s2, s3, s4, s5;
 
 	/**
-	 * @return 当前线程共享的StableRandom
+	 * @return 当前线程共享的StableRandom2
 	 */
-	public static @NotNull StableRandom local() {
+	public static @NotNull StableRandom2 local() {
 		return rand.get();
 	}
 
 	/**
-	 * @return 当前线程共享的StableRandom, 并重置其seed
+	 * @return 当前线程共享的StableRandom2, 并重置其seed
 	 */
-	public static @NotNull StableRandom local(long seed) {
-		return rand.get().setSeed(seed);
+	public static @NotNull StableRandom2 local(long s1, long s2, long s3, long s4, long s5) {
+		return rand.get().setSeed(s1, s2, s3, s4, s5);
 	}
 
-	public StableRandom(long seed) {
-		this.seed = seed;
+	private static long ensureLarger(long v, long base) {
+		while (Long.compareUnsigned(v, base) <= 0)
+			v = (v * 6364136223846793005L) + 1442695040888963407L; // 常量源自 Donald Knuth
+		return v;
 	}
 
-	public long getSeed() {
-		return seed;
+	public StableRandom2(long s1, long s2, long s3, long s4, long s5) {
+		setSeed(s1, s2, s3, s4, s5);
 	}
 
-	public @NotNull StableRandom setSeed(long seed) {
-		this.seed = seed;
+	public long getSeed(int i) {
+		switch (i) {
+		case 1:
+			return s1;
+		case 2:
+			return s2;
+		case 3:
+			return s3;
+		case 4:
+			return s4;
+		case 5:
+			return s5;
+		default:
+			throw new IllegalArgumentException(String.valueOf(i));
+		}
+	}
+
+	public @NotNull StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {
+		this.s1 = ensureLarger(s1, 1);
+		this.s2 = ensureLarger(s2, 0x1ff);
+		this.s3 = ensureLarger(s3, 0xfff);
+		this.s4 = ensureLarger(s4, 0x1ffff);
+		this.s5 = ensureLarger(s5, 0x7fffff);
 		return this;
 	}
 
@@ -47,9 +74,7 @@ public class StableRandom {
 	 * @return random [INT_MIN, INT_MAX]
 	 */
 	public int next() {
-		long s = seed * MULTIPLIER + ADDEND;
-		seed = s;
-		return (int)(s >> 32);
+		return nextBits(32);
 	}
 
 	/**
@@ -57,14 +82,23 @@ public class StableRandom {
 	 * @return random low n bits
 	 */
 	public int nextBits(int n) {
-		return n > 0 ? next() >>> (32 - n) : 0;
+		long v;
+		int b = bits;
+		if (b < n) {
+			b = 64;
+			v = next64();
+		} else
+			v = this.v;
+		bits = b - n;
+		this.v = v >> n;
+		return (int)(v & ((1L << n) - 1));
 	}
 
 	/**
 	 * @return random [0, INT_MAX]
 	 */
 	public int nextInt() {
-		return next() & Integer.MAX_VALUE;
+		return nextBits(31);
 	}
 
 	/**
@@ -97,7 +131,15 @@ public class StableRandom {
 	 * @return random [LONG_MIN, LONG_MAX]
 	 */
 	public long next64() {
-		return ((long)next() << 32) + next();
+		long s1 = this.s1, s2 = this.s2, s3 = this.s3, s4 = this.s4, s5 = this.s5;
+		//@formatter:off
+		this.s1 = s1 = (((s1 <<  1) ^ s1) >>> 53) ^ ((s1 & 0xffff_ffff_ffff_fffeL) << 10);
+		this.s2 = s2 = (((s2 << 24) ^ s2) >>> 50) ^ ((s2 & 0xffff_ffff_ffff_fe00L) <<  5);
+		this.s3 = s3 = (((s3 <<  3) ^ s3) >>> 23) ^ ((s3 & 0xffff_ffff_ffff_f000L) << 29);
+		this.s4 = s4 = (((s4 <<  5) ^ s4) >>> 24) ^ ((s4 & 0xffff_ffff_fffe_0000L) << 23);
+		this.s5 = s5 = (((s5 <<  3) ^ s5) >>> 33) ^ ((s5 & 0xffff_ffff_ff80_0000L) <<  8);
+		//@formatter:on
+		return s1 ^ s2 ^ s3 ^ s4 ^ s5;
 	}
 
 	/**
@@ -105,16 +147,25 @@ public class StableRandom {
 	 * @return random low n bits
 	 */
 	public long nextBits64(int n) {
-		if (n < 1)
-			return 0;
-		return n <= 32 ? nextBits(n) & 0xffff_ffffL : next64() >>> (64 - n);
+		if (n >= 64)
+			return next64();
+		long v;
+		int b = bits;
+		if (b < n) {
+			b = 64;
+			v = next64();
+		} else
+			v = this.v;
+		bits = b - n;
+		this.v = v >> n;
+		return (v & ((1L << n) - 1));
 	}
 
 	/**
 	 * @return random [0, LONG_MAX]
 	 */
 	public long nextLong() {
-		return (((long)next() << 32) + next()) & Long.MAX_VALUE;
+		return nextBits64(63);
 	}
 
 	/**
@@ -175,7 +226,7 @@ public class StableRandom {
 	}
 
 	public boolean nextBoolean() {
-		return next() < 0;
+		return nextBits(1) != 0;
 	}
 
 	public byte @NotNull [] nextBytes(byte @NotNull [] bytes, int pos, int len) {
