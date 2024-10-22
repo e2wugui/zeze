@@ -60,7 +60,7 @@
 
         var future9 = new System.Threading.Tasks.TaskCompletionSource<long>();
 
-        rpc8.Send(_target_, (_) =>
+        rpc8.Send(_target_, async (_) =>
         {
             if (rpc8.IsTimeout)
             {
@@ -77,7 +77,7 @@
                 theResult10 = _bb_.ReadLong();
                 future9.TrySetResult(theResult10);
             }
-            return System.Threading.Tasks.Task.FromResult(Zeze.Util.ResultCode.Success);
+            return Zeze.Util.ResultCode.Success;
         });
 
         return await future9.Task;

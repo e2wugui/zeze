@@ -2,7 +2,7 @@ package Zeze.Util;
 
 import java.util.concurrent.Executor;
 
-/**
+/*
  * 每个任务关联一个Key,每一个Key的任务是一个队列,最多只有一个任务在执行.
  * 最终某个Key相关的任务顺序一个接一个的执行.
  *
@@ -34,7 +34,6 @@ import java.util.concurrent.Executor;
  *      而一台服务器同时存在的需要执行的任务数量是有限的,
  *      受最大在线数量限制.
  * 未来: 以后virtual-thread不需要调整,默认size够大了.
- *
  */
 public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	private final ConcurrentLruLike<Object, TaskOneByOneQueue> queues;

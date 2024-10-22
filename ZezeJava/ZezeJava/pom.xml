@@ -4,11 +4,12 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.zezeno</groupId>
+	<groupId>io.github.dwing4g</groupId>
 	<artifactId>zeze-java</artifactId>
-	<version>1.4.12-SNAPSHOT</version>
+	<version>1.4.12</version>
 
 	<name>zeze-java</name>
+	<description>A distributed transaction framework based on cache coherence embedded in Java</description>
 	<url>https://github.com/e2wugui/zeze</url>
 
 	<licenses>
@@ -18,54 +19,43 @@
 		</license>
 	</licenses>
 
+	<developers>
+		<developer>
+			<name>lichenghua</name>
+			<email>e2wugui@163.com</email>
+		</developer>
+		<developer>
+			<name>dwing</name>
+			<email>dwing4g@gmail.com</email>
+		</developer>
+	</developers>
+
 	<scm>
 		<url>https://github.com/e2wugui/zeze</url>
 	</scm>
 
 	<distributionManagement>
-		<repository>
+		<!--repository>
 			<id>releases</id>
 			<url>http://10.12.7.230:9081/repository/maven-releases/</url>
-		</repository>
+		</repository-->
 		<snapshotRepository>
 			<id>snapshots</id>
 			<url>http://10.12.7.230:9081/repository/maven-snapshots/</url>
 		</snapshotRepository>
+		<repository>
+			<id>central</id>
+			<name>central-releases</name>
+			<url>https://s01.oss.sonatype.org/</url>
+		</repository>
 	</distributionManagement>
 
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<!--
-						<goals>
-							<goal>jar</goal>
-						</goals>
-						-->
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.2.1</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar-no-fork</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.1</version>
+				<version>3.13.0</version>
 				<configuration>
 					<source>11</source>
 					<target>11</target>
@@ -81,6 +71,83 @@
 						<arg>-Xlint:unchecked</arg>
 						<arg>-Xlint:deprecation</arg>
 					</compilerArgs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.4.2</version>
+				<executions>
+					<execution>
+						<!--
+						<goals>
+							<goal>jar</goal>
+						</goals>
+						-->
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.3.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.10.1</version>
+				<configuration>
+					<additionalJOptions>
+						<additionalJOption>-Xdoclint:none</additionalJOption>
+						<additionalJOption>--add-exports</additionalJOption>
+						<additionalJOption>java.base/sun.security.rsa=ALL-UNNAMED</additionalJOption>
+						<additionalJOption>--add-exports</additionalJOption>
+						<additionalJOption>java.base/sun.security.util=ALL-UNNAMED</additionalJOption>
+						<additionalJOption>--add-exports</additionalJOption>
+						<additionalJOption>java.base/sun.security.x509=ALL-UNNAMED</additionalJOption>
+					</additionalJOptions>
+				</configuration>
+				<executions>
+					<execution>
+						<id>attach-javadocs</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>3.2.7</version>
+				<executions>
+					<execution>
+						<id>sign-artifacts</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonatype.central</groupId><!-- https://central.sonatype.com/ -->
+				<artifactId>central-publishing-maven-plugin</artifactId>
+				<version>0.6.0</version>
+				<extensions>true</extensions>
+				<configuration>
+					<publishingServerId>central</publishingServerId>
+					<tokenAuth>true</tokenAuth>
+					<deploymentName>${project.groupId}:${project.artifactId}:${project.version}</deploymentName>
+					<autoPublish>false</autoPublish>
 				</configuration>
 			</plugin>
 			<plugin>

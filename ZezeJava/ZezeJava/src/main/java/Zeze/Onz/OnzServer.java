@@ -336,7 +336,7 @@ public class OnzServer extends AbstractOnz {
 	}
 
 	/**
-	 * Class.forName & set ; 主动创建并且控制txn的初始化。
+	 * Class.forName＆set ; 主动创建并且控制txn的初始化。
 	 * 由于嵌入时，本地是知道className的，可以直接new出来，
 	 * 以获得更大灵活度。
 	 */

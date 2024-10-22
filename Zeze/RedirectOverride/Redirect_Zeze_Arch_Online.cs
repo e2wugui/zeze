@@ -24,7 +24,7 @@
 
         var future17 = new System.Threading.Tasks.TaskCompletionSource();
 
-        rpc16.Send(_target_, (_) =>
+        rpc16.Send(_target_, async (_) =>
         {
             if (rpc16.IsTimeout)
             {
@@ -39,7 +39,7 @@
                 var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc16.Result.Params);
                 future17.TrySetResult();
             }
-            return System.Threading.Tasks.Task.FromResult(Zeze.Util.ResultCode.Success);
+            return Zeze.Util.ResultCode.Success;
         });
 
         await future17.Task;
