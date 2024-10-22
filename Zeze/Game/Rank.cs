@@ -149,7 +149,7 @@ namespace Zeze.Game
                 keyHint.RankType, hash % concurrentLevel,
                 keyHint.TimeType, keyHint.Year, keyHint.Offset);
 
-            var rank = await _trank.GetOrAddAsync(concurrentKey);
+            var rank = await _tRank.GetOrAddAsync(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
             BRankValue exist = null;
             for (int i = 0; i < rank.RankList.Count; ++i)
@@ -200,7 +200,7 @@ namespace Zeze.Game
         protected async Task<BRankList> GetRankAll(int hash, BConcurrentKey key)
         {
             var concurrentKey = new BConcurrentKey(key.RankType, hash, key.TimeType, key.Year, key.Offset);
-            return await _trank.GetOrAddAsync(concurrentKey);
+            return await _tRank.GetOrAddAsync(concurrentKey);
         }
 
         [RedirectAll("GetConcurrentLevel(key.RankType)")]
@@ -257,7 +257,7 @@ namespace Zeze.Game
                 var concurrentKey = new BConcurrentKey(
                     keyHint.RankType, i,
                     keyHint.TimeType, keyHint.Year, keyHint.Offset);
-                var rank = await _trank.GetOrAddAsync(concurrentKey);
+                var rank = await _tRank.GetOrAddAsync(concurrentKey);
                 datas.Add(rank);
             }
             return Merge(GetRankSize(keyHint.RankType), datas);

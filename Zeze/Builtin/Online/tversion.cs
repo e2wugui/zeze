@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 // ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Online
 {
-    public sealed class tversion : Table<string, Zeze.Builtin.Online.BVersions>, TableReadOnly<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>
+    public sealed class tVersion : Table<string, Zeze.Builtin.Online.BVersions>, TableReadOnly<string, Zeze.Builtin.Online.BVersions, Zeze.Builtin.Online.BVersionsReadOnly>
     {
-        public tversion() : base("Zeze_Builtin_Online_tversion")
+        public tVersion() : base("Zeze_Builtin_Online_tVersion")
         {
         }
 
-        public override int Id => -1179546366;
+        public override int Id => 1711140426;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

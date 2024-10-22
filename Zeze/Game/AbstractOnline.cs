@@ -21,9 +21,9 @@ namespace Zeze.Game
         public const int ResultCodeOnlineDataNotFound = 5;
         public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
-        internal Zeze.Builtin.Game.Online.tlocal _tlocal = new();
-        internal Zeze.Builtin.Game.Online.tonline _tonline = new();
-        internal Zeze.Builtin.Game.Online.tversion _tversion = new();
+        internal Zeze.Builtin.Game.Online.tLocal _tLocal = new();
+        internal Zeze.Builtin.Game.Online.tOnline _tOnline = new();
+        internal Zeze.Builtin.Game.Online.tVersion _tVersion = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
@@ -70,16 +70,16 @@ namespace Zeze.Game
         public void RegisterZezeTables(Zeze.Application zeze)
         {
             // register table
-            zeze.AddTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
-            zeze.AddTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
-            zeze.AddTable(zeze.Config.GetTableConf(_tversion.Name).DatabaseName, _tversion);
+            zeze.AddTable(zeze.Config.GetTableConf(_tLocal.Name).DatabaseName, _tLocal);
+            zeze.AddTable(zeze.Config.GetTableConf(_tOnline.Name).DatabaseName, _tOnline);
+            zeze.AddTable(zeze.Config.GetTableConf(_tVersion.Name).DatabaseName, _tVersion);
         }
 
         public void UnRegisterZezeTables(Zeze.Application zeze)
         {
-            zeze.RemoveTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
-            zeze.RemoveTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
-            zeze.RemoveTable(zeze.Config.GetTableConf(_tversion.Name).DatabaseName, _tversion);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tLocal.Name).DatabaseName, _tLocal);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tOnline.Name).DatabaseName, _tOnline);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tVersion.Name).DatabaseName, _tVersion);
         }
 
         public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)

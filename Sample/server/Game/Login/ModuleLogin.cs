@@ -28,16 +28,16 @@ namespace Game.Login
              【警告】这里使用了AutoKey，这个是用来给游戏分服运营方式生成服务器之间唯一Id用的。方便未来合服用的。
              如果你的项目没有分服合服这种操作，不建议使用。
              */
-            long roleid = await _trole.InsertAsync(new BRoleData()
+            long roleid = await _tRole.InsertAsync(new BRoleData()
             {
                 Name = rpc.Argument.Name
             });
 
             // duplicate name check
-            if (false == await _trolename.TryAddAsync(rpc.Argument.Name, new BRoleId() { Id = roleid }))
+            if (false == await _tRolename.TryAddAsync(rpc.Argument.Name, new BRoleId() { Id = roleid }))
                 return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
 
-            var account = await _taccount.GetOrAddAsync(session.Account);
+            var account = await _tAccount.GetOrAddAsync(session.Account);
             account.Roles.Add(roleid);
 
             // initialize role data
@@ -52,12 +52,12 @@ namespace Game.Login
             var rpc = p as GetRoleList;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await _taccount.GetAsync(session.Account);
+            var account = await _tAccount.GetAsync(session.Account);
             if (null != account)
             {
                 foreach (var roleId in account.Roles)
                 {
-                    BRoleData roleData = await _trole.GetAsync(roleId);
+                    BRoleData roleData = await _tRole.GetAsync(roleId);
                     if (null != roleData)
                     {
                         rpc.Result.RoleList.Add(new BRole()

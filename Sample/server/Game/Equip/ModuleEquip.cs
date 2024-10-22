@@ -13,7 +13,7 @@ namespace Game.Equip
     {
         public void Start(Game.App app)
         {
-            _tequip.ChangeListenerMap.AddListener(new ItemsChangeListener());
+            _tEquip.ChangeListenerMap.AddListener(new ItemsChangeListener());
         }
 
         public void Stop(Game.App app)
@@ -52,7 +52,7 @@ namespace Game.Equip
                     case Changes.Record.Edit:
                         {
                             var logbean = changes.GetLogBean();
-                            if (logbean.Variables.TryGetValue(tequip.VAR_Items, out var note))
+                            if (logbean.Variables.TryGetValue(tEquip.VAR_Items, out var note))
                             {
                                 // 增量变化，通知变更。
                                 var notemap2 = (LogMap2<int, Game.Bag.BItem>)note;
@@ -95,7 +95,7 @@ namespace Game.Equip
                 if (equipPos < 0)
                     return ErrorCode(ResultCodeCannotEquip);
 
-                BEquips equips = await _tequip.GetOrAddAsync(session.RoleId.Value);
+                BEquips equips = await _tEquip.GetOrAddAsync(session.RoleId.Value);
                 Game.Bag.BItem bEquipAdd;
                 if (equips.Items.TryGetValue(equipPos, out var eItem))
                 {
@@ -129,7 +129,7 @@ namespace Game.Equip
             var rpc = p as Unequipement;
             var session = ProviderUserSession.Get(rpc);
 
-            BEquips equips = await _tequip.GetOrAddAsync(session.RoleId.Value);
+            BEquips equips = await _tEquip.GetOrAddAsync(session.RoleId.Value);
             if (equips.Items.TryGetValue(rpc.Argument.EquipPos, out var eItem))
             {
                 equips.Items.Remove(rpc.Argument.EquipPos);
@@ -146,7 +146,7 @@ namespace Game.Equip
 
         public async Task<Game.Item.Item> GetEquipItem(long roleId, int position)
         {
-            BEquips equips = await _tequip.GetOrAddAsync(roleId);
+            BEquips equips = await _tEquip.GetOrAddAsync(roleId);
             return GetEquipItem(equips, position);
         }
 
@@ -170,7 +170,7 @@ namespace Game.Equip
             if (fighter.Id.Type != BFighterId.TypeRole)
                 return;
 
-            BEquips equips = await _tequip.GetOrAddAsync(fighter.Id.InstanceId);
+            BEquips equips = await _tEquip.GetOrAddAsync(fighter.Id.InstanceId);
             foreach (var pos in equips.Items.Keys)
             {
                 GetEquipItem(equips, pos).CalculateFighter(fighter);

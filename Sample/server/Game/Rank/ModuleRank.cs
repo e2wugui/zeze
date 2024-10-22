@@ -42,7 +42,7 @@ namespace Game.Rank
                 keyHint.RankType, hash % concurrentLevel,
                 keyHint.TimeType, keyHint.Year, keyHint.Offset);
 
-            var rank = await _trank.GetOrAddAsync(concurrentKey);
+            var rank = await _tRank.GetOrAddAsync(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
             BRankValue exist = null;
             for (int i = 0; i < rank.RankList.Count; ++i)
@@ -157,7 +157,7 @@ namespace Game.Rank
                     var concurrentKey = new BConcurrentKey(
                         keyHint.RankType, i,
                         keyHint.TimeType, keyHint.Year, keyHint.Offset);
-                    var rank = await _trank.GetOrAddAsync(concurrentKey);
+                    var rank = await _tRank.GetOrAddAsync(concurrentKey);
                     datas.Add(rank);
                 }
                 int countNeed = GetRankCount(keyHint.RankType);
@@ -200,7 +200,7 @@ namespace Game.Rank
         protected async Task<BRankList> GetRankAll(int hash, BConcurrentKey key)
         {
             var concurrentKey = new BConcurrentKey(key.RankType, hash, key.TimeType, key.Year, key.Offset);
-            return await _trank.GetOrAddAsync(concurrentKey);
+            return await _tRank.GetOrAddAsync(concurrentKey);
         }
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。

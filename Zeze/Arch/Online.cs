@@ -75,16 +75,16 @@ namespace Zeze.Arch
             VerifyLocalTimer?.Cancel();
         }
 
-        public int LocalCount => _tlocal.Cache.DataMap.Count;
+        public int LocalCount => _tLocal.Cache.DataMap.Count;
 
         public long WalkLocal(Func<string, BLocals, bool> walker)
         {
-            return _tlocal.WalkCache(walker);
+            return _tLocal.WalkCache(walker);
         }
 
         public async Task SetLocalBean(string account, string clientId, string key, Bean bean)
         {
-            var bLocals = await _tlocal.GetAsync(account);
+            var bLocals = await _tLocal.GetAsync(account);
             if (null == bLocals)
                 throw new Exception("roleid not online. " + account);
             if (false == bLocals.Logins.TryGetValue(clientId, out var login))
@@ -100,7 +100,7 @@ namespace Zeze.Arch
         public async Task<T> GetLocalBean<T>(string account, string clientId, string key)
             where T : Bean
         {
-            var bLocals = await _tlocal.GetAsync(account);
+            var bLocals = await _tLocal.GetAsync(account);
             if (null == bLocals)
                 return null;
             if (!bLocals.Logins.TryGetValue(clientId, out var login))
@@ -122,7 +122,7 @@ namespace Zeze.Arch
 
         private async Task RemoveLocalAndTrigger(string account, string clientId)
         {
-            var bLocals = await _tlocal.GetAsync(account);
+            var bLocals = await _tLocal.GetAsync(account);
             bLocals.Logins.Remove(clientId, out var localData);
             var arg = new LocalRemoveEventArgument()
             {
@@ -132,7 +132,7 @@ namespace Zeze.Arch
             };
 
             if (bLocals.Logins.Count == 0)
-                await _tlocal.RemoveAsync(account); // remove first
+                await _tLocal.RemoveAsync(account); // remove first
 
             await LocalRemoveEvents.TriggerEmbed(this, arg);
             await LocalRemoveEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
@@ -141,7 +141,7 @@ namespace Zeze.Arch
 
         private async Task LogoutTriggerExtra(string account, string clientId)
         {
-            var bOnlines = await _tonline.GetAsync(account);
+            var bOnlines = await _tOnline.GetAsync(account);
             bOnlines.Logins.TryGetValue(clientId, out var onlineData);
 
             var arg = new LogoutEventArgument()
@@ -158,7 +158,7 @@ namespace Zeze.Arch
 
         private async Task LogoutTrigger(string account, string clientId)
         {
-            var bOnlines = await _tonline.GetAsync(account);
+            var bOnlines = await _tOnline.GetAsync(account);
             bOnlines.Logins.Remove(clientId, out var onlineData);
 
             var arg = new LogoutEventArgument()
@@ -169,7 +169,7 @@ namespace Zeze.Arch
             };
 
             if (bOnlines.Logins.Count == 0)
-                await _tonline.RemoveAsync(account); // remove first
+                await _tOnline.RemoveAsync(account); // remove first
 
             await LogoutEvents.TriggerEmbed(this, arg);
             await LogoutEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
@@ -208,15 +208,15 @@ namespace Zeze.Arch
         {
             long currentLoginVersion = 0;
             {
-                var online = await _tonline.GetAsync(account);
+                var online = await _tOnline.GetAsync(account);
                 if (false == online.Logins.TryGetValue(clientId, out var loginOnline))
                     return;
                 // skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
                 if (false == loginOnline.LinkName.Equals(linkName) || loginOnline.LinkSid != linkSid)
                     return;
 
-                var version = await _tversion.GetOrAddAsync(account);
-                var local = await _tlocal.GetAsync(account);
+                var version = await _tVersion.GetOrAddAsync(account);
+                var local = await _tLocal.GetAsync(account);
                 if (local == null || false == local.Logins.TryGetValue(clientId, out var loginLocal))
                     return; // 不在本机登录。
                 if (false == version.Logins.TryGetValue(clientId, out var loginVersion))
@@ -234,7 +234,7 @@ namespace Zeze.Arch
                     await ProviderApp.Zeze.NewProcedure(async () =>
                     {
                         // local online 独立判断version分别尝试删除。
-                        var local = await _tlocal.GetAsync(account);
+                        var local = await _tLocal.GetAsync(account);
                         if (null != local
                             && local.Logins.TryGetValue(clientId, out var loginLocal)
                             && loginLocal.LoginVersion == currentLoginVersion)
@@ -242,8 +242,8 @@ namespace Zeze.Arch
                             await RemoveLocalAndTrigger(account, clientId);
                         }
                         // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-                        var online = await _tonline.GetAsync(account);
-                        var version = await _tversion.GetOrAddAsync(account);
+                        var online = await _tOnline.GetAsync(account);
+                        var version = await _tVersion.GetOrAddAsync(account);
                         if (null != online
                             && version.Logins.TryGetValue(clientId, out var loginVersion)
                             && loginVersion.LoginVersion == currentLoginVersion)
@@ -259,17 +259,17 @@ namespace Zeze.Arch
 
         public async Task AddReliableNotifyMark(string account, string clientId, string listenerName)
         {
-            var online = await _tonline.GetAsync(account);
+            var online = await _tOnline.GetAsync(account);
             if (null == online)
                 throw new Exception("Not Online. AddReliableNotifyMark: " + listenerName);
-            var version = await _tversion.GetOrAddAsync(account);
+            var version = await _tVersion.GetOrAddAsync(account);
             version.Logins.GetOrAdd(clientId).ReliableNotifyMark.Add(listenerName);
         }
 
         public async Task RemoveReliableNotifyMark(string account, string clientId, string listenerName)
         {
             // 移除尽量通过，不做任何判断。
-            if ((await _tversion.GetOrAddAsync(account)).Logins.TryGetValue(clientId, out var login))
+            if ((await _tVersion.GetOrAddAsync(account)).Logins.TryGetValue(clientId, out var login))
                 login.ReliableNotifyMark.Remove(listenerName);
         }
 
@@ -327,13 +327,13 @@ namespace Zeze.Arch
                 listenerName,
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    var online = await _tonline.GetAsync(account);
+                    var online = await _tOnline.GetAsync(account);
                     if (null == online)
                     {
                         // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
                         return ResultCode.Success;
                     }
-                    var version = await _tversion.GetOrAddAsync(account);
+                    var version = await _tVersion.GetOrAddAsync(account);
                     if (false == version.Logins.TryGetValue(clientId, out var login)
                         || false == login.ReliableNotifyMark.Contains(listenerName))
                     {
@@ -407,7 +407,7 @@ namespace Zeze.Arch
 
             foreach (var alogin in logins)
             {
-                var online = await _tonline.GetAsync(alogin.Account);
+                var online = await _tOnline.GetAsync(alogin.Account);
                 if (null == online)
                 {
                     groupNotOnline.Logins.TryAdd(alogin, 0);
@@ -437,7 +437,7 @@ namespace Zeze.Arch
                         LinkName = login.LinkName,
                         LinkSocket = connector.Socket,
                         // 上面online存在Login的时，下面version也肯定存在相应的Login。
-                        ServerId = (await _tversion.GetOrAddAsync(alogin.Account)).Logins.GetOrAdd(alogin.ClientId).ServerId,
+                        ServerId = (await _tVersion.GetOrAddAsync(alogin.Account)).Logins.GetOrAdd(alogin.ClientId).ServerId,
                     };
                     groups.Add(group.LinkName, group);
                 }
@@ -544,7 +544,7 @@ namespace Zeze.Arch
 
             foreach (var account in accounts)
             {
-                var online = await _tonline.GetAsync(account);
+                var online = await _tOnline.GetAsync(account);
                 if (null == online)
                 {
                     groupNotOnline.Logins.TryAdd(new LoginKey(account, ""), 0);
@@ -572,7 +572,7 @@ namespace Zeze.Arch
                             LinkName = e.Value.LinkName,
                             LinkSocket = connector.Socket,
                             // 上面online存在Login的时，下面version也肯定存在相应的Login。
-                            ServerId = (await _tversion.GetOrAddAsync(alogin.Account)).Logins.GetOrAdd(alogin.ClientId).ServerId,
+                            ServerId = (await _tVersion.GetOrAddAsync(alogin.Account)).Logins.GetOrAdd(alogin.ClientId).ServerId,
                         };
                         groups.Add(group.LinkName, group);
                     }
@@ -722,13 +722,13 @@ namespace Zeze.Arch
 
             foreach (var account in accounts)
             {
-                var online = await _tonline.GetAsync(account);
+                var online = await _tOnline.GetAsync(account);
                 if (null == online)
                 {
                     groupNotOnline.Accounts.Add(account);
                     continue;
                 }
-                var version = await _tversion.GetOrAddAsync(account);
+                var version = await _tVersion.GetOrAddAsync(account);
                 if (version.Logins.Count == 0)
                 {
                     // null != online 意味着这里肯定不为0，不会到达这个分支。
@@ -870,7 +870,7 @@ namespace Zeze.Arch
         private void VerifyLocal(Util.SchedulerTask thisTask)
         {
             string account = null;
-            _tlocal.WalkCache(
+            _tLocal.WalkCache(
                 (k, v) =>
                 {
                     // 先得到roleId
@@ -899,9 +899,9 @@ namespace Zeze.Arch
 
         private async Task TryRemoveLocal(string account)
         {
-            var online = await _tonline.GetAsync(account);
-            var local = await _tlocal.GetAsync(account);
-            var version = await _tversion.GetOrAddAsync(account);
+            var online = await _tOnline.GetAsync(account);
+            var local = await _tLocal.GetAsync(account);
+            var version = await _tVersion.GetOrAddAsync(account);
             if (null == local)
                 return;
             // null == online && null == local -> do nothing
@@ -948,9 +948,9 @@ namespace Zeze.Arch
             var rpc = p as Login;
             var session = ProviderUserSession.Get(rpc);
 
-            var online = await _tonline.GetOrAddAsync(session.Account);
-            var local = await _tlocal.GetOrAddAsync(session.Account);
-            var version = await _tversion.GetOrAddAsync(session.Account);
+            var online = await _tOnline.GetOrAddAsync(session.Account);
+            var local = await _tLocal.GetOrAddAsync(session.Account);
+            var version = await _tVersion.GetOrAddAsync(session.Account);
 
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
@@ -1016,12 +1016,12 @@ namespace Zeze.Arch
             var rpc = p as ReLogin;
             var session = ProviderUserSession.Get(rpc);
 
-            var online = await _tonline.GetAsync(session.Account);
+            var online = await _tOnline.GetAsync(session.Account);
             if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 
-            var local = await _tlocal.GetOrAddAsync(session.Account);
-            var version = await _tversion.GetOrAddAsync(session.Account);
+            var local = await _tLocal.GetOrAddAsync(session.Account);
+            var version = await _tVersion.GetOrAddAsync(session.Account);
 
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
@@ -1086,9 +1086,9 @@ namespace Zeze.Arch
             if (string.IsNullOrEmpty(session.Context))
                 return ErrorCode(ResultCodeNotLogin);
 
-            var local = await _tlocal.GetAsync(session.Account);
-            var online = await _tonline.GetAsync(session.Account);
-            var version = await _tversion.GetOrAddAsync(session.Account);
+            var local = await _tLocal.GetAsync(session.Account);
+            var online = await _tOnline.GetAsync(session.Account);
+            var version = await _tVersion.GetOrAddAsync(session.Account);
 
             var clientId = session.Context;
             var loginVersion = version.Logins.GetOrAdd(clientId);
@@ -1121,7 +1121,7 @@ namespace Zeze.Arch
         private async Task<int> ReliableNotifySync(string account, string clientId,
             ProviderUserSession session, long index, bool sync = true)
         {
-            var online = await _tversion.GetOrAddAsync(account);
+            var online = await _tVersion.GetOrAddAsync(account);
             var queue = OpenQueue(account, clientId);
             var loginOnline = online.Logins.GetOrAdd(clientId);
             if (index < loginOnline.ReliableNotifyConfirmIndex
@@ -1156,7 +1156,7 @@ namespace Zeze.Arch
             var session = ProviderUserSession.Get(rpc);
 
             var clientId = session.Context;
-            var online = await _tonline.GetAsync(session.Account);
+            var online = await _tOnline.GetAsync(session.Account);
             if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 

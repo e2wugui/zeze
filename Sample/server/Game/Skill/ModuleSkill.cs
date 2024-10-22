@@ -15,7 +15,7 @@ namespace Game.Skill
 
         public async Task<Skills> GetSkills(long roleId)
         {
-            return new Skills(roleId, await _tskills.GetOrAddAsync(roleId));
+            return new Skills(roleId, await _tSkills.GetOrAddAsync(roleId));
         }
     }
 }

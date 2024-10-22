@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 // ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Bag
 {
-    public sealed class tbag : Table<string, Zeze.Builtin.Game.Bag.BBag>, TableReadOnly<string, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly>
+    public sealed class tBag : Table<string, Zeze.Builtin.Game.Bag.BBag>, TableReadOnly<string, Zeze.Builtin.Game.Bag.BBag, Zeze.Builtin.Game.Bag.BBagReadOnly>
     {
-        public tbag() : base("Zeze_Builtin_Game_Bag_tbag")
+        public tBag() : base("Zeze_Builtin_Game_Bag_tBag")
         {
         }
 
-        public override int Id => 863603985;
+        public override int Id => -694148490;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

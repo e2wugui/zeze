@@ -13,18 +13,18 @@ namespace Zeze.Util;
 public class SortedMap<K, V>
 	where K : IComparable<K>
 {
-	public class Entry<K, V> : IComparable<Entry<K, V>>
-		where K : IComparable<K>
+	public class Entry<K2, V2> : IComparable<Entry<K2, V2>>
+		where K2 : IComparable<K2>
     {
-        public K Key { get; }
-        public V Value { get; }
+        public K2 Key { get; }
+        public V2 Value { get; }
 
-		public Entry(K key, V value) {
+		public Entry(K2 key, V2 value) {
 			Key = key;
 			Value = value;
 		}
 
-		public int CompareTo(Entry<K, V> o)
+		public int CompareTo(Entry<K2, V2> o)
 		{
 			return Key.CompareTo(o.Key);
 		}

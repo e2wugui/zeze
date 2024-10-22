@@ -550,8 +550,8 @@
 					<variable id="5" name="ServerId" type="int"/>
 					<variable id="6" name="LogoutVersion" type="long"/>
 				</bean>
-				<table name="tonline" key="long" value="BOnline"/>
-				<table name="tversion" key="long" value="BVersion"/>
+				<table name="tOnline" key="long" value="BOnline"/>
+				<table name="tVersion" key="long" value="BVersion"/>
 
 				<bean name="BAny">
 					<variable id="1" name="Any" type="dynamic">
@@ -565,7 +565,7 @@
 					<variable id="2" name="Datas" type="map" key="string" value="BAny"/> 
 				</bean>
 
-				<table name="tlocal" key="long" memory="true" value="BLocal"/>
+				<table name="tLocal" key="long" memory="true" value="BLocal"/>
 
 				<!-- interface -->
 				<!--
@@ -641,7 +641,7 @@
 					<variable id="1" name="ItemClasses" type="set" value="string"/>
 				</bean>
 
-				<table name="tbag" key="string" value="BBag"/> key is bag name
+				<table name="tBag" key="string" value="BBag"/> key is bag name
 				<table name="tItemClasses" key="int" value="BItemClasses"/> key is 1, only one record
 			</module> Bag 11014
 
@@ -671,7 +671,7 @@
 					<variable id="1" name="RankList"  type="list" value="BRankValue"/>
 				</bean>
 
-				<table name="trank" key="BConcurrentKey" value="BRankList"/>
+				<table name="tRank" key="BConcurrentKey" value="BRankList"/>
 			</module> Rank 11015
 		</module> Game
 
@@ -739,8 +739,8 @@
 				<variable id="2" name="LastLoginVersion" type="long"/> 用来生成 account 登录版本号。每次递增。
 			</bean>
 
-			<table name="tonline"  key="string" value="BOnlines"/>
-			<table name="tversion" key="string" value="BVersions"/>
+			<table name="tOnline"  key="string" value="BOnlines"/>
+			<table name="tVersion" key="string" value="BVersions"/>
 
 			<bean name="BAny">
 				<variable id="1" name="Any" type="dynamic">
@@ -755,7 +755,7 @@
 			<bean name="BLocals">
 				<variable id="1" name="Logins" type="map" key="string" value="BLocal"/> key is ClientId
 			</bean>
-			<table name="tlocal" key="string" memory="true" value="BLocals"/>
+			<table name="tLocal" key="string" memory="true" value="BLocals"/>
 		</module> Online 11100
 
 		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">

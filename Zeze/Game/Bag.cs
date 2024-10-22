@@ -42,7 +42,7 @@ namespace Zeze.Game
         async Task<Bag> OpenAsync()
         {
             if (null == bean) // 不严格多线程保护。允许重复GetOrAdd。
-                bean = await module._tbag.GetOrAddAsync(name);
+                bean = await module._tBag.GetOrAddAsync(name);
             return this;
         }
 
@@ -329,9 +329,9 @@ namespace Zeze.Game
             public ProviderApp ProviderApp { get; }
             public Application Zeze { get; }
 
-            public tbag getTable()
+            public tBag getTable()
             {
-                return _tbag;
+                return _tBag;
             }
 
             public Module(ProviderApp pa)

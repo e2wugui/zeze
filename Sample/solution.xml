@@ -33,9 +33,9 @@
 			<variable id="1" name="Roles" type="set[long]"/>
 			<variable id="2" name="LastLoginRoleId" type="long"/>
 		</bean>
-		<table name="taccount" key="string" value="BAccount"/>
-		<table name="trole" key="long" value="BRoleData" autokey="true"/>
-		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
+		<table name="tAccount" key="string" value="BAccount"/>
+		<table name="tRole" key="long" value="BRoleData" autokey="true"/>
+		<table name="tRolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 
 	<module name="Bag" id="2">
@@ -92,7 +92,7 @@
 			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is bag position
 		</bean>
 
-		<table name="tbag" key="long" value="BBag"/>
+		<table name="tBag" key="long" value="BBag"/>
 	</module>
 
 	<module name="Item" id="3">
@@ -120,7 +120,7 @@
 			<variable id="1" name="Type" type="int"/> 战斗对象类型
 			<variable id="2" name="InstanceId" type="long"/> 战斗对象实例id，根据type含义不一样。
 		</beankey>
-		<table name="tfighters" key="BFighterId" value="BFighter"/> key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
+		<table name="tFighters" key="BFighterId" value="BFighter"/> key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
 
 	</module>
 
@@ -137,7 +137,7 @@
 		<bean name="BSkillAttackExtra">
 		</bean>
 
-		<table name="tskills" key="long" value="BSkills"/>
+		<table name="tSkills" key="long" value="BSkills"/>
 	</module>
 
 	<module name="Buf" id="6">
@@ -153,7 +153,7 @@
 		<bean name="BBufs">
 			<variable id="1" name="Bufs" type="map" key="int" value="BBuf"/>
 		</bean>
-		<table name="tbufs" key="long" value="BBufs"/>
+		<table name="tBufs" key="long" value="BBufs"/>
 
 		<bean name="BBufExtra">
 			<!-- 随便定义一个bean，不知道填什么扩展属性 -->
@@ -198,7 +198,7 @@
 		<bean name="BEquips">
 			<variable id="1" name="Items" type="map" key="int" value="Game.Bag.BItem"/> key is equip position
 		</bean>
-		<table name="tequip" key="long" value="BEquips"/>
+		<table name="tEquip" key="long" value="BEquips"/>
 	</module>
 
 	<module name="Map" id="8">
@@ -249,7 +249,7 @@
 			<variable id="1" name="RankList"  type="list" value="BRankValue"/>
 		</bean>
 
-		<table name="trank" key="BConcurrentKey" value="BRankList"/>
+		<table name="tRank" key="BConcurrentKey" value="BRankList"/>
 
 		<bean name="BGetRankList">
 			<variable id="1" name="RankType" type="int"/> BConcurrentKey.RankTypeXXX

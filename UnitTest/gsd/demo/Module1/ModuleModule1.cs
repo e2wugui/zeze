@@ -47,6 +47,6 @@ namespace demo.Module1
         public Table1 Table1 => _Table1;
         public Table2 Table2 => _Table2;
         public TableImportant TableImportant => _TableImportant;
-        public tflush Tflush => _tflush;
+        public tFlush Tflush => _tFlush;
     }
 }

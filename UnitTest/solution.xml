@@ -110,7 +110,7 @@
 
 		<table name="Table4" key="long" value="Value" memory="true" gen="client" autokey="true" />
 		<protocol name="ProtocolNoProcedure" NoProcedure="true" handle="server" />
-		<table name="tflush" key="long" value="Value" memory="false" />
+		<table name="tFlush" key="long" value="Value" memory="false" />
 		<module name="Module11" id="3">
 		</module>
 	</module>

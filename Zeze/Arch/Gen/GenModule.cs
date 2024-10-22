@@ -197,7 +197,7 @@ namespace Zeze.Arch.Gen
                     }
                     else
                     {
-                        sb.AppendLine($"            App.Zeze.NewProcedure(async () => {{ {callstr}; return 0; }}, {procName}).Execute();");
+                        sb.AppendLine($"            App.Zeze.NewProcedure(() => {{ {callstr}; return System.Threading.Tasks.Task.FromResult(0L); }}, {procName}).Execute();");
                         sb.AppendLine($"            return;");
                     }
                     break;
@@ -274,7 +274,11 @@ namespace Zeze.Arch.Gen
                 string futureVarName = "future" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource{m.MethodMode.GetFutureDefine()}();");
                 sb.AppendLine($"");
-                sb.AppendLine($"        {rpcVarName}.Send(_target_, async (_) =>");
+                var asyncNeed = null != m.ResultHandle
+                    && (m.TransactionLevel == Transaction.TransactionLevel.Serializable
+                    || m.TransactionLevel == Transaction.TransactionLevel.AllowDirtyWhenAllRead);
+                var asyncWord = asyncNeed ? "async" : "";
+                sb.AppendLine($"        {rpcVarName}.Send(_target_, {asyncWord}(_) =>");
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
                 sb.AppendLine($"            {{");
@@ -294,7 +298,7 @@ namespace Zeze.Arch.Gen
                 }
                 m.MethodMode.GenFutureDecodeAndSet("                ", sb, futureVarName);
                 sb.AppendLine($"            }}");
-                sb.AppendLine($"            return Zeze.Util.ResultCode.Success;");
+                sb.AppendLine($"            return {asyncSuccessResult(asyncNeed)};");
                 sb.AppendLine($"        }});");
                 sb.AppendLine($"");
                 if (m.MethodMode.IsAsync)
@@ -367,6 +371,11 @@ namespace Zeze.Arch.Gen
             sb.Append(sbContexts);
             sb.AppendLine($"}}");
             return sb.ToString();
+        }
+
+        static string asyncSuccessResult(bool asyncNeed)
+        {
+            return asyncNeed ? "Zeze.Util.ResultCode.Success" : "System.Threading.Tasks.Task.FromResult(Zeze.Util.ResultCode.Success)"; 
         }
 
         static void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)

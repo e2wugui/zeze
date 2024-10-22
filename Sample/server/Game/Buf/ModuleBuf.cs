@@ -10,7 +10,7 @@ namespace Game.Buf
     {
         public void Start(Game.App app)
         {
-            _tbufs.ChangeListenerMap.AddListener(new BufChangeListener("Game.Buf.Bufs"));
+            _tBufs.ChangeListenerMap.AddListener(new BufChangeListener("Game.Buf.Bufs"));
         }
 
         public void Stop(Game.App app)
@@ -54,7 +54,7 @@ namespace Game.Buf
                     case Changes.Record.Edit:
                         {
                             var logbean = changes.GetLogBean();
-                            if (logbean.Variables.TryGetValue(tbufs.VAR_Bufs, out var note))
+                            if (logbean.Variables.TryGetValue(tBufs.VAR_Bufs, out var note))
                             {
                                 // 增量变化，通知变更。
                                 var notemap2 = (LogMap2<int, BBuf>)note;
@@ -80,7 +80,7 @@ namespace Game.Buf
         // 【建议分开处理】。
         public async Task<Bufs> GetBufs(long roleId)
         {
-            return new Bufs(roleId, await _tbufs.GetOrAddAsync(roleId));
+            return new Bufs(roleId, await _tBufs.GetOrAddAsync(roleId));
         }
     }
 }

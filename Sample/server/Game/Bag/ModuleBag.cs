@@ -12,7 +12,7 @@ namespace Game.Bag
     {
         public void Start(Game.App app)
         {
-            _tbag.ChangeListenerMap.AddListener(new BagChangeListener());
+            _tBag.ChangeListenerMap.AddListener(new BagChangeListener());
         }
 
         public void Stop(Game.App app)
@@ -51,7 +51,7 @@ namespace Game.Bag
 
                     case Changes.Record.Edit:
                         var logbean = changes.GetLogBean();
-                        if (logbean.Variables.TryGetValue(tbag.VAR_Items, out var log))
+                        if (logbean.Variables.TryGetValue(tBag.VAR_Items, out var log))
                         {
                             var note = (LogMap2<int, BItem>)log;
                             note.MergeChangedToReplaced();
@@ -121,7 +121,7 @@ namespace Game.Bag
         // for other module
         public async Task<Bag> GetBag(long roleid)
         {
-            return new Bag(roleid, await _tbag.GetOrAddAsync(roleid));
+            return new Bag(roleid, await _tBag.GetOrAddAsync(roleid));
         }
 
         protected override async Task<long> ProcessCUse(Protocol p)

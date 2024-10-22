@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 // ReSharper disable JoinDeclarationAndInitializer RedundantNameQualifier
 namespace Zeze.Builtin.Game.Online
 {
-    public sealed class tlocal : Table<long, Zeze.Builtin.Game.Online.BLocal>, TableReadOnly<long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly>
+    public sealed class tLocal : Table<long, Zeze.Builtin.Game.Online.BLocal>, TableReadOnly<long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly>
     {
-        public tlocal() : base("Zeze_Builtin_Game_Online_tlocal")
+        public tLocal() : base("Zeze_Builtin_Game_Online_tLocal")
         {
         }
 
-        public override int Id => -1657900798;
+        public override int Id => 675816428;
         public override bool IsMemory => true;
         public override bool IsAutoKey => false;
 

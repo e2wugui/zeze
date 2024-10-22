@@ -17,7 +17,7 @@ namespace Game.Fight
 
         public async Task<Fighter> GetFighter(BFighterId fighterId)
         {
-            return new Fighter(fighterId, await _tfighters.GetOrAddAsync(fighterId));
+            return new Fighter(fighterId, await _tFighters.GetOrAddAsync(fighterId));
         }
 
         public async Task<long> CalculateFighter(BFighterId fighterId)
@@ -32,7 +32,7 @@ namespace Game.Fight
                     await Game.App.Instance.Game_Equip.CalculateFighter(fighter);
                     break;
             }
-            (await _tfighters.GetOrAddAsync(fighterId)).Assign(fighter.Bean);
+            (await _tFighters.GetOrAddAsync(fighterId)).Assign(fighter.Bean);
             return ResultCode.Success;
         }
 

@@ -17,7 +17,7 @@ namespace Zeze.Game
         public const int ResultCodeToInvalid = 2;
         public const int ResultCodeFromNotExist = 3;
         public const int ResultCodeTrySplitButTargetExistDifferenceItem = 4;
-        internal Zeze.Builtin.Game.Bag.tbag _tbag = new();
+        internal Zeze.Builtin.Game.Bag.tBag _tBag = new();
         internal Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
@@ -49,13 +49,13 @@ namespace Zeze.Game
         public void RegisterZezeTables(Zeze.Application zeze)
         {
             // register table
-            zeze.AddTable(zeze.Config.GetTableConf(_tbag.Name).DatabaseName, _tbag);
+            zeze.AddTable(zeze.Config.GetTableConf(_tBag.Name).DatabaseName, _tBag);
             zeze.AddTable(zeze.Config.GetTableConf(_tItemClasses.Name).DatabaseName, _tItemClasses);
         }
 
         public void UnRegisterZezeTables(Zeze.Application zeze)
         {
-            zeze.RemoveTable(zeze.Config.GetTableConf(_tbag.Name).DatabaseName, _tbag);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tBag.Name).DatabaseName, _tBag);
             zeze.RemoveTable(zeze.Config.GetTableConf(_tItemClasses.Name).DatabaseName, _tItemClasses);
         }
 
