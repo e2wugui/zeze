@@ -1,0 +1,5 @@
+1. run ../gen_use_publish.bat
+2. run idea and open ZezeJava
+3. run test/service & global.bat
+4. run test/service & global.another.bat
+5. idea right click "ZezeJavaTest/src" and click "Run ‘All Tests’“
