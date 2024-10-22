@@ -52,14 +52,18 @@ namespace Zege.Friend
                 }
             }
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                Node.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = Node;
+                if (_x_ != null)
+                {
+                    int _a_ = _o_.WriteIndex;
+                    int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+                    int _b_ = _o_.WriteIndex;
+                    _x_.Encode(_o_);
+                    if (_o_.WriteIndex <= _b_ + 1)
+                        _o_.WriteIndex = _a_;
+                    else
+                        _i_ = _j_;
+                }
             }
             _o_.WriteByte(0);
         }

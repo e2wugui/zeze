@@ -46,21 +46,25 @@ namespace Zege.Message
             int _i_ = 0;
             {
                 string _x_ = Friend;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
                 }
             }
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                Message.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = Message;
+                if (_x_ != null)
+                {
+                    int _a_ = _o_.WriteIndex;
+                    int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+                    int _b_ = _o_.WriteIndex;
+                    _x_.Encode(_o_);
+                    if (_o_.WriteIndex <= _b_ + 1)
+                        _o_.WriteIndex = _a_;
+                    else
+                        _i_ = _j_;
+                }
             }
             _o_.WriteByte(0);
         }

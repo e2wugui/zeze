@@ -83,7 +83,7 @@ namespace Zege.Friend
             }
             {
                 var _x_ = Childs;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
@@ -100,7 +100,7 @@ namespace Zege.Friend
             }
             {
                 string _x_ = Name;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -108,7 +108,7 @@ namespace Zege.Friend
             }
             {
                 var _x_ = Managers;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.MAP);

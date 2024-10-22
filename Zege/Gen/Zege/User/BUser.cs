@@ -91,7 +91,7 @@ namespace Zege.User
             int _i_ = 0;
             {
                 string _x_ = Account;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -115,7 +115,7 @@ namespace Zege.User
             }
             {
                 string _x_ = Nick;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -131,7 +131,7 @@ namespace Zege.User
             }
             {
                 var _x_ = Cert;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 21, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -155,7 +155,7 @@ namespace Zege.User
             }
             {
                 var _x_ = PrepareRandomData;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 24, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -171,7 +171,7 @@ namespace Zege.User
             }
             {
                 string _x_ = RealName;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 31, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -179,7 +179,7 @@ namespace Zege.User
             }
             {
                 string _x_ = IdentityCard;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 32, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -187,7 +187,7 @@ namespace Zege.User
             }
             {
                 string _x_ = Phone;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 33, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -195,7 +195,7 @@ namespace Zege.User
             }
             {
                 var _x_ = BankCard;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 34, ByteBuffer.LIST);

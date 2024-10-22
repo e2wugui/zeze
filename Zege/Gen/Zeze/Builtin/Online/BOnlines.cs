@@ -60,7 +60,7 @@ namespace Zeze.Builtin.Online
             int _i_ = 0;
             {
                 var _x_ = Logins;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
@@ -85,7 +85,7 @@ namespace Zeze.Builtin.Online
             }
             {
                 string _x_ = Account;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

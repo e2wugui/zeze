@@ -62,14 +62,18 @@ namespace Zeze.Builtin.Online
         {
             int _i_ = 0;
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                Link.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = Link;
+                if (_x_ != null)
+                {
+                    int _a_ = _o_.WriteIndex;
+                    int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
+                    int _b_ = _o_.WriteIndex;
+                    _x_.Encode(_o_);
+                    if (_o_.WriteIndex <= _b_ + 1)
+                        _o_.WriteIndex = _a_;
+                    else
+                        _i_ = _j_;
+                }
             }
             {
                 long _x_ = LoginVersion;
@@ -81,7 +85,7 @@ namespace Zeze.Builtin.Online
             }
             {
                 var _x_ = ReliableNotifyMark;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);

@@ -58,7 +58,7 @@ namespace Zege.Friend
             int _i_ = 0;
             {
                 var _x_ = Members;
-                int _n_ = _x_.Count;
+                int _n_ = _x_?.Count ?? 0;
                 if (_n_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
@@ -74,7 +74,7 @@ namespace Zege.Friend
             }
             {
                 var _x_ = RsaPublicKey;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -82,7 +82,7 @@ namespace Zege.Friend
             }
             {
                 var _x_ = RandomData;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -90,7 +90,7 @@ namespace Zege.Friend
             }
             {
                 var _x_ = Signed;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);

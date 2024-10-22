@@ -44,14 +44,18 @@ namespace Zege.Message
         {
             int _i_ = 0;
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                GroupDepartment.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = GroupDepartment;
+                if (_x_ != null)
+                {
+                    int _a_ = _o_.WriteIndex;
+                    int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
+                    int _b_ = _o_.WriteIndex;
+                    _x_.Encode(_o_);
+                    if (_o_.WriteIndex <= _b_ + 1)
+                        _o_.WriteIndex = _a_;
+                    else
+                        _i_ = _j_;
+                }
             }
             {
                 long _x_ = MessageIdHashRead;
