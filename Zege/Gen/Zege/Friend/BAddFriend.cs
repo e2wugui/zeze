@@ -44,7 +44,7 @@ namespace Zege.Friend
             int _i_ = 0;
             {
                 string _x_ = Account;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -52,7 +52,7 @@ namespace Zege.Friend
             }
             {
                 string _x_ = Memo;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

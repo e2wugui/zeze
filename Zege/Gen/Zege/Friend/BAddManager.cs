@@ -51,7 +51,7 @@ namespace Zege.Friend
             int _i_ = 0;
             {
                 string _x_ = Group;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -67,21 +67,25 @@ namespace Zege.Friend
             }
             {
                 string _x_ = Account;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
                 }
             }
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                Manager.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = Manager;
+                if (_x_ != null)
+                {
+                    int _a_ = _o_.WriteIndex;
+                    int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
+                    int _b_ = _o_.WriteIndex;
+                    _x_.Encode(_o_);
+                    if (_o_.WriteIndex <= _b_ + 1)
+                        _o_.WriteIndex = _a_;
+                    else
+                        _i_ = _j_;
+                }
             }
             _o_.WriteByte(0);
         }

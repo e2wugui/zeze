@@ -71,7 +71,7 @@ namespace Zeze.Builtin.LinkdBase
             }
             {
                 string _x_ = Desc;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);

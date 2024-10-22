@@ -76,7 +76,7 @@ namespace Zege.Message
             }
             {
                 var _x_ = SecureMessage;
-                if (_x_.Count != 0)
+                if (_x_ != null && _x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
@@ -84,7 +84,7 @@ namespace Zege.Message
             }
             {
                 string _x_ = From;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
@@ -92,7 +92,7 @@ namespace Zege.Message
             }
             {
                 string _x_ = Group;
-                if (_x_.Length != 0)
+                if (_x_ != null && _x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                     _o_.WriteString(_x_);
