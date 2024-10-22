@@ -26,7 +26,7 @@ public final class WinConsole {
 	 * 获取命令行窗口开始关闭事件后的处理超时时间, 超过此时间会被强杀进程
 	 *
 	 * @param event 处理器的参数是事件枚举(见本类的CTRL_开头的常量定义)
-	 * @return 超时时间(毫秒). 无效event会返回<0的值, 只支持CLOSE,LOGOFF,SHUTDOWN事件
+	 * @return 超时时间(毫秒). 无效event会返回小于0的值, 只支持CLOSE,LOGOFF,SHUTDOWN事件
 	 */
 	public static native int getCloseConsoleTimeout(int event);
 

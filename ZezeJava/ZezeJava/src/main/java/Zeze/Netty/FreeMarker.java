@@ -31,7 +31,7 @@ public class FreeMarker {
 	}
 
 	/**
-	 * 服务端格式化页面 & 发送结果。
+	 * 服务端格式化页面＆发送结果。
 	 *
 	 * @param x         http context.
 	 * @param modelBean Map Or JavaBean.

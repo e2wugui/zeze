@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
+/*
  * 【问题】 Server失联，Global回收记录锁怎么处理？
  * Server与Global之间记录锁管理机制。这里锁有三个状态，Modify,Share,Invalid。
  * 下面分析Server-Global之间所有的交互。
@@ -110,7 +110,6 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
  */
-
 public class AchillesHeelDaemon {
 	private static final @NotNull Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 
