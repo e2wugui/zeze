@@ -701,35 +701,31 @@ public final class JsonWriter {
 	@Override
 	public @NotNull String toString() {
 		if (BYTE_STRING) { // for JDK9+
-			byte[] bytes;
+			byte[] b;
 			int i, n;
 			if (tail == tail.next) {
-				bytes = buf;
+				b = buf;
 				n = pos;
 			} else {
-				bytes = toBytes();
-				n = bytes.length;
+				b = toBytes();
+				n = b.length;
 			}
 			for (i = 0; i < n; i++)
-				if (bytes[i] < 0)
+				if (b[i] < 0)
 					break;
 			if (i == n) {
 				try {
-					String str = ensureNotNull((String)unsafe.allocateInstance(String.class));
-					unsafe.putObject(str, STRING_VALUE_OFFSET, bytes == buf ? Arrays.copyOf(bytes, n) : bytes);
-					return str;
-				} catch (InstantiationException ignored) {
+					return (String)Json.stringCtorMH.invokeExact((byte[])(b == buf ? Arrays.copyOf(b, n) : b), (byte)0);
+				} catch (Throwable e) { // MethodHandle.invoke
+					throw new RuntimeException(e);
 				}
 			}
-			return new String(bytes, 0, n, StandardCharsets.UTF_8);
+			return new String(b, 0, n, StandardCharsets.UTF_8);
 		}
-		char[] chars = toChars();
 		try {
-			String str = ensureNotNull((String)unsafe.allocateInstance(String.class));
-			unsafe.putObject(str, STRING_VALUE_OFFSET, chars);
-			return str;
-		} catch (InstantiationException e) {
-			return new String(chars);
+			return (String)Json.stringCtorMH.invokeExact(toChars(), false);
+		} catch (Throwable e) { // MethodHandle.invoke
+			throw new RuntimeException(e);
 		}
 	}
 

@@ -235,7 +235,7 @@ public final class TestJson extends TestCase {
 		}
 	}
 
-	public void testD() throws ReflectiveOperationException {
+	public void testD() {
 		byte[] b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
 		assertNotNull(b);
 		String s = new String(b, StandardCharsets.UTF_8);

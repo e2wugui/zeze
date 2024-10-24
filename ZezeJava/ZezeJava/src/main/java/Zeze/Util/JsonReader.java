@@ -88,7 +88,7 @@ public final class JsonReader {
 			Arrays.fill(ss, null);
 	}
 
-	static @NotNull String intern(byte[] buf, int pos, int end) throws ReflectiveOperationException {
+	static @NotNull String intern(byte[] buf, int pos, int end) {
 		int len = end - pos;
 		String[] ss = poolStrs;
 		if (ss == null)
@@ -799,7 +799,7 @@ public final class JsonReader {
 		}
 	}
 
-	public static @NotNull String parseStringKey(@NotNull JsonReader jr, int b) throws ReflectiveOperationException {
+	public static @NotNull String parseStringKey(@NotNull JsonReader jr, int b) {
 		String key = b == '"' || b == '\'' ? jr.parseString(true) : jr.parseStringNoQuot();
 		return key != null ? key : "";
 	}
@@ -967,11 +967,11 @@ public final class JsonReader {
 		}
 	}
 
-	public @Nullable String parseString() throws ReflectiveOperationException {
+	public @Nullable String parseString() {
 		return parseString(false);
 	}
 
-	public @Nullable String parseString(boolean intern) throws ReflectiveOperationException {
+	public @Nullable String parseString(boolean intern) {
 		final byte[] buffer = buf;
 		int p = pos, b, e = buffer[p];
 		if (e != '"' && e != '\'')
@@ -1030,7 +1030,7 @@ public final class JsonReader {
 		}
 	}
 
-	public @NotNull String parseStringNoQuot() throws ReflectiveOperationException {
+	public @NotNull String parseStringNoQuot() {
 		final byte[] buffer = buf;
 		int p = pos, b;
 		final int begin = p;

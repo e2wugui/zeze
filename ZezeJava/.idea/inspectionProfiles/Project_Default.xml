@@ -604,7 +604,7 @@
     <inspection_tool class="RedundantEmptyInitializerBlock" enabled="true" level="INFO" enabled_by_default="true" />
     <inspection_tool class="RedundantLengthCheck" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="RedundantScheduledForRemovalAnnotation" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="RedundantThrows" enabled="true" level="INFORMATION" enabled_by_default="true" editorAttributes="INFORMATION_ATTRIBUTES" />
+    <inspection_tool class="RedundantThrows" enabled="true" level="WARNING" enabled_by_default="true" editorAttributes="WARNING_ATTRIBUTES" />
     <inspection_tool class="Reformat" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="RegExpRedundantClassElement" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="RegExpSimplifiable" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
