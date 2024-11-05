@@ -223,7 +223,7 @@ namespace Zeze.Services.ToLuaService2
         {
             // public long TypeId;
             public int MetatableRef;
-            public readonly SortedDictionary<int, VariableMeta> Variables = new SortedDictionary<int, VariableMeta>();
+            public readonly List<VariableMeta> Variables = new List<VariableMeta>();
             public List<int> cacheRefPool;
         }
 
@@ -240,6 +240,8 @@ namespace Zeze.Services.ToLuaService2
                 toLuaSocketClose.Clear();
             }
         }
+
+        static readonly IComparer<VariableMeta> varComparer = Comparer<VariableMeta>.Create((a, b) => a.Id - b.Id);
 
         ILua Lua;
 
@@ -314,7 +316,7 @@ namespace Zeze.Services.ToLuaService2
         }
 
         void ParseVariableMeta(IntPtr luaState, IReadOnlyDictionary<string, long> beanName2BeanId,
-            ICollection<DynamicMeta> dynamicMetas, IDictionary<int, VariableMeta> variables)
+            ICollection<DynamicMeta> dynamicMetas, List<VariableMeta> variables)
         {
             Lua.GetField(luaState, -1, "variables"); // variables
             for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // -1 value of varMeta(table) -2 key of varId
@@ -383,7 +385,9 @@ namespace Zeze.Services.ToLuaService2
                         break;
                     }
                 }
-                variables.Add(variable.Id, variable);
+                int index = variables.BinarySearch(variable, varComparer);
+                if (index < 0)
+                    variables.Insert(~index, variable);
             }
         }
 
@@ -614,7 +618,7 @@ namespace Zeze.Services.ToLuaService2
             if (!Lua.CheckStack(luaState, 1))
                 throw new Exception("Lua stack overflow!");
 
-            foreach (var v in beanMeta.Variables.Values)
+            foreach (var v in beanMeta.Variables)
             {
                 // 这里使用string 类型，是为了让lua可以传 k：v格式的简单table，也可以通过new 的方式来携带类型信息，保证dynamic类型
                 // get table 方法是会trigger metatable 的，所以只通过string 类型访问就可以了，先这么做，以后再进行测试性能
@@ -635,7 +639,7 @@ namespace Zeze.Services.ToLuaService2
                 throw new Exception("Lua stack overflow!");
 
             int lastId = 0;
-            foreach (var v in beanMeta.Variables.Values)
+            foreach (var v in beanMeta.Variables)
             {
                 // 这里使用string 类型，是为了让lua可以传 k：v格式的简单table，也可以通过new 的方式来携带类型信息，保证dynamic类型
                 // get table 方法是会trigger metatable 的，所以只通过string 类型访问就可以了，先这么做，以后再进行测试性能
@@ -1011,9 +1015,9 @@ namespace Zeze.Services.ToLuaService2
                     // 写的这么恶心是因为给把空协议中的list map创建table，先fix_bug 再看看有没有好方法
                     while (it.MoveNext())
                     {
-                        var c = it.Current;
-                        var variableMeta = c.Value;
-                        while (c.Key > id) // 发现未知id的字段
+                        var variableMeta = it.Current;
+                        // ReSharper disable once PossibleNullReferenceException
+                        while (variableMeta.Id > id) // 发现未知id的字段
                         {
                             bb.SkipUnknownField(t);
                             if ((t = bb.ReadByte()) == 0)
@@ -1021,7 +1025,7 @@ namespace Zeze.Services.ToLuaService2
                             id += bb.ReadTagSize(t);
                             t &= ByteBuffer.TAG_MASK;
                         }
-                        if (c.Key == id)
+                        if (variableMeta.Id == id)
                         {
                             find = true;
                             // 这里本来想设置成int，再通过元表来访问，可是lua 5.1有一些问题，如果升级的话再改
@@ -1062,7 +1066,7 @@ namespace Zeze.Services.ToLuaService2
             Lua.SetMetatable(luaState, -3); // [table, tableRef]
             Lua.Pop(luaState, 1); // [table]
 
-            foreach (var variablesValue in beanMeta.Variables.Values)
+            foreach (var variablesValue in beanMeta.Variables)
             {
                 Lua.PushString(luaState, variablesValue.Name); // [table, name]
                 DecodeVariable(luaState, bb, variablesValue.Type, variablesValue.Type, variablesValue); // [table, name, value]

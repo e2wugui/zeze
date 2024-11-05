@@ -194,9 +194,6 @@ public final class Config {
 		providerOverload = value;
 	}
 
-	public Config() {
-	}
-
 	public @NotNull String getName() {
 		return name;
 	}
