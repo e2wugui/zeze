@@ -82,9 +82,6 @@ local message_init = require '{{message_namespace}}.message_init'
 
 local {{module.name}} = {}
 {{ for bean in l }}
-{{- for e in  bean.enums}}
-local {{e.name}} = {{e.value}}
-{{- end }}
 ---@class {{toname bean.full_name}} : {{message_namespace}}.Bean
 {{- for e in  bean.enums}}
 ---@field {{e.name}} integer
@@ -98,7 +95,7 @@ local {{e.name}} = {{e.value}}
     __type_id__ = '{{bean.type_id}}',
     new = message_core.bean_new,
     {{- for e in  bean.enums}}
-    {{e.name}} = {{e.name}},
+    {{e.name}} = {{e.value}},
     {{- end }}
     {{- for variable in bean.variables }}
     {{- d = defaultvalue variable
