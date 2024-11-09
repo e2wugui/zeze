@@ -6,20 +6,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
-import Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c;
+import Zeze.Builtin.HistoryModule.tHistory;
 import Zeze.Transaction.TableKey;
 import Zeze.Util.FastLock;
 import Zeze.Util.Id128;
 
 public class ApplyHelper extends FastLock {
 	private final Application zeze;
-	private final ZezeHistoryTable_m_a_g_i_c historyTable;
+	private final tHistory historyTable;
 	private final IApplyDatabase dbApplied;
 	private final int beforeTimeMs;
 	private final ConcurrentHashMap<Integer, ApplyTable<?, ?>> applyTables = new ConcurrentHashMap<>();
 	private Id128 exclusiveStartKey;
 
-	public ApplyHelper(Application zeze, ZezeHistoryTable_m_a_g_i_c historyTable,
+	public ApplyHelper(Application zeze, tHistory historyTable,
 					   IApplyDatabase dbApplied, int beforeTimeMs) {
 		this.zeze = zeze;
 		this.historyTable = historyTable;

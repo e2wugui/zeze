@@ -1,7 +1,7 @@
 package Zeze.History;
 
 import Zeze.Application;
-import Zeze.Builtin.HistoryModule.ZezeHistoryTable_m_a_g_i_c;
+import Zeze.Builtin.HistoryModule.tHistory;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -46,15 +46,15 @@ public class HistoryModule extends AbstractHistoryModule {
 		//var dbApplied = new ApplyDatabaseZeze(zeze, "_history_applied_db_");
 		var dbApplied = new ApplyDatabaseMemory();
 		// todo dbApplied 如果是持久化的，applyHelper.exclusiveStartKey也需要持久化。
-		applyHelper = new ApplyHelper(zeze, _ZezeHistoryTable_m_a_g_i_c, dbApplied, 20_000);
+		applyHelper = new ApplyHelper(zeze, _tHistory, dbApplied, 20_000);
 	}
 
 	public Application getZeze() {
 		return zeze;
 	}
 
-	public ZezeHistoryTable_m_a_g_i_c getHistoryTable() {
-		return _ZezeHistoryTable_m_a_g_i_c;
+	public tHistory getHistoryTable() {
+		return _tHistory;
 	}
 
 	@Override

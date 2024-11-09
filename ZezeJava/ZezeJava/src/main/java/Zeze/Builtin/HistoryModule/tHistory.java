@@ -6,14 +6,14 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class ZezeHistoryTable_m_a_g_i_c extends TableX<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges>
+public final class tHistory extends TableX<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges>
         implements TableReadOnly<Zeze.Util.Id128, Zeze.Builtin.HistoryModule.BLogChanges, Zeze.Builtin.HistoryModule.BLogChangesReadOnly> {
-    public ZezeHistoryTable_m_a_g_i_c() {
-        super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c");
+    public tHistory() {
+        super(370198048, "Zeze_Builtin_HistoryModule_tHistory");
     }
 
-    public ZezeHistoryTable_m_a_g_i_c(String _s_) {
-        super(584741651, "Zeze_Builtin_HistoryModule_ZezeHistoryTable_m_a_g_i_c", _s_);
+    public tHistory(String _s_) {
+        super(370198048, "Zeze_Builtin_HistoryModule_tHistory", _s_);
     }
 
     @Override

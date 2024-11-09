@@ -1867,7 +1867,7 @@
 				<variable id="4" name="Changes" type="map[BTableKey, binary]"/>
 				<variable id="5" name="Timestamp" type="long"/>
 			</bean>
-			<table name="ZezeHistoryTable_m_a_g_i_c" key="Zeze.Util.Id128" value="BLogChanges"/>
+			<table name="tHistory" key="Zeze.Util.Id128" value="BLogChanges"/>
 
 			<!-- 查询分析 servlet -->
 			<servlet name="WalkPage" TransactionLevel="None"/>
