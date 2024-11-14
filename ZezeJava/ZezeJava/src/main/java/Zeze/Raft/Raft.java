@@ -27,6 +27,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.Action2;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func3;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
@@ -325,6 +326,11 @@ public final class Raft {
 
 	public Raft(StateMachine sm, String RaftName, RaftConfig raftConf, Config config, String name,
 				Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
+		this(sm, RaftName, null, raftConf, config, name, serverFactory, taskOneByOne);
+	}
+
+	public Raft(StateMachine sm, String RaftName, RocksDatabase database, RaftConfig raftConf, Config config, String name,
+				Func3<Raft, String, Config, Server> serverFactory, @NotNull TaskOneByOneByKey taskOneByOne) throws Exception {
 
 		if (raftConf == null)
 			raftConf = RaftConfig.load();
@@ -359,7 +365,7 @@ public final class Raft {
 
 		Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
-		logSequence = new LogSequence(this);
+		logSequence = new LogSequence(this, database);
 
 		registerInternalRpc();
 

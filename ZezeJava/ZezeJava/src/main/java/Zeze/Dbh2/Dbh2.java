@@ -2,6 +2,7 @@ package Zeze.Dbh2;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Builtin.Dbh2.BBatch;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -148,7 +149,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		return dbh2Config;
 	}
 
-	public Dbh2(Dbh2Manager manager, String raftName, RaftConfig raftConf, Config config, boolean writeOptionSync,
+	public Dbh2(Dbh2Manager manager, String raftName, RocksDatabase database,
+				RaftConfig raftConf, Config config, boolean writeOptionSync,
 				TaskOneByOneByKey taskOneByOne) {
 		this.manager = manager;
 
@@ -164,7 +166,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 		try {
 			stateMachine = new Dbh2StateMachine(this);
-			raft = new Raft(stateMachine, raftName, raftConf, config,
+			raft = new Raft(stateMachine, raftName, database, raftConf, config,
 					"Zeze.Dbh2.Server", Dbh2RaftServer::new, taskOneByOne);
 			raftConf.setSnapshotCommitDelayed(true);
 			logger.info("newRaft: {}", raft.getName());

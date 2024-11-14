@@ -2,6 +2,7 @@ package Dbh2;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import Zeze.Application;
 import Zeze.Builtin.Dbh2.BBucketMeta;
@@ -12,6 +13,7 @@ import Zeze.Dbh2.Dbh2AgentManager;
 import Zeze.Net.Binary;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RaftConfig;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.Level;
@@ -33,10 +35,10 @@ public class Dbh2Test {
 		private final ArrayList<Zeze.Dbh2.Dbh2> raftNodes = new ArrayList<>();
 		private final Dbh2Agent agent;
 
-		public Bucket(String raftConfigString) throws Exception {
+		public Bucket(String raftConfigString, RocksDatabase database) throws Exception {
 			var raftConfig = RaftConfig.loadFromString(raftConfigString);
 			for (var config : raftConfig.getNodes().values())
-				raftNodes.add(start(raftConfigString, config.getName()));
+				raftNodes.add(start(raftConfigString, config.getName(), database));
 			agent = new Dbh2Agent(raftConfigString);
 		}
 
@@ -65,6 +67,7 @@ public class Dbh2Test {
 	@Test
 	public void testDbh2() throws Exception {
 		Task.tryInitThreadPool();
+		var database = new RocksDatabase("dbh2TestSimple");
 		var bucket1 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
@@ -72,7 +75,7 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="19001"/>
 					<node Host="127.0.0.1" Port="19002"/>
 				</raft>
-				""");
+				""", database);
 		var bucket2 = new Bucket("""
 				<?xml version="1.0" encoding="utf-8"?>
 				<raft Name="">
@@ -80,7 +83,7 @@ public class Dbh2Test {
 					<node Host="127.0.0.1" Port="19004"/>
 					<node Host="127.0.0.1" Port="19005"/>
 				</raft>
-				""");
+				""", database);
 		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
 		assert serviceManager != null;
 		serviceManager.start();
@@ -184,11 +187,12 @@ public class Dbh2Test {
 			bucket1.close();
 			bucket2.close();
 			dbh2AgentManager.stop();
+			database.close();
 		}
 	}
 
-	private static Zeze.Dbh2.Dbh2 start(String config, String raftName) throws Exception {
+	private static Zeze.Dbh2.Dbh2 start(String config, String raftName, RocksDatabase database) throws Exception {
 		var raftConfig = RaftConfig.loadFromString(config);
-		return new Zeze.Dbh2.Dbh2(null, raftName, raftConfig, null, false, taskOneByOne);
+		return new Zeze.Dbh2.Dbh2(null, raftName, database, raftConfig, null, false, taskOneByOne);
 	}
 }

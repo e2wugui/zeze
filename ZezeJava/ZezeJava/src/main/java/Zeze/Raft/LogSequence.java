@@ -53,8 +53,9 @@ public class LogSequence {
 	private long leaderActiveTime = System.currentTimeMillis(); // Leader, Follower
 
 	private WriteOptions writeOptions = RocksDatabase.getSyncWriteOptions();
-	private RocksDB logs;
+	private RocksDatabase.Table logs;
 	private RocksDatabase database;
+	private final boolean sharedDatabase;
 	private RocksDatabase.Table rafts;
 	private final LongConcurrentHashMap<UniqueRequestSet> uniqueRequestSets = new LongConcurrentHashMap<>();
 	private final SimpleDateFormat uniqueDateFormat = new SimpleDateFormat("yyyy.M.d");
@@ -179,7 +180,7 @@ public class LogSequence {
 	private RocksIterator newLogsIterator() {
 		raft.lock();
 		try {
-			return logs.newIterator(RocksDatabase.getDefaultReadOptions());
+			return logs.iterator();
 		} finally {
 			raft.unlock();
 		}
@@ -363,13 +364,13 @@ public class LogSequence {
 		try {
 			if (logs != null) {
 				logger.info("close logs: {}", raft.getRaftConfig().getDbHome());
-				logs.close();
+				//logs.close();
 				logs = null;
 			}
 
 			rafts = null;
-
-			if (database != null) {
+// 共享db，外部关闭。
+			if (!sharedDatabase && database != null) {
 				logger.info("close database: {}", raft.getRaftConfig().getDbHome());
 				database.close();
 				database = null;
@@ -388,10 +389,17 @@ public class LogSequence {
 	}
 
 	public LogSequence(Raft raft) throws RocksDBException {
-		this.raft = raft;
+		this(raft, null);
+	}
 
-		database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "rafts").toString());
-		rafts = database.getOrAddTable("rafts");
+	public LogSequence(Raft raft, RocksDatabase database) throws RocksDBException {
+		this.raft = raft;
+		this.sharedDatabase = database != null;
+		this.database = database;
+		if (this.database == null)
+			this.database = new RocksDatabase(Paths.get(raft.getRaftConfig().getDbHome(), "db").toString());
+
+		this.rafts = database.getOrAddTable(raft.getName() + ".rafts");
 		{
 			// Read Term
 			raftsTermKey = makeRaftsKey(0);
@@ -422,10 +430,10 @@ public class LogSequence {
 			lastSnapshotIndex = lastSnapshotIndexValue != null ? ByteBuffer.Wrap(lastSnapshotIndexValue).ReadLong() : 0;
 		}
 
-		logs = RocksDatabase.open(Path.of(raft.getRaftConfig().getDbHome(), "logs").toString());
+		logs = database.getOrAddTable(raft.getName() + ".logs");
 		{
 			// Read Last Log Index
-			try (var itLast = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
+			try (var itLast = logs.iterator()) {
 				itLast.seekToLast();
 				if (itLast.isValid())
 					lastIndex = RaftLog.decodeTermIndex(itLast.value()).getIndex();
@@ -439,7 +447,7 @@ public class LogSequence {
 
 				// 【注意】snapshot 以后 FirstIndex 会推进，不再是从-1开始。
 				if (firstIndex == -1) { // no committed snapshot
-					try (var itFirst = logs.newIterator(RocksDatabase.getDefaultReadOptions())) {
+					try (var itFirst = logs.iterator()) {
 						itFirst.seekToFirst();
 						if (itFirst.isValid()) {
 							firstIndex = RaftLog.decode(new Binary(itFirst.value()),
@@ -492,7 +500,7 @@ public class LogSequence {
 
 	private UniqueRequestSet openUniqueRequests(long time) {
 		return uniqueRequestSets.computeIfAbsent(toUniqueRequestKey(new Date(time)),
-				k -> new UniqueRequestSet("unique." + (k >> 16) + '.' + ((k >> 8) & 0xff) + '.' + (k & 0xff)));
+				k -> new UniqueRequestSet(raft.getName() + ".unique." + (k >> 16) + '.' + ((k >> 8) & 0xff) + '.' + (k & 0xff)));
 	}
 
 	@SuppressWarnings("deprecation")
@@ -533,7 +541,7 @@ public class LogSequence {
 	private byte[] readLogBytes(long index) throws RocksDBException {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
-		RocksDB logs = this.logs;
+		var logs = this.logs;
 		return logs != null ? logs.get(RocksDatabase.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex) : null;
 	}
 
@@ -852,12 +860,13 @@ public class LogSequence {
 				// 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
 				// 【除了快照最后包含的日志，其他都删除。】
 				logger.info("endReceiveInstallSnapshot: close logs: {}", raft.getRaftConfig().getDbHome());
-				logs.close();
-				logs = null;
+				//logs.close();
+				//logs = null;
 				cancelPendingAppendLogFutures();
-				var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
-				deletedDirectoryAndCheck(new File(logsDir), 10000);
-				logs = RocksDatabase.open(logsDir);
+				//var logsDir = Paths.get(raft.getRaftConfig().getDbHome(), "logs").toString();
+				//deletedDirectoryAndCheck(new File(logsDir), 10000);
+				logs.drop();
+				logs = database.getOrAddTable(raft.getName() + ".logs");
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);

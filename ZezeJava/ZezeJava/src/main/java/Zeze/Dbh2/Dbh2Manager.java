@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.KV;
 import Zeze.Util.PerfCounter;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -24,6 +26,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.rocksdb.RocksDBException;
 
 /**
  * Dbh2管理器，管理Dbh2(Raft桶)的创建。
@@ -45,6 +48,7 @@ public class Dbh2Manager {
 	private final Dbh2Config dbh2Config = new Dbh2Config();
 
 	private final String home;
+	private final RocksDatabase database;
 
 	private final ConcurrentHashMap<String, Dbh2> dbh2s = new ConcurrentHashMap<>();
 
@@ -87,7 +91,8 @@ public class Dbh2Manager {
 				r.Argument.getRaftConfig(),
 				StandardOpenOption.CREATE);
 		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(), __ -> {
-			var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig,
+			var dbh2 = new Dbh2(this, raftConfig.getName(),
+					database, raftConfig,
 					null, false, taskOneByOne);
 			proxyServer.addRaft(dbh2.getRaft());
 			logger.info("CreateBucket: add raftName = '{}'", dbh2.getRaft().getName());
@@ -124,12 +129,13 @@ public class Dbh2Manager {
 		}
 	}
 
-	public Dbh2Manager(String home, String configXml) {
+	public Dbh2Manager(String home, String configXml) throws RocksDBException {
 		this.home = home;
 		var config = Config.load(configXml);
 		config.parseCustomize(this.dbh2Config);
 		proxyServer = new ProxyServer(config, dbh2Config.getRpcTimeout());
 		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config, proxyServer));
+		database = new RocksDatabase(Paths.get(home, "db").toString());
 	}
 
 	private static void listRaftXmlFiles(File dir, ArrayList<File> out) {
@@ -157,7 +163,8 @@ public class Dbh2Manager {
 				var raftConfig = RaftConfig.loadFromString(raftStr);
 				raftConfig.setDbHome(raftXml.getParent());
 				dbh2s.computeIfAbsent(raftStr, __ -> {
-					var dbh2 = new Dbh2(this, raftConfig.getName(), raftConfig,
+					var dbh2 = new Dbh2(this, raftConfig.getName(),
+							database, raftConfig,
 							null, false, taskOneByOne);
 					proxyServer.addRaft(dbh2.getRaft());
 					logger.info("start: add raftName = '{}'", dbh2.getRaft().getName());
@@ -216,6 +223,7 @@ public class Dbh2Manager {
 		for (var dbh2 : dbh2s.values())
 			dbh2.close();
 		dbh2s.clear();
+		database.close();
 	}
 
 	public static void main(String[] args) {
