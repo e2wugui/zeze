@@ -1882,13 +1882,71 @@
 			<servlet name="LinksTextSingleLine" TransactionLevel="None"/>
 			<servlet name="LinksTextMultiLine" TransactionLevel="None"/>
 		</module>
+
+		<module name="MQ" id="11039" UseData="true">
+			<module name="Master" id="11040" UseData="true">
+				<bean name="BOpenMQ">
+					<variable id="1" name="Name" type="string"/>
+					<variable id="2" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+				</bean>
+				<rpc name="OpenMQ" argument="" result="" handle="server"/>
+				<rpc name="Subscribe" argument="" result="" handle="server"/>
+			</module>
+			<bean name="BOptions">
+				
+				MQ 并发模式
+				<enum name="GlobalOne" value="1"/>
+				<enum name="MultiInstance" value="2"/>
+				MQ 类型
+				<enum name="Single" value="4"/>
+				<enum name="DoubleWrite" value="8"/>
+				<enum name="Raft3" value="16"/>
+				 ReadOptions 消息派发模式
+				<enum name="ReadOneByOne" value="32"/>
+				<enum name="ReadConcurrent" value="64"/>
+				 WriteOptions 消息保存模式
+				<enum name="WriteFileSync" value="128"/>
+				<enum name="WriteFileSystem" value="256"/>
+				
+				<variable id="1" name="Options" type="int"/>
+			</bean>
+			<bean name="BMessage">
+				<variable id="1" name="MessageId" type="string"/>
+				<variable id="2" name="Body" type="binary"/>
+			</bean>
+			<rpc name="SendMessage" argument="BMessage" handle="server"/>
+			<rpc name="Subscribe" argument="" result="" handle="server"/>
+		</module>
 		<!--
-		可用id范围 [11039, 11100) [11102, 11999]
+		可用id范围 [11041, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/MQ/Master" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.MQ.Master"/>
+		</service>
+	</component>
+
+	<component name="MasterAgent" gendir="src/main/java" genrelativedir="Zeze/MQ/Master" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.MQ.Master"/>
+		</service>
+	</component>
+
+	<component name="MQManager" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.MQ"/>
+		</service>
+	</component>
+	<component name="MQ" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.MQ"/>
+		</service>
+	</component>
+
 	<component name="LinksInfo" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.LinksInfo"/>
