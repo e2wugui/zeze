@@ -513,12 +513,15 @@ namespace Zeze.Gen.java
         public void CreateZezeTables(StreamWriter sw)
         {
             bool hasAppVersionSuffix = false;
+            bool hasServerIdSuffix = false;
             foreach (Table table in module.Tables.Values)
             {
-                if (project.GenTables.Contains(table.Gen) && !table.IsRocks && table.Suffix == "@AppMainVersion")
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                 {
-                    hasAppVersionSuffix = true;
-                    break;
+                    if (table.Suffix == "@AppMainVersion")
+                        hasAppVersionSuffix = true;
+                    if (table.Suffix == "@ServerId")
+                        hasServerIdSuffix = true;
                 }
             }
             if (hasAppVersionSuffix)
@@ -526,13 +529,24 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        var appMainVersion = app.Zeze.getConfig().getAppMainVersion();");
                 sw.WriteLine("        var appMainVersionSuffix = appMainVersion != 0 ? \"__\" + appMainVersion : null;");
             }
+            if (hasServerIdSuffix)
+                sw.WriteLine("        var serverIdSuffix = String.valueOf(app.Zeze.getConfig().getServerId());");
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                 {
-                    var suffixStr = table.Suffix.Length > 0
-                        ? table.Suffix == "@AppMainVersion" ? "appMainVersionSuffix" : '"' + table.Suffix + '"'
-                        : "";
+                    string suffixStr;
+                    if (table.Suffix.Length > 0)
+                    {
+                        if (table.Suffix == "@AppMainVersion")
+                            suffixStr = "appMainVersionSuffix";
+                        else if (table.Suffix == "@ServerId")
+                            suffixStr = "serverIdSuffix";
+                        else
+                            suffixStr = '"' + table.Suffix + '"';
+                    }
+                    else
+                        suffixStr = "";
                     sw.WriteLine("        _" + table.Name + " = new " + table.FullName + "(" + suffixStr + ");");
                 }
             }
@@ -609,7 +623,7 @@ namespace Zeze.Gen.java
             if (module.Comment.Length > 0)
                 sw.WriteLine(module.Comment);
             var classBase = (!project.EnableBase || string.IsNullOrEmpty(module.ClassBase)) ? "" : $"extends {module.ClassBase} ";
-            sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantThrows\", \"SameReturnValue\"})");
+            sw.WriteLine("@SuppressWarnings({\"NullableProblems\", \"RedundantSuppression\", \"RedundantThrows\", \"SameReturnValue\"})");
             sw.WriteLine($"public abstract class AbstractModule {classBase}implements Zeze.IModule {{");
             sw.WriteLine($"    public static final int ModuleId = {module.Id};");
             sw.WriteLine($"    public static final String ModuleName = \"{moduleName}\";");
