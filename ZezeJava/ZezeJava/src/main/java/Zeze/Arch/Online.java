@@ -1541,15 +1541,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void verifyLocal() throws Exception {
-		var batch = new VerifyBatch();
-		// 锁外执行事务
-		_tlocal.walkMemory((k, v) -> {
-			batch.add(k);
-			batch.tryPerform();
-			return true;
-		});
-		batch.perform();
-		startLocalCheck();
+		try {
+			var batch = new VerifyBatch();
+			// 锁外执行事务
+			_tlocal.walkMemory((k, v) -> {
+				batch.add(k);
+				batch.tryPerform();
+				return true;
+			});
+			batch.perform();
+		} finally {
+			startLocalCheck();
+		}
 	}
 
 	private long tryRemoveLocal(@NotNull String account) throws Exception {

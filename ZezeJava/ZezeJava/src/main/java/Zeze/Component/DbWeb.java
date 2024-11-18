@@ -1,6 +1,7 @@
 package Zeze.Component;
 
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -115,7 +116,11 @@ public class DbWeb extends AbstractDbWeb {
 
 	private static Object parseKey(TableX<?, ?> table, String key) {
 		Object k;
-		var keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+		Type keyType;
+		if (table instanceof TableDynamic)
+			keyType = table.getKeyClass();
+		else
+			keyType = ((ParameterizedType)table.getClass().getGenericSuperclass()).getActualTypeArguments()[0];
 		if (keyType == Long.class)
 			k = Long.parseLong(key);
 		else if (keyType == Integer.class)
@@ -124,7 +129,7 @@ public class DbWeb extends AbstractDbWeb {
 			k = key;
 		else if (keyType == Binary.class)
 			k = new Binary(key);
-		else if (Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
+		else if (keyType instanceof Class && Serializable.class.isAssignableFrom((Class<?>)keyType)) // BeanKey
 			k = Json.parse(key, (Class<?>)keyType);
 		else
 			throw new IllegalStateException("ERROR: unsupported key of " + keyType + " for table " + table.getName());

@@ -1830,16 +1830,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void verifyLocal() throws Exception {
-		var batch = new VerifyBatch();
-		// 锁外执行事务
-		_tlocal.walk((k, v) -> {
-			batch.add(k);
-			batch.tryPerform();
-			return true;
-		});
-		batch.perform();
-		verifyLocalCount.set(batch.getRemainCount());
-		startLocalCheck();
+		try {
+			var batch = new VerifyBatch();
+			// 锁外执行事务
+			_tlocal.walk((k, v) -> {
+				batch.add(k);
+				batch.tryPerform();
+				return true;
+			});
+			batch.perform();
+			verifyLocalCount.set(batch.getRemainCount());
+		} finally {
+			startLocalCheck();
+		}
 	}
 
 	private long tryRemoveLocal(long roleId, boolean notVerifyCount) throws Exception {
