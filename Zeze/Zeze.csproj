@@ -30,10 +30,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="DotNext.Threading" Version="4.12.3" />
-    <PackageReference Include="MySql.Data" Version="8.0.33" />
+    <PackageReference Include="MySql.Data" Version="9.1.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="5.2.0" />
-    <PackageReference Include="RocksDB" Version="8.1.1.38647" />
+    <PackageReference Include="RocksDB" Version="9.4.0.50294" />
     <PackageReference Include="Scriban" Version="5.7.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
