@@ -786,7 +786,19 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		return online.getTimerRole();
 	}
 
-	/////////////////////////////////////////////////////////////
+	public @Nullable BIndex getTimerIndex(@NotNull String timerId) {
+		return _tIndexs.get(timerId);
+	}
+
+	public @Nullable BTimer getTimer(@NotNull String timerId) {
+		var index = _tIndexs.get(timerId);
+		if (index == null)
+			return null;
+		var node = _tNodes.get(index.getNodeId());
+		return node != null ? node.getTimers().get(timerId) : null;
+	}
+
+	// ///////////////////////////////////////////////////////////
 	// 内部实现
 	protected void tryRedirectCancel(int serverId, @NotNull String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
