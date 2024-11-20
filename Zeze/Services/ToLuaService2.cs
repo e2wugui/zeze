@@ -1323,7 +1323,7 @@ namespace Zeze.Services.ToLuaService2
 
         // 手动回收一个协议的table,要求lua栈顶是待回收的协议table,该table会在以后接收此协议时被复用
         // 如果返回false,说明还没调用LoadMeta或者protoTypeId未定义或者该协议类型已被指定自动回收(AddProtocolCache)或者已回收过多
-        public bool RecycleProtocolTable(IntPtr luaState, int moduleId, int protocolId)
+        public bool RecycleProtocolTable(IntPtr luaState, int moduleId, int protocolId, int maxCount = 1000)
         {
             if (!protocolMetas.TryGetValue(Protocol.MakeTypeId(moduleId, protocolId), out var meta)
                 || meta.CacheRef != (int)LuaDefine.NoRef)
@@ -1331,7 +1331,7 @@ namespace Zeze.Services.ToLuaService2
             var pool = meta.cacheRefPool;
             if (pool == null)
                 meta.cacheRefPool = pool = new List<int>();
-            else if (pool.Count >= 1000)
+            else if (pool.Count >= maxCount)
                 return false;
             CleanLuaTable(luaState);
             Lua.PushValue(luaState, -1); // [protoTable, protoTable]
