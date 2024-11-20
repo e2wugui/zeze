@@ -9,6 +9,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+@SuppressWarnings("DataFlowIssue")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestBag {
 	public static final int ADD_NUM = 100;          // add item num
@@ -31,7 +32,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test1_Add() throws Exception {
+	public final void test1_Add() {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
@@ -40,71 +41,71 @@ public class TestBag {
 				// bag.GetItemPileMax() TODO阶段，默认99
 				// 占用两个格子，第1个99个，第二个1个
 				var code = bag.add(i, ADD_NUM);
-				Assert.assertEquals(code, 0);
+				Assert.assertEquals(0, code);
 			}
 			// 总共占用20个格子
 			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
 		}, "test1_Add").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
-	public final void test2_Move() throws Exception {
+	public final void test2_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
+			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			int moveNum = MAX_GRID_CAPACITY - (ADD_NUM / 2);
 			for (int i = 0; i < ADD_PILE_NUM * 2; i += 2) {
 				int code = bag.move(i, i + 1, moveNum);
-				Assert.assertEquals(code, 0);
-				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2);
-				Assert.assertEquals(bag.getBean().getItems().get(i + 1).getNumber(), ADD_NUM / 2);
+				Assert.assertEquals(0, code);
+				Assert.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i).getNumber());
+				Assert.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i + 1).getNumber());
 			}
 			return Procedure.Success;
 		}, "test2_Move").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
-	public final void test3_Remove() throws Exception {
+	public final void test3_Remove() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
+			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, ADD_NUM / 2);
 				Assert.assertTrue(code);
 			}
-			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
+			Assert.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, SECOND_REMOVE_NUM);
 				Assert.assertTrue(code);
 			}
 			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
-				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM);
+				Assert.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM, bag.getBean().getItems().get(i).getNumber());
 			}
 			return Procedure.Success;
 		}, "test3_Remove").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
-	public final void test4_Move() throws Exception {
+	public final void test4_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
+			Assert.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
 			// 移动物品到空格子
 			int moveNum = (ADD_NUM / 2 - SECOND_REMOVE_NUM) / 2;
 			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
 				var code = bag.move(i, i - 1, moveNum);
-				Assert.assertEquals(code, 0);
-				Assert.assertEquals(bag.getBean().getItems().get(i - 1).getNumber(), moveNum);
-				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum);
+				Assert.assertEquals(0, code);
+				Assert.assertEquals(moveNum, bag.getBean().getItems().get(i - 1).getNumber());
+				Assert.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum, bag.getBean().getItems().get(i).getNumber());
 			}
-			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
+			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
 		}, "test4_Move").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	private static long preRemove() {

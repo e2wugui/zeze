@@ -12,7 +12,6 @@ import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestQueue {
-
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -24,7 +23,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test1_QueueAdd() throws Exception {
+	public final void test1_QueueAdd() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -34,10 +33,10 @@ public class TestQueue {
 				queue.add(bean);
 			}
 			var bean = queue.peek();
-			Assert.assertEquals(bean.getI(), 0);
+			Assert.assertEquals(0, bean.getI());
 			return Procedure.Success;
 		}, "test1_QueueAdd").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -51,11 +50,11 @@ public class TestQueue {
 			Assert.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
 			return true;
 		}));
-		Assert.assertEquals(i.get(), 10);
+		Assert.assertEquals(10, i.get());
 	}
 
 	@Test
-	public final void test3_QueuePop() throws Exception {
+	public final void test3_QueuePop() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -66,11 +65,11 @@ public class TestQueue {
 			Assert.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test2_QueuePop").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
-	public final void test4_QueuePush() throws Exception {
+	public final void test4_QueuePush() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -80,10 +79,10 @@ public class TestQueue {
 				queue.push(bean);
 			}
 			var bean = queue.peek();
-			Assert.assertEquals(bean.getI(), 9);
+			Assert.assertEquals(9, bean.getI());
 			return Procedure.Success;
 		}, "test3_QueuePush").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -97,11 +96,11 @@ public class TestQueue {
 			Assert.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
 			return true;
 		}));
-		Assert.assertEquals(i.get(), 10);
+		Assert.assertEquals(10, i.get());
 	}
 
 	@Test
-	public final void test6_QueuePop() throws Exception {
+	public final void test6_QueuePop() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
@@ -112,6 +111,6 @@ public class TestQueue {
 			Assert.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test4_QueuePop").call();
-		Assert.assertEquals(ret, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, ret);
 	}
 }

@@ -24,7 +24,6 @@ import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Procedure;
 
 public class TestChangeListener {
-
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -35,7 +34,7 @@ public class TestChangeListener {
 		//demo.App.getInstance().Stop();
 	}
 
-	private static void Prepare() throws Exception {
+	private static void prepare() {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
@@ -72,12 +71,13 @@ public class TestChangeListener {
 		}, "TestChangeListener.Prepare").call());
 	}
 
+	@SuppressWarnings("OverwrittenKey")
 	@Test
-	public final void testAllType() throws Exception {
-		Prepare();
+	public final void testAllType() {
+		prepare();
 		AddListener();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt_1(124);
@@ -108,9 +108,9 @@ public class TestChangeListener {
 
 			return Procedure.Success;
 		}, "TestChangeListener.Modify").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
@@ -125,18 +125,19 @@ public class TestChangeListener {
 			value.getMap15().remove(2L);
 			return Procedure.Success;
 		}, "TestChangeListener.ModifyCollections").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
+			//noinspection SlowAbstractSetRemoveAll
 			value.getSet10().removeAll(except);
 			return Procedure.Success;
 		}, "TestChangeListener.ModifySetExcept").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<>(Arrays.asList(123, 126));
@@ -152,18 +153,19 @@ public class TestChangeListener {
 			set10.addAll(temp);
 			return Procedure.Success;
 		}, "TestChangeListener.ModifySetIntersect").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
+			//noinspection SlowAbstractSetRemoveAll
 			value.getSet10().removeAll(SymmetricExcept);
 			return Procedure.Success;
 		}, "TestChangeListener.ModifySetSymmetricExcept").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> Union = new ArrayList<>(Arrays.asList(123, 140));
@@ -171,26 +173,26 @@ public class TestChangeListener {
 			value.getSet10().addAll(Union);
 			return Procedure.Success;
 		}, "TestChangeListener.ModifySetUnion").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.BValue());
 			return Procedure.Success;
 		}, "TestChangeListener.PutRecord").call());
-		Verify();
+		verify();
 
-		Init();
+		init();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.RemoveRecord").call());
-		Verify();
+		verify();
 	}
 
 	private demo.Module1.BValue localValue;
 
-	private void Init() throws Exception {
+	private void init() {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
@@ -214,7 +216,7 @@ public class TestChangeListener {
 		_CLMap15.Init(localValue);
 	}
 
-	private void Verify() throws Exception {
+	private void verify() {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
@@ -278,6 +280,7 @@ public class TestChangeListener {
 
 	static class Listener implements ChangeListener {
 		public final HashMap<Integer, VarListener> Vars = new HashMap<>();
+
 		@Override
 		public void OnChanged(Object key, Changes.Record r) {
 			switch (r.getState()) {
@@ -292,10 +295,10 @@ public class TestChangeListener {
 			case Changes.Record.Edit:
 				var logbean = r.getLogBean();
 				for (var e : Vars.entrySet()) {
+					//noinspection DataFlowIssue
 					var vlog = logbean.getVariables().get(e.getKey());
-					if (null != vlog) {
+					if (vlog != null)
 						e.getValue().OnChanged(key, vlog);
-					}
 				}
 				break;
 			}
@@ -304,10 +307,13 @@ public class TestChangeListener {
 
 	interface VarListener {
 		void OnChanged(Object key, Bean value);
+
 		void OnChanged(Object key, Log log);
+
 		void OnRemoved(Object key);
 	}
 
+	@SuppressWarnings("UseBulkOperation")
 	private static class CLMap15 implements VarListener {
 		private HashMap<Long, Long> newValue;
 
@@ -351,12 +357,12 @@ public class TestChangeListener {
 		@Override
 		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			var notemap1 = (LogMap1<Long, Long>)note;
+			var noteMap1 = (LogMap1<Long, Long>)note;
 
-			for (var a : notemap1.getReplaced().entrySet()) {
+			for (var a : noteMap1.getReplaced().entrySet()) {
 				newValue.put(a.getKey(), a.getValue());
 			}
-			for (var r : notemap1.getRemoved()) {
+			for (var r : noteMap1.getRemoved()) {
 				newValue.remove(r);
 			}
 		}
@@ -472,6 +478,7 @@ public class TestChangeListener {
 		}
 	}
 
+	@SuppressWarnings("UseBulkOperation")
 	private static class CLMap11 implements VarListener {
 		private HashMap<Long, BValue> newValue;
 
@@ -514,13 +521,13 @@ public class TestChangeListener {
 		@Override
 		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			var notemap2 = (LogMap2<Long, BValue>)note;
-			notemap2.mergeChangedToReplaced();
+			var noteMap2 = (LogMap2<Long, BValue>)note;
+			noteMap2.mergeChangedToReplaced();
 
-			for (var a : notemap2.getReplaced().entrySet()) {
+			for (var a : noteMap2.getReplaced().entrySet()) {
 				newValue.put(a.getKey(), a.getValue());
 			}
-			for (var r : notemap2.getRemoved()) {
+			for (var r : noteMap2.getRemoved()) {
 				newValue.remove(r);
 			}
 		}
@@ -531,6 +538,7 @@ public class TestChangeListener {
 		}
 	}
 
+	@SuppressWarnings("UseBulkOperation")
 	private static class CLSet10 implements VarListener {
 		private HashSet<Integer> newValue;
 
@@ -571,11 +579,11 @@ public class TestChangeListener {
 		@Override
 		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			var noteset = (LogSet1<Integer>)note;
-			for (var a : noteset.getAdded()) {
+			var noteSet = (LogSet1<Integer>)note;
+			for (var a : noteSet.getAdded()) {
 				newValue.add(a);
 			}
-			for (var r : noteset.getRemoved()) {
+			for (var r : noteSet.getRemoved()) {
 				newValue.remove(r);
 			}
 		}

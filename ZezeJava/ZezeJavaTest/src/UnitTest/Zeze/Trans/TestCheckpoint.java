@@ -9,8 +9,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestCheckpoint{
-
+@SuppressWarnings("DataFlowIssue")
+public class TestCheckpoint {
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -22,7 +22,7 @@ public class TestCheckpoint{
 	}
 
 	@Test
-	public final void testModeTable() throws Exception {
+	public final void testModeTable() {
 		/*
 		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().remove(1L);
@@ -71,8 +71,8 @@ public class TestCheckpoint{
 
 	@Test
 	public final void testCp() throws Exception {
-		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call(), Procedure.Success);
-		Assert.assertEquals(demo.App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call(), Procedure.Success);
+		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call());
+		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call());
 		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		var value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table, 56L);
@@ -97,6 +97,7 @@ public class TestCheckpoint{
 	}
 
 	private ByteBuffer bytesInTrans;
+
 	private long ProcChange() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(56L);
 		v.setInt_1(1);

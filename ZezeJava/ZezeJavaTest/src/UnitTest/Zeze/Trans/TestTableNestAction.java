@@ -21,7 +21,7 @@ public class TestTableNestAction {
 
 	@SuppressWarnings("ConstantConditions")
 	@Test
-	public final void testNestProcedure() throws Exception {
+	public final void testNestProcedure() {
 		var value1 = new OutInt();
 		var value2 = new OutInt();
 		demo.App.getInstance().Zeze.newProcedure(() -> {
@@ -70,12 +70,12 @@ public class TestTableNestAction {
 			return Procedure.Success;
 		}, "out").call();
 
-		Assert.assertEquals(value1.value, 3);
-		Assert.assertEquals(value2.value, 2);
+		Assert.assertEquals(3, value1.value);
+		Assert.assertEquals(2, value2.value);
 	}
 
 	@Test
-	public final void testNestProcedure2() throws Exception {
+	public final void testNestProcedure2() {
 		var zeze = demo.App.getInstance().Zeze;
 		var sb = new StringBuilder();
 

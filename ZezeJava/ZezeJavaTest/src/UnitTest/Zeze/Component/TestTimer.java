@@ -42,6 +42,7 @@ public class TestTimer {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
+			//noinspection DataFlowIssue
 			bean.addValue();
 			System.out.println(">> Name: " + timerContext.timerName
 					+ " ID: " + timerContext.timerId
@@ -56,6 +57,7 @@ public class TestTimer {
 		@Override
 		public void onTimer(TimerContext timerContext) {
 			TestBean bean = (TestBean)timerContext.customData;
+			//noinspection DataFlowIssue
 			if (bean.checkLiving()) {
 				bean.addValue();
 				System.out.println(">> Name: " + timerContext.timerName
@@ -103,7 +105,7 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assert.assertSame(testBean1.getTestValue(), 10);
+		Assert.assertSame(10, testBean1.getTestValue());
 		System.out.println("========== Test2 Passed ==========");
 
 		// Test canceling schedule

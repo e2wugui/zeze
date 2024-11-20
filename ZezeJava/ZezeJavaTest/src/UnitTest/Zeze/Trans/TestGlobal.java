@@ -16,6 +16,7 @@ import Zeze.Transaction.Procedure;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
+@SuppressWarnings("CallToPrintStackTrace")
 public class TestGlobal extends TestCase {
 	public static class PrintLog extends LogSpecial<BValue, BValue> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
@@ -110,20 +111,20 @@ public class TestGlobal extends TestCase {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			long countall = success0 + success1;
-			if (countall != count * 2)
+			long countAll = success0 + success1;
+			if (countAll != count * 2)
 				Thread.sleep(5000); // wait for globalForbidPeriod
 
 			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				int last1 = Objects.requireNonNull(app1.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app1 " + last1);
-				Assert.assertEquals(countall, last1);
+				Assert.assertEquals(countAll, last1);
 				return Procedure.Success;
 			}, "CheckResult1").call());
 			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
 				int last2 = Objects.requireNonNull(app2.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app2 " + last2);
-				Assert.assertEquals(countall, last2);
+				Assert.assertEquals(countAll, last2);
 				return Procedure.Success;
 			}, "CheckResult2").call());
 		} finally {

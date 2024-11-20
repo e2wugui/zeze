@@ -17,11 +17,11 @@ public class TestRelationalTableDiff {
 		variable.id = id;
 		variable.type = new Schemas.Type();
 		variable.type.name = "int";
-		var col = new Schemas.Column(name, new int[] { id }, variable, "");
+		var col = new Schemas.Column(name, new int[]{id}, variable, "");
 		columns.add(col);
 	}
 
-	private static Set<Integer> varialbleIds(ArrayList<Schemas.Column> columns) {
+	private static Set<Integer> variableIds(ArrayList<Schemas.Column> columns) {
 		var result = new HashSet<Integer>();
 		for (var column : columns)
 			result.add(column.variableId);
@@ -79,9 +79,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 6), varialbleIds(r.add));
-			Assert.assertEquals(Set.of(2, 7), varialbleIds(r.remove));
-			Assert.assertEquals(Set.of(4), varialbleIds(r.change));
+			Assert.assertEquals(Set.of(3, 6), variableIds(r.add));
+			Assert.assertEquals(Set.of(2, 7), variableIds(r.remove));
+			Assert.assertEquals(Set.of(4), variableIds(r.change));
 		}
 		{
 			var r = new Schemas.RelationalTable("table4");
@@ -106,9 +106,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 8), varialbleIds(r.add));
-			Assert.assertEquals(Set.of(2, 7), varialbleIds(r.remove));
-			Assert.assertEquals(Set.of(4), varialbleIds(r.change));
+			Assert.assertEquals(Set.of(3, 8), variableIds(r.add));
+			Assert.assertEquals(Set.of(2, 7), variableIds(r.remove));
+			Assert.assertEquals(Set.of(4), variableIds(r.change));
 		}
 	}
 }

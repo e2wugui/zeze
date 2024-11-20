@@ -13,6 +13,7 @@ import Zeze.Transaction.DatabaseMySql;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
+@SuppressWarnings("CallToPrintStackTrace")
 public class TestDatabaseMySql extends TestCase {
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {

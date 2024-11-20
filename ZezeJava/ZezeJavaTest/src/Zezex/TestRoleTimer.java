@@ -45,8 +45,8 @@ public class TestRoleTimer {
 		Thread.sleep(2000);
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
-			var ipport = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipport.getKey(), ipport.getValue());
+			var ipPort = link.LinkdService.getOnePassiveAddress();
+			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
 			clients.get(i).Connector.WaitReady();
 		}
 	}

@@ -54,7 +54,6 @@ public class TestNettyHttp {
 					if (((HttpRequest)msg).uri().equals("/")) {
 						var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
 								HttpResponseStatus.OK, Unpooled.wrappedBuffer(RES_BODY));
-						//noinspection VulnerableCodeUsages
 						res.headers()
 								.set(HttpHeaderNames.CONTENT_LENGTH, CONTENT_LENGTH)
 								.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)
@@ -96,7 +95,6 @@ public class TestNettyHttp {
 		loopGroup.next().scheduleWithFixedDelay(() -> Handler.date = format.format(new Date()), 0, 1, TimeUnit.SECONDS);
 		var addr = new InetSocketAddress(Integer.getInteger("port", 80));
 		System.out.println("use " + serverChannelClass.getName() + ", listen " + addr);
-		//noinspection VulnerableCodeUsages
 		b.group(loopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)

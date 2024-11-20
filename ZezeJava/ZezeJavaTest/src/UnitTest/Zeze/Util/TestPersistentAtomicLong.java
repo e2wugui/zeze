@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+@SuppressWarnings("CallToPrintStackTrace")
 public class TestPersistentAtomicLong extends TestCase {
 	public void testConcurrent() {
 		Task.tryInitThreadPool();

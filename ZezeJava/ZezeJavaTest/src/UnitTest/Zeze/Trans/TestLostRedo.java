@@ -76,6 +76,7 @@ public class TestLostRedo {
 
 	private final ConcurrentHashMap<Long, Long> autos = new ConcurrentHashMap<>();
 	private final AtomicLong runTimes = new AtomicLong();
+
 	private long autoKeyConflict() {
 		runTimes.incrementAndGet();
 		@SuppressWarnings("deprecation")
@@ -111,11 +112,12 @@ public class TestLostRedo {
 		for (var future : futures)
 			future.get();
 
-		Assert.assertEquals(insertOks.get(), count);
+		Assert.assertEquals(count, insertOks.get());
 		System.out.println("insert funTimes=" + runTimes.get());
 	}
 
 	private final AtomicLong insertOks = new AtomicLong();
+
 	private long autoKeyWithInsert() {
 		runTimes.incrementAndGet();
 		@SuppressWarnings("deprecation")

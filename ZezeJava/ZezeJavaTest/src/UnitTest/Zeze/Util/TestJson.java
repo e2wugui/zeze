@@ -229,6 +229,7 @@ public final class TestJson extends TestCase {
 	public void testC() {
 		String s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 		assertEquals("4000000000000000", s);
+		//noinspection DynamicRegexReplaceableByCompiledPattern
 		if (Integer.parseInt(System.getProperty("java.version").replaceFirst("^1\\.", "").replaceFirst("\\D.*", "")) > 8) {
 			s = String.format("%X", JsonWriter.umulHigh9(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 			assertEquals("4000000000000000", s);

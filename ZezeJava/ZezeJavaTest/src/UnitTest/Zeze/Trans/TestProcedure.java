@@ -15,35 +15,35 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestProcdure {
+public class TestProcedure {
 	private final BMyBean bean = new BMyBean();
 
 	public final long ProcTrue() {
 		bean.setI(123);
-		Assert.assertEquals(bean.getI(), 123);
+		Assert.assertEquals(123, bean.getI());
 		return Procedure.Success;
 	}
 
 	public final long ProcFalse() {
 		bean.setI(456);
-		Assert.assertEquals(bean.getI(), 456);
+		Assert.assertEquals(456, bean.getI());
 		return Procedure.Unknown;
 	}
 
-	public final long ProcNest() throws Exception {
-		Assert.assertEquals(bean.getI(), 0);
+	public final long ProcNest() {
+		Assert.assertEquals(0, bean.getI());
 		bean.setI(1);
-		Assert.assertEquals(bean.getI(), 1);
+		Assert.assertEquals(1, bean.getI());
 		{
 			long r = demo.App.getInstance().Zeze.newProcedure(this::ProcFalse, "ProcFalse").call();
-			Assert.assertNotEquals(r, Procedure.Success);
-			Assert.assertEquals(bean.getI(), 1);
+			Assert.assertNotEquals(Procedure.Success, r);
+			Assert.assertEquals(1, bean.getI());
 		}
 
 		{
 			long r = demo.App.getInstance().Zeze.newProcedure(this::ProcTrue, "ProcFalse").call();
-			Assert.assertEquals(r, Procedure.Success);
-			Assert.assertEquals(bean.getI(), 123);
+			Assert.assertEquals(Procedure.Success, r);
+			Assert.assertEquals(123, bean.getI());
 		}
 
 		return Procedure.Success;
@@ -63,16 +63,17 @@ public class TestProcdure {
 	public final void test1() throws Exception {
 		TableKey root = new TableKey(1, 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
+		//noinspection DataFlowIssue
 		var r = new Record1<>(null, 1L, bean);
 		bean.initRootInfo(r.createRootInfoIfNeed(root), null);
 		long rc = demo.App.getInstance().Zeze.newProcedure(this::ProcNest, "ProcNest").call();
-		Assert.assertEquals(rc, Procedure.Success);
+		Assert.assertEquals(Procedure.Success, rc);
 		// 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
-		Assert.assertEquals(bean._i, 123);
+		Assert.assertEquals(123, bean._i);
 	}
 
 	@Test
-	public final void testVector() throws Exception {
+	public final void testVector() {
 		App.getInstance().Zeze.newProcedure(() -> {
 			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
 			v.setVector2(new Vector2(1, 2));
@@ -97,7 +98,7 @@ public class TestProcdure {
 	}
 
 	@Test
-	public void testNestLogOneLogDynamic() throws Exception {
+	public void testNestLogOneLogDynamic() {
 		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18989L);
 			value.setBean12(new BSimple());
@@ -119,7 +120,7 @@ public class TestProcdure {
 	}
 
 	@Test
-	public void testSortList() throws Exception {
+	public void testSortList() {
 		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			var value = App.Instance.demo_Module1.getTable1().getOrAdd(18990L);
 			value.getList9().clear();

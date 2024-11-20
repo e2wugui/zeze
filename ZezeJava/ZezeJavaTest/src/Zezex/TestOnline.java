@@ -41,8 +41,8 @@ public class TestOnline extends TestCase {
 		Thread.sleep(2000); // wait server ready
 		for (int i = 0; i < ClientCount; ++i) {
 			var link = links.get(i % LinkCount); // 按顺序选择link
-			var ipport = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipport.getKey(), ipport.getValue());
+			var ipPort = link.LinkdService.getOnePassiveAddress();
+			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
 			// wait client connected
 			clients.get(i).Connector.WaitReady();
 		}

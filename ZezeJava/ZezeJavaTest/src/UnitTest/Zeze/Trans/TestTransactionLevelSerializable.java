@@ -9,7 +9,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestTransactionLevelSerialiable {
+public class TestTransactionLevelSerializable {
 	@Before
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
@@ -23,14 +23,14 @@ public class TestTransactionLevelSerialiable {
 	private volatile boolean InTest = true;
 
 	@Test
-	public final void Test2() throws Exception {
-		App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::init, "test_init").call();
+	public final void Test2() {
+		App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::init, "test_init").call();
 		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
 			Future<?>[] tasks = new Future[20000];
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.runUnsafe(
-						App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::trade, "test_trade"),
+						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade"),
 						DispatchMode.Normal);
 			}
 			Zeze.Util.Task.waitAll(tasks);
@@ -39,9 +39,9 @@ public class TestTransactionLevelSerialiable {
 		}
 	}
 
-	private void verify_task() throws Exception {
+	private void verify_task() {
 		while (InTest) {
-			App.Instance.Zeze.newProcedure(TestTransactionLevelSerialiable::verify, "test_verify").call();
+			App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::verify, "test_verify").call();
 		}
 	}
 
@@ -50,7 +50,7 @@ public class TestTransactionLevelSerialiable {
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		final var total = v1.getInt_1() + v2.getInt_1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
-		Transaction.whileCommit(() -> Assert.assertEquals(total, 100_000));
+		Transaction.whileCommit(() -> Assert.assertEquals(100_000, total));
 		return 0;
 	}
 

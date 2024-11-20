@@ -5,8 +5,8 @@ import Zeze.Util.OutInt;
 import org.junit.Assert;
 import org.junit.Test;
 
+@SuppressWarnings("CallToPrintStackTrace")
 public class TestConcurrentStartServer {
-
 	@Test
 	public void testConcurrentStartServer() throws Exception {
 		//var config = Config.load("zeze.xml");
@@ -30,7 +30,7 @@ public class TestConcurrentStartServer {
 				config1.getServiceConfMap().remove("Zeze.Onz.Server");
 				app1.Start(config1);
 				start1.value = 1;
-			} catch(Throwable e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 			}
 		});
@@ -67,9 +67,9 @@ public class TestConcurrentStartServer {
 			t1.join();
 			t2.join();
 			t3.join();
-			Assert.assertEquals(start1.value, 1);
-			Assert.assertEquals(start2.value, 1);
-			Assert.assertEquals(start3.value, 1);
+			Assert.assertEquals(1, start1.value);
+			Assert.assertEquals(1, start2.value);
+			Assert.assertEquals(1, start3.value);
 		} finally {
 			app1.Stop();
 			app2.Stop();

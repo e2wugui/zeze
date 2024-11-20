@@ -15,9 +15,9 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+@SuppressWarnings("CallToPrintStackTrace")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestGameTimer {
-
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
@@ -33,6 +33,7 @@ public class TestGameTimer {
 		}
 	}
 
+	@SuppressWarnings({"SameParameterValue", "unused"})
 	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
 		clients.clear();
 		links.clear();
@@ -57,8 +58,8 @@ public class TestGameTimer {
 		}
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
-			var ipport = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipport.getKey(), ipport.getValue());
+			var ipPort = link.LinkdService.getOnePassiveAddress();
+			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
 			clients.get(i).Connector.WaitReady();
 		}
 	}
@@ -75,8 +76,9 @@ public class TestGameTimer {
 			link.Stop();
 	}
 
-	private static void testContent(TimerContext context) throws Exception {
+	private static void testContent(TimerContext context) {
 		TestBean bean = (TestBean)context.customData;
+		//noinspection DataFlowIssue
 		if (bean.checkLiving())
 			bean.addValue();
 		System.out.println(">> Name: " + context.timerName
@@ -88,7 +90,7 @@ public class TestGameTimer {
 
 	public static class TestOnlineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -103,8 +105,8 @@ public class TestGameTimer {
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
-			var link0 = links.get(0);
-			var link1 = links.get(1);
+//			var link0 = links.get(0);
+//			var link1 = links.get(1);
 			var server0 = servers.get(0);
 //			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
@@ -171,7 +173,7 @@ public class TestGameTimer {
 
 	public static class TestOfflineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -188,15 +190,15 @@ public class TestGameTimer {
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
-			var link0 = links.get(0);
-			var link1 = links.get(1);
+//			var link0 = links.get(0);
+//			var link1 = links.get(1);
 			var server0 = servers.get(0);
-			var server1 = servers.get(1);
+//			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
-			var timer1 = server1.getZeze().getTimer();
+//			var timer1 = server1.getZeze().getTimer();
 
 			var timerRole0 = timer0.getRoleTimer();
-			var timerRole1 = timer1.getRoleTimer();
+//			var timerRole1 = timer1.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
@@ -232,6 +234,7 @@ public class TestGameTimer {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
 		relogin.Argument.setRoleId(roleId);
@@ -239,6 +242,7 @@ public class TestGameTimer {
 		Assert.assertEquals(0, relogin.getResultCode());
 	}
 
+	@SuppressWarnings("unused")
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Zeze.Builtin.Game.Online.Logout();
 		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
@@ -252,6 +256,7 @@ public class TestGameTimer {
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private static void auth(ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
@@ -259,6 +264,7 @@ public class TestGameTimer {
 		Assert.assertEquals(0, auth.getResultCode());
 	}
 
+	@SuppressWarnings("SameParameterValue")
 	private static long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
