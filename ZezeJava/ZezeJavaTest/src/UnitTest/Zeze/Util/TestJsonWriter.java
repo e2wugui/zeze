@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import junit.framework.TestCase;
@@ -109,6 +110,68 @@ public class TestJsonWriter extends TestCase {
 		count++;
 	}
 
+	public static void testDoubleRange() {
+		final JsonWriter jw = JsonWriter.local();
+		double d = 0.01;
+		for (int j = 0; j < 5; j++, d *= 10) {
+			long dd = Double.doubleToRawLongBits(d);
+			for (int i = 0; i < 1_000_000; i++) {
+				final double f = Double.longBitsToDouble(dd + i);
+				jw.clear().write(f);
+				final String s = jw.toString();
+				final double f2 = Double.parseDouble(s);
+				if (f != f2)
+					throw new AssertionError("testDoubleRange[" + j + "," + i + "]: " + f + " != " + f2 + ", " + s);
+			}
+		}
+		for (long e = 0; e < 2048; e++) {
+			final double f = Double.doubleToRawLongBits(e << 52);
+			jw.clear().write(f);
+			final String s = jw.toString();
+			final double f2 = Double.parseDouble(s);
+			if (f != f2)
+				throw new AssertionError("testDoubleRange[e" + e + "]: " + f + " != " + f2 + ", " + s);
+		}
+		for (long e = 0; e < 2048; e++) {
+			final double f = Double.doubleToRawLongBits((e << 52) + 1);
+			jw.clear().write(f);
+			final String s = jw.toString();
+			final double f2 = Double.parseDouble(s);
+			//noinspection ConstantValue
+			if (f != f2 && !(Double.isNaN(f) && Double.isNaN(f2)))
+				throw new AssertionError("testDoubleRange[e" + e + ":1]: " + f + " != " + f2 + ", " + s);
+		}
+		for (int i = 0; i < 1_000_000; i++) {
+			final double f = Double.doubleToRawLongBits(i);
+			jw.clear().write(f);
+			final String s = jw.toString();
+			final double f2 = Double.parseDouble(s);
+			if (f != f2)
+				throw new AssertionError("testDoubleRange[" + i + "]: " + f + " != " + f2 + ", " + s);
+		}
+		System.out.println("testDoubleRange OK!");
+	}
+
+	public static void testDoubleRandom() {
+		final JsonWriter jw = JsonWriter.local();
+		final ThreadLocalRandom r = ThreadLocalRandom.current();
+		for (int i = 0; i < 1_000_000; i++) {
+			long v = r.nextLong();
+			if ((v & 0x7ff0_0000_0000_0000L) == 0x7ff0_0000_0000_0000L) {
+				v &= 0xfff8_0000_0000_0000L; // Infinity/-Infinity/NaN
+				if (v == 0xfff8_0000_0000_0000L)
+					v = 0x7ff8_0000_0000_0000L;
+			}
+			final double f = Double.longBitsToDouble(v);
+			jw.clear().write(f);
+			final String s = jw.toString();
+			final double f2 = Double.parseDouble(s);
+			if (f != f2 && !(Double.isNaN(f) && Double.isNaN(f2)))
+				throw new AssertionError("testDoubleRandom[" + i + "]: " + f + " != " + f2 + ", " + s);
+		}
+		System.out.println("testDoubleRandom OK!");
+	}
+
 	public void testAll() {
 		try {
 			testLong(0);
@@ -182,6 +245,9 @@ public class TestJsonWriter extends TestCase {
 			testDouble(3, -0.10000000000000001, "-0.1");
 			testDouble(2, -0.10000000000000001, "-0.1");
 			testDouble(1, -0.10000000000000001, "-0.1");
+
+			testDoubleRange();
+			testDoubleRandom();
 		} catch (Exception e) {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

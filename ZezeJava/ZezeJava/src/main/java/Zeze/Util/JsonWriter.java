@@ -42,11 +42,13 @@ public final class JsonWriter {
 			'8', '4', '8', '5', '8', '6', '8', '7', '8', '8', '8', '9', '9', '0', '9', '1', '9', '2', '9', '3', '9',
 			'4', '9', '5', '9', '6', '9', '7', '9', '8', '9', '9'};
 
-	private static final long[] POW10 = {1, 10, 100, 1000, 1_0000, 10_0000, 100_0000, 1000_0000, 1_0000_0000,
-			10_0000_0000, 100_0000_0000L, 1000_0000_0000L, 1_0000_0000_0000L, 10_0000_0000_0000L, 100_0000_0000_0000L,
-			1000_0000_0000_0000L, 1_0000_0000_0000_0000L, 10_0000_0000_0000_0000L, 100_0000_0000_0000_0000L};
+	private static final long[] POW10 = { // [19]
+			1, 10, 100, 1000, 1_0000, 10_0000, 100_0000, 1000_0000, 1_0000_0000, 10_0000_0000, 100_0000_0000L,
+			1000_0000_0000L, 1_0000_0000_0000L, 10_0000_0000_0000L, 100_0000_0000_0000L, 1000_0000_0000_0000L,
+			1_0000_0000_0000_0000L, 10_0000_0000_0000_0000L, 100_0000_0000_0000_0000L};
 
-	private static final long[] CACHED_POWERS_F = {0xfa8fd5a0_081c0288L, 0xbaaee17f_a23ebf76L, 0x8b16fb20_3055ac76L,
+	private static final long[] CACHED_POWERS_F = {
+			0xfa8fd5a0_081c0288L, 0xbaaee17f_a23ebf76L, 0x8b16fb20_3055ac76L,
 			0xcf42894a_5dce35eaL, 0x9a6bb0aa_55653b2dL, 0xe61acf03_3d1a45dfL, 0xab70fe17_c79ac6caL,
 			0xff77b1fc_bebcdc4fL, 0xbe5691ef_416bd60cL, 0x8dd01fad_907ffc3cL, 0xd3515c28_31559a83L,
 			0x9d71ac8f_ada6c9b5L, 0xea9c2277_23ee8bcbL, 0xaecc4991_4078536dL, 0x823c1279_5db6ce57L,
@@ -69,11 +71,12 @@ public final class JsonWriter {
 			0xac2820d9_623bf429L, 0x80444b5e_7aa7cf85L, 0xbf21e440_03acdd2dL, 0x8e679c2f_5e44ff8fL,
 			0xd433179d_9c8cb841L, 0x9e19db92_b4e31ba9L, 0xeb96bf6e_badf77d9L, 0xaf87023b_9bf0ee6bL};
 
-	private static final int[] CACHED_POWERS_E = {-1220, -1193, -1166, -1140, -1113, -1087, -1060, -1034, -1007, -980,
-			-954, -927, -901, -874, -847, -821, -794, -768, -741, -715, -688, -661, -635, -608, -582, -555, -529, -502,
-			-475, -449, -422, -396, -369, -343, -316, -289, -263, -236, -210, -183, -157, -130, -103, -77, -50, -24, 3,
-			30, 56, 83, 109, 136, 162, 189, 216, 242, 269, 295, 322, 348, 375, 402, 428, 455, 481, 508, 534, 561, 588,
-			614, 641, 667, 694, 720, 747, 774, 800, 827, 853, 880, 907, 933, 960, 986, 1013, 1039, 1066};
+	private static final int[] CACHED_POWERS_E = {
+			-1220, -1193, -1166, -1140, -1113, -1087, -1060, -1034, -1007, -980, -954, -927, -901, -874, -847, -821,
+			-794, -768, -741, -715, -688, -661, -635, -608, -582, -555, -529, -502, -475, -449, -422, -396, -369, -343,
+			-316, -289, -263, -236, -210, -183, -157, -130, -103, -77, -50, -24, 3, 30, 56, 83, 109, 136, 162, 189, 216,
+			242, 269, 295, 322, 348, 375, 402, 428, 455, 481, 508, 534, 561, 588, 614, 641, 667, 694, 720, 747, 774,
+			800, 827, 853, 880, 907, 933, 960, 986, 1013, 1039, 1066};
 
 	private static final byte[] ESCAPE = { //@formatter:off
 		//   0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
@@ -810,17 +813,17 @@ public final class JsonWriter {
 
 		final long cmkf = CACHED_POWERS_F[idx]; // highest bit == 1
 		if (javaVersion >= 18) { // for JDK18+
-			f = umulHigh18(f, cmkf);
-			pf = umulHigh18(pf, cmkf);
-			mf = umulHigh18(mf, cmkf);
+			f = umulHigh18(f, cmkf) + ((f * cmkf) >>> 63);
+			pf = umulHigh18(pf, cmkf) + ((pf * cmkf) >>> 63);
+			mf = umulHigh18(mf, cmkf) + ((mf * cmkf) >>> 63);
 		} else if (javaVersion >= 9) { // for JDK9+
-			f = umulHigh9(f, cmkf);
-			pf = umulHigh9(pf, cmkf);
-			mf = umulHigh9(mf, cmkf);
+			f = umulHigh9(f, cmkf) + ((f * cmkf) >>> 63);
+			pf = umulHigh9(pf, cmkf) + ((pf * cmkf) >>> 63);
+			mf = umulHigh9(mf, cmkf) + ((mf * cmkf) >>> 63);
 		} else { // for JDK8-
-			f = umulHigh(f, cmkf);
-			pf = umulHigh(pf, cmkf);
-			mf = umulHigh(mf, cmkf);
+			f = umulHigh(f, cmkf) + ((f * cmkf) >>> 63);
+			pf = umulHigh(pf, cmkf) + ((pf * cmkf) >>> 63);
+			mf = umulHigh(mf, cmkf) + ((mf * cmkf) >>> 63);
 		}
 		e = -(pe + CACHED_POWERS_E[idx] + 64);
 		long delta = pf-- - mf - 2;

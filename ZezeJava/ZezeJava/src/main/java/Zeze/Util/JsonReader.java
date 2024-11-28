@@ -1172,13 +1172,13 @@ public final class JsonReader {
 				}
 			}
 		} catch (IndexOutOfBoundsException ignored) {
+			if (useDouble == 1)
+				d = i;
 		}
 		pos = p;
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			if (useDouble == 1)
-				d = i;
 			exp += expFrac;
 			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
 			i = (int)(minus ? -d : d);
@@ -1271,13 +1271,13 @@ public final class JsonReader {
 				}
 			}
 		} catch (IndexOutOfBoundsException ignored) {
+			if (useDouble == 1)
+				d = i;
 		}
 		pos = p;
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			if (useDouble == 1)
-				d = i;
 			exp += expFrac;
 			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
 			i = (long)(minus ? -d : d);
@@ -1370,13 +1370,13 @@ public final class JsonReader {
 				}
 			}
 		} catch (IndexOutOfBoundsException ignored) {
+			if (useDouble == 1)
+				d = i;
 		}
 		pos = p;
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			if (useDouble == 1)
-				d = i;
 			exp += expFrac;
 			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
 			if (minus)
@@ -1490,13 +1490,13 @@ public final class JsonReader {
 				}
 			}
 		} catch (IndexOutOfBoundsException ignored) {
+			if (useDouble == 1)
+				d = i;
 		}
 		pos = p;
 		if (expMinus)
 			exp = -exp;
 		if (useDouble > 0) {
-			if (useDouble == 1)
-				d = i;
 			exp += expFrac;
 			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
 			return minus ? -d : d;
