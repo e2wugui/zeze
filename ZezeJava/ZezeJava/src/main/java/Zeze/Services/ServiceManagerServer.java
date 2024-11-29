@@ -595,6 +595,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		announceContextLock.lock();
 		try {
 			var ctx = announceContextMap.computeIfAbsent(notifyId, k -> {
+				logger.info("processAnnounceServers: new context notifyId={}", k);
 				var c = new AnnounceContext(k);
 				Task.scheduleUnsafe(5000, () -> checkAnnounceContextTask(c));
 				return c;
@@ -657,7 +658,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				long offlineSerialId = offlineSerialIds.get(i);
 				Task.run(() -> notifyOffline(ctx, offlineServerId, offlineSerialId), "notifyOffline"); // 并行通知多个离线的serverId
 			}
-		}
+		} else
+			logger.info("checkAnnounceContextTask: no offline server for notifyId={}", ctx.notifyId);
 	}
 
 	// 传入的ctx应该已经从announceContextMaps里移除,这里仅只读,所以可以并发
