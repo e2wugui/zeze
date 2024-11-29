@@ -281,6 +281,8 @@ public final class Agent extends AbstractAgent {
 				OfflineRegister::new, null, TransactionLevel.None, DispatchMode.Normal));
 		client.AddFactoryHandle(NormalClose.TypeId_, new ProtocolFactoryHandle<>(
 				NormalClose::new, null, TransactionLevel.None, DispatchMode.Critical));
+		client.AddFactoryHandle(AnnounceServers.TypeId_, new ProtocolFactoryHandle<>(
+				AnnounceServers::new, null, TransactionLevel.None, DispatchMode.Critical));
 
 		threading = new Threading(client, config.getServerId());
 		threading.RegisterProtocols(client);
