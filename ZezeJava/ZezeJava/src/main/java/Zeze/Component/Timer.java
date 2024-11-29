@@ -29,6 +29,8 @@ import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
 import Zeze.Serialize.Serializable;
+import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.AnnounceServers;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -37,6 +39,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
@@ -47,8 +50,12 @@ import org.jetbrains.annotations.Nullable;
 
 public class Timer extends AbstractTimer implements HotBeanFactory {
 	static final Logger logger = LogManager.getLogger(Timer.class);
-	public static final int CountPerNode = 50;
+	private static int CountPerNode = Reflect.inDebugMode ? 1 : 10; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
+
+	public static void setCountPerNode(int countPerNode) {
+		CountPerNode = Math.max(countPerNode, 1);
+	}
 
 	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
 		return BeanFactory.getSpecialTypeIdFromBean(bean);
@@ -105,7 +112,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 非事务环境调用。用于启动Timer服务。
 	 */
-	public void start() {
+	public void start() throws Exception {
 		lock();
 		try {
 			if (started)
@@ -1138,7 +1145,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
-	private void loadTimer() {
+	private void loadTimer() throws Exception {
 		var serverId = zeze.getConfig().getServerId();
 		var outRoot = new BNodeRoot();
 		var r = Task.call(zeze.newProcedure(() -> {
@@ -1158,6 +1165,24 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			loadTimer(outRoot.getHeadNodeId(), outRoot.getHeadNodeId(), serverId); // last也填头节点是因为链表是循环的
 		} else
 			logger.error("loadTimer failed: r={}", r);
+
+		var agent = zeze.getServiceManager();
+		if (agent instanceof Agent) { // 暂时只支持非Raft的ServiceManager
+			var p = new AnnounceServers();
+			p.Argument.notifyId = "Zeze.Component.Timer.NotifyOffline";
+			p.Argument.serverId = serverId;
+			_tNodeRoot.walk((k, v) -> {
+				if (v.getHeadNodeId() != 0) {
+					p.Argument.watchServerIds.add(k);
+					p.Argument.watchSerialIds.add(v.getLoadSerialNo());
+				}
+				return true;
+			});
+			((Agent)agent).offlineRegister(p.Argument.notifyId,
+					notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
+			agent.waitReady();
+			p.SendAndWaitCheckResultCode(((Agent)agent).getClient().getSocket());
+		}
 	}
 
 	/**

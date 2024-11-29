@@ -137,6 +137,10 @@ public final class Agent extends AbstractAgent {
 		new OfflineRegister(argument).SendAndWaitCheckResultCode(client.getSocket());
 	}
 
+	public void offlineRegister(@NotNull String notifyId, @NotNull Action1<BOfflineNotify> handle) {
+		onOfflineNotifies.put(notifyId, handle);
+	}
+
 	@Override
 	public boolean setServerLoad(@NotNull BServerLoad load) {
 		return new SetServerLoad(load).Send(client.getSocket());

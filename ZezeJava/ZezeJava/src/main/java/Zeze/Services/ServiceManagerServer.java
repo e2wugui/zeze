@@ -26,6 +26,8 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
+import Zeze.Util.IntHashMap;
+import Zeze.Util.IntList;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
@@ -249,7 +251,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 	}
 
-	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, Future<?>> offlineNotifyFutures = new ConcurrentHashMap<>(); // key:serverId
 
 	// 每个server连接的状态
 	public static final class Session {
@@ -266,7 +268,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		// 如果是负数，将不会进行延迟通知，即这种情况下，通知马上发出。
 
 		private final FastLock offlineRegisterNotifiesLock = new FastLock();
-		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。value:notifyId
+		private final HashMap<String, BOfflineNotify> offlineRegisterNotifies = new HashMap<>(); // 使用的时候加锁保护。key:notifyId
 
 		public Session(@NotNull ServiceManagerServer sm, long sid) {
 			serviceManager = sm;
@@ -534,6 +536,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 
 	@SuppressWarnings("MethodMayBeStatic")
 	private long processNormalClose(@NotNull NormalClose r) {
+		logger.info("{}: NormalClose", r.getSender());
 		var session = (Session)r.getSender().getUserState();
 		session.offlineRegisterNotifiesLock.lock();
 		try {
@@ -544,6 +547,140 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		}
 		r.SendResult();
 		return 0;
+	}
+
+	private static final class WatchState {
+		long beginMs; // -1表示已收到announce
+		long serial;
+
+		WatchState(long beginMs, long serial) {
+			this.beginMs = beginMs;
+			this.serial = serial;
+		}
+	}
+
+	private static final class AnnounceContext {
+		final @NotNull String notifyId; // 对应BOfflineNotify中的notifyId, 隔离不同notifyId的context
+		final IntHashMap<@NotNull WatchState> watchMap = new IntHashMap<>(); // key:serverId
+		final HashSet<@NotNull AsyncSocket> sockets = new HashSet<>(); // 所有参与announce的socket,用于发现离线时随机选取和通知
+
+		AnnounceContext(@NotNull String notifyId) {
+			this.notifyId = notifyId;
+		}
+	}
+
+	private final HashMap<@NotNull String, @NotNull AnnounceContext> announceContextMap = new HashMap<>(); // key:notifyId
+	private final ReentrantLock announceContextLock = new ReentrantLock(); // 先用大锁,因为AnnounceServers协议应该不太频繁
+
+	private long processAnnounceServers(@NotNull AnnounceServers r) {
+		var socket = r.getSender();
+		if (socket == null) {
+			logger.error("processAnnounceServers: null sender: {}", r);
+			return Procedure.AuthFail;
+		}
+		var notifyId = r.Argument.notifyId;
+		int serverId = r.Argument.serverId;
+		var watchServerIds = r.Argument.watchServerIds;
+		var watchSerialIds = r.Argument.watchSerialIds;
+		if (watchServerIds.size() != watchSerialIds.size()) {
+			logger.error("processAnnounceServers: unmatched watches: {} != {}",
+					watchServerIds.size(), watchSerialIds.size());
+			return Procedure.LogicError;
+		}
+		if (watchServerIds.indexOf(serverId) < 0) {
+			watchServerIds.add(serverId); // watchServerIds也包含announce的serverId,方便后续处理
+			watchSerialIds.add(0); // 对本服来说值不会被用到
+		}
+
+		announceContextLock.lock();
+		try {
+			var ctx = announceContextMap.computeIfAbsent(notifyId, k -> {
+				var c = new AnnounceContext(k);
+				Task.scheduleUnsafe(5000, () -> checkAnnounceContextTask(c));
+				return c;
+			});
+			var curMs = System.nanoTime() / 1_000_000;
+			for (int i = 0, n = watchServerIds.size(); i < n; i++) {
+				int sid = watchServerIds.get(i);
+				var serial = watchSerialIds.get(i);
+				var watchState = ctx.watchMap.get(sid);
+				if (watchState == null)
+					ctx.watchMap.put(sid, watchState = new WatchState(curMs, serial));
+				if (sid == serverId)
+					watchState.beginMs = -1; // 标记已经announce
+				else if (watchState.beginMs != -1 && watchState.serial < serial) {
+					watchState.beginMs = curMs;
+					watchState.serial = serial;
+				}
+			}
+			ctx.sockets.add(socket);
+			r.SendResult();
+		} finally {
+			announceContextLock.unlock();
+		}
+		return 0;
+	}
+
+	private void checkAnnounceContextTask(@NotNull AnnounceContext ctx) {
+		IntList offlineServerIds = null;
+		LongList offlineSerialIds = null;
+		announceContextLock.lock();
+		try {
+			var curMs = System.nanoTime() / 1_000_000;
+			for (var it = ctx.watchMap.iterator(); it.moveToNext(); ) {
+				var watchState = it.value();
+				if (watchState.beginMs != -1 && curMs - watchState.beginMs < Session.eOfflineNotifyDelay) {
+					// 还有需要等待的(没announce过且没通知offline过的),继续下次调度
+					Task.scheduleUnsafe(5000, () -> checkAnnounceContextTask(ctx));
+					return;
+				}
+			}
+			// 到这里已经没有需要等待的了,开始通知offline并清理掉AnnounceContext
+			for (var it = ctx.watchMap.iterator(); it.moveToNext(); ) {
+				var watchState = it.value();
+				if (watchState.beginMs != -1) {
+					if (offlineServerIds == null)
+						offlineServerIds = new IntList();
+					if (offlineSerialIds == null)
+						offlineSerialIds = new LongList();
+					offlineServerIds.add(it.key());
+					offlineSerialIds.add(watchState.serial);
+				}
+			}
+			announceContextMap.remove(ctx.notifyId);
+		} finally {
+			announceContextLock.unlock();
+		}
+		if (offlineServerIds != null) {
+			for (int i = 0, n = offlineServerIds.size(); i < n; i++) {
+				int offlineServerId = offlineServerIds.get(i);
+				long offlineSerialId = offlineSerialIds.get(i);
+				Task.run(() -> notifyOffline(ctx, offlineServerId, offlineSerialId), "notifyOffline"); // 并行通知多个离线的serverId
+			}
+		}
+	}
+
+	// 传入的ctx应该已经从announceContextMaps里移除,这里仅只读,所以可以并发
+	private static void notifyOffline(@NotNull AnnounceContext ctx, int offlineServerId, long offlineSerialId) {
+		logger.info("notifyOffline: notifyId={}, offlineServerId={}, offlineSerialId={}: begin select sockets=[{}]",
+				ctx.notifyId, offlineServerId, offlineSerialId, ctx.sockets.size());
+		for (var socket : Random.shuffle(ctx.sockets.toArray(new AsyncSocket[ctx.sockets.size()]))) {
+			try {
+				var notify = new OfflineNotify();
+				notify.Argument.notifyId = ctx.notifyId;
+				notify.Argument.serverId = offlineServerId;
+				notify.Argument.notifySerialId = offlineSerialId;
+				notify.SendForWait(socket).await();
+				if (notify.getResultCode() == 0) {
+					logger.info("notifyOffline: notifyId={}, offlineServerId={}, offlineSerialId={}: notify success to {}",
+							ctx.notifyId, offlineServerId, offlineSerialId, socket);
+					return;
+				}
+			} catch (Throwable ignored) { // ignored
+			}
+		}
+		logger.warn("notifyOffline: notifyId={}, offlineServerId={}, offlineSerialId={}: notify failed",
+				ctx.notifyId, offlineServerId, offlineSerialId);
 	}
 
 	@Override
@@ -588,6 +725,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				OfflineNotify::new, null, TransactionLevel.None, DispatchMode.Direct));
 		server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
 				NormalClose::new, this::processNormalClose, TransactionLevel.None, DispatchMode.Critical));
+		server.AddFactoryHandle(AnnounceServers.TypeId_, new Service.ProtocolFactoryHandle<>(
+				AnnounceServers::new, this::processAnnounceServers, TransactionLevel.None, DispatchMode.Critical));
 
 		threading = new ThreadingServer(server, conf);
 		threading.RegisterProtocols(server);

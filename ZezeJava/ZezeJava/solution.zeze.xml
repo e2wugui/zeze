@@ -936,6 +936,31 @@
 			<enum name="eMissfirePolicyRunOnce" value="1"/> 如果错过指定触发时间, 则立即触发一次并以当前时间+period重设新的触发时间
 			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 如果错过指定触发时间, 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
 
+			<!--
+			<bean name="BTimerNew"> 重构的定时器结构
+				<variable id="1"  name="timerId"        type="string"/> 可由用户指定或用"@"+Base64编码的自动分配ID, 每个timerId只能同时生效一个定时器
+				<variable id="2"  name="handleClass"    type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名,触发时构造并回调
+				<variable id="3"  name="oneByOneKey"    type="string"/> 触发时所用的OneByOne队列key
+				<variable id="4"  name="cronExpression" type="string"/> 触发时间的cron表达式, 空表示不启用
+				<variable id="5"  name="missfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="6"  name="serverId"       type="int"/> 所属的serverId, 通常只能由该server调度和触发, 如果该server不可用, 其它server可修改所属
+				<variable id="7"  name="period"         type="long"/> 固定的触发周期(毫秒), 小于等于0表示不启用
+				<variable id="8"  name="createTime"     type="long"/> 创建时间(unix毫秒时间戳)
+				<variable id="9"  name="endTime"        type="long"/> 限制触发的最晚时间(unix毫秒时间戳), 只有大于0会限制, 计算下次触发时间发现超过此值时自动取消定时器
+				<variable id="10" name="lastTime"       type="long"/> 上次实际触发的时间(unix毫秒时间戳), 触发后更新, 初始为0
+				<variable id="11" name="nextTime"       type="long"/> 下次计划触发的时间(unix毫秒时间戳), 触发后更新
+				<variable id="12" name="fireCount"      type="long"/> 已经触发次数, 触发前自增
+				<variable id="13" name="leftCount"      type="long"/> 剩余触发次数, 小于0表示不限次数, 否则触发前自减
+				<variable id="14" name="customData"     type="dynamic"> 用户指定的上下文数据, 常见类型有BOfflineRoleCustom,BDelayLogoutCustom
+					<GetSpecialTypeIdFromBean    value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+				<variable id="15" name="serialId"       type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
+				<variable id="16" name="version"        type="long"/> 创建时记下当前timer所属server的版本
+			</bean>
+			<table name="tTimerNew" key="string" value="BTimerNew" /> 准备重构的定时器表,只用这一个表,key是timerId
+			-->
+
 			<bean name="BNodeRoot">
 				<variable id="1" name="HeadNodeId" type="long"/> 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
 				<variable id="2" name="TailNodeId" type="long"/> 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
