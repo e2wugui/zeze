@@ -1409,10 +1409,8 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			byte[] buf = Bytes;
 			int wi = WriteIndex;
 			int n = is.read(buf, wi, buf.length - wi);
-			if (n <= 0) {
-				WriteIndex = wi;
+			if (n <= 0)
 				break;
-			}
 			WriteIndex = wi + n;
 		}
 		return this;

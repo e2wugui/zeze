@@ -155,7 +155,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	}
 
 	/**
-	 * std::lower_bound 定义。返回指定key为上限的索引。即在>=key范围内找最小的key的索引
+	 * std::lower_bound 定义。返回指定key为上限的索引。即在≥key范围内找最小的key的索引
 	 *
 	 * @return index. 不存在时返回size
 	 */
@@ -176,7 +176,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	}
 
 	/**
-	 * std::upper_bound 定义。返回指定key为下限的索引。即在>key范围内找最小的key的索引
+	 * std::upper_bound 定义。返回指定key为下限的索引。即在＞key范围内找最小的key的索引
 	 *
 	 * @return index. 不存在时返回size
 	 */

@@ -15,6 +15,7 @@ import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
@@ -202,7 +203,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
-	public void sort(@NotNull Comparator<? super V> c) {
+	public void sort(@Nullable Comparator<? super V> c) {
 		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<>(this);

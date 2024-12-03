@@ -49,7 +49,6 @@ public class ConcurrentLruLike<K, V> {
 	private final @NotNull String name;
 	private final @NotNull ConcurrentHashMap<K, LruItem<K, V>> dataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> lruQueue = new ConcurrentLinkedQueue<>();
-	@SuppressWarnings("NotNullFieldNotInitialized")
 	private volatile @NotNull ConcurrentHashMap<K, LruItem<K, V>> lruHot;
 	private int capacity;
 	private int lruInitialCapacity;

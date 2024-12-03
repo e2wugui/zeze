@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * 日志按时间顺序的索引。
  * 用来根据时间快速定位到日志数据文件。
  * 每个索引记录固定长度=time(8bytes)+offset(8bytes)。
- *
+ * <p>
  * 【扩展】如果索引记录可变长并可以自定义，这个类用途会更加广泛。
  * 变长的实现方式：1. 限制最长记录长度，按最长存储（变成定长）；2. 记录边界可识别（如文本加回车）。
  * 扩展需要实现的话，在新的类中实现，这里仅仅实现Log4jQuery需要的特性。
@@ -109,7 +109,7 @@ public class LogIndex {
 	}
 
 	/**
-	 * std::lower_bound 定义。返回指定key为上限的索引。即在>=key范围内找最小的key的索引
+	 * std::lower_bound 定义。返回指定key为上限的索引。即在≥key范围内找最小的key的索引
 	 *
 	 * @param time time
 	 * @return index.offset 不存在时返回-1。
@@ -150,7 +150,7 @@ public class LogIndex {
 	}
 
 	/**
-	 * std::upper_bound 定义。返回指定key为下限的索引。即在>key范围内找最小的key的索引
+	 * std::upper_bound 定义。返回指定key为下限的索引。即在＞key范围内找最小的key的索引
 	 *
 	 * @param time time
 	 * @return index.offset 不存在时返回-1。

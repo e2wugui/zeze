@@ -9,6 +9,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.pcollections.Empty;
 
 @SuppressWarnings("DataFlowIssue")
@@ -172,7 +173,7 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
-	public void sort(@NotNull Comparator<? super V> c) {
+	public void sort(@Nullable Comparator<? super V> c) {
 		if (isEmpty())
 			return;
 		var tmpList = new ArrayList<>(this);

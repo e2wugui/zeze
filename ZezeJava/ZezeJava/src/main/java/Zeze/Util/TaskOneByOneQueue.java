@@ -171,10 +171,11 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				return;
 			isShutdown = true;
 			oldQueue = queue;
-			if (!cancel || oldQueue.isEmpty())
+			Task firstTask;
+			if (!cancel || (firstTask = oldQueue.pollFirst()) == null)
 				return;
 			queue = new ArrayDeque<>(); // clear
-			queue.addLast(oldQueue.pollFirst()); // put back running task back
+			queue.addLast(firstTask); // put back running task back
 		} finally {
 			unlock();
 		}

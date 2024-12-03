@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * see zeze/README.md -> 18) 事务提交模式
+ * see zeze/README.md －＞ 18) 事务提交模式
  * 一个事务内访问的记录的集合。如果事务没有没提交，需要合并集合。
  */
 public final class RelativeRecordSet extends ReentrantLock {

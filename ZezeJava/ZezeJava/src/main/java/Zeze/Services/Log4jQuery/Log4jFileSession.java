@@ -34,8 +34,9 @@ public class Log4jFileSession implements Closeable {
 	}
 
 	/**
-	 * 定位到 log.time >= time 的日志的位置。
+	 * 定位到 log.time ≥ time 的日志的位置。
 	 * 这里只查找一个文件。
+	 *
 	 * @param time seek time
 	 * @return true if seek success
 	 */

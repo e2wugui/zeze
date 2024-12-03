@@ -30,12 +30,12 @@ public final class SerializeHelper {
 
 	static {
 		var boolCodec = new CodecFuncs<>(ByteBuffer::WriteBool, IByteBuffer::ReadBool);
-		var byteCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (byte)bb.ReadLong());
-		var shortCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (short)bb.ReadLong());
-		var intCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), bb -> (int)bb.ReadLong());
-		var longCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(((Number)obj).longValue()), IByteBuffer::ReadLong);
-		var floatCodec = new CodecFuncs<>((bb, obj) -> bb.WriteFloat(((Number)obj).floatValue()), IByteBuffer::ReadFloat);
-		var doubleCodec = new CodecFuncs<>((bb, obj) -> bb.WriteDouble(((Number)obj).doubleValue()), IByteBuffer::ReadDouble);
+		var byteCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(obj.longValue()), bb -> (byte)bb.ReadLong());
+		var shortCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(obj.longValue()), bb -> (short)bb.ReadLong());
+		var intCodec = new CodecFuncs<>((bb, obj) -> bb.WriteLong(obj.longValue()), bb -> (int)bb.ReadLong());
+		var longCodec = new CodecFuncs<>(ByteBuffer::WriteLong, IByteBuffer::ReadLong);
+		var floatCodec = new CodecFuncs<>(ByteBuffer::WriteFloat, IByteBuffer::ReadFloat);
+		var doubleCodec = new CodecFuncs<>(ByteBuffer::WriteDouble, IByteBuffer::ReadDouble);
 
 		codecs.put(boolean.class, boolCodec);
 		codecs.put(Boolean.class, boolCodec);

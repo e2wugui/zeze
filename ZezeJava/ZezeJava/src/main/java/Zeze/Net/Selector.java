@@ -126,6 +126,7 @@ public class Selector extends Thread implements ByteBufferAllocator {
 
 	@NotNull SelectionKey register(@NotNull SelectableChannel sc, int ops, @NotNull SelectorHandle handle) {
 		try {
+			//noinspection MagicConstant
 			SelectionKey key = sc.register(selector, ops, handle);
 			// 当引擎线程执行register时，wakeup会导致一次多余唤醒。
 			// 这在连接建立不是很繁忙的应用中问题不大。

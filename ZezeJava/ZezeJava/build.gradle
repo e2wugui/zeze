@@ -2,28 +2,28 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.24.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.24.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.24.2'
+    implementation 'org.apache.logging.log4j:log4j-core:2.24.2'
     implementation 'org.jetbrains:annotations:24.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
-    implementation 'org.rocksdb:rocksdbjni:9.6.1'
+    implementation 'org.rocksdb:rocksdbjni:9.7.3'
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.113.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.113.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.115.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.115.Final:linux-x86_64'
     implementation 'org.slf4j:slf4j-api:2.0.16'
-    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.0'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.2'
 
     // optional dependencies
     // for tikv
     compileOnly 'org.tikv:tikv-client-java:3.3.5'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.23'
+    compileOnly 'com.alibaba:druid:1.2.24'
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
 
     // for redis(kvrocks,pika,tendis)
-    compileOnly 'redis.clients:jedis:5.1.5'
+    compileOnly 'redis.clients:jedis:5.2.0'
 
     // dynamodb
     compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.663'

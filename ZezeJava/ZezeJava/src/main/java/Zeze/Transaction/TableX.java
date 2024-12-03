@@ -1186,7 +1186,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	/**
-	 * @see TableX#selectDirty(K, int)
+	 * @see #selectDirty(K, int)
 	 */
 	public final @Nullable V selectDirty(@NotNull K key) {
 		return selectDirty(key, 3_000);

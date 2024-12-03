@@ -961,7 +961,7 @@
 			<table name="tTimerNew" key="string" value="BTimerNew" /> 准备重构的定时器表,只用这一个表,key是timerId
 			-->
 
-			<bean name="BNodeRoot">
+			<bean name="BNodeRoot"> Timer根节点
 				<variable id="1" name="HeadNodeId" type="long"/> 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
 				<variable id="2" name="TailNodeId" type="long"/> 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
 				<variable id="3" name="LoadSerialNo" type="long"/> 每次启动时都递增的序列号, 用来处理跟接管的并发

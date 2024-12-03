@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Timer;
 
+// Timer根节点
 public interface BNodeRootReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
