@@ -88,7 +88,7 @@ public class Dbh2Manager {
 		java.nio.file.Files.writeString(file.toPath(),
 				raftConfigStr,
 				StandardOpenOption.CREATE);
-		dbh2s.computeIfAbsent(raftConfigStr, __ -> {
+		dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(),
 					database, raftConfig,
 					null, false, taskOneByOne);
@@ -160,7 +160,7 @@ public class Dbh2Manager {
 				var raftStr = new String(bytes, StandardCharsets.UTF_8);
 				var raftConfig = RaftConfig.loadFromString(raftStr);
 				raftConfig.setDbHome(raftXml.getParent());
-				dbh2s.computeIfAbsent(raftStr, __ -> {
+				dbh2s.computeIfAbsent(raftConfig.getSortedNames(), __ -> {
 					var dbh2 = new Dbh2(this, raftConfig.getName(),
 							database, raftConfig,
 							null, false, taskOneByOne);
@@ -175,6 +175,7 @@ public class Dbh2Manager {
 		masterAgent.startAndWaitConnectionReady();
 		var acceptorAddress = masterService.getAcceptorAddress();
 		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
+		logger.info("{}, {} - rafts=\n{}\n{}", acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2sAtMaster, dbh2s.keySet());
 		// build map
 		var dbh2sAtMasterMiss = new HashMap<String, BDbh2Config.Data>();
 		for (var dbh2 : dbh2sAtMaster.getDbh2Configs()) {
@@ -182,6 +183,7 @@ public class Dbh2Manager {
 				dbh2sAtMasterMiss.put(dbh2.getRaftConfig(), dbh2);
 		}
 		// 保存并启动丢失的dbh2（一般是系统完全毁坏，重新找的新机器） ...
+		logger.info("miss rafts={}", dbh2sAtMasterMiss.values());
 		for (var dbh2 : dbh2sAtMasterMiss.values()) {
 			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
 		}

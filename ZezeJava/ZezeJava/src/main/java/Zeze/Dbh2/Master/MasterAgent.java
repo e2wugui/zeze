@@ -114,13 +114,15 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
 		r.Argument.setPort(port);
 		r.Argument.setBucketCount(bucketCount);
-		r.SendForWait(service.GetSocket()); // 这里不能等待，现在直接在网络线程中运行。
-		return r.getResultBean();
+		r.SendForWait(service.GetSocket()).await(); // 这里不能等待，现在直接在网络线程中运行。
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("register error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result;
 	}
 
 	public void setDbh2Ready() {
 		var r = new SetDbh2Ready();
-		r.SendForWait(service.GetSocket());
+		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("setDbh2Ready error=" + IModule.getErrorCode(r.getResultCode()));
 	}

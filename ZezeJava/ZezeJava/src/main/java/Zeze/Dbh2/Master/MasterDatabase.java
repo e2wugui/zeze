@@ -159,7 +159,9 @@ public class MasterDatabase {
 			sbRaft.append(" ProxyPort=\"").append(e.data.getPort()).append("\"");
 
 			sbRaft.append("/>\n");
-			raftNames.add(e.data.getDbh2RaftAcceptorName() + "_" + portId);
+			var raftName = e.data.getDbh2RaftAcceptorName() + "_" + portId;
+			raftNames.add(raftName);
+			bucket.getHost2Raft().put(e.data.getDbh2RaftAcceptorName() + "_" + e.data.getPort(), raftName);
 		}
 		sbRaft.append("</raft>");
 		bucket.setRaftConfig(sbRaft.toString());

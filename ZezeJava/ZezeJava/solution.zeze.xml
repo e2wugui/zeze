@@ -1388,6 +1388,7 @@
 				<variable id="3" name="KeyFirst" type="binary"/>
 				<variable id="4" name="KeyLast" type="binary"/>
 				<variable id="5" name="RaftConfig" type="string"/>
+				<variable id="6" name="Host2Raft" type="map[string, string]"/>
 			</bean>
 
 			<bean name="BSplitPut">

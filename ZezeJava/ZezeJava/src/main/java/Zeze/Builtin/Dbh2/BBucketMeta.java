@@ -13,6 +13,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     private Zeze.Net.Binary _KeyFirst;
     private Zeze.Net.Binary _KeyLast;
     private String _RaftConfig;
+    private final Zeze.Transaction.Collections.PMap1<String, String> _Host2Raft;
 
     private static final java.lang.invoke.VarHandle vh_DatabaseName;
     private static final java.lang.invoke.VarHandle vh_TableName;
@@ -143,6 +144,15 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 5, vh_RaftConfig, _v_));
     }
 
+    public Zeze.Transaction.Collections.PMap1<String, String> getHost2Raft() {
+        return _Host2Raft;
+    }
+
+    @Override
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, String> getHost2RaftReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Host2Raft);
+    }
+
     @SuppressWarnings("deprecation")
     public BBucketMeta() {
         _DatabaseName = "";
@@ -150,6 +160,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
         _RaftConfig = "";
+        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Host2Raft.variableId(6);
     }
 
     @SuppressWarnings("deprecation")
@@ -169,6 +181,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_RaftConfig_ == null)
             _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
+        _Host2Raft = new Zeze.Transaction.Collections.PMap1<>(String.class, String.class);
+        _Host2Raft.variableId(6);
     }
 
     @Override
@@ -178,6 +192,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyFirst(Zeze.Net.Binary.Empty);
         setKeyLast(Zeze.Net.Binary.Empty);
         setRaftConfig("");
+        _Host2Raft.clear();
         _unknown_ = null;
     }
 
@@ -199,6 +214,8 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyFirst(_o_._KeyFirst);
         setKeyLast(_o_._KeyLast);
         setRaftConfig(_o_._RaftConfig);
+        _Host2Raft.clear();
+        _Host2Raft.putAll(_o_._Host2Raft);
         _unknown_ = null;
     }
 
@@ -208,6 +225,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setKeyFirst(_o_.getKeyFirst());
         setKeyLast(_o_.getKeyLast());
         setRaftConfig(_o_.getRaftConfig());
+        _Host2Raft.assign(_o_._Host2Raft);
         _unknown_ = _o_._unknown_;
     }
 
@@ -243,12 +261,23 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
         _s_.append("Zeze.Builtin.Dbh2.BBucketMeta: {\n");
         _s_.append(_i1_).append("DatabaseName=").append(getDatabaseName()).append(",\n");
         _s_.append(_i1_).append("TableName=").append(getTableName()).append(",\n");
         _s_.append(_i1_).append("KeyFirst=").append(getKeyFirst()).append(",\n");
         _s_.append(_i1_).append("KeyLast=").append(getKeyLast()).append(",\n");
-        _s_.append(_i1_).append("RaftConfig=").append(getRaftConfig()).append('\n');
+        _s_.append(_i1_).append("RaftConfig=").append(getRaftConfig()).append(",\n");
+        _s_.append(_i1_).append("Host2Raft={");
+        if (!_Host2Raft.isEmpty()) {
+            _s_.append('\n');
+            for (var _e_ : _Host2Raft.entrySet()) {
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -315,6 +344,21 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
                 _o_.WriteString(_x_);
             }
         }
+        {
+            var _x_ = _Host2Raft;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BYTES);
+                for (var _e_ : _x_.entrySet()) {
+                    _o_.WriteString(_e_.getKey());
+                    _o_.WriteString(_e_.getValue());
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -344,6 +388,20 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             setRaftConfig(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            var _x_ = _Host2Raft;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadString(_s_);
+                    var _v_ = _o_.ReadString(_t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -366,7 +424,19 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
             return false;
         if (!getRaftConfig().equals(_b_.getRaftConfig()))
             return false;
+        if (!_Host2Raft.equals(_b_._Host2Raft))
+            return false;
         return true;
+    }
+
+    @Override
+    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Host2Raft.initRootInfo(_r_, this);
+    }
+
+    @Override
+    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Host2Raft.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
@@ -383,6 +453,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
                 case 3: _KeyFirst = _v_.binaryValue(); break;
                 case 4: _KeyLast = _v_.binaryValue(); break;
                 case 5: _RaftConfig = _v_.stringValue(); break;
+                case 6: _Host2Raft.followerApply(_v_); break;
             }
         }
     }
@@ -401,6 +472,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         setRaftConfig(_r_.getString(_pn_ + "RaftConfig"));
         if (getRaftConfig() == null)
             setRaftConfig("");
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Host2Raft", _Host2Raft, _r_.getString(_pn_ + "Host2Raft"));
     }
 
     @Override
@@ -411,6 +483,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _s_.appendBinary(_pn_ + "KeyFirst", getKeyFirst());
         _s_.appendBinary(_pn_ + "KeyLast", getKeyLast());
         _s_.appendString(_pn_ + "RaftConfig", getRaftConfig());
+        _s_.appendString(_pn_ + "Host2Raft", Zeze.Serialize.Helper.encodeJson(_Host2Raft));
     }
 
     @Override
@@ -421,6 +494,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "KeyFirst", "binary", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "KeyLast", "binary", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "RaftConfig", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Host2Raft", "map", "string", "string"));
         return _v_;
     }
 
@@ -433,6 +507,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private Zeze.Net.Binary _KeyFirst;
     private Zeze.Net.Binary _KeyLast;
     private String _RaftConfig;
+    private java.util.HashMap<String, String> _Host2Raft;
 
     public String getDatabaseName() {
         return _DatabaseName;
@@ -484,6 +559,16 @@ public static final class Data extends Zeze.Transaction.Data {
         _RaftConfig = _v_;
     }
 
+    public java.util.HashMap<String, String> getHost2Raft() {
+        return _Host2Raft;
+    }
+
+    public void setHost2Raft(java.util.HashMap<String, String> _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _Host2Raft = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _DatabaseName = "";
@@ -491,10 +576,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
         _RaftConfig = "";
+        _Host2Raft = new java.util.HashMap<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_) {
+    public Data(String _DatabaseName_, String _TableName_, Zeze.Net.Binary _KeyFirst_, Zeze.Net.Binary _KeyLast_, String _RaftConfig_, java.util.HashMap<String, String> _Host2Raft_) {
         if (_DatabaseName_ == null)
             _DatabaseName_ = "";
         _DatabaseName = _DatabaseName_;
@@ -510,6 +596,9 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_RaftConfig_ == null)
             _RaftConfig_ = "";
         _RaftConfig = _RaftConfig_;
+        if (_Host2Raft_ == null)
+            _Host2Raft_ = new java.util.HashMap<>();
+        _Host2Raft = _Host2Raft_;
     }
 
     @Override
@@ -519,6 +608,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _KeyFirst = Zeze.Net.Binary.Empty;
         _KeyLast = Zeze.Net.Binary.Empty;
         _RaftConfig = "";
+        _Host2Raft.clear();
     }
 
     @Override
@@ -539,6 +629,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _KeyFirst = _o_.getKeyFirst();
         _KeyLast = _o_.getKeyLast();
         _RaftConfig = _o_.getRaftConfig();
+        _Host2Raft.clear();
+        _Host2Raft.putAll(_o_._Host2Raft);
     }
 
     public void assign(BBucketMeta.Data _o_) {
@@ -547,6 +639,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _KeyFirst = _o_._KeyFirst;
         _KeyLast = _o_._KeyLast;
         _RaftConfig = _o_._RaftConfig;
+        _Host2Raft.clear();
+        _Host2Raft.putAll(_o_._Host2Raft);
     }
 
     @Override
@@ -582,12 +676,23 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+        var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
         _s_.append("Zeze.Builtin.Dbh2.BBucketMeta: {\n");
         _s_.append(_i1_).append("DatabaseName=").append(_DatabaseName).append(",\n");
         _s_.append(_i1_).append("TableName=").append(_TableName).append(",\n");
         _s_.append(_i1_).append("KeyFirst=").append(_KeyFirst).append(",\n");
         _s_.append(_i1_).append("KeyLast=").append(_KeyLast).append(",\n");
-        _s_.append(_i1_).append("RaftConfig=").append(_RaftConfig).append('\n');
+        _s_.append(_i1_).append("RaftConfig=").append(_RaftConfig).append(",\n");
+        _s_.append(_i1_).append("Host2Raft={");
+        if (!_Host2Raft.isEmpty()) {
+            _s_.append('\n');
+            for (var _e_ : _Host2Raft.entrySet()) {
+                _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+                _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
+            }
+            _s_.append(_i1_);
+        }
+        _s_.append("}\n");
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -639,6 +744,21 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            var _x_ = _Host2Raft;
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
+                _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BYTES);
+                for (var _e_ : _x_.entrySet()) {
+                    _o_.WriteString(_e_.getKey());
+                    _o_.WriteString(_e_.getValue());
+                    _n_--;
+                }
+                if (_n_ != 0)
+                    throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -666,6 +786,20 @@ public static final class Data extends Zeze.Transaction.Data {
             _RaftConfig = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 6) {
+            var _x_ = _Host2Raft;
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
+                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
+                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                    var _k_ = _o_.ReadString(_s_);
+                    var _v_ = _o_.ReadString(_t_);
+                    _x_.put(_k_, _v_);
+                }
+            } else
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -689,6 +823,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (!_KeyLast.equals(_b_._KeyLast))
             return false;
         if (!_RaftConfig.equals(_b_._RaftConfig))
+            return false;
+        if (!_Host2Raft.equals(_b_._Host2Raft))
             return false;
         return true;
     }

@@ -12,4 +12,5 @@ public interface BBucketMetaReadOnly {
     Zeze.Net.Binary getKeyFirst();
     Zeze.Net.Binary getKeyLast();
     String getRaftConfig();
+    Zeze.Transaction.Collections.PMap1ReadOnly<String, String> getHost2RaftReadOnly();
 }
