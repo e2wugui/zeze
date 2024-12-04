@@ -83,9 +83,9 @@
     <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NLog" Version="5.0.2" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.3" />
-    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="8.0.3" />
+    <PackageReference Include="NLog" Version="5.3.4" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.12" />
+    <PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="9.0.12" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Zege\CreateGroup.xaml.cs">
