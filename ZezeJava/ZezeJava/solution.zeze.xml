@@ -1285,7 +1285,17 @@
 					<variable id="2" name="Port" type="int"/>
 					<variable id="3" name="BucketCount" type="int"/>
 				</bean>
-				<rpc name="Register" argument="BRegister" UseData="true" handle="server"/>
+				
+				<bean name="BDbh2Config">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+					<variable id="3" name="RaftConfig" type="string"/>
+				</bean>
+				<bean name="BRegisterResult">
+					<variable id="1" name="Dbh2Configs" type="list[BDbh2Config]"/>
+				</bean>
+				<rpc name="Register" argument="BRegister" result="BRegisterResult" UseData="true" handle="server"/>
+				<rpc name="SetDbh2Ready" UseData="true" handle="server"/>
 
 				<bean name="BLoad">
 					<variable id="1" name="Load" type="double"/>

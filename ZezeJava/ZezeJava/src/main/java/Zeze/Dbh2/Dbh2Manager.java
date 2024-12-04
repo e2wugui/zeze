@@ -7,13 +7,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Builtin.Dbh2.Master.BDbh2Config;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Config;
 import Zeze.Dbh2.Master.MasterAgent;
-import Zeze.Net.AsyncSocket;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.KV;
@@ -35,6 +36,7 @@ import org.rocksdb.RocksDBException;
 public class Dbh2Manager {
 	private static final Logger logger = LogManager.getLogger(Dbh2Manager.class);
 
+	private final Service masterService;
 	private final MasterAgent masterAgent;
 	private final ProxyServer proxyServer;
 
@@ -66,19 +68,15 @@ public class Dbh2Manager {
 		return taskOneByOne;
 	}
 
-	void register(String acceptor, int port, int bucketCount) {
-		masterAgent.register(acceptor, port, bucketCount);
-	}
-
-	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
+	private void createBucket(String databaseName, String tableName, String raftConfigStr) throws IOException {
 		logger.info("CreateBucket: db={}, table={}, config={}",
-				r.Argument.getDatabaseName(), r.Argument.getTableName(), r.Argument.getRaftConfig());
-		var raftConfig = RaftConfig.loadFromString(r.Argument.getRaftConfig());
+				databaseName, tableName, raftConfigStr);
+		var raftConfig = RaftConfig.loadFromString(raftConfigStr);
 		var portId = Integer.parseInt(raftConfig.getName().split("_")[1]);
 		var bucketDir = Path.of(
 				home,
-				r.Argument.getDatabaseName(),
-				r.Argument.getTableName(),
+				databaseName,
+				tableName,
 				String.valueOf(portId));
 
 		var nodeDirPart = raftConfig.getName().replace(':', '_');
@@ -88,9 +86,9 @@ public class Dbh2Manager {
 		raftConfig.setDbHome(dbHome.toString());
 		var file = new File(raftConfig.getDbHome(), "raft.xml");
 		java.nio.file.Files.writeString(file.toPath(),
-				r.Argument.getRaftConfig(),
+				raftConfigStr,
 				StandardOpenOption.CREATE);
-		dbh2s.computeIfAbsent(r.Argument.getRaftConfig(), __ -> {
+		dbh2s.computeIfAbsent(raftConfigStr, __ -> {
 			var dbh2 = new Dbh2(this, raftConfig.getName(),
 					database, raftConfig,
 					null, false, taskOneByOne);
@@ -98,12 +96,16 @@ public class Dbh2Manager {
 			logger.info("CreateBucket: add raftName = '{}'", dbh2.getRaft().getName());
 			return dbh2;
 		});
+	}
+
+	protected long ProcessCreateBucketRequest(CreateBucket r) throws Exception {
+		createBucket(r.Argument.getDatabaseName(), r.Argument.getTableName(), r.Argument.getRaftConfig());
 		r.SendResult();
 		masterAgent.reportBucketCount(dbh2s.size());
 		return 0;
 	}
 
-	public class Service extends MasterAgent.Service {
+	public static class Service extends MasterAgent.Service {
 		private final ProxyServer proxyServer;
 
 		public Service(Config config) {
@@ -116,16 +118,11 @@ public class Dbh2Manager {
 			this.proxyServer = proxyServer;
 		}
 
-		@Override
-		public void OnHandshakeDone(AsyncSocket so) throws Exception {
-			super.OnHandshakeDone(so);
-
+		public KV<String, Integer> getAcceptorAddress() {
 			// 优先查找代理配置，
-			KV<String, Integer> ipPort =
-					null != proxyServer
+			return null != proxyServer
 					? proxyServer.getOneAcceptorAddress()
 					: getOneAcceptorAddress();
-			Dbh2Manager.this.register(ipPort.getKey(), ipPort.getValue(), Dbh2Manager.this.dbh2s.size());
 		}
 	}
 
@@ -134,7 +131,8 @@ public class Dbh2Manager {
 		var config = Config.load(configXml);
 		config.parseCustomize(this.dbh2Config);
 		proxyServer = new ProxyServer(config, dbh2Config.getRpcTimeout());
-		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, new Service(config, proxyServer));
+		masterService = new Service(config, proxyServer);
+		masterAgent = new MasterAgent(config, this::ProcessCreateBucketRequest, masterService);
 		database = new RocksDatabase(Paths.get(home, "db").toString());
 	}
 
@@ -175,6 +173,20 @@ public class Dbh2Manager {
 			}
 		});
 		masterAgent.startAndWaitConnectionReady();
+		var acceptorAddress = masterService.getAcceptorAddress();
+		var dbh2sAtMaster = masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), dbh2s.size());
+		// build map
+		var dbh2sAtMasterMiss = new HashMap<String, BDbh2Config.Data>();
+		for (var dbh2 : dbh2sAtMaster.getDbh2Configs()) {
+			if (!dbh2s.containsKey(dbh2.getRaftConfig()))
+				dbh2sAtMasterMiss.put(dbh2.getRaftConfig(), dbh2);
+		}
+		// 保存并启动丢失的dbh2（一般是系统完全毁坏，重新找的新机器） ...
+		for (var dbh2 : dbh2sAtMasterMiss.values()) {
+			createBucket(dbh2.getDatabase(), dbh2.getTable(), dbh2.getRaftConfig());
+		}
+		// set ready
+		masterAgent.setDbh2Ready();
 		proxyServer.start();
 
 		loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);

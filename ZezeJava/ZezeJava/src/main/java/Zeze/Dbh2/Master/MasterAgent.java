@@ -1,6 +1,7 @@
 package Zeze.Dbh2.Master;
 
 import Zeze.Builtin.Dbh2.BBucketMeta;
+import Zeze.Builtin.Dbh2.Master.BRegisterResult;
 import Zeze.Builtin.Dbh2.Master.CheckFreeManager;
 import Zeze.Builtin.Dbh2.Master.CreateBucket;
 import Zeze.Builtin.Dbh2.Master.CreateDatabase;
@@ -12,6 +13,7 @@ import Zeze.Builtin.Dbh2.Master.GetBuckets;
 import Zeze.Builtin.Dbh2.Master.Register;
 import Zeze.Builtin.Dbh2.Master.ReportBucketCount;
 import Zeze.Builtin.Dbh2.Master.ReportLoad;
+import Zeze.Builtin.Dbh2.Master.SetDbh2Ready;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
@@ -107,12 +109,20 @@ public class MasterAgent extends AbstractMasterAgent {
 		return r.Result;
 	}
 
-	public void register(String dbh2RaftAcceptorName, int port, int bucketCount) {
+	public BRegisterResult.Data register(String dbh2RaftAcceptorName, int port, int bucketCount) {
 		var r = new Register();
 		r.Argument.setDbh2RaftAcceptorName(dbh2RaftAcceptorName);
-		r.Argument.setBucketCount(bucketCount);
 		r.Argument.setPort(port);
+		r.Argument.setBucketCount(bucketCount);
 		r.SendForWait(service.GetSocket()); // 这里不能等待，现在直接在网络线程中运行。
+		return r.getResultBean();
+	}
+
+	public void setDbh2Ready() {
+		var r = new SetDbh2Ready();
+		r.SendForWait(service.GetSocket());
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("setDbh2Ready error=" + IModule.getErrorCode(r.getResultCode()));
 	}
 
 	@Override

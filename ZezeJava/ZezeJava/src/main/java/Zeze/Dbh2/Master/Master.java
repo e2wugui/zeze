@@ -12,6 +12,7 @@ import Zeze.Config;
 import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
@@ -33,10 +34,12 @@ public class Master extends AbstractMaster {
 		public final AsyncSocket socket;
 		public final BRegister.Data data;
 		public double load;
+		public boolean ready;
 
 		public Manager(AsyncSocket socket, BRegister.Data data) {
 			this.socket = socket;
 			this.data = data;
+			this.ready = false;
 		}
 	}
 
@@ -133,12 +136,16 @@ public class Master extends AbstractMaster {
 		}
 	}
 
-	public Manager[] shadowManager() {
+	public Manager[] shadowReadyManager() {
 		Manager[] shadow;
 		lock();
 		try {
-			shadow = new Manager[managers.size()];
-			managers.toArray(shadow);
+			var readies = new ArrayList<Manager>();
+			for (var manager : managers)
+				if (manager.ready)
+					readies.add(manager);
+			shadow = new Manager[readies.size()];
+			readies.toArray(shadow);
 		} finally {
 			unlock();
 		}
@@ -146,7 +153,7 @@ public class Master extends AbstractMaster {
 	}
 
 	public ArrayList<Manager> choiceSmallLoadManagers() {
-		Manager[] shadow = shadowManager();
+		Manager[] shadow = shadowReadyManager();
 		Arrays.sort(shadow, new ManagerLoadComparator());
 		return choiceSmallLoadManagers(shadow);
 	}
@@ -162,7 +169,7 @@ public class Master extends AbstractMaster {
 	public ArrayList<Manager> choiceManagers() {
 		lock();
 		try {
-			Manager[] shadow = shadowManager();
+			Manager[] shadow = shadowReadyManager();
 			Arrays.sort(shadow, new ManagerBucketCountComparator());
 			return choiceSmallLoadManagers(shadow);
 		} finally {
@@ -237,7 +244,23 @@ public class Master extends AbstractMaster {
 	protected long ProcessRegisterRequest(Register r) throws Exception {
 		lock();
 		try {
+			var managerHostPort = r.Argument.getDbh2RaftAcceptorName() + "_" + r.Argument.getPort();
 			managers.add(new Manager(r.getSender(), r.Argument));
+			// 搜索所有的桶，返回在这个manager上的所有桶的配置。
+			for (var db : databases.values()) {
+				for (var table : db.getTables().entrySet()) {
+					for (var bucket : table.getValue().getBuckets().values()) {
+						var raftName = RaftConfig.loadFromString(bucket.getRaftConfig()).getName();
+						if (raftName.equals(managerHostPort)) {
+							var dbh2Config = new BDbh2Config.Data();
+							dbh2Config.setDatabase(db.getDatabaseName());
+							dbh2Config.setTable(table.getKey());
+							dbh2Config.setRaftConfig(bucket.getRaftConfig());
+							r.Result.getDbh2Configs().add(dbh2Config);
+						}
+					}
+				}
+			}
 			r.SendResult();
 			return 0;
 		} finally {
@@ -438,6 +461,22 @@ public class Master extends AbstractMaster {
 			r.SendResult(); // 这个流程的错误码都是预先填写好的，异常发生的时候可以正确的发送结果，框架捕捉的错误的发送操作会被忽略。
 			unlock();
 		}
+	}
+
+	@Override
+	protected long ProcessSetDbh2ReadyRequest(SetDbh2Ready r) throws Exception {
+		// 设置dbh2进入准备好模式，可以接受新的bucket的分配等操作。
+		lock();
+		try {
+			var manager = findManager(r.getSender());
+			if (null == manager)
+				return errorCode(eManagerNotFound);
+			manager.ready = true;
+			r.SendResult();
+		} finally {
+			unlock();
+		}
+		return 0;
 	}
 
 	@Override

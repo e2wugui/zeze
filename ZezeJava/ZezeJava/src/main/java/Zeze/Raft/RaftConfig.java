@@ -85,7 +85,27 @@ public final class RaftConfig {
 	}
 
 	void setName(String value) {
-		name = value;
+		name = value.replace(":", "_");
+	}
+
+	/**
+	 * raft 所在服务器的ip地址，从name中提取。
+	 */
+	public String getHostIp() {
+		var p = name.indexOf('_');
+		if (p < 0)
+			return name;
+		return name.substring(0, p);
+	}
+
+	/**
+	 * raft 所在服务器的端口，从name中提取。
+	 */
+	public int getHostPort() {
+		var p = name.indexOf('_');
+		if (p < 0)
+			throw new RuntimeException("port not found.");
+		return Integer.parseInt(name.substring(p + 1));
 	}
 
 	// 多数确认时：大于等于这个即可，因为还有自己(Leader)。

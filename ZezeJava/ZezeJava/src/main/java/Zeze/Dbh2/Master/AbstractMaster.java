@@ -146,6 +146,14 @@ public abstract class AbstractMaster implements Zeze.IModule {
             service.AddFactoryHandle(47363401603908L, factoryHandle); // 11027, -1497736380
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.SetDbh2Ready.class, Zeze.Builtin.Dbh2.Master.SetDbh2Ready.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.SetDbh2Ready::new;
+            factoryHandle.Handle = this::ProcessSetDbh2ReadyRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSetDbh2ReadyRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSetDbh2ReadyRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47362692171977L, factoryHandle); // 11027, 2087798985
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Master.SetInUse.class, Zeze.Builtin.Dbh2.Master.SetInUse.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Master.SetInUse::new;
             factoryHandle.Handle = this::ProcessSetInUseRequest;
@@ -187,6 +195,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
         service.getFactorys().remove(47360684865688L);
         service.getFactorys().remove(47363711595808L);
         service.getFactorys().remove(47363401603908L);
+        service.getFactorys().remove(47362692171977L);
         service.getFactorys().remove(47360856379529L);
         service.getFactorys().remove(47363396832137L);
         service.getFactorys().remove(47362815788753L);
@@ -215,6 +224,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
     protected abstract long ProcessReportBucketCountRequest(Zeze.Builtin.Dbh2.Master.ReportBucketCount r) throws Exception;
     protected abstract long ProcessReportLoadRequest(Zeze.Builtin.Dbh2.Master.ReportLoad r) throws Exception;
     protected abstract long ProcessSaveDataWithSameVersionRequest(Zeze.Builtin.Dbh2.Master.SaveDataWithSameVersion r) throws Exception;
+    protected abstract long ProcessSetDbh2ReadyRequest(Zeze.Builtin.Dbh2.Master.SetDbh2Ready r) throws Exception;
     protected abstract long ProcessSetInUseRequest(Zeze.Builtin.Dbh2.Master.SetInUse r) throws Exception;
     protected abstract long ProcessTryLockRequest(Zeze.Builtin.Dbh2.Master.TryLock r) throws Exception;
     protected abstract long ProcessUnLockRequest(Zeze.Builtin.Dbh2.Master.UnLock r) throws Exception;

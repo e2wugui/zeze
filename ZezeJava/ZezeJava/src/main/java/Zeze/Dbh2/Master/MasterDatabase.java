@@ -91,6 +91,10 @@ public class MasterDatabase {
 		rocksDb.close();
 	}
 
+	public ConcurrentHashMap<String, MasterTable.Data> getTables() {
+		return tables;
+	}
+
 	public MasterTable.Data createTable(String tableName, OutObject<Boolean> outIsNew) throws Exception {
 		outIsNew.value = false;
 		var table = tables.computeIfAbsent(tableName, __ -> new MasterTable.Data());
