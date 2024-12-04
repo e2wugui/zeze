@@ -250,13 +250,20 @@ public class Master extends AbstractMaster {
 			for (var db : databases.values()) {
 				for (var table : db.getTables().entrySet()) {
 					for (var bucket : table.getValue().getBuckets().values()) {
-						var raftName = RaftConfig.loadFromString(bucket.getRaftConfig()).getName();
-						if (raftName.equals(managerHostPort)) {
-							var dbh2Config = new BDbh2Config.Data();
-							dbh2Config.setDatabase(db.getDatabaseName());
-							dbh2Config.setTable(table.getKey());
-							dbh2Config.setRaftConfig(bucket.getRaftConfig());
-							r.Result.getDbh2Configs().add(dbh2Config);
+						var raftConfig = RaftConfig.loadFromString(bucket.getRaftConfig());
+						for (var node : raftConfig.getNodes().values()) {
+							// 检查node是当前raftName，就是说这个raft配置是当前的。
+							if (raftConfig.getName().equals(node.getName())) {
+								var proxyHostPort = node.getProxyHost() + "_" + node.getProxyPort();
+								if (proxyHostPort.equals(managerHostPort)) {
+									var dbh2Config = new BDbh2Config.Data();
+									dbh2Config.setDatabase(db.getDatabaseName());
+									dbh2Config.setTable(table.getKey());
+									dbh2Config.setRaftConfig(bucket.getRaftConfig());
+									r.Result.getDbh2Configs().add(dbh2Config);
+									break; // 这个raft配置已经匹配到manager，可以退出循环了。
+								}
+							}
 						}
 					}
 				}
