@@ -12,7 +12,6 @@ import Zeze.Config;
 import Zeze.Dbh2.Dbh2Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;

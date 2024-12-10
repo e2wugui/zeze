@@ -1925,11 +1925,21 @@
 					<variable id="1" name="Name" type="string"/>
 					<variable id="2" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
 				</bean>
-				<rpc name="OpenMQ" argument="" result="" handle="server"/>
-				<rpc name="Subscribe" argument="" result="" handle="server"/>
+				<bean name="BSubscribe">
+					<variable id="1" name="NamePrefix" type="string"/>
+				</bean>
+				<bean name="BMQServer">
+					<variable id="1" name="Host" type="string"/>
+					<variable id="2" name="Port" type="int"/>
+					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+				</bean>
+				<bean name="BMQServers">
+					<variable id="1" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
+				</bean>
+				<rpc name="OpenMQ" argument="BOpenMQ" result="BMQServer" handle="server"/>
+				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
 			</module>
 			<bean name="BOptions">
-				
 				MQ 并发模式
 				<enum name="GlobalOne" value="1"/>
 				<enum name="MultiInstance" value="2"/>
@@ -1951,7 +1961,7 @@
 				<variable id="2" name="Body" type="binary"/>
 			</bean>
 			<rpc name="SendMessage" argument="BMessage" handle="server"/>
-			<rpc name="Subscribe" argument="" result="" handle="server"/>
+			<rpc name="Subscribe" handle="server"/>
 		</module>
 		<!--
 		可用id范围 [11041, 11100) [11102, 11999]

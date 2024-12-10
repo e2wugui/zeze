@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
-public class OpenMQ extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean.Data, Zeze.Transaction.EmptyBean.Data> {
+public class OpenMQ extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BOpenMQ.Data, Zeze.Builtin.MQ.Master.BMQServer.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = -1151664695; // 3143302601
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47419582250441
@@ -23,7 +23,12 @@ public class OpenMQ extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean.Data, Zeze.T
     }
 
     public OpenMQ() {
-        Argument = Zeze.Transaction.EmptyBean.Data.instance;
-        Result = Zeze.Transaction.EmptyBean.Data.instance;
+        Argument = new Zeze.Builtin.MQ.Master.BOpenMQ.Data();
+        Result = new Zeze.Builtin.MQ.Master.BMQServer.Data();
+    }
+
+    public OpenMQ(Zeze.Builtin.MQ.Master.BOpenMQ.Data arg) {
+        Argument = arg;
+        Result = new Zeze.Builtin.MQ.Master.BMQServer.Data();
     }
 }
