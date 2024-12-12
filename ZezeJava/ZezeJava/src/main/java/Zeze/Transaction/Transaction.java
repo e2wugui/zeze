@@ -72,12 +72,24 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
+	private Long tid; // 线程不安全。
 
 	private Transaction() {
 	}
 
 	public @NotNull ArrayList<Procedure> getProcedureStack() {
 		return procedureStack;
+	}
+
+	public long getTransactionId() {
+		if (null != tid)
+			return tid;
+		var topProcedure = getTopProcedure();
+		if (null != topProcedure) {
+			tid = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
+			return tid;
+		}
+		return 0;
 	}
 
 	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {

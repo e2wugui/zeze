@@ -72,6 +72,7 @@ public final class Application extends ReentrantLock {
 	private final Locks locks = new Locks();
 	private final AbstractAgent serviceManager;
 	private AutoKey.Module autoKey;
+	private AutoKey transactionIdAutoKey;
 	@Deprecated // 暂时保留
 	private AutoKeyOld.Module autoKeyOld;
 	private Timer timer;
@@ -427,6 +428,10 @@ public final class Application extends ReentrantLock {
 		return autoKey.getOrAdd(name);
 	}
 
+	public AutoKey getTransactionIdAutoKey() {
+		return transactionIdAutoKey;
+	}
+
 	@Deprecated // 暂时保留
 	public @NotNull AutoKeyOld getAutoKeyOld(@NotNull String name) {
 		return autoKeyOld.getOrAdd(name);
@@ -719,6 +724,8 @@ public final class Application extends ReentrantLock {
 					deadlockBreaker.start();
 				if (onz != null)
 					onz.start();
+				if (autoKey != null)
+					transactionIdAutoKey = autoKey.getOrAdd("TransactionIdAutoKey");
 			} else
 				startState = StartState.eStarted;
 		} finally {
@@ -800,6 +807,7 @@ public final class Application extends ReentrantLock {
 			if (autoKey != null) {
 				autoKey.UnRegister();
 				autoKey = null;
+				transactionIdAutoKey = null;
 			}
 			if (autoKeyOld != null) {
 				autoKeyOld.UnRegister();
