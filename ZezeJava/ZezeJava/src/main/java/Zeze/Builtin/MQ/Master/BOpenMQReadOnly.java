@@ -8,5 +8,6 @@ public interface BOpenMQReadOnly {
     BOpenMQ copy();
 
     String getName();
+    int getPartitionCount();
     Zeze.Builtin.MQ.BOptionsReadOnly getOptionsReadOnly();
 }

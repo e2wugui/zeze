@@ -8,15 +8,9 @@ import Zeze.Serialize.IByteBuffer;
 public final class BOptions extends Zeze.Transaction.Bean implements BOptionsReadOnly {
     public static final long TYPEID = 7171781613253093556L;
 
-    public static final int GlobalOne = 1;
-    public static final int MultiInstance = 2; // MQ 类型
-    public static final int Single = 4;
-    public static final int DoubleWrite = 8;
-    public static final int Raft3 = 16; // ReadOptions 消息派发模式
-    public static final int ReadOneByOne = 32;
-    public static final int ReadConcurrent = 64; // WriteOptions 消息保存模式
-    public static final int WriteFileSync = 128;
-    public static final int WriteFileSystem = 256;
+    public static final int Single = 1;
+    public static final int DoubleWrite = 2;
+    public static final int Raft3 = 4;
 
     private int _Options;
 
@@ -234,15 +228,9 @@ public final class BOptions extends Zeze.Transaction.Bean implements BOptionsRea
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 7171781613253093556L;
 
-    public static final int GlobalOne = 1;
-    public static final int MultiInstance = 2; // MQ 类型
-    public static final int Single = 4;
-    public static final int DoubleWrite = 8;
-    public static final int Raft3 = 16; // ReadOptions 消息派发模式
-    public static final int ReadOneByOne = 32;
-    public static final int ReadConcurrent = 64; // WriteOptions 消息保存模式
-    public static final int WriteFileSync = 128;
-    public static final int WriteFileSystem = 256;
+    public static final int Single = 1;
+    public static final int DoubleWrite = 2;
+    public static final int Raft3 = 4;
 
     private int _Options;
 

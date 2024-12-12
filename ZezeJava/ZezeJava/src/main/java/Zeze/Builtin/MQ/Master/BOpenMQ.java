@@ -9,14 +9,17 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
     public static final long TYPEID = -3707353741790460228L;
 
     private String _Name;
+    private int _PartitionCount;
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BOptions> _Options;
 
     private static final java.lang.invoke.VarHandle vh_Name;
+    private static final java.lang.invoke.VarHandle vh_PartitionCount;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_Name = _l_.findVarHandle(BOpenMQ.class, "_Name", String.class);
+            vh_PartitionCount = _l_.findVarHandle(BOpenMQ.class, "_PartitionCount", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -44,6 +47,26 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
         _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Name, _v_));
     }
 
+    @Override
+    public int getPartitionCount() {
+        if (!isManaged())
+            return _PartitionCount;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _PartitionCount;
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
+        return log != null ? log.value : _PartitionCount;
+    }
+
+    public void setPartitionCount(int _v_) {
+        if (!isManaged()) {
+            _PartitionCount = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_PartitionCount, _v_));
+    }
+
     public Zeze.Builtin.MQ.BOptions getOptions() {
         return _Options.getValue();
     }
@@ -61,21 +84,23 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
     public BOpenMQ() {
         _Name = "";
         _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), Zeze.Builtin.MQ.BOptions.class);
-        _Options.variableId(2);
+        _Options.variableId(3);
     }
 
     @SuppressWarnings("deprecation")
-    public BOpenMQ(String _Name_) {
+    public BOpenMQ(String _Name_, int _PartitionCount_) {
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
+        _PartitionCount = _PartitionCount_;
         _Options = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BOptions(), Zeze.Builtin.MQ.BOptions.class);
-        _Options.variableId(2);
+        _Options.variableId(3);
     }
 
     @Override
     public void reset() {
         setName("");
+        setPartitionCount(0);
         _Options.reset();
         _unknown_ = null;
     }
@@ -94,6 +119,7 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
 
     public void assign(BOpenMQ.Data _o_) {
         setName(_o_._Name);
+        setPartitionCount(_o_._PartitionCount);
         var _d__Options = new Zeze.Builtin.MQ.BOptions();
         _d__Options.assign(_o_._Options);
         _Options.setValue(_d__Options);
@@ -102,6 +128,7 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
 
     public void assign(BOpenMQ _o_) {
         setName(_o_.getName());
+        setPartitionCount(_o_.getPartitionCount());
         _Options.assign(_o_._Options);
         _unknown_ = _o_._unknown_;
     }
@@ -140,6 +167,7 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.MQ.Master.BOpenMQ: {\n");
         _s_.append(_i1_).append("Name=").append(getName()).append(",\n");
+        _s_.append(_i1_).append("PartitionCount=").append(getPartitionCount()).append(",\n");
         _s_.append(_i1_).append("Options=");
         _Options.buildString(_s_, _l_ + 8);
         _s_.append('\n');
@@ -182,8 +210,15 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
             }
         }
         {
+            int _x_ = getPartitionCount();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
             int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
             int _b_ = _o_.WriteIndex;
             _Options.encode(_o_);
             if (_b_ + 1 == _o_.WriteIndex)
@@ -205,6 +240,10 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            setPartitionCount(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             _o_.ReadBean(_Options, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -221,6 +260,8 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BOpenMQ)_o_;
         if (!getName().equals(_b_.getName()))
+            return false;
+        if (getPartitionCount() != _b_.getPartitionCount())
             return false;
         if (!_Options.equals(_b_._Options))
             return false;
@@ -239,6 +280,8 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
 
     @Override
     public boolean negativeCheck() {
+        if (getPartitionCount() < 0)
+            return true;
         if (_Options.negativeCheck())
             return true;
         return false;
@@ -254,7 +297,8 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _Name = _v_.stringValue(); break;
-                case 2: _Options.followerApply(_v_); break;
+                case 2: _PartitionCount = _v_.intValue(); break;
+                case 3: _Options.followerApply(_v_); break;
             }
         }
     }
@@ -265,6 +309,7 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
         setName(_r_.getString(_pn_ + "Name"));
         if (getName() == null)
             setName("");
+        setPartitionCount(_r_.getInt(_pn_ + "PartitionCount"));
         _p_.add("Options");
         _Options.decodeResultSet(_p_, _r_);
         _p_.remove(_p_.size() - 1);
@@ -274,6 +319,7 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Name", getName());
+        _s_.appendInt(_pn_ + "PartitionCount", getPartitionCount());
         _p_.add("Options");
         _Options.encodeSQLStatement(_p_, _s_);
         _p_.remove(_p_.size() - 1);
@@ -283,7 +329,8 @@ public final class BOpenMQ extends Zeze.Transaction.Bean implements BOpenMQReadO
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Name", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Options", "Zeze.Builtin.MQ.BOptions", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PartitionCount", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Options", "Zeze.Builtin.MQ.BOptions", "", ""));
         return _v_;
     }
 
@@ -292,6 +339,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3707353741790460228L;
 
     private String _Name;
+    private int _PartitionCount;
     private Zeze.Builtin.MQ.BOptions.Data _Options;
 
     public String getName() {
@@ -302,6 +350,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_v_ == null)
             throw new IllegalArgumentException();
         _Name = _v_;
+    }
+
+    public int getPartitionCount() {
+        return _PartitionCount;
+    }
+
+    public void setPartitionCount(int _v_) {
+        _PartitionCount = _v_;
     }
 
     public Zeze.Builtin.MQ.BOptions.Data getOptions() {
@@ -321,10 +377,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Name_, Zeze.Builtin.MQ.BOptions.Data _Options_) {
+    public Data(String _Name_, int _PartitionCount_, Zeze.Builtin.MQ.BOptions.Data _Options_) {
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
+        _PartitionCount = _PartitionCount_;
         if (_Options_ == null)
             _Options_ = new Zeze.Builtin.MQ.BOptions.Data();
         _Options = _Options_;
@@ -333,6 +390,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void reset() {
         _Name = "";
+        _PartitionCount = 0;
         _Options.reset();
     }
 
@@ -350,11 +408,13 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BOpenMQ _o_) {
         _Name = _o_.getName();
+        _PartitionCount = _o_.getPartitionCount();
         _Options.assign(_o_._Options.getValue());
     }
 
     public void assign(BOpenMQ.Data _o_) {
         _Name = _o_._Name;
+        _PartitionCount = _o_._PartitionCount;
         _Options.assign(_o_._Options);
     }
 
@@ -393,6 +453,7 @@ public static final class Data extends Zeze.Transaction.Data {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.MQ.Master.BOpenMQ: {\n");
         _s_.append(_i1_).append("Name=").append(_Name).append(",\n");
+        _s_.append(_i1_).append("PartitionCount=").append(_PartitionCount).append(",\n");
         _s_.append(_i1_).append("Options=");
         _Options.buildString(_s_, _l_ + 8);
         _s_.append('\n');
@@ -420,8 +481,15 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
+            int _x_ = _PartitionCount;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
             int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 2, ByteBuffer.BEAN);
+            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
             int _b_ = _o_.WriteIndex;
             _Options.encode(_o_);
             if (_b_ + 1 == _o_.WriteIndex)
@@ -441,6 +509,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            _PartitionCount = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             _o_.ReadBean(_Options, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -459,6 +531,8 @@ public static final class Data extends Zeze.Transaction.Data {
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BOpenMQ.Data)_o_;
         if (!_Name.equals(_b_._Name))
+            return false;
+        if (_PartitionCount != _b_._PartitionCount)
             return false;
         if (!_Options.equals(_b_._Options))
             return false;

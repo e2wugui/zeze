@@ -1923,7 +1923,8 @@
 			<module name="Master" id="11040" UseData="true">
 				<bean name="BOpenMQ">
 					<variable id="1" name="Name" type="string"/>
-					<variable id="2" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+					<variable id="2" name="PartitionCount" type="int"/>
+					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
 				</bean>
 				<bean name="BSubscribe">
 					<variable id="1" name="NamePrefix" type="string"/>
@@ -1931,7 +1932,8 @@
 				<bean name="BMQServer">
 					<variable id="1" name="Host" type="string"/>
 					<variable id="2" name="Port" type="int"/>
-					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+					<variable id="3" name="PartitionCount" type="int"/>
+					<variable id="4" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
 				</bean>
 				<bean name="BMQServers">
 					<variable id="1" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
@@ -1940,20 +1942,11 @@
 				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
 			</module>
 			<bean name="BOptions">
-				MQ 并发模式
-				<enum name="GlobalOne" value="1"/>
-				<enum name="MultiInstance" value="2"/>
 				MQ 类型
-				<enum name="Single" value="4"/>
-				<enum name="DoubleWrite" value="8"/>
-				<enum name="Raft3" value="16"/>
-				 ReadOptions 消息派发模式
-				<enum name="ReadOneByOne" value="32"/>
-				<enum name="ReadConcurrent" value="64"/>
-				 WriteOptions 消息保存模式
-				<enum name="WriteFileSync" value="128"/>
-				<enum name="WriteFileSystem" value="256"/>
-				
+				<enum name="Single" value="1"/>
+				<enum name="DoubleWrite" value="2"/>
+				<enum name="Raft3" value="4"/>
+
 				<variable id="1" name="Options" type="int"/>
 			</bean>
 			<bean name="BMessage">

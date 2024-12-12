@@ -9,4 +9,6 @@ public interface BMQServerReadOnly {
 
     String getHost();
     int getPort();
+    int getPartitionCount();
+    Zeze.Builtin.MQ.BOptionsReadOnly getOptionsReadOnly();
 }
