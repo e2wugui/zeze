@@ -45,6 +45,7 @@ class Options {
     public static int Raft3 = 4;
 }
 class Message {
+    String topic;
     int partitionIndex;
     long timestamp;
     Properties properties; // 定义这个？

@@ -1,0 +1,123 @@
+BeanAny接口，Bean和BeanKey都实现它。Hot中的用法最后来说。
+interface BeanAny {
+Integer getInt(String varName);
+    default int getInt(String varName, int defaultVarValue) {
+        var value = getInt(varName);
+        return null != value ? value : defaultVarValue;
+    }
+    // ... 其他所有基本类型和容器类型的访问接口定义。
+    // 其中容器有点麻烦，先不涉及。容器List<Bean>的返回类型是List<BeanAny>，
+    // 这有点像List<BeanReadOnly>的实现方式，@张璐，你刚好做过。
+}
+这个方法有点像反射，可以反射实现，但是Gen实现可能效率更高，而且也挺方便，先考虑Gen方式。
+SomeBean implements BeanAny {
+    // Gen生成代码
+    Integer getInt(String varName) {
+        switch (varName) {
+            case "aVarName": return getAVarName(); // 正常的bean的getter。
+            default: return null;
+        }
+    }
+}
+
+第一个问题：当用户命名的varName发生了变化，编译器最好能报错。
+所以上面的接口定义按下面的做法更好，这个问题的答案基本确定是这个新的方案。
+不大需要讨论。
+interface BeanAny {
+    Integer getInt(int varId);
+    default int getInt(int varId, int defaultVarValue) {
+        var value = getInt(varId);
+        return null != value ? value : defaultVarValue;
+    }
+}
+SomeBean implements BeanAny {
+    // Gen生成代码
+    public static int _varNameId 1; // 为每个var生成它的Id的常量，代码中用这个常量，
+                                                      // 这样编译就能发现varName的命名发生了变化。
+    Integer getInt(int varId) {
+        switch (varId) {
+            case _varNameId: return getAVarName(); // 正常的bean的getter。
+            default: return null;
+        }
+    }
+}
+
+第二个问题：方法getInt污染了getter的名字空间，而且编辑器提示时也会和Bean的getter混在一起。
+所以我想按anyInt这种模式来命名，但是any的含义有点不正确。看看还有什么词。或者叫readInt？
+【这个问题需要考虑一下。】
+
+第三个问题：List容器类型的接口定义和实现方案。【下面的是草稿，需要明确。】
+interface BeanAny {
+    <T> List<T> getList(int varId, class<T> valueClass);
+}
+SomeBean implements BeanAny {
+    // Gen生成
+    <T> List<T> getList(int varId, class<T> valueClass) {
+        switch (varId) {
+            case _varListNameIntergerValueId: // List<Integer>类型的var
+                if (valueClass == Integer.class)
+                    return getVarListNameIntergerValueId(); // 正常的bean的getter。
+                break;
+            case _varListNameAnyValueId: // List<Bean>类型的var
+                if (valueClass == BeanAny.class)
+                    return getVarListNameAnyValueId(); // 正常的bean的getter。
+                                                                               // 需要Plist像支持List<BeanReadOnly>一样提供实现。
+                                                                               // 可以是一个PList的专用方法，然后直接用不直接用正常getter。
+                break;
+            }
+        return null;
+    }
+}
+
+第四个问题：Map容器类型的实现。
+interface BeanAny {
+    <K, V> Map<K, V> getMap(int varId, class<K> keyClass, class<V> valueClass);
+}
+Map的实现基本模式跟上面的List有点像，但是存在新的问题。当key是BeanKey时，需要把返回类型的
+定义成Map<BeanAny, V>。此时map.get传入的类型是BeanAny，当应用到Hot热更模式里面时，可能
+传入旧版的BeanKey的引用。由于Map里面的底层对于key的compare不支持不同版本的beankey一起混用，
+需要对升级beankey。所以需要下面的decodeTo实现（注：这个方法对于Hot来说，本来就应该是interface的
+一部分，实际上不纯粹是因为这里的问题）。
+interface BeanAny {
+    BeanAny decodeTo(BeanAny targetAnyType) {
+        var bb = this.encodeTo(); // 把当前Bean系列化
+        targetAnyType.decode(bb); // 解码到目标Bean引用中。兼容性由Bean来保证。
+                                                     // 当然传入完全没关系的Bean引用，以后数值上会得不到正确结果。
+        return targetAnyType;
+    }
+}
+这样对于PMap的get实现就如下草稿：
+    V get(BeanAny key) {
+        var currentKey = new K(); // 构造当前版本的Key类型引用。实际实现需要一点变化。
+        key.decodeTo(currentKey);
+        return get(currentKey); // 老的map的get。
+    }
+对于map的key是BeanKey的问题，还有个解决方案是不再支持map.get，直接抛出异常，只支持遍历map。
+【这个方案阉割的有点多，不是太好。】
+
+第五个问题：Set的实现
+当value是基本类型，跟List差不多，当value是BeanKey类型，跟Map差不多。
+
+第六个问题：BeanAny的修改暂不考虑支持。【后续版本再考虑】
+
+第七个问题：Hot应用规范，也是例子。
+1. Hot模块接口中的所有Bean，BeanKey类型的定义都需要写成BeanAny。通过注释说明具体的类型。
+2. 用户通过上面的getInt,getList,getMap读取变量。这样传递就可以通过引用直接进行。
+3. 当Hot中不同版本的Bean，BeanKey互相传递时，由Bean的兼容性和null返回值提供兼容保证。
+4. Bean，BeanKey的最新版本总是跟随它所在的Hot模块。即拥有者Hot模块总是使用最新的版本。
+5. 其他非拥有者Hot模块引用其他Hot模块的Bean，BeanKey时，在自己的jar中打包发布当前系统
+的最新版本的Bean，BeanKey。比如HotA定义的BeanA，Hot1，Hot2，Hot3使用了HotA.BeanA，
+随着系统热更的进行，第一次热更发布HotA,Hot1,Hot2,Hot3,BeanA_V1; 第二次热更发布HotA, Hot2, Hot3,
+BeanA_V2;第三次热更发布HotA, Hot3, BeanA_V3, 这样整个系统的实际BeanA版本的分布情况，
+HotA.BeanA_V3, Hot1...HotA.BeanA_V1,Hot2...HotA.BeanA_V2, Hot3...HotA.BeanA_V3。
+6. HotA模块接口方法：
+BeanAny HotA.fromOwnerBeanA(); // 返回BeanA的当前Value给其他模块读取。
+void toOwnerBeanA(BeanAny fromOtherHotModule); // 其他模块构造它当前BeanA版本的value传入给Owner使用。
+7. 当BeanA的接口方法中传递时，如果只是读取，直接通过上面第2点的方式读取，不需要特别操作。
+8. 当BeanA的不同版本得到BeanAny引用并且需要在内部保存引用时，使用decodeTo升级到本地版本，继续使用。
+9. Bean版本降级的风险，由Bean的兼容性（可能decodeTo实现转换）和null返回值提供兼容。Bean降级不会引起大的问题。
+10. BeanKey版本降级的风险，对于Map.Key，Set.Value是BeanKey，发生版本降级可能出现不协调现象。
+如HotA.Map.get(BeanAny beanKeyA); 由于HotA总是拥有最新的版本，decodeTo肯定是升级，此时不会出现问题，
+如Hot1.Map.get(BeanAny beanKeyA)；由于上面第5点得到的整体版本分布，HotA访问Hot1的这个方法时，可能出现降级。
+当BeanKey降级时，会出现问题，新的BeanKey的新增变量被忽略了。考虑到BeanKeyA一般仅在拥有者模块HotA中才会
+定义数据，此时只会发生升级，不会出现降级，这个问题不算很大。【暂略】。
