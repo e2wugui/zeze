@@ -95,6 +95,7 @@ public class Master extends AbstractMaster {
                 var manager = managers[i % managers.length];
                 var info = manager.info.copy();
                 info.setPartitionIndex(i);
+                info.setTopic(r.Argument.getTopic());
                 servers.getServers().add(info);
             }
         } else {
@@ -110,6 +111,7 @@ public class Master extends AbstractMaster {
                 var manager = managers[i % managers.length];
                 var info = manager.info.copy();
                 info.setPartitionIndex(i + servers.getInfo().getPartition());
+                info.setTopic(r.Argument.getTopic());
                 servers.getServers().add(info);
             }
             servers.getInfo().setPartition(r.Argument.getPartition());

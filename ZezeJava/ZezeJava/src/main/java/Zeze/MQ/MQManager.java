@@ -81,7 +81,18 @@ public class MQManager extends AbstractMQManager {
 
     @Override
     protected long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        // todo 这里mqFile应该已经创建好了，需要master通知manager创建。这里临时使用putIfAbsent。
+        var mqsNew = new ConcurrentHashMap<Integer, MQFile>();
+        var mqs = mqFiles.putIfAbsent(r.Argument.getTopic(), mqsNew);
+        if (mqs == null)
+            mqs = mqsNew;
+        var mqFileNew = new MQFile();
+        var mqFile = mqs.putIfAbsent(r.Argument.getPartitionIndex(), mqFileNew);
+        if (mqFile == null)
+            mqFile = mqFileNew;
+        mqFile.sendMessage(r.Argument);
+        r.SendResult();
+        return 0;
     }
 
     @Override

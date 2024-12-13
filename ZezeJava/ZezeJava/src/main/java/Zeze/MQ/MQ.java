@@ -65,6 +65,8 @@ public class MQ {
 		if (conn.server.getPartitionIndex() != index)
 			throw new RuntimeException("fatal error, index mismatch: " + conn.server.getPartitionIndex() + "," + index);
 		message.setPartitionIndex(index);
+		message.setTimestamp(System.currentTimeMillis());
+		message.setTopic(conn.server.getTopic());
 		MQAgent.sendMessageTo(message, conn.connector);
 	}
 

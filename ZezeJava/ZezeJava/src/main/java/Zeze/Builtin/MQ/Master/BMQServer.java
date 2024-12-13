@@ -11,10 +11,12 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
     private String _Host;
     private int _Port;
     private int _PartitionIndex;
+    private String _Topic;
 
     private static final java.lang.invoke.VarHandle vh_Host;
     private static final java.lang.invoke.VarHandle vh_Port;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
+    private static final java.lang.invoke.VarHandle vh_Topic;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -22,6 +24,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             vh_Host = _l_.findVarHandle(BMQServer.class, "_Host", String.class);
             vh_Port = _l_.findVarHandle(BMQServer.class, "_Port", int.class);
             vh_PartitionIndex = _l_.findVarHandle(BMQServer.class, "_PartitionIndex", int.class);
+            vh_Topic = _l_.findVarHandle(BMQServer.class, "_Topic", String.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -89,18 +92,44 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 3, vh_PartitionIndex, _v_));
     }
 
-    @SuppressWarnings("deprecation")
-    public BMQServer() {
-        _Host = "";
+    @Override
+    public String getTopic() {
+        if (!isManaged())
+            return _Topic;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _Topic;
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
+        return log != null ? log.value : _Topic;
+    }
+
+    public void setTopic(String _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _Topic = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_Topic, _v_));
     }
 
     @SuppressWarnings("deprecation")
-    public BMQServer(String _Host_, int _Port_, int _PartitionIndex_) {
+    public BMQServer() {
+        _Host = "";
+        _Topic = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BMQServer(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_) {
         if (_Host_ == null)
             _Host_ = "";
         _Host = _Host_;
         _Port = _Port_;
         _PartitionIndex = _PartitionIndex_;
+        if (_Topic_ == null)
+            _Topic_ = "";
+        _Topic = _Topic_;
     }
 
     @Override
@@ -108,6 +137,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setHost("");
         setPort(0);
         setPartitionIndex(0);
+        setTopic("");
         _unknown_ = null;
     }
 
@@ -127,6 +157,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setHost(_o_._Host);
         setPort(_o_._Port);
         setPartitionIndex(_o_._PartitionIndex);
+        setTopic(_o_._Topic);
         _unknown_ = null;
     }
 
@@ -134,6 +165,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         setHost(_o_.getHost());
         setPort(_o_.getPort());
         setPartitionIndex(_o_.getPartitionIndex());
+        setTopic(_o_.getTopic());
         _unknown_ = _o_._unknown_;
     }
 
@@ -172,7 +204,8 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _s_.append("Zeze.Builtin.MQ.Master.BMQServer: {\n");
         _s_.append(_i1_).append("Host=").append(getHost()).append(",\n");
         _s_.append(_i1_).append("Port=").append(getPort()).append(",\n");
-        _s_.append(_i1_).append("PartitionIndex=").append(getPartitionIndex()).append('\n');
+        _s_.append(_i1_).append("PartitionIndex=").append(getPartitionIndex()).append(",\n");
+        _s_.append(_i1_).append("Topic=").append(getTopic()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -225,6 +258,13 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            String _x_ = getTopic();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -246,6 +286,10 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             setPartitionIndex(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setTopic(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -263,6 +307,8 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         if (getPort() != _b_.getPort())
             return false;
         if (getPartitionIndex() != _b_.getPartitionIndex())
+            return false;
+        if (!getTopic().equals(_b_.getTopic()))
             return false;
         return true;
     }
@@ -288,6 +334,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
                 case 1: _Host = _v_.stringValue(); break;
                 case 2: _Port = _v_.intValue(); break;
                 case 3: _PartitionIndex = _v_.intValue(); break;
+                case 4: _Topic = _v_.stringValue(); break;
             }
         }
     }
@@ -300,6 +347,9 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
             setHost("");
         setPort(_r_.getInt(_pn_ + "Port"));
         setPartitionIndex(_r_.getInt(_pn_ + "PartitionIndex"));
+        setTopic(_r_.getString(_pn_ + "Topic"));
+        if (getTopic() == null)
+            setTopic("");
     }
 
     @Override
@@ -308,6 +358,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _s_.appendString(_pn_ + "Host", getHost());
         _s_.appendInt(_pn_ + "Port", getPort());
         _s_.appendInt(_pn_ + "PartitionIndex", getPartitionIndex());
+        _s_.appendString(_pn_ + "Topic", getTopic());
     }
 
     @Override
@@ -316,6 +367,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Host", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Port", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "PartitionIndex", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Topic", "string", "", ""));
         return _v_;
     }
 
@@ -326,6 +378,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private String _Host;
     private int _Port;
     private int _PartitionIndex;
+    private String _Topic;
 
     public String getHost() {
         return _Host;
@@ -353,18 +406,32 @@ public static final class Data extends Zeze.Transaction.Data {
         _PartitionIndex = _v_;
     }
 
-    @SuppressWarnings("deprecation")
-    public Data() {
-        _Host = "";
+    public String getTopic() {
+        return _Topic;
+    }
+
+    public void setTopic(String _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _Topic = _v_;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Host_, int _Port_, int _PartitionIndex_) {
+    public Data() {
+        _Host = "";
+        _Topic = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public Data(String _Host_, int _Port_, int _PartitionIndex_, String _Topic_) {
         if (_Host_ == null)
             _Host_ = "";
         _Host = _Host_;
         _Port = _Port_;
         _PartitionIndex = _PartitionIndex_;
+        if (_Topic_ == null)
+            _Topic_ = "";
+        _Topic = _Topic_;
     }
 
     @Override
@@ -372,6 +439,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Host = "";
         _Port = 0;
         _PartitionIndex = 0;
+        _Topic = "";
     }
 
     @Override
@@ -390,12 +458,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Host = _o_.getHost();
         _Port = _o_.getPort();
         _PartitionIndex = _o_.getPartitionIndex();
+        _Topic = _o_.getTopic();
     }
 
     public void assign(BMQServer.Data _o_) {
         _Host = _o_._Host;
         _Port = _o_._Port;
         _PartitionIndex = _o_._PartitionIndex;
+        _Topic = _o_._Topic;
     }
 
     @Override
@@ -434,7 +504,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append("Zeze.Builtin.MQ.Master.BMQServer: {\n");
         _s_.append(_i1_).append("Host=").append(_Host).append(",\n");
         _s_.append(_i1_).append("Port=").append(_Port).append(",\n");
-        _s_.append(_i1_).append("PartitionIndex=").append(_PartitionIndex).append('\n');
+        _s_.append(_i1_).append("PartitionIndex=").append(_PartitionIndex).append(",\n");
+        _s_.append(_i1_).append("Topic=").append(_Topic).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -472,6 +543,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            String _x_ = _Topic;
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -489,6 +567,10 @@ public static final class Data extends Zeze.Transaction.Data {
         }
         if (_i_ == 3) {
             _PartitionIndex = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            _Topic = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -510,6 +592,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_Port != _b_._Port)
             return false;
         if (_PartitionIndex != _b_._PartitionIndex)
+            return false;
+        if (!_Topic.equals(_b_._Topic))
             return false;
         return true;
     }

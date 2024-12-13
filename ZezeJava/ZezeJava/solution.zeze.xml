@@ -1937,6 +1937,7 @@
 					<variable id="1" name="Host" type="string"/>
 					<variable id="2" name="Port" type="int"/>
 					<variable id="3" name="PartitionIndex" type="int"/>
+					<variable id="4" name="Topic" type="string"/>
 				</bean>
 				<bean name="BMQServers">
 					<variable id="1" name="Info" type="BMQInfo"/>
@@ -1961,10 +1962,11 @@
 				<variable id="1" name="Options" type="int"/>
 			</bean>
 			<bean name="BMessage">
-				<variable id="1" name="PartitionIndex" type="int"/> 用户不用填写
-				<variable id="2" name="Properties" type="map[string, string]"/> 属性，用户自定义
-				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
-				<variable id="4" name="Timestamp" type="long"/>
+				<variable id="1" name="Topic" type="string"/> 用户不用填写
+				<variable id="2" name="PartitionIndex" type="int"/> 用户不用填写
+				<variable id="3" name="Properties" type="map[string, string]"/> 属性，用户自定义
+				<variable id="4" name="Body" type="binary"/> 消息体，用户自定义
+				<variable id="5" name="Timestamp" type="long"/>
 			</bean>
 			<bean name="BPartitionSubscribe">
 				<variable id="1" name="Topic" type="string"/>

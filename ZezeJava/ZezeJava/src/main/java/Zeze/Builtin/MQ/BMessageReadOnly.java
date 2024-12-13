@@ -7,6 +7,7 @@ public interface BMessageReadOnly {
     boolean negativeCheck();
     BMessage copy();
 
+    String getTopic();
     int getPartitionIndex();
     Zeze.Transaction.Collections.PMap1ReadOnly<String, String> getPropertiesReadOnly();
     Zeze.Net.Binary getBody();
