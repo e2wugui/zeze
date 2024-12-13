@@ -5,96 +5,91 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscribeReadOnly {
-    public static final long TYPEID = 8415845973205738044L;
+public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly {
+    public static final long TYPEID = -3270807260625529916L;
 
-    private String _Topic;
+    private double _Load;
 
-    private static final java.lang.invoke.VarHandle vh_Topic;
+    private static final java.lang.invoke.VarHandle vh_Load;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
-            vh_Topic = _l_.findVarHandle(BSubscribe.class, "_Topic", String.class);
+            vh_Load = _l_.findVarHandle(BLoad.class, "_Load", double.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
     }
 
     @Override
-    public String getTopic() {
+    public double getLoad() {
         if (!isManaged())
-            return _Topic;
+            return _Load;
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
-            return _Topic;
-        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Topic;
+            return _Load;
+        var log = (Zeze.Transaction.Logs.LogDouble)_t_.getLog(objectId() + 1);
+        return log != null ? log.value : _Load;
     }
 
-    public void setTopic(String _v_) {
-        if (_v_ == null)
-            throw new IllegalArgumentException();
+    public void setLoad(double _v_) {
         if (!isManaged()) {
-            _Topic = _v_;
+            _Load = _v_;
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 1, vh_Topic, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogDouble(this, 1, vh_Load, _v_));
     }
 
     @SuppressWarnings("deprecation")
-    public BSubscribe() {
-        _Topic = "";
+    public BLoad() {
     }
 
     @SuppressWarnings("deprecation")
-    public BSubscribe(String _Topic_) {
-        if (_Topic_ == null)
-            _Topic_ = "";
-        _Topic = _Topic_;
+    public BLoad(double _Load_) {
+        _Load = _Load_;
     }
 
     @Override
     public void reset() {
-        setTopic("");
+        setLoad(0);
         _unknown_ = null;
     }
 
     @Override
-    public Zeze.Builtin.MQ.Master.BSubscribe.Data toData() {
-        var _d_ = new Zeze.Builtin.MQ.Master.BSubscribe.Data();
+    public Zeze.Builtin.MQ.Master.BLoad.Data toData() {
+        var _d_ = new Zeze.Builtin.MQ.Master.BLoad.Data();
         _d_.assign(this);
         return _d_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data _o_) {
-        assign((Zeze.Builtin.MQ.Master.BSubscribe.Data)_o_);
+        assign((Zeze.Builtin.MQ.Master.BLoad.Data)_o_);
     }
 
-    public void assign(BSubscribe.Data _o_) {
-        setTopic(_o_._Topic);
+    public void assign(BLoad.Data _o_) {
+        setLoad(_o_._Load);
         _unknown_ = null;
     }
 
-    public void assign(BSubscribe _o_) {
-        setTopic(_o_.getTopic());
+    public void assign(BLoad _o_) {
+        setLoad(_o_.getLoad());
         _unknown_ = _o_._unknown_;
     }
 
-    public BSubscribe copyIfManaged() {
+    public BLoad copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BSubscribe copy() {
-        var _c_ = new BSubscribe();
+    public BLoad copy() {
+        var _c_ = new BLoad();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BSubscribe _a_, BSubscribe _b_) {
+    public static void swap(BLoad _a_, BLoad _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -115,8 +110,8 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.MQ.Master.BSubscribe: {\n");
-        _s_.append(_i1_).append("Topic=").append(getTopic()).append('\n');
+        _s_.append("Zeze.Builtin.MQ.Master.BLoad: {\n");
+        _s_.append(_i1_).append("Load=").append(getLoad()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -149,10 +144,10 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            String _x_ = getTopic();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            double _x_ = getLoad();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DOUBLE);
+                _o_.WriteDouble(_x_);
             }
         }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
@@ -165,7 +160,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setTopic(_o_.ReadString(_t_));
+            setLoad(_o_.ReadDouble(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -176,11 +171,11 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BSubscribe))
+        if (!(_o_ instanceof BLoad))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BSubscribe)_o_;
-        if (!getTopic().equals(_b_.getTopic()))
+        var _b_ = (BLoad)_o_;
+        if (getLoad() != _b_.getLoad())
             return false;
         return true;
     }
@@ -194,7 +189,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _Topic = _v_.stringValue(); break;
+                case 1: _Load = _v_.doubleValue(); break;
             }
         }
     }
@@ -202,85 +197,78 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        setTopic(_r_.getString(_pn_ + "Topic"));
-        if (getTopic() == null)
-            setTopic("");
+        setLoad(_r_.getDouble(_pn_ + "Load"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        _s_.appendString(_pn_ + "Topic", getTopic());
+        _s_.appendDouble(_pn_ + "Load", getLoad());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Topic", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Load", "double", "", ""));
         return _v_;
     }
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 8415845973205738044L;
+    public static final long TYPEID = -3270807260625529916L;
 
-    private String _Topic;
+    private double _Load;
 
-    public String getTopic() {
-        return _Topic;
+    public double getLoad() {
+        return _Load;
     }
 
-    public void setTopic(String _v_) {
-        if (_v_ == null)
-            throw new IllegalArgumentException();
-        _Topic = _v_;
+    public void setLoad(double _v_) {
+        _Load = _v_;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
-        _Topic = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Topic_) {
-        if (_Topic_ == null)
-            _Topic_ = "";
-        _Topic = _Topic_;
+    public Data(double _Load_) {
+        _Load = _Load_;
     }
 
     @Override
     public void reset() {
-        _Topic = "";
+        _Load = 0;
     }
 
     @Override
-    public Zeze.Builtin.MQ.Master.BSubscribe toBean() {
-        var _b_ = new Zeze.Builtin.MQ.Master.BSubscribe();
+    public Zeze.Builtin.MQ.Master.BLoad toBean() {
+        var _b_ = new Zeze.Builtin.MQ.Master.BLoad();
         _b_.assign(this);
         return _b_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean _o_) {
-        assign((BSubscribe)_o_);
+        assign((BLoad)_o_);
     }
 
-    public void assign(BSubscribe _o_) {
-        _Topic = _o_.getTopic();
+    public void assign(BLoad _o_) {
+        _Load = _o_.getLoad();
     }
 
-    public void assign(BSubscribe.Data _o_) {
-        _Topic = _o_._Topic;
+    public void assign(BLoad.Data _o_) {
+        _Load = _o_._Load;
     }
 
     @Override
-    public BSubscribe.Data copy() {
-        var _c_ = new BSubscribe.Data();
+    public BLoad.Data copy() {
+        var _c_ = new BLoad.Data();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BSubscribe.Data _a_, BSubscribe.Data _b_) {
+    public static void swap(BLoad.Data _a_, BLoad.Data _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -292,8 +280,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BSubscribe.Data clone() {
-        return (BSubscribe.Data)super.clone();
+    public BLoad.Data clone() {
+        return (BLoad.Data)super.clone();
     }
 
     @Override
@@ -306,8 +294,8 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.MQ.Master.BSubscribe: {\n");
-        _s_.append(_i1_).append("Topic=").append(_Topic).append('\n');
+        _s_.append("Zeze.Builtin.MQ.Master.BLoad: {\n");
+        _s_.append(_i1_).append("Load=").append(_Load).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -325,10 +313,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = _Topic;
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            double _x_ = _Load;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.DOUBLE);
+                _o_.WriteDouble(_x_);
             }
         }
         _o_.WriteByte(0);
@@ -339,7 +327,7 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _Topic = _o_.ReadString(_t_);
+            _Load = _o_.ReadDouble(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -352,11 +340,11 @@ public static final class Data extends Zeze.Transaction.Data {
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BSubscribe.Data))
+        if (!(_o_ instanceof BLoad.Data))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BSubscribe.Data)_o_;
-        if (!_Topic.equals(_b_._Topic))
+        var _b_ = (BLoad.Data)_o_;
+        if (_Load != _b_._Load)
             return false;
         return true;
     }

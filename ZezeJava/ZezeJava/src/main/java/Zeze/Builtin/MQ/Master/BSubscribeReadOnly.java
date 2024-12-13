@@ -7,5 +7,5 @@ public interface BSubscribeReadOnly {
     boolean negativeCheck();
     BSubscribe copy();
 
-    String getNamePrefix();
+    String getTopic();
 }

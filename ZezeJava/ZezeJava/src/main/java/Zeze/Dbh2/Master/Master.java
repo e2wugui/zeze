@@ -58,9 +58,9 @@ public class Master extends AbstractMaster {
 		return zezeConfig;
 	}
 
-	public Master(String home) throws RocksDBException {
+	public Master(String home, Config zezeConfig) throws RocksDBException {
 		this.home = home;
-		zezeConfig = Config.load();
+		this.zezeConfig = zezeConfig;
 		zezeConfig.parseCustomize(dbh2Config);
 		masterDb = new RocksDatabase(Path.of(home, MasterDbName).toString(),
 				RocksDatabase.DbType.eOptimisticTransactionDb);

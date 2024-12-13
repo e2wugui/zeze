@@ -1,13 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
-public interface BMQServerReadOnly {
+public interface BLoadReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BMQServer copy();
+    BLoad copy();
 
-    String getHost();
-    int getPort();
-    int getPartitionIndex();
+    double getLoad();
 }

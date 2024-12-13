@@ -1,4 +1,4 @@
-package Zeze.Dbh2.Master;
+package Zeze.MQ.Master;
 
 import Zeze.Config;
 import Zeze.Util.PerfCounter;
@@ -9,17 +9,12 @@ import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
 
 public class Main {
-	private static final Logger logger = LogManager.getLogger(Main.class);
-
+	private static final Logger logger = LogManager.getLogger();
 	private final MasterService service;
 	private final Master master;
 
 	public Master getMaster() {
 		return master;
-	}
-
-	public MasterService getService() {
-		return service;
 	}
 
 	public Main(String configXml) throws RocksDBException {

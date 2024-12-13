@@ -1,10 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.MQ;
 
-public abstract class AbstractMQ implements Zeze.IModule {
+public abstract class AbstractMQAgent implements Zeze.IModule {
     public static final int ModuleId = 11039;
-    public static final String ModuleName = "MQ";
-    public static final String ModuleFullName = "Zeze.MQ.MQ";
+    public static final String ModuleName = "MQAgent";
+    public static final String ModuleFullName = "Zeze.MQ.MQAgent";
 
     @Override public int getId() { return ModuleId; }
     @Override public String getName() { return ModuleName; }

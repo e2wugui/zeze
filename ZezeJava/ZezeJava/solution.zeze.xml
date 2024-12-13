@@ -1921,26 +1921,37 @@
 
 		<module name="MQ" id="11039" UseData="true">
 			<module name="Master" id="11040" UseData="true">
-				<bean name="BOpenMQ">
-					<variable id="1" name="Name" type="string"/>
-					<variable id="2" name="PartitionCount" type="int"/>
-					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
-				</bean>
+				<enum name="ePartition" value="1"/>
+				<enum name="eTopicNotExist" value="2"/>
+				<enum name="eManagerNotFound" value="3"/>
+
 				<bean name="BSubscribe">
-					<variable id="1" name="NamePrefix" type="string"/>
+					<variable id="1" name="Topic" type="string"/>
+				</bean>
+				<bean name="BMQInfo">
+					<variable id="1" name="Topic" type="string"/>
+					<variable id="2" name="Partition" type="int"/>
+					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
 				</bean>
 				<bean name="BMQServer">
 					<variable id="1" name="Host" type="string"/>
 					<variable id="2" name="Port" type="int"/>
-					<variable id="3" name="PartitionCount" type="int"/>
-					<variable id="4" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+					<variable id="3" name="PartitionIndex" type="int"/>
 				</bean>
 				<bean name="BMQServers">
-					<variable id="1" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
+					<variable id="1" name="Info" type="BMQInfo"/>
+					<variable id="2" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
 				</bean>
-				<rpc name="OpenMQ" argument="BOpenMQ" result="BMQServer" handle="server"/>
+				
+				<rpc name="OpenMQ" argument="BMQInfo" result="BMQServers" handle="server"/>
 				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
+				<rpc name="Register" argument="BMQServer" handle="server"/>
+				<bean name="BLoad">
+					<variable id="1" name="Load" type="double"/>
+				</bean>
+				<rpc name="ReportLoad" argument="BLoad" UseData="true" handle="server"/>
 			</module>
+
 			<bean name="BOptions">
 				MQ 类型
 				<enum name="Single" value="1"/>
@@ -1950,11 +1961,17 @@
 				<variable id="1" name="Options" type="int"/>
 			</bean>
 			<bean name="BMessage">
-				<variable id="1" name="MessageId" type="string"/>
-				<variable id="2" name="Body" type="binary"/>
+				<variable id="1" name="PartitionIndex" type="int"/> 用户不用填写
+				<variable id="2" name="Properties" type="map[string, string]"/> 属性，用户自定义
+				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
+				<variable id="4" name="Timestamp" type="long"/>
+			</bean>
+			<bean name="BPartitionSubscribe">
+				<variable id="1" name="Topic" type="string"/>
+				<variable id="2" name="PartitionIndex" type="list[int]"/>
 			</bean>
 			<rpc name="SendMessage" argument="BMessage" handle="server"/>
-			<rpc name="Subscribe" handle="server"/>
+			<rpc name="Subscribe" argument="BPartitionSubscribe" handle="server"/>
 		</module>
 		<!--
 		可用id范围 [11041, 11100) [11102, 11999]
@@ -1980,7 +1997,7 @@
 			<module ref="Zeze.Builtin.MQ"/>
 		</service>
 	</component>
-	<component name="MQ" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
+	<component name="MQAgent" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.MQ"/>
 		</service>

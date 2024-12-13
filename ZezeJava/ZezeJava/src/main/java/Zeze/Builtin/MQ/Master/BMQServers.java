@@ -8,7 +8,21 @@ import Zeze.Serialize.IByteBuffer;
 public final class BMQServers extends Zeze.Transaction.Bean implements BMQServersReadOnly {
     public static final long TYPEID = 723031994174062842L;
 
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info;
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // Subscribe可能返回多个地址。
+
+    public Zeze.Builtin.MQ.Master.BMQInfo getInfo() {
+        return _Info.getValue();
+    }
+
+    public void setInfo(Zeze.Builtin.MQ.Master.BMQInfo _v_) {
+        _Info.setValue(_v_);
+    }
+
+    @Override
+    public Zeze.Builtin.MQ.Master.BMQInfoReadOnly getInfoReadOnly() {
+        return _Info.getValue();
+    }
 
     public Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> getServers() {
         return _Servers;
@@ -21,12 +35,15 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     @SuppressWarnings("deprecation")
     public BMQServers() {
+        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
+        _Info.variableId(1);
         _Servers = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.MQ.Master.BMQServer.class);
-        _Servers.variableId(1);
+        _Servers.variableId(2);
     }
 
     @Override
     public void reset() {
+        _Info.reset();
         _Servers.clear();
         _unknown_ = null;
     }
@@ -44,6 +61,9 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     }
 
     public void assign(BMQServers.Data _o_) {
+        var _d__Info = new Zeze.Builtin.MQ.Master.BMQInfo();
+        _d__Info.assign(_o_._Info);
+        _Info.setValue(_d__Info);
         _Servers.clear();
         for (var _e_ : _o_._Servers) {
             var _v_ = new Zeze.Builtin.MQ.Master.BMQServer();
@@ -54,6 +74,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     }
 
     public void assign(BMQServers _o_) {
+        _Info.assign(_o_._Info);
         _Servers.clear();
         for (var _e_ : _o_._Servers)
             _Servers.add(_e_.copy());
@@ -94,6 +115,9 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
         _s_.append("Zeze.Builtin.MQ.Master.BMQServers: {\n");
+        _s_.append(_i1_).append("Info=");
+        _Info.buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
         _s_.append(_i1_).append("Servers=[");
         if (!_Servers.isEmpty()) {
             _s_.append('\n');
@@ -137,10 +161,20 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Info.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
+        {
             var _x_ = _Servers;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
                     _v_.encode(_o_);
@@ -160,6 +194,10 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
+            _o_.ReadBean(_Info, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
             var _x_ = _Servers;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
@@ -181,6 +219,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BMQServers)_o_;
+        if (!_Info.equals(_b_._Info))
+            return false;
         if (!_Servers.equals(_b_._Servers))
             return false;
         return true;
@@ -188,16 +228,20 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Info.initRootInfo(_r_, this);
         _Servers.initRootInfo(_r_, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+        _Info.initRootInfoWithRedo(_r_, this);
         _Servers.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
     public boolean negativeCheck() {
+        if (_Info.negativeCheck())
+            return true;
         for (var _v_ : _Servers) {
             if (_v_.negativeCheck())
                 return true;
@@ -214,19 +258,26 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _Servers.followerApply(_v_); break;
+                case 1: _Info.followerApply(_v_); break;
+                case 2: _Servers.followerApply(_v_); break;
             }
         }
     }
 
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
+        _p_.add("Info");
+        _Info.decodeResultSet(_p_, _r_);
+        _p_.remove(_p_.size() - 1);
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         Zeze.Serialize.Helper.decodeJsonList(_Servers, Zeze.Builtin.MQ.Master.BMQServer.class, _r_.getString(_pn_ + "Servers"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
+        _p_.add("Info");
+        _Info.encodeSQLStatement(_p_, _s_);
+        _p_.remove(_p_.size() - 1);
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Servers", Zeze.Serialize.Helper.encodeJson(_Servers));
     }
@@ -234,7 +285,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Servers", "list", "", "Zeze.Builtin.MQ.Master.BMQServer"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Info", "Zeze.Builtin.MQ.Master.BMQInfo", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Servers", "list", "", "Zeze.Builtin.MQ.Master.BMQServer"));
         return _v_;
     }
 
@@ -242,7 +294,18 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 723031994174062842L;
 
+    private Zeze.Builtin.MQ.Master.BMQInfo.Data _Info;
     private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers; // Subscribe可能返回多个地址。
+
+    public Zeze.Builtin.MQ.Master.BMQInfo.Data getInfo() {
+        return _Info;
+    }
+
+    public void setInfo(Zeze.Builtin.MQ.Master.BMQInfo.Data _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        _Info = _v_;
+    }
 
     public java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> getServers() {
         return _Servers;
@@ -256,11 +319,15 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @SuppressWarnings("deprecation")
     public Data() {
+        _Info = new Zeze.Builtin.MQ.Master.BMQInfo.Data();
         _Servers = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers_) {
+    public Data(Zeze.Builtin.MQ.Master.BMQInfo.Data _Info_, java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers_) {
+        if (_Info_ == null)
+            _Info_ = new Zeze.Builtin.MQ.Master.BMQInfo.Data();
+        _Info = _Info_;
         if (_Servers_ == null)
             _Servers_ = new java.util.ArrayList<>();
         _Servers = _Servers_;
@@ -268,6 +335,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     @Override
     public void reset() {
+        _Info.reset();
         _Servers.clear();
     }
 
@@ -284,6 +352,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BMQServers _o_) {
+        _Info.assign(_o_._Info.getValue());
         _Servers.clear();
         for (var _e_ : _o_._Servers) {
             var _v_ = new Zeze.Builtin.MQ.Master.BMQServer.Data();
@@ -293,6 +362,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BMQServers.Data _o_) {
+        _Info.assign(_o_._Info);
         _Servers.clear();
         for (var _e_ : _o_._Servers)
             _Servers.add(_e_.copy());
@@ -333,6 +403,9 @@ public static final class Data extends Zeze.Transaction.Data {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
         _s_.append("Zeze.Builtin.MQ.Master.BMQServers: {\n");
+        _s_.append(_i1_).append("Info=");
+        _Info.buildString(_s_, _l_ + 8);
+        _s_.append(",\n");
         _s_.append(_i1_).append("Servers=[");
         if (!_Servers.isEmpty()) {
             _s_.append('\n');
@@ -361,10 +434,20 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            _Info.encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
+        }
+        {
             var _x_ = _Servers;
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (int _j_ = 0, _c_ = _x_.size(); _j_ < _c_; _j_++) {
                     var _v_ = _x_.get(_j_);
@@ -383,6 +466,10 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
+            _o_.ReadBean(_Info, _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
             var _x_ = _Servers;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
@@ -406,6 +493,8 @@ public static final class Data extends Zeze.Transaction.Data {
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BMQServers.Data)_o_;
+        if (!_Info.equals(_b_._Info))
+            return false;
         if (!_Servers.equals(_b_._Servers))
             return false;
         return true;

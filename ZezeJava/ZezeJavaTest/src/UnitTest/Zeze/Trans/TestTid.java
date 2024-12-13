@@ -25,4 +25,14 @@ public class TestTid {
 			return 0;
 		}, "printTidInTransaction").call();
 	}
+
+	public static void x(Object obj) {
+		System.out.println(obj);
+	}
+
+	public static void main(String [] args) {
+		x(1);
+		x(2L);
+		x("str");
+	}
 }

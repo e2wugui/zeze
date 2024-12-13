@@ -3,9 +3,9 @@ MQ
 
 MQ Api
 class MQ {
-    public static void createMQ(String topic, int partitionCount, Options options);
+    public static void createMQ(String topic, int partition, Options options);
     // 只能增加partitionCount，增加的时候，队列中最好没有消息，否则onebyone特性可能被破坏。
-    public static void alterMQ(String topic, int partitionCount);
+    public static void alterMQ(String topic, int partition);
 }
 
 class MQProducer {
@@ -21,14 +21,14 @@ class MQProducer {
     // 其他辅助接口
     public String getName();
     public Options getOptions();
-    public int getPartitionCount();
+    public int getPartition();
     public void close();
 }
 class MQConsumer {
     public MQConsumer(String topic，MQListener listener);
     public String getName(); // 订阅的名字，可能包含多个队列。
     public Options getOptions();
-    public int getPartitionCount();
+    public int getPartition();
     public MQListener getListener();
     public void close();
 }
@@ -45,7 +45,7 @@ class Options {
     public static int Raft3 = 4;
 }
 class Message {
-    String messageId;
+    int partitionIndex;
     long timestamp;
     Properties properties; // 定义这个？
     Binary body;
