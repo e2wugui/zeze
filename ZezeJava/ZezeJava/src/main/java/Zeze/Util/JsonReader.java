@@ -1121,10 +1121,10 @@ public final class JsonReader {
 				i = 0;
 
 			if (b == '.') {
-				b = buffer[++p];
+				c = ((b = buffer[++p]) - '0') & 0xff;
 				if (useDouble == 0) {
 					useDouble = 1;
-					for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+					for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 						if (i >= 0xCCC_CCCC)
 							break;
 						i = i * 10 + c;
@@ -1135,7 +1135,7 @@ public final class JsonReader {
 					d = i;
 					useDouble = 2;
 				}
-				for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+				for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 					if (n < 17) {
 						d = d * 10 + c;
 						expFrac--;
@@ -1180,7 +1180,7 @@ public final class JsonReader {
 			exp = -exp;
 		if (useDouble > 0) {
 			exp += expFrac;
-			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
+			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			i = (int)(minus ? -d : d);
 		} else if (minus)
 			i = -i;
@@ -1220,10 +1220,10 @@ public final class JsonReader {
 				i = 0;
 
 			if (b == '.') {
-				b = buffer[++p];
+				c = ((b = buffer[++p]) - '0') & 0xff;
 				if (useDouble == 0) {
 					useDouble = 1;
-					for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+					for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 						if (i > 0x1F_FFFF_FFFF_FFFFL) // 2^53 - 1 for fast path
 							break;
 						i = i * 10 + c;
@@ -1234,7 +1234,7 @@ public final class JsonReader {
 					d = i;
 					useDouble = 2;
 				}
-				for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+				for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 					if (n < 17) {
 						d = d * 10 + c;
 						expFrac--;
@@ -1279,7 +1279,7 @@ public final class JsonReader {
 			exp = -exp;
 		if (useDouble > 0) {
 			exp += expFrac;
-			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
+			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			i = (long)(minus ? -d : d);
 		} else if (minus)
 			i = -i;
@@ -1319,10 +1319,10 @@ public final class JsonReader {
 				i = 0;
 
 			if (b == '.') {
-				b = buffer[++p];
+				c = ((b = buffer[++p]) - '0') & 0xff;
 				if (useDouble == 0) {
 					useDouble = 1;
-					for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+					for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 						if (i > 0x1F_FFFF_FFFF_FFFFL) // 2^53 - 1 for fast path
 							break;
 						i = i * 10 + c;
@@ -1333,7 +1333,7 @@ public final class JsonReader {
 					d = i;
 					useDouble = 2;
 				}
-				for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+				for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 					if (n < 17) {
 						d = d * 10 + c;
 						expFrac--;
@@ -1378,7 +1378,7 @@ public final class JsonReader {
 			exp = -exp;
 		if (useDouble > 0) {
 			exp += expFrac;
-			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
+			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			if (minus)
 				d = -d;
 		} else
@@ -1439,10 +1439,10 @@ public final class JsonReader {
 				i = 0;
 
 			if (b == '.') {
-				b = buffer[++p];
+				c = ((b = buffer[++p]) - '0') & 0xff;
 				if (useDouble == 0) {
 					useDouble = 1;
-					for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+					for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 						if (i > 0x1F_FFFF_FFFF_FFFFL) // 2^53 - 1 for fast path
 							break;
 						i = i * 10 + c;
@@ -1453,7 +1453,7 @@ public final class JsonReader {
 					d = i;
 					useDouble = 2;
 				}
-				for (; (c = (b - '0') & 0xff) < 10; b = buffer[++p]) {
+				for (; c < 10; c = ((b = buffer[++p]) - '0') & 0xff) {
 					if (n < 17) {
 						d = d * 10 + c;
 						expFrac--;
@@ -1498,7 +1498,7 @@ public final class JsonReader {
 			exp = -exp;
 		if (useDouble > 0) {
 			exp += expFrac;
-			d = exp < -308 ? strtod(strtod(d, -308), exp + 308) : strtod(d, exp);
+			d = exp < -308 ? strtod(d / 1e308, exp + 308) : strtod(d, exp);
 			return minus ? -d : d;
 		}
 		if (minus)
