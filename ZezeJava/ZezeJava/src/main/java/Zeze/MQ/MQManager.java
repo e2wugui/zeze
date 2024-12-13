@@ -23,7 +23,7 @@ public class MQManager extends AbstractMQManager {
 
     // 本manager的所有队列实现。
     // { topic -> { partitionIndex -> MQFile } }
-    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MQFile>> mqFiles = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MQSingle>> mqFiles = new ConcurrentHashMap<>();
 
     public MQManager(String home, String configXml) {
         this.home = home;
@@ -82,11 +82,11 @@ public class MQManager extends AbstractMQManager {
     @Override
     protected long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) {
         // todo 这里mqFile应该已经创建好了，需要master通知manager创建。这里临时使用putIfAbsent。
-        var mqsNew = new ConcurrentHashMap<Integer, MQFile>();
+        var mqsNew = new ConcurrentHashMap<Integer, MQSingle>();
         var mqs = mqFiles.putIfAbsent(r.Argument.getTopic(), mqsNew);
         if (mqs == null)
             mqs = mqsNew;
-        var mqFileNew = new MQFile();
+        var mqFileNew = new MQSingle();
         var mqFile = mqs.putIfAbsent(r.Argument.getPartitionIndex(), mqFileNew);
         if (mqFile == null)
             mqFile = mqFileNew;
