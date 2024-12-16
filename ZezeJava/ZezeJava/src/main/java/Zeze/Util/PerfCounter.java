@@ -127,7 +127,7 @@ public final class PerfCounter extends FastLock {
 			this.tableName = tableName;
 		}
 
-		@NotNull TableInfo checkpointAndReset() {
+		boolean checkpointAndReset() {
 			readLockCount = readLock.sumThenReset();
 			writeLockCount = writeLock.sumThenReset();
 			storageGetCount = storageGet.sumThenReset();
@@ -139,7 +139,9 @@ public final class PerfCounter extends FastLock {
 			reduceInvalidCount = reduceInvalid.sumThenReset();
 			lockCount = readLockCount + writeLockCount;
 			redoCount = redo.sumThenReset();
-			return this;
+			return (readLockCount | writeLockCount | storageGetCount | tryReadLockCount | tryWriteLockCount
+					| acquireShareCount | acquireModifyCount | acquireInvalidCount | reduceInvalidCount
+					| redoCount) != 0;
 		}
 
 		public static @NotNull String getLogTitle() {
@@ -599,8 +601,10 @@ public final class PerfCounter extends FastLock {
 				sb.append("  ").append(prList.get(i)).append('\n');
 
 			var tList = new ArrayList<TableInfo>(tableInfoMap.size());
-			for (var ti : tableInfoMap)
-				tList.add(ti.checkpointAndReset());
+			for (var ti : tableInfoMap) {
+				if (ti.checkpointAndReset())
+					tList.add(ti);
+			}
 			sb.append(" [table: ").append(tList.size()).append("]\n");
 			int n = Math.min(tList.size(), PERF_COUNT);
 			if (n > 0) {
