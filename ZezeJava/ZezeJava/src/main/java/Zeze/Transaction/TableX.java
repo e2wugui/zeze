@@ -203,7 +203,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var txn = Transaction.getCurrent();
 					if (txn == null || txn.isCompleted())
 						throw new GoBackZeze(msg);
-					txn.throwRedoAndReleaseLock(msg, null);
+					txn.throwRedoAndReleaseLock(getId(), msg, null);
 					// never run here
 				}
 				try {
@@ -1141,7 +1141,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 //			if (currentT.isCompleted())
 //				throw new IllegalStateException("completed transaction can not selectCopy record not accessed");
-			currentT.setAlwaysReleaseLockWhenRedo();
+			currentT.setAlwaysReleaseLockWhenRedo(getId());
 		}
 
 		Lockey lockey = null;

@@ -245,10 +245,10 @@ public final class Transaction {
 		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
 	}
 
-	void setAlwaysReleaseLockWhenRedo() {
+	void setAlwaysReleaseLockWhenRedo(int tableId) {
 		alwaysReleaseLockWhenRedo = true;
 		if (!holdLocks.isEmpty())
-			throwRedo("Redo: AlwaysReleaseLock");
+			throwRedo(tableId, "Redo: AlwaysReleaseLock");
 	}
 
 	/**
@@ -589,22 +589,25 @@ public final class Transaction {
 	}
 
 	public void verifyRecordForWrite(@NotNull Bean bean) {
+		var ri = bean.rootInfo;
 		//noinspection DataFlowIssue
-		if (bean.rootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved)
-			throwRedo("Redo: StateRemoved"); // 这个错误需要redo。不是逻辑错误。
+		if (ri.getRecord().getState() == GlobalCacheManagerConst.StateRemoved)
+			throwRedo(ri.getTableKey().getId(), "Redo: StateRemoved: " + bean.tableKey()); // 这个错误需要redo。不是逻辑错误。
 		//noinspection DataFlowIssue
 		var ra = getRecordAccessed(bean.tableKey());
 		if (ra == null)
-			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.tableKey());
-		if (bean.rootInfo.getRecord() != ra.atomicTupleRecord.record)
-			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.tableKey());
+			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction: " + bean.tableKey());
+		var atr = ra.atomicTupleRecord;
+		var r = atr.record;
+		if (ri.getRecord() != r)
+			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded: " + bean.tableKey());
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
-		if (ra.atomicTupleRecord.record.getTable().getZeze().getConfig().getFastRedoWhenConflict()
+		var t = r.getTable();
+		if (t.getZeze().getConfig().getFastRedoWhenConflict()
 				&& state != TransactionState.Completed
-				&& ra.atomicTupleRecord.record.getTimestamp() != ra.atomicTupleRecord.timestamp) {
-			throwRedo("Redo: FastRedoWhenConflict");
-		}
+				&& r.getTimestamp() != atr.timestamp)
+			throwRedo(ri.getTableKey().getId(), "Redo: FastRedoWhenConflict(" + t.getName() + ')');
 	}
 
 	private enum CheckResult {
@@ -724,6 +727,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
+					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
 					break; // continue lock
 				default:
 					return r;
@@ -744,6 +748,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
+					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
 					break; // continue lock
 				default:
 					return r;
@@ -776,6 +781,7 @@ public final class Transaction {
 				case Redo:
 					// Impossible!
 					conflict = true;
+					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
 					break; // continue lock
 				default:
 					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
@@ -822,16 +828,18 @@ public final class Transaction {
 		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 
-	@Contract("_, _ -> fail")
-	public void throwRedoAndReleaseLock(@NotNull String msg, @Nullable Throwable cause) {
+	@Contract("_, _, _ -> fail")
+	public void throwRedoAndReleaseLock(int tableId, @NotNull String msg, @Nullable Throwable cause) {
+		PerfCounter.instance.getOrAddTableInfo(tableId).redo.increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
 		throw cause != null ? new GoBackZeze(msg, cause) : new GoBackZeze(msg);
 	}
 
-	@Contract("_ -> fail")
-	public void throwRedo(@NotNull String msg) {
+	@Contract("_, _ -> fail")
+	public void throwRedo(int tableId, @NotNull String msg) {
+		PerfCounter.instance.getOrAddTableInfo(tableId).redo.increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;

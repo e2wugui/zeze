@@ -109,6 +109,7 @@ public final class PerfCounter extends FastLock {
 		public final LongAdder acquireModify = new LongAdder();
 		public final LongAdder acquireInvalid = new LongAdder();
 		public final LongAdder reduceInvalid = new LongAdder();
+		public final LongAdder redo = new LongAdder();
 
 		long readLockCount;
 		long writeLockCount;
@@ -120,6 +121,7 @@ public final class PerfCounter extends FastLock {
 		long acquireInvalidCount;
 		long reduceInvalidCount;
 		long lockCount;
+		long redoCount;
 
 		TableInfo(@NotNull String tableName) {
 			this.tableName = tableName;
@@ -136,12 +138,13 @@ public final class PerfCounter extends FastLock {
 			acquireInvalidCount = acquireInvalid.sumThenReset();
 			reduceInvalidCount = reduceInvalid.sumThenReset();
 			lockCount = readLockCount + writeLockCount;
+			redoCount = redo.sumThenReset();
 			return this;
 		}
 
 		public static @NotNull String getLogTitle() {
 			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt ReduceCnt" +
-					" StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock", "TableName");
+					" StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
 		@Override
@@ -149,10 +152,11 @@ public final class PerfCounter extends FastLock {
 			float cacheHit = lockCount != 0 ? (lockCount - storageGetCount) * 100.0f / lockCount : 0;
 			float acquireShareHit = lockCount != 0 ? (lockCount - acquireShareCount) * 100.0f / lockCount : 0;
 			float acquireModifyHit = lockCount != 0 ? (lockCount - acquireModifyCount) * 100.0f / lockCount : 0;
-			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
+			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
 					cacheHit, acquireShareHit, acquireModifyHit,
 					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount,
-					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount);
+					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount,
+					redoCount);
 		}
 	}
 
