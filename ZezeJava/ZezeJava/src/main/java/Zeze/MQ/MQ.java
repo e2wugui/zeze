@@ -30,7 +30,12 @@ public class MQ {
 
 	public static MQ createMQ(String topic, int partition, BOptions.Data options) {
 		masterAgent.startAndWaitConnectionReady();
-		return new MQ(masterAgent.openMQ(topic, partition, options));
+		return new MQ(masterAgent.createMQ(topic, partition, options));
+	}
+
+	public static MQ openMQ(String topic) {
+		masterAgent.startAndWaitConnectionReady();
+		return new MQ(masterAgent.openMQ(topic));
 	}
 
 	/*

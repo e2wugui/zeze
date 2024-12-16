@@ -11,8 +11,8 @@ import Zeze.Builtin.MQ.BOptions;
 public class MQProducer {
 	private final MQ mq; // 这里直接保存MQ引用，并且内部不管理，因为一个进程很少对同一个队列打开多个生产者消费者。
 
-	public MQProducer(String topic, int partition) {
-		mq = MQ.createMQ(topic, partition, new BOptions.Data(1));
+	public MQProducer(String topic) {
+		mq = MQ.openMQ(topic);
 	}
 
 	public void sendMessage(Object key, BMessage.Data message) {

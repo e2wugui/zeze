@@ -19,9 +19,17 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public static final int ePartition = 1;
     public static final int eTopicNotExist = 2;
     public static final int eManagerNotFound = 3;
+    public static final int eTopicExist = 4;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.CreateMQ.class, Zeze.Builtin.MQ.Master.CreateMQ.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.CreateMQ::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateMQResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreateMQResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47420243782922L, factoryHandle); // 11040, -490132214
+        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.OpenMQ.class, Zeze.Builtin.MQ.Master.OpenMQ.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.Master.OpenMQ::new;
@@ -53,6 +61,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47420243782922L);
         service.getFactorys().remove(47419582250441L);
         service.getFactorys().remove(47417719098028L);
         service.getFactorys().remove(47416592360823L);

@@ -1,5 +1,6 @@
 package Zeze.MQ.Master;
 
+import Zeze.Builtin.MQ.Master.CreateMQ;
 import Zeze.Builtin.MQ.Master.ReportLoad;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQServers;
@@ -47,12 +48,21 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	public BMQServers.Data openMQ(String topic, int partition, BOptions.Data options) {
-		var r = new OpenMQ();
+	public BMQServers.Data createMQ(String topic, int partition, BOptions.Data options) {
+		var r = new CreateMQ();
 		r.Argument.setTopic(topic);
 		r.Argument.setPartition(partition);
 		if (null != options)
 			r.Argument.setOptions(options);
+		r.SendForWait(service.GetSocket()).await();
+		if (r.getResultCode() != 0)
+			throw new RuntimeException("openMQ error=" + IModule.getErrorCode(r.getResultCode()));
+		return r.Result;
+	}
+
+	public BMQServers.Data openMQ(String topic) {
+		var r = new OpenMQ();
+		r.Argument.setTopic(topic);
 		r.SendForWait(service.GetSocket()).await();
 		if (r.getResultCode() != 0)
 			throw new RuntimeException("openMQ error=" + IModule.getErrorCode(r.getResultCode()));

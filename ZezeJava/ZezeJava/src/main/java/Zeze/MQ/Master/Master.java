@@ -3,6 +3,7 @@ package Zeze.MQ.Master;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import Zeze.Builtin.MQ.Master.CreateMQ;
 import Zeze.Builtin.MQ.Master.ReportLoad;
 import Zeze.Builtin.MQ.Master.BMQServer;
 import Zeze.Builtin.MQ.Master.Register;
@@ -77,49 +78,48 @@ public class Master extends AbstractMaster {
     }
 
     @Override
-    protected long ProcessOpenMQRequest(Zeze.Builtin.MQ.Master.OpenMQ r) throws Exception {
+    protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
         var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
         var mq = mqTable.get(topicBytes);
+        if (null != mq)
+            return errorCode(eTopicExist);
+
         var servers = r.Result;
 
-        if (null == mq) {
-            // create
-            servers.getInfo().setTopic(r.Argument.getTopic());
-            servers.getInfo().setPartition(r.Argument.getPartition());
-            servers.getInfo().setOptions(r.Argument.getOptions());
-            if (r.Argument.getPartition() < 1)
-                return errorCode(ePartition);
-            // 分配manager
-            var managers = choiceManager(r.Argument.getPartition());
-            for (var i = 0; i < r.Argument.getPartition(); ++i) {
-                var manager = managers[i % managers.length];
-                var info = manager.info.copy();
-                info.setPartitionIndex(i);
-                info.setTopic(r.Argument.getTopic());
-                servers.getServers().add(info);
-            }
-        } else {
-            // alter
-            servers.decode(ByteBuffer.Wrap(mq));
-            if (r.Argument.getPartition() <= servers.getInfo().getPartition())
-                return errorCode(ePartition);
-            var hintAdd = r.Argument.getPartition() - servers.getInfo().getPartition();
-            // alter忽略options.
-            // 分配增加的manager
-            var managers = choiceManager(hintAdd);
-            for (var i = 0; i < hintAdd; ++i) {
-                var manager = managers[i % managers.length];
-                var info = manager.info.copy();
-                info.setPartitionIndex(i + servers.getInfo().getPartition());
-                info.setTopic(r.Argument.getTopic());
-                servers.getServers().add(info);
-            }
-            servers.getInfo().setPartition(r.Argument.getPartition());
+        // create
+        servers.getInfo().setTopic(r.Argument.getTopic());
+        servers.getInfo().setPartition(r.Argument.getPartition());
+        servers.getInfo().setOptions(r.Argument.getOptions());
+        if (r.Argument.getPartition() < 1)
+            return errorCode(ePartition);
+
+        // 分配manager
+        var managers = choiceManager(r.Argument.getPartition());
+        for (var i = 0; i < r.Argument.getPartition(); ++i) {
+            var manager = managers[i % managers.length];
+            var info = manager.info.copy();
+            info.setPartitionIndex(i);
+            info.setTopic(r.Argument.getTopic());
+            servers.getServers().add(info);
         }
+
         // save mq info
         var value = ByteBuffer.Allocate();
         servers.encode(value);
         mqTable.put(topicBytes, 0, topicBytes.length, value.Bytes, value.ReadIndex, value.size());
+
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessOpenMQRequest(Zeze.Builtin.MQ.Master.OpenMQ r) throws Exception {
+        var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
+        var mq = mqTable.get(topicBytes);
+        if (null == mq)
+            return errorCode(eTopicNotExist);
+        var servers = r.Result;
+        servers.decode(ByteBuffer.Wrap(mq));
         r.SendResult();
         return 0;
     }

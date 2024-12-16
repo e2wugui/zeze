@@ -1924,6 +1924,7 @@
 				<enum name="ePartition" value="1"/>
 				<enum name="eTopicNotExist" value="2"/>
 				<enum name="eManagerNotFound" value="3"/>
+				<enum name="eTopicExist" value="4"/>
 
 				<bean name="BSubscribe">
 					<variable id="1" name="Topic" type="string"/>
@@ -1944,7 +1945,8 @@
 					<variable id="2" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
 				</bean>
 				
-				<rpc name="OpenMQ" argument="BMQInfo" result="BMQServers" handle="server"/>
+				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/>
+				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/>
 				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
 				<rpc name="Register" argument="BMQServer" handle="server"/>
 				<bean name="BLoad">
