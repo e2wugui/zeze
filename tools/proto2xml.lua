@@ -1,4 +1,71 @@
--- usage: luajit proto2xml.lua 输入文件名.proto 输出文件名.xml
+-- usage: luajit proto2xml.lua -solutionName 方案名 -moduleId 模块ID 输入文件名.proto 输出文件名.xml
+
+local args = {}
+local argId = 1
+while true do
+	local a = arg[argId]
+	if a and a:sub(1, 1) == "-" then
+		args[a:sub(2, -1)] = arg[argId + 1]
+		argId = argId + 2
+	else
+		break
+	end
+end
+
+io.write(arg[argId], " => ", arg[argId + 1], " ... ")
+local path = arg[argId]:match "^(.*[/\\])[^/\\]*$" or ""
+
+local imported = {}
+local nameMap = {}
+local function import(filename)
+	if imported[filename] then return end
+	imported[filename] = true
+	-- print("import " .. filename)
+
+	local package = ""
+	local class = ""
+	for line in io.lines(filename) do
+		line = line:gsub("^%s+", ""):gsub("%s+$", "")
+		local first = line:match "^%S+"
+		if first == "import" then
+			local name = line:match '^import%s*"(.-)"'
+			if name then
+				import(path .. name)
+			end
+		elseif first == "option" then
+			local k, v = line:match '^option%s+([%w_]+)%s*=%s*"(.-)"'
+			if k == "java_package" then
+				package = args.solutionName or ""
+				if package ~= "" then
+					package = package .. "."
+				end
+				package = package .. v
+			elseif k == "java_outer_classname" then
+				class = v
+			end
+		elseif first == "message" then
+			if class ~= "" then
+				package = package .. "." .. class
+				class = ""
+			end
+			local name = line:match '^message%s+([%w_]+)'
+			if nameMap[name] then
+				error("ERROR: duplicated message name: " .. name .. " in '" .. nameMap[name] .. "' and '" .. package .. "'")
+			end
+			nameMap[name] = package
+		end
+	end
+end
+import(arg[argId])
+
+local f = io.open(arg[argId + 1], "wb")
+local lineId = 0
+local indent = ""
+local package = args.solutionName or ""
+local class = ""
+local lastProto = ""
+local lastBean = ""
+local lastMsgId = nil
 
 local typeMap = {
 	bool = "bool",
@@ -18,38 +85,65 @@ local typeMap = {
 	bytes = "binary",
 }
 
+local unsigneds = {
+	uint32 = true,
+	uint64 = true,
+}
+
 local function convertType(type, repeated)
-	type = typeMap[type] or type
-	return repeated and ("list[" .. type .. "]") or type
+	local t = typeMap[type]
+	if not t then
+		local p = nameMap[type]
+		if not p then
+			return
+		end
+		if p == package then
+			t = type
+		else
+			t = p .. "." .. type
+		end
+	end
+	return (repeated and ("list[" .. t .. "]") or t), unsigneds[type]
 end
 
 local function escape(txt)
 	return (txt:gsub("<", "＜"):gsub(">", "＞"))
 end
 
-io.write(arg[1], " => ", arg[2], " ... ")
-local f = io.open(arg[2], "wb")
-
-local lineId = 0
-local indent = ""
-local lastProto = ""
-local lastBean = ""
-local lastMsgId = nil
-for line in io.lines(arg[1]) do
+for line in io.lines(arg[argId]) do
 	lineId = lineId + 1
 	line = line:gsub("^%s+", ""):gsub("%s+$", "")
 	local first = line:match "^%S+"
 	if first then
 		if first == "import" then
-			-- ignore
+			local name = line:match '^import "(.-)"'
+			if name then
+				f:write(string.format('%s<!--import name="%s"-->\n', indent, name))
+			else
+				error("ERROR(" .. lineId .. "): unknown import: " .. line)
+			end
 		elseif first == "option" then
 			local k, v = line:match '^option%s+([%w_]+)%s*=%s*"(.-)"'
 			if k == "java_package" then
-				v = v:match "^[%w_]+"
-				f:write(string.format('%s<solution name="%s" equals="true" ModuleIdAllowRanges="0-0">\n', indent, v))
-				indent = indent .. "\t"
+				package = args.solutionName or ""
+				if package ~= "" then
+					package = package .. "."
+				end
+				package = package .. v
+				if class ~= "" then
+					package = package .. "." .. class
+				end
+				-- for name in v:gmatch "[^.]+" do
+				-- 	if indent == "" then
+				-- 	f:write(string.format('<solution name="%s" equals="true" ModuleIdAllowRanges="0-0">\n', v))
+				-- 	indent = indent .. "\t"
+				-- end
 			elseif k == "java_outer_classname" then
-				f:write(string.format('%s<module name="%s" id="0">\n', indent, v))
+				class = v
+				if package ~= "" then
+					package = package .. "." .. class
+				end
+				f:write(string.format('%s<module name="%s" id="%s">\n', indent, v, args.moduleId or "0"))
 				indent = indent .. "\t"
 			elseif k then
 				error("ERROR(" .. lineId .. "): unknown option: " .. line)
@@ -78,9 +172,12 @@ for line in io.lines(arg[1]) do
 			if not type then
 				error("ERROR(" .. lineId .. "): unknown field: " .. line)
 			end
-			type = convertType(type, first == "repeated")
+			local type, unsigned = convertType(type, first == "repeated")
 			if not type then
 				error("ERROR(" .. lineId .. "): unknown type: " .. line)
+			end
+			if unsigned then
+				comment = "[unsigned] " .. comment
 			end
 			if comment ~= "" then
 				comment = " " .. escape(comment)
@@ -112,12 +209,12 @@ for line in io.lines(arg[1]) do
 end
 
 if #indent > 0 then
-	if #indent > 1 then
+	while #indent > 1 do
 		indent = indent:sub(1, -2)
 		f:write(indent, "</module>\n")
 	end
-	indent = indent:sub(1, -2)
-	f:write(indent, "</solution>\n")
+	f:write "</module>\n"
+--	f:write "</solution>\n"
 end
 
 f:close()
