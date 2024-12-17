@@ -1942,7 +1942,7 @@
 				</bean>
 				<bean name="BMQServers">
 					<variable id="1" name="Info" type="BMQInfo"/>
-					<variable id="2" name="Servers" type="list[BMQServer]"/> Subscribe可能返回多个地址。
+					<variable id="2" name="Servers" type="list[BMQServer]"/>
 				</bean>
 				
 				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/>

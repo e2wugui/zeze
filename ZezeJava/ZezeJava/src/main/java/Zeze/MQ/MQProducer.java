@@ -1,7 +1,6 @@
 package Zeze.MQ;
 
 import Zeze.Builtin.MQ.BMessage;
-import Zeze.Builtin.MQ.BOptions;
 
 /**
  * 用户接口

@@ -9,7 +9,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public static final long TYPEID = 723031994174062842L;
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // Subscribe可能返回多个地址。
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers;
 
     public Zeze.Builtin.MQ.Master.BMQInfo getInfo() {
         return _Info.getValue();
@@ -295,7 +295,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 723031994174062842L;
 
     private Zeze.Builtin.MQ.Master.BMQInfo.Data _Info;
-    private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers; // Subscribe可能返回多个地址。
+    private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers;
 
     public Zeze.Builtin.MQ.Master.BMQInfo.Data getInfo() {
         return _Info;
