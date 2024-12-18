@@ -2,6 +2,7 @@ package Zeze.MQ;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
@@ -86,7 +87,7 @@ public class MQManager extends AbstractMQManager {
         var mqs = mqFiles.putIfAbsent(r.Argument.getTopic(), mqsNew);
         if (mqs == null)
             mqs = mqsNew;
-        var mqFileNew = new MQSingle();
+        var mqFileNew = new MQSingle(r.Argument.getTopic(), r.Argument.getPartitionIndex());
         var mqFile = mqs.putIfAbsent(r.Argument.getPartitionIndex(), mqFileNew);
         if (mqFile == null)
             mqFile = mqFileNew;

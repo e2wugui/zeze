@@ -1964,18 +1964,27 @@
 				<variable id="1" name="Options" type="int"/>
 			</bean>
 			<bean name="BMessage">
-				<variable id="1" name="Topic" type="string"/> 用户不用填写
-				<variable id="2" name="PartitionIndex" type="int"/> 用户不用填写
-				<variable id="3" name="Properties" type="map[string, string]"/> 属性，用户自定义
-				<variable id="4" name="Body" type="binary"/> 消息体，用户自定义
-				<variable id="5" name="Timestamp" type="long"/>
+				<variable id="1" name="Timestamp" type="long"/> 发送时间，用户不用填写
+				<variable id="2" name="Properties" type="map[string, string]"/> 属性，用户自定义
+				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
 			</bean>
-			<bean name="BPartitionSubscribe">
+			<bean name="BSubscribeSession">
 				<variable id="1" name="Topic" type="string"/>
-				<variable id="2" name="PartitionIndex" type="list[int]"/>
+				<variable id="2" name="SessionId" type="long"/>
 			</bean>
-			<rpc name="SendMessage" argument="BMessage" handle="server"/>
-			<rpc name="Subscribe" argument="BPartitionSubscribe" handle="server"/>
+			<bean name="BSendMessage">
+				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
+				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
+				<variable id="3" name="Message" type="BMessage"/>
+			</bean>
+			<bean name="BPushMessage">
+				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
+				<variable id="2" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
+				<variable id="3" name="Message" type="BMessage"/>
+			</bean>
+			<rpc name="Subscribe" argument="BSubscribeSession" handle="server"/>
+			<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
+			<rpc name="PushMessage" argument="BPushMessage" handle="client"/>
 		</module>
 		<!--
 		可用id范围 [11041, 11100) [11102, 11999]

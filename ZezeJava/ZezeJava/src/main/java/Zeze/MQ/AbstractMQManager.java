@@ -19,6 +19,13 @@ public abstract class AbstractMQManager implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.PushMessage.class, Zeze.Builtin.MQ.PushMessage.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.PushMessage::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPushMessageResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPushMessageResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47415515233719L, factoryHandle); // 11039, -923714121
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.SendMessage.class, Zeze.Builtin.MQ.SendMessage.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.SendMessage::new;
             factoryHandle.Handle = this::ProcessSendMessageRequest;
@@ -37,6 +44,7 @@ public abstract class AbstractMQManager implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47415515233719L);
         service.getFactorys().remove(47415494784777L);
         service.getFactorys().remove(47413017472729L);
     }

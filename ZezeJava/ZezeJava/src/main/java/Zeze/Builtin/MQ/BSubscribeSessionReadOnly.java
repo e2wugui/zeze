@@ -1,12 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ;
 
-public interface BPartitionSubscribeReadOnly {
+public interface BSubscribeSessionReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BPartitionSubscribe copy();
+    BSubscribeSession copy();
 
     String getTopic();
-    Zeze.Transaction.Collections.PList1ReadOnly<Integer> getPartitionIndexReadOnly();
+    long getSessionId();
 }

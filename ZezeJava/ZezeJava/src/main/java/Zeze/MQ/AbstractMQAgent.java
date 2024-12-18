@@ -19,6 +19,14 @@ public abstract class AbstractMQAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.PushMessage.class, Zeze.Builtin.MQ.PushMessage.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.PushMessage::new;
+            factoryHandle.Handle = this::ProcessPushMessageRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPushMessageRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPushMessageRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47415515233719L, factoryHandle); // 11039, -923714121
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.SendMessage.class, Zeze.Builtin.MQ.SendMessage.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.SendMessage::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendMessageResponse", Zeze.Transaction.TransactionLevel.Serializable);
@@ -35,6 +43,7 @@ public abstract class AbstractMQAgent implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47415515233719L);
         service.getFactorys().remove(47415494784777L);
         service.getFactorys().remove(47413017472729L);
     }
@@ -47,4 +56,6 @@ public abstract class AbstractMQAgent implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    protected abstract long ProcessPushMessageRequest(Zeze.Builtin.MQ.PushMessage r) throws Exception;
 }

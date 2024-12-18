@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BOptions;
+import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.Master.BMQInfo;
 import Zeze.Builtin.MQ.Master.BMQServer;
 import Zeze.Builtin.MQ.Master.BMQServers;
@@ -69,10 +70,9 @@ public class MQ {
 		var conn = mqConnectors[index];
 		if (conn.server.getPartitionIndex() != index)
 			throw new RuntimeException("fatal error, index mismatch: " + conn.server.getPartitionIndex() + "," + index);
-		message.setPartitionIndex(index);
 		message.setTimestamp(System.currentTimeMillis());
-		message.setTopic(conn.server.getTopic());
-		MQAgent.sendMessageTo(message, conn.connector);
+		var sendMessage = new BSendMessage.Data(conn.server.getTopic(), index, message);
+		MQAgent.sendMessageTo(sendMessage, conn.connector);
 	}
 
 	public BMQInfo.Data getInfo() {
