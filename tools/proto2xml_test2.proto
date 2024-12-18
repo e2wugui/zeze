@@ -1,0 +1,6 @@
+option java_package = "package1.package2";
+option java_outer_classname = "ClassName2";
+
+message Bean2{
+	optional int32 v = 1;
+}

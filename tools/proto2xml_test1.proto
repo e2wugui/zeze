@@ -1,0 +1,59 @@
+import "proto2xml_test2.proto";
+
+option java_package = "package1.package2";
+option java_outer_classname = "ClassName";
+
+// -----------------------------------------
+
+enum Enum {
+	E1=1;//E1枚举
+	E2 = 2 ; // E2枚举
+	E3	=	3;	/* E3枚举 */
+}
+
+/* 块注释1 */
+message Bean{
+	message Inner {
+		optional Bean2 vbean2 = 1;
+	}
+	required Inner vinner = 1; // 行注释
+	optional Enum venum = 2;
+}
+
+/*
+	块注释2
+*/
+
+//client=>server
+message CSMessage {
+	option ( msgid ) = 11;
+	required bool vbool = 1; // 布尔
+	optional int32 vint32=2;//32位整数
+	sint32	vsint32	=	4;	//	有符号32位整数
+	required  uint32  vuint32  =  5;  //  无符号32位整数
+	optional fixed32 vfixed32 = 6; /* 固定32位 */
+	optional sfixed32 vsfixed32=7;/*有符号固定32位*/
+	enum Inner{
+		I1=1;//I1枚举
+		I2 = 2 ; // I2枚举
+		I3	=	3;	/* I3枚举 */
+	}
+	optional Inner vinner = 8;	/*	内部枚举	*/
+}
+
+ /*块注释3*//*块注释4*/
+
+// server => client
+message SCMessage {
+option(msgid)=12;
+optional int64	vint64		= 2;
+optional sint64 vsint64		= 3;
+optional uint64	vuint64		= 4;
+optional fixed64 vfixed64 	= 5;
+optional sfixed64 vsfixed64 = 6;
+optional float vfloat 		= 7;
+optional double vdouble 	= 8;
+optional string vstring 	= 9;
+optional bytes vbytes 		= 10;
+optional Bean vbean		 	= 11;
+}
