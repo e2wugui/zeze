@@ -167,8 +167,10 @@ namespace Zeze.Gen
             Solutions.Add(fullXmlFile, null); // 循环依赖。
             SavedCurrentDirectory.Add(Environment.CurrentDirectory);
             Environment.CurrentDirectory = Path.GetDirectoryName(fullXmlFile)!;
+            var xmlReader = new XmlTextReader(fullXmlFile);
+            var includeReader = new Mvp.Xml.XInclude.XIncludingReader(xmlReader);
             XmlDocument doc = new XmlDocument();
-            doc.Load(fullXmlFile);
+            doc.Load(includeReader);
             Solution solution = new Solution(doc.DocumentElement);
             /*
             foreach (KeyValuePair<string, Solution> exist in solutions)
