@@ -66,7 +66,7 @@ public class MQ {
 	}
 
 	public void sendMessage(int hash, BMessage.Data message) {
-		var index = hash % mqConnectors.length;
+		var index = (int)(Integer.toUnsignedLong(hash) % mqConnectors.length);
 		var conn = mqConnectors[index];
 		if (conn.server.getPartitionIndex() != index)
 			throw new RuntimeException("fatal error, index mismatch: " + conn.server.getPartitionIndex() + "," + index);
