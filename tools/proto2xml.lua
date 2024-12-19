@@ -269,7 +269,7 @@ for srcLine in io.lines(arg[argId]) do
 			if msg.msgId then
 				local handle
 				if msg.name:find "^SC" then
-					handle = "client"
+					handle = args.client or "client"
 				elseif msg.name:find "^CS" then
 					handle = "server"
 				else
