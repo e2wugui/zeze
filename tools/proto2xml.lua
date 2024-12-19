@@ -1,5 +1,7 @@
 -- usage: luajit proto2xml.lua -solutionName 方案名 -moduleId 模块ID 输入文件名.proto 输出文件名.xml
 
+local format = string.format
+
 local args = {}
 local argId = 1
 while true do
@@ -175,6 +177,14 @@ local function escape(txt)
 	return (txt:gsub("<", "＜"):gsub(">", "＞"))
 end
 
+local function maxLen(t, getLen)
+	local n = 0
+	for k, v in pairs(t) do
+		n = math.max(n, getLen(k, v))
+	end
+	return n
+end
+
 f:write '<?xml version="1.0" encoding="utf-8"?>\n\n'
 for srcLine in io.lines(arg[argId]) do
 	lineId = lineId + 1
@@ -185,7 +195,7 @@ for srcLine in io.lines(arg[argId]) do
 	if first == "import" then
 		local name = line:match '^import "(.-)"'
 		if name then
-			f:write(string.format('%s<!--import name="%s"/-->\n', indent, name))
+			f:write(format('%s<!--import name="%s"/-->\n', indent, name))
 		else
 			error("ERROR(" .. lineId .. "): unknown import: " .. srcLine)
 		end
@@ -200,10 +210,10 @@ for srcLine in io.lines(arg[argId]) do
 			if class ~= "" then
 				package = package .. "." .. class
 			end
-			f:write(string.format('%s<!--java package="%s"/-->\n', indent, v))
+			f:write(format('%s<!--java package="%s"/-->\n', indent, v))
 			-- for name in v:gmatch "[^.]+" do
 			-- 	if indent == "" then
-			-- 	f:write(string.format('<solution name="%s" equals="true" ModuleIdAllowRanges="0-0">\n', v))
+			-- 	f:write(format('<solution name="%s" equals="true" ModuleIdAllowRanges="0-0">\n', v))
 			-- 	indent = indent .. "\t"
 			-- end
 		elseif k == "java_outer_classname" then
@@ -211,7 +221,7 @@ for srcLine in io.lines(arg[argId]) do
 			if package ~= "" then
 				package = package .. "." .. class
 			end
-			f:write(string.format('%s<module name="%s" id="%s">\n', indent, v, args.moduleId or "0"))
+			f:write(format('%s<module name="%s" id="%s">\n', indent, v, args.moduleId or "0"))
 			indent = indent .. "\t"
 		elseif k then
 			error("ERROR(" .. lineId .. "): unknown option: " .. srcLine)
@@ -240,14 +250,14 @@ for srcLine in io.lines(arg[argId]) do
 			if #msgStack > 0 then
 				msgStack[#msgStack].inners[name] = "enum"
 			end
-			f:write(string.format('%s<!--enum name="%s"-->\n', indent, name))
+			f:write(format('%s<!--enum name="%s"-->\n', indent, name))
 			inEnum = name
 		else
 			error("ERROR(" .. lineId .. "): unknown enum: " .. srcLine)
 		end
 	elseif first == "}" then
 		if inEnum then
-			f:write(string.format('%s<!--/enum-->\n', indent))
+			f:write(format('%s<!--/enum-->\n', indent))
 			inEnum = nil
 		elseif #msgStack > 0 then
 			local msg = msgStack[#msgStack]
@@ -256,13 +266,18 @@ for srcLine in io.lines(arg[argId]) do
 				msgStack[#msgStack].inners[msg.name] = "message"
 			end
 			local beanName = msg.msgId and ("B" .. msg.name) or msg.name
-			f:write(string.format('%s<bean name="%s">\n', indent, beanName))
+			f:write(format('%s<bean name="%s">\n', indent, beanName))
 			indent = indent .. "\t"
+			local n = maxLen(msg.enums, function(k, v) return #v.k end)
 			for _, enum in ipairs(msg.enums) do
-				f:write(string.format('%s<enum name="%s" value="%s"/>%s\n', indent, enum.k, enum.v, enum.comment))
+				f:write(format('%s<enum name="%' .. n .. 's" value="%s"/>%s\n', indent, enum.k, enum.v, enum.comment))
 			end
+			local n1 = maxLen(msg.fields, function(k, v) return #v.id end) + 2
+			local n2 = maxLen(msg.fields, function(k, v) return #v.name end) + 2
 			for _, field in ipairs(msg.fields) do
-				f:write(string.format('%s<variable id="%s" name="%s" type="%s"/>%s\n', indent, field.id, field.name, field.type, field.comment))
+				local s1 = format('"%s"', field.id)
+				local s2 = format('"%s"', field.name)
+				f:write(format('%s<variable id=%-' .. n1 .. 's name=%-' .. n2 .. 's type="%s"/>%s\n', indent, s1, s2, field.type, field.comment))
 			end
 			indent = indent:sub(1, -2)
 			f:write(indent, "</bean>\n")
@@ -275,13 +290,17 @@ for srcLine in io.lines(arg[argId]) do
 				else
 					handle = ""
 				end
-				f:write(string.format('%s<protocol id="%s" name="%s" argument="%s" handle="%s"/>\n', indent, msg.msgId, msg.name, beanName, handle))
+				f:write(format('%s<protocol id="%s" name="%s" argument="%s" handle="%s"/>\n', indent, msg.msgId, msg.name, beanName, handle))
 			end
 		else
 			error("ERROR(" .. lineId .. "): unmatched brace: " .. srcLine)
 		end
 	elseif line == "" then
-		f:write(indent, escape(comment), "\n")
+		if comment ~= "" then
+			f:write(indent, escape(comment), "\n")
+		else
+			f:write "\n"
+		end
 	else
 		local done = false
 		if inEnum then
@@ -300,7 +319,7 @@ for srcLine in io.lines(arg[argId]) do
 						comment = comment,
 					}
 				else
-					f:write(string.format('%s<enum name="%s" value="%s"/>%s\n', indent, k, v, comment))
+					f:write(format('%s<enum name="%s" value="%s"/>%s\n', indent, k, v, comment))
 				end
 				done = true
 			end

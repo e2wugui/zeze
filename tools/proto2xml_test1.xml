@@ -4,28 +4,28 @@
 
 <!--java package="package1.package2"/-->
 <module name="ClassName" id="123">
-	
+
 	-----------------------------------------
-	
+
 	<!--enum name="Enum"-->
 	<enum name="E1" value="1"/> [Enum] E1枚举
 	<enum name="E2" value="2"/> [Enum] E2枚举
 	<enum name="E3" value="3"/> [Enum] E3枚举
 	<!--/enum-->
-	
+
 	块注释1
 	<bean name="Inner">
 		<variable id="1" name="vbean2" type="package0.package1.package2.ClassName2.Bean2"/>
 	</bean>
 	<bean name="Bean">
 		<variable id="1" name="vinner" type="Inner"/> 行注释
-		<variable id="2" name="venum" type="int"/> [Enum]
+		<variable id="2" name="venum"  type="int"/> [Enum]
 	</bean>
-	
-	
+
+
 	块注释2
-	
-	
+
+
 	client=＞server
 	<!--enum name="Inner"-->
 	<!--/enum-->
@@ -33,30 +33,30 @@
 		<enum name="I1" value="1"/> [Inner] I1枚举
 		<enum name="I2" value="2"/> [Inner] I2枚举
 		<enum name="I3" value="3"/> [Inner] I3枚举
-		<variable id="1" name="vbool" type="bool"/> 布尔
-		<variable id="2" name="vint32" type="int"/> 32位整数
-		<variable id="4" name="vsint32" type="int"/> 有符号32位整数
-		<variable id="5" name="vuint32" type="int"/> [uint32] 无符号32位整数
-		<variable id="6" name="vfixed32" type="int"/> [fixed32] 固定32位
+		<variable id="1" name="vbool"     type="bool"/> 布尔
+		<variable id="2" name="vint32"    type="int"/> 32位整数
+		<variable id="4" name="vsint32"   type="int"/> 有符号32位整数
+		<variable id="5" name="vuint32"   type="int"/> [uint32] 无符号32位整数
+		<variable id="6" name="vfixed32"  type="int"/> [fixed32] 固定32位
 		<variable id="7" name="vsfixed32" type="int"/> 有符号固定32位
-		<variable id="8" name="vinner" type="int"/> [Inner] 内部枚举
+		<variable id="8" name="vinner"    type="int"/> [Inner] 内部枚举
 	</bean>
 	<protocol id="11" name="CSMessage" argument="BCSMessage" handle="server"/>
-	
+
 	块注释3 块注释4
-	
+
 	server =＞ client
 	<bean name="BSCMessage">
-		<variable id="2" name="vint64" type="long"/>
-		<variable id="3" name="vsint64" type="long"/>
-		<variable id="4" name="vuint64" type="long"/> [uint64]
-		<variable id="5" name="vfixed64" type="long"/>
-		<variable id="6" name="vsfixed64" type="long"/>
-		<variable id="7" name="vfloat" type="float"/>
-		<variable id="8" name="vdouble" type="double"/>
-		<variable id="9" name="vstring" type="string"/>
-		<variable id="10" name="vbytes" type="binary"/>
-		<variable id="11" name="vbean" type="Bean"/>
+		<variable id="2"  name="vint64"    type="long"/>
+		<variable id="3"  name="vsint64"   type="long"/>
+		<variable id="4"  name="vuint64"   type="long"/> [uint64]
+		<variable id="5"  name="vfixed64"  type="long"/>
+		<variable id="6"  name="vsfixed64" type="long"/>
+		<variable id="7"  name="vfloat"    type="float"/>
+		<variable id="8"  name="vdouble"   type="double"/>
+		<variable id="9"  name="vstring"   type="string"/>
+		<variable id="10" name="vbytes"    type="binary"/>
+		<variable id="11" name="vbean"     type="Bean"/>
 	</bean>
 	<protocol id="12" name="SCMessage" argument="BSCMessage" handle="client"/>
 </module>
