@@ -66,10 +66,12 @@ public class MQ {
 	}
 
 	public void sendMessage(int hash, BMessage.Data message) {
+		// 查找发送队列服务器
 		var index = (int)(Integer.toUnsignedLong(hash) % mqConnectors.length);
 		var conn = mqConnectors[index];
 		if (conn.server.getPartitionIndex() != index)
 			throw new RuntimeException("fatal error, index mismatch: " + conn.server.getPartitionIndex() + "," + index);
+
 		message.setTimestamp(System.currentTimeMillis());
 		var sendMessage = new BSendMessage.Data(conn.server.getTopic(), index, message);
 		MQAgent.sendMessageTo(sendMessage, conn.connector);

@@ -72,10 +72,10 @@ public class TestConsistentHash {
 				consistentHash.get("4".hashCode()));
 
 		logger.info("{},{},{},{}",
-				consistentHash.get(Bean.hash32("1")),
-				consistentHash.get(Bean.hash32("2")),
-				consistentHash.get(Bean.hash32("3")),
-				consistentHash.get(Bean.hash32("4")));
+				consistentHash.get(Bean.hash64("1")),
+				consistentHash.get(Bean.hash64("2")),
+				consistentHash.get(Bean.hash64("3")),
+				consistentHash.get(Bean.hash64("4")));
 		/*/
 		Assert.assertEquals(consistentHash.get(Bean.hash32("1")), Integer.valueOf(1));
 		Assert.assertEquals(consistentHash.get(Bean.hash32("2")), Integer.valueOf(2));
