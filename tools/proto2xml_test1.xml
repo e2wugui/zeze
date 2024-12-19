@@ -18,7 +18,7 @@
 		<variable id="1" name="vbean2" type="package0.package1.package2.ClassName2.Bean2"/>
 	</bean>
 	<bean name="Bean">
-		<variable id="1" name="vinner" type="Inner"/> 行注释
+		<variable id="1" name="vinner" type="Inner"/> [required] 行注释
 		<variable id="2" name="venum"  type="int"/> [Enum]
 	</bean>
 
@@ -33,10 +33,10 @@
 		<enum name="I1" value="1"/> [Inner] I1枚举
 		<enum name="I2" value="2"/> [Inner] I2枚举
 		<enum name="I3" value="3"/> [Inner] I3枚举
-		<variable id="1" name="vbool"     type="bool"/> 布尔
+		<variable id="1" name="vbool"     type="bool"/> [required] 布尔
 		<variable id="2" name="vint32"    type="int"/> 32位整数
 		<variable id="4" name="vsint32"   type="int"/> 有符号32位整数
-		<variable id="5" name="vuint32"   type="int"/> [uint32] 无符号32位整数
+		<variable id="5" name="vuint32"   type="int"/> [required][uint32] 无符号32位整数
 		<variable id="6" name="vfixed32"  type="int"/> [fixed32] 固定32位
 		<variable id="7" name="vsfixed32" type="int"/> 有符号固定32位
 		<variable id="8" name="vinner"    type="int"/> [Inner] 内部枚举

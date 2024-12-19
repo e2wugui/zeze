@@ -335,12 +335,11 @@ for srcLine in io.lines(arg[argId]) do
 				if not type then
 					error("ERROR(" .. lineId .. "): unknown type: " .. srcLine)
 				end
+				if first == "required" then
+					typeComment = "[required]" .. (typeComment or "")
+				end
 				if typeComment then
-					if comment == "" then
-						comment = typeComment
-					else
-						comment = typeComment .. " " .. comment
-					end
+					comment = (typeComment .. " " .. comment):gsub("%s+$", "")
 				end
 				if comment ~= "" then
 					comment = " " .. escape(comment)
