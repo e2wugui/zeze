@@ -86,7 +86,6 @@ public class Procedure {
 	private @Nullable FuncLong action;
 	@SuppressWarnings("NotNullFieldNotInitialized")
 	private @NotNull String actionName;
-	private @Nullable Object userState;
 	// public Runnable runWhileCommit;
 
 	// 用于继承方式实现 Procedure。
@@ -97,12 +96,11 @@ public class Procedure {
 	}
 
 	public Procedure(@NotNull Application app, @Nullable FuncLong action, @Nullable String actionName,
-					 @Nullable TransactionLevel level, @Nullable Object userState) {
+					 @Nullable TransactionLevel level) {
 		zeze = app;
 		this.level = level;
 		this.action = action;
 		setActionName(actionName);
-		this.userState = userState;
 	}
 
 	public final @NotNull Application getZeze() {
@@ -141,7 +139,7 @@ public class Procedure {
 		if (currentT == null) {
 			long timeBegin = System.nanoTime();
 			try {
-				currentT = Transaction.create(zeze.getLocks(), userState);
+				currentT = Transaction.create(zeze.getLocks());
 				currentT.profiler.onProcedureBegin(actionName, timeBegin);
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return result = currentT.perform(this);

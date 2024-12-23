@@ -185,7 +185,7 @@ public class DatagramService {
 						var p = decodeProtocol(bbCopy, factoryHandle, sender, serialId);
 						outProtocol.value = p;
 						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), level, serialId),
+					}, factoryHandle.Class.getName(), level),
 					outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(bb, factoryHandle, sender, serialId);

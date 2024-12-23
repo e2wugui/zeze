@@ -443,8 +443,7 @@ public class Service extends ReentrantLock {
 		Application zeze;
 		if (!noProcedure && (zeze = this.zeze) != null && factoryHandle.Level != TransactionLevel.None) {
 			Task.executeRpcResponseUnsafe(zeze.newProcedure(() -> responseHandle.handle(rpc),
-					rpc.getClass().getName() + ":Response", factoryHandle.Level,
-					null != rpc.getSender() ? rpc.getSender().getUserState() : null), factoryHandle.Mode);
+					rpc.getClass().getName() + ":Response", factoryHandle.Level), factoryHandle.Mode);
 		} else
 			Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
@@ -497,7 +496,7 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
 			var protocolClassName = p.getClass().getName();
 			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName,
-					factoryHandle.Level, null != p.getSender() ? p.getSender().getUserState() : null);
+					factoryHandle.Level);
 			Task.executeUnsafe(proc, p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
@@ -527,7 +526,7 @@ public class Service extends ReentrantLock {
 				var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 				outProtocol.value = p;
 				return p.handle(this, factoryHandle);
-			}, protocolClassName, factoryHandle.Level, so != null ? so.getUserState() : null);
+			}, protocolClassName, factoryHandle.Level);
 			proc.setProtocolClassName(protocolClassName);
 			proc.setProtocolRawArgument(protocolRawArgument);
 			Task.executeUnsafe(proc, outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);

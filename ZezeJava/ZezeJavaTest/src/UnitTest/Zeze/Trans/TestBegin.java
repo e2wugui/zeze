@@ -11,7 +11,7 @@ public class TestBegin extends TestCase {
 	private final Locks Locks = new Locks();
 
 	public final void testRollback() {
-		Transaction.create(Locks, null);
+		Transaction.create(Locks);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -30,7 +30,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testCommit() {
-		Transaction.create(Locks, null);
+		Transaction.create(Locks);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -59,7 +59,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testNestRollback() {
-		Transaction.create(Locks, null);
+		Transaction.create(Locks);
 		try {
 			Transaction.getCurrent().begin();
 
@@ -90,7 +90,7 @@ public class TestBegin extends TestCase {
 	}
 
 	public final void testNestCommit() {
-		Transaction.create(Locks, null);
+		Transaction.create(Locks);
 		try {
 			Transaction.getCurrent().begin();
 

@@ -203,7 +203,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					@SuppressWarnings("unchecked")
 					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-				}, null, factoryHandle.Level, session), outProtocol, session::trySendResponse);
+				}, null, factoryHandle.Level), outProtocol, session::trySendResponse);
 				if (PerfCounter.ENABLE_PERF) {
 					PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
@@ -225,7 +225,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			if (txn != null) { // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
 				//noinspection ConstantConditions
 				txn.getTopProcedure().setActionName(p2.getClass().getName() + (isRpcResponse ? ":Response" : ""));
-				txn.setUserState(session);
 				txn.runWhileCommit(() -> arg.setProtocolData(Binary.Empty)); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空

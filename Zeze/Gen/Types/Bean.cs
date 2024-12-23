@@ -390,9 +390,18 @@ namespace Zeze.Gen.Types
 		public void Compile()
 		{
 			foreach (Variable var in Variables)
-				var.Compile(Space);
+			{
+				try
+				{
+					var.Compile(Space);
+				}
+				catch (Exception ex)
+				{
+					throw new Exception(Name + "." + var.Name + ":" + ex.Message, ex);
+				}
+            }
 
-			if (false == string.IsNullOrEmpty(Version))
+            if (false == string.IsNullOrEmpty(Version))
 			{
 				var v = GetVariable(Version);
 				if (null == v)

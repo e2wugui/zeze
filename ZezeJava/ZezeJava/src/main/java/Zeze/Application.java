@@ -454,16 +454,27 @@ public final class Application extends ReentrantLock {
 	}
 
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName) {
-		return newProcedure(action, actionName, TransactionLevel.Serializable, null);
+		return newProcedure(action, actionName, TransactionLevel.Serializable);
 	}
 
+	/**
+	 * 请使用没有userState的版本，userState已经被废弃！！！
+	 */
+	/*
+	@Deprecated
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level, @Nullable Object userState) {
+		return newProcedure(action, actionName, level);
+	}
+	*/
+
+	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
+										   @Nullable TransactionLevel level) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
 					+ ", action=" + (actionName != null ? actionName : action.getClass()));
 		}
-		return new Procedure(this, action, actionName, level, userState);
+		return new Procedure(this, action, actionName, level);
 	}
 
 	public static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {

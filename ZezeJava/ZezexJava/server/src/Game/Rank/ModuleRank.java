@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Game.App;
+import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -375,7 +376,8 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 
 	public static int GetChoiceHashCode() {
 		//noinspection ConstantConditions
-		String account = ((ProviderUserSession)Transaction.userState()).getAccount();
+		var session = (ProviderUserSession)ProviderImplement.localDispatch().getUserState();
+		String account = session.getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
