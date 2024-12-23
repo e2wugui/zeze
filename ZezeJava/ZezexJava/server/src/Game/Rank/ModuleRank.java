@@ -354,11 +354,11 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		return counter.getValue();
 	}
 
-	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint) {
-		AddCounterAndUpdateRank(roleId, delta, keyHint, null);
+	public final void AddCounterAndUpdateRank(String account, long roleId, int delta, BConcurrentKey keyHint) {
+		AddCounterAndUpdateRank(account, roleId, delta, keyHint, null);
 	}
 
-	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Binary valueEx) {
+	public final void AddCounterAndUpdateRank(String account, long roleId, int delta, BConcurrentKey keyHint, Binary valueEx) {
 		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter) {
@@ -371,14 +371,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 			valueEx = Binary.Empty;
 		}
 
-		UpdateRank(GetChoiceHashCode(), keyHint, roleId, counter.getValue(), valueEx);
-	}
-
-	public static int GetChoiceHashCode() {
-		//noinspection ConstantConditions
-		var session = (ProviderUserSession)ProviderImplement.localDispatch().getUserState();
-		String account = session.getAccount();
-		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
+		UpdateRank(Zeze.Serialize.ByteBuffer.calc_hashnr(account), keyHint, roleId, counter.getValue(), valueEx);
 	}
 
 	@Override
