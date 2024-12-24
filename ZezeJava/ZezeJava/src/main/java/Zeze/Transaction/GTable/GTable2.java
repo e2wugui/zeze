@@ -16,7 +16,7 @@ public class GTable2<R extends Comparable<R>, C extends Comparable<C>, V extends
 		super(new LinkedHashMap<>(), new Factory<>(colClass, valClass)); // TODO 先编译通过。
 	}
 
-	private static class Factory<C extends Comparable<C>, V> implements Supplier<Map<C, V>>, Serializable {
+	private static class Factory<C extends Comparable<C>, V extends Bean> implements Supplier<Map<C, V>>, Serializable {
 		private final Class<C> colClass;
 		private final Class<V> valClass;
 		private static final long serialVersionUID = 0L;
@@ -28,7 +28,7 @@ public class GTable2<R extends Comparable<R>, C extends Comparable<C>, V extends
 
 		@Override
 		public Map<C, V> get() {
-			return new BeanMap1<>(colClass, valClass);
+			return new BeanMap2<>(colClass, valClass);
 		}
 	}
 }
