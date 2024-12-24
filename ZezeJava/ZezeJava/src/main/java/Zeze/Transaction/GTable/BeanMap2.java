@@ -12,7 +12,8 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
 public final class BeanMap2<C extends Comparable<C>, V extends Zeze.Transaction.Bean, VReadOnly>
-        extends Zeze.Transaction.Bean implements Map<C, V> {
+        extends Zeze.Transaction.Bean
+        implements Map<C, V>, BeanMap2ReadOnly<C, V, VReadOnly> {
     public static final long TYPEID = 2968992468344472794L;
 
     private final Zeze.Transaction.Collections.PMap2<C, V> _Map2;
@@ -21,6 +22,7 @@ public final class BeanMap2<C extends Comparable<C>, V extends Zeze.Transaction.
         return _Map2;
     }
 
+    @Override
     public Zeze.Transaction.Collections.PMap2ReadOnly<C, V, VReadOnly> getMap2ReadOnly() {
         return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Map2);
     }

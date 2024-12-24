@@ -10,7 +10,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BeanMap1<C extends Comparable<C>, V> extends Zeze.Transaction.Bean implements Map<C, V> {
+public final class BeanMap1<C extends Comparable<C>, V>
+        extends Zeze.Transaction.Bean
+        implements Map<C, V>, BeanMap1ReadOnly<C, V> {
     public static final long TYPEID = -105464877273786005L;
 
     private final Zeze.Transaction.Collections.PMap1<C, V> _Map1;
@@ -19,6 +21,7 @@ public final class BeanMap1<C extends Comparable<C>, V> extends Zeze.Transaction
         return _Map1;
     }
 
+    @Override
     public Zeze.Transaction.Collections.PMap1ReadOnly<C, V> getMap1ReadOnly() {
         return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Map1);
     }
