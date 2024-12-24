@@ -17,7 +17,11 @@ public class PMap1<K, V> extends PMap<K, V> {
 		meta = Meta2.getMap1Meta(keyClass, valueClass);
 	}
 
-	private PMap1(@NotNull Meta2<K, V> meta) {
+	public Meta2<K, V> getMeta() {
+		return meta;
+	}
+
+	public PMap1(@NotNull Meta2<K, V> meta) {
 		this.meta = meta;
 	}
 
