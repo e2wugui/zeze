@@ -6,7 +6,6 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Collections.Meta2;
-import freemarker.ext.beans.ZeroArgumentNonVoidMethodPolicy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -136,8 +135,7 @@ public final class BeanMap2<C extends Comparable<C>, V extends Zeze.Transaction.
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                // TODO meta里面好像没有类型，看来这个encode最好不采用bean的形式吧。
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                _o_.WriteMapType(_n_, meta.keyEncodeType, ByteBuffer.BEAN);
                 for (var _e_ : _x_.entrySet()) {
                     meta.keyEncoder.accept(_o_, _e_.getKey());
                     _e_.getValue().encode(_o_);
@@ -161,10 +159,9 @@ public final class BeanMap2<C extends Comparable<C>, V extends Zeze.Transaction.
             var _x_ = _Map2;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                // TODO 参见encode里面的TODO。
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = meta.keyDecoder.apply(_o_);
+                    var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
                     var _v_ = _o_.ReadBean(_Map2.createValue(), _t_);
                     _x_.put(_k_, _v_);
                 }

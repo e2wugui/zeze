@@ -21,10 +21,14 @@ public final class Meta2<K, V> {
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map2Metas = new ConcurrentHashMap<>();
 
 	public final int logTypeId;
+	public final int keyEncodeType;
 	public final BiConsumer<ByteBuffer, K> keyEncoder;
 	public final Function<IByteBuffer, K> keyDecoder;
+	public final SerializeHelper.IntObjectFunction<IByteBuffer, K> keyDecoderWithType;
+	public final int valueEncodeType;
 	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
 	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
+	public final SerializeHelper.IntObjectFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
 
@@ -32,10 +36,14 @@ public final class Meta2<K, V> {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+		keyEncodeType = keyCodecFuncs.encodeType;
 		keyEncoder = keyCodecFuncs.encoder;
 		keyDecoder = keyCodecFuncs.decoder;
+		keyDecoderWithType = keyCodecFuncs.decoderWithType;
+		valueEncodeType = valueCodecFuncs.encodeType;
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;
+		valueDecoderWithType = valueCodecFuncs.decoderWithType;
 		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
 		name = headStr + keyClass.getName() + ',' + valueClass.getName();
 	}
@@ -43,10 +51,14 @@ public final class Meta2<K, V> {
 	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		logTypeId = Bean.hashLog(map2HeadHash, keyClass, DynamicBean.class);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
+		keyEncodeType = keyCodecFuncs.encodeType;
 		keyEncoder = keyCodecFuncs.encoder;
 		keyDecoder = keyCodecFuncs.decoder;
+		keyDecoderWithType = keyCodecFuncs.decoderWithType;
+		valueEncodeType = IByteBuffer.DYNAMIC;
 		valueEncoder = null;
 		valueDecoder = null;
+		valueDecoderWithType = null;
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
 		name = "LogMap2:" + keyClass.getName() + ",DynamicBean";
 	}

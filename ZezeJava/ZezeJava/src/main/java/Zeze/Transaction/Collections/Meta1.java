@@ -29,16 +29,20 @@ public final class Meta1<V> {
 	private static final ConcurrentHashMap<Class<?>, Meta1<?>> set1Metas = new ConcurrentHashMap<>();
 
 	public final int logTypeId;
+	public final int valueEncodeType;
 	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
 	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
+	public final SerializeHelper.IntObjectFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
 
 	private Meta1(@NotNull String headStr, long headHash, @NotNull Class<V> valueClass) {
 		logTypeId = Bean.hashLog(headHash, valueClass);
 		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+		valueEncodeType = valueCodecFuncs.encodeType;
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;
+		valueDecoderWithType = valueCodecFuncs.decoderWithType;
 		valueFactory = BeanKey.class.isAssignableFrom(valueClass) || Bean.class.isAssignableFrom(valueClass)
 				? Reflect.getDefaultConstructor(valueClass) : null;
 		name = headStr + valueClass.getName();
@@ -46,8 +50,10 @@ public final class Meta1<V> {
 
 	private Meta1(@NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
 		logTypeId = dynamicBeanTypeId;
+		valueEncodeType = IByteBuffer.DYNAMIC;
 		valueEncoder = null;
 		valueDecoder = null;
+		valueDecoderWithType = null;
 		valueFactory = SerializeHelper.createDynamicFactory(get, create);
 		name = "LogList2:DynamicBean";
 	}

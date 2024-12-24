@@ -104,7 +104,7 @@ public class SortedMap<K extends Comparable<K>, V extends Comparable<V>> {
 	 */
 	public interface HashFunc<K extends Comparable<K>, V extends Comparable<V>> {
 		/**
-		 * 相同(equals)的value和index必须得到确定的hash值,尽量能在64位全范围分散开
+		 * 相同(equals)的value和index必须得到一致的hash值,尽量能在64位全范围分散开
 		 */
 		long hash(@NotNull K key, @NotNull V value, int index);
 	}

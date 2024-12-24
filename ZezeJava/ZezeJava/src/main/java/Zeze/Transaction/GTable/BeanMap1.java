@@ -53,7 +53,7 @@ public final class BeanMap1<C extends Comparable<C>, V>
 
     @Override
     public BeanMap1<C, V> copy() {
-        var _c_ = new BeanMap1<C, V>(_Map1.getMeta());
+        var _c_ = new BeanMap1<>(_Map1.getMeta());
         _c_.assign(this);
         return _c_;
     }
@@ -128,8 +128,7 @@ public final class BeanMap1<C extends Comparable<C>, V>
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                // TODO meta里面好像没有类型，看来这个encode最好不采用bean的形式吧。
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.INTEGER);
+                _o_.WriteMapType(_n_, meta.keyEncodeType, meta.valueEncodeType);
                 for (var _e_ : _x_.entrySet()) {
                     meta.keyEncoder.accept(_o_, _e_.getKey());
                     meta.valueEncoder.accept(_o_, _e_.getValue());
@@ -154,10 +153,9 @@ public final class BeanMap1<C extends Comparable<C>, V>
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                // TODO 参见encode里面的TODO。
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = meta.keyDecoder.apply(_o_);
-                    var _v_ = meta.valueDecoder.apply(_o_);
+                    var _k_ = meta.keyDecoderWithType.apply(_o_, _s_);
+                    var _v_ = meta.valueDecoderWithType.apply(_o_, _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

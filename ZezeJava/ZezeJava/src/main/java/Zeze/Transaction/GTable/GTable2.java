@@ -8,6 +8,7 @@ import com.google.common.base.Supplier;
 
 public class GTable2<R extends Comparable<R>, C extends Comparable<C>, V extends Bean, VReadOnly>
 		extends StandardTable<R, C, V> {
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public GTable2(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
 		super(new PMap2(rowClass, BeanMap2.class), new Factory<>(colClass, valClass));
 	}

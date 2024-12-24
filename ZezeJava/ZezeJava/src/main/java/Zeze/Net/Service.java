@@ -427,7 +427,7 @@ public class Service extends ReentrantLock {
 	 * 对方正常关闭连接或者shutdownOutput时的处理, 大多数情况直接关闭连接来应对, 少数情况可以继续发送数据直到主动关闭.
 	 * 理论上无法得知对方是否还可以接收数据, 只能靠上层协商行为规范.
 	 */
-	@SuppressWarnings("MethodMayBeStatic")
+	@SuppressWarnings({"MethodMayBeStatic", "RedundantThrows"})
 	public void OnSocketInputClosed(@NotNull AsyncSocket so) throws Exception {
 		so.close(inputClosedException);
 	}
@@ -495,8 +495,7 @@ public class Service extends ReentrantLock {
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
 			var protocolClassName = p.getClass().getName();
-			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName,
-					factoryHandle.Level);
+			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
 			Task.executeUnsafe(proc, p, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
@@ -918,7 +917,7 @@ public class Service extends ReentrantLock {
 		});
 	}
 
-	@SuppressWarnings("MethodMayBeStatic")
+	@SuppressWarnings({"MethodMayBeStatic", "RedundantThrows"})
 	protected void onKeepAliveTimeout(@NotNull AsyncSocket socket) throws Exception {
 		socket.close(keepAliveException);
 	}

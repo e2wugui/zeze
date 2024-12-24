@@ -6,6 +6,7 @@ import Zeze.Transaction.Collections.PMap2;
 import com.google.common.base.Supplier;
 
 public class GTable1<R extends Comparable<R>, C extends Comparable<C>, V> extends StandardTable<R, C, V> {
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valueClass) {
 		super(new PMap2(rowClass, BeanMap1.class), new Factory<>(colClass, valueClass));
 	}
