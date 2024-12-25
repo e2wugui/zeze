@@ -3,6 +3,7 @@ package Zeze.Transaction.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.LongFunction;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -22,6 +23,10 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		meta = Meta2.getMap2Meta(keyClass, valueClass);
+	}
+
+	public PMap2(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass, @NotNull Supplier<V> valueCtor) {
+		meta = Meta2.createMap2Meta(keyClass, valueClass, valueCtor);
 	}
 
 	public PMap2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) { // only for DynamicBean value

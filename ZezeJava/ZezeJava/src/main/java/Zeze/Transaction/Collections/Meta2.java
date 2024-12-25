@@ -1,10 +1,13 @@
 package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.LongFunction;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
@@ -12,6 +15,7 @@ import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.Reflect;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class Meta2<K, V> {
@@ -32,7 +36,8 @@ public final class Meta2<K, V> {
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
 
-	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
+				  MethodHandle valueFactory) {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncodeType = keyCodecFuncs.encodeType;
@@ -44,8 +49,27 @@ public final class Meta2<K, V> {
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;
 		valueDecoderWithType = valueCodecFuncs.decoderWithType;
-		valueFactory = Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null;
+		this.valueFactory = valueFactory;
 		name = headStr + keyClass.getName() + ',' + valueClass.getName();
+	}
+
+	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
+				  @NotNull Supplier<V> ctor) {
+		this(headStr, headHash, keyClass, valueClass, toMethodHandle(ctor));
+	}
+
+	private static MethodHandle toMethodHandle(@NotNull Supplier<?> ctor) {
+		try {
+			return MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class))
+					.bindTo(ctor);
+		} catch (ReflectiveOperationException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
+	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		this(headStr, headHash, keyClass, valueClass,
+				Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null);
 	}
 
 	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
@@ -82,6 +106,12 @@ public final class Meta2<K, V> {
 			return (Meta2<K, V>)r;
 		return (Meta2<K, V>)map.computeIfAbsent(valueClass,
 				vc -> new Meta2<>("LogMap2:", map2HeadHash, keyClass, (Class<V>)vc));
+	}
+
+	public static <K, V extends Bean> @NotNull Meta2<K, V> createMap2Meta(@NotNull Class<K> keyClass,
+																		  @NotNull Class<V> valueClass,
+																		  @NotNull Supplier<V> valueCtor) {
+		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
