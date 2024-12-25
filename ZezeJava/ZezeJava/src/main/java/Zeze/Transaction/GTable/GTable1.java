@@ -23,7 +23,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		}
 	}
 
-	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, GTable1.Factory<?, ?, ?>>>>
+	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Factory<?, ?, ?>>>>
 			factories = new ConcurrentHashMap<>();
 
 	private final @NotNull PMap2<R, BeanMap1<C, V>> pMap2;

@@ -44,7 +44,7 @@ public final class Meta2<K, V> {
 		keyEncoder = keyCodecFuncs.encoder;
 		keyDecoder = keyCodecFuncs.decoder;
 		keyDecoderWithType = keyCodecFuncs.decoderWithType;
-		var valueCodecFuncs = SerializeHelper.createCodec(valueClass);
+		var valueCodecFuncs = SerializeHelper.createCodec(valueClass, valueFactory);
 		valueEncodeType = valueCodecFuncs.encodeType;
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;

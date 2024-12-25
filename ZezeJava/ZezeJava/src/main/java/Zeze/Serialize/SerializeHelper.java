@@ -105,6 +105,15 @@ public final class SerializeHelper {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private static <T> @NotNull T newObject(@NotNull MethodHandle ctor) {
+		try {
+			return (T)ctor.invoke();
+		} catch (Throwable e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	public static <T> @NotNull Function<IByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
@@ -138,6 +147,24 @@ public final class SerializeHelper {
 		} catch (NoSuchMethodException e) {
 			throw Task.forceThrow(e);
 		}
+		return new CodecFuncs<>(IByteBuffer.BEAN, (bb, obj) -> ((Serializable)obj).encode(bb), bb -> {
+			T obj = newObject(ctor);
+			((Serializable)obj).decode(bb);
+			return obj;
+		}, (bb, type) -> {
+			T obj = newObject(ctor);
+			bb.ReadBean((Serializable)obj, type);
+			return obj;
+		});
+	}
+
+	public static <T> @NotNull CodecFuncs<T> createCodec(@NotNull Class<T> cls, @NotNull MethodHandle ctor) {
+		@SuppressWarnings("unchecked")
+		var codec = (CodecFuncs<T>)codecs.get(cls);
+		if (codec != null)
+			return codec;
+		if (!Serializable.class.isAssignableFrom(cls))
+			throw new UnsupportedOperationException("unsupported codec type: " + cls.getName());
 		return new CodecFuncs<>(IByteBuffer.BEAN, (bb, obj) -> ((Serializable)obj).encode(bb), bb -> {
 			T obj = newObject(ctor);
 			((Serializable)obj).decode(bb);
