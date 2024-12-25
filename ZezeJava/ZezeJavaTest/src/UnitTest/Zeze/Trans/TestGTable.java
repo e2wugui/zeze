@@ -21,7 +21,7 @@ public class TestGTable {
 		try {
 			Transaction.getCurrent().begin();
 			// process
-			// 设置假的rootInfo，不能commit，用来测试。
+			// todo 设置假的rootInfo，不能commit，用来测试。这个测试目前过不了，需要完整的gen实现了才能测试。
 			var tTable = new tMap2Bean1();
 			var record = new Record1(tTable, 1, null);
 			var bean = new Bean1();

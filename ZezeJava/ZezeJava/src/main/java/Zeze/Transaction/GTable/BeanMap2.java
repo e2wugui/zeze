@@ -15,6 +15,18 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 	public static final long TYPEID = 2968992468344472794L;
 
 	private final Zeze.Transaction.Collections.PMap2<C, V> _Map2;
+	private Object mapKey;
+
+	@Override
+	public void mapKey(Object mapKey) {
+		this.mapKey = mapKey;
+	}
+
+	@Override
+	public Object mapKey() {
+		return mapKey;
+	}
+
 
 	public Zeze.Transaction.Collections.PMap2<C, V> getMap2() {
 		return _Map2;

@@ -15,6 +15,17 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	public static final long TYPEID = -105464877273786005L;
 
 	private final Zeze.Transaction.Collections.PMap1<C, V> _Map1;
+	private Object mapKey;
+
+	@Override
+	public void mapKey(Object mapKey) {
+		this.mapKey = mapKey;
+	}
+
+	@Override
+	public Object mapKey() {
+		return mapKey;
+	}
 
 	public Zeze.Transaction.Collections.PMap1<C, V> getMap1() {
 		return _Map1;
