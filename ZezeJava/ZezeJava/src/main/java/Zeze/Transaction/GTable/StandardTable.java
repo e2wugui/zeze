@@ -28,18 +28,19 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @GwtCompatible
 class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializable {
 
-	final Map<R, Map<C, V>> backingMap;
-
-	final Supplier<? extends Map<C, V>> factory;
+	Map<R, Map<C, V>> backingMap;
+	Supplier<? extends Map<C, V>> factory;
 	private transient @MonotonicNonNull Set<C> columnKeySet;
 	private transient @MonotonicNonNull Map<R, Map<C, V>> rowMap;
 	private transient StandardTable<R, C, V>.@MonotonicNonNull ColumnMap columnMap;
 	private static final long serialVersionUID = 0L;
 
+	/*
 	StandardTable(Map<R, Map<C, V>> backingMap, Supplier<? extends Map<C, V>> factory) {
 		this.backingMap = backingMap;
 		this.factory = factory;
 	}
+	*/
 
 	public boolean contains(@Nullable Object rowKey, @Nullable Object columnKey) {
 		return rowKey != null && columnKey != null && super.contains(rowKey, columnKey);

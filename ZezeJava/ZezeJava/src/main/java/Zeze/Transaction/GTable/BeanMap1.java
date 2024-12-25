@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BeanMap1<C extends Comparable<C>, V>
+public class BeanMap1<C extends Comparable<C>, V>
         extends Zeze.Transaction.Bean
         implements Map<C, V>, BeanMap1ReadOnly<C, V> {
     public static final long TYPEID = -105464877273786005L;

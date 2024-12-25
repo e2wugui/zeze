@@ -6,9 +6,18 @@ import Zeze.Transaction.Collections.PMap2;
 import com.google.common.base.Supplier;
 
 public class GTable1<R extends Comparable<R>, C extends Comparable<C>, V> extends StandardTable<R, C, V> {
+	private final PMap2<R, BeanMap1IntegerInteger> pMap2;
+
 	@SuppressWarnings({"unchecked", "rawtypes"})
-	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valueClass) {
-		super(new PMap2(rowClass, BeanMap1.class), new Factory<>(colClass, valueClass));
+	public GTable1(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
+		this.pMap2 = new PMap2(rowClass, BeanMap1IntegerInteger.class);
+		PMap2 raw = pMap2;
+		super.backingMap = raw;
+		super.factory = new Factory(colClass, valClass);
+	}
+
+	public PMap2<R, BeanMap1IntegerInteger> getPMap2() {
+		return pMap2;
 	}
 
 	private static class Factory<C extends Comparable<C>, V> implements Supplier<Map<C, V>>, Serializable {

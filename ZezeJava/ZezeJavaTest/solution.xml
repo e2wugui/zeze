@@ -11,8 +11,11 @@
 		<variable id="2" name="V2" type="map" key="int" value="int"/> bean1v2
 		bean1v2line2
 	</bean>
-
 	<module name="web" id="4">
+		<bean name="BMap2Bean1">
+			<variable id="1" name="map2" type="map[int, demo.Bean1]"/>
+		</bean>
+		<table name="tMap2Bean1" key="long" value="BMap2Bean1"/>
 		<bean name="BCount" UseData="true">
 			<variable id="1" name="Count" type="long"/>
 		</bean>

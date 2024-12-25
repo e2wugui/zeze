@@ -8,9 +8,18 @@ import com.google.common.base.Supplier;
 
 public class GTable2<R extends Comparable<R>, C extends Comparable<C>, V extends Bean, VReadOnly>
 		extends StandardTable<R, C, V> {
+	private final PMap2<R, BeanMap2<C, V, VReadOnly>> pMap2;
+
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	public GTable2(Class<R> rowClass, Class<C> colClass, Class<V> valClass) {
-		super(new PMap2(rowClass, BeanMap2.class), new Factory<>(colClass, valClass));
+		this.pMap2 = new PMap2(rowClass, BeanMap2.class);
+		PMap2 raw = pMap2;
+		super.backingMap = raw;
+		super.factory = new Factory<>(colClass, valClass);
+	}
+
+	public PMap2<R, BeanMap2<C, V, VReadOnly>> getPMap2() {
+		return pMap2;
 	}
 
 	private static class Factory<C extends Comparable<C>, V extends Bean> implements Supplier<Map<C, V>>, Serializable {
