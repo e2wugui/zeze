@@ -1,9 +1,8 @@
-// auto-generated @formatter:off
 package Zeze.Transaction.GTable;
 
 import Zeze.Transaction.Bean;
 
-public interface BeanMap2ReadOnly<K extends Comparable<K>, V extends Bean, VReadOnly> {
+public interface BeanMap2ReadOnly<K, V extends Bean, VReadOnly> {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
