@@ -28,12 +28,12 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		meta = Meta2.createDynamicMapMeta(keyClass, get, create);
 	}
 
-	public Meta2<K, V> getMeta() {
-		return meta;
-	}
-
 	public PMap2(@NotNull Meta2<K, V> meta) {
 		this.meta = meta;
+	}
+
+	public @NotNull Meta2<K, V> getMeta() {
+		return meta;
 	}
 
 	@SuppressWarnings("unchecked")

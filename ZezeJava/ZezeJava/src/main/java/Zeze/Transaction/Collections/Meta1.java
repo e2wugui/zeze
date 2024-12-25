@@ -32,7 +32,7 @@ public final class Meta1<V> {
 	public final int valueEncodeType;
 	public final BiConsumer<ByteBuffer, V> valueEncoder; // 只用于非Bean类型
 	public final Function<IByteBuffer, V> valueDecoder; // 只用于非Bean类型
-	public final SerializeHelper.IntObjectFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
+	public final SerializeHelper.ObjectIntFunction<IByteBuffer, V> valueDecoderWithType; // 只用于非Bean类型
 	public final MethodHandle valueFactory; // 只用于Bean类型
 	public final @NotNull String name; // 主要用于分析查错
 

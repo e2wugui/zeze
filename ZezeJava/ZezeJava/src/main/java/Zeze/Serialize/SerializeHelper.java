@@ -1,6 +1,7 @@
 package Zeze.Serialize;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -15,7 +16,7 @@ import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public final class SerializeHelper {
-	public interface IntObjectFunction<T, R> {
+	public interface ObjectIntFunction<T, R> {
 		R apply(T t, int i);
 	}
 
@@ -24,11 +25,11 @@ public final class SerializeHelper {
 		public final int encodeType;
 		public final @NotNull BiConsumer<ByteBuffer, T> encoder;
 		public final @NotNull Function<IByteBuffer, T> decoder;
-		public final @NotNull IntObjectFunction<IByteBuffer, T> decoderWithType;
+		public final @NotNull ObjectIntFunction<IByteBuffer, T> decoderWithType;
 
 		public CodecFuncs(int encodeType, @NotNull BiConsumer<ByteBuffer, T> encoder,
 						  @NotNull Function<IByteBuffer, T> decoder,
-						  @NotNull IntObjectFunction<IByteBuffer, T> decoderWithType) {
+						  @NotNull ObjectIntFunction<IByteBuffer, T> decoderWithType) {
 			this.encodeType = encodeType;
 			this.encoder = encoder;
 			this.decoder = decoder;
@@ -96,6 +97,14 @@ public final class SerializeHelper {
 		return (bb, obj) -> ((Serializable)obj).encode(bb);
 	}
 
+	private static <T> @NotNull T newObject(@NotNull Constructor<T> ctor) {
+		try {
+			return ctor.newInstance((Object[])null);
+		} catch (ReflectiveOperationException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	public static <T> @NotNull Function<IByteBuffer, T> createDecodeFunc(@NotNull Class<T> cls) {
 		@SuppressWarnings("unchecked")
 		var codec = (CodecFuncs<T>)codecs.get(cls);
@@ -103,13 +112,14 @@ public final class SerializeHelper {
 			return codec.decoder;
 		if (!Serializable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported decoder type: " + cls.getName());
+		Constructor<T> ctor;
+		try {
+			ctor = cls.getConstructor((Class<?>[])null);
+		} catch (NoSuchMethodException e) {
+			throw Task.forceThrow(e);
+		}
 		return bb -> {
-			T obj;
-			try {
-				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			} catch (ReflectiveOperationException e) {
-				throw Task.forceThrow(e);
-			}
+			T obj = newObject(ctor);
 			((Serializable)obj).decode(bb);
 			return obj;
 		};
@@ -122,22 +132,18 @@ public final class SerializeHelper {
 			return codec;
 		if (!Serializable.class.isAssignableFrom(cls))
 			throw new UnsupportedOperationException("unsupported codec type: " + cls.getName());
+		Constructor<T> ctor;
+		try {
+			ctor = cls.getConstructor((Class<?>[])null);
+		} catch (NoSuchMethodException e) {
+			throw Task.forceThrow(e);
+		}
 		return new CodecFuncs<>(IByteBuffer.BEAN, (bb, obj) -> ((Serializable)obj).encode(bb), bb -> {
-			T obj;
-			try {
-				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			} catch (ReflectiveOperationException e) {
-				throw Task.forceThrow(e);
-			}
+			T obj = newObject(ctor);
 			((Serializable)obj).decode(bb);
 			return obj;
 		}, (bb, type) -> {
-			T obj;
-			try {
-				obj = cls.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			} catch (ReflectiveOperationException e) {
-				throw Task.forceThrow(e);
-			}
+			T obj = newObject(ctor);
 			bb.ReadBean((Serializable)obj, type);
 			return obj;
 		});

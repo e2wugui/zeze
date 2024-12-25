@@ -57,9 +57,9 @@ public final class BeanFactory {
 		BeanFactory.zeze = zeze;
 	}
 
-	public static long typeId(Class<? extends Bean> beanClass) {
+	public static long typeId(@NotNull Class<? extends Bean> beanClass) {
 		try {
-			return beanClass.getConstructor().newInstance().typeId();
+			return beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null).typeId();
 		} catch (Exception ex) {
 			throw Task.forceThrow(ex);
 		}
