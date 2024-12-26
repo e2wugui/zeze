@@ -186,5 +186,16 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "if (" + Getter + ".signum() == -1)");
             sw.WriteLine(prefix + "    return true;");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            if (type.IsNeedNegativeCheck)
+            {
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ".getPMap2().values()) {");
+                sw.WriteLine(prefix + "    if (_v_.negativeCheck()) return true;");
+                //type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "}");
+            }
+        }
     }
 }

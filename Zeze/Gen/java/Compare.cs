@@ -156,5 +156,10 @@ namespace Zeze.Gen.java
         {
             text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

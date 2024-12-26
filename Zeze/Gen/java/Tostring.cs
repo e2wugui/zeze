@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
             foreach (var var in vars)
             {
                 var varType = var.VariableType;
-                if (varType is TypeCollection or TypeMap)
+                if (varType is TypeCollection or TypeMap or TypeGTable)
                 {
                     maxLevel = 2;
                     break;
@@ -267,6 +267,16 @@ namespace Zeze.Gen.java
         public void Visit(TypeDecimal type)
         {
             formatSimple();
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}={{\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    _s_.append('\\n');");
+            sw.WriteLine(prefix + $"    {NamePrivate}.buildString(_s_, _l_ + 4);");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + (sep != 0 ? $"_s_.append(\"}}{sep}\\n\");" : "_s_.append(\"}\\n\");"));
         }
     }
 }

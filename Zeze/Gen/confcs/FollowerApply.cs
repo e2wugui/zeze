@@ -146,6 +146,11 @@ namespace Zeze.Gen.confcs
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Transaction.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
+
         public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

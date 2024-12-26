@@ -126,6 +126,11 @@ namespace Zeze.Gen.rrjava
             Name = "Zeze.Raft.RocksRaft.Log1.LogVector4";
         }
 
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
+
         public string Name { get; set; }
     }
 }

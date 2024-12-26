@@ -147,5 +147,10 @@ namespace Zeze.Gen.rrcs
         {
             throw new System.NotImplementedException();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

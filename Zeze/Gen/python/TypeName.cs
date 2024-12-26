@@ -122,5 +122,10 @@ namespace Zeze.Gen.python
         {
             name = "Quaternion";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

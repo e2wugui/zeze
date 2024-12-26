@@ -146,5 +146,10 @@ namespace Zeze.Gen.java
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            DefineNew(type);
+        }
     }
 }

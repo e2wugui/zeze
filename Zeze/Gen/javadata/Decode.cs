@@ -480,5 +480,10 @@ namespace Zeze.Gen.javadata
             else
                 sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufName}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

@@ -183,5 +183,10 @@ namespace Zeze.Gen.python
         {
             CommonEquals();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

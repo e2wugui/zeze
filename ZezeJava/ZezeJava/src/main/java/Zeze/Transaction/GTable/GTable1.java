@@ -28,6 +28,40 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 
 	private final @NotNull PMap2<R, BeanMap1<C, V>> pMap2;
 
+	public void variableId(int id) {
+		pMap2.variableId(id);
+	}
+
+	public void assign(GTable1<R, C, V> other) {
+		pMap2.clear();
+		for (var _e_ : other.pMap2.entrySet())
+			pMap2.put(_e_.getKey(), _e_.getValue().copy());
+	}
+
+	@Override
+	public String toString() {
+		var _s_ = new StringBuilder();
+		buildString(_s_, 0);
+		return _s_.toString();
+	}
+
+	public void buildString(StringBuilder _s_, int _l_) {
+		var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
+		var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
+		_s_.append("Zeze.Transaction.GTable.GTable1: {\n");
+		_s_.append(_i1_).append("PMap2={");
+		if (!pMap2.isEmpty()) {
+			_s_.append('\n');
+			for (var _e_ : pMap2.entrySet()) {
+				_s_.append(_i2_).append("RowKey=").append(_e_.getKey()).append(",\n");
+				_s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
+			}
+			_s_.append(_i1_);
+		}
+		_s_.append("}\n");
+		_s_.append(Zeze.Util.Str.indent(_l_)).append('}');
+	}
+
 	@SuppressWarnings("unchecked")
 	public GTable1(@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		var factory = getFactory(rowClass, colClass, valClass);

@@ -198,5 +198,10 @@ namespace Zeze.Gen.rrjava
             else
                 sw.WriteLine(prefix + variable.NamePrivate + " = java.math.BigDecimal.ZERO;");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

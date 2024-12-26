@@ -199,5 +199,10 @@ namespace Zeze.Gen.confcs
         {
 
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

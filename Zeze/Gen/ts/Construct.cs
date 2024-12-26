@@ -169,5 +169,10 @@ namespace Zeze.Gen.ts
         {
             InitialVector(type, "0, 0, 0, 0");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

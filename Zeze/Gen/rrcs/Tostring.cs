@@ -239,5 +239,10 @@ namespace Zeze.Gen.rrcs
         {
             FormatSimple();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

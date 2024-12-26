@@ -130,5 +130,10 @@ namespace Zeze.Gen.rrcs
         {
             name = "decimal";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

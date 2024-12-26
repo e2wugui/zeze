@@ -122,5 +122,10 @@ namespace Zeze.Gen.ts
         {
             Name = "Zeze.ByteBuffer.VECTOR4";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

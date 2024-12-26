@@ -122,5 +122,10 @@ namespace Zeze.Gen.cxx
         {
             Name = "Zeze::ByteBuffer::BYTES";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            Name = "Zeze::ByteBuffer::MAP";
+        }
     }
 }

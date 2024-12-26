@@ -231,5 +231,10 @@ namespace Zeze.Gen.rrjava
         {
             formatSimple();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

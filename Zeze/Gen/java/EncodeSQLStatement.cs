@@ -184,6 +184,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}_s_.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
+        }
+
         readonly string columnName;
         readonly Variable var;
         readonly string varname;

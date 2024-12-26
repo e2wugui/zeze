@@ -249,5 +249,10 @@ namespace Zeze.Gen.cxx
             if (value.Length > 0)
                 sw.WriteLine(prefix + variable.NameUpper1 + " = \"" + value + "\";");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

@@ -147,5 +147,10 @@ namespace Zeze.Gen.cs
         {
             text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

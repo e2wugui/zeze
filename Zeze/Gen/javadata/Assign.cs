@@ -248,5 +248,10 @@ namespace Zeze.Gen.javadata
         {
             sw.WriteLine($"{prefix}{var.NamePrivate} = _o_.{transGetter};");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

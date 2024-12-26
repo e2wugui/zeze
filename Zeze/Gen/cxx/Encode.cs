@@ -362,5 +362,10 @@ namespace Zeze.Gen.cxx
             else
                 sw.WriteLine(prefix + bufname + $".WriteString({NameUpper1OrTmp});");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

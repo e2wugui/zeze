@@ -122,5 +122,10 @@ namespace Zeze.Gen.cs
         {
             Name = "ByteBuffer.BYTES";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            Name = "ByteBuffer.MAP";
+        }
     }
 }

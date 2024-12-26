@@ -274,5 +274,10 @@ namespace Zeze.Gen.cs
         {
             FormatSimple();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

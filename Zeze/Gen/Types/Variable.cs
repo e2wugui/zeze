@@ -106,7 +106,16 @@ namespace Zeze.Gen.Types
 					Value = ParseDynamicBase(keyvalue[1]);
 					break;
 
-				default:
+				case 3:
+					if (Key.Length > 0)
+                        throw new Exception($"error type define, key has present.");
+                    if (Value.Length > 0)
+                        throw new Exception($"error type define, value has present.");
+                    Key = keyvalue[0].Trim() + "," + keyvalue[1].Trim();
+                    Value = ParseDynamicBase(keyvalue[2]);
+                    break;
+
+                default:
 					throw new Exception($"error type define, too many template params: '{typesaved}'");
 			}
 			// ParseDynamicBase 上面调用了多次，只会成功一次。

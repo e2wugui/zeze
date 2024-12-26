@@ -272,5 +272,20 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + var.Setter($"_o_.{transGetter}") + ";");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            if (isData)
+            {
+                var tmpVarName = "_d_" + var.NamePrivate;
+                type.Accept(new Define(tmpVarName, sw, prefix));
+                sw.WriteLine(prefix + tmpVarName + ".assign(_o_." + var.NamePrivate + ");");
+                sw.WriteLine(prefix + var.NamePrivate + ".setValue(" + tmpVarName + ");");
+            }
+            else
+            {
+                sw.WriteLine(prefix + var.NamePrivate + ".assign(_o_." + var.NamePrivate + ");");
+            }
+        }
     }
 }

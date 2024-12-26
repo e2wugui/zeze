@@ -137,5 +137,10 @@ namespace Zeze.Gen.rrjava
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

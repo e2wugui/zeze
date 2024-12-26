@@ -385,5 +385,10 @@ namespace Zeze.Gen.rrjava
             else
                 sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

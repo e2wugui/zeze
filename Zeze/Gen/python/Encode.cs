@@ -413,5 +413,10 @@ namespace Zeze.Gen.python
         {
             VisitVector(type, "quaternion");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

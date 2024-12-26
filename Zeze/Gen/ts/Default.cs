@@ -133,5 +133,10 @@ namespace Zeze.Gen.ts
         {
             Value = "new Zeze.Vector4(0, 0, 0, 0);";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

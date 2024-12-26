@@ -156,5 +156,10 @@ namespace Zeze.Gen.lua
         {
             Type = ByteBuffer.BYTES;
         }
+
+        public void Visit(TypeGTable type)
+        {
+            Type = ByteBuffer.MAP;
+        }
     }
 }

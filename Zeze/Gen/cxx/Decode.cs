@@ -378,5 +378,10 @@ namespace Zeze.Gen.cxx
                 sw.WriteLine(prefix + AssignText($"{bufname}.ReadString()") + ';');
 
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

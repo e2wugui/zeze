@@ -143,5 +143,10 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

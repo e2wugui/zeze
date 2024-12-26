@@ -239,5 +239,11 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}        {AssignText($"new java.math.BigDecimal(tmp, java.math.MathContext.DECIMAL128)")};");
             sw.WriteLine($"{prefix}}}");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {NamePrivate}.getPMap2(), {bb}.getString({ParaneName}\"{ColumnName}\"));");
+        }
     }
 }

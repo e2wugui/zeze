@@ -169,5 +169,10 @@ namespace Zeze.Gen.cxx
         {
             sw.WriteLine(prefix + $"{var.NameUpper1} = other.{var.NameUpper1};");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

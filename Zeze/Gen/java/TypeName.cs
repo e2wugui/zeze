@@ -5,7 +5,7 @@ namespace Zeze.Gen.java
     public class TypeName : Visitor
     {
         protected string name;
-        internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。
+        internal string nameCollectionImplement; // 容器内部类型。其他情况下为 null。TODO 这个没有再使用了，确认以后，可以考虑删除掉。暂时先保留。
         internal string nameRaw; // 容器，其他为null。
         string nameOmitted;
 
@@ -144,6 +144,19 @@ namespace Zeze.Gen.java
         public void Visit(TypeDecimal type)
         {
             name = "java.math.BigDecimal";
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            string rowKey = BoxingName.GetBoxingName(type.RowKeyType);
+            string colKey = BoxingName.GetBoxingName(type.ColKeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+
+            nameRaw = "Zeze.Transaction.GTable.GTable";
+            var name12 = type.ValueType.IsNormalBean ? '2' : '1';
+            var valueReadOnly = type.ValueType.IsNormalBean ? $", {value}ReadOnly" : "";
+            nameOmitted = nameRaw + name12;
+            name = nameOmitted + '<' + rowKey + ", " + colKey + ", " + value + valueReadOnly + ">";
         }
     }
 }

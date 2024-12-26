@@ -159,5 +159,10 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + var.Setter(value) + ";");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+        }
     }
 }

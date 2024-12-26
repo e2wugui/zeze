@@ -118,6 +118,10 @@ public class Helper {
 					case "set":
 						dependsSet(v.getValue(), result);
 						break;
+					case "gtable":
+						var keys = v.getKey().split(",");
+						dependsGTable(beanClass, v, keys[0].trim(), keys[1].trim(), v.getValue(), result);
+						break;
 					default:
 						if (!isBuiltinType(type))
 							dependsBean(Class.forName(type), result);
@@ -146,6 +150,45 @@ public class Helper {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
 			keyClass = Class.forName(keyType); // must be BeanKey.
+			dependsBean(keyClass, result);
+		}
+		var valueClass = getBuiltinBoxingClass(valueType);
+		var is2 = valueClass == null;
+		if (is2) {
+			valueClass = Class.forName(valueType); // bean or beanKey
+			dependsBean(valueClass, result);
+			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+		} else if (valueClass == DynamicBean.class) {
+			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
+				try {
+					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
+							+ Character.toUpperCase(v.getName().charAt(0))
+							+ v.getName().substring(1)).invoke(null);
+					return KV.create(db.getGetBean(), db.getCreateBean());
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		} else {
+			result.map1.add(KV.create(keyClass, valueClass));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void dependsGTable(@NotNull Class<?> beanClass,
+								  @NotNull BVariable.Data v,
+								  @NotNull String key1Type,
+								  @NotNull String key2Type,
+								  @NotNull String valueType,
+								  @NotNull DependsResult result) throws Exception {
+		var keyClass = getBuiltinBoxingClass(key1Type);
+		if (keyClass == null) {
+			keyClass = Class.forName(key1Type); // must be BeanKey.
+			dependsBean(keyClass, result);
+		}
+		keyClass = getBuiltinBoxingClass(key2Type);
+		if (keyClass == null) {
+			keyClass = Class.forName(key2Type); // must be BeanKey.
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);

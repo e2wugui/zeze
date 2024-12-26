@@ -157,6 +157,11 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).value; break;");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
+
         public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

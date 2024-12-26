@@ -151,5 +151,10 @@ namespace Zeze.Gen.cxx
         {
             WriteProperty(type, true);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

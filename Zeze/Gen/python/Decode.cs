@@ -385,5 +385,10 @@ namespace Zeze.Gen.python
                 ? $"{prefix}self.{var.Name} = {bufName}.read_string_tag(_t_)"
                 : $"{prefix}self.{var.Name} = {bufName}.read_string()");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }
