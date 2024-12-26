@@ -97,13 +97,41 @@ namespace Zeze.Gen.java
             }
         }
 
+        string GetAndCreateDynamicBean(string beanName, int varId, TypeDynamic type)
+        {
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            {
+                return $"{beanName}::getSpecialTypeIdFromBean_{varId}, " +
+                       $"{beanName}::createBeanFromSpecialTypeId_{varId}";
+            }
+            return $"{type.DynamicParams.GetSpecialTypeIdFromBean}, " +
+                   $"{type.DynamicParams.CreateBeanFromSpecialTypeId}";
+        }
+
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
         {
             if (false == isCollection)
             {
                 foreach (var real in type.RealBeans)
                 {
+                    sw.WriteLine();
                     sw.WriteLine($"{prefix}public static final long DynamicTypeId_{var.NameUpper1}_{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                }
+            }
+            else
+            {
+                var vt = var.VariableType;
+                if (vt is TypeCollection)
+                {
+                    sw.WriteLine();
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta1<Zeze.Transaction.DynamicBean> meta1{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta1.createDynamicListMeta({GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                }
+                else if (vt is TypeMap map)
+                {
+                    sw.WriteLine();
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
             }
             sw.WriteLine();

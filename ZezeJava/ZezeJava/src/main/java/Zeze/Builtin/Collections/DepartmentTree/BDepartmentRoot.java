@@ -11,6 +11,9 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     private String _Root; // 群主
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
 
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Transaction.DynamicBean> meta2_Managers
+            = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+
     public static Zeze.Transaction.DynamicBean newDynamicBean_Managers() {
         return new Zeze.Transaction.DynamicBean(2, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
@@ -124,7 +127,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     @SuppressWarnings("deprecation")
     public BDepartmentRoot() {
         _Root = "";
-        _Managers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.variableId(4);
@@ -136,7 +139,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         if (_Root_ == null)
             _Root_ = "";
         _Root = _Root_;
-        _Managers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
         _NextDepartmentId = _NextDepartmentId_;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);

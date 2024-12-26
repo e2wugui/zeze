@@ -139,8 +139,8 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + varName + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
+            if (type.ValueType is TypeDynamic)
+                sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
             else
                 sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
@@ -149,8 +149,8 @@ namespace Zeze.Gen.java
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + varName + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
+            if (type.ValueType is TypeDynamic)
+                sw.WriteLine(prefix + varName + $" = new {typeName}(meta1{varName});");
             else
                 sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
@@ -159,8 +159,8 @@ namespace Zeze.Gen.java
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            if (type.ValueType is TypeDynamic valueType)
-                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {GetAndCreateDynamicBean(valueType)});");
+            if (type.ValueType is TypeDynamic)
+                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
             else
                 sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");

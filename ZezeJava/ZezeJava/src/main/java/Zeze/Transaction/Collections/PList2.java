@@ -30,7 +30,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		meta = Meta1.createDynamicListMeta(get, create);
 	}
 
-	private PList2(@NotNull Meta1<V> meta) {
+	public PList2(@NotNull Meta1<V> meta) {
 		this.meta = meta;
 	}
 

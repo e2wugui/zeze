@@ -11,7 +11,9 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
 
     private long _RoleId; // 所属的角色ID
     private final Zeze.Transaction.DynamicBean _TimerObj;
+
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {

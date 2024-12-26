@@ -12,7 +12,9 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
     private String _Account; // 所属的账号名
     private String _ClientId; // 所属的客户端ID
     private final Zeze.Transaction.DynamicBean _TimerObj;
+
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BCronTimer = -6995089347718168392L;
+
     public static final long DynamicTypeId_TimerObj_Zeze_Builtin_Timer_BSimpleTimer = 1832177636612857692L;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_TimerObj() {

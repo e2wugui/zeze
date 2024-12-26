@@ -13,6 +13,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
     private String _Name;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Transaction.DynamicBean> _Managers;
 
+    private static final Zeze.Transaction.Collections.Meta2<String, Zeze.Transaction.DynamicBean> meta2_Managers
+            = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+
     public static Zeze.Transaction.DynamicBean newDynamicBean_Managers() {
         return new Zeze.Transaction.DynamicBean(4, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
     }
@@ -126,7 +129,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.variableId(2);
         _Name = "";
-        _Managers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(4);
         _Data = newDynamicBean_Data();
     }
@@ -139,7 +142,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean implements 
         if (_Name_ == null)
             _Name_ = "";
         _Name = _Name_;
-        _Managers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId);
+        _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(4);
         _Data = newDynamicBean_Data();
     }
