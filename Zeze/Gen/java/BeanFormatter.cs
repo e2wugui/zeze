@@ -82,8 +82,9 @@ namespace Zeze.Gen.java
                 if (bean.Comment.Length > 0)
                     sw.WriteLine(bean.Comment);
                 var extraSuppress1 = bean.GenEquals ? "" : "\"EqualsAndHashcode\", ";
-                var extraSuppress2 = bean.Interface == "" ? "" : ", \"override\"";
-                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\", \"UnusedAssignment\"{extraSuppress2}}})");
+                var extraSuppress2 = Program.isData(bean) ? ", \"UnnecessarilyQualifiedInnerClassAccess\"" : "";
+                var extraSuppress3 = bean.Interface == "" ? "" : ", \"override\"";
+                sw.WriteLine($"@SuppressWarnings({{{extraSuppress1}\"NullableProblems\", \"RedundantIfStatement\", \"RedundantSuppression\", \"SuspiciousNameCombination\", \"SwitchStatementWithTooFewBranches\"{extraSuppress2}, \"UnusedAssignment\"{extraSuppress3}}})");
                 var final = bean.Extendable ? "" : "final ";
                 var extraInterface = bean.Interface == "" ? "" : ", " + bean.Interface;
                 sw.WriteLine($"public {final}class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly{extraInterface} {{");
