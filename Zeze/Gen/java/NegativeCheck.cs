@@ -191,7 +191,7 @@ namespace Zeze.Gen.java
         {
             if (type.IsNeedNegativeCheck)
             {
-                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ".values()) {");
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ".getPMap2().values()) {");
                 sw.WriteLine(prefix + "    if (_v_.negativeCheck()) return true;");
                 //type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
                 sw.WriteLine(prefix + "}");

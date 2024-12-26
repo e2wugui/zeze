@@ -1,47 +1,46 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Transaction.Collections.PMap2;
-import Zeze.Transaction.GTable.GTable1;
-import Zeze.Transaction.Locks;
-import Zeze.Transaction.Record;
-import Zeze.Transaction.Record1;
-import Zeze.Transaction.TableKey;
-import Zeze.Transaction.Transaction;
-import demo.Bean1;
-import demo.web.tMap2Bean1;
+import Zeze.Transaction.Procedure;
+import demo.App;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestGTable {
-	private final Zeze.Transaction.Locks locks = new Locks();
+
+	@Before
+	public void before() throws Exception {
+		App.getInstance().Start();
+	}
 
 	@Test
 	public void testGTableBegin() {
-		Transaction.create(locks);
-		try {
-			Transaction.getCurrent().begin();
-			// process
-			// todo 设置假的rootInfo，不能commit，用来测试。这个测试目前过不了，需要完整的gen实现了才能测试。
-			var tTable = new tMap2Bean1();
-			var record = new Record1(tTable, 1, null);
-			var bean = new Bean1();
-			var root = new Record.RootInfo(record, new TableKey(1, 1));
-
-			var table = new GTable1<>(Integer.class, Integer.class, Integer.class);
-			table.getPMap2().initRootInfo(root, bean); // 设置假的rootInfo，不能commit，用来测试。
-
-			Assert.assertTrue(table.isEmpty());
-
-			table.put(1, 1, 1);
-			var value = table.get(1, 1);
-			Assert.assertNotNull(value);
-			Assert.assertEquals(1, value.intValue());
-
-			Transaction.getCurrent().rollback();
-			Assert.assertTrue(table.isEmpty());
-		} finally {
-			Transaction.destroy();
-		}
+		// putGTable
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNull(gTable1.getGTable().get(1, 1));
+			gTable1.getGTable().put(1, 1, 1);
+			Assert.assertEquals(Integer.valueOf(1), gTable1.getGTable().get(1, 1));
+			return 0;
+		}, "putGTable").call();
+		// check and put 2 and rollback
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNull(gTable1.getGTable().get(2, 2));
+			gTable1.getGTable().put(2, 2, 2);
+			Assert.assertEquals(Integer.valueOf(2), gTable1.getGTable().get(2, 2));
+			return Procedure.LogicError; // rollback
+		}, "putGTable").call();
+		// check 1 exist and 2 null
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNotNull(gTable1.getGTable().get(1, 1));
+			Assert.assertNull(gTable1.getGTable().get(2, 2));
+			return 0; // readonly and commit
+		}, "putGTable").call();
 	}
 }
 

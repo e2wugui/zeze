@@ -334,6 +334,21 @@ namespace Zeze.Gen.java
                                 value = Variable.GetBeanFullName(set.ValueType);
                         }
                     }
+                    else if (vType is TypeGTable table)
+                    {
+                        key = "";
+                        if (table.RowKeyType.IsBean) // beanKey
+                            key += Variable.GetBeanFullName(table.RowKeyType);
+                        else
+                            key += table.RowKey;
+                        key += ",";
+                        if (table.ColKeyType.IsBean) // beanKey
+                            key += Variable.GetBeanFullName(table.ColKeyType);
+                        else
+                            key += table.ColKey;
+                        if (table.ValueType.IsBean)
+                            value = Variable.GetBeanFullName(table.ValueType);
+                    }
                     sw.WriteLine($"{prefix}    _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }
                 sw.WriteLine($"{prefix}    return _v_;");

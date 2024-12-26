@@ -491,8 +491,8 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
-            sw.WriteLine(prefix + $"        var _v_ = _o_.ReadBean({var.NamePrivate}.createValue(), _t_);");
-            sw.WriteLine(prefix + "        _x_.put(_k_, _v_);");
+            sw.WriteLine(prefix + $"        var _v_ = _o_.ReadBean({var.NamePrivate}.getPMap2().createValue(), _t_);");
+            sw.WriteLine(prefix + "        _x_.getPMap2().put(_k_, _v_);");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");

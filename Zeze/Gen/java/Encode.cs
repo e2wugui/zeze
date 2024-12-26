@@ -496,7 +496,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", ByteBuffer.BEAN);");
-            sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
+            sw.WriteLine(prefix + "    for (var _e_ : _x_.getPMap2().entrySet()) {");
             if (Decode.IsOldStyleEncodeDecodeType(kt))
                 kt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        ", isData));
             else

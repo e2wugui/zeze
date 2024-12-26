@@ -381,7 +381,7 @@ namespace Zeze.Gen.java
 
             sw.WriteLine($"{prefix}@Override");
             sw.WriteLine($"{prefix}public {t} {var.ReadOnlyGetter} {{");
-            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.PMap2ReadOnly<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.PMap2ReadOnly<>({var.NamePrivate}.getPMap2());");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
         }

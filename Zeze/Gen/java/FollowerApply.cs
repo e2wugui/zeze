@@ -156,7 +156,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeGTable type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(_v_); break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.getPMap2().followerApply(_v_); break;");
         }
 
         public FollowerApply(Variable var, StreamWriter sw, string prefix)

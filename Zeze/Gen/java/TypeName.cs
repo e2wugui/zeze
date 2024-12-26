@@ -152,15 +152,11 @@ namespace Zeze.Gen.java
             string colKey = BoxingName.GetBoxingName(type.ColKeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
 
-            var beanMap = type.ValueType.IsNormalBean
-                ? $"Zeze.Transaction.GTable.BeanMap2<{colKey}, {value}, {value}ReadOnly>"
-                : $"Zeze.Transaction.GTable.BeanMap1<{colKey}, {value}>";
-
-            nameRaw = "Zeze.Transaction.Collections.PMap";
+            nameRaw = "Zeze.Transaction.GTable.GTable";
             var name12 = type.ValueType.IsNormalBean ? '2' : '1';
-            nameOmitted = nameRaw + "2";
-            name = nameOmitted + '<' + rowKey + ", " + beanMap + ">";
-            nameCollectionImplement = "org.pcollections.PMap<" + rowKey + ", " + beanMap + ">";
+            var valueReadOnly = type.ValueType.IsNormalBean ? $", {value}ReadOnly" : "";
+            nameOmitted = nameRaw + name12;
+            name = nameOmitted + '<' + rowKey + ", " + colKey + ", " + value + valueReadOnly + ">";
         }
     }
 }
