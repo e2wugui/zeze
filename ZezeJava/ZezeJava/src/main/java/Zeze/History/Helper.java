@@ -231,8 +231,8 @@ public class Helper {
 	public static <K> void registerLogMap2Dynamic(@NotNull Class<K> keyClass,
 												  @NotNull ToLongFunction<Bean> get,
 												  @NotNull LongFunction<Bean> create) {
-		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(),
-				Meta2.createDynamicMapMeta(keyClass, get, create)));
+		var meta = Meta2.createDynamicMapMeta(keyClass, get, create);
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 
 	public static <V> void registerLogSet1(@NotNull Class<V> valueClass) {
