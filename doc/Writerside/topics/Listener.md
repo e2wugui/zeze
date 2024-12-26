@@ -9,13 +9,13 @@ Zeze支持在Table中注册数据变更监听器，当数据发生变化时，�
 发生了修改，就回调哪一台上的Listener。Listener这个模式不能算是一个良好的分布式定
 义，需要注意。
 ## 接口
-```
+```java
 public interface ChangeListener {
     void OnChanged(Object key, Changes.Record r);
 }
 ```
 ## 例子
-```
+```java
 public static class ItemsChangeListener implelents ChangeListener {
     void OnChanged(Object key, Changes.Record r) {
         switch (r.getState()) {
@@ -46,11 +46,11 @@ public static class ItemsChangeListener implelents ChangeListener {
 }
 ```
 ## 注册
-```
+```java
 _tequip.getChangeListenerMap().AddListener(new ItemsChangeListener());
 ```
 ## 客户端收到数据变化协议的处理伪码
-```
+```java
 Switch (ItemsChangeNotify.getChangeTag()) {
     Case Put:
         Localmap.clear();

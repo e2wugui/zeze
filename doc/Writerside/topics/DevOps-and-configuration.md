@@ -20,7 +20,7 @@ Linkd配置如：<zeze ServerId="-1" …>…</zeze>，linkd实际上不需要Ser
 ```
 
 ## 事务持久化
-```
+```xml
 <zeze … 
 　　CheckpointPeriod="60000"
 　　CheckpointMode="Table"
@@ -60,7 +60,7 @@ CheckpointModeTableFlushConcurrent 多线程持久化时的线程数量。
 checkpointModeTableFlushSetCount时合并时把几个zeze事务合并成一个后端数据库事务。
 
 ## 其他全局配置
-```
+```xml
 <zeze … Name=”” …></zeze>下面的配置都配在这个位置。
 ```
 * Name = ""
@@ -280,7 +280,7 @@ TODO。
 
 ## TableConf
 ### 表的默认配置
-```
+```xml
 <TableConf CacheCapacity="20000"/>
 ```
 不提供Name，即Name为空，此时表示表的默认配置。当表没有提供特别的配置时，都使
@@ -304,7 +304,7 @@ CacheCapacity="1000"/&gt;，当然配置需要满足性能（命中率），否�
 ### 表的其他配置
 
 除非必要，不建议调整下面的配置。配置例子
-```
+```xml
 <TableConf Name="demo_Module1_tSample" 
 CacheCapacity="1000" CacheInitialCapacity =”0” CacheNewAccessHotThreshold=”0”…/>
 ```
@@ -393,7 +393,7 @@ DatabaseOldMode配置，见下。
 几乎总是有自己名字的配置选项。这个默认选项的用途就不大了，但是也有点用。当程序动
 态构造Service，并且动态构建Connector，Acceptor时，就会用到默认选项，也可以具有
 一定的手工调整配置的能力。
-```
+```xml
 <ServiceConf Name=" "
 	NoDelay=”true”
 	SendBuffer=”1M”
@@ -402,7 +402,7 @@ DatabaseOldMode配置，见下。
 ```
 
 ### 有名字的网络服务配置例子
-```
+```xml
 <ServiceConf Name="Zeze.Services.ServiceManager.Agent"
 	NoDelay=”true”
 	SendBuffer=”1M”
@@ -419,7 +419,7 @@ Connector是ServiceConf的内部节点，用来配置客户端的一个连接。
 护管理一个连接，根据选项会自动在连接断开的时候决定是否重连。下面IsAutoReconnect，
 MaxReconnectDelay的配置都是默认值，一般可以不修改。Connector创建的连接的网络选
 项使用它所在ServiceConf里面的网络配置。
-```
+```xml
 <ServiceConf Name="Zeze.Services.ServiceManager.Agent"
 	NoDelay=”true”
 	SendBuffer=”1M”
@@ -438,14 +438,14 @@ ServiceConf里面的网络配置。注意：由于java版没有实现异步Dns�
 只能是Ip，不能是HostName。为了简化配置，Ip可以设置为@internal或@external。在双
 网卡，其中一个网卡配置了公共互联网地址，一个网卡配置了私有网络地址。@internal会
 自动查找私有网络地址并设置进去，@external会自动使用公共互联网地址。
-```
+```xml
 <ServiceConf Name="TestServer" CompressC2s="1">
 	<Acceptor Ip="127.0.0.1" Port="7777"/>
 </ServiceConf>
 ```
 
 ### maxConnections
-```
+```xml
 <ServiceConf Name="TestServer" CompressC2s="1"
 　　maxConnections=”1024”>
 	<Acceptor Ip="127.0.0.1" Port="7777"/>
@@ -455,7 +455,7 @@ ServiceConf里面的网络配置。注意：由于java版没有实现异步Dns�
 质服务，一般需要改的更大。注意：由于历史原因，这个选项的名字是小写开头的。
 
 ### SocketOptions
-```
+```xml
 <ServiceConf Name="Zeze.Services.ServiceManager.Agent"
 	NoDelay=”true” 这就是SocketOptions
 	SendBuffer=”1M” 这就是SocketOptions
@@ -557,7 +557,7 @@ Dh密钥交换算法里面Group的配置。强烈不建议修改。
 ## GlobalCacheManagersConf
 为了避免切换raft版时重新配置的麻烦，即使没有使用，这个配置也可以保留在配置文件中。
 通过GlobalCacheManagerHostNameOrAddress进行切换。
-```
+```xml
 <zeze … 
 　　GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf"
     GlobalCacheManagerPort="5002">
@@ -577,7 +577,7 @@ GlobalCacheManagerHostNameOrAddress=”ip1:port1;ip2:port2;ip3:port3”。当使
 ## ServiceManagerConf
 为了避免切换raft版时重新配置的麻烦，即使没有使用，这个配置也可以保留在配置文件中。
 通过Zeze.ServiceManager配置进行切换。如下：
-```
+```xml
 <zeze … ServiceManager="raft">
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 </zeze>

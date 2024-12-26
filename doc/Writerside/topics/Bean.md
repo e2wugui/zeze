@@ -55,7 +55,7 @@ BeautifulVariableId功能了。使用BeautifulVariableId之后需要重新生成
 ## Version
 Table.Value可以定义一个版本号。当修改发生时自动递增。Table.Value总是一个Bean，这
 个定义方式就放到这里了。声明例子：
-```
+```xml
 <bean name=”BVersionSample” version=”VersionVarName”>
 	<variable id=”1” name=” VersionVarName” type=”long”/>
 	…

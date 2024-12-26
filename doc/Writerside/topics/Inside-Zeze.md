@@ -70,9 +70,9 @@ Zeze.Transaction.Procedure.Timeout再处理其Future或ResponseHandle。之后�
 ## 客户端登录流程
 (一) 网络连接
 ```
-(1) linkd:Zezex.LinkdService(默认11000端口) <= 客户端 (只有此连接配置了加密和压
+(1) linkd:Zezex.LinkdService(默认10000端口) <= 客户端 (只有此连接配置了加密和压
 缩)
-(2) linkd:Zezex.ProviderService(默认21000端口) <=
+(2) linkd:Zezex.ProviderService(默认20000端口) <=
 server:Zeze.Arch.ProviderService
 (3) ServiceManagerServer(默认5001端口) <=
 linkd:Zeze.Services.ServiceManager.AgentClient
@@ -250,7 +250,7 @@ Zeze使用了Mutex,Condition,ReadWriteLock,volatile,Future(TaskCompleteSource)�
 修改数据时在当前事务中记录日志，在事务提交时，提交日志。Zeze只在Transaction中提
 供GetLog，PutLog两个接口，另外为不同的修改提供了几个日志类。日志的访问和创建都
 在Bean的生成代码中实现。下面是一个简单的Bean的生成代码例子（不完整）：
-```
+```java
 public final class Simple extends Zeze.Transaction.Bean {
     private int _int1; // com aa
     public int getInt1() {

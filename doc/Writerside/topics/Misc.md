@@ -20,7 +20,7 @@ Zeze.Application 之间支持事务。应用直接访问不同 App.Module。里�
 务支持。不过由于事务提交(Checkpoint)默认是在一个 Zeze.Application中执行的，为了让
 事务提交也原子化。需要在App.Start前设置统一Checkpoint。
 设置代码例子：
-```
+```java
 Zeze.Checkpoint checkpoint = new Zeze.Checkpoint();
 // 把多个App的数据库加入到Checkpoint中。
 checkpoint.Add(demo1.App.Zeze.Databases.Values);

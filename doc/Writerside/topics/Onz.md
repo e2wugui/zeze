@@ -75,7 +75,7 @@ Onz事务在执行阶段如果发生两段式协调失败，那么所有事务�
 
 ### OnzProcedure(在Zeze服务器内实现)
 * 两段式实现注册和实现接口
-```
+```java
 public <A extends Bean, R extends Bean> void register(
             Application zeze,
             String name, OnzFuncProcedure<A, R> func,
@@ -88,7 +88,7 @@ public interface OnzFuncProcedure<A extends Bean, R extends Bean> {
 ```
 
 * Sage实现注册和实现接口
-```
+```java
 public <A extends Bean, R extends Bean, T extends Bean> void registerSaga(
         Application zeze,
         String name, OnzFuncSaga<A, R> func, OnzFuncSagaEnd<T> funcCancel,
@@ -103,7 +103,7 @@ public interface OnzFuncSaga<A extends Bean, R extends Bean> {
 
 ### OnzTransaction(OnzServer的实现)
 
-```
+```java
 public MyOnzTransaction extends OnzTransaction {
     @Override
     protected long perform() throws Exception {
@@ -119,7 +119,7 @@ public MyOnzTransaction extends OnzTransaction {
 ```
 
 ### OnzServer
-```
+```java
 /**
  * 每个zeze集群使用独立的ServiceManager实例时，使用这个方法构造OnzServer。
  * 建议按这种方式配置，便于解耦。

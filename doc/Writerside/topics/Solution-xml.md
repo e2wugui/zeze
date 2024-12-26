@@ -6,7 +6,7 @@
 ## Import
 引入其他solution配置文件，这样就可以使用其他文件内定义的Bean。两个soltion配置文
 件可以循环Import。如：
-```
+```xml
 <import file="solution.linkd.xml"/>
 ```
 ## Module
@@ -24,19 +24,19 @@ Bean是Zeze的核心对象，用来定义数据结构。其中的variable描述�
 议以“B“开头。这样需要创建Bean时，输入B即可得到编辑器的提示。
 ## Table
 定义Key-Value存储表。
-```
+```xml
 <table name=”tTrade“ key=”long” value=”BTradesession” />
 ```
 ## Protocol
 定义协议。
-```
+```xml
 <protocol name=”Trade” argument=”BTrade” handle=”server”/>
 ```
 argument是一个Bean。
 handle 表示协议在哪里被处理。
 ## Rpc
 定义Rpc。
-```
+```xml
 <rpc name=”Trade” argument=”BTradeArgument” result=”BTradeResult” 
 handle=”server”/>
 ```
@@ -44,14 +44,14 @@ argument是一个Bean。result是一个Bean。handle 表示协议在哪里被处
 ## Project
 定义项目，对应一个进程。一个solution一般拥有两个项目。一个server，一个client。
 可能还有一个test。
-```
+```xml
 <project name="GameServer" scriptdir="src" platform="java">
 <project name="GameServer" platform="cs">
 ```
 ## Service
 网络服务定义。协议在网络服务里面注册。网络服务管理连接以及提供网络事件和收到的协
 议的派发。
-```
+```xml
 <service name="Server" handle="server”>
 <module ref="Role"/>
 </service>

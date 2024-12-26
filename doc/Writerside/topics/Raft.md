@@ -27,7 +27,7 @@
 * ResultCode==RaftExpired：请求过期了，无法判断是否被成功 处理。
 
 ## 例子
-```
+```java
 // 注意，以下例子没有处理多线程问题。
 // 应用数据
 class MyStateMachine : Zeze.Raft.StateMachine

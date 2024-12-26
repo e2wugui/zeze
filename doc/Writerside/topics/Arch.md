@@ -47,14 +47,12 @@ Linkd面向客户端的网络模块，管理客户端连接。dispatchUnknownPro
 ## Linkd Initialize
 
 ### 定义服务(solution.linkd.xml)
-```
+```xml
 <project name="linkd" gendir="." scriptdir="src" platform="java">
-　　<service name="LinkdService" handle="server"
-　　base="Zeze.Arch.LinkdService">
-　　<module ref="Linkd"/>
+　　<service name="LinkdService" handle="server" base="Zeze.Arch.LinkdService">
+    　　<module ref="Linkd"/>
 　　</service>
-　　<service name="ProviderService" handle="client"
-　　base="Zeze.Arch.LinkdProviderService">
+　　<service name="ProviderService" handle="client" base="Zeze.Arch.LinkdProviderService">
 　　</service>
 </project>
 ```
@@ -62,36 +60,31 @@ Linkd服务需要使用Arch里面的两个服务，在base里面指定。如果�
 行拦截处理，在生成的服务类LinkdService,ProviderService中重载相应的函数。Linkd服务
 作为一个项目，可以自由的增加自己的模块。参考 zeze/ZezeJava/Zege/solution.linkd.xml
 ### 配置（linkd.xml）
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
-<zeze
-GlobalCacheManagerPort="5002"
-CheckpointPeriod="0"
-ServerId="-1"
->
+<zeze GlobalCacheManagerPort="5002" CheckpointPeriod="0" ServerId="-1">
 　　Linkd通常不需要数据库，但是验证可能要，先占个坑。
 　　<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
-　　<ServiceConf Name="LinkdService"
-　　InputBufferMaxProtocolSize="2097152"
-　　SocketLogLevel="Trace">
-　　<Acceptor Port="5100"/>
+　　<ServiceConf Name="LinkdService" 
+               InputBufferMaxProtocolSize="2097152"
+               SocketLogLevel="Trace">
+    　　<Acceptor Port="5100"/>
 　　</ServiceConf>
-　　<ServiceConf Name="ProviderService"
-　　InputBufferMaxProtocolSize="2097152"
-　　SocketLogLevel="Trace">
-　　如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许
-外部连接。
-　　<Acceptor Ip="" Port="5101"/>
+　　<ServiceConf Name="ProviderService" 
+               InputBufferMaxProtocolSize="2097152"
+               SocketLogLevel="Trace">
+    　　如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
+    　　<Acceptor Ip="" Port="5101"/>
 　　</ServiceConf>
 　　<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
-　　<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
+    　　<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 　　</ServiceConf>
 </zeze>
 ```
 ### Linkd需要的Arch模块初始化
 下面的初始化代码部分是生成的，应用需要加入Arch模块的初始化，当然也可以加入任意
 自己需要的初始化。Arch模块作为全局变量定义在App中。
-```
+```java
 public void Start(String conf) throws Throwable {
     var config = Config.Load(conf);
     // 生成的初始化
@@ -228,7 +221,7 @@ Target用户所在的服务器，Cache命中率极高。而且整个操作代价
 ### RedirectHash
 这是一个注解，被标记的函数会被重定向到另一个Server进程执行。重定向使用第一个函
 数的参数hash进行选择。
-```
+```java
 @RedirectHash(ConcurrentLevelSource="getConcurrentLevel(arg1.getRankType())")
 public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, 
 long value, Binary valueEx) 
@@ -239,14 +232,14 @@ Hash 选择依据，在上面这个例子，hash = roleId.hashCode();
 ### RedirectAll
 Server之间直连协议的一种。给所有的分组数据发送广播请求，并处理结果（可能）。有点
 像MapReduce。这是RedirectHash的分组广播的注解，用来发送或者接收所有分组的数据。
-```
+```java
 @RedirectAll
 protected RedirectAllFuture<RRankList> getRankAll(int hashCount, BConcurrentKey keyHint)
 ```
 ### RedirectToServer
 这是一个注解，把标记的函数重定向到另一个Server进程执行。相当于一种便利的Rpc机
 制。
-```
+```java
 @RedirectToServer
 public void redirectNotify(int serverId, String account) throws Throwable {
     // some operate
@@ -257,7 +250,7 @@ ServerA）。
 
 ## Server Initialize
 ### 定义服务(solution.xml)
-```
+```xml
 <project name="server" gendir="." scriptdir="src" platform="java" GenTables="">
     <!--
     这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
@@ -281,7 +274,7 @@ ServerA）。
 Server需要使用Arch中的两个网络模块。在base中指定。需要拦截网路事件，可以在生成
 的类中重载相应函数。
 ### 配置(server.xml)
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
     <!--
     GlobalCacheManagerHostNameOrAddress: server 启用 cache-sync，必须指定。所有的 
@@ -317,7 +310,7 @@ Server需要使用Arch中的两个网络模块。在base中指定。需要拦截
 ### Server需要的Arch模块初始化
 下面的初始化代码部分是生成的，应用需要加入Arch模块的初始化，当然也可以加入任意
 自己需要的初始化。Arch模块作为全局变量定义在App中。
-```
+```java
 public void Start(String conf) throws Throwable {
     var config = Config.Load(conf);
     CreateZeze(config);
@@ -350,7 +343,7 @@ public void Start(String conf) throws Throwable {
 ```
 ## 发现Linkd,Server流程
 * Linkd.Startup
-```
+```java
 {
 　　ServiceName = “Game.Linkd”; // 应用自定义。
 　　ServiceIdentity = Ip + “:” + Port; // Linkd监听地址和端口，接受来自Provider的连接。
@@ -359,7 +352,7 @@ public void Start(String conf) throws Throwable {
 }
 ```
 * Server.Startup
-```
+```java
 {
 　　// 每个模块作为一个服务。下面注册和订阅模块服务。
 　　// 每个Server的CurrentModules是可以配置的。
@@ -516,7 +509,7 @@ providerApp.startLast()之后，服务就会被其他使用的地方发现，请
 有一些复杂初始化可能会在startLast之后初始化，此时服务还没有完全准备好。Server被
 Linkd发现，完全准备好，并能处理新的来自客户端用户的请求，提供了一些设置方法。
 禁止在程序完全准备好之前Linkd派发新的用户请求。
-```
+```java
 App.Start() {
     …
     ProviderService.initDisableChoice(true); // 需要在startService()之前设置。

@@ -24,7 +24,7 @@ Dbh2是一个专用于Zeze的基于RocksDB和Raft的分布式KV数据库。它�
 ## 接口
 * Zeze.Dbh2.Database 实现了Zeze.Transaction.Database接口。
 * zeze.xml 数据库配置
-```
+```xml
 <DatabaseConf Name="" DatabaseType="Dbh2"
     DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_database"/>
 
@@ -32,7 +32,7 @@ Dbh2是一个专用于Zeze的基于RocksDB和Raft的分布式KV数据库。它�
 dbh2_database是数据库名；
 ```
 ## 启动脚本
-```
+```bash
 nohup java -Dlogname=master   -Xmx4g -cp .:lib/* Zeze.Dbh2.Master.Main zeze.xml&
 sleep 2
 nohup java -Dlogname=manager0 -Xmx4g -cp .:lib/* Zeze.Dbh2.Dbh2Manager manager0 zeze0.xml &
@@ -43,7 +43,7 @@ nohup java -Dlogname=manager2 -Xmx4g -cp .:lib/* Zeze.Dbh2.Dbh2Manager manager2 
 
 ## 配置
 1. Master配置
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze
@@ -70,7 +70,7 @@ nohup java -Dlogname=manager2 -Xmx4g -cp .:lib/* Zeze.Dbh2.Dbh2Manager manager2 
 </zeze>
 ```
 2. Manager配置（一个）
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze

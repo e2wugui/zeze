@@ -50,7 +50,7 @@ public HttpEndStreamHandle EndStreamHandle;
 Consul和nginx-upsync-module相关配置请查看相关文档。下面举例说明注册的操作。
 
 注册到Consule例子
-“”“
+```java
     // 启动初始化
     var netty = new Netty(nThreads);
     var consul = new Consul();
@@ -63,7 +63,7 @@ Consul和nginx-upsync-module相关配置请查看相关文档。下面举例说�
     consul.stop(); 
     server.close();
     netty.close();
-”“”
+```
 
 ### 修改Nginx配置并重新加载
 
@@ -77,7 +77,7 @@ java -cp zeze.jar Zeze.Service.ServiceManager.Exporter -e Zeze.Services.ServiceM
 """
 
 注册服务例子
-“”“
+```java
     // 启动初始化
     var netty = new Netty(nThreads);
     var server = new HttpServer();
@@ -88,7 +88,7 @@ java -cp zeze.jar Zeze.Service.ServiceManager.Exporter -e Zeze.Services.ServiceM
     // 停止程序
     server.close();
     netty.close();
-”“”
+```
 
 ### 通过http接口直接修改Nginx内部服务列表
 需要符合如下条件：

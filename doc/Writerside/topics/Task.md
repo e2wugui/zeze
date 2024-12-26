@@ -20,7 +20,7 @@
 * 接受任务时查看任务描述
 
 ## 奖励系统进(Reward)
-```
+```java
 public interface Reward {
 	int getRewardId();
 
@@ -67,7 +67,7 @@ java开发的，可能不好直接接入。这样的话，应用可以自行决�
 最终会关联到几乎所有的地方。
 
 条件接口如下
-```
+```java
 public interface Condition extends Serializable {
 	String getName();
 	boolean accept(ConditionEvent event);
@@ -95,7 +95,7 @@ public interface Condition extends Serializable {
 * ConditionCompositeOr 把多个条件组合起来形成或的关系，其中任意一个完成就表示组合完成
 
 ## 任务情节(Episode)
-```
+```java
 TODO
 动态情节要能实现任意内容。
 class AcceptedTask {

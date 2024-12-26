@@ -38,7 +38,7 @@ zeze等。模块内定义的类如果需要公开也必须接口化。Bean也是
 ### 接口引用保存规则
 原则上不保存任何模块的提供的服务的接口引用。模块主接口特殊处理，引用其他模块主接
 口时，可以按下面方式保存一个上下文，避免每次都需要查询。
-```
+```java
 IModuleSome getSomeService() {
 　　if (this.moduleSome == null）
 　　this.moduleSome = HotManager.get(“MySol.ModuleSome”, IModuleSome.class);
@@ -75,7 +75,7 @@ extends IModuleSome。旧版接口一旦发布就不能再修改。这点很重�
 不要重新注册，而是在upgrade的时候从旧接口把已经注册的timerId得到，保存到新
 模块实例内。继承模式在注册时需要判断模块是第一次启动还是处于热更中。下面的
 辅助函数能判断区分这种情况，而且这个方法在没有启用热更时也能工作。
-```
+```java
 private boolean isHotUpgrading() {
     var hotManager = App.Zeze.getHotManager();
 　　 if (null == hotManager)

@@ -37,7 +37,7 @@ Server处理，就避免了大量共享问题。
 号哈希定向到同一台Server即可。
 * Linkd::LinkdService重载dispatchUnknownProtocol：
 
-```
+```java
 switch (moduleId) {
     case ModuleFriend.ModuleId:
     switch (protocolId) {
@@ -58,7 +58,7 @@ switch (moduleId) {
 
 * DecodeGroupIdHash
 
-```
+```java
 private static int DecodeGroupIdHash(Zeze.Serialize.ByteBuffer bb) {
     var rpc = new RpcGroupId();
     rpc.decode(bb);
@@ -104,7 +104,7 @@ public static class GroupId extends Zeze.Transaction.Bean {
 * ChoiceHashSend
 
 这个方法实际上是Linkd选择负载的正常包装。也列出来吧。
-```
+```java
 private boolean ChoiceHashSend(int hash, int moduleId, Dispatch dispatch) {
     var provider = new OutLong();
     if (linkdApp.linkdProvider.choiceHashWithoutBind(moduleId, hash, provider)) {

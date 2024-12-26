@@ -57,7 +57,7 @@ Rpc提供同步等待、异步回调两种方式处理结果。
 服务器监听器。开启一个bind，listen的server socket，并接收新的客户端连接。
 
 ## ServiceConf
-```
+```xml
 <ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 　　  <Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 </ServiceConf>
