@@ -491,5 +491,10 @@ namespace Zeze.Gen.javadata
             else
                 sw.WriteLine(prefix + bufName + ".WriteString(" + NamePrivate + ".toString());");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

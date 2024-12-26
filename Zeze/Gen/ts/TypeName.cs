@@ -127,5 +127,10 @@ namespace Zeze.Gen.ts
         {
             name = "Zeze.Vector4";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

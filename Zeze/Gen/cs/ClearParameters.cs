@@ -162,5 +162,10 @@ namespace Zeze.Gen.cs
         {
             Initial("0");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

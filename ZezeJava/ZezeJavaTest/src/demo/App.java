@@ -175,6 +175,7 @@ public class App extends Zeze.AppBase {
     public demo.M6.ModuleM6 demo_M6;
     public demo.M6.M7.ModuleM7 demo_M6_M7;
     public TaskTest.TaskExt.ModuleTaskExt TaskTest_TaskExt;
+    public demo.ModuleGTable.ModuleModuleGTable demo_ModuleGTable;
 
     @Override
     public Zeze.Application getZeze() {
@@ -220,6 +221,7 @@ public class App extends Zeze.AppBase {
                 demo.M6.ModuleM6.class,
                 demo.M6.M7.ModuleM7.class,
                 TaskTest.TaskExt.ModuleTaskExt.class,
+                demo.ModuleGTable.ModuleModuleGTable.class,
             });
             if (_modules_ == null)
                 return;
@@ -254,6 +256,11 @@ public class App extends Zeze.AppBase {
             if (modules.put(TaskTest_TaskExt.getFullName(), TaskTest_TaskExt) != null)
                 throw new IllegalStateException("duplicate module name: TaskTest_TaskExt");
 
+            demo_ModuleGTable = (demo.ModuleGTable.ModuleModuleGTable)_modules_[6];
+            demo_ModuleGTable.Initialize(this);
+            if (modules.put(demo_ModuleGTable.getFullName(), demo_ModuleGTable) != null)
+                throw new IllegalStateException("duplicate module name: demo_ModuleGTable");
+
             Zeze.setSchemas(new demo.Schemas());
         } finally {
             unlock();
@@ -263,6 +270,7 @@ public class App extends Zeze.AppBase {
     public void destroyModules() throws Exception {
         lock();
         try {
+            demo_ModuleGTable = null;
             TaskTest_TaskExt = null;
             demo_M6_M7 = null;
             demo_M6 = null;
@@ -302,6 +310,7 @@ public class App extends Zeze.AppBase {
             demo_M6.Start(this);
             demo_M6_M7.Start(this);
             TaskTest_TaskExt.Start(this);
+            demo_ModuleGTable.Start(this);
         } finally {
             unlock();
         }
@@ -317,6 +326,7 @@ public class App extends Zeze.AppBase {
             demo_M6.StartLast();
             demo_M6_M7.StartLast();
             TaskTest_TaskExt.StartLast();
+            demo_ModuleGTable.StartLast();
         } finally {
             unlock();
         }
@@ -325,6 +335,8 @@ public class App extends Zeze.AppBase {
     public void stopModules() throws Exception {
         lock();
         try {
+            if (demo_ModuleGTable != null)
+                demo_ModuleGTable.Stop(this);
             if (TaskTest_TaskExt != null)
                 TaskTest_TaskExt.Stop(this);
             if (demo_M6_M7 != null)
@@ -345,6 +357,8 @@ public class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (demo_ModuleGTable != null)
+                demo_ModuleGTable.StopBefore();
             if (TaskTest_TaskExt != null)
                 TaskTest_TaskExt.StopBefore();
             if (demo_M6_M7 != null)

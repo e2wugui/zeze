@@ -248,5 +248,23 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + varName + " = java.math.BigDecimal.ZERO;");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            string rowKey = BoxingName.GetBoxingName(type.RowKeyType);
+            //string colKey = BoxingName.GetBoxingName(type.ColKeyType);
+            //string value = BoxingName.GetBoxingName(type.ValueType);
+
+            string typeName = TypeName.GetNameOmitted(type);
+
+            string name12 = type.ValueType.IsNormalBean ? "2" : "1";
+            string realValueClass = $"Zeze.Transaction.GTable.BeanMap{name12}.class";
+
+            if (type.ValueType is TypeDynamic)
+                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
+            else
+                sw.WriteLine(prefix + varName + $" = new {typeName}({rowKey}.class, {realValueClass});");
+            sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
+        }
     }
 }

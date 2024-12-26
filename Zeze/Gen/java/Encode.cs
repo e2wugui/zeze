@@ -364,7 +364,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
             if (Decode.IsOldStyleEncodeDecodeType(kt))
-                vt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        ", isData));
+                kt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        ", isData));
             else
                 EncodeElement(kt, prefix + "        ", "_e_.getKey()");
             if (Decode.IsOldStyleEncodeDecodeType(vt))
@@ -484,6 +484,29 @@ namespace Zeze.Gen.java
             }
             else
                 sw.WriteLine(prefix + bufname + ".WriteString(" + Getter + ".toString());");
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Type kt = type.RowKeyType;
+            sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
+            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", ByteBuffer.BEAN);");
+            sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
+                kt.Accept(new Encode(null, "_e_.getKey()", 0, bufname, sw, prefix + "        ", isData));
+            else
+                EncodeElement(kt, prefix + "        ", "_e_.getKey()");
+            sw.WriteLine(prefix + "        _e_.getValue().encode(_o_);"); // Zeze.Transaction.GTable.BeanMapN
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new java.util.ConcurrentModificationException(String.valueOf(_n_));");
+            sw.WriteLine(prefix + "}");
         }
     }
 }

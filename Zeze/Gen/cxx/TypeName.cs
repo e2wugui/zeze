@@ -145,5 +145,10 @@ namespace Zeze.Gen.cxx
         {
             name = "std::string";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

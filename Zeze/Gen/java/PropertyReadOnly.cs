@@ -159,5 +159,21 @@ namespace Zeze.Gen.java
         {
             WriteProperty(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            string rowKey = BoxingName.GetBoxingName(type.RowKeyType);
+            string colKey = BoxingName.GetBoxingName(type.ColKeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+
+            var beanMap = type.ValueType.IsNormalBean
+                ? $"Zeze.Transaction.GTable.BeanMap2<{colKey}, {value}, {value}ReadOnly>"
+                : $"Zeze.Transaction.GTable.BeanMap1<{colKey}, {value}>";
+            var beanMapReadOnly = type.ValueType.IsNormalBean
+                ? $"Zeze.Transaction.GTable.BeanMap2ReadOnly<{colKey}, {value}, {value}ReadOnly>"
+                : $"Zeze.Transaction.GTable.BeanMap1ReadOnly<{colKey}, {value}>";
+            var t = $"Zeze.Transaction.Collections.PMap2ReadOnly<{rowKey}, {beanMap}, {beanMapReadOnly}>";
+            sw.WriteLine($"{prefix}{t} get{var.NameUpper1}ReadOnly();");
+        }
     }
 }

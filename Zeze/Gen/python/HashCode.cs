@@ -160,5 +160,10 @@ namespace Zeze.Gen.python
         {
             text = $"self.{var.Name}.__hash__()";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

@@ -181,5 +181,10 @@ namespace Zeze.Gen.cs
         {
             CommonEquals();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

@@ -359,5 +359,31 @@ namespace Zeze.Gen.java
         {
             WriteProperty(type, true);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+
+            string rowKey = BoxingName.GetBoxingName(type.RowKeyType);
+            string colKey = BoxingName.GetBoxingName(type.ColKeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+
+            var beanMap = type.ValueType.IsNormalBean
+                ? $"Zeze.Transaction.GTable.BeanMap2<{colKey}, {value}, {value}ReadOnly>"
+                : $"Zeze.Transaction.GTable.BeanMap1<{colKey}, {value}>";
+            var beanMapReadOnly = type.ValueType.IsNormalBean
+                ? $"Zeze.Transaction.GTable.BeanMap2ReadOnly<{colKey}, {value}, {value}ReadOnly>"
+                : $"Zeze.Transaction.GTable.BeanMap1ReadOnly<{colKey}, {value}>";
+            var t = $"Zeze.Transaction.Collections.PMap2ReadOnly<{rowKey}, {beanMap}, {beanMapReadOnly}>";
+
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public {t} {var.ReadOnlyGetter} {{");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.PMap2ReadOnly<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+        }
     }
 }

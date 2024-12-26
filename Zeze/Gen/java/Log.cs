@@ -191,5 +191,10 @@ namespace Zeze.Gen.java
         {
             WriteLogValue(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            WriteCollectionLog(type); // 目前实现是空的，如果需要加代码，很可能需要改，不能直接使用这个函数。
+        }
     }
 }

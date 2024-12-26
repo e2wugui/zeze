@@ -154,6 +154,11 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = _v_.decimalValue(); break;");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(_v_); break;");
+        }
+
         public FollowerApply(Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

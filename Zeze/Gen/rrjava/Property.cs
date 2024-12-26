@@ -276,5 +276,10 @@ namespace Zeze.Gen.rrjava
         {
             WriteProperty(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

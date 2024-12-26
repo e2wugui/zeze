@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Gen.Types;
 
 namespace Zeze.Gen.rrcs
 {
@@ -138,6 +139,11 @@ namespace Zeze.Gen.rrcs
         public void Visit(Types.TypeDecimal type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
         }
 
         public LeaderApplyNoRecursive(Types.Variable var, StreamWriter sw, string prefix)

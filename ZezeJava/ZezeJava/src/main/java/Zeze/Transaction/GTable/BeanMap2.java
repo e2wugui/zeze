@@ -101,7 +101,7 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		if (!_Map2.isEmpty()) {
 			_s_.append('\n');
 			for (var _e_ : _Map2.entrySet()) {
-				_s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+				_s_.append(_i2_).append("ColKey=").append(_e_.getKey()).append(",\n");
 				_s_.append(_i2_).append("Value=");
 				_e_.getValue().buildString(_s_, _l_ + 12);
 				_s_.append(",\n");

@@ -95,7 +95,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		if (!_Map1.isEmpty()) {
 			_s_.append('\n');
 			for (var _e_ : _Map1.entrySet()) {
-				_s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
+				_s_.append(_i2_).append("ColKey=").append(_e_.getKey()).append(",\n");
 				_s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
 			}
 			_s_.append(_i1_);

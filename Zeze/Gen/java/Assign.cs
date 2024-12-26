@@ -272,5 +272,36 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + var.Setter($"_o_.{transGetter}") + ";");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            // 第一层的value是BeanMapN，肯定是normalBean。
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            if (isData)
+            {
+                // 这个分支先保留，暂时没用上。
+                if (string.IsNullOrEmpty(type.Variable.JavaType))
+                {
+                    sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet()) {");
+                    type.ValueType.Accept(new Define("_v_", sw, prefix + "    "));
+                    sw.WriteLine(prefix + "    _v_.assign(_e_.getValue());");
+                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _v_);");
+                    sw.WriteLine(prefix + "}");
+                }
+                else
+                {
+                    sw.WriteLine(prefix + "_o_." + var.NamePrivate + ".foreach((k, v) -> {");
+                    type.ValueType.Accept(new Define("_v_", sw, prefix + "    "));
+                    sw.WriteLine(prefix + "    _v_.assign(v);");
+                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(k, _v_);");
+                    sw.WriteLine(prefix + "});");
+                }
+            }
+            else
+            {
+                sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet())");
+                sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _e_.getValue().copy());");
+            }
+        }
     }
 }

@@ -122,5 +122,10 @@ namespace Zeze.Gen.java
         {
             Name = "ByteBuffer.BYTES";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            Name = "ByteBuffer.MAP";
+        }
     }
 }

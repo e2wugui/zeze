@@ -381,5 +381,10 @@ namespace Zeze.Gen.rrcs
             else
                 sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ".ToString());");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

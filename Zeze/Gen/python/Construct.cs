@@ -177,5 +177,10 @@ namespace Zeze.Gen.python
         {
             sw.Write($"\"{variable.Initial}\"");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

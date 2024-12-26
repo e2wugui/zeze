@@ -122,5 +122,10 @@ namespace Zeze.Gen.python
         {
             Name = "ByteBuffer.VECTOR4";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            Name = "ByteBuffer.MAP";
+        }
     }
 }

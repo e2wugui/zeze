@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
             foreach (var var in vars)
             {
                 var varType = var.VariableType;
-                if (varType is TypeCollection or TypeMap)
+                if (varType is TypeCollection or TypeMap or TypeGTable)
                 {
                     maxLevel = 2;
                     break;
@@ -267,6 +267,30 @@ namespace Zeze.Gen.java
         public void Visit(TypeDecimal type)
         {
             formatSimple();
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}={{\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    _s_.append('\\n');");
+            if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                sw.WriteLine(prefix + $"    for (var _e_ : {NamePrivate}.entrySet()) {{");
+                type.RowKeyType.Accept(new Tostring(sw, null, "RowKey", "_e_.getKey()", prefix + "        ", ',', isData));
+                sw.WriteLine(prefix + $"        _e_.getValue().buildString(_s_, _l_ + 4);");
+            }
+            else
+            {
+                // TODO 这个实现不正确。
+                sw.WriteLine(prefix + $"    for (var _i_ = {NamePrivate}.iterator(); _i_.moveToNext(); ) {{");
+                type.RowKeyType.Accept(new Tostring(sw, null, "RowKey", "_i_.key()", prefix + "        ", ',', isData));
+                sw.WriteLine(prefix + $"_i_.value().buildString(_s_, _l_);");
+            }
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    _s_.append(_i1_);");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + (sep != 0 ? $"_s_.append(\"}}{sep}\\n\");" : "_s_.append(\"}\\n\");"));
         }
     }
 }

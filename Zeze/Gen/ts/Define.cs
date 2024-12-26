@@ -149,5 +149,10 @@ namespace Zeze.Gen.ts
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

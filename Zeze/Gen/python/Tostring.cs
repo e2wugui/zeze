@@ -232,5 +232,10 @@ namespace Zeze.Gen.python
         {
             formatSimple();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

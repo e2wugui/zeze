@@ -170,5 +170,10 @@ namespace Zeze.Gen.java
         {
             text = getter + ".hashCode()";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            text = var.NamePrivate + ".hashCode()";
+        }
     }
 }

@@ -138,5 +138,10 @@ namespace Zeze.Gen.python
         {
             sw.WriteLine($"{prefix}self.{var.Name}.reset()");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

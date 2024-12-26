@@ -312,5 +312,10 @@ namespace Zeze.Gen.cs
         {
             WriteProperty(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

@@ -163,5 +163,10 @@ namespace Zeze.Gen.cs
         {
             WriteLogValue(type);
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

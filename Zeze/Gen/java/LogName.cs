@@ -122,6 +122,11 @@ namespace Zeze.Gen.java
             Name = "Zeze.Transaction.Logs.LogDecimal";
         }
 
+        public void Visit(TypeGTable type)
+        {
+            throw new NotImplementedException();
+        }
+
         public string Name { get; set; }
 
     }

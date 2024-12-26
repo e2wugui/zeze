@@ -470,5 +470,32 @@ namespace Zeze.Gen.java
             else
                 sw.WriteLine(prefix + AssignText($"new java.math.BigDecimal({bufname}.ReadString(), java.math.MathContext.DECIMAL128)") + ';');
         }
+
+        public void Visit(TypeGTable type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.RowKeyType;
+
+            sw.WriteLine(prefix + "var _x_ = " + var.NamePrivate + ';');
+            sw.WriteLine(prefix + "_x_.clear();");
+            sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
+            sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
+            if (IsOldStyleEncodeDecodeType(kt))
+            {
+                kt.Accept(new Define("_k_", sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", withUnknown, "_s_"));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
+            }
+            sw.WriteLine(prefix + $"        var _v_ = _o_.ReadBean({var.NamePrivate}.createValue(), _t_);");
+            sw.WriteLine(prefix + "        _x_.put(_k_, _v_);");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "} else");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
+        }
     }
 }

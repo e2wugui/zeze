@@ -197,5 +197,10 @@ namespace Zeze.Gen.java
         {
             text = (isEquals ? "" : "!") + getter + ".equals(" + another + "." + getter + ")";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
+        }
     }
 }

@@ -361,5 +361,10 @@ namespace Zeze.Gen.rrcs
         {
             sw.WriteLine($"{prefix}{varname} = decimal.Parse({bufname}.ReadString());");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

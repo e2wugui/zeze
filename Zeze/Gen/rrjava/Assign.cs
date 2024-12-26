@@ -152,5 +152,10 @@ namespace Zeze.Gen.rrjava
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

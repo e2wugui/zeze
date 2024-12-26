@@ -162,5 +162,10 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + "if (" + varname + " < 0) return true;");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

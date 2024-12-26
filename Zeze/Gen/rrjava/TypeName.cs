@@ -152,5 +152,10 @@ namespace Zeze.Gen.rrjava
         {
             name = "java.math.BigDecimal";
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

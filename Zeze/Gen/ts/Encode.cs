@@ -469,5 +469,10 @@ namespace Zeze.Gen.ts
             else
                 sw.WriteLine(prefix + bufname + ".WriteVector4(" + varname + ");");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

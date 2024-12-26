@@ -137,5 +137,10 @@ namespace Zeze.Gen.cs
         {
             throw new NotImplementedException();
         }
+
+        public void Visit(TypeGTable type)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

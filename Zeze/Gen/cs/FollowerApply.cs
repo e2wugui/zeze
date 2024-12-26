@@ -146,6 +146,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = vlog.DecimalValue(); break;");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
+
         public FollowerApply(Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

@@ -5,7 +5,7 @@ using Zeze.Gen.Types;
 namespace Zeze.Gen.cxx
 {
     public class Compare : Visitor
-	{
+    {
 		public static void Make(BeanKey bean, StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "int CompareTo(const " + bean.Name + "& _o_) const {");
@@ -147,6 +147,11 @@ namespace Zeze.Gen.cxx
         public void Visit(TypeDecimal type)
         {
             text = $"Zeze::String::Compare({variable.NameUpper1}, {another}.{variable.NameUpper1})";
+        }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
         }
     }
 }

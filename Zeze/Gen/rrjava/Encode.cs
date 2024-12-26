@@ -393,5 +393,10 @@ namespace Zeze.Gen.rrjava
             else
                 sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ".toString());");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

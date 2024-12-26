@@ -169,5 +169,10 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine($"{prefix}_h_ = _h_ * _p_ + {varname}.GetHashCode();");
         }
+
+        public void Visit(TypeGTable type)
+        {
+            //throw new System.NotImplementedException();
+        }
     }
 }

@@ -145,6 +145,11 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
         }
 
+        public void Visit(TypeGTable type)
+        {
+            //throw new NotImplementedException();
+        }
+
         public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

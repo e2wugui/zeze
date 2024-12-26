@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="demo" ModuleIdAllowRanges="1-5">
+<solution name="demo" ModuleIdAllowRanges="1-5,100">
 	<import file="demo2.xml"/>
 	<import file="taskExt.xml"/>
 
@@ -194,6 +194,19 @@
 		</bean>
 	</module>
 
+	<module name="ModuleGTable" id="100">
+		<bean name="BValue">
+			<variable id="1" name="gTable" type="gtable[int, int, int]"/>
+		</bean>
+		<bean name="Bean1">
+			<variable id="1" name="IntVar" type="int"/>
+		</bean>
+		<bean name="BValue2">
+			<variable id="1" name="gTable" type="gtable[int, int, Bean1]"/>
+		</bean>
+		<table name="tGTable" key="long" value="BValue"/>
+		<table name="tGTable2" key="long" value="BValue2"/>
+	</module>
 	<!--
 	name 项目名字
 	gendir 代码生成输出目录，默认是当前目录
@@ -211,6 +224,7 @@
 			<module ref="M6"/>
 			<module ref="demo.M6.M7"/>
 			<module ref="TaskTest.TaskExt"/>
+			<module ref="ModuleGTable"/>
 		</service>
 	</project>
 
