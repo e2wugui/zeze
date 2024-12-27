@@ -201,7 +201,7 @@ public class Helper {
 			result.map2.add(KV.create(key1Class, BeanMap2.class));
 			result.map2.add(KV.create(key2Class, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
-			result.map2.add(KV.create(key1Class, BeanMap2.class)); // todo 需要确认
+			result.map2.add(KV.create(key1Class, BeanMap2.class));
 			result.map2Dynamic.computeIfAbsent(KV.create(key2Class, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
