@@ -950,6 +950,7 @@ public class Schemas implements Serializable {
 			case "array":
 			case "set":
 			case "map":
+			case "gtable":
 				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
 			}

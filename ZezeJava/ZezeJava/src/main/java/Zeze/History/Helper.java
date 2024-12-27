@@ -20,6 +20,8 @@ import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.GTable.BeanMap1;
+import Zeze.Transaction.GTable.BeanMap2;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Logs.LogBeanKey;
@@ -181,24 +183,26 @@ public class Helper {
 								  @NotNull String key2Type,
 								  @NotNull String valueType,
 								  @NotNull DependsResult result) throws Exception {
-		var keyClass = getBuiltinBoxingClass(key1Type);
-		if (keyClass == null) {
-			keyClass = Class.forName(key1Type); // must be BeanKey.
-			dependsBean(keyClass, result);
+		var key1Class = getBuiltinBoxingClass(key1Type);
+		if (key1Class == null) {
+			key1Class = Class.forName(key1Type); // must be BeanKey.
+			dependsBean(key1Class, result);
 		}
-		keyClass = getBuiltinBoxingClass(key2Type);
-		if (keyClass == null) {
-			keyClass = Class.forName(key2Type); // must be BeanKey.
-			dependsBean(keyClass, result);
+		var key2Class = getBuiltinBoxingClass(key2Type);
+		if (key2Class == null) {
+			key2Class = Class.forName(key2Type); // must be BeanKey.
+			dependsBean(key2Class, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
 		var is2 = valueClass == null;
 		if (is2) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
-			result.map2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+			result.map2.add(KV.create(key1Class, BeanMap2.class));
+			result.map2.add(KV.create(key2Class, (Class<? extends Bean>)valueClass));
 		} else if (valueClass == DynamicBean.class) {
-			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
+			result.map2.add(KV.create(key1Class, BeanMap2.class)); // todo 需要确认
+			result.map2Dynamic.computeIfAbsent(KV.create(key2Class, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
 							+ Character.toUpperCase(v.getName().charAt(0))
@@ -209,7 +213,8 @@ public class Helper {
 				}
 			});
 		} else {
-			result.map1.add(KV.create(keyClass, valueClass));
+			result.map2.add(KV.create(key1Class, BeanMap1.class));
+			result.map1.add(KV.create(key2Class, valueClass));
 		}
 	}
 
