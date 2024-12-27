@@ -495,9 +495,10 @@ public final class JsonReader {
 					if (parser != null) {
 						Object newSubObj = parser.parse0(this, subClassMeta, fm, subObj, obj);
 						if (newSubObj != subObj) {
-							if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass()))
+							if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass())) {
 								throw new InstantiationException("incompatible type(" + newSubObj.getClass()
 										+ ") for field: " + fm.getName() + " in " + classMeta.klass.getName());
+							}
 							unsafe.putObject(obj, offset, newSubObj);
 						}
 					} else
@@ -510,9 +511,10 @@ public final class JsonReader {
 					if (parser != null)
 						subObj = parser.parse0(this, subClassMeta, fm, null, obj);
 					else {
-						if (ClassMeta.isAbstract(subClassMeta.klass))
+						if (ClassMeta.isAbstract(subClassMeta.klass)) {
 							throw new InstantiationException(
 									"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
+						}
 						subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
 					}
 					unsafe.putObject(obj, offset, subObj);
@@ -560,83 +562,22 @@ public final class JsonReader {
 						} else {
 							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
 							Parser<?> parser = cm.parser;
-							if (parser == null)
+							if (parser == null) {
 								throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
 										+ classMeta.klass.getName());
+							}
 							Object c2 = parser.parse0(this, cm, fm, null, obj);
-							if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass()))
+							if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass())) {
 								throw new InstantiationException(
 										"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
 												+ " in " + classMeta.klass.getName());
+							}
 							unsafe.putObject(obj, offset, c2);
 							break;
 						}
 					} else
 						c.clear();
-					b = skipNext();
-					switch (type & 0xf) {
-					case TYPE_BOOLEAN:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : b == 't');
-						break;
-					case TYPE_BYTE:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : (byte)parseInt());
-						break;
-					case TYPE_SHORT:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : (short)parseInt());
-						break;
-					case TYPE_CHAR:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : (char)parseInt());
-						break;
-					case TYPE_INT:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : parseInt());
-						break;
-					case TYPE_LONG:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : parseLong());
-						break;
-					case TYPE_FLOAT:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : (float)parseDouble());
-						break;
-					case TYPE_DOUBLE:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(b == 'n' ? null : parseDouble());
-						break;
-					case TYPE_STRING:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(parseString(false));
-						break;
-					case TYPE_OBJECT:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(parse(null, b));
-						break;
-					case TYPE_POS:
-						for (; b != ']'; b = skipVar(']'))
-							c.add(new Pos(pos));
-						break;
-					case TYPE_CUSTOM:
-						ClassMeta<?> subClassMeta = fm.classMeta;
-						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
-						Parser<?> parser = subClassMeta.parser;
-						if (parser != null) {
-							for (; b != ']'; b = skipVar(']'))
-								c.add(parser.parse0(this, subClassMeta, fm, null, c));
-						} else {
-							if (ClassMeta.isAbstract(subClassMeta.klass))
-								throw new InstantiationException(
-										"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
-							for (; b != ']'; b = skipVar(']'))
-								c.add(parse0(subClassMeta.ctor.create(), subClassMeta));
-						}
-						break;
-					}
-					pos++;
+					parseList0(classMeta.json, c, classMeta, fm);
 				} else if (flag == TYPE_MAP_FLAG) {
 					if (b != '{') {
 						unsafe.putObject(obj, offset, null);
@@ -653,13 +594,15 @@ public final class JsonReader {
 						} else {
 							ClassMeta<?> cm = classMeta.json.getClassMeta(fm.klass);
 							Parser<?> parser = cm.parser;
-							if (parser == null)
+							if (parser == null) {
 								throw new InstantiationException(
 										"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+							}
 							Object m2 = parser.parse0(this, cm, fm, null, obj);
-							if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass()))
+							if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass())) {
 								throw new InstantiationException("incompatible type(" + m2.getClass()
 										+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
+							}
 							unsafe.putObject(obj, offset, m2);
 							break;
 						}
@@ -671,6 +614,75 @@ public final class JsonReader {
 		}
 		pos++;
 		return obj;
+	}
+
+	public void parseList0(@NotNull Json json, @NotNull Collection<Object> c, @NotNull ClassMeta<?> classMeta,
+						   @NotNull FieldMeta fm) throws ReflectiveOperationException {
+		int b = skipNext();
+		switch (fm.type & 0xf) {
+		case TYPE_BOOLEAN:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : b == 't');
+			break;
+		case TYPE_BYTE:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : (byte)parseInt());
+			break;
+		case TYPE_SHORT:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : (short)parseInt());
+			break;
+		case TYPE_CHAR:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : (char)parseInt());
+			break;
+		case TYPE_INT:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : parseInt());
+			break;
+		case TYPE_LONG:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : parseLong());
+			break;
+		case TYPE_FLOAT:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : (float)parseDouble());
+			break;
+		case TYPE_DOUBLE:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(b == 'n' ? null : parseDouble());
+			break;
+		case TYPE_STRING:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(parseString(false));
+			break;
+		case TYPE_OBJECT:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(parse(null, b));
+			break;
+		case TYPE_POS:
+			for (; b != ']'; b = skipVar(']'))
+				c.add(new Pos(pos));
+			break;
+		case TYPE_CUSTOM:
+			ClassMeta<?> subClassMeta = fm.classMeta;
+			if (subClassMeta == null)
+				fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
+			Parser<?> parser = subClassMeta.parser;
+			if (parser != null) {
+				for (; b != ']'; b = skipVar(']'))
+					c.add(parser.parse0(this, subClassMeta, fm, null, c));
+			} else {
+				if (ClassMeta.isAbstract(subClassMeta.klass)) {
+					throw new InstantiationException(
+							"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
+				}
+				for (; b != ']'; b = skipVar(']'))
+					c.add(parse0(subClassMeta.ctor.create(), subClassMeta));
+			}
+			break;
+		}
+		pos++;
 	}
 
 	public void parseMap0(@NotNull Json json, @NotNull Map<Object, Object> m, @NotNull ClassMeta<?> classMeta,

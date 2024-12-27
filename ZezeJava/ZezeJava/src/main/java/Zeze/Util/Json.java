@@ -308,9 +308,10 @@ public final class Json implements Cloneable {
 							keyReader = keyReaderMap.get(subTypes[0]);
 							if (keyReader == null) {
 								Class<?> keyClass = (Class<?>)subTypes[0];
-								if (isAbstract(keyClass))
+								if (isAbstract(keyClass)) {
 									throw new IllegalStateException("unsupported abstract key class for field: "
 											+ fieldName + " in " + klass.getName());
+								}
 								Creator<?> keyCtor = getDefCtor(keyClass);
 								keyReader = (jr, b) -> {
 									String keyStr = JsonReader.parseStringKey(jr, b);
@@ -324,9 +325,10 @@ public final class Json implements Cloneable {
 					} else
 						type = TYPE_CUSTOM;
 					long offset = objectFieldOffset(field);
-					if (offset != (int)offset)
+					if (offset != (int)offset) {
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
+					}
 					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
 					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
 					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
@@ -384,9 +386,10 @@ public final class Json implements Cloneable {
 				return;
 			}
 			for (; ; ) {
-				if (fm.hash == hash) // bad luck! try to call setKeyHashMultiplier with another prime number
+				if (fm.hash == hash) { // bad luck! try to call setKeyHashMultiplier with another prime number
 					throw new IllegalStateException("conflicted field names: " + fieldMeta.getName() + " & "
 							+ fm.getName() + " in " + fieldMeta.klass.getName());
+				}
 				FieldMeta next = fm.next;
 				if (next == null) {
 					fm.next = fieldMeta;
