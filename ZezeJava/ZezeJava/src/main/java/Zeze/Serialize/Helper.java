@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Set;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.GTable.GTable1;
+import Zeze.Transaction.GTable.GTable2;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
@@ -168,6 +170,40 @@ public class Helper {
 	@SuppressWarnings("unchecked")
 	public static void decodeJsonMap(@NotNull Bean parentBean, @NotNull String fieldName, @NotNull Map<?, ?> map,
 									 @Nullable String jsonStr) {
+		map.clear();
+		if (jsonStr != null) {
+			var jr = JsonReader.local();
+			try {
+				jr.buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
+						(Class<? super Bean>)parentBean.getClass());
+			} catch (ReflectiveOperationException e) {
+				Task.forceThrow(e);
+			} finally {
+				jr.reset();
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void decodeJsonGTable1(@NotNull Bean parentBean, @NotNull String fieldName,
+										 @NotNull GTable1<?, ?, ?> map, @Nullable String jsonStr) {
+		map.clear();
+		if (jsonStr != null) {
+			var jr = JsonReader.local();
+			try {
+				jr.buf('{' + fieldName + ':' + jsonStr + '}').parse(json, parentBean,
+						(Class<? super Bean>)parentBean.getClass());
+			} catch (ReflectiveOperationException e) {
+				Task.forceThrow(e);
+			} finally {
+				jr.reset();
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void decodeJsonGTable2(@NotNull Bean parentBean, @NotNull String fieldName,
+										 @NotNull GTable2<?, ?, ?, ?> map, @Nullable String jsonStr) {
 		map.clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
