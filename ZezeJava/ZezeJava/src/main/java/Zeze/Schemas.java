@@ -274,6 +274,7 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("array", "TEXT");
 			sqlTypeTable.put("set", "TEXT");
 			sqlTypeTable.put("map", "TEXT");
+			sqlTypeTable.put("gtable", "TEXT");
 			// 下面的类型会被展开，这里的类型展开后的实际类型。
 			sqlTypeTable.put("vector2", "FLOAT");
 			sqlTypeTable.put("vector2int", "INT");
