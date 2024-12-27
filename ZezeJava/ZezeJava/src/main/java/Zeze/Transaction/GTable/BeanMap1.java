@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<C, V> {
 	public static final long TYPEID = -105464877273786005L;
 
-	private final Zeze.Transaction.Collections.PMap1<C, V> _Map1;
+	private final Zeze.Transaction.Collections.PMap1<C, V> pMap1;
 	private Object mapKey;
 
 	@Override
@@ -27,33 +27,33 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		return mapKey;
 	}
 
-	public Zeze.Transaction.Collections.PMap1<C, V> getMap1() {
-		return _Map1;
+	public Zeze.Transaction.Collections.PMap1<C, V> getPMap1() {
+		return pMap1;
 	}
 
 	@Override
 	public Zeze.Transaction.Collections.PMap1ReadOnly<C, V> getMap1ReadOnly() {
-		return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Map1);
+		return new Zeze.Transaction.Collections.PMap1ReadOnly<>(pMap1);
 	}
 
 	public BeanMap1(Class<C> colClass, Class<V> valueClass) {
-		_Map1 = new Zeze.Transaction.Collections.PMap1<>(colClass, valueClass);
-		_Map1.variableId(1);
+		pMap1 = new Zeze.Transaction.Collections.PMap1<>(colClass, valueClass);
+		pMap1.variableId(1);
 	}
 
 	public BeanMap1(Meta2<C, V> meta) {
-		_Map1 = new Zeze.Transaction.Collections.PMap1<>(meta);
-		_Map1.variableId(1);
+		pMap1 = new Zeze.Transaction.Collections.PMap1<>(meta);
+		pMap1.variableId(1);
 	}
 
 	@Override
 	public void reset() {
-		_Map1.clear();
+		pMap1.clear();
 		_unknown_ = null;
 	}
 
 	public void assign(BeanMap1<C, V> _o_) {
-		_Map1.assign(_o_._Map1);
+		pMap1.assign(_o_.pMap1);
 		_unknown_ = _o_._unknown_;
 	}
 
@@ -63,7 +63,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 
 	@Override
 	public BeanMap1<C, V> copy() {
-		var _c_ = new BeanMap1<>(_Map1.getMeta());
+		var _c_ = new BeanMap1<>(pMap1.getMeta());
 		_c_.assign(this);
 		return _c_;
 	}
@@ -92,9 +92,9 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		var _i2_ = Zeze.Util.Str.indent(_l_ + 8);
 		_s_.append("Zeze.Transaction.GTable.BeanMap1: {\n");
 		_s_.append(_i1_).append("Map1={");
-		if (!_Map1.isEmpty()) {
+		if (!pMap1.isEmpty()) {
 			_s_.append('\n');
-			for (var _e_ : _Map1.entrySet()) {
+			for (var _e_ : pMap1.entrySet()) {
 				_s_.append(_i2_).append("ColKey=").append(_e_.getKey()).append(",\n");
 				_s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
 			}
@@ -133,8 +133,8 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
 		int _i_ = 0;
 		{
-			var meta = _Map1.getMeta();
-			var _x_ = _Map1;
+			var meta = pMap1.getMeta();
+			var _x_ = pMap1;
 			int _n_ = _x_.size();
 			if (_n_ != 0) {
 				_i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
@@ -158,8 +158,8 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		int _t_ = _o_.ReadByte();
 		int _i_ = _o_.ReadTagSize(_t_);
 		if (_i_ == 1) {
-			var _x_ = _Map1;
-			var meta = _Map1.getMeta();
+			var _x_ = pMap1;
+			var meta = pMap1.getMeta();
 			_x_.clear();
 			if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
 				int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -178,66 +178,66 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 
 	@Override
 	public int size() {
-		return _Map1.size();
+		return pMap1.size();
 	}
 
 	@Override
 	public boolean isEmpty() {
-		return _Map1.isEmpty();
+		return pMap1.isEmpty();
 	}
 
 	@Override
 	public boolean containsKey(Object key) {
-		return _Map1.containsKey(key);
+		return pMap1.containsKey(key);
 	}
 
 	@Override
 	public boolean containsValue(Object value) {
-		return _Map1.containsValue(value);
+		return pMap1.containsValue(value);
 	}
 
 	@Override
 	public V get(Object key) {
-		return _Map1.get(key);
+		return pMap1.get(key);
 	}
 
 	@Nullable
 	@Override
 	public V put(C key, V value) {
-		return _Map1.put(key, value);
+		return pMap1.put(key, value);
 	}
 
 	@Override
 	public V remove(Object key) {
-		return _Map1.remove(key);
+		return pMap1.remove(key);
 	}
 
 	@Override
 	public void putAll(@NotNull Map<? extends C, ? extends V> m) {
-		_Map1.putAll(m);
+		pMap1.putAll(m);
 	}
 
 	@Override
 	public void clear() {
-		_Map1.clear();
+		pMap1.clear();
 	}
 
 	@NotNull
 	@Override
 	public Set<C> keySet() {
-		return _Map1.keySet();
+		return pMap1.keySet();
 	}
 
 	@NotNull
 	@Override
 	public Collection<V> values() {
-		return _Map1.values();
+		return pMap1.values();
 	}
 
 	@NotNull
 	@Override
 	public Set<Entry<C, V>> entrySet() {
-		return _Map1.entrySet();
+		return pMap1.entrySet();
 	}
 
 	@Override
@@ -247,19 +247,19 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		if (!(_o_ instanceof BeanMap1))
 			return false;
 		@SuppressWarnings("unchecked") var _b_ = (BeanMap1<C, V>)_o_;
-		if (!_Map1.equals(_b_._Map1))
+		if (!pMap1.equals(_b_.pMap1))
 			return false;
 		return true;
 	}
 
 	@Override
 	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-		_Map1.initRootInfo(_r_, this);
+		pMap1.initRootInfo(_r_, this);
 	}
 
 	@Override
 	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-		_Map1.initRootInfoWithRedo(_r_, this);
+		pMap1.initRootInfoWithRedo(_r_, this);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -272,7 +272,7 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 			var _v_ = _i_.value();
 			switch (_v_.getVariableId()) {
 			case 1:
-				_Map1.followerApply(_v_);
+				pMap1.followerApply(_v_);
 				break;
 			}
 		}
@@ -281,13 +281,13 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 	@Override
 	public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
 		var _pn_ = Bean.parentsToName(_p_);
-		Zeze.Serialize.Helper.decodeJsonMap(this, "Map1", _Map1, _r_.getString(_pn_ + "Map1"));
+		Zeze.Serialize.Helper.decodeJsonMap(this, "Map1", pMap1, _r_.getString(_pn_ + "Map1"));
 	}
 
 	@Override
 	public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
 		var _pn_ = Bean.parentsToName(_p_);
-		_s_.appendString(_pn_ + "Map1", Zeze.Serialize.Helper.encodeJson(_Map1));
+		_s_.appendString(_pn_ + "Map1", Zeze.Serialize.Helper.encodeJson(pMap1));
 	}
 
 	@Override
