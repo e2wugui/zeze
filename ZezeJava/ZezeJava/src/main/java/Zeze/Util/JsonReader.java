@@ -665,106 +665,112 @@ public final class JsonReader {
 						}
 					} else
 						m.clear();
-					b = skipNext();
-					KeyReader keyParser = ensureNotNull(fm.keyParser);
-					switch (type & 0xf) {
-					case TYPE_BOOLEAN:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							b = skipColon();
-							m.put(k, b == 'n' ? null : b == 't');
-						}
-						break;
-					case TYPE_BYTE:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : (byte)parseInt());
-						}
-						break;
-					case TYPE_SHORT:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : (short)parseInt());
-						}
-						break;
-					case TYPE_CHAR:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : (char)parseInt());
-						}
-						break;
-					case TYPE_INT:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : parseInt());
-						}
-						break;
-					case TYPE_LONG:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : parseLong());
-						}
-						break;
-					case TYPE_FLOAT:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : (float)parseDouble());
-						}
-						break;
-					case TYPE_DOUBLE:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : parseDouble());
-						}
-						break;
-					case TYPE_STRING:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, skipColon() == 'n' ? null : parseString(false));
-						}
-						break;
-					case TYPE_OBJECT:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							m.put(k, parse(null, skipColon()));
-						}
-						break;
-					case TYPE_POS:
-						for (; b != '}'; b = skipVar('}')) {
-							Object k = keyParser.parse(this, b);
-							skipColon();
-							m.put(k, new Pos(pos));
-						}
-						break;
-					case TYPE_CUSTOM:
-						ClassMeta<?> subClassMeta = fm.classMeta;
-						if (subClassMeta == null)
-							fm.classMeta = subClassMeta = classMeta.json.getClassMeta(fm.klass);
-						Parser<?> parser = subClassMeta.parser;
-						if (parser != null) {
-							for (; b != '}'; b = skipVar('}')) {
-								Object k = keyParser.parse(this, b);
-								skipColon();
-								m.put(k, parser.parse0(this, subClassMeta, fm, null, m));
-							}
-						} else {
-							if (ClassMeta.isAbstract(subClassMeta.klass))
-								throw new InstantiationException(
-										"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
-							for (; b != '}'; b = skipVar('}')) {
-								Object k = keyParser.parse(this, b);
-								skipColon();
-								m.put(k, parse0(subClassMeta.ctor.create(), subClassMeta));
-							}
-						}
-						break;
-					}
-					pos++;
+					parseMap0(classMeta.json, m, classMeta, fm);
 				}
 			}
 		}
 		pos++;
 		return obj;
+	}
+
+	public void parseMap0(@NotNull Json json, @NotNull Map<Object, Object> m, @NotNull ClassMeta<?> classMeta,
+						  @NotNull FieldMeta fm) throws ReflectiveOperationException {
+		int b = skipNext();
+		KeyReader keyParser = ensureNotNull(fm.keyParser);
+		switch (fm.type & 0xf) {
+		case TYPE_BOOLEAN:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				b = skipColon();
+				m.put(k, b == 'n' ? null : b == 't');
+			}
+			break;
+		case TYPE_BYTE:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : (byte)parseInt());
+			}
+			break;
+		case TYPE_SHORT:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : (short)parseInt());
+			}
+			break;
+		case TYPE_CHAR:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : (char)parseInt());
+			}
+			break;
+		case TYPE_INT:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : parseInt());
+			}
+			break;
+		case TYPE_LONG:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : parseLong());
+			}
+			break;
+		case TYPE_FLOAT:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : (float)parseDouble());
+			}
+			break;
+		case TYPE_DOUBLE:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : parseDouble());
+			}
+			break;
+		case TYPE_STRING:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, skipColon() == 'n' ? null : parseString(false));
+			}
+			break;
+		case TYPE_OBJECT:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				m.put(k, parse(null, skipColon()));
+			}
+			break;
+		case TYPE_POS:
+			for (; b != '}'; b = skipVar('}')) {
+				Object k = keyParser.parse(this, b);
+				skipColon();
+				m.put(k, new Pos(pos));
+			}
+			break;
+		case TYPE_CUSTOM:
+			ClassMeta<?> subClassMeta = fm.classMeta;
+			if (subClassMeta == null)
+				fm.classMeta = subClassMeta = json.getClassMeta(fm.klass);
+			Parser<?> parser = subClassMeta.parser;
+			if (parser != null) {
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					skipColon();
+					m.put(k, parser.parse0(this, subClassMeta, fm, null, m));
+				}
+			} else {
+				if (ClassMeta.isAbstract(subClassMeta.klass)) {
+					throw new InstantiationException(
+							"abstract value class: " + fm.getName() + " in " + classMeta.klass.getName());
+				}
+				for (; b != '}'; b = skipVar('}')) {
+					Object k = keyParser.parse(this, b);
+					skipColon();
+					m.put(k, parse0(subClassMeta.ctor.create(), subClassMeta));
+				}
+			}
+			break;
+		}
+		pos++;
 	}
 
 	@SuppressWarnings("UnnecessaryLocalVariable")

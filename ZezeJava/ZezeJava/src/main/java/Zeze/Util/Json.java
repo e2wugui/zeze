@@ -60,8 +60,8 @@ public final class Json implements Cloneable {
 		public final @NotNull Field field;
 		public final @Nullable Type[] paramTypes;
 
-		FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
-				  @Nullable KeyReader keyReader, @NotNull Field field) {
+		public FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
+						 @Nullable KeyReader keyReader, @NotNull Field field) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
 			this.type = type;
@@ -170,7 +170,7 @@ public final class Json implements Cloneable {
 		}
 
 		@SuppressWarnings("unchecked")
-		private static <T> @NotNull Creator<T> getDefCtor(@NotNull Class<T> klass) {
+		public static <T> @NotNull Creator<T> getDefCtor(@NotNull Class<T> klass) {
 			for (Constructor<?> c : klass.getDeclaredConstructors()) {
 				if (c.getParameterCount() == 0) {
 					setAccessible(c);
@@ -204,14 +204,30 @@ public final class Json implements Cloneable {
 			return null;
 		}
 
+		private static Class<?> getRawClass(Type type) {
+			if (type instanceof Class)
+				return (Class<?>)type;
+			if (type instanceof ParameterizedType)
+				return (Class<?>)((ParameterizedType)type).getRawType();
+			if (type instanceof TypeVariable) {
+				Type[] bounds = ((TypeVariable<?>)type).getBounds();
+				if (bounds.length > 0)
+					return getRawClass(bounds[0]);
+			}
+			return Object.class;
+		}
+
 		private static Type[] getMapSubClasses(Type geneType) { // X<K,V>, X extends Y<K,V>, X implements Y<K,V>
 			if (geneType instanceof ParameterizedType) {
 				//noinspection PatternVariableCanBeUsed
 				ParameterizedType paraType = (ParameterizedType)geneType;
 				if (Map.class.isAssignableFrom((Class<?>)paraType.getRawType())) {
 					Type[] subTypes = paraType.getActualTypeArguments();
-					if (subTypes.length == 2 && subTypes[0] instanceof Class && subTypes[1] instanceof Class)
+					if (subTypes.length == 2) {
+						subTypes[0] = getRawClass(subTypes[0]);
+						subTypes[1] = getRawClass(subTypes[1]);
 						return subTypes;
+					}
 				}
 			}
 			if (geneType instanceof Class) {
@@ -319,7 +335,7 @@ public final class Json implements Cloneable {
 			}
 		}
 
-		static int getType(Class<?> klass) {
+		public static int getType(Class<?> klass) {
 			Integer type = typeMap.get(klass);
 			return type != null ? type : TYPE_CUSTOM;
 		}
