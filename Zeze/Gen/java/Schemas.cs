@@ -100,11 +100,15 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"            var.keyName = \"{GetFullName(map.KeyType)}\";");
                     sw.WriteLine($"            var.valueName = \"{GetFullName(map.ValueType)}\";");
                 }
-
-                if (v.VariableType is TypeDynamic dynamic)
+                else if (v.VariableType is TypeDynamic dynamic)
                 {
                     foreach (var real in dynamic.RealBeans)
                         sw.WriteLine($"            var.dynamicBeans.put({real.Key}L, \"{real.Value.FullName}\");");
+                }
+                else if (v.VariableType is TypeGTable table)
+                {
+                    sw.WriteLine($"            var.keyName = \"{GetFullName(table.RowKeyType)},{GetFullName(table.ColKeyType)}\";");
+                    sw.WriteLine($"            var.valueName = \"{GetFullName(table.ValueType)}\";");
                 }
 
                 sw.WriteLine($"            bean.addVariable(var);");

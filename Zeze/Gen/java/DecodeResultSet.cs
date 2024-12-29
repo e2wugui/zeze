@@ -243,7 +243,8 @@ namespace Zeze.Gen.java
         public void Visit(TypeGTable type)
         {
             ensureParentsName();
-            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {NamePrivate}.getPMap2(), {bb}.getString({ParaneName}\"{ColumnName}\"));");
+            var name12 = type.ValueType.IsNormalBean ? "2" : "1";
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonGTable{name12}(this, \"{var.Name}\", {NamePrivate}, {bb}.getString({ParaneName}\"{ColumnName}\"));");
         }
     }
 }

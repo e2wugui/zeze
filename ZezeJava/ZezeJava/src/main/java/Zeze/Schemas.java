@@ -181,6 +181,7 @@ public class Schemas implements Serializable {
 			compatibleTable.put("vector3int", 6);
 			compatibleTable.put("vector4", 6);
 			compatibleTable.put("quaternion", 6);
+			compatibleTable.put("gtable", 7);
 		}
 		//VectorBean
 
@@ -274,6 +275,7 @@ public class Schemas implements Serializable {
 			sqlTypeTable.put("array", "TEXT");
 			sqlTypeTable.put("set", "TEXT");
 			sqlTypeTable.put("map", "TEXT");
+			sqlTypeTable.put("gtable", "TEXT");
 			// 下面的类型会被展开，这里的类型展开后的实际类型。
 			sqlTypeTable.put("vector2", "FLOAT");
 			sqlTypeTable.put("vector2int", "INT");
@@ -951,6 +953,8 @@ public class Schemas implements Serializable {
 			case "set":
 			case "map":
 				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "gtable":
+				return KV.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
 			}
 			throw new UnsupportedOperationException("unknown type=" + type);
