@@ -11,7 +11,7 @@
 下面稍微详细的用例子介绍三个步骤。
 
 * 定义数据结构
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <solution name="QuickStart" ModuleIdAllowRanges="1-100,101">
 <module name="Role" id="1">
@@ -46,7 +46,7 @@
 
 * 使用例子 (java)
 
-```
+```java
 // Gen.exe 会根据定义自动生成空的处理函数。里面的代码就是自己的实现了。
 @Override
 long ProcessAddExperience(QuickStart.Role.AddExperience r) {
@@ -152,7 +152,7 @@ void addItemToBag(long roleid, int itemId) {
 要求，本身是作为一个库提供的。当然，为了发挥Zeze的能力，solution.xml是必要的。下
 面是第一个简单solution.xml。
 
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Game" ModuleIdAllowRanges="1-1000">
@@ -208,7 +208,7 @@ base="Zeze.Arch.ProviderDirectService">
 议处理框架的实现部分，不会全部被覆盖。其中最主要的是（对应上面的solution.xml）
 MyApp.Login.ModuleLogin.java。一般如下样子：
 
-```
+```java
 package MyApp.Login;
 
 import Game.App;
@@ -246,7 +246,7 @@ public final class ModuleLogin extends AbstractModule {
 ## 创建Arch.Linkd（Java）
 
 * Solution.linkd.xml
-```
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zezex" ModuleIdAllowRanges="10000-10999">
@@ -283,7 +283,7 @@ Solution.linkd.xml生成代码时，会生成linkd/src/Zezex/App.java，其中St
 始化启动的函数。默认生成的Start是没有引入Zeze.Arch模块的，使用它需要自己加入几
 行代码。下面是来自Zezex例子，变动部分看斜体部分。
 
-```
+```java
 	public void Start(int serverId, int linkPort, int providerPort) throws Exception {
 		//1. 默认生成的Start是没有参数的，由于Start是用户代码，
 　　//Zezex已经把它修改成支持更多参数。
@@ -331,7 +331,7 @@ ZezexJava。如果你发现你的第一次生成的代码，和斜体部分除�
 Solution.xml 参见上上节的创建Zeze应用。这里只说明一下App.java::Start怎么引入
 Zeze.Arch。
 
-```
+```java
 	public void Start(int serverId, int providerDirectPort) throws Exception {
 　　//1. 默认生成的Start是没有参数的，由于Start是用户代码，
 　　//Zezex已经把它修改成支持更多参数。

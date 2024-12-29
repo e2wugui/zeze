@@ -10,7 +10,7 @@
 在处理函数前面加注解。注解的优先级最高，会覆盖定义协议时的配置。例子：
 @Zeze.Util.TransactionLevelAnnotation(Level=Zeze.Transaction.TransactionLevel.None)
 
-```
+```java
 public enum TransactionLevel {
     None, // 不需要事务
     Serializable, // 可串行化的事务。【Default】
@@ -46,7 +46,7 @@ public enum TransactionLevel {
 当业务需要忽略部分失败，并继续执行事务时，就需要嵌套存储过程。此时需要主动创建存
 储过程。创建存储过程接口为：Zeze.Application.NewProcedure。例子如下：
 
-```
+```java
 protected long ProcessMainTransaction(SomeProtocol p) {
 　　// 一些处理
 	if (0 != App.Zeze.NewProcedure(MyNestProcedure, “MyNestProcedure”).Call()) {
@@ -80,7 +80,7 @@ Zeze采用乐观锁，事务执行过程中不会对数据加锁，在最后提�
 •	WhileRollback 事务失败回滚时执行。
 这两个方法定义在Zeze.Transaction.Transaction中。
 
-```
+```java
 　　public void VerifyAccountSum() {
 　　  var account1 = tableAccount.get(“tom”);
 　　  var account2 = talbeAccount.get(“jack”);

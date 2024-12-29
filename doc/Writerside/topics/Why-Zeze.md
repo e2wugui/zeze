@@ -30,7 +30,7 @@
 
 ## 一个游戏里面得到经验升级的代码例子(c#)。
 
-```
+```c#
 	Void TryLevelUp(long NewExperience)
 	{
 	    Role.Experience += NewExperience; // 累加上新的经验
