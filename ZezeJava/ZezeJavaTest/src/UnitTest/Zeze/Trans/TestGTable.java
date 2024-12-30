@@ -1,12 +1,12 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Builtin.Auth.BAccountAuth;
-import Zeze.Builtin.Auth.BAccountAuthReadOnly;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Json;
 import demo.App;
+import demo.Bean1ReadOnly;
+import demo.ModuleGTable.Bean1;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public class TestGTable {
 	}
 
 	static class C2 {
-		GTable2<Integer, Long, BAccountAuth, BAccountAuthReadOnly> g = new GTable2<>(Integer.class, Long.class, BAccountAuth.class);
+		GTable2<Integer, Long, Bean1, Bean1ReadOnly> g = new GTable2<>(Integer.class, Long.class, Bean1.class);
 	}
 
 	@Test
@@ -71,8 +71,8 @@ public class TestGTable {
 	public void testGTable2() {
 		var c = new C2();
 		var g = c.g;
-		var b = new BAccountAuth();
-		b.getRoles().add("abc");
+		var b = new Bean1();
+		b.setIntVar(1);
 		g.put(1, 2L, b);
 		var s = Json.toCompactString(c);
 		System.out.println(s);

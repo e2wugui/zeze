@@ -310,44 +310,27 @@ namespace Zeze.Gen.java
                     string value = v.Value;
 
                     var vType = v.VariableType;
-                    if (vType.IsBean)
-                    {
-                        type = Variable.GetBeanFullName(vType);
-                    }
-                    else if (vType.IsCollection)
+                    type = Variable.GetTypeFullName(vType);
+                    if (vType.IsCollection)
                     {
                         if (vType is TypeMap map)
                         {
-                            if (map.KeyType.IsBean)
-                                key = Variable.GetBeanFullName(map.KeyType);
-                            if (map.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(map.ValueType);
+                            key = Variable.GetTypeFullName(map.KeyType);
+                            value = Variable.GetTypeFullName(map.ValueType);
                         }
                         else if (vType is TypeList list)
                         {
-                            if (list.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(list.ValueType);
+                            value = Variable.GetTypeFullName(list.ValueType);
                         }
                         else if (vType is TypeSet set)
                         {
-                            if (set.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(set.ValueType);
+                            value = Variable.GetTypeFullName(set.ValueType);
                         }
                     }
                     else if (vType is TypeGTable table)
                     {
-                        key = "";
-                        if (table.RowKeyType.IsBean) // beanKey
-                            key += Variable.GetBeanFullName(table.RowKeyType);
-                        else
-                            key += table.RowKey;
-                        key += ",";
-                        if (table.ColKeyType.IsBean) // beanKey
-                            key += Variable.GetBeanFullName(table.ColKeyType);
-                        else
-                            key += table.ColKey;
-                        if (table.ValueType.IsBean)
-                            value = Variable.GetBeanFullName(table.ValueType);
+                        key = $"{Variable.GetTypeFullName(table.RowKeyType)},{Variable.GetTypeFullName(table.ColKeyType)}";
+                        value = Variable.GetTypeFullName(table.ValueType);
                     }
                     sw.WriteLine($"{prefix}    _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
                 }

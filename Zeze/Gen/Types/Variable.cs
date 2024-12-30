@@ -32,19 +32,18 @@ namespace Zeze.Gen.Types
 
 		public DynamicParams DynamicParams { get; } = new();
 
-		public static string GetBeanFullName(Type type)
+		public static string GetTypeFullName(Type type)
 		{
 			if (type is Bean bean)
 				return bean.FullName;
 			if (type is BeanKey beanKey)
 				return beanKey.FullName;
-
-			throw new Exception("type is not a bean: " + type.Name);
+			return type.Name;
 		}
 
         public string GetBeanFullName()
 		{
-			return GetBeanFullName(Bean);
+			return GetTypeFullName(Bean);
 		}
 
 		string ParseDynamicBase(string type)

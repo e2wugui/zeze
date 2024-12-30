@@ -99,28 +99,22 @@ namespace Zeze.Gen.java
                     string value = v.Value;
 
                     var vType = v.VariableType;
-                    if (vType.IsBean)
-                    {
-                        type = Variable.GetBeanFullName(vType);
-                    }
-                    else if (vType.IsCollection)
+                    type = Variable.GetTypeFullName(vType);
+                    // beankey 不可能有容器，直接报错吧？
+                    if (vType.IsCollection)
                     {
                         if (vType is TypeMap map)
                         {
-                            if (map.KeyType.IsBean)
-                                key = Variable.GetBeanFullName(map.KeyType);
-                            if (map.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(map.ValueType);
+                            key = Variable.GetTypeFullName(map.KeyType);
+                            value = Variable.GetTypeFullName(map.ValueType);
                         }
                         else if (vType is TypeList list)
                         {
-                            if (list.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(list.ValueType);
+                            value = Variable.GetTypeFullName(list.ValueType);
                         }
                         else if (vType is TypeSet set)
                         {
-                            if (set.ValueType.IsBean)
-                                value = Variable.GetBeanFullName(set.ValueType);
+                            value = Variable.GetTypeFullName(set.ValueType);
                         }
                     }
                     sw.WriteLine($"{prefix}    vars.add(new Zeze.Builtin.HotDistribute.BVariable.Data({v.Id}, \"{v.Name}\", \"{type}\", \"{key}\", \"{value}\"));");
