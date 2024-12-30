@@ -27,7 +27,6 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		return mapKey;
 	}
 
-
 	public Zeze.Transaction.Collections.PMap2<C, V> getPMap2() {
 		return pMap2;
 	}
@@ -37,11 +36,13 @@ public final class BeanMap2<C, V extends Bean, VReadOnly> extends Bean implement
 		return new Zeze.Transaction.Collections.PMap2ReadOnly<>(pMap2);
 	}
 
+	@SuppressWarnings("deprecation")
 	public BeanMap2(Class<C> colClass, Class<V> valueClass) {
 		pMap2 = new Zeze.Transaction.Collections.PMap2<>(colClass, valueClass);
 		pMap2.variableId(1);
 	}
 
+	@SuppressWarnings("deprecation")
 	public BeanMap2(Meta2<C, V> meta) {
 		pMap2 = new Zeze.Transaction.Collections.PMap2<>(meta);
 		pMap2.variableId(1);

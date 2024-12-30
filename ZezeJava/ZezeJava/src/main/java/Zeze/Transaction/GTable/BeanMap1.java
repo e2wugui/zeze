@@ -36,11 +36,13 @@ public class BeanMap1<C, V> extends Bean implements Map<C, V>, BeanMap1ReadOnly<
 		return new Zeze.Transaction.Collections.PMap1ReadOnly<>(pMap1);
 	}
 
+	@SuppressWarnings("deprecation")
 	public BeanMap1(Class<C> colClass, Class<V> valueClass) {
 		pMap1 = new Zeze.Transaction.Collections.PMap1<>(colClass, valueClass);
 		pMap1.variableId(1);
 	}
 
+	@SuppressWarnings("deprecation")
 	public BeanMap1(Meta2<C, V> meta) {
 		pMap1 = new Zeze.Transaction.Collections.PMap1<>(meta);
 		pMap1.variableId(1);

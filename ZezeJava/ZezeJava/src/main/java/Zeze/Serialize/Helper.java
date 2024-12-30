@@ -186,8 +186,8 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void decodeJsonGTable1(@NotNull Bean parentBean, @NotNull String fieldName,
-										 @NotNull GTable1<?, ?, ?> map, @Nullable String jsonStr) {
-		map.clear();
+										 @NotNull Object map, @Nullable String jsonStr) {
+		((GTable1<?, ?, ?>)map).clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
 			try {
@@ -203,8 +203,8 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void decodeJsonGTable2(@NotNull Bean parentBean, @NotNull String fieldName,
-										 @NotNull GTable2<?, ?, ?, ?> map, @Nullable String jsonStr) {
-		map.clear();
+										 @NotNull Object map, @Nullable String jsonStr) {
+		((GTable2<?, ?, ?, ?>)map).clear();
 		if (jsonStr != null) {
 			var jr = JsonReader.local();
 			try {

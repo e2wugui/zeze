@@ -77,6 +77,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 
 	private final @NotNull PMap2<R, BeanMap1<C, V>> pMap2;
 
+	@SuppressWarnings("deprecation")
 	public void variableId(int id) {
 		pMap2.variableId(id);
 	}
