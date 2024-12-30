@@ -18,7 +18,7 @@ public class TestGTable {
 	}
 
 	@Test
-	public void testGTableBegin() {
+	public void testGTable1Basic() {
 		// putGTable
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable();
@@ -36,7 +36,7 @@ public class TestGTable {
 			gTable1.getGTable().put(2, 2, 2);
 			Assert.assertEquals(Integer.valueOf(2), gTable1.getGTable().get(2, 2));
 			return Procedure.LogicError; // rollback
-		}, "putGTable").call();
+		}, "putGTableRollback").call();
 		// check 1 exist and 2 null
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable();
@@ -44,7 +44,54 @@ public class TestGTable {
 			Assert.assertNotNull(gTable1.getGTable().get(1, 1));
 			Assert.assertNull(gTable1.getGTable().get(2, 2));
 			return 0; // readonly and commit
+		}, "GTableCheck").call();
+	}
+
+
+	@Test
+	public void testGTable2Basic() {
+		// putGTable
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNull(gTable1.getGTable().get(1, 1));
+			gTable1.getGTable().put(1, 1, new Bean1());
+			Assert.assertEquals(new Bean1(), gTable1.getGTable().get(1, 1));
+			return 0;
 		}, "putGTable").call();
+		// check and put 2 and rollback
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNull(gTable1.getGTable().get(2, 2));
+			gTable1.getGTable().put(2, 2, new Bean1());
+			Assert.assertEquals(new Bean1(), gTable1.getGTable().get(2, 2));
+			return Procedure.LogicError; // rollback
+		}, "putGTableRollback").call();
+		// check 1 exist and 2 null
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var gTable1 = table.getOrAdd(1L);
+			Assert.assertNotNull(gTable1.getGTable().get(1, 1));
+			Assert.assertNull(gTable1.getGTable().get(2, 2));
+			return 0; // readonly and commit
+		}, "checkGTable").call();
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var gTable1 = table.getOrAdd(1L);
+			var bean1 = gTable1.getGTable().get(1, 1);
+			Assert.assertNotNull(bean1);
+			bean1.setIntVar(123);
+			return Procedure.LogicError; // rollback
+		}, "setGTableBeanRollback").call();
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			var gTable1 = table.getOrAdd(1L);
+			var bean1 = gTable1.getGTable().get(1, 1);
+			Assert.assertNotNull(bean1);
+			Assert.assertEquals(bean1.getIntVar(), 0);
+			return 0; // rollback
+		}, "setGTableBeanRollbackCheck").call();
 	}
 
 	static class C1 {
