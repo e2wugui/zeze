@@ -22,14 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.locks.ReentrantLock;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 @GwtCompatible
 class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializable {
 
-	ReentrantLock lock = new ReentrantLock();
 	Map<R, Map<C, V>> backingMap;
 	Supplier<? extends Map<C, V>> factory;
 	private transient @MonotonicNonNull Set<C> columnKeySet;
@@ -196,13 +194,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 	}
 
 	public Set<C> columnKeySet() {
-		lock.lock();
-		try {
-			Set<C> result = this.columnKeySet;
-			return result == null ? (this.columnKeySet = new StandardTable.ColumnKeySet()) : result;
-		} finally {
-			lock.unlock();
-		}
+		Set<C> result = this.columnKeySet;
+		return result == null ? (this.columnKeySet = new StandardTable.ColumnKeySet()) : result;
 	}
 
 	Iterator<C> createColumnKeyIterator() {
@@ -214,13 +207,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 	}
 
 	public Map<R, Map<C, V>> rowMap() {
-		lock.lock();
-		try {
-			Map<R, Map<C, V>> result = this.rowMap;
-			return result == null ? (this.rowMap = this.createRowMap()) : result;
-		} finally {
-			lock.unlock();
-		}
+		Map<R, Map<C, V>> result = this.rowMap;
+		return result == null ? (this.rowMap = this.createRowMap()) : result;
 	}
 
 	Map<R, Map<C, V>> createRowMap() {
@@ -228,13 +216,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 	}
 
 	public Map<C, Map<R, V>> columnMap() {
-		lock.lock();
-		try {
-			StandardTable<R, C, V>.ColumnMap result = this.columnMap;
-			return result == null ? (this.columnMap = new StandardTable.ColumnMap()) : result;
-		} finally {
-			lock.unlock();
-		}
+		StandardTable<R, C, V>.ColumnMap result = this.columnMap;
+		return result == null ? (this.columnMap = new StandardTable.ColumnMap()) : result;
 	}
 
 	private class ColumnMap extends Maps2.ViewCachingAbstractMap<C, Map<R, V>> {
