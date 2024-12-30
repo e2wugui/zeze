@@ -119,7 +119,7 @@ public class TestGTable {
 		var c = new C2();
 		var g = c.g;
 		var b = new Bean1();
-		b.setIntVar(1);
+		b.setIntVar(3);
 		g.put(1, 2L, b);
 		var s = Json.toCompactString(c);
 		System.out.println(s);

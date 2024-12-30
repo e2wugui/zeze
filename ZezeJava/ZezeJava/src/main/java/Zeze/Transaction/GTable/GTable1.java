@@ -5,9 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.Collections.PMap2;
-import Zeze.Transaction.HasManagedException;
 import Zeze.Transaction.Record;
-import Zeze.Transaction.Transaction;
 import Zeze.Util.Json;
 import com.google.common.base.Supplier;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +14,7 @@ import static Zeze.Util.Json.ensureNotNull;
 
 @SuppressWarnings("unchecked")
 public class GTable1<R, C, V> extends StandardTable<R, C, V> {
-	private static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
+	public static final class Factory<R, C, V> implements Supplier<Map<C, V>> {
 		private final @NotNull Meta2<R, BeanMap1<C, V>> pmapMeta;
 		private final @NotNull Meta2<C, V> bmapMeta;
 		private Json.FieldMeta fm1, fm2;
@@ -24,6 +22,14 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		Factory(@NotNull Meta2<R, BeanMap1<C, V>> pmapMeta, @NotNull Meta2<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
+		}
+
+		public @NotNull Meta2<R, BeanMap1<C, V>> getPmapMeta() {
+			return pmapMeta;
+		}
+
+		public @NotNull Meta2<C, V> getBmapMeta() {
+			return bmapMeta;
 		}
 
 		@Override
@@ -88,7 +94,6 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		pMap2.initRootInfo(_r_, this);
 	}
 
-
 	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
 		pMap2.initRootInfoWithRedo(_r_, this);
 	}
@@ -131,7 +136,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 		super.factory = factory;
 	}
 
-	private static <R, C, V> @NotNull Factory<R, C, V> getFactory(
+	public static <R, C, V> @NotNull Factory<R, C, V> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());

@@ -3,9 +3,8 @@
 <zeze
 	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5002"
 	CheckpointPeriod="6000000" ServerId="0" CheckpointMode="Table" CheckpointFlushMode="MultiThreadMerge" CheckpointModeTableFlushConcurrent="4"
-	ServiceManager="" History=""
+	ServiceManager="" History="ZezeTest"
 	>
-	<!-- History="ZezeTest" Enable History -->
 
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>

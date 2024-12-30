@@ -20,8 +20,8 @@ import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.DynamicBean;
-import Zeze.Transaction.GTable.BeanMap1;
-import Zeze.Transaction.GTable.BeanMap2;
+import Zeze.Transaction.GTable.GTable1;
+import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.LogDynamic;
 import Zeze.Transaction.Logs.LogBeanKey;
@@ -53,10 +53,13 @@ public class Helper {
 		public final HashSet<Class<? extends Serializable>> beanKeys = new HashSet<>();
 		public final HashSet<Class<?>> list1 = new HashSet<>();
 		public final HashSet<Class<? extends Bean>> list2 = new HashSet<>();
+		public final HashSet<KV<ToLongFunction<Bean>, LongFunction<Bean>>> list2Dynamic = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<?>>> map1 = new HashSet<>();
 		public final HashSet<KV<Class<?>, Class<? extends Bean>>> map2 = new HashSet<>();
 		public final HashMap<KV<Class<?>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
 				map2Dynamic = new HashMap<>();
+		public final HashSet<Meta2<?, ?>> map1Metas = new HashSet<>();
+		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 	}
 
@@ -81,12 +84,18 @@ public class Helper {
 			registerLogList1(list1Class);
 		for (var list2Class : result.list2)
 			registerLogList2(list2Class);
+		for (var list2Dynamic : result.list2Dynamic)
+			registerLogList2Dynamic(list2Dynamic.getKey(), list2Dynamic.getValue());
 		for (var map1KV : result.map1)
 			registerLogMap1(map1KV.getKey(), map1KV.getValue());
 		for (var map2KV : result.map2)
 			registerLogMap2(map2KV.getKey(), map2KV.getValue());
 		for (var e : result.map2Dynamic.entrySet())
 			registerLogMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
+		for (var meta : result.map1Metas)
+			registerLogMap1Meta(meta);
+		for (var meta : result.map2Metas)
+			registerLogMap2Meta(meta);
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
 		registerLogs();
@@ -112,7 +121,7 @@ public class Helper {
 					switch (type) {
 					case "list":
 					case "array":
-						dependsList(v.getValue(), result);
+						dependsList(beanClass, v, v.getValue(), result);
 						break;
 					case "map":
 						dependsMap(beanClass, v, v.getKey(), v.getValue(), result);
@@ -135,10 +144,21 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static void dependsList(@NotNull String valueType, @NotNull DependsResult result) throws Exception {
+	public static void dependsList(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String valueType,
+								   @NotNull DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
-			result.list1.add(valueClass);
+			if (valueClass == DynamicBean.class) {
+				try {
+					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
+							+ Character.toUpperCase(v.getName().charAt(0))
+							+ v.getName().substring(1)).invoke(null);
+					result.list2Dynamic.add(KV.create(db.getGetBean(), db.getCreateBean()));
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			} else
+				result.list1.add(valueClass);
 			return;
 		}
 		valueClass = Class.forName(valueType);
@@ -178,11 +198,11 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsGTable(@NotNull Class<?> beanClass,
-								  @NotNull BVariable.Data v,
-								  @NotNull String key1Type,
-								  @NotNull String key2Type,
-								  @NotNull String valueType,
-								  @NotNull DependsResult result) throws Exception {
+									 @NotNull BVariable.Data v,
+									 @NotNull String key1Type,
+									 @NotNull String key2Type,
+									 @NotNull String valueType,
+									 @NotNull DependsResult result) throws Exception {
 		var key1Class = getBuiltinBoxingClass(key1Type);
 		if (key1Class == null) {
 			key1Class = Class.forName(key1Type); // must be BeanKey.
@@ -198,10 +218,12 @@ public class Helper {
 		if (is2) {
 			valueClass = Class.forName(valueType); // bean or beanKey
 			dependsBean(valueClass, result);
-			result.map2.add(KV.create(key1Class, BeanMap2.class));
-			result.map2.add(KV.create(key2Class, (Class<? extends Bean>)valueClass));
+			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
+			result.map2Metas.add(factory.getPmapMeta());
+			result.map2Metas.add(factory.getBmapMeta());
 		} else if (valueClass == DynamicBean.class) {
-			result.map2.add(KV.create(key1Class, BeanMap2.class));
+			var factory = GTable2.getFactory(key1Class, key2Class, (Class<? extends Bean>)valueClass);
+			result.map2Metas.add(factory.getPmapMeta());
 			result.map2Dynamic.computeIfAbsent(KV.create(key2Class, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
@@ -213,8 +235,9 @@ public class Helper {
 				}
 			});
 		} else {
-			result.map2.add(KV.create(key1Class, BeanMap1.class));
-			result.map1.add(KV.create(key2Class, valueClass));
+			var factory = GTable1.getFactory(key1Class, key2Class, valueClass);
+			result.map2Metas.add(factory.getPmapMeta());
+			result.map1Metas.add(factory.getBmapMeta());
 		}
 	}
 
@@ -268,6 +291,12 @@ public class Helper {
 		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), Meta1.getList2Meta(valueClass)));
 	}
 
+	public static void registerLogList2Dynamic(@NotNull ToLongFunction<Bean> get,
+											   @NotNull LongFunction<Bean> create) {
+		var meta = Meta1.<Bean>createDynamicListMeta(get, create);
+		Log.register(varId -> new LogList2<>(null, varId, null, Empty.vector(), meta));
+	}
+
 	public static <K, V> void registerLogMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
 		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), Meta2.getMap1Meta(keyClass, valueClass)));
 	}
@@ -280,6 +309,14 @@ public class Helper {
 												  @NotNull ToLongFunction<Bean> get,
 												  @NotNull LongFunction<Bean> create) {
 		var meta = Meta2.createDynamicMapMeta(keyClass, get, create);
+		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
+	}
+
+	public static <K, V> void registerLogMap1Meta(@NotNull Meta2<K, V> meta) {
+		Log.register(varId -> new LogMap1<>(null, varId, null, Empty.map(), meta));
+	}
+
+	public static <K, V extends Bean> void registerLogMap2Meta(@NotNull Meta2<K, V> meta) {
 		Log.register(varId -> new LogMap2<>(null, varId, null, Empty.map(), meta));
 	}
 

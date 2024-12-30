@@ -14,7 +14,7 @@ import static Zeze.Util.Json.ensureNotNull;
 
 @SuppressWarnings("unchecked")
 public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C, V> {
-	private static final class Factory<R, C, V extends Bean, VReadOnly> implements Supplier<Map<C, V>> {
+	public static final class Factory<R, C, V extends Bean, VReadOnly> implements Supplier<Map<C, V>> {
 		private final @NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> pmapMeta;
 		private final @NotNull Meta2<C, V> bmapMeta;
 		private Json.FieldMeta fm1, fm2;
@@ -22,6 +22,14 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		Factory(@NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> pmapMeta, @NotNull Meta2<C, V> bmapMeta) {
 			this.pmapMeta = pmapMeta;
 			this.bmapMeta = bmapMeta;
+		}
+
+		public @NotNull Meta2<R, BeanMap2<C, V, VReadOnly>> getPmapMeta() {
+			return pmapMeta;
+		}
+
+		public @NotNull Meta2<C, V> getBmapMeta() {
+			return bmapMeta;
 		}
 
 		@Override
@@ -87,7 +95,6 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		pMap2.initRootInfo(_r_, this);
 	}
 
-
 	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
 		pMap2.initRootInfoWithRedo(_r_, this);
 	}
@@ -130,7 +137,7 @@ public class GTable2<R, C, V extends Bean, VReadOnly> extends StandardTable<R, C
 		super.factory = factory;
 	}
 
-	private static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
+	public static <R, C, V extends Bean, VReadOnly> @NotNull Factory<R, C, V, VReadOnly> getFactory(
 			@NotNull Class<R> rowClass, @NotNull Class<C> colClass, @NotNull Class<V> valClass) {
 		var map = factories.computeIfAbsent(rowClass, __ -> new ConcurrentHashMap<>())
 				.computeIfAbsent(colClass, __ -> new ConcurrentHashMap<>());
