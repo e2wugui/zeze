@@ -362,7 +362,7 @@
 			<module ref="Skill"/>
 			<module ref="Buf"/>
 			<module ref="Equip"/>
-			<module ref="Map" dynamic="true"/> 地图模块动态绑定。
+			<module ref="Map"/> 地图模块动态绑定。
 			<module ref="Rank"/>
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
