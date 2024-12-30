@@ -2,11 +2,16 @@ package Zeze.Transaction.GTable;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.Collections.PMap2;
+import Zeze.Transaction.HasManagedException;
+import Zeze.Transaction.Record;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.Json;
 import com.google.common.base.Supplier;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;
 
 @SuppressWarnings("unchecked")
@@ -69,6 +74,25 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 	public void variableId(int id) {
 		pMap2.variableId(id);
 	}
+
+	public final void initRootInfoWithRedo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+		pMap2.initRootInfoWithRedo(rootInfo, parent);
+	}
+
+	public final void initRootInfo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+		pMap2.initRootInfo(rootInfo, parent);
+	}
+
+	/*
+	protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
+		pMap2.initRootInfo(_r_, this);
+	}
+
+
+	protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
+		pMap2.initRootInfoWithRedo(_r_, this);
+	}
+	*/
 
 	public void assign(GTable1<R, C, V> other) {
 		pMap2.clear();

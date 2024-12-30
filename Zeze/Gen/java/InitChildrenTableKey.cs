@@ -10,7 +10,7 @@ namespace Zeze.Gen.java
             var genBegin = false;
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic || v.VariableType is TypeGTable)
                 {
                     if (!genBegin)
                     {
@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
             genBegin = false;
             foreach (Variable v in bean.Variables)
             {
-                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic)
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection || v.VariableType is TypeDynamic || v.VariableType is TypeGTable)
                 {
                     if (!genBegin)
                     {
