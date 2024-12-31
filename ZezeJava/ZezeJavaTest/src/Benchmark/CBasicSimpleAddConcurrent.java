@@ -11,7 +11,7 @@ import org.junit.Assert;
 @SuppressWarnings("NewClassNamingConvention")
 public class CBasicSimpleAddConcurrent extends TestCase {
 	public final static int AddCount = 2_000_000;
-	public final static int ConcurrentLevel = 1_000;
+	public final static int ConcurrentLevel = 5_000;
 
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();
