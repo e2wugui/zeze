@@ -510,10 +510,10 @@ public class Maps2 {
 
 		@Override
 		public Set<Entry<K, V>> entrySet() {
-			return new EntrySet<K, V>() {
+			return new Maps2.EntrySet<K, V>() {
 				@Override
 				Map<K, V> map() {
-					return IteratorBasedAbstractMap.this;
+					return Maps2.IteratorBasedAbstractMap.this;
 				}
 
 				@Override

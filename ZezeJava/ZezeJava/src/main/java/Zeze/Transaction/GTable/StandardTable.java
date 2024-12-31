@@ -22,7 +22,6 @@ import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.Maps.immutableEntry;
-import static com.google.common.collect.Tables.immutableCell;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.GwtCompatible;
@@ -31,6 +30,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingMapEntry;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -341,6 +341,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
         backingMap.remove(rowKey);
         backingRowMap = null;
       }
+    }
 
     @Override
     public boolean containsKey(@CheckForNull Object key) {
