@@ -1,5 +1,6 @@
 package Zeze.Transaction.GTable;
 
+import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -21,7 +22,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.collect.UnmodifiableListIterator;
 import com.google.errorprone.annotations.concurrent.LazyInit;
@@ -61,11 +61,11 @@ public class Maps2 {
 		}
 	}
 
-	static boolean equalsImpl(com.google.common.collect.Table<?, ?, ?> table, @CheckForNull Object obj) {
+	static boolean equalsImpl(Table<?, ?, ?> table, @CheckForNull Object obj) {
 		if (obj == table) {
 			return true;
-		} else if (obj instanceof com.google.common.collect.Table) {
-			com.google.common.collect.Table<?, ?, ?> that = (Table<?, ?, ?>) obj;
+		} else if (obj instanceof Table) {
+			Table<?, ?, ?> that = (Table<?, ?, ?>) obj;
 			return table.cellSet().equals(that.cellSet());
 		} else {
 			return false;
@@ -568,4 +568,85 @@ public class Maps2 {
 		return compose(keyPredicate, Maps2.<K>keyFunction());
 	}
 
+	abstract static class AbstractCell<
+			R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+			implements Table.Cell<R, C, V> {
+		// needed for serialization
+		AbstractCell() {}
+
+		@Override
+		public boolean equals(@CheckForNull Object obj) {
+			if (obj == this) {
+				return true;
+			}
+			if (obj instanceof com.google.common.collect.Table.Cell) {
+				com.google.common.collect.Table.Cell<?, ?, ?> other = (com.google.common.collect.Table.Cell<?, ?, ?>) obj;
+				return Objects.equal(getRowKey(), other.getRowKey())
+						&& Objects.equal(getColumnKey(), other.getColumnKey())
+						&& Objects.equal(getValue(), other.getValue());
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(getRowKey(), getColumnKey(), getValue());
+		}
+
+		@Override
+		public String toString() {
+			return "(" + getRowKey() + "," + getColumnKey() + ")=" + getValue();
+		}
+	}
+
+	/**
+	 * Returns an immutable cell with the specified row key, column key, and value.
+	 *
+	 * <p>The returned cell is serializable.
+	 *
+	 * @param rowKey the row key to be associated with the returned cell
+	 * @param columnKey the column key to be associated with the returned cell
+	 * @param value the value to be associated with the returned cell
+	 */
+	public static <R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+	Table.Cell<R, C, V> immutableCell(
+			R rowKey,
+			C columnKey,
+			V value) {
+		return new ImmutableCell<>(rowKey, columnKey, value);
+	}
+
+	static final class ImmutableCell<
+			R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+			extends AbstractCell<R, C, V> implements Serializable {
+		private final R rowKey;
+		private final C columnKey;
+		private final V value;
+
+		ImmutableCell(
+				R rowKey,
+				C columnKey,
+				V value) {
+			this.rowKey = rowKey;
+			this.columnKey = columnKey;
+			this.value = value;
+		}
+
+		@Override
+		public R getRowKey() {
+			return rowKey;
+		}
+
+		@Override
+		public C getColumnKey() {
+			return columnKey;
+		}
+
+		@Override
+		public V getValue() {
+			return value;
+		}
+
+		private static final long serialVersionUID = 0;
+	}
 }

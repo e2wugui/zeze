@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import java.util.Set;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Procedure;
@@ -126,5 +127,29 @@ public class TestGTable {
 		g.clear();
 		Json.parse(s, c);
 		System.out.println(g);
+	}
+
+	@Test
+	public void testGTableRowCol() {
+		App.getInstance().Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			var gTable1 = table.getOrAdd(1L);
+			gTable1.getGTable().put(1, 1, 11);
+			gTable1.getGTable().put(1, 2, 12);
+			gTable1.getGTable().put(2, 1, 21);
+			gTable1.getGTable().put(2, 2, 22);
+
+			var result = Set.of(1, 2);
+			var col = gTable1.getGTable().column(1);
+			var row = gTable1.getGTable().row(1);
+			Assert.assertEquals(col.keySet(), result);
+			Assert.assertEquals(row.keySet(), result);
+			col.put(3, 31);
+			row.put(3, 13);
+			result = Set.of(1, 2, 3);
+			Assert.assertEquals(col.keySet(), result);
+			Assert.assertEquals(row.keySet(), result);
+			return 0;
+		}, "putEntrys").call();
 	}
 }

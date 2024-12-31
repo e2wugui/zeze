@@ -1,11 +1,25 @@
+/*
+ * Copyright (C) 2013 The Guava Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package Zeze.Transaction.GTable;
 
+import static com.google.common.collect.Maps.immutableEntry;
+
 import com.google.common.annotations.GwtCompatible;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Table;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.concurrent.LazyInit;
+import com.google.j2objc.annotations.WeakOuter;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -13,196 +27,224 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import javax.annotation.CheckForNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+/**
+ * Skeletal, implementation-agnostic implementation of the {@link Table} interface.
+ *
+ * @author Louis Wasserman
+ */
 @GwtCompatible
-abstract class AbstractTable<R, C, V> implements com.google.common.collect.Table<R, C, V> {
-	private transient @MonotonicNonNull Set<Table.Cell<R, C, V>> cellSet;
-	private transient @MonotonicNonNull Collection<V> values;
+abstract class AbstractTable<
+        R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+    implements Table<R, C, V> {
 
-	AbstractTable() {
-	}
+  @Override
+  public boolean containsRow(@CheckForNull Object rowKey) {
+    return Maps2.safeContainsKey(rowMap(), rowKey);
+  }
 
-	public boolean containsRow(@Nullable Object rowKey) {
-		return Maps2.safeContainsKey(this.rowMap(), rowKey);
-	}
+  @Override
+  public boolean containsColumn(@CheckForNull Object columnKey) {
+    return Maps2.safeContainsKey(columnMap(), columnKey);
+  }
 
-	public boolean containsColumn(@Nullable Object columnKey) {
-		return Maps2.safeContainsKey(this.columnMap(), columnKey);
-	}
+  @Override
+  public Set<R> rowKeySet() {
+    return rowMap().keySet();
+  }
 
-	public Set<R> rowKeySet() {
-		return this.rowMap().keySet();
-	}
+  @Override
+  public Set<C> columnKeySet() {
+    return columnMap().keySet();
+  }
 
-	public Set<C> columnKeySet() {
-		return this.columnMap().keySet();
-	}
+  @Override
+  public boolean containsValue(@CheckForNull Object value) {
+    for (Map<C, V> row : rowMap().values()) {
+      if (row.containsValue(value)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-	public boolean containsValue(@Nullable Object value) {
-		Iterator var2 = this.rowMap().values().iterator();
+  @Override
+  public boolean contains(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
+    return row != null && Maps2.safeContainsKey(row, columnKey);
+  }
 
-		Map row;
-		do {
-			if (!var2.hasNext()) {
-				return false;
-			}
+  @Override
+  @CheckForNull
+  public V get(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
+    return (row == null) ? null : Maps2.safeGet(row, columnKey);
+  }
 
-			row = (Map)var2.next();
-		} while(!row.containsValue(value));
+  @Override
+  public boolean isEmpty() {
+    return size() == 0;
+  }
 
-		return true;
-	}
+  @Override
+  public void clear() {
+    Maps2.clear(cellSet().iterator());
+  }
 
-	public boolean contains(@Nullable Object rowKey, @Nullable Object columnKey) {
-		Map<C, V> row = (Map)Maps2.safeGet(this.rowMap(), rowKey);
-		return row != null && Maps2.safeContainsKey(row, columnKey);
-	}
+  @CanIgnoreReturnValue
+  @Override
+  @CheckForNull
+  public V remove(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
+    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
+    return (row == null) ? null : Maps2.safeRemove(row, columnKey);
+  }
 
-	public V get(@Nullable Object rowKey, @Nullable Object columnKey) {
-		Map<C, V> row = (Map)Maps2.safeGet(this.rowMap(), rowKey);
-		return row == null ? null : Maps2.safeGet(row, columnKey);
-	}
+  @CanIgnoreReturnValue
+  @Override
+  @CheckForNull
+  public V put(
+      R rowKey, C columnKey, V value) {
+    return row(rowKey).put(columnKey, value);
+  }
 
-	public boolean isEmpty() {
-		return this.size() == 0;
-	}
+  @Override
+  public void putAll(Table<? extends R, ? extends C, ? extends V> table) {
+    for (Table.Cell<? extends R, ? extends C, ? extends V> cell : table.cellSet()) {
+      put(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
+    }
+  }
 
-	public void clear() {
-		Maps2.clear(this.cellSet().iterator());
-	}
+  @LazyInit @CheckForNull private transient Set<Cell<R, C, V>> cellSet;
 
-	@CanIgnoreReturnValue
-	public V remove(@Nullable Object rowKey, @Nullable Object columnKey) {
-		Map<C, V> row = (Map)Maps2.safeGet(this.rowMap(), rowKey);
-		return row == null ? null : Maps2.safeRemove(row, columnKey);
-	}
+  @Override
+  public Set<Cell<R, C, V>> cellSet() {
+    Set<Cell<R, C, V>> result = cellSet;
+    return (result == null) ? cellSet = createCellSet() : result;
+  }
 
-	@CanIgnoreReturnValue
-	public V put(R rowKey, C columnKey, V value) {
-		return this.row(rowKey).put(columnKey, value);
-	}
+  Set<Cell<R, C, V>> createCellSet() {
+    return new CellSet();
+  }
 
-	public void putAll(Table<? extends R, ? extends C, ? extends V> table) {
-		Iterator var2 = table.cellSet().iterator();
+  abstract Iterator<Table.Cell<R, C, V>> cellIterator();
 
-		while(var2.hasNext()) {
-			Table.Cell<? extends R, ? extends C, ? extends V> cell = (Table.Cell)var2.next();
-			this.put(cell.getRowKey(), cell.getColumnKey(), cell.getValue());
-		}
+  abstract Spliterator<Table.Cell<R, C, V>> cellSpliterator();
 
-	}
+  @WeakOuter
+  class CellSet extends AbstractSet<Cell<R, C, V>> {
+    @Override
+    public boolean contains(@CheckForNull Object o) {
+      if (o instanceof Cell) {
+        Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
+        Map<C, V> row = Maps2.safeGet(rowMap(), cell.getRowKey());
+        return row != null
+            && Maps2.safeContains(
+                row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
+      }
+      return false;
+    }
 
-	public Set<Table.Cell<R, C, V>> cellSet() {
-		Set<Table.Cell<R, C, V>> result = this.cellSet;
-		return result == null ? (this.cellSet = this.createCellSet()) : result;
-	}
+    @Override
+    public boolean remove(@CheckForNull Object o) {
+      if (o instanceof Cell) {
+        Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
+        Map<C, V> row = Maps2.safeGet(rowMap(), cell.getRowKey());
+        return row != null
+            && Maps2.safeRemove(
+                row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
+      }
+      return false;
+    }
 
-	Set<Table.Cell<R, C, V>> createCellSet() {
-		return new AbstractTable.CellSet();
-	}
+    @Override
+    public void clear() {
+      AbstractTable.this.clear();
+    }
 
-	abstract Iterator<Table.Cell<R, C, V>> cellIterator();
+    @Override
+    public Iterator<Table.Cell<R, C, V>> iterator() {
+      return cellIterator();
+    }
 
-	abstract Spliterator<Table.Cell<R, C, V>> cellSpliterator();
+    @Override
+    public Spliterator<Cell<R, C, V>> spliterator() {
+      return cellSpliterator();
+    }
 
-	public Collection<V> values() {
-		Collection<V> result = this.values;
-		return result == null ? (this.values = this.createValues()) : result;
-	}
+    @Override
+    public int size() {
+      return AbstractTable.this.size();
+    }
+  }
 
-	Collection<V> createValues() {
-		return new AbstractTable.Values();
-	}
+  @LazyInit @CheckForNull private transient Collection<V> values;
 
-	Iterator<V> valuesIterator() {
-		return new TransformedIterator<Cell<R, C, V>, V>(this.cellSet().iterator()) {
-			V transform(Table.Cell<R, C, V> cell) {
-				return cell.getValue();
-			}
-		};
-	}
+  @Override
+  public Collection<V> values() {
+    Collection<V> result = values;
+    return (result == null) ? values = createValues() : result;
+  }
 
-	Spliterator<V> valuesSpliterator() {
-		return CollectSpliterators2.map(this.cellSpliterator(), Table.Cell::getValue);
-	}
+  Collection<V> createValues() {
+    return new Values();
+  }
 
-	public boolean equals(@Nullable Object obj) {
-		return Maps2.equalsImpl(this, obj);
-	}
+  Iterator<V> valuesIterator() {
+    return new TransformedIterator<Cell<R, C, V>, V>(cellSet().iterator()) {
+      @Override
+      V transform(Cell<R, C, V> cell) {
+        return cell.getValue();
+      }
+    };
+  }
 
-	public int hashCode() {
-		return this.cellSet().hashCode();
-	}
+  Spliterator<V> valuesSpliterator() {
+    return CollectSpliterators2.map(cellSpliterator(), Table.Cell::getValue);
+  }
 
-	public String toString() {
-		return this.rowMap().toString();
-	}
+  @WeakOuter
+  class Values extends AbstractCollection<V> {
+    @Override
+    public Iterator<V> iterator() {
+      return valuesIterator();
+    }
 
-	class Values extends AbstractCollection<V> {
-		Values() {
-		}
+    @Override
+    public Spliterator<V> spliterator() {
+      return valuesSpliterator();
+    }
 
-		public Iterator<V> iterator() {
-			return AbstractTable.this.valuesIterator();
-		}
+    @Override
+    public boolean contains(@CheckForNull Object o) {
+      return containsValue(o);
+    }
 
-		public Spliterator<V> spliterator() {
-			return AbstractTable.this.valuesSpliterator();
-		}
+    @Override
+    public void clear() {
+      AbstractTable.this.clear();
+    }
 
-		public boolean contains(Object o) {
-			return AbstractTable.this.containsValue(o);
-		}
+    @Override
+    public int size() {
+      return AbstractTable.this.size();
+    }
+  }
 
-		public void clear() {
-			AbstractTable.this.clear();
-		}
+  @Override
+  public boolean equals(@CheckForNull Object obj) {
+    return Maps2.equalsImpl(this, obj);
+  }
 
-		public int size() {
-			return AbstractTable.this.size();
-		}
-	}
+  @Override
+  public int hashCode() {
+    return cellSet().hashCode();
+  }
 
-	class CellSet extends AbstractSet<Table.Cell<R, C, V>> {
-		CellSet() {
-		}
-
-		public boolean contains(Object o) {
-			if (!(o instanceof Table.Cell)) {
-				return false;
-			} else {
-				Table.Cell<?, ?, ?> cell = (Table.Cell)o;
-				Map<C, V> row = (Map)Maps2.safeGet(AbstractTable.this.rowMap(), cell.getRowKey());
-				return row != null && Maps2.safeContains(row.entrySet(), Maps.immutableEntry(cell.getColumnKey(), cell.getValue()));
-			}
-		}
-
-		public boolean remove(@Nullable Object o) {
-			if (!(o instanceof Table.Cell)) {
-				return false;
-			} else {
-				Table.Cell<?, ?, ?> cell = (Table.Cell)o;
-				Map<C, V> row = (Map)Maps2.safeGet(AbstractTable.this.rowMap(), cell.getRowKey());
-				return row != null && Maps2.safeRemove(row.entrySet(), Maps.immutableEntry(cell.getColumnKey(), cell.getValue()));
-			}
-		}
-
-		public void clear() {
-			AbstractTable.this.clear();
-		}
-
-		public Iterator<Table.Cell<R, C, V>> iterator() {
-			return AbstractTable.this.cellIterator();
-		}
-
-		public Spliterator<Table.Cell<R, C, V>> spliterator() {
-			return AbstractTable.this.cellSpliterator();
-		}
-
-		public int size() {
-			return AbstractTable.this.size();
-		}
-	}
+  /** Returns the string representation {@code rowMap().toString()}. */
+  @Override
+  public String toString() {
+    return rowMap().toString();
+  }
 }
