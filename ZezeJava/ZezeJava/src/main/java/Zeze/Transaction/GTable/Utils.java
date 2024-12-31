@@ -31,7 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.compose;
 
-public class Maps2 {
+public class Utils {
 	static boolean safeRemove(Collection<?> collection, @Nullable Object object) {
 		Preconditions.checkNotNull(collection);
 
@@ -217,11 +217,11 @@ public class Maps2 {
 
 	static <V extends @Nullable Object> Predicate<Map.Entry<?, V>> valuePredicateOnEntries(
 			Predicate<? super V> valuePredicate) {
-		return compose(valuePredicate, Maps2.<V>valueFunction());
+		return compose(valuePredicate, Utils.<V>valueFunction());
 	}
 	@SuppressWarnings("unchecked")
 	static <V extends @Nullable Object> Function<Map.Entry<?, V>, V> valueFunction() {
-		return (Function) Maps2.EntryFunction.VALUE;
+		return (Function) Utils.EntryFunction.VALUE;
 	}
 	private enum EmptyModifiableIterator implements Iterator<Object> {
 		INSTANCE;
@@ -439,7 +439,7 @@ public class Maps2 {
 			if (o instanceof Map.Entry) {
 				Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
 				Object key = entry.getKey();
-				V value = Maps2.safeGet(map(), key);
+				V value = Utils.safeGet(map(), key);
 				return Objects.equal(value, entry.getValue()) && (value != null || map().containsKey(key));
 			}
 			return false;
@@ -510,10 +510,10 @@ public class Maps2 {
 
 		@Override
 		public Set<Entry<K, V>> entrySet() {
-			return new Maps2.EntrySet<K, V>() {
+			return new Utils.EntrySet<K, V>() {
 				@Override
 				Map<K, V> map() {
-					return Maps2.IteratorBasedAbstractMap.this;
+					return Utils.IteratorBasedAbstractMap.this;
 				}
 
 				@Override
@@ -539,7 +539,7 @@ public class Maps2 {
 
 		@Override
 		public void clear() {
-			Maps2.clear(entryIterator());
+			Utils.clear(entryIterator());
 		}
 	}
 
@@ -565,7 +565,7 @@ public class Maps2 {
 	}
 	static <K extends @Nullable Object> Predicate<Map.Entry<K, ?>> keyPredicateOnEntries(
 			Predicate<? super K> keyPredicate) {
-		return compose(keyPredicate, Maps2.<K>keyFunction());
+		return compose(keyPredicate, Utils.<K>keyFunction());
 	}
 
 	abstract static class AbstractCell<

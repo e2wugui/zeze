@@ -42,12 +42,12 @@ abstract class AbstractTable<
 
   @Override
   public boolean containsRow(@CheckForNull Object rowKey) {
-    return Maps2.safeContainsKey(rowMap(), rowKey);
+    return Utils.safeContainsKey(rowMap(), rowKey);
   }
 
   @Override
   public boolean containsColumn(@CheckForNull Object columnKey) {
-    return Maps2.safeContainsKey(columnMap(), columnKey);
+    return Utils.safeContainsKey(columnMap(), columnKey);
   }
 
   @Override
@@ -72,15 +72,15 @@ abstract class AbstractTable<
 
   @Override
   public boolean contains(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
-    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
-    return row != null && Maps2.safeContainsKey(row, columnKey);
+    Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
+    return row != null && Utils.safeContainsKey(row, columnKey);
   }
 
   @Override
   @CheckForNull
   public V get(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
-    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
-    return (row == null) ? null : Maps2.safeGet(row, columnKey);
+    Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
+    return (row == null) ? null : Utils.safeGet(row, columnKey);
   }
 
   @Override
@@ -90,15 +90,15 @@ abstract class AbstractTable<
 
   @Override
   public void clear() {
-    Maps2.clear(cellSet().iterator());
+    Utils.clear(cellSet().iterator());
   }
 
   @CanIgnoreReturnValue
   @Override
   @CheckForNull
   public V remove(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
-    Map<C, V> row = Maps2.safeGet(rowMap(), rowKey);
-    return (row == null) ? null : Maps2.safeRemove(row, columnKey);
+    Map<C, V> row = Utils.safeGet(rowMap(), rowKey);
+    return (row == null) ? null : Utils.safeRemove(row, columnKey);
   }
 
   @CanIgnoreReturnValue
@@ -138,9 +138,9 @@ abstract class AbstractTable<
     public boolean contains(@CheckForNull Object o) {
       if (o instanceof Cell) {
         Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
-        Map<C, V> row = Maps2.safeGet(rowMap(), cell.getRowKey());
+        Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
-            && Maps2.safeContains(
+            && Utils.safeContains(
                 row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
       }
       return false;
@@ -150,9 +150,9 @@ abstract class AbstractTable<
     public boolean remove(@CheckForNull Object o) {
       if (o instanceof Cell) {
         Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
-        Map<C, V> row = Maps2.safeGet(rowMap(), cell.getRowKey());
+        Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
-            && Maps2.safeRemove(
+            && Utils.safeRemove(
                 row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
       }
       return false;
@@ -234,7 +234,7 @@ abstract class AbstractTable<
 
   @Override
   public boolean equals(@CheckForNull Object obj) {
-    return Maps2.equalsImpl(this, obj);
+    return Utils.equalsImpl(this, obj);
   }
 
   @Override
