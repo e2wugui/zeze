@@ -2,12 +2,12 @@ package Zeze.Transaction.GTable;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Record;
 import Zeze.Util.Json;
-import com.google.common.base.Supplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import static Zeze.Util.Json.ensureNotNull;

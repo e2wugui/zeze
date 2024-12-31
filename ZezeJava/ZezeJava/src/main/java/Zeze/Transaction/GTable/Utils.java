@@ -4,8 +4,10 @@ import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -17,15 +19,68 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
-import com.google.common.collect.UnmodifiableIterator;
+import static java.lang.Math.ceil;
 import static java.util.logging.Level.WARNING;
 
 public class Utils {
+	public static <T extends Object> boolean addAll(
+			Collection<T> addTo, Iterator<? extends T> iterator) {
+		checkNotNull(addTo);
+		checkNotNull(iterator);
+		boolean wasModified = false;
+		while (iterator.hasNext()) {
+			wasModified |= addTo.add(iterator.next());
+		}
+		return wasModified;
+	}
+
+	public static <E extends Object> ArrayList<E> newArrayList() {
+		return new ArrayList<>();
+	}
+
+	public static <E extends Object> ArrayList<E> newArrayList(
+			Iterator<? extends E> elements) {
+		ArrayList<E> list = newArrayList();
+		addAll(list, elements);
+		return list;
+	}
+
+	public static boolean removeAll(Iterator<?> removeFrom, Collection<?> elementsToRemove) {
+		checkNotNull(elementsToRemove);
+		boolean result = false;
+		while (removeFrom.hasNext()) {
+			if (elementsToRemove.contains(removeFrom.next())) {
+				removeFrom.remove();
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	public static int size(Iterator<?> iterator) {
+		long count = 0L;
+		while (iterator.hasNext()) {
+			iterator.next();
+			count++;
+		}
+		return saturatedCast(count);
+	}
+
+	public static int saturatedCast(long value) {
+		if (value > Integer.MAX_VALUE) {
+			return Integer.MAX_VALUE;
+		}
+		if (value < Integer.MIN_VALUE) {
+			return Integer.MIN_VALUE;
+		}
+		return (int) value;
+	}
+
+	public static <T> T requireNonNull(T obj) {
+		if (obj == null)
+			throw new NullPointerException();
+		return obj;
+	}
 	static <T> T uncheckedCastNullableTToT(@CheckForNull T t) {
 		return t;
 	}
@@ -324,7 +379,7 @@ public class Utils {
 	}
 
 	static boolean safeRemove(Collection<?> collection, Object object) {
-		Preconditions.checkNotNull(collection);
+		checkNotNull(collection);
 
 		try {
 			return collection.remove(object);
@@ -364,7 +419,7 @@ public class Utils {
 	}
 
 	static boolean safeContainsKey(Map<?, ?> map, Object key) {
-		Preconditions.checkNotNull(map);
+		checkNotNull(map);
 
 		try {
 			return map.containsKey(key);
@@ -374,7 +429,7 @@ public class Utils {
 	}
 
 	static <V> V safeGet(Map<?, V> map, Object key) {
-		Preconditions.checkNotNull(map);
+		checkNotNull(map);
 
 		try {
 			return map.get(key);
@@ -388,7 +443,7 @@ public class Utils {
 		return new TransformedIterator<K, Map.Entry<K, V>>(set.iterator()) {
 			@Override
 			Map.Entry<K, V> transform(final K key) {
-				return Maps.immutableEntry(key, function.apply(key));
+				return immutableEntry(key, function.apply(key));
 			}
 		};
 	}
@@ -474,9 +529,11 @@ public class Utils {
 
 	static boolean removeAllImpl(Set<?> set, Collection<?> collection) {
 		checkNotNull(collection); // for GWT
+		/*
 		if (collection instanceof Multiset) {
 			collection = ((Multiset<?>) collection).elementSet();
 		}
+		*/
 		/*
 		 * AbstractSet.removeAll(List) has quadratic behavior if the list size
 		 * is just more than the set's size.  We augment the test by
@@ -485,7 +542,7 @@ public class Utils {
 		 * http://code.google.com/p/guava-libraries/issues/detail?id=1013
 		 */
 		if (collection instanceof Set && collection.size() > set.size()) {
-			return Iterators.removeAll(set.iterator(), collection);
+			return removeAll(set.iterator(), collection);
 		} else {
 			return removeAllImpl(set, collection.iterator());
 		}
@@ -671,6 +728,47 @@ public class Utils {
 		};
 	}
 
+	public static <E extends Object> HashSet<E> newHashSet() {
+		return new HashSet<>();
+	}
+
+	static int checkNonnegative(int value, String name) {
+		if (value < 0) {
+			throw new IllegalArgumentException(name + " cannot be negative but was: " + value);
+		}
+		return value;
+	}
+
+	public static final int MAX_POWER_OF_TWO = 1 << (Integer.SIZE - 2);
+
+	static int capacity(int expectedSize) {
+		if (expectedSize < 3) {
+			checkNonnegative(expectedSize, "expectedSize");
+			return expectedSize + 1;
+		}
+		if (expectedSize < MAX_POWER_OF_TWO) {
+			// This seems to be consistent across JDKs. The capacity argument to HashMap and LinkedHashMap
+			// ends up being used to compute a "threshold" size, beyond which the internal table
+			// will be resized. That threshold is ceilingPowerOfTwo(capacity*loadFactor), where
+			// loadFactor is 0.75 by default. So with the calculation here we ensure that the
+			// threshold is equal to ceilingPowerOfTwo(expectedSize). There is a separate code
+			// path when the first operation on the new map is putAll(otherMap). There, prior to
+			// https://github.com/openjdk/jdk/commit/3e393047e12147a81e2899784b943923fc34da8e, a bug
+			// meant that sometimes a too-large threshold is calculated. However, this new threshold is
+			// independent of the initial capacity, except that it won't be lower than the threshold
+			// computed from that capacity. Because the internal table is only allocated on the first
+			// write, we won't see copying because of the new threshold. So it is always OK to use the
+			// calculation here.
+			return (int) ceil(expectedSize / 0.75);
+		}
+		return Integer.MAX_VALUE; // any large value
+	}
+
+	public static <E extends Object> HashSet<E> newHashSetWithExpectedSize(
+			int expectedSize) {
+		return new HashSet<>(capacity(expectedSize));
+	}
+
 	static class Values<K extends Object, V extends Object>
 			extends AbstractCollection<V> {
 		final Map<K, V> map;
@@ -715,7 +813,7 @@ public class Utils {
 			try {
 				return super.removeAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
-				Set<K> toRemove = Sets.newHashSet();
+				Set<K> toRemove = newHashSet();
 				for (Map.Entry<K, V> entry : map().entrySet()) {
 					if (c.contains(entry.getValue())) {
 						toRemove.add(entry.getKey());
@@ -730,7 +828,7 @@ public class Utils {
 			try {
 				return super.retainAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
-				Set<K> toRetain = Sets.newHashSet();
+				Set<K> toRetain = newHashSet();
 				for (Map.Entry<K, V> entry : map().entrySet()) {
 					if (c.contains(entry.getValue())) {
 						toRetain.add(entry.getKey());
@@ -820,7 +918,7 @@ public class Utils {
 				return super.retainAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
 				// if the iterators don't support remove
-				Set<Object> keys = Sets.newHashSetWithExpectedSize(c.size());
+				Set<Object> keys = newHashSetWithExpectedSize(c.size());
 				for (Object o : c) {
 					/*
 					 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our

@@ -16,12 +16,6 @@
 
 package Zeze.Transaction.GTable;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.collect.ForwardingMapEntry;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -254,7 +248,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
        *   columnIterator. (This assumes no concurrent modification, but behavior under concurrent
        *   modification is undefined, anyway.)
        */
-      requireNonNull(rowEntry);
+      Utils.requireNonNull(rowEntry);
       Entry<C, V> columnEntry = columnIterator.next();
       return Utils.immutableCell(rowEntry.getKey(), columnEntry.getKey(), columnEntry.getValue());
     }
@@ -272,7 +266,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
        *   columnIterator.remove() would have failed above (if the user hasn't called next() since
        *   then) or rowEntry would have been initialized by next() (as discussed above).
        */
-      if (requireNonNull(rowEntry).getValue().isEmpty()) {
+      if (Utils.requireNonNull(rowEntry).getValue().isEmpty()) {
         rowIterator.remove();
         rowEntry = null;
       }
@@ -675,7 +669,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
     @Override
     public int size() {
-      return Iterators.size(iterator());
+      return Utils.size(iterator());
     }
 
     @Override
@@ -706,7 +700,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
         Map<C, V> map = iterator.next();
         // map.keySet().removeAll(c) can throw a NPE when map is a TreeMap with
         // natural ordering and c contains a null.
-        if (Iterators.removeAll(map.keySet().iterator(), c)) {
+        if (Utils.removeAll(map.keySet().iterator(), c)) {
           changed = true;
           if (map.isEmpty()) {
             iterator.remove();
@@ -805,7 +799,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     @CheckForNull
     public Map<C, V> get(@CheckForNull Object key) {
       // requireNonNull is safe because of the containsRow check.
-      return containsRow(key) ? row((R) requireNonNull(key)) : null;
+      return containsRow(key) ? row((R) Utils.requireNonNull(key)) : null;
     }
 
     @Override
@@ -877,7 +871,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     @CheckForNull
     public Map<R, V> get(@CheckForNull Object key) {
       // requireNonNull is safe because of the containsColumn check.
-      return containsColumn(key) ? column((C) requireNonNull(key)) : null;
+      return containsColumn(key) ? column((C) Utils.requireNonNull(key)) : null;
     }
 
     @Override
@@ -930,7 +924,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
           Entry<?, ?> entry = (Entry<?, ?>) obj;
           if (containsColumn(entry.getKey())) {
             // requireNonNull is safe because of the containsColumn check.
-            return requireNonNull(get(entry.getKey())).equals(entry.getValue());
+            return Utils.requireNonNull(get(entry.getKey())).equals(entry.getValue());
           }
         }
         return false;
@@ -966,7 +960,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
       public boolean retainAll(Collection<?> c) {
         Utils.checkNotNull(c);
         boolean changed = false;
-        for (C columnKey : Lists.newArrayList(columnKeySet().iterator())) {
+        for (C columnKey : Utils.newArrayList(columnKeySet().iterator())) {
           if (!c.contains(Utils.immutableEntry(columnKey, column(columnKey)))) {
             removeColumn(columnKey);
             changed = true;
@@ -996,7 +990,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
       public boolean removeAll(Collection<?> c) {
         Utils.checkNotNull(c);
         boolean changed = false;
-        for (C columnKey : Lists.newArrayList(columnKeySet().iterator())) {
+        for (C columnKey : Utils.newArrayList(columnKeySet().iterator())) {
           if (c.contains(column(columnKey))) {
             removeColumn(columnKey);
             changed = true;
@@ -1009,7 +1003,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
       public boolean retainAll(Collection<?> c) {
         Utils.checkNotNull(c);
         boolean changed = false;
-        for (C columnKey : Lists.newArrayList(columnKeySet().iterator())) {
+        for (C columnKey : Utils.newArrayList(columnKeySet().iterator())) {
           if (!c.contains(column(columnKey))) {
             removeColumn(columnKey);
             changed = true;

@@ -16,7 +16,6 @@ package Zeze.Transaction.GTable;
  * limitations under the License.
  */
 
-import com.google.common.collect.UnmodifiableIterator;
 import java.util.ListIterator;
 
 /**
