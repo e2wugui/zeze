@@ -1,11 +1,8 @@
 package Zeze.Transaction.GTable;
 
 
-import com.google.common.annotations.GwtCompatible;
-import com.google.common.base.Objects;
 import java.util.Map.Entry;
 import javax.annotation.CheckForNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Implementation of the {@code equals}, {@code hashCode}, and {@code toString} methods of {@code
@@ -13,8 +10,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @author Jared Levy
  */
-@GwtCompatible
-abstract class AbstractMapEntry<K extends @Nullable Object, V extends @Nullable Object>
+abstract class AbstractMapEntry<K extends Object, V extends Object>
 		implements Entry<K, V> {
 
 	@Override
@@ -32,8 +28,8 @@ abstract class AbstractMapEntry<K extends @Nullable Object, V extends @Nullable 
 	public boolean equals(@CheckForNull Object object) {
 		if (object instanceof Entry) {
 			Entry<?, ?> that = (Entry<?, ?>) object;
-			return Objects.equal(this.getKey(), that.getKey())
-					&& Objects.equal(this.getValue(), that.getValue());
+			return Utils.equal(this.getKey(), that.getKey())
+					&& Utils.equal(this.getValue(), that.getValue());
 		}
 		return false;
 	}

@@ -5,6 +5,7 @@ import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Json;
+import com.google.common.collect.HashBasedTable;
 import demo.App;
 import demo.Bean1ReadOnly;
 import demo.ModuleGTable.Bean1;
@@ -131,6 +132,7 @@ public class TestGTable {
 
 	@Test
 	public void testGTableRowCol() {
+		var x = HashBasedTable.create();
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable();
 			var gTable1 = table.getOrAdd(1L);

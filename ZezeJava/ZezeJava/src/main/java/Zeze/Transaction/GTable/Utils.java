@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -12,27 +13,317 @@ import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
-import com.google.common.annotations.GwtCompatible;
-import com.google.common.base.Function;
-import com.google.common.base.Objects;
+
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
-import com.google.common.collect.UnmodifiableListIterator;
-import com.google.errorprone.annotations.concurrent.LazyInit;
-import com.google.j2objc.annotations.Weak;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.compose;
+import static java.util.logging.Level.WARNING;
 
 public class Utils {
-	static boolean safeRemove(Collection<?> collection, @Nullable Object object) {
+	static <T> T uncheckedCastNullableTToT(@CheckForNull T t) {
+		return t;
+	}
+
+	public static void checkState(boolean expression, @CheckForNull Object errorMessage) {
+		if (!expression) {
+			throw new IllegalStateException(String.valueOf(errorMessage));
+		}
+	}
+
+	public static void checkState(boolean expression) {
+		if (!expression) {
+			throw new IllegalStateException();
+		}
+	}
+
+	private static class InPredicate<T>
+			implements Predicate<T>, Serializable {
+		private final Collection<?> target;
+
+		private InPredicate(Collection<?> target) {
+			this.target = checkNotNull(target);
+		}
+
+		@Override
+		public boolean apply(T t) {
+			try {
+				return target.contains(t);
+			} catch (NullPointerException | ClassCastException e) {
+				return false;
+			}
+		}
+
+		@Override
+		public boolean equals(@CheckForNull Object obj) {
+			if (obj instanceof InPredicate) {
+				InPredicate<?> that = (InPredicate<?>) obj;
+				return target.equals(that.target);
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return target.hashCode();
+		}
+
+		@Override
+		public String toString() {
+			return "Predicates.in(" + target + ")";
+		}
+
+		private static final long serialVersionUID = 0;
+	}
+
+	public static <T> Predicate<T> in(Collection<? extends T> target) {
+		return new InPredicate<>(target);
+	}
+
+	private static class IsEqualToPredicate implements Predicate<Object>, Serializable {
+		private final Object target;
+
+		private IsEqualToPredicate(Object target) {
+			this.target = target;
+		}
+
+		@Override
+		public boolean apply(@CheckForNull Object o) {
+			return target.equals(o);
+		}
+
+		@Override
+		public int hashCode() {
+			return target.hashCode();
+		}
+
+		@Override
+		public boolean equals(@CheckForNull Object obj) {
+			if (obj instanceof IsEqualToPredicate) {
+				IsEqualToPredicate that = (IsEqualToPredicate) obj;
+				return target.equals(that.target);
+			}
+			return false;
+		}
+
+		@Override
+		public String toString() {
+			return "Predicates.equalTo(" + target + ")";
+		}
+
+		private static final long serialVersionUID = 0;
+
+		@SuppressWarnings("unchecked") // safe contravariant cast
+		<T> Predicate<T> withNarrowedType() {
+			return (Predicate<T>) this;
+		}
+	}
+
+	public static <T extends Object> Predicate<T> isNull() {
+		return ObjectPredicate.IS_NULL.withNarrowedType();
+	}
+
+	public static <T extends Object> Predicate<T> equalTo(T target) {
+		return (target == null)
+				? isNull()
+				: new IsEqualToPredicate(target).withNarrowedType();
+	}
+
+	private static class NotPredicate<T extends Object>
+			implements Predicate<T>, Serializable {
+		final Predicate<T> predicate;
+
+		NotPredicate(Predicate<T> predicate) {
+			this.predicate = checkNotNull(predicate);
+		}
+
+		@Override
+		public boolean apply(T t) {
+			return !predicate.apply(t);
+		}
+
+		@Override
+		public int hashCode() {
+			return ~predicate.hashCode();
+		}
+
+		@Override
+		public boolean equals(@CheckForNull Object obj) {
+			if (obj instanceof NotPredicate) {
+				NotPredicate<?> that = (NotPredicate<?>) obj;
+				return predicate.equals(that.predicate);
+			}
+			return false;
+		}
+
+		@Override
+		public String toString() {
+			return "Predicates.not(" + predicate + ")";
+		}
+
+		private static final long serialVersionUID = 0;
+	}
+
+	public static <T extends Object> Predicate<T> not(Predicate<T> predicate) {
+		return new NotPredicate<>(predicate);
+	}
+
+	enum ObjectPredicate implements Predicate<Object> {
+		ALWAYS_TRUE {
+			@Override
+			public boolean apply(@CheckForNull Object o) {
+				return true;
+			}
+
+			@Override
+			public String toString() {
+				return "Predicates.alwaysTrue()";
+			}
+		},
+		ALWAYS_FALSE {
+			@Override
+			public boolean apply(@CheckForNull Object o) {
+				return false;
+			}
+
+			@Override
+			public String toString() {
+				return "Predicates.alwaysFalse()";
+			}
+		},
+		IS_NULL {
+			@Override
+			public boolean apply(@CheckForNull Object o) {
+				return o == null;
+			}
+
+			@Override
+			public String toString() {
+				return "Predicates.isNull()";
+			}
+		},
+		NOT_NULL {
+			@Override
+			public boolean apply(@CheckForNull Object o) {
+				return o != null;
+			}
+
+			@Override
+			public String toString() {
+				return "Predicates.notNull()";
+			}
+		};
+
+		@SuppressWarnings("unchecked") // safe contravariant cast
+		<T extends Object> Predicate<T> withNarrowedType() {
+			return (Predicate<T>) this;
+		}
+	}
+
+	public static <T extends Object> Predicate<T> alwaysTrue() {
+		return ObjectPredicate.ALWAYS_TRUE.withNarrowedType();
+	}
+
+	public static void checkArgument(boolean expression, @CheckForNull Object errorMessage) {
+		if (!expression) {
+			throw new IllegalArgumentException(String.valueOf(errorMessage));
+		}
+	}
+	private static String lenientToString(@CheckForNull Object o) {
+		if (o == null) {
+			return "null";
+		}
+		try {
+			return o.toString();
+		} catch (Exception e) {
+			// Default toString() behavior - see Object.toString()
+			String objectToString =
+					o.getClass().getName() + '@' + Integer.toHexString(System.identityHashCode(o));
+			// Logger is created inline with fixed name to avoid forcing Proguard to create another class.
+			Logger.getLogger("com.google.common.base.Strings")
+					.log(WARNING, "Exception during lenientFormat for " + objectToString, e);
+			return "<" + objectToString + " threw " + e.getClass().getName() + ">";
+		}
+	}
+
+	public static String lenientFormat(
+			@CheckForNull String template, @CheckForNull Object... args) {
+		template = String.valueOf(template); // null -> "null"
+
+		if (args == null) {
+			args = new Object[] {"(Object[])null"};
+		} else {
+			for (int i = 0; i < args.length; i++) {
+				args[i] = lenientToString(args[i]);
+			}
+		}
+
+		// start substituting the arguments into the '%s' placeholders
+		StringBuilder builder = new StringBuilder(template.length() + 16 * args.length);
+		int templateStart = 0;
+		int i = 0;
+		while (i < args.length) {
+			int placeholderStart = template.indexOf("%s", templateStart);
+			if (placeholderStart == -1) {
+				break;
+			}
+			builder.append(template, templateStart, placeholderStart);
+			builder.append(args[i++]);
+			templateStart = placeholderStart + 2;
+		}
+		builder.append(template, templateStart, template.length());
+
+		// if we run out of placeholders, append the extra args in square braces
+		if (i < args.length) {
+			builder.append(" [");
+			builder.append(args[i++]);
+			while (i < args.length) {
+				builder.append(", ");
+				builder.append(args[i++]);
+			}
+			builder.append(']');
+		}
+
+		return builder.toString();
+	}
+
+	public static <K extends Object, V extends Object> Map.Entry<K, V> immutableEntry(
+			K key, V value) {
+		return new ImmutableEntry<>(key, value);
+	}
+
+	public static boolean equal(@CheckForNull Object a, @CheckForNull Object b) {
+		return a == b || (a != null && a.equals(b));
+	}
+
+	private static String badPositionIndex(int index, int size, String desc) {
+		if (index < 0) {
+			return lenientFormat("%s (%s) must not be negative", desc, index);
+		} else if (size < 0) {
+			throw new IllegalArgumentException("negative size: " + size);
+		} else { // index > size
+			return lenientFormat("%s (%s) must not be greater than size (%s)", desc, index, size);
+		}
+	}
+
+	public static int checkPositionIndex(int index, int size, String desc) {
+		// Carefully optimized for execution by hotspot (explanatory comment above)
+		if (index < 0 || index > size) {
+			throw new IndexOutOfBoundsException(badPositionIndex(index, size, desc));
+		}
+		return index;
+	}
+
+	public static int checkPositionIndex(int index, int size) {
+		return checkPositionIndex(index, size, "index");
+	}
+
+	static boolean safeRemove(Collection<?> collection, Object object) {
 		Preconditions.checkNotNull(collection);
 
 		try {
@@ -43,7 +334,7 @@ public class Utils {
 	}
 
 	@CheckForNull
-	static <V extends @Nullable Object> V safeRemove(Map<?, V> map, @CheckForNull Object key) {
+	static <V extends Object> V safeRemove(Map<?, V> map, @CheckForNull Object key) {
 		checkNotNull(map);
 		try {
 			return map.remove(key);
@@ -82,7 +373,7 @@ public class Utils {
 		}
 	}
 
-	static <V> V safeGet(Map<?, V> map, @Nullable Object key) {
+	static <V> V safeGet(Map<?, V> map, Object key) {
 		Preconditions.checkNotNull(map);
 
 		try {
@@ -92,7 +383,7 @@ public class Utils {
 		}
 	}
 
-	static <K extends @Nullable Object, V extends @Nullable Object>
+	static <K extends Object, V extends Object>
 	Iterator<Map.Entry<K, V>> asMapEntryIterator(Set<K> set, final Function<? super K, V> function) {
 		return new TransformedIterator<K, Map.Entry<K, V>>(set.iterator()) {
 			@Override
@@ -111,16 +402,16 @@ public class Utils {
 		}
 	}
 
-	static <T extends @Nullable Object> UnmodifiableIterator<T> emptyIterator() {
+	static <T extends Object> UnmodifiableIterator<T> emptyIterator() {
 		return emptyListIterator();
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T extends @Nullable Object> UnmodifiableListIterator<T> emptyListIterator() {
+	static <T extends Object> UnmodifiableListIterator<T> emptyListIterator() {
 		return (UnmodifiableListIterator<T>) ArrayItr.EMPTY;
 	}
 
-	private static final class ArrayItr<T extends @Nullable Object>
+	private static final class ArrayItr<T extends Object>
 			extends AbstractIndexedListIterator<T> {
 		static final UnmodifiableListIterator<Object> EMPTY = new ArrayItr<>(new Object[0], 0, 0, 0);
 
@@ -139,9 +430,8 @@ public class Utils {
 		}
 	}
 
-	@GwtCompatible
 	abstract static class ViewCachingAbstractMap<
-			K extends @Nullable Object, V extends @Nullable Object>
+			K extends Object, V extends Object>
 			extends AbstractMap<K, V> {
 		/**
 		 * Creates the entry set to be returned by {@link #entrySet()}. This method is invoked at most
@@ -149,7 +439,6 @@ public class Utils {
 		 */
 		abstract Set<Entry<K, V>> createEntrySet();
 
-		@LazyInit
 		@CheckForNull private transient Set<Entry<K, V>> entrySet;
 
 		@Override
@@ -158,7 +447,7 @@ public class Utils {
 			return (result == null) ? entrySet = createEntrySet() : result;
 		}
 
-		@LazyInit @CheckForNull private transient Set<K> keySet;
+		@CheckForNull private transient Set<K> keySet;
 
 		@Override
 		public Set<K> keySet() {
@@ -170,7 +459,7 @@ public class Utils {
 			return new KeySet<>(this);
 		}
 
-		@LazyInit @CheckForNull private transient Collection<V> values;
+		@CheckForNull private transient Collection<V> values;
 
 		@Override
 		public Collection<V> values() {
@@ -211,16 +500,66 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T extends @Nullable Object> Iterator<T> emptyModifiableIterator() {
+	static <T extends Object> Iterator<T> emptyModifiableIterator() {
 		return (Iterator<T>) EmptyModifiableIterator.INSTANCE;
 	}
 
-	static <V extends @Nullable Object> Predicate<Map.Entry<?, V>> valuePredicateOnEntries(
+	public static <T> T checkNotNull(@CheckForNull T reference) {
+		if (reference == null) {
+			throw new NullPointerException();
+		}
+		return reference;
+	}
+
+	private static class CompositionPredicate<A extends Object, B extends Object>
+			implements Predicate<A>, Serializable {
+		final Predicate<B> p;
+		final Function<A, ? extends B> f;
+
+		private CompositionPredicate(Predicate<B> p, Function<A, ? extends B> f) {
+			this.p = Utils.checkNotNull(p);
+			this.f = Utils.checkNotNull(f);
+		}
+
+		@Override
+		public boolean apply(A a) {
+			return p.apply(f.apply(a));
+		}
+
+		@Override
+		public boolean equals(@CheckForNull Object obj) {
+			if (obj instanceof CompositionPredicate) {
+				CompositionPredicate<?, ?> that = (CompositionPredicate<?, ?>) obj;
+				return f.equals(that.f) && p.equals(that.p);
+			}
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return f.hashCode() ^ p.hashCode();
+		}
+
+		@Override
+		public String toString() {
+			// TODO(cpovirk): maybe make this look like the method call does ("Predicates.compose(...)")
+			return p + "(" + f + ")";
+		}
+
+		private static final long serialVersionUID = 0;
+	}
+
+	public static <A extends Object, B extends Object> Predicate<A> compose(
+			Predicate<B> predicate, Function<A, ? extends B> function) {
+		return new CompositionPredicate<>(predicate, function);
+	}
+
+	static <V extends Object> Predicate<Map.Entry<?, V>> valuePredicateOnEntries(
 			Predicate<? super V> valuePredicate) {
 		return compose(valuePredicate, Utils.<V>valueFunction());
 	}
 	@SuppressWarnings("unchecked")
-	static <V extends @Nullable Object> Function<Map.Entry<?, V>, V> valueFunction() {
+	static <V extends Object> Function<Map.Entry<?, V>, V> valueFunction() {
 		return (Function) Utils.EntryFunction.VALUE;
 	}
 	private enum EmptyModifiableIterator implements Iterator<Object> {
@@ -241,10 +580,12 @@ public class Utils {
 			checkRemove(false);
 		}
 	}
+
 	static void checkRemove(boolean canRemove) {
 		checkState(canRemove, "no calls to next() since the last call to remove()");
 	}
-	abstract static class ImprovedAbstractSet<E extends @Nullable Object> extends AbstractSet<E> {
+
+	abstract static class ImprovedAbstractSet<E extends Object> extends AbstractSet<E> {
 		@Override
 		public boolean removeAll(Collection<?> c) {
 			return removeAllImpl(this, c);
@@ -256,7 +597,7 @@ public class Utils {
 		}
 	}
 
-	static <K extends @Nullable Object, V extends @Nullable Object> Iterator<K> keyIterator(
+	static <K extends Object, V extends Object> Iterator<K> keyIterator(
 			Iterator<Map.Entry<K, V>> entryIterator) {
 		return new TransformedIterator<Map.Entry<K, V>, K>(entryIterator) {
 			@Override
@@ -266,9 +607,9 @@ public class Utils {
 		};
 	}
 
-	static class KeySet<K extends @Nullable Object, V extends @Nullable Object>
+	static class KeySet<K extends Object, V extends Object>
 			extends ImprovedAbstractSet<K> {
-		@Weak final Map<K, V> map;
+		final Map<K, V> map;
 
 		KeySet(Map<K, V> map) {
 			this.map = checkNotNull(map);
@@ -320,7 +661,7 @@ public class Utils {
 		}
 	}
 
-	static <K extends @Nullable Object, V extends @Nullable Object> Iterator<V> valueIterator(
+	static <K extends Object, V extends Object> Iterator<V> valueIterator(
 			Iterator<Map.Entry<K, V>> entryIterator) {
 		return new TransformedIterator<Map.Entry<K, V>, V>(entryIterator) {
 			@Override
@@ -330,9 +671,9 @@ public class Utils {
 		};
 	}
 
-	static class Values<K extends @Nullable Object, V extends @Nullable Object>
+	static class Values<K extends Object, V extends Object>
 			extends AbstractCollection<V> {
-		@Weak final Map<K, V> map;
+		final Map<K, V> map;
 
 		Values(Map<K, V> map) {
 			this.map = checkNotNull(map);
@@ -360,7 +701,7 @@ public class Utils {
 				return super.remove(o);
 			} catch (UnsupportedOperationException e) {
 				for (Map.Entry<K, V> entry : map().entrySet()) {
-					if (Objects.equal(o, entry.getValue())) {
+					if (equal(o, entry.getValue())) {
 						map().remove(entry.getKey());
 						return true;
 					}
@@ -420,7 +761,7 @@ public class Utils {
 		}
 	}
 
-	abstract static class EntrySet<K extends @Nullable Object, V extends @Nullable Object>
+	abstract static class EntrySet<K extends Object, V extends Object>
 			extends ImprovedAbstractSet<Map.Entry<K, V>> {
 		abstract Map<K, V> map();
 
@@ -440,7 +781,7 @@ public class Utils {
 				Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
 				Object key = entry.getKey();
 				V value = Utils.safeGet(map(), key);
-				return Objects.equal(value, entry.getValue()) && (value != null || map().containsKey(key));
+				return equal(value, entry.getValue()) && (value != null || map().containsKey(key));
 			}
 			return false;
 		}
@@ -479,7 +820,7 @@ public class Utils {
 				return super.retainAll(checkNotNull(c));
 			} catch (UnsupportedOperationException e) {
 				// if the iterators don't support remove
-				Set<@Nullable Object> keys = Sets.newHashSetWithExpectedSize(c.size());
+				Set<Object> keys = Sets.newHashSetWithExpectedSize(c.size());
 				for (Object o : c) {
 					/*
 					 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
@@ -496,7 +837,7 @@ public class Utils {
 	}
 
 	abstract static class IteratorBasedAbstractMap<
-			K extends @Nullable Object, V extends @Nullable Object>
+			K extends Object, V extends Object>
 			extends AbstractMap<K, V> {
 		@Override
 		public abstract int size();
@@ -544,10 +885,10 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <K extends @Nullable Object> Function<Map.Entry<K, ?>, K> keyFunction() {
+	static <K extends Object> Function<Map.Entry<K, ?>, K> keyFunction() {
 		return (Function) EntryFunction.KEY;
 	}
-	private enum EntryFunction implements Function<Map.Entry<?, ?>, @Nullable Object> {
+	private enum EntryFunction implements Function<Map.Entry<?, ?>, Object> {
 		KEY {
 			@Override
 			@CheckForNull
@@ -563,13 +904,13 @@ public class Utils {
 			}
 		};
 	}
-	static <K extends @Nullable Object> Predicate<Map.Entry<K, ?>> keyPredicateOnEntries(
+	static <K extends Object> Predicate<Map.Entry<K, ?>> keyPredicateOnEntries(
 			Predicate<? super K> keyPredicate) {
 		return compose(keyPredicate, Utils.<K>keyFunction());
 	}
 
 	abstract static class AbstractCell<
-			R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+			R extends Object, C extends Object, V extends Object>
 			implements Table.Cell<R, C, V> {
 		// needed for serialization
 		AbstractCell() {}
@@ -579,18 +920,18 @@ public class Utils {
 			if (obj == this) {
 				return true;
 			}
-			if (obj instanceof com.google.common.collect.Table.Cell) {
-				com.google.common.collect.Table.Cell<?, ?, ?> other = (com.google.common.collect.Table.Cell<?, ?, ?>) obj;
-				return Objects.equal(getRowKey(), other.getRowKey())
-						&& Objects.equal(getColumnKey(), other.getColumnKey())
-						&& Objects.equal(getValue(), other.getValue());
+			if (obj instanceof Table.Cell) {
+				Table.Cell<?, ?, ?> other = (Table.Cell<?, ?, ?>) obj;
+				return equal(getRowKey(), other.getRowKey())
+						&& equal(getColumnKey(), other.getColumnKey())
+						&& equal(getValue(), other.getValue());
 			}
 			return false;
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hashCode(getRowKey(), getColumnKey(), getValue());
+			return Utils.hashCode(getRowKey(), getColumnKey(), getValue());
 		}
 
 		@Override
@@ -599,6 +940,9 @@ public class Utils {
 		}
 	}
 
+	public static int hashCode(@CheckForNull Object... objects) {
+		return Arrays.hashCode(objects);
+	}
 	/**
 	 * Returns an immutable cell with the specified row key, column key, and value.
 	 *
@@ -608,7 +952,7 @@ public class Utils {
 	 * @param columnKey the column key to be associated with the returned cell
 	 * @param value the value to be associated with the returned cell
 	 */
-	public static <R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+	public static <R extends Object, C extends Object, V extends Object>
 	Table.Cell<R, C, V> immutableCell(
 			R rowKey,
 			C columnKey,
@@ -617,7 +961,7 @@ public class Utils {
 	}
 
 	static final class ImmutableCell<
-			R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+			R extends Object, C extends Object, V extends Object>
 			extends AbstractCell<R, C, V> implements Serializable {
 		private final R rowKey;
 		private final C columnKey;

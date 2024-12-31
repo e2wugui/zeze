@@ -16,16 +16,10 @@
 
 package Zeze.Transaction.GTable;
 
-import com.google.common.annotations.GwtCompatible;
-import com.google.common.base.Objects;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.CompatibleWith;
-import com.google.errorprone.annotations.DoNotMock;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A collection that associates an ordered pair of keys, called a row key and a column key, with a
@@ -59,10 +53,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * @param <V> the type of the mapped values
  * @since 7.0
  */
-@DoNotMock("Use ImmutableTable, HashBasedTable, or another implementation")
-@GwtCompatible
 public interface Table<
-    R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object> {
+    R extends Object, C extends Object, V extends Object> {
   // TODO(jlevy): Consider adding methods similar to ConcurrentMap methods.
 
   // Accessors
@@ -74,29 +66,29 @@ public interface Table<
    * @param columnKey key of column to search for
    */
   boolean contains(
-      @CompatibleWith("R") @CheckForNull Object rowKey,
-      @CompatibleWith("C") @CheckForNull Object columnKey);
+      @CheckForNull Object rowKey,
+      @CheckForNull Object columnKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified row key.
    *
    * @param rowKey key of row to search for
    */
-  boolean containsRow(@CompatibleWith("R") @CheckForNull Object rowKey);
+  boolean containsRow(@CheckForNull Object rowKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified column.
    *
    * @param columnKey key of column to search for
    */
-  boolean containsColumn(@CompatibleWith("C") @CheckForNull Object columnKey);
+  boolean containsColumn(@CheckForNull Object columnKey);
 
   /**
    * Returns {@code true} if the table contains a mapping with the specified value.
    *
    * @param value value to search for
    */
-  boolean containsValue(@CompatibleWith("V") @CheckForNull Object value);
+  boolean containsValue(@CheckForNull Object value);
 
   /**
    * Returns the value corresponding to the given row and column keys, or {@code null} if no such
@@ -107,8 +99,8 @@ public interface Table<
    */
   @CheckForNull
   V get(
-      @CompatibleWith("R") @CheckForNull Object rowKey,
-      @CompatibleWith("C") @CheckForNull Object columnKey);
+      @CheckForNull Object rowKey,
+      @CheckForNull Object columnKey);
 
   /** Returns {@code true} if the table contains no mappings. */
   boolean isEmpty();
@@ -145,7 +137,6 @@ public interface Table<
    * @return the value previously associated with the keys, or {@code null} if no mapping existed
    *     for the keys
    */
-  @CanIgnoreReturnValue
   @CheckForNull
   V put(R rowKey, C columnKey, V value);
 
@@ -164,11 +155,10 @@ public interface Table<
    * @param columnKey column key of mapping to be removed
    * @return the value previously associated with the keys, or {@code null} if no such value existed
    */
-  @CanIgnoreReturnValue
   @CheckForNull
   V remove(
-      @CompatibleWith("R") @CheckForNull Object rowKey,
-      @CompatibleWith("C") @CheckForNull Object columnKey);
+      @CheckForNull Object rowKey,
+      @CheckForNull Object columnKey);
 
   // Views
 
@@ -261,7 +251,7 @@ public interface Table<
    * @since 7.0
    */
   interface Cell<
-      R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object> {
+      R extends Object, C extends Object, V extends Object> {
     /** Returns the row key of this cell. */
     R getRowKey();
 
@@ -281,7 +271,7 @@ public interface Table<
     /**
      * Returns the hash code of this cell.
      *
-     * <p>The hash code of a table cell is equal to {@link Objects#hashCode}{@code (e.getRowKey(),
+     * <p>The hash code of a table cell is equal to {}{@code (e.getRowKey(),
      * e.getColumnKey(), e.getValue())}.
      */
     @Override

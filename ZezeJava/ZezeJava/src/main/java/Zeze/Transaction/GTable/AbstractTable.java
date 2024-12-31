@@ -14,12 +14,6 @@
 
 package Zeze.Transaction.GTable;
 
-import static com.google.common.collect.Maps.immutableEntry;
-
-import com.google.common.annotations.GwtCompatible;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.concurrent.LazyInit;
-import com.google.j2objc.annotations.WeakOuter;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -28,16 +22,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Spliterator;
 import javax.annotation.CheckForNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Skeletal, implementation-agnostic implementation of the {@link Table} interface.
  *
  * @author Louis Wasserman
  */
-@GwtCompatible
 abstract class AbstractTable<
-        R extends @Nullable Object, C extends @Nullable Object, V extends @Nullable Object>
+        R extends Object, C extends Object, V extends Object>
     implements Table<R, C, V> {
 
   @Override
@@ -93,7 +85,6 @@ abstract class AbstractTable<
     Utils.clear(cellSet().iterator());
   }
 
-  @CanIgnoreReturnValue
   @Override
   @CheckForNull
   public V remove(@CheckForNull Object rowKey, @CheckForNull Object columnKey) {
@@ -101,7 +92,6 @@ abstract class AbstractTable<
     return (row == null) ? null : Utils.safeRemove(row, columnKey);
   }
 
-  @CanIgnoreReturnValue
   @Override
   @CheckForNull
   public V put(
@@ -116,7 +106,7 @@ abstract class AbstractTable<
     }
   }
 
-  @LazyInit @CheckForNull private transient Set<Cell<R, C, V>> cellSet;
+  @CheckForNull private transient Set<Cell<R, C, V>> cellSet;
 
   @Override
   public Set<Cell<R, C, V>> cellSet() {
@@ -132,7 +122,6 @@ abstract class AbstractTable<
 
   abstract Spliterator<Table.Cell<R, C, V>> cellSpliterator();
 
-  @WeakOuter
   class CellSet extends AbstractSet<Cell<R, C, V>> {
     @Override
     public boolean contains(@CheckForNull Object o) {
@@ -141,7 +130,7 @@ abstract class AbstractTable<
         Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
             && Utils.safeContains(
-                row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
+                row.entrySet(), Utils.immutableEntry(cell.getColumnKey(), cell.getValue()));
       }
       return false;
     }
@@ -153,7 +142,7 @@ abstract class AbstractTable<
         Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
             && Utils.safeRemove(
-                row.entrySet(), immutableEntry(cell.getColumnKey(), cell.getValue()));
+                row.entrySet(), Utils.immutableEntry(cell.getColumnKey(), cell.getValue()));
       }
       return false;
     }
@@ -179,7 +168,7 @@ abstract class AbstractTable<
     }
   }
 
-  @LazyInit @CheckForNull private transient Collection<V> values;
+  @CheckForNull private transient Collection<V> values;
 
   @Override
   public Collection<V> values() {
@@ -204,7 +193,6 @@ abstract class AbstractTable<
     return CollectSpliterators2.map(cellSpliterator(), Table.Cell::getValue);
   }
 
-  @WeakOuter
   class Values extends AbstractCollection<V> {
     @Override
     public Iterator<V> iterator() {

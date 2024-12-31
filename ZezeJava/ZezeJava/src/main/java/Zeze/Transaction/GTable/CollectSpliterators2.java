@@ -4,19 +4,15 @@ import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.annotation.CheckForNull;
-import com.google.j2objc.annotations.Weak;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Math.max;
 
 public class CollectSpliterators2 {
-	static <InElementT extends @Nullable Object, OutElementT extends @Nullable Object>
+	static <InElementT extends Object, OutElementT extends Object>
 	Spliterator<OutElementT> map(
 			Spliterator<InElementT> fromSpliterator,
 			Function<? super InElementT, ? extends OutElementT> function) {
-		checkNotNull(fromSpliterator);
-		checkNotNull(function);
+		Utils.checkNotNull(fromSpliterator);
+		Utils.checkNotNull(function);
 		return new Spliterator<OutElementT>() {
 
 			@Override
@@ -50,32 +46,32 @@ public class CollectSpliterators2 {
 		};
 	}
 
-	static <InElementT extends @Nullable Object, OutElementT extends @Nullable Object>
+	static <InElementT extends Object, OutElementT extends Object>
 	Spliterator<OutElementT> flatMap(
 			Spliterator<InElementT> fromSpliterator,
 			Function<? super InElementT, Spliterator<OutElementT>> function,
 			int topCharacteristics,
 			long topSize) {
-		checkArgument(
+		Utils.checkArgument(
 				(topCharacteristics & Spliterator.SUBSIZED) == 0,
 				"flatMap does not support SUBSIZED characteristic");
-		checkArgument(
+		Utils.checkArgument(
 				(topCharacteristics & Spliterator.SORTED) == 0,
 				"flatMap does not support SORTED characteristic");
-		checkNotNull(fromSpliterator);
-		checkNotNull(function);
+		Utils.checkNotNull(fromSpliterator);
+		Utils.checkNotNull(function);
 		return new FlatMapSpliteratorOfObject<>(
 				null, fromSpliterator, function, topCharacteristics, topSize);
 	}
 
 	abstract static class FlatMapSpliterator<
-			InElementT extends @Nullable Object,
-			OutElementT extends @Nullable Object,
+			InElementT extends Object,
+			OutElementT extends Object,
 			OutSpliteratorT extends Spliterator<OutElementT>>
 			implements Spliterator<OutElementT> {
 		/** Factory for constructing {@link FlatMapSpliterator} instances. */
 		@FunctionalInterface
-		interface Factory<InElementT extends @Nullable Object, OutSpliteratorT extends Spliterator<?>> {
+		interface Factory<InElementT extends Object, OutSpliteratorT extends Spliterator<?>> {
 			OutSpliteratorT newFlatMapSpliterator(
 					@CheckForNull OutSpliteratorT prefix,
 					Spliterator<InElementT> fromSplit,
@@ -84,7 +80,6 @@ public class CollectSpliterators2 {
 					long estSplitSize);
 		}
 
-		@Weak
 		@CheckForNull OutSpliteratorT prefix;
 		final Spliterator<InElementT> from;
 		final Function<? super InElementT, OutSpliteratorT> function;
@@ -189,7 +184,7 @@ public class CollectSpliterators2 {
 
 
 	static final class FlatMapSpliteratorOfObject<
-			InElementT extends @Nullable Object, OutElementT extends @Nullable Object>
+			InElementT extends Object, OutElementT extends Object>
 			extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {
 		FlatMapSpliteratorOfObject(
 				@CheckForNull Spliterator<OutElementT> prefix,
