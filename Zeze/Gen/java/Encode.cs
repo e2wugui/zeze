@@ -492,7 +492,7 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
             Type kt = type.RowKeyType;
             sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
-            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "int _n_ = _x_.getPMap2().size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", ByteBuffer.BEAN);");
