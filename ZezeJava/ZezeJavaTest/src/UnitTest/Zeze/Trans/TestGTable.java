@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import Zeze.Transaction.GTable.GTable1;
 import Zeze.Transaction.GTable.GTable2;
@@ -151,5 +152,9 @@ public class TestGTable {
 			Assert.assertEquals(row.keySet(), result);
 			return 0;
 		}, "putEntrys").call();
+	}
+
+	public static void main(String[] args) {
+		System.out.println("PROXY".getBytes(StandardCharsets.UTF_8).length);
 	}
 }
