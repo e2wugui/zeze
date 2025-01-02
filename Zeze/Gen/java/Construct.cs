@@ -257,9 +257,9 @@ namespace Zeze.Gen.java
 
             string typeName = TypeName.GetNameOmitted(type);
             if (type.ValueType is TypeDynamic)
-                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
+                sw.WriteLine(prefix + varName + $" = new {typeName}<>(meta2{varName});");
             else
-                sw.WriteLine(prefix + varName + $" = new {typeName}({rowKey}.class, {colKey}.class, {value}.class);");
+                sw.WriteLine(prefix + varName + $" = new {typeName}<>({rowKey}.class, {colKey}.class, {value}.class);");
             sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
         }
     }

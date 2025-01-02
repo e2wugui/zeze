@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
             foreach (var var in vars)
             {
                 var varType = var.VariableType;
-                if (varType is TypeCollection or TypeMap or TypeGTable)
+                if (varType is TypeCollection or TypeMap)
                 {
                     maxLevel = 2;
                     break;

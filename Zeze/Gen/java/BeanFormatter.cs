@@ -212,6 +212,7 @@ namespace Zeze.Gen.java
                                || vt is TypeMap
                                || vt is Bean
                                || vt is TypeDynamic
+                               || vt is TypeGTable
                     // || vt is TypeVector2
                     // || vt is TypeVector2Int
                     // || vt is TypeVector3
