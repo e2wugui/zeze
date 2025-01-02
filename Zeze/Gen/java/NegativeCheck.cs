@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -19,9 +20,17 @@ namespace Zeze.Gen.java
             sw1.NewLine = "\n";
             foreach (Variable var in bean.Variables)
             {
-                if (var.AllowNegative)
-                    continue;
-                var.VariableType.Accept(new NegativeCheck(sw1, var, null, prefix + "    "));
+                try
+                {
+                    if (var.AllowNegative)
+                        continue;
+                    var.VariableType.Accept(new NegativeCheck(sw1, var, null, prefix + "    "));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"bean={bean.FullName} var={var.Name} ex={ex}");
+                    throw;
+                }
             }
             var s = sw1.ToString();
             if (s.Length > 0)

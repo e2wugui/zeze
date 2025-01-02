@@ -38,10 +38,23 @@ namespace Zeze.Gen.Types
 		}
 
 		public override string Name => "list";
-		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
-	}
+        private bool? isNeedNegativeCheckCache = null;
+        public override bool IsNeedNegativeCheck
+        {
+            get
+            {
+                if (isNeedNegativeCheckCache != null)
+                    return isNeedNegativeCheckCache.Value;
+                isNeedNegativeCheckCache = false;
+                if (ValueType.IsNeedNegativeCheck)
+                    return true;
+                isNeedNegativeCheckCache = null;
+                return false;
+            }
+        }
+    }
 
-	public class TypeArray : TypeList
+    public class TypeArray : TypeList
 	{
 		public override string Name => "array";
 
