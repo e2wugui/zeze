@@ -35,21 +35,7 @@ namespace Zeze.Gen.Types
 		}
 
 		public override string Name => "set";
-        private bool? isNeedNegativeCheckCache = null;
-        public override bool IsNeedNegativeCheck
-        {
-            get
-            {
-                if (isNeedNegativeCheckCache != null)
-                    return isNeedNegativeCheckCache.Value;
-                isNeedNegativeCheckCache = false;
-                if (ValueType.IsNeedNegativeCheck)
-                    return true;
-                isNeedNegativeCheckCache = null;
-                return false;
-            }
-        }
-
+		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
 
     }
 }

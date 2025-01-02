@@ -128,16 +128,25 @@ namespace Zeze.Gen.Types
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
 		protected string _name;
+
+        private bool? isNeedNegativeCheckCache = null;
         public override bool IsNeedNegativeCheck
 		{
 			get
 			{
-				foreach (var v in Variables)
+				if (isNeedNegativeCheckCache != null)
+					return isNeedNegativeCheckCache.Value;
+				isNeedNegativeCheckCache = false;
+                foreach (var v in Variables)
 				{
 					if (v.VariableType.IsNeedNegativeCheck)
-						return true;
-				}
-				return false;
+					{
+                        isNeedNegativeCheckCache = null;
+                        return true;
+                    }
+                }
+                isNeedNegativeCheckCache = null;
+                return false;
 			}
 		}
         public List<Variable> Variables { get; private set; } = new List<Variable>();

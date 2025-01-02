@@ -68,20 +68,6 @@ namespace Zeze.Gen.Types
         public override bool IsImmutable => false;
 		public override bool IsCollection => true;
 		public override bool IsJavaPrimitive => false;
-
-		private bool? isNeedNegativeCheckCache = null;
-		public override bool IsNeedNegativeCheck
-		{
-			get
-			{
-				if (isNeedNegativeCheckCache != null)
-					return isNeedNegativeCheckCache.Value;
-				isNeedNegativeCheckCache = false;
-				if (ValueType.IsNeedNegativeCheck)
-					return true;
-				isNeedNegativeCheckCache = null;
-                return false;
-            }
-        }
+		public override bool IsNeedNegativeCheck => ValueType.IsNeedNegativeCheck;
 	}
 }
