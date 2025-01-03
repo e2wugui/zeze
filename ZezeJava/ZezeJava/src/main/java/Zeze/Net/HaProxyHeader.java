@@ -23,7 +23,7 @@ public class HaProxyHeader {
 	}
 
 	public static final byte[] v2sig = { 0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A };
-	public static final byte[] v1sig = "PROXY".getBytes(StandardCharsets.UTF_8);
+	public static final byte[] v1sig = "PROXY ".getBytes(StandardCharsets.UTF_8);
 
 	/**
 	 * bb 必须有足够的数据
@@ -46,15 +46,18 @@ public class HaProxyHeader {
 		return true;
 	}
 
-	public static String findV1Line(byte[] bytes, int offset) {
+	public static String findV1Line(byte[] bytes, int offset, int end) {
 		var i = offset;
-		for (; i < bytes.length; ++i) {
-			if (bytes[i] == 0x0D)
+		for (; i < end; ++i) {
+			if (bytes[i] == 0x0D) {
+				if (i < end - 1) {
+					if (bytes[i + 1] == 0x0A)
+						return new String(bytes, offset, i - offset - 1, StandardCharsets.UTF_8);
+					throw new RuntimeException("haproxy error line end.");
+				}
 				break;
+			}
 		}
-		if (i < bytes.length && bytes[i + 1] == 0x0A)
-			return new String(bytes, offset, i - offset - 1, StandardCharsets.UTF_8);
-
 		return null;
 	}
 
@@ -95,16 +98,17 @@ public class HaProxyHeader {
 		}
 		// PROXY ...\r\n
 		else if (bb.size() >= 8 && startWithV1sig(bb.Bytes, bb.ReadIndex)) {
-			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length);
+			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length, bb.WriteIndex);
 			if (null == line) {
 				if (bb.size() > 108)
 					throw new RuntimeException("haproxy v1 line too long.");
 				return false;
 			}
-			/* parse the V1 header using favorite address parsers like inet_pton.
-			 * return -1 upon error, or simply fall through to accept.
-			 */
-			// todo decode line;
+			if (!line.equals("UNKNOWN")) {
+				/* parse the V1 header using favorite address parsers like inet_pton. */
+				var tokens = line.split(" ");
+				// todo decode line;
+			}
 		}
 		else
 			throw new RuntimeException("haproxy wrong protocol.");
