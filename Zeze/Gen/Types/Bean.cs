@@ -129,7 +129,7 @@ namespace Zeze.Gen.Types
 		public string NamePinyin => Program.ToPinyin(Name);
 		protected string _name;
 
-        private bool? isNeedNegativeCheckCache = null;
+        private bool? isNeedNegativeCheckCache = null; // 防止出现递归死循环。当bean内部只有一个容器，容器.Value有时bean自己时会出现。
         public override bool IsNeedNegativeCheck
 		{
 			get

@@ -54,7 +54,7 @@ public class HaProxyHeader {
 				if (endOffset.value < end - 1) {
 					endOffset.value += 1;
 					if (bytes[endOffset.value] == 0x0A)
-						return new String(bytes, offset, endOffset.value - offset - 2, StandardCharsets.UTF_8);
+						return new String(bytes, offset, endOffset.value - offset - 1, StandardCharsets.UTF_8);
 					throw new RuntimeException("haproxy error line end.");
 				}
 				break;
