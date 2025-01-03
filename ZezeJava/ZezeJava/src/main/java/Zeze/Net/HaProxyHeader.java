@@ -78,11 +78,23 @@ public class HaProxyHeader {
 				switch (fam) {
 				case 0x11: /* TCPv4 */
 					//remoteAddress = new InetSocketAddress(InetAddress.getByAddress(), );
+					/*
+					remoteAddress = bb.ReadIndex + 16;
+					targetAddress = bb.ReadIndex + 20;
+					*/
+					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
+					remotePort = javaBb.getShort(bb.ReadIndex + 24);
+					targetPort = javaBb.getShort(bb.ReadIndex + 26);
 					done = true;
 					return true;
 
 				case 0x21: /* TCPv6 */
-
+					/*
+					remoteAddress = bb.ReadIndex + 16;
+					targetAddress = bb.ReadIndex + 32;
+					*/
+					remotePort = javaBb.getShort(bb.ReadIndex + 48);
+					targetPort = javaBb.getShort(bb.ReadIndex + 50);
 					done = true;
 					return true;
 				}
