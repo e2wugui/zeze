@@ -11,6 +11,7 @@ import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.FamilyClass;
+import Zeze.Net.HaProxyHeader;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
@@ -253,7 +254,19 @@ public class LinkdService extends HandshakeServer {
 	@Override
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 		so.setUserState(newSession(so));
+		if (getConfig().getHaProxyKey() != null)
+			so.setHaProxyHeader(new HaProxyHeader(getConfig().getHaProxyKey()));
 		super.OnSocketAccept(so);
+	}
+
+	@Override
+	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
+		var haProxyHeader = so.getHaProxyHeader();
+		if (null != haProxyHeader) {
+			if (!haProxyHeader.decodeHeader(input))
+				return true; // 没有解析完header，看作成功。
+		}
+		return super.OnSocketProcessInputBuffer(so, input);
 	}
 
 	@Override

@@ -28,6 +28,11 @@ public final class ServiceConf extends ReentrantLock {
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
+	private String haProxyKey = null;
+
+	public @Nullable String getHaProxyKey() {
+		return haProxyKey;
+	}
 
 	public Service getService() {
 		return service;
@@ -302,6 +307,8 @@ public final class ServiceConf extends ReentrantLock {
 				throw new IllegalStateException("Duplicate ServiceConf " + getName());
 			}
 		}
+		if (self.hasAttribute("HaProxyKey"))
+			haProxyKey = self.getAttribute("HaProxyKey");
 
 		// connection creator options
 		NodeList childNodes = self.getChildNodes();

@@ -3,6 +3,7 @@ package Zeze.Net;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutInt;
 
 /**
  * 解析haproxy header，把信息保存下来。
@@ -46,13 +47,14 @@ public class HaProxyHeader {
 		return true;
 	}
 
-	public static String findV1Line(byte[] bytes, int offset, int end) {
-		var i = offset;
-		for (; i < end; ++i) {
-			if (bytes[i] == 0x0D) {
-				if (i < end - 1) {
-					if (bytes[i + 1] == 0x0A)
-						return new String(bytes, offset, i - offset - 1, StandardCharsets.UTF_8);
+	public static String findV1Line(byte[] bytes, int offset, int end, OutInt endOffset) {
+		endOffset.value = offset;
+		for (; endOffset.value < end; ++endOffset.value) {
+			if (bytes[endOffset.value] == 0x0D) {
+				if (endOffset.value < end - 1) {
+					endOffset.value += 1;
+					if (bytes[endOffset.value] == 0x0A)
+						return new String(bytes, offset, endOffset.value - offset - 2, StandardCharsets.UTF_8);
 					throw new RuntimeException("haproxy error line end.");
 				}
 				break;
@@ -85,6 +87,7 @@ public class HaProxyHeader {
 					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
 					remotePort = javaBb.getShort(bb.ReadIndex + 24);
 					targetPort = javaBb.getShort(bb.ReadIndex + 26);
+					bb.ReadIndex += size;
 					done = true;
 					return true;
 
@@ -95,6 +98,7 @@ public class HaProxyHeader {
 					*/
 					remotePort = javaBb.getShort(bb.ReadIndex + 48);
 					targetPort = javaBb.getShort(bb.ReadIndex + 50);
+					bb.ReadIndex += size;
 					done = true;
 					return true;
 				}
@@ -110,7 +114,8 @@ public class HaProxyHeader {
 		}
 		// PROXY ...\r\n
 		else if (bb.size() >= 8 && startWithV1sig(bb.Bytes, bb.ReadIndex)) {
-			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length, bb.WriteIndex);
+			var endOffset = new OutInt();
+			var line = findV1Line(bb.Bytes, bb.ReadIndex + v1sig.length, bb.WriteIndex, endOffset);
 			if (null == line) {
 				if (bb.size() > 108)
 					throw new RuntimeException("haproxy v1 line too long.");
@@ -120,6 +125,9 @@ public class HaProxyHeader {
 				/* parse the V1 header using favorite address parsers like inet_pton. */
 				var tokens = line.split(" ");
 				// todo decode line;
+				bb.ReadIndex += endOffset.value;
+				done = true;
+				return true;
 			}
 		}
 		else

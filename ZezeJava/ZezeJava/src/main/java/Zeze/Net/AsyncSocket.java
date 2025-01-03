@@ -84,6 +84,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final @NotNull SelectionKey selectionKey;
 	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
 	private volatile Object userState;
+	private volatile HaProxyHeader haProxyHeader;
 
 	@SuppressWarnings("unused")
 	private volatile long outputBufferSize;
@@ -113,6 +114,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final Type type;
 	private int activeRecvTime; // 上次接收的时间戳(秒)
 	private int activeSendTime; // 上次发送的时间戳(秒)
+
+	public @Nullable HaProxyHeader getHaProxyHeader() {
+		return haProxyHeader;
+	}
+
+	public void setHaProxyHeader(@NotNull HaProxyHeader haProxyHeader) {
+		this.haProxyHeader = haProxyHeader;
+	}
 
 	public Type getType() {
 		return type;
