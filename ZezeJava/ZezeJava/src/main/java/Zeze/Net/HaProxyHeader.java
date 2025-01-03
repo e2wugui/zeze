@@ -125,10 +125,10 @@ public class HaProxyHeader {
 				/* parse the V1 header using favorite address parsers like inet_pton. */
 				var tokens = line.split(" ");
 				// todo decode line;
-				bb.ReadIndex += endOffset.value + 1;
-				done = true;
-				return true;
 			}
+			bb.ReadIndex += endOffset.value + 1;
+			done = true;
+			return true;
 		}
 		else
 			throw new RuntimeException("haproxy wrong protocol.");
