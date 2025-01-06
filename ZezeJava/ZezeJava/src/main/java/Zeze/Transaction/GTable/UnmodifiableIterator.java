@@ -21,8 +21,6 @@ import java.util.Iterator;
 /**
  * An iterator that does not support {@link #remove}.
  *
- * <p>{@code UnmodifiableIterator} is used primarily in conjunction with implementations of {@link
- *
  * @author Jared Levy
  * @since 2.0
  */
