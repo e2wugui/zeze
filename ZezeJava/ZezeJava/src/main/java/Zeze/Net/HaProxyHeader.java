@@ -1,7 +1,12 @@
 package Zeze.Net;
 
-import java.net.SocketAddress;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.OutInt;
 
@@ -14,10 +19,8 @@ import Zeze.Util.OutInt;
 public class HaProxyHeader {
 	private boolean done = false;
 	private final String key;
-	private SocketAddress remoteAddress;
-	private int remotePort;
-	private SocketAddress targetAddress;
-	private int targetPort;
+	private InetSocketAddress remoteAddress;
+	private InetSocketAddress targetAddress;
 
 	public HaProxyHeader(String key) {
 		this.key = key;
@@ -63,7 +66,7 @@ public class HaProxyHeader {
 		return null;
 	}
 
-	public boolean decodeHeader(ByteBuffer bb) {
+	public boolean decodeHeader(ByteBuffer bb) throws UnknownHostException {
 		if (done)
 			return true;
 
@@ -79,25 +82,24 @@ public class HaProxyHeader {
 			case 0x01: /* proxy command */
 				switch (fam) {
 				case 0x11: /* TCPv4 */
-					//remoteAddress = new InetSocketAddress(InetAddress.getByAddress(), );
-					/*
-					remoteAddress = bb.ReadIndex + 16;
-					targetAddress = bb.ReadIndex + 20;
-					*/
 					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
-					remotePort = javaBb.getShort(bb.ReadIndex + 24);
-					targetPort = javaBb.getShort(bb.ReadIndex + 26);
+					var remoteInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 20));
+					remoteAddress = new InetSocketAddress(remoteInet4Address, javaBb.getShort(bb.ReadIndex + 24));
+
+					var targetInet4Address = Inet4Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 20, bb.ReadIndex + 24));
+					targetAddress = new InetSocketAddress(targetInet4Address, javaBb.getShort(bb.ReadIndex + 26));
+
 					bb.ReadIndex += size;
 					done = true;
 					return true;
 
 				case 0x21: /* TCPv6 */
-					/*
-					remoteAddress = bb.ReadIndex + 16;
-					targetAddress = bb.ReadIndex + 32;
-					*/
-					remotePort = javaBb.getShort(bb.ReadIndex + 48);
-					targetPort = javaBb.getShort(bb.ReadIndex + 50);
+					var remoteInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 16, bb.ReadIndex + 32));
+					remoteAddress = new InetSocketAddress(remoteInet6Address, javaBb.getShort(bb.ReadIndex + 48));
+
+					var targetInet6Address = Inet6Address.getByAddress(Arrays.copyOfRange(bb.Bytes, bb.ReadIndex + 32, bb.ReadIndex + 48));
+					targetAddress = new InetSocketAddress(targetInet6Address, javaBb.getShort(bb.ReadIndex + 50));;
+
 					bb.ReadIndex += size;
 					done = true;
 					return true;
@@ -124,9 +126,16 @@ public class HaProxyHeader {
 			if (!line.equals("UNKNOWN")) {
 				/* parse the V1 header using favorite address parsers like inet_pton. */
 				var tokens = line.split(" ");
-				// todo decode line;
+				if (tokens.length >= 5) {
+					switch (tokens[0]) {
+					case "TCP4", "TCP6": // 两个协议都用InetAddress.getByName，实现内部会区分。
+						remoteAddress = new InetSocketAddress(InetAddress.getByName(tokens[1]), Integer.parseInt(tokens[3]));
+						targetAddress = new InetSocketAddress(InetAddress.getByName(tokens[2]), Integer.parseInt(tokens[4]));
+						break;
+					}
+				}
 			}
-			bb.ReadIndex += endOffset.value + 1;
+			bb.ReadIndex += endOffset.value + 1; // endOffset 指向最后的ox0A，需要去掉。
 			done = true;
 			return true;
 		}
@@ -136,19 +145,11 @@ public class HaProxyHeader {
 		return done;
 	}
 
-	public SocketAddress getTargetAddress() {
+	public InetSocketAddress getTargetAddress() {
 		return targetAddress;
 	}
 
-	public int getTargetPort() {
-		return targetPort;
-	}
-
-	public SocketAddress getRemoteAddress() {
+	public InetSocketAddress getRemoteAddress() {
 		return remoteAddress;
-	}
-
-	public int getRemotePort() {
-		return remotePort;
 	}
 }
