@@ -110,15 +110,15 @@ public class HaProxyHeader {
 				return false;
 			}
 			// parse the V1 header using favorite address parsers like inet_pton.
-				var tokens = line.split(" ");
-				if (tokens.length >= 5) {
-					switch (tokens[0]) {
-					case "TCP4", "TCP6": // 两个协议都用InetAddress.getByName，实现内部会区分。
-						remoteAddress = new InetSocketAddress(InetAddress.getByName(tokens[1]), Integer.parseInt(tokens[3]));
-						targetAddress = new InetSocketAddress(InetAddress.getByName(tokens[2]), Integer.parseInt(tokens[4]));
-						break;
-					}
+			var tokens = line.split(" ");
+			if (tokens.length >= 5) {
+				switch (tokens[0]) {
+				case "TCP4", "TCP6": // 两个协议都用InetAddress.getByName，实现内部会区分。
+					remoteAddress = new InetSocketAddress(InetAddress.getByName(tokens[1]), Integer.parseInt(tokens[3]));
+					targetAddress = new InetSocketAddress(InetAddress.getByName(tokens[2]), Integer.parseInt(tokens[4]));
+					break;
 				}
+			}
 			bb.ReadIndex += line.length() + 2; // 再跳过line后的\r\n
 			done = true;
 			return true;
