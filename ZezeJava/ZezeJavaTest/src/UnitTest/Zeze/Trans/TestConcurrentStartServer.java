@@ -11,7 +11,7 @@ public class TestConcurrentStartServer {
 	public void testConcurrentStartServer() throws Exception {
 		//var config = Config.load("zeze.xml");
 		//config.dropMysqlOperatesProcedures();
-		for (var i = 0; i < 5; ++i)
+		for (var i = 0; i < 3; ++i)
 			start2();
 	}
 

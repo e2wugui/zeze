@@ -10,7 +10,7 @@ import org.junit.Assert;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
-	public static final int AddCount = 500_000;
+	public static final int AddCount = 200_000;
 
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();

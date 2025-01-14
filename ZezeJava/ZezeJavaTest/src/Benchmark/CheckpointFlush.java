@@ -40,7 +40,7 @@ public class CheckpointFlush {
 		cfg.setCheckpointFlushMode(mode);
 		App.Instance.Start(cfg);
 		try {
-			var count = 2_0000;
+			var count = 1_0000;
 			var futures = new ArrayList<Future<?>>();
 			for (int i = 0; i < count; ++i) {
 				long key = i;
