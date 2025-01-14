@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Util.OutObject;
 import demo.App;
 import org.json.JSONObject;
 import org.junit.Assert;

@@ -113,10 +113,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    if (_t_ == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
-            if (type is TypeString)
-                sw.WriteLine(prefix + "    return log != null ? log.stringValue() : " + var.NamePrivate + ";");
-            else
-                sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
@@ -178,7 +175,34 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeString type)
         {
-            WriteProperty(type, true);
+            var typeName = TypeName.GetName(type);
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    if (!isManaged())");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
+            sw.WriteLine(prefix + "    if (_t_ == null)");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    return log != null ? log.stringValue() : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
+            sw.WriteLine(prefix + "    if (_v_ == null)");
+            sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
+            sw.WriteLine(prefix + "    if (!isManaged()) {");
+            sw.WriteLine(prefix + "        " + var.NamePrivate + " = _v_;");
+            sw.WriteLine(prefix + "        return;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
+            sw.WriteLine(prefix + "    _t_.putLog(new " + LogName.GetName(type) + $"(this, {var.Id}, vh_{var.Name}, _v_));"); //
+            if (type.getJsonType() != JsonType.None)
+            {
+                var jsonVarName = $"_{var.Name}_{type.getJsonType().ToString()}";
+                sw.WriteLine(prefix + $"    Zeze.Transaction.Transaction.whileCommit(() -> {jsonVarName}.remove());");
+            }
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
             if (type.getJsonType() != JsonType.None)
             {
                 var jsonVarName = $"_{var.Name}_{type.getJsonType().ToString()}";
