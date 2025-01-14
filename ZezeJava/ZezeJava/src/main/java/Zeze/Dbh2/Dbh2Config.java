@@ -13,7 +13,7 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
-	private int rpcTimeout = 20_000;
+	private int rpcTimeout = 60_000;
 
 	public int getRpcTimeout() {
 		return rpcTimeout;
