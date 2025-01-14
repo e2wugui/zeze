@@ -62,7 +62,7 @@ public final class BFuncProcedure extends Zeze.Transaction.Bean implements BFunc
         if (_t_ == null)
             return _FuncName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _FuncName;
+        return log != null ? log.stringValue() : _FuncName;
     }
 
     public void setFuncName(String _v_) {

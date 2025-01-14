@@ -32,7 +32,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         if (_t_ == null)
             return _Database;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Database;
+        return log != null ? log.stringValue() : _Database;
     }
 
     public void setDatabase(String _v_) {
@@ -54,7 +54,7 @@ public final class BGetBuckets extends Zeze.Transaction.Bean implements BGetBuck
         if (_t_ == null)
             return _Table;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Table;
+        return log != null ? log.stringValue() : _Table;
     }
 
     public void setTable(String _v_) {

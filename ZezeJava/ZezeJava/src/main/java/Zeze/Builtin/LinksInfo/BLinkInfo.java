@@ -35,7 +35,7 @@ public final class BLinkInfo extends Zeze.Transaction.Bean implements BLinkInfoR
         if (_t_ == null)
             return _Ip;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Ip;
+        return log != null ? log.stringValue() : _Ip;
     }
 
     public void setIp(String _v_) {

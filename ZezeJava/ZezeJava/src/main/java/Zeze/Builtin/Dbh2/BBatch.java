@@ -67,7 +67,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         if (_t_ == null)
             return _QueryIp;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _QueryIp;
+        return log != null ? log.stringValue() : _QueryIp;
     }
 
     public void setQueryIp(String _v_) {

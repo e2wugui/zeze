@@ -29,7 +29,7 @@ public final class BStartService extends Zeze.Transaction.Bean implements BStart
         if (_t_ == null)
             return _ServiceName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ServiceName;
+        return log != null ? log.stringValue() : _ServiceName;
     }
 
     public void setServiceName(String _v_) {

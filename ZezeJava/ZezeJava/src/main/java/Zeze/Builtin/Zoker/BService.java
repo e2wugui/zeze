@@ -36,7 +36,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         if (_t_ == null)
             return _ServiceName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ServiceName;
+        return log != null ? log.stringValue() : _ServiceName;
     }
 
     public void setServiceName(String _v_) {
@@ -58,7 +58,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         if (_t_ == null)
             return _State;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _State;
+        return log != null ? log.stringValue() : _State;
     }
 
     public void setState(String _v_) {
@@ -80,7 +80,7 @@ public final class BService extends Zeze.Transaction.Bean implements BServiceRea
         if (_t_ == null)
             return _Ps;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _Ps;
+        return log != null ? log.stringValue() : _Ps;
     }
 
     public void setPs(String _v_) {

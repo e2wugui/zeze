@@ -75,7 +75,7 @@ public final class BReLogin extends Zeze.Transaction.Bean implements BReLoginRea
         if (_t_ == null)
             return _OnlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _OnlineSetName;
+        return log != null ? log.stringValue() : _OnlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

@@ -29,7 +29,7 @@ public final class BJson extends Zeze.Transaction.Bean implements BJsonReadOnly 
         if (_t_ == null)
             return _Json;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Json;
+        return log != null ? log.stringValue() : _Json;
     }
 
     public void setJson(String _v_) {

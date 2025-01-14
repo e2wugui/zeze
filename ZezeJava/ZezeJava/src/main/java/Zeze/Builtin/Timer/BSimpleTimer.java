@@ -260,7 +260,7 @@ public final class BSimpleTimer extends Zeze.Transaction.Bean implements BSimple
         if (_t_ == null)
             return _OneByOneKey;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 11);
-        return log != null ? log.value : _OneByOneKey;
+        return log != null ? log.stringValue() : _OneByOneKey;
     }
 
     public void setOneByOneKey(String _v_) {

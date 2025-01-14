@@ -35,7 +35,7 @@ public final class BTableKey extends Zeze.Transaction.Bean implements BTableKeyR
         if (_t_ == null)
             return _TableName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _TableName;
+        return log != null ? log.stringValue() : _TableName;
     }
 
     public void setTableName(String _v_) {

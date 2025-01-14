@@ -38,7 +38,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         if (_t_ == null)
             return _Host;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Host;
+        return log != null ? log.stringValue() : _Host;
     }
 
     public void setHost(String _v_) {
@@ -100,7 +100,7 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
         if (_t_ == null)
             return _Topic;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _Topic;
+        return log != null ? log.stringValue() : _Topic;
     }
 
     public void setTopic(String _v_) {

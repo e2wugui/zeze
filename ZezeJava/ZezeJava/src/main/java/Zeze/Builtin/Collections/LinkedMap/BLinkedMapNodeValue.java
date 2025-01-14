@@ -42,7 +42,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean implements 
         if (_t_ == null)
             return _Id;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Id;
+        return log != null ? log.stringValue() : _Id;
     }
 
     public void setId(String _v_) {

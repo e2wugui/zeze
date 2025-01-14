@@ -32,7 +32,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         if (_t_ == null)
             return _ServiceName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ServiceName;
+        return log != null ? log.stringValue() : _ServiceName;
     }
 
     public void setServiceName(String _v_) {
@@ -54,7 +54,7 @@ public final class BCommitService extends Zeze.Transaction.Bean implements BComm
         if (_t_ == null)
             return _VersionNo;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _VersionNo;
+        return log != null ? log.stringValue() : _VersionNo;
     }
 
     public void setVersionNo(String _v_) {

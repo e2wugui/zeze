@@ -45,7 +45,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _TimerId;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _TimerId;
+        return log != null ? log.stringValue() : _TimerId;
     }
 
     public void setTimerId(String _v_) {
@@ -80,7 +80,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _HandleClass;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _HandleClass;
+        return log != null ? log.stringValue() : _HandleClass;
     }
 
     public void setHandleClass(String _v_) {
@@ -102,7 +102,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _CustomClass;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _CustomClass;
+        return log != null ? log.stringValue() : _CustomClass;
     }
 
     public void setCustomClass(String _v_) {

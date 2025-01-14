@@ -61,7 +61,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         if (_t_ == null)
             return _Name;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Name;
+        return log != null ? log.stringValue() : _Name;
     }
 
     public void setName(String _v_) {
@@ -83,7 +83,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         if (_t_ == null)
             return _Type;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _Type;
+        return log != null ? log.stringValue() : _Type;
     }
 
     public void setType(String _v_) {
@@ -105,7 +105,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         if (_t_ == null)
             return _Key;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _Key;
+        return log != null ? log.stringValue() : _Key;
     }
 
     public void setKey(String _v_) {
@@ -127,7 +127,7 @@ public final class BVariable extends Zeze.Transaction.Bean implements BVariableR
         if (_t_ == null)
             return _Value;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _Value;
+        return log != null ? log.stringValue() : _Value;
     }
 
     public void setValue(String _v_) {

@@ -29,7 +29,7 @@ public final class BeanName extends Zeze.Transaction.Bean implements BeanNameRea
         if (_t_ == null)
             return _Name;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Name;
+        return log != null ? log.stringValue() : _Name;
     }
 
     public void setName(String _v_) {

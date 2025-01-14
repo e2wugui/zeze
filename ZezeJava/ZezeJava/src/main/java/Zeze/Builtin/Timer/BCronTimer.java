@@ -54,7 +54,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         if (_t_ == null)
             return _CronExpression;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _CronExpression;
+        return log != null ? log.stringValue() : _CronExpression;
     }
 
     public void setCronExpression(String _v_) {
@@ -196,7 +196,7 @@ public final class BCronTimer extends Zeze.Transaction.Bean implements BCronTime
         if (_t_ == null)
             return _OneByOneKey;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 8);
-        return log != null ? log.value : _OneByOneKey;
+        return log != null ? log.stringValue() : _OneByOneKey;
     }
 
     public void setOneByOneKey(String _v_) {

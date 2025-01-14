@@ -38,7 +38,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         if (_t_ == null)
             return _account;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _account;
+        return log != null ? log.stringValue() : _account;
     }
 
     public void setAccount(String _v_) {

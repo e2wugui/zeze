@@ -52,7 +52,7 @@ public final class BLog extends Zeze.Transaction.Bean implements BLogReadOnly {
         if (_t_ == null)
             return _Log;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Log;
+        return log != null ? log.stringValue() : _Log;
     }
 
     public void setLog(String _v_) {

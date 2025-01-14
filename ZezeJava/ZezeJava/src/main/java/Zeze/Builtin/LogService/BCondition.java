@@ -112,7 +112,7 @@ public final class BCondition extends Zeze.Transaction.Bean implements BConditio
         if (_t_ == null)
             return _Pattern;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _Pattern;
+        return log != null ? log.stringValue() : _Pattern;
     }
 
     public void setPattern(String _v_) {

@@ -55,7 +55,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _TimerName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _TimerName;
+        return log != null ? log.stringValue() : _TimerName;
     }
 
     public void setTimerName(String _v_) {
@@ -77,7 +77,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _Account;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Account;
+        return log != null ? log.stringValue() : _Account;
     }
 
     public void setAccount(String _v_) {
@@ -99,7 +99,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _ClientId;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _ClientId;
+        return log != null ? log.stringValue() : _ClientId;
     }
 
     public void setClientId(String _v_) {
@@ -141,7 +141,7 @@ public final class BOfflineAccountCustom extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _HandleName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _HandleName;
+        return log != null ? log.stringValue() : _HandleName;
     }
 
     public void setHandleName(String _v_) {

@@ -29,7 +29,7 @@ public final class BTopic extends Zeze.Transaction.Bean implements BTopicReadOnl
         if (_t_ == null)
             return _topic;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _topic;
+        return log != null ? log.stringValue() : _topic;
     }
 
     public void setTopic(String _v_) {

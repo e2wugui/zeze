@@ -137,6 +137,8 @@
 			<variable id="41" name="map41"  type="map[long,BSimple]" javaType="LongHashMap"/>
 			<variable id="42" name="map42Recursive" type="map[long, BValue]"/>
 			<variable id="43" name="list43" type="list[dynamic:BSimple]"/>
+			<variable id="44" name="jsonObject" type="string" value="JSON_OBJECT"/>
+			<variable id="45" name="jsonArray" type="string" value="JSON_ARRAY"/>
 
 			<variable id="50" name="version" type="long"/>
 

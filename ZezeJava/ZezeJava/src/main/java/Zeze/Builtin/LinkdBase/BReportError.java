@@ -85,7 +85,7 @@ public final class BReportError extends Zeze.Transaction.Bean implements BReport
         if (_t_ == null)
             return _desc;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _desc;
+        return log != null ? log.stringValue() : _desc;
     }
 
     public void setDesc(String _v_) {

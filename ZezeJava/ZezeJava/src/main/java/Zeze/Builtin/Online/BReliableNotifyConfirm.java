@@ -35,7 +35,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean implemen
         if (_t_ == null)
             return _ClientId;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ClientId;
+        return log != null ? log.stringValue() : _ClientId;
     }
 
     public void setClientId(String _v_) {

@@ -62,7 +62,7 @@ public final class BOnlines extends Zeze.Transaction.Bean implements BOnlinesRea
         if (_t_ == null)
             return _Account;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _Account;
+        return log != null ? log.stringValue() : _Account;
     }
 
     public void setAccount(String _v_) {

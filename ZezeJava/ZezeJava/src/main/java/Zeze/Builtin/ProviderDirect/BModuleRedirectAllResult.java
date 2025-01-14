@@ -102,7 +102,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         if (_t_ == null)
             return _MethodFullName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _MethodFullName;
+        return log != null ? log.stringValue() : _MethodFullName;
     }
 
     public void setMethodFullName(String _v_) {

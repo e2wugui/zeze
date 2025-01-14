@@ -35,7 +35,7 @@ public final class BAppendFile extends Zeze.Transaction.Bean implements BAppendF
         if (_t_ == null)
             return _FileName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _FileName;
+        return log != null ? log.stringValue() : _FileName;
     }
 
     public void setFileName(String _v_) {

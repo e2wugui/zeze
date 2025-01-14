@@ -35,7 +35,7 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
         if (_t_ == null)
             return _Database;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Database;
+        return log != null ? log.stringValue() : _Database;
     }
 
     public void setDatabase(String _v_) {
@@ -57,7 +57,7 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
         if (_t_ == null)
             return _Table;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Table;
+        return log != null ? log.stringValue() : _Table;
     }
 
     public void setTable(String _v_) {
@@ -79,7 +79,7 @@ public final class BDbh2Config extends Zeze.Transaction.Bean implements BDbh2Con
         if (_t_ == null)
             return _RaftConfig;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _RaftConfig;
+        return log != null ? log.stringValue() : _RaftConfig;
     }
 
     public void setRaftConfig(String _v_) {

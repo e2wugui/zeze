@@ -29,7 +29,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         if (_t_ == null)
             return _SessionName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _SessionName;
+        return log != null ? log.stringValue() : _SessionName;
     }
 
     public void setSessionName(String _v_) {

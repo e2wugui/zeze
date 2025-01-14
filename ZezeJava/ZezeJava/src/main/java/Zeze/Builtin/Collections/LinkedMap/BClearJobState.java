@@ -75,7 +75,7 @@ public final class BClearJobState extends Zeze.Transaction.Bean implements BClea
         if (_t_ == null)
             return _LinkedMapName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _LinkedMapName;
+        return log != null ? log.stringValue() : _LinkedMapName;
     }
 
     public void setLinkedMapName(String _v_) {

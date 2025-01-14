@@ -44,7 +44,7 @@ public final class BJob extends Zeze.Transaction.Bean implements BJobReadOnly {
         if (_t_ == null)
             return _JobHandleName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _JobHandleName;
+        return log != null ? log.stringValue() : _JobHandleName;
     }
 
     public void setJobHandleName(String _v_) {

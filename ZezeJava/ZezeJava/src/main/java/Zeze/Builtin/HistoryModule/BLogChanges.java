@@ -62,7 +62,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         if (_t_ == null)
             return _ProtocolClassName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _ProtocolClassName;
+        return log != null ? log.stringValue() : _ProtocolClassName;
     }
 
     public void setProtocolClassName(String _v_) {

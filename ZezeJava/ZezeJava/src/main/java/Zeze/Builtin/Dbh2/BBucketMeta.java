@@ -42,7 +42,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_t_ == null)
             return _DatabaseName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _DatabaseName;
+        return log != null ? log.stringValue() : _DatabaseName;
     }
 
     public void setDatabaseName(String _v_) {
@@ -64,7 +64,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_t_ == null)
             return _TableName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _TableName;
+        return log != null ? log.stringValue() : _TableName;
     }
 
     public void setTableName(String _v_) {
@@ -130,7 +130,7 @@ public final class BBucketMeta extends Zeze.Transaction.Bean implements BBucketM
         if (_t_ == null)
             return _RaftConfig;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _RaftConfig;
+        return log != null ? log.stringValue() : _RaftConfig;
     }
 
     public void setRaftConfig(String _v_) {

@@ -68,7 +68,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         if (_t_ == null)
             return _account;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _account;
+        return log != null ? log.stringValue() : _account;
     }
 
     public void setAccount(String _v_) {
@@ -132,7 +132,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         if (_t_ == null)
             return _context;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _context;
+        return log != null ? log.stringValue() : _context;
     }
 
     public void setContext(String _v_) {
@@ -176,7 +176,7 @@ public final class BDispatch extends Zeze.Transaction.Bean implements BDispatchR
         if (_t_ == null)
             return _onlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 7);
-        return log != null ? log.value : _onlineSetName;
+        return log != null ? log.stringValue() : _onlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

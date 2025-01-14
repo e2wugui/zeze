@@ -48,7 +48,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         if (_t_ == null)
             return _Master;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Master;
+        return log != null ? log.stringValue() : _Master;
     }
 
     public void setMaster(String _v_) {
@@ -70,7 +70,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         if (_t_ == null)
             return _Database;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Database;
+        return log != null ? log.stringValue() : _Database;
     }
 
     public void setDatabase(String _v_) {
@@ -92,7 +92,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         if (_t_ == null)
             return _Table;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _Table;
+        return log != null ? log.stringValue() : _Table;
     }
 
     public void setTable(String _v_) {

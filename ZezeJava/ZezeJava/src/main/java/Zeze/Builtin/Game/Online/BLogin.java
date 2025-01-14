@@ -53,7 +53,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
         if (_t_ == null)
             return _OnlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _OnlineSetName;
+        return log != null ? log.stringValue() : _OnlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

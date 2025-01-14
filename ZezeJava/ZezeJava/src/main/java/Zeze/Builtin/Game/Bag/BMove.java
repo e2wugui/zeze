@@ -38,7 +38,7 @@ public final class BMove extends Zeze.Transaction.Bean implements BMoveReadOnly 
         if (_t_ == null)
             return _BagName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _BagName;
+        return log != null ? log.stringValue() : _BagName;
     }
 
     public void setBagName(String _v_) {

@@ -35,7 +35,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         if (_t_ == null)
             return _context;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _context;
+        return log != null ? log.stringValue() : _context;
     }
 
     public void setContext(String _v_) {
@@ -79,7 +79,7 @@ public final class BUserState extends Zeze.Transaction.Bean implements BUserStat
         if (_t_ == null)
             return _onlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _onlineSetName;
+        return log != null ? log.stringValue() : _onlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

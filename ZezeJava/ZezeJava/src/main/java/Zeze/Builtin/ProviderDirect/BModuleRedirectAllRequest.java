@@ -140,7 +140,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         if (_t_ == null)
             return _MethodFullName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 6);
-        return log != null ? log.value : _MethodFullName;
+        return log != null ? log.stringValue() : _MethodFullName;
     }
 
     public void setMethodFullName(String _v_) {
@@ -184,7 +184,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean imple
         if (_t_ == null)
             return _ServiceNamePrefix;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 8);
-        return log != null ? log.value : _ServiceNamePrefix;
+        return log != null ? log.stringValue() : _ServiceNamePrefix;
     }
 
     public void setServiceNamePrefix(String _v_) {

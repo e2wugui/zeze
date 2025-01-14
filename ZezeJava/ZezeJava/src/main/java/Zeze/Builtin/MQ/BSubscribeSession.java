@@ -32,7 +32,7 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
         if (_t_ == null)
             return _Topic;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Topic;
+        return log != null ? log.stringValue() : _Topic;
     }
 
     public void setTopic(String _v_) {

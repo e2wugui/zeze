@@ -63,7 +63,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         if (_t_ == null)
             return _Root;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Root;
+        return log != null ? log.stringValue() : _Root;
     }
 
     public void setRoot(String _v_) {

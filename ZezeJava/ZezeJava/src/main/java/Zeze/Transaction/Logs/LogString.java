@@ -14,9 +14,9 @@ public class LogString extends Log {
 	private static final int TYPE_ID = Bean.hash32("Zeze.Transaction.Log<string>");
 
 	private final VarHandle vh;
-	public String value;
+	private Object value;
 
-	public LogString(Bean belong, int varId, VarHandle vh, String value) {
+	public LogString(Bean belong, int varId, VarHandle vh, Object value) {
 		super(belong, varId);
 		this.vh = vh;
 		this.value = value;
@@ -40,12 +40,12 @@ public class LogString extends Log {
 	@Override
 	public void commit() {
 		//noinspection DataFlowIssue
-		vh.set(getBelong(), value);
+		vh.set(getBelong(), value.toString());
 	}
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		bb.WriteString(value);
+		bb.WriteString(value.toString());
 	}
 
 	@Override
@@ -60,16 +60,16 @@ public class LogString extends Log {
 
 	@Override
 	public @NotNull Binary binaryValue() {
-		return new Binary(value);
+		return new Binary(value.toString());
 	}
 
 	@Override
 	public @NotNull String stringValue() {
-		return value;
+		return value.toString();
 	}
 
 	@Override
 	public @NotNull BigDecimal decimalValue() {
-		return new BigDecimal(value, MathContext.DECIMAL128);
+		return new BigDecimal(value.toString(), MathContext.DECIMAL128);
 	}
 }

@@ -39,7 +39,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_t_ == null)
             return _ActionName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ActionName;
+        return log != null ? log.stringValue() : _ActionName;
     }
 
     public void setActionName(String _v_) {
@@ -92,7 +92,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_t_ == null)
             return _SenderAccount;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _SenderAccount;
+        return log != null ? log.stringValue() : _SenderAccount;
     }
 
     public void setSenderAccount(String _v_) {
@@ -114,7 +114,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_t_ == null)
             return _SenderClientId;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _SenderClientId;
+        return log != null ? log.stringValue() : _SenderClientId;
     }
 
     public void setSenderClientId(String _v_) {

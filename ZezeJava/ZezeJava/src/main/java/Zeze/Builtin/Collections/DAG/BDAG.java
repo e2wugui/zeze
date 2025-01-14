@@ -78,7 +78,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         if (_t_ == null)
             return _StartNode;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _StartNode;
+        return log != null ? log.stringValue() : _StartNode;
     }
 
     public void setStartNode(String _v_) {
@@ -100,7 +100,7 @@ public final class BDAG extends Zeze.Transaction.Bean implements BDAGReadOnly {
         if (_t_ == null)
             return _EndNode;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _EndNode;
+        return log != null ? log.stringValue() : _EndNode;
     }
 
     public void setEndNode(String _v_) {

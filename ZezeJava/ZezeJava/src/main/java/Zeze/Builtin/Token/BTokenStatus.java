@@ -98,7 +98,7 @@ public final class BTokenStatus extends Zeze.Transaction.Bean implements BTokenS
         if (_t_ == null)
             return _perfLog;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _perfLog;
+        return log != null ? log.stringValue() : _perfLog;
     }
 
     public void setPerfLog(String _v_) {

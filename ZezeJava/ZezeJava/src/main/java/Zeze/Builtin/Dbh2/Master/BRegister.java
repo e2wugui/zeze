@@ -35,7 +35,7 @@ public final class BRegister extends Zeze.Transaction.Bean implements BRegisterR
         if (_t_ == null)
             return _Dbh2RaftAcceptorName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Dbh2RaftAcceptorName;
+        return log != null ? log.stringValue() : _Dbh2RaftAcceptorName;
     }
 
     public void setDbh2RaftAcceptorName(String _v_) {

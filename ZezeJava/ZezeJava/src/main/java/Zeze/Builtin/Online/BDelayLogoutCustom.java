@@ -35,7 +35,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _Account;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Account;
+        return log != null ? log.stringValue() : _Account;
     }
 
     public void setAccount(String _v_) {
@@ -57,7 +57,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _ClientId;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _ClientId;
+        return log != null ? log.stringValue() : _ClientId;
     }
 
     public void setClientId(String _v_) {

@@ -90,7 +90,7 @@ public final class BKick extends Zeze.Transaction.Bean implements BKickReadOnly 
         if (_t_ == null)
             return _desc;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _desc;
+        return log != null ? log.stringValue() : _desc;
     }
 
     public void setDesc(String _v_) {

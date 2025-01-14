@@ -45,7 +45,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _ServiceNamePrefix;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ServiceNamePrefix;
+        return log != null ? log.stringValue() : _ServiceNamePrefix;
     }
 
     public void setServiceNamePrefix(String _v_) {
@@ -67,7 +67,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _ServiceIdentity;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _ServiceIdentity;
+        return log != null ? log.stringValue() : _ServiceIdentity;
     }
 
     public void setServiceIdentity(String _v_) {
@@ -89,7 +89,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean implement
         if (_t_ == null)
             return _ProviderDirectIp;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _ProviderDirectIp;
+        return log != null ? log.stringValue() : _ProviderDirectIp;
     }
 
     public void setProviderDirectIp(String _v_) {

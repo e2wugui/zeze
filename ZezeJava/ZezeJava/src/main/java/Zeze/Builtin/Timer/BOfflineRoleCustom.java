@@ -56,7 +56,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _TimerName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _TimerName;
+        return log != null ? log.stringValue() : _TimerName;
     }
 
     public void setTimerName(String _v_) {
@@ -118,7 +118,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _HandleName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _HandleName;
+        return log != null ? log.stringValue() : _HandleName;
     }
 
     public void setHandleName(String _v_) {
@@ -149,7 +149,7 @@ public final class BOfflineRoleCustom extends Zeze.Transaction.Bean implements B
         if (_t_ == null)
             return _OnlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 6);
-        return log != null ? log.value : _OnlineSetName;
+        return log != null ? log.stringValue() : _OnlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

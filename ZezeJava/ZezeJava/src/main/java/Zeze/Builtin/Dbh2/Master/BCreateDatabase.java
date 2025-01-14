@@ -29,7 +29,7 @@ public final class BCreateDatabase extends Zeze.Transaction.Bean implements BCre
         if (_t_ == null)
             return _Database;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _Database;
+        return log != null ? log.stringValue() : _Database;
     }
 
     public void setDatabase(String _v_) {

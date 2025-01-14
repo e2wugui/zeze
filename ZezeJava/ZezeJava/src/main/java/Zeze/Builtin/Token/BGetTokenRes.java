@@ -100,7 +100,7 @@ public final class BGetTokenRes extends Zeze.Transaction.Bean implements BGetTok
         if (_t_ == null)
             return _addr;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
-        return log != null ? log.value : _addr;
+        return log != null ? log.stringValue() : _addr;
     }
 
     public void setAddr(String _v_) {

@@ -55,7 +55,7 @@ public final class BAchillesHeel extends Zeze.Transaction.Bean implements BAchil
         if (_t_ == null)
             return _SecureKey;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _SecureKey;
+        return log != null ? log.stringValue() : _SecureKey;
     }
 
     public void setSecureKey(String _v_) {

@@ -29,7 +29,7 @@ public final class BNewTokenRes extends Zeze.Transaction.Bean implements BNewTok
         if (_t_ == null)
             return _token;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _token;
+        return log != null ? log.stringValue() : _token;
     }
 
     public void setToken(String _v_) {

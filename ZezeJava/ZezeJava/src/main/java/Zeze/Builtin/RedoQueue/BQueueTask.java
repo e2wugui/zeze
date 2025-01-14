@@ -41,7 +41,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean implements BQueueTas
         if (_t_ == null)
             return _QueueName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _QueueName;
+        return log != null ? log.stringValue() : _QueueName;
     }
 
     public void setQueueName(String _v_) {

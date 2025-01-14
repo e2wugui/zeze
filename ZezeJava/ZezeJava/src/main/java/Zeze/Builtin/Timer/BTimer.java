@@ -92,7 +92,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         if (_t_ == null)
             return _TimerName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _TimerName;
+        return log != null ? log.stringValue() : _TimerName;
     }
 
     public void setTimerName(String _v_) {
@@ -114,7 +114,7 @@ public final class BTimer extends Zeze.Transaction.Bean implements BTimerReadOnl
         if (_t_ == null)
             return _HandleName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _HandleName;
+        return log != null ? log.stringValue() : _HandleName;
     }
 
     public void setHandleName(String _v_) {

@@ -29,7 +29,7 @@ public final class BNewSession extends Zeze.Transaction.Bean implements BNewSess
         if (_t_ == null)
             return _LogName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _LogName;
+        return log != null ? log.stringValue() : _LogName;
     }
 
     public void setLogName(String _v_) {

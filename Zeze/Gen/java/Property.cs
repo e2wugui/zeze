@@ -113,7 +113,10 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    if (_t_ == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
+            if (type is TypeString)
+                sw.WriteLine(prefix + "    return log != null ? log.stringValue() : " + var.NamePrivate + ";");
+            else
+                sw.WriteLine(prefix + "    return log != null ? log.value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} _v_") + " {");
@@ -130,6 +133,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    _t_.putLog(new " + LogName.GetName(type) + $"(this, {var.Id}, vh_{var.Name}, _v_));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+
         }
 
         public void Visit(TypeBool type)
@@ -175,6 +179,28 @@ namespace Zeze.Gen.java
         public void Visit(TypeString type)
         {
             WriteProperty(type, true);
+            if (type.getJsonType() != JsonType.None)
+            {
+                var jsonVarName = $"_{var.Name}_{type.getJsonType().ToString()}";
+                var parseName = type.getJsonType() == JsonType.JSON_OBJECT ? "Object" : "Array";
+                var emptyName = type.getJsonType() == JsonType.JSON_OBJECT ? "\"{}\"" : "\"[]\"";
+                sw.WriteLine(prefix + $"private ThreadLocal<{type.getJsonTypeClass()}> {jsonVarName} = new ThreadLocal<>();");
+                sw.WriteLine(prefix + "    ");
+                sw.WriteLine(prefix + $"public {type.getJsonTypeClass()} get{var.NameUpper1}_{type.getJsonType().ToString()}() {{");
+                sw.WriteLine(prefix + $"    if (null == {jsonVarName}.get()) {{");
+                sw.WriteLine(prefix + $"        var _v_ = this.get{var.NameUpper1}();");
+                sw.WriteLine(prefix + $"        if (_v_.isEmpty())");
+                sw.WriteLine(prefix + $"            _v_ = {emptyName};");
+                sw.WriteLine(prefix + $"        {jsonVarName}.set(com.alibaba.fastjson.JSON.parse{parseName}(_v_));");
+                sw.WriteLine(prefix + $"    }}");
+                sw.WriteLine(prefix + $"    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
+                sw.WriteLine(prefix + $"    _t_.putLog(new {LogName.GetName(type)}(this, {var.Id}, vh_{var.Name}, {jsonVarName}.get()));");
+                sw.WriteLine(prefix + $"    Zeze.Transaction.Transaction.whileCommit(() -> {jsonVarName}.remove());");
+                sw.WriteLine(prefix + $"    Zeze.Transaction.Transaction.whileRollback(() -> {jsonVarName}.remove());");
+                sw.WriteLine(prefix + $"    return {jsonVarName}.get();");
+                sw.WriteLine(prefix + $"}}");
+                sw.WriteLine();
+            }
         }
 
         public void Visit(TypeList type)

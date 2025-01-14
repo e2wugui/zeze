@@ -39,7 +39,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         if (_t_ == null)
             return _ActionName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ActionName;
+        return log != null ? log.stringValue() : _ActionName;
     }
 
     public void setActionName(String _v_) {
@@ -112,7 +112,7 @@ public final class BTransmit extends Zeze.Transaction.Bean implements BTransmitR
         if (_t_ == null)
             return _OnlineSetName;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 5);
-        return log != null ? log.value : _OnlineSetName;
+        return log != null ? log.stringValue() : _OnlineSetName;
     }
 
     public void setOnlineSetName(String _v_) {

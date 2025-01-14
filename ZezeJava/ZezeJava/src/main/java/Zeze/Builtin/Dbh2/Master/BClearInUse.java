@@ -56,7 +56,7 @@ public final class BClearInUse extends Zeze.Transaction.Bean implements BClearIn
         if (_t_ == null)
             return _Global;
         var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _Global;
+        return log != null ? log.stringValue() : _Global;
     }
 
     public void setGlobal(String _v_) {
