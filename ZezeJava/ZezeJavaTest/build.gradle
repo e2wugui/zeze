@@ -28,6 +28,8 @@ dependencies {
     // for log4j2
     implementation 'com.lmax:disruptor:4.0.0'
 
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
+
     // for rocketMQ
     implementation('org.apache.rocketmq:rocketmq-client:4.9.8') {
         exclude group: 'io.netty', module: 'netty-all'

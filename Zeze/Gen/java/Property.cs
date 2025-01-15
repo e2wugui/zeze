@@ -209,7 +209,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + $"        var _v_ = null == log ? {var.NamePrivate} : log.stringValue();");
                 sw.WriteLine(prefix + $"        if (_v_.isEmpty())");
                 sw.WriteLine(prefix + $"            _v_ = {emptyName};");
-                sw.WriteLine(prefix + $"        var _j_ = com.alibaba.fastjson.JSON.parse{parseName}(_v_);");
+                sw.WriteLine(prefix + $"        var _j_ = com.alibaba.fastjson2.JSON.parse{parseName}(_v_);");
                 sw.WriteLine(prefix + $"        _t_.putLog(new {LogName.GetName(type)}(this, {var.Id}, vh_{var.Name}, _j_));");
                 sw.WriteLine(prefix + $"        return _j_;");
                 sw.WriteLine(prefix + $"    }}");
