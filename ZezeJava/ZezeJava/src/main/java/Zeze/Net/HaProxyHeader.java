@@ -120,7 +120,9 @@ public class HaProxyHeader {
 			var tokens = line.split(" ");
 			if (tokens.length >= 5) {
 				switch (tokens[0]) {
-				case "TCP4", "TCP6": // 两个协议都用InetAddress.getByName，实现内部会区分。
+				case "TCP4":
+				case "TCP6":
+					// 两个协议都用InetAddress.getByName，实现内部会区分。
 					remoteAddress = new InetSocketAddress(InetAddress.getByName(tokens[1]), Integer.parseInt(tokens[3]));
 					targetAddress = new InetSocketAddress(InetAddress.getByName(tokens[2]), Integer.parseInt(tokens[4]));
 					break;
