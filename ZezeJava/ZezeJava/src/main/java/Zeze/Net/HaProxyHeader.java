@@ -11,7 +11,6 @@ import java.util.Arrays;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * 解析haproxy header，把信息保存下来。
@@ -22,8 +21,8 @@ import org.jetbrains.annotations.Nullable;
 public class HaProxyHeader {
 	private boolean done = false;
 	private final String key;
-	private InetSocketAddress remoteAddress;
-	private InetSocketAddress targetAddress;
+	private @Nullable InetSocketAddress remoteAddress;
+	private @Nullable InetSocketAddress targetAddress;
 
 	public HaProxyHeader(String key) {
 		this.key = key;
@@ -33,7 +32,15 @@ public class HaProxyHeader {
 		return key;
 	}
 
-	public static final byte[] v2sig = { 0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A };
+	public @Nullable InetSocketAddress getRemoteAddress() {
+		return remoteAddress;
+	}
+
+	public @Nullable InetSocketAddress getTargetAddress() {
+		return targetAddress;
+	}
+
+	public static final byte[] v2sig = {0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A};
 	public static final byte[] v1sig = "PROXY ".getBytes(StandardCharsets.ISO_8859_1);
 
 	/**
@@ -44,20 +51,20 @@ public class HaProxyHeader {
 	 */
 	public static boolean startWithV2sig(byte @NotNull [] bb, int offset) {
 		return Arrays.equals(bb, offset, offset + v2sig.length, v2sig, 0, v2sig.length);
-		}
+	}
 
 	public static boolean startWithV1sig(byte @NotNull [] bb, int offset) {
 		return Arrays.equals(bb, offset, offset + v1sig.length, v1sig, 0, v1sig.length);
-		}
+	}
 
 	public static @NotNull String findV1Line(byte @NotNull [] bytes, int offset, int end) {
 		end--;
 		for (int i = offset; i < end; i++) {
 			if (bytes[i] == '\r' && bytes[i + 1] == '\n')
 				return new String(bytes, offset, i - offset, StandardCharsets.ISO_8859_1);
-				}
+		}
 		return "";
-			}
+	}
 
 	public boolean decodeHeader(@NotNull ByteBuffer bb) throws UnknownHostException {
 		if (done)
@@ -70,10 +77,10 @@ public class HaProxyHeader {
 			int size = 16 + (javaBb.getShort(14) & 0xffff); // offset 14 是个 uint16_t，需要 ntohs。
 			if (bb.size() < size)
 				return false; // not enough data
-			var cmd = bb.Bytes[bb.ReadIndex + v2sig.length] & 0xF;
+			int cmd = bb.Bytes[bb.ReadIndex + v2sig.length] & 0xF;
 			switch (cmd) {
 			case 0x01: // PROXY command
-			var fam = bb.Bytes[bb.ReadIndex + v2sig.length + 1];
+				int fam = bb.Bytes[bb.ReadIndex + v2sig.length + 1];
 				switch (fam) {
 				case 0x11: // TCPv4
 					// port读出来，再拼成InetSocketAddress吧。当然拼成Inet，就不需要单独保存了。
@@ -127,13 +134,5 @@ public class HaProxyHeader {
 		if (bb.size() >= 16)
 			throw new RuntimeException("haproxy wrong protocol");
 		return false;
-	}
-
-	public @Nullable InetSocketAddress getTargetAddress() {
-		return targetAddress;
-	}
-
-	public @Nullable InetSocketAddress getRemoteAddress() {
-		return remoteAddress;
 	}
 }

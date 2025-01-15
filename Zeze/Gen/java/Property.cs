@@ -215,7 +215,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + $"        var _v_ = this.get{var.NameUpper1}();");
                 sw.WriteLine(prefix + $"        if (_v_.isEmpty())");
                 sw.WriteLine(prefix + $"            _v_ = {emptyName};");
-                sw.WriteLine(prefix + $"        {jsonVarName}.set(com.alibaba.fastjson.JSON.parse{parseName}(_v_));");
+                sw.WriteLine(prefix + $"        {jsonVarName}.set(com.alibaba.fastjson2.JSON.parse{parseName}(_v_));");
                 sw.WriteLine(prefix + $"        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
                 sw.WriteLine(prefix + $"        _t_.putLog(new {LogName.GetName(type)}(this, {var.Id}, vh_{var.Name}, {jsonVarName}.get()));");
                 sw.WriteLine(prefix + $"        Zeze.Transaction.Transaction.whileCommit(() -> {jsonVarName}.remove());");

@@ -31,9 +31,9 @@ namespace Zeze.Gen.Types
 			switch (type)
 			{
 				case JsonType.JSON_OBJECT:
-					return "com.alibaba.fastjson.JSONObject";
+					return "com.alibaba.fastjson2.JSONObject";
 				case JsonType.JSON_ARRAY:
-					return "com.alibaba.fastjson.JSONArray";
+					return "com.alibaba.fastjson2.JSONArray";
 				default:
 					throw new Exception("JsonType.None");
             }

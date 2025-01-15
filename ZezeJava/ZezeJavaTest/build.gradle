@@ -12,6 +12,9 @@ dependencies {
     // for GTable
     //implementation 'com.google.guava:guava:33.4.0-jre'
 
+    // for Json field
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.54'
+
     // for tikv
     implementation 'org.tikv:tikv-client-java:3.3.5'
 
