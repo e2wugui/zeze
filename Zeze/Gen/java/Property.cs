@@ -201,15 +201,12 @@ namespace Zeze.Gen.java
             if (type.getJsonType() != JsonType.None)
             {
                 var parseName = type.getJsonType() == JsonType.JSON_OBJECT ? "Object" : "Array";
-                var emptyName = type.getJsonType() == JsonType.JSON_OBJECT ? "\"{}\"" : "\"[]\"";
                 sw.WriteLine(prefix + $"public {type.getJsonTypeClass()} get{var.NameUpper1}_{type.getJsonType().ToString()}() {{");
                 sw.WriteLine(prefix + $"    var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
                 sw.WriteLine(prefix + "    var log = (" + LogName.GetName(type) + ")_t_.getLog(objectId() + " + var.Id + ");");
                 sw.WriteLine(prefix + $"    if (null == log || log.getValue() instanceof String) {{");
                 sw.WriteLine(prefix + $"        var _v_ = null == log ? {var.NamePrivate} : log.stringValue();");
-                sw.WriteLine(prefix + $"        if (_v_.isEmpty())");
-                sw.WriteLine(prefix + $"            _v_ = {emptyName};");
-                sw.WriteLine(prefix + $"        var _j_ = com.alibaba.fastjson2.JSON.parse{parseName}(_v_);");
+                sw.WriteLine(prefix + $"        var _j_ = _v_.isEmpty() ? new {type.getJsonTypeClass()}() : com.alibaba.fastjson2.JSON.parse{parseName}(_v_);");
                 sw.WriteLine(prefix + $"        _t_.putLog(new {LogName.GetName(type)}(this, {var.Id}, vh_{var.Name}, _j_));");
                 sw.WriteLine(prefix + $"        return _j_;");
                 sw.WriteLine(prefix + $"    }}");
