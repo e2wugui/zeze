@@ -1,7 +1,7 @@
 package UnitTest.Zeze.Trans;
 
+import com.alibaba.fastjson2.JSONObject;
 import demo.App;
-import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
