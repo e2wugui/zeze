@@ -68,6 +68,10 @@ public class LogString extends Log {
 		return value.toString();
 	}
 
+	public Object getValue() {
+		return value;
+	}
+
 	@Override
 	public @NotNull BigDecimal decimalValue() {
 		return new BigDecimal(value.toString(), MathContext.DECIMAL128);

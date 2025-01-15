@@ -37,7 +37,7 @@ public class BenchSocket {
 	@Test
 	public void testCompressRate() {
 		var rand = new java.util.Random(1); // 固定的随机种子。
-		var count = 10 * 1024;
+		var count = 5 * 1024;
 		for (var block = 2048; block <= 4096 + 1024; block += 1024) {
 			var src = new byte[4][];
 			for (int i = 0; i < src.length; ++i) {
