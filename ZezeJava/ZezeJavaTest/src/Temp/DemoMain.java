@@ -2,8 +2,13 @@ package Temp;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class DemoMain {
+	private static final Logger logger = LogManager.getLogger();
 	public interface Ia {
 		void helloA();
 	}
@@ -44,6 +49,13 @@ public class DemoMain {
 	}
 
 	public static void main(String[] args) throws IOException {
+		System.out.println("中文");
+		System.out.println(System.getProperty("user.name"));
+		System.out.println(InetAddress.getLocalHost().getHostName());
+		logger.info("中文");
+		logger.info(System.getProperty("user.name"));
+		if (args.length == 0)
+			return;
 		var a = new File("a/b");
 		var b = new File("a/../a/b");
 		var c = new File("D:\\zeze\\ZezeJava\\a\\b");
