@@ -475,29 +475,31 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"    protected final String multiInstanceName;");
             }
 
+            bool hasSuffix = false;
             bool hasAppVersionSuffix = false;
             bool hasServerIdSuffix = false;
-            bool written = false;
             foreach (Table table in module.Tables.Values)
             {
-                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks && !string.IsNullOrEmpty(table.Suffix))
                 {
+                    hasSuffix = true;
                     if (table.Suffix == "@AppMainVersion")
                         hasAppVersionSuffix = true;
-                    if (table.Suffix == "@ServerId")
+                    else if (table.Suffix == "@ServerId")
                         hasServerIdSuffix = true;
                 }
             }
+            bool hasTable = false;
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                 {
-                    if (!written)
+                    if (!hasTable)
                     {
-                        written = true;
+                        hasTable = true;
                         sw.WriteLine();
                     }
-                    if (!isMultiInstance && project is Component && !hasAppVersionSuffix && !hasServerIdSuffix)
+                    if (!isMultiInstance && project is Component && !hasSuffix)
                         sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
                     else
                         sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
@@ -512,7 +514,7 @@ namespace Zeze.Gen.java
                 else
                     sw.WriteLine($"    protected Abstract{project.Name}(String name) {{");
                 sw.WriteLine($"        multiInstanceName = name;");
-                if (written)
+                if (hasTable)
                     sw.WriteLine("        var suffix = name.isEmpty() ? name : \"__\" + name.replace('.', '_');");
                 if (hasAppVersionSuffix)
                 {
@@ -526,7 +528,7 @@ namespace Zeze.Gen.java
                     if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                     {
                         string suffixStr;
-                        if (table.Suffix.Length > 0)
+                        if (!string.IsNullOrEmpty(table.Suffix))
                         {
                             if (table.Suffix == "@AppMainVersion")
                                 suffixStr = "appMainVersionSuffix";
@@ -542,10 +544,13 @@ namespace Zeze.Gen.java
                 }
                 sw.WriteLine($"    }}");
             }
-            else if (project is Component && (hasAppVersionSuffix || hasServerIdSuffix))
+            else if (project is Component && hasSuffix)
             {
                 sw.WriteLine();
-                sw.WriteLine($"    protected Abstract{project.Name}(Zeze.Config config) {{");
+                if (hasAppVersionSuffix || hasServerIdSuffix)
+                    sw.WriteLine($"    protected Abstract{project.Name}(Zeze.Config config) {{");
+                else
+                    sw.WriteLine($"    protected Abstract{project.Name}() {{");
                 if (hasAppVersionSuffix)
                 {
                     sw.WriteLine("        var appMainVersion = config.getAppMainVersion();");
@@ -558,7 +563,7 @@ namespace Zeze.Gen.java
                     if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                     {
                         string suffixStr;
-                        if (table.Suffix.Length > 0)
+                        if (!string.IsNullOrEmpty(table.Suffix))
                         {
                             if (table.Suffix == "@AppMainVersion")
                                 suffixStr = "appMainVersionSuffix";
@@ -602,7 +607,7 @@ namespace Zeze.Gen.java
                 if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                 {
                     string suffixStr;
-                    if (table.Suffix.Length > 0)
+                    if (!string.IsNullOrEmpty(table.Suffix))
                     {
                         if (table.Suffix == "@AppMainVersion")
                             suffixStr = "appMainVersionSuffix";
