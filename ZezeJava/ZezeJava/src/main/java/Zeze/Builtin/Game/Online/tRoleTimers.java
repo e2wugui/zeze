@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-// 玩家在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+// 玩家在线时的定时器, 表名为"Zeze_Game_Online_tRoleTimers__{onlineSetName}", key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tRoleTimers extends TableX<String, Zeze.Builtin.Timer.BGameOnlineTimer>
         implements TableReadOnly<String, Zeze.Builtin.Timer.BGameOnlineTimer, Zeze.Builtin.Timer.BGameOnlineTimerReadOnly> {

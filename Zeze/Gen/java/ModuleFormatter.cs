@@ -475,7 +475,19 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"    protected final String multiInstanceName;");
             }
 
+            bool hasAppVersionSuffix = false;
+            bool hasServerIdSuffix = false;
             bool written = false;
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
+                {
+                    if (table.Suffix == "@AppMainVersion")
+                        hasAppVersionSuffix = true;
+                    if (table.Suffix == "@ServerId")
+                        hasServerIdSuffix = true;
+                }
+            }
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
@@ -485,7 +497,7 @@ namespace Zeze.Gen.java
                         written = true;
                         sw.WriteLine();
                     }
-                    if (!isMultiInstance && project is Component)
+                    if (!isMultiInstance && project is Component && !hasAppVersionSuffix && !hasServerIdSuffix)
                         sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
                     else
                         sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + ";");
@@ -495,15 +507,69 @@ namespace Zeze.Gen.java
             if (isMultiInstance)
             {
                 sw.WriteLine();
-                sw.WriteLine($"    protected Abstract{project.Name}(String name) {{");
+                if (hasAppVersionSuffix || hasServerIdSuffix)
+                    sw.WriteLine($"    protected Abstract{project.Name}(String name, Zeze.Config config) {{");
+                else
+                    sw.WriteLine($"    protected Abstract{project.Name}(String name) {{");
                 sw.WriteLine($"        multiInstanceName = name;");
                 if (written)
-                    sw.WriteLine("        var suffix = name.isEmpty() ? name : \"__\" + name;");
+                    sw.WriteLine("        var suffix = name.isEmpty() ? name : \"__\" + name.replace('.', '_');");
+                if (hasAppVersionSuffix)
+                {
+                    sw.WriteLine("        var appMainVersion = config.getAppMainVersion();");
+                    sw.WriteLine("        var appMainVersionSuffix = appMainVersion != 0 ? suffix + \"__\" + appMainVersion : suffix;");
+                }
+                if (hasServerIdSuffix)
+                    sw.WriteLine("        var serverIdSuffix = suffix + \"__\" + config.getServerId();");
                 foreach (Table table in module.Tables.Values)
                 {
                     if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
                     {
-                        sw.WriteLine($"        _{table.Name} = new {table.FullName}(suffix);");
+                        string suffixStr;
+                        if (table.Suffix.Length > 0)
+                        {
+                            if (table.Suffix == "@AppMainVersion")
+                                suffixStr = "appMainVersionSuffix";
+                            else if (table.Suffix == "@ServerId")
+                                suffixStr = "serverIdSuffix";
+                            else
+                                suffixStr = "suffix + \"" + table.Suffix + '"';
+                        }
+                        else
+                            suffixStr = "suffix";
+                        sw.WriteLine($"        _{table.Name} = new {table.FullName}({suffixStr});");
+                    }
+                }
+                sw.WriteLine($"    }}");
+            }
+            else if (project is Component && (hasAppVersionSuffix || hasServerIdSuffix))
+            {
+                sw.WriteLine();
+                sw.WriteLine($"    protected Abstract{project.Name}(Zeze.Config config) {{");
+                if (hasAppVersionSuffix)
+                {
+                    sw.WriteLine("        var appMainVersion = config.getAppMainVersion();");
+                    sw.WriteLine("        var appMainVersionSuffix = appMainVersion != 0 ? \"__\" + appMainVersion : suffix;");
+                }
+                if (hasServerIdSuffix)
+                    sw.WriteLine("        var serverIdSuffix = \"__\" + config.getServerId();");
+                foreach (Table table in module.Tables.Values)
+                {
+                    if (project.GenTables.Contains(table.Gen) && !table.IsRocks)
+                    {
+                        string suffixStr;
+                        if (table.Suffix.Length > 0)
+                        {
+                            if (table.Suffix == "@AppMainVersion")
+                                suffixStr = "appMainVersionSuffix";
+                            else if (table.Suffix == "@ServerId")
+                                suffixStr = "serverIdSuffix";
+                            else
+                                suffixStr = '"' + table.Suffix + '"';
+                        }
+                        else
+                            suffixStr = "";
+                        sw.WriteLine($"        _{table.Name} = new {table.FullName}({suffixStr});");
                     }
                 }
                 sw.WriteLine($"    }}");

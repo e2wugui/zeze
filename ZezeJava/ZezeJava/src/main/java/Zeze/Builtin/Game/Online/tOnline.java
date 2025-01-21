@@ -5,16 +5,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-// 登录相关状态的大版本隔离的持久化模板表, key是角色ID
+// 登录相关状态的大版本隔离的持久化模板表, 表名为"Zeze_Game_Online_tOnline__{onlineSetName}__{appMainVersion}", key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class tOnlineTemplate extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
+public final class tOnline extends TableX<Long, Zeze.Builtin.Game.Online.BOnline>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnline, Zeze.Builtin.Game.Online.BOnlineReadOnly> {
-    public tOnlineTemplate() {
-        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate");
+    public tOnline() {
+        super(-1094649995, "Zeze_Builtin_Game_Online_tOnline");
     }
 
-    public tOnlineTemplate(String _s_) {
-        super(-175272172, "Zeze_Builtin_Game_Online_tOnlineTemplate", _s_);
+    public tOnline(String _s_) {
+        super(-1094649995, "Zeze_Builtin_Game_Online_tOnline", _s_);
     }
 
     @Override

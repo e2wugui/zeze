@@ -5,7 +5,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-// 登录相关状态的大版本共享的持久化表, key是角色ID
+// 登录相关状态的大版本共享的持久化表, 表名为"Zeze_Game_Online_tOnlineShared__{onlineSetName}", key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tOnlineShared extends TableX<Long, Zeze.Builtin.Game.Online.BOnlineShared>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BOnlineShared, Zeze.Builtin.Game.Online.BOnlineSharedReadOnly> {

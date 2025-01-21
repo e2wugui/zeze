@@ -5,16 +5,16 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-// 每个server各自保存不同表的模板表, 实际用TableDynamic, 表名为"Zeze_Game_Online_Local_{onlineSetName}_{serverId}", key是角色ID
+// 每个server各自保存不同表的模板表, 表名为"Zeze_Game_Online_tlocal__{onlineSetName}__{serverId}", key是角色ID
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class tlocalTempalte extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
+public final class tlocal extends TableX<Long, Zeze.Builtin.Game.Online.BLocal>
         implements TableReadOnly<Long, Zeze.Builtin.Game.Online.BLocal, Zeze.Builtin.Game.Online.BLocalReadOnly> {
-    public tlocalTempalte() {
-        super(429884625, "Zeze_Builtin_Game_Online_tlocalTempalte");
+    public tlocal() {
+        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal");
     }
 
-    public tlocalTempalte(String _s_) {
-        super(429884625, "Zeze_Builtin_Game_Online_tlocalTempalte", _s_);
+    public tlocal(String _s_) {
+        super(-1657900798, "Zeze_Builtin_Game_Online_tlocal", _s_);
     }
 
     @Override

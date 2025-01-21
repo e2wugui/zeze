@@ -32,6 +32,7 @@ import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.Online.ReliableNotifyConfirm;
 import Zeze.Builtin.Game.Online.SReliableNotify;
+import Zeze.Builtin.Game.Online.tOnline;
 import Zeze.Builtin.Game.Online.tRoleOfflineTimers;
 import Zeze.Builtin.Game.Online.tRoleTimers;
 import Zeze.Builtin.Provider.BBroadcast;
@@ -60,7 +61,6 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.TableDynamic;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -101,8 +101,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private boolean freshStopModuleDynamic;
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
-	private TableDynamic<Long, BLocal> _tlocal;
-	private TableDynamic<Long, BOnline> _tOnline;
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -271,7 +269,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// load redirect 使用这个构造函数。
 	protected Online(@NotNull AppBase app) {
-		super("");
+		super("", app.getZeze().getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -288,7 +286,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 创建新的OnlineSet使用这个构造函数。独立OnlineSet不装载redirect子类。
 	private Online(@NotNull AppBase app, @NotNull String name) {
-		super(name);
+		super(name, app.getZeze().getConfig());
 		var zeze = app.getZeze();
 		loginEvents = new EventDispatcher(zeze, "Online.Login");
 		reloginEvents = new EventDispatcher(zeze, "Online.Relogin");
@@ -303,6 +301,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	/**
 	 * 创建新的在线集合，必须在App.Start流程中，紧接着默认Online的创建，马上创建其他的在线集合。
+	 * 必须在Application.start()之前调用，以保证这里创建的Table能被open。
 	 *
 	 * @param name 在线集合名字
 	 * @return 返回新建的在线集合实例。返回值可以保存下来。
@@ -333,12 +332,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void start() {
-		var zeze = providerApp.zeze;
-		var localTableName = "Zeze_Game_Online_Local_" + multiInstanceName + "_" + zeze.getConfig().getServerId();
-		_tlocal = new TableDynamic<>(zeze, localTableName.replace('.', '_'), _tlocalTempalte);
-		localTableName = _tOnlineTemplate.getName() + "_" + zeze.getConfig().getAppMainVersion();
-		_tOnline = new TableDynamic<>(zeze, localTableName.replace('.', '_'), _tOnlineTemplate);
-
 		// default online 负责启动所有的online set。
 		if (defaultInstance == this) {
 			providerApp.builtinModules.put(this.getFullName(), this);
@@ -348,7 +341,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			});
 		}
 		startLocalCheck();
-		var hotManager = zeze.getHotManager();
+		var hotManager = providerApp.zeze.getHotManager();
 		if (hotManager != null) {
 			hotManager.addHotUpgrade(this);
 			hotManager.addHotBeanFactory(this);
@@ -467,7 +460,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		UnRegisterZezeTables(providerApp.zeze);
 	}
 
-	public TableDynamic<Long, BOnline> getTOnline() {
+	public @NotNull tOnline getTOnline() {
 		return _tOnline;
 	}
 
@@ -1881,7 +1874,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessLoginRequest(Login rpc) throws Exception {
+	protected long ProcessLoginRequest(Login rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
@@ -1975,7 +1968,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessReLoginRequest(ReLogin rpc) throws Exception {
+	protected long ProcessReLoginRequest(ReLogin rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
@@ -1988,7 +1981,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReLoginRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReLoginRequestOnlineSet(ReLogin rpc) throws Exception {
+	protected long ProcessReLoginRequestOnlineSet(ReLogin rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
