@@ -222,7 +222,7 @@ namespace Zeze.Net
         // ReSharper disable once UnusedParameter.Global
         public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
         {
-            logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
+            logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketAcceptError {0}", listener);
         }
 
         /// <summary>
@@ -613,7 +613,8 @@ namespace Zeze.Net
             var now = Time.NowUnixMillis; // 使用毫秒，System.nanoTime c# 不知道怎么对应，查了一下说 StopWatch？
             foreach (var socket in SocketMap.Values)
             {
-                if (now - socket.ActiveRecvTime > keepRecvTimeout)
+                var recvTime = now - socket.ActiveRecvTime;
+                if (recvTime > keepRecvTimeout)
                 {
                     try
                     {
@@ -624,7 +625,8 @@ namespace Zeze.Net
                         logger.Error(e, "onKeepAliveTimeout exception:");
                     }
                 }
-                if (socket.Type == AsyncSocketType.eClient && now - socket.ActiveSendTime > keepSendTimeout)
+                if (socket.Type == AsyncSocketType.eClient && // 上次接收时间超过SendTimeout也要发起KeepAlive,通过RPC回复更新上次接收时间
+                    (now - socket.ActiveSendTime > keepSendTimeout || recvTime > keepSendTimeout))
                 {
                     try
                     {
@@ -640,7 +642,7 @@ namespace Zeze.Net
 
         protected virtual void OnKeepAliveTimeout(AsyncSocket socket)
         {
-            logger.Info("socket keep alive timeout: {}", socket);
+            logger.Log(SocketOptions.SocketLogLevel, "socket keep alive timeout: {0}", socket);
             socket.Close(null);
         }
 

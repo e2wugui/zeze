@@ -39,132 +39,132 @@ namespace Zeze.Transaction.Collections
         public readonly List<OpLog> OpLogs = new List<OpLog>();
 
 #if !USE_CONFCS
-		protected IdentityHashSet<E> AddSet; // 用于LogList2，由它初始化。
+        protected IdentityHashSet<E> AddSet; // 用于LogList2，由它初始化。
 
-		public override void Collect(Changes changes, Bean recent, Log vlog)
-		{
-			throw new System.NotImplementedException("Collect Not Implement.");
-		}
-
-		public void Add(E item)
-		{
-			if (item == null)
-				throw new System.ArgumentNullException("value is null");
-			Value = Value.Add(item);
-			OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
-			AddSet?.Add(item);
-		}
-
-		public void AddRange(IEnumerable<E> items)
+        public override void Collect(Changes changes, Bean recent, Log vlog)
         {
-			var start = Value.Count;
-			Value = Value.AddRange(items);
-			foreach (var item in items)
-			{
-				OpLogs.Add(new OpLog(OpLog.OP_ADD, start++, item));
+            throw new System.NotImplementedException("Collect Not Implement.");
+        }
+
+        public void Add(E item)
+        {
+            if (item == null)
+                throw new System.ArgumentNullException("value is null");
+            Value = Value.Add(item);
+            OpLogs.Add(new OpLog(OpLog.OP_ADD, Value.Count - 1, item));
+            AddSet?.Add(item);
+        }
+
+        public void AddRange(IEnumerable<E> items)
+        {
+            var start = Value.Count;
+            Value = Value.AddRange(items);
+            foreach (var item in items)
+            {
+                OpLogs.Add(new OpLog(OpLog.OP_ADD, start++, item));
                 AddSet?.Add(item);
             }
         }
 
-		public bool Remove(E item)
-		{
-			var index = Value.IndexOf(item);
-			if (index < 0)
-				return false;
-			RemoveAt(index);
-			AddSet?.Remove(item);
-			return true;
-		}
+        public bool Remove(E item)
+        {
+            var index = Value.IndexOf(item);
+            if (index < 0)
+                return false;
+            RemoveAt(index);
+            AddSet?.Remove(item);
+            return true;
+        }
 
-		public void Clear()
-		{
-			Value = System.Collections.Immutable.ImmutableList<E>.Empty;
-			OpLogs.Clear();
-			OpLogs.Add(new OpLog(OpLog.OP_CLEAR, 0, default));
-			AddSet?.Clear();
-		}
+        public void Clear()
+        {
+            Value = System.Collections.Immutable.ImmutableList<E>.Empty;
+            OpLogs.Clear();
+            OpLogs.Add(new OpLog(OpLog.OP_CLEAR, 0, default));
+            AddSet?.Clear();
+        }
 
-		public void Insert(int index, E item)
-		{
-			Value = Value.Insert(index, item);
-			OpLogs.Add(new OpLog(OpLog.OP_ADD, index, item));
-			AddSet?.Add(item);
-		}
+        public void Insert(int index, E item)
+        {
+            Value = Value.Insert(index, item);
+            OpLogs.Add(new OpLog(OpLog.OP_ADD, index, item));
+            AddSet?.Add(item);
+        }
 
-		public void SetItem(int index, E item)
-		{
-			var old = Value[index];
-			Value = Value.SetItem(index, item);
-			OpLogs.Add(new OpLog(OpLog.OP_MODIFY, index, item));
-			if (null != AddSet)
-			{
+        public void SetItem(int index, E item)
+        {
+            var old = Value[index];
+            Value = Value.SetItem(index, item);
+            OpLogs.Add(new OpLog(OpLog.OP_MODIFY, index, item));
+            if (null != AddSet)
+            {
                 AddSet.Add(item);
-				AddSet.Remove(old);
+                AddSet.Remove(old);
             }
         }
 
-		public void RemoveAt(int index)
-		{
-			var Old = Value[index];
-			Value = Value.RemoveAt(index);
-			OpLogs.Add(new OpLog(OpLog.OP_REMOVE, index, default));
-			AddSet?.Remove(Old);
-		}
+        public void RemoveAt(int index)
+        {
+            var Old = Value[index];
+            Value = Value.RemoveAt(index);
+            OpLogs.Add(new OpLog(OpLog.OP_REMOVE, index, default));
+            AddSet?.Remove(Old);
+        }
 
-		public void RemoveRange(int index, int count)
+        public void RemoveRange(int index, int count)
         {
             var end = index + count;
             var oldItems = new E[count];
-			for (int i = index; i < end; ++i)
+            for (int i = index; i < end; ++i)
                 oldItems[i - index] = Value[i];
 
             Value = Value.RemoveRange(index, count);
-			for (int i = index; i < end; ++i)
-			{
+            for (int i = index; i < end; ++i)
+            {
                 OpLogs.Add(new OpLog(OpLog.OP_REMOVE, i, default));
-				AddSet?.Remove(oldItems[i - index]);
+                AddSet?.Remove(oldItems[i - index]);
             }
         }
 
-		internal override void EndSavepoint(Savepoint currentSp)
-		{
-			if (currentSp.Logs.TryGetValue(LogKey, out var log))
-			{
-				var currentLog = (LogList1<E>)log;
-				currentLog.Value = this.Value;
-				currentLog.Merge(this);
-			}
-			else
-			{
-				currentSp.PutLog(this);
-			}
-		}
-
-		public void Merge(LogList1<E> from)
-		{
-			if (from.OpLogs.Count > 0)
+        internal override void EndSavepoint(Savepoint currentSp)
+        {
+            if (currentSp.Logs.TryGetValue(LogKey, out var log))
             {
-				if (from.OpLogs[0].op == OpLog.OP_CLEAR)
-					OpLogs.Clear();
-				OpLogs.AddRange(from.OpLogs);
+                var currentLog = (LogList1<E>)log;
+                currentLog.Value = this.Value;
+                currentLog.Merge(this);
+            }
+            else
+            {
+                currentSp.PutLog(this);
+            }
+        }
 
-				if (AddSet != null && from.AddSet != null)
-				{
-					foreach (var item in from.AddSet)
-						AddSet.Add(item);
+        public void Merge(LogList1<E> from)
+        {
+            if (from.OpLogs.Count > 0)
+            {
+                if (from.OpLogs[0].op == OpLog.OP_CLEAR)
+                    OpLogs.Clear();
+                OpLogs.AddRange(from.OpLogs);
+
+                if (AddSet != null && from.AddSet != null)
+                {
+                    foreach (var item in from.AddSet)
+                        AddSet.Add(item);
                 }
             }
-		}
+        }
 
-		internal override Log BeginSavepoint()
-		{
-			var dup = new LogList1<E>();
-			dup.This = This;
-			dup.Belong = Belong;
-			dup.VariableId = VariableId;
-			dup.Value = Value;
-			return dup;
-		}
+        internal override Log BeginSavepoint()
+        {
+            var dup = new LogList1<E>();
+            dup.This = This;
+            dup.Belong = Belong;
+            dup.VariableId = VariableId;
+            dup.Value = Value;
+            return dup;
+        }
 #endif
         public override string ToString()
         {
