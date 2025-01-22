@@ -40,12 +40,20 @@ public abstract class AbstractMQAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47413017472729L, factoryHandle); // 11039, 873492185
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Unsubscribe.class, Zeze.Builtin.MQ.Unsubscribe.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Unsubscribe::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnsubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessUnsubscribeResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47412373828139L, factoryHandle); // 11039, 229847595
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47415515233719L);
         service.getFactorys().remove(47415494784777L);
         service.getFactorys().remove(47413017472729L);
+        service.getFactorys().remove(47412373828139L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

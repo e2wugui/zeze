@@ -1985,6 +1985,7 @@
 				<variable id="4" name="Message" type="BMessage"/>
 			</bean>
 			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/>
+			<rpc name="Unsubscribe" argument="BSubscribeConsumer" handle="server"/>
 			<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
 			<rpc name="PushMessage" argument="BPushMessage" handle="client"/>
 		</module>

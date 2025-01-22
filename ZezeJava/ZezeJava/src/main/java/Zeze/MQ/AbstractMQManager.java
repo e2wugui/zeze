@@ -41,12 +41,21 @@ public abstract class AbstractMQManager implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47413017472729L, factoryHandle); // 11039, 873492185
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Unsubscribe.class, Zeze.Builtin.MQ.Unsubscribe.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Unsubscribe::new;
+            factoryHandle.Handle = this::ProcessUnsubscribeRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnsubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessUnsubscribeRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47412373828139L, factoryHandle); // 11039, 229847595
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47415515233719L);
         service.getFactorys().remove(47415494784777L);
         service.getFactorys().remove(47413017472729L);
+        service.getFactorys().remove(47412373828139L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -60,4 +69,5 @@ public abstract class AbstractMQManager implements Zeze.IModule {
 
     protected abstract long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) throws Exception;
     protected abstract long ProcessSubscribeRequest(Zeze.Builtin.MQ.Subscribe r) throws Exception;
+    protected abstract long ProcessUnsubscribeRequest(Zeze.Builtin.MQ.Unsubscribe r) throws Exception;
 }

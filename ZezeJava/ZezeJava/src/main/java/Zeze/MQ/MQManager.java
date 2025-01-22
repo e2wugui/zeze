@@ -2,7 +2,6 @@ package Zeze.MQ;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
@@ -98,6 +97,11 @@ public class MQManager extends AbstractMQManager {
 
     @Override
     protected long ProcessSubscribeRequest(Zeze.Builtin.MQ.Subscribe r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessUnsubscribeRequest(Zeze.Builtin.MQ.Unsubscribe r) {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 

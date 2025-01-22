@@ -1,10 +1,13 @@
 package Zeze.MQ;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Builtin.MQ.SendMessage;
 import Zeze.Builtin.MQ.Subscribe;
+import Zeze.Builtin.MQ.Unsubscribe;
 import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Util.OutObject;
@@ -27,20 +30,61 @@ public class MQAgent extends AbstractMQAgent {
 		return out.value;
 	}
 
-	public Subscribe subscribe(String topic, long sessionId, MQConsumer consumer, Connector connector) {
+	public void subscribe(String topic, long sessionId, MQConsumer consumer, HashSet<Connector> managers) {
 		if (consumers.putIfAbsent(sessionId, consumer) == null) {
-			var r = new Subscribe();
-			r.Argument.setTopic(topic);
-			r.Argument.setSessionId(sessionId);
-			r.SendForWait(connector.GetReadySocket());
-			return r;
+			var futures = new ArrayList<Subscribe>();
+			for (var manager : managers) {
+				var r = new Subscribe();
+				r.Argument.setTopic(topic);
+				r.Argument.setSessionId(sessionId);
+				r.SendForWait(manager.GetReadySocket());
+				futures.add(r);
+			}
+			// await all
+			for (var future : futures) {
+				assert future.getFuture() != null;
+				future.getFuture().await();
+			}
+			// check all result code
+			for (var future : futures) {
+				if (future.getResultCode() != 0)
+					throw new RuntimeException("subscribe consumer error=" + IModule.getErrorCode(future.getResultCode()));
+			}
 		}
-		return null;
 	}
 
-	public void unsubscribe(MQConsumer consumer) {
-		// todo unsubscribe
+	public void unsubscribe(MQConsumer consumer, HashSet<Connector> managers) {
+		// unsubscribe all
+		var futures = new ArrayList<Unsubscribe>();
+		for (var manager : managers) {
+			var r = new Unsubscribe();
+			r.Argument.setTopic(consumer.getTopic());
+			r.Argument.setSessionId(consumer.getSessionId());
+			r.SendForWait(manager.GetReadySocket());
+			futures.add(r);
+		}
+		// await all
+		for (var future : futures) {
+			assert future.getFuture() != null;
+			future.getFuture().await();
+		}
+		// check all result code
+		for (var future : futures) {
+			if (future.getResultCode() != 0)
+				throw new RuntimeException("unsubscribe consumer error=" + IModule.getErrorCode(future.getResultCode()));
+		}
+
 		consumers.remove(consumer.getSessionId());
+	}
+
+	@Override
+	protected long ProcessPushMessageRequest(PushMessage r) {
+		var consumer = consumers.get(r.Argument.getSessionId());
+		if (null == consumer)
+			return errorCode(eConsumerNotFound);
+		consumer.getListener().onMessage(r.Argument);
+		r.SendResult();
+		return 0;
 	}
 
 	public static void sendMessageTo(BSendMessage.Data message, Connector connector) {
@@ -53,16 +97,6 @@ public class MQAgent extends AbstractMQAgent {
 
 	public ConcurrentHashMap<Long, MQConsumer> getConsumers() {
 		return consumers;
-	}
-
-	@Override
-	protected long ProcessPushMessageRequest(PushMessage r) throws Exception {
-		var consumer = consumers.get(r.Argument.getSessionId());
-		if (null == consumer)
-			return errorCode(eConsumerNotFound);
-		consumer.getListener().onMessage(r.Argument);
-		r.SendResult();
-		return 0;
 	}
 
 	public static class Service extends Zeze.Net.Service {
