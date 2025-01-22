@@ -8,6 +8,7 @@ public interface BPushMessageReadOnly {
     BPushMessage copy();
 
     String getTopic();
+    int getPartitionIndex();
     long getSessionId();
     Zeze.Builtin.MQ.BMessageReadOnly getMessageReadOnly();
 }

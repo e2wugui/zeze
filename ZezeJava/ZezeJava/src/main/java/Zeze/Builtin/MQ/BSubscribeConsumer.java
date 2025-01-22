@@ -5,8 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
-public final class BSubscribeSession extends Zeze.Transaction.Bean implements BSubscribeSessionReadOnly {
-    public static final long TYPEID = 7472035102232325378L;
+public final class BSubscribeConsumer extends Zeze.Transaction.Bean implements BSubscribeConsumerReadOnly {
+    public static final long TYPEID = 4653262047441464626L;
 
     private String _Topic;
     private long _SessionId;
@@ -17,8 +17,8 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
-            vh_Topic = _l_.findVarHandle(BSubscribeSession.class, "_Topic", String.class);
-            vh_SessionId = _l_.findVarHandle(BSubscribeSession.class, "_SessionId", long.class);
+            vh_Topic = _l_.findVarHandle(BSubscribeConsumer.class, "_Topic", String.class);
+            vh_SessionId = _l_.findVarHandle(BSubscribeConsumer.class, "_SessionId", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -67,12 +67,12 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
     }
 
     @SuppressWarnings("deprecation")
-    public BSubscribeSession() {
+    public BSubscribeConsumer() {
         _Topic = "";
     }
 
     @SuppressWarnings("deprecation")
-    public BSubscribeSession(String _Topic_, long _SessionId_) {
+    public BSubscribeConsumer(String _Topic_, long _SessionId_) {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
@@ -87,41 +87,41 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
     }
 
     @Override
-    public Zeze.Builtin.MQ.BSubscribeSession.Data toData() {
-        var _d_ = new Zeze.Builtin.MQ.BSubscribeSession.Data();
+    public Zeze.Builtin.MQ.BSubscribeConsumer.Data toData() {
+        var _d_ = new Zeze.Builtin.MQ.BSubscribeConsumer.Data();
         _d_.assign(this);
         return _d_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data _o_) {
-        assign((Zeze.Builtin.MQ.BSubscribeSession.Data)_o_);
+        assign((Zeze.Builtin.MQ.BSubscribeConsumer.Data)_o_);
     }
 
-    public void assign(BSubscribeSession.Data _o_) {
+    public void assign(BSubscribeConsumer.Data _o_) {
         setTopic(_o_._Topic);
         setSessionId(_o_._SessionId);
         _unknown_ = null;
     }
 
-    public void assign(BSubscribeSession _o_) {
+    public void assign(BSubscribeConsumer _o_) {
         setTopic(_o_.getTopic());
         setSessionId(_o_.getSessionId());
         _unknown_ = _o_._unknown_;
     }
 
-    public BSubscribeSession copyIfManaged() {
+    public BSubscribeConsumer copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BSubscribeSession copy() {
-        var _c_ = new BSubscribeSession();
+    public BSubscribeConsumer copy() {
+        var _c_ = new BSubscribeConsumer();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BSubscribeSession _a_, BSubscribeSession _b_) {
+    public static void swap(BSubscribeConsumer _a_, BSubscribeConsumer _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -142,7 +142,7 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.MQ.BSubscribeSession: {\n");
+        _s_.append("Zeze.Builtin.MQ.BSubscribeConsumer: {\n");
         _s_.append(_i1_).append("Topic=").append(getTopic()).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(getSessionId()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
@@ -215,10 +215,10 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BSubscribeSession))
+        if (!(_o_ instanceof BSubscribeConsumer))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BSubscribeSession)_o_;
+        var _b_ = (BSubscribeConsumer)_o_;
         if (!getTopic().equals(_b_.getTopic()))
             return false;
         if (getSessionId() != _b_.getSessionId())
@@ -274,7 +274,7 @@ public final class BSubscribeSession extends Zeze.Transaction.Bean implements BS
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 7472035102232325378L;
+    public static final long TYPEID = 4653262047441464626L;
 
     private String _Topic;
     private long _SessionId;
@@ -317,35 +317,35 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.MQ.BSubscribeSession toBean() {
-        var _b_ = new Zeze.Builtin.MQ.BSubscribeSession();
+    public Zeze.Builtin.MQ.BSubscribeConsumer toBean() {
+        var _b_ = new Zeze.Builtin.MQ.BSubscribeConsumer();
         _b_.assign(this);
         return _b_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean _o_) {
-        assign((BSubscribeSession)_o_);
+        assign((BSubscribeConsumer)_o_);
     }
 
-    public void assign(BSubscribeSession _o_) {
+    public void assign(BSubscribeConsumer _o_) {
         _Topic = _o_.getTopic();
         _SessionId = _o_.getSessionId();
     }
 
-    public void assign(BSubscribeSession.Data _o_) {
+    public void assign(BSubscribeConsumer.Data _o_) {
         _Topic = _o_._Topic;
         _SessionId = _o_._SessionId;
     }
 
     @Override
-    public BSubscribeSession.Data copy() {
-        var _c_ = new BSubscribeSession.Data();
+    public BSubscribeConsumer.Data copy() {
+        var _c_ = new BSubscribeConsumer.Data();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BSubscribeSession.Data _a_, BSubscribeSession.Data _b_) {
+    public static void swap(BSubscribeConsumer.Data _a_, BSubscribeConsumer.Data _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -357,8 +357,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BSubscribeSession.Data clone() {
-        return (BSubscribeSession.Data)super.clone();
+    public BSubscribeConsumer.Data clone() {
+        return (BSubscribeConsumer.Data)super.clone();
     }
 
     @Override
@@ -371,7 +371,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.MQ.BSubscribeSession: {\n");
+        _s_.append("Zeze.Builtin.MQ.BSubscribeConsumer: {\n");
         _s_.append(_i1_).append("Topic=").append(_Topic).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(_SessionId).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
@@ -429,10 +429,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BSubscribeSession.Data))
+        if (!(_o_ instanceof BSubscribeConsumer.Data))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BSubscribeSession.Data)_o_;
+        var _b_ = (BSubscribeConsumer.Data)_o_;
         if (!_Topic.equals(_b_._Topic))
             return false;
         if (_SessionId != _b_._SessionId)

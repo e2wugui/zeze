@@ -2,6 +2,7 @@ package Zeze.MQ;
 
 import java.util.Random;
 import Zeze.Builtin.MQ.BMessage;
+import Zeze.Builtin.MQ.BOptions;
 
 /**
  * 用户接口
@@ -30,6 +31,18 @@ public class MQProducer {
 
 	public void sendMessage(BMessage.Data message) {
 		mq.sendMessage(rand.nextInt(), message);
+	}
+
+	public String getTopic() {
+		return mq.getInfo().getTopic();
+	}
+
+	public BOptions.Data getOptions() {
+		return mq.getInfo().getOptions();
+	}
+
+	public int getPartition() {
+		return mq.getInfo().getPartition();
 	}
 
 	private static int hash(int _h) {

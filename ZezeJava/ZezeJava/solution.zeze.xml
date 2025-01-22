@@ -1925,6 +1925,7 @@
 				<enum name="eTopicNotExist" value="2"/>
 				<enum name="eManagerNotFound" value="3"/>
 				<enum name="eTopicExist" value="4"/>
+				<enum name="eConsumerNotFound" value="5"/>
 
 				<bean name="BSubscribe">
 					<variable id="1" name="Topic" type="string"/>
@@ -1968,7 +1969,7 @@
 				<variable id="2" name="Properties" type="map[string, string]"/> 属性，用户自定义
 				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
 			</bean>
-			<bean name="BSubscribeSession">
+			<bean name="BSubscribeConsumer">
 				<variable id="1" name="Topic" type="string"/>
 				<variable id="2" name="SessionId" type="long"/>
 			</bean>
@@ -1979,10 +1980,11 @@
 			</bean>
 			<bean name="BPushMessage">
 				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
-				<variable id="2" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
-				<variable id="3" name="Message" type="BMessage"/>
+				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
+				<variable id="3" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
+				<variable id="4" name="Message" type="BMessage"/>
 			</bean>
-			<rpc name="Subscribe" argument="BSubscribeSession" handle="server"/>
+			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/>
 			<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
 			<rpc name="PushMessage" argument="BPushMessage" handle="client"/>
 		</module>

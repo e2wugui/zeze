@@ -9,16 +9,19 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     public static final long TYPEID = 3196014057207271685L;
 
     private String _Topic; // 主题，用户不用填写
+    private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BMessage> _Message;
 
     private static final java.lang.invoke.VarHandle vh_Topic;
+    private static final java.lang.invoke.VarHandle vh_PartitionIndex;
     private static final java.lang.invoke.VarHandle vh_SessionId;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_Topic = _l_.findVarHandle(BPushMessage.class, "_Topic", String.class);
+            vh_PartitionIndex = _l_.findVarHandle(BPushMessage.class, "_PartitionIndex", int.class);
             vh_SessionId = _l_.findVarHandle(BPushMessage.class, "_SessionId", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
@@ -48,13 +51,33 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     }
 
     @Override
+    public int getPartitionIndex() {
+        if (!isManaged())
+            return _PartitionIndex;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _PartitionIndex;
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
+        return log != null ? log.value : _PartitionIndex;
+    }
+
+    public void setPartitionIndex(int _v_) {
+        if (!isManaged()) {
+            _PartitionIndex = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_PartitionIndex, _v_));
+    }
+
+    @Override
     public long getSessionId() {
         if (!isManaged())
             return _SessionId;
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SessionId;
-        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
         return log != null ? log.value : _SessionId;
     }
 
@@ -64,7 +87,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_SessionId, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_SessionId, _v_));
     }
 
     public Zeze.Builtin.MQ.BMessage getMessage() {
@@ -84,22 +107,24 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     public BPushMessage() {
         _Topic = "";
         _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
-        _Message.variableId(3);
+        _Message.variableId(4);
     }
 
     @SuppressWarnings("deprecation")
-    public BPushMessage(String _Topic_, long _SessionId_) {
+    public BPushMessage(String _Topic_, int _PartitionIndex_, long _SessionId_) {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
+        _PartitionIndex = _PartitionIndex_;
         _SessionId = _SessionId_;
         _Message = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.BMessage(), Zeze.Builtin.MQ.BMessage.class);
-        _Message.variableId(3);
+        _Message.variableId(4);
     }
 
     @Override
     public void reset() {
         setTopic("");
+        setPartitionIndex(0);
         setSessionId(0);
         _Message.reset();
         _unknown_ = null;
@@ -119,6 +144,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
 
     public void assign(BPushMessage.Data _o_) {
         setTopic(_o_._Topic);
+        setPartitionIndex(_o_._PartitionIndex);
         setSessionId(_o_._SessionId);
         var _d__Message = new Zeze.Builtin.MQ.BMessage();
         _d__Message.assign(_o_._Message);
@@ -128,6 +154,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
 
     public void assign(BPushMessage _o_) {
         setTopic(_o_.getTopic());
+        setPartitionIndex(_o_.getPartitionIndex());
         setSessionId(_o_.getSessionId());
         _Message.assign(_o_._Message);
         _unknown_ = _o_._unknown_;
@@ -167,6 +194,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.MQ.BPushMessage: {\n");
         _s_.append(_i1_).append("Topic=").append(getTopic()).append(",\n");
+        _s_.append(_i1_).append("PartitionIndex=").append(getPartitionIndex()).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(getSessionId()).append(",\n");
         _s_.append(_i1_).append("Message=");
         _Message.buildString(_s_, _l_ + 8);
@@ -210,15 +238,22 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             }
         }
         {
-            long _x_ = getSessionId();
+            int _x_ = getPartitionIndex();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            long _x_ = getSessionId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
             int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
             int _b_ = _o_.WriteIndex;
             _Message.encode(_o_);
             if (_b_ + 1 == _o_.WriteIndex)
@@ -240,10 +275,14 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setSessionId(_o_.ReadLong(_t_));
+            setPartitionIndex(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
+            setSessionId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
             _o_.ReadBean(_Message, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -260,6 +299,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BPushMessage)_o_;
         if (!getTopic().equals(_b_.getTopic()))
+            return false;
+        if (getPartitionIndex() != _b_.getPartitionIndex())
             return false;
         if (getSessionId() != _b_.getSessionId())
             return false;
@@ -280,6 +321,8 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
 
     @Override
     public boolean negativeCheck() {
+        if (getPartitionIndex() < 0)
+            return true;
         if (getSessionId() < 0)
             return true;
         if (_Message.negativeCheck())
@@ -297,8 +340,9 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
                 case 1: _Topic = _v_.stringValue(); break;
-                case 2: _SessionId = _v_.longValue(); break;
-                case 3: _Message.followerApply(_v_); break;
+                case 2: _PartitionIndex = _v_.intValue(); break;
+                case 3: _SessionId = _v_.longValue(); break;
+                case 4: _Message.followerApply(_v_); break;
             }
         }
     }
@@ -309,6 +353,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         setTopic(_r_.getString(_pn_ + "Topic"));
         if (getTopic() == null)
             setTopic("");
+        setPartitionIndex(_r_.getInt(_pn_ + "PartitionIndex"));
         setSessionId(_r_.getLong(_pn_ + "SessionId"));
         _p_.add("Message");
         _Message.decodeResultSet(_p_, _r_);
@@ -319,6 +364,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Topic", getTopic());
+        _s_.appendInt(_pn_ + "PartitionIndex", getPartitionIndex());
         _s_.appendLong(_pn_ + "SessionId", getSessionId());
         _p_.add("Message");
         _Message.encodeSQLStatement(_p_, _s_);
@@ -329,8 +375,9 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Topic", "string", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "SessionId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Message", "Zeze.Builtin.MQ.BMessage", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "PartitionIndex", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SessionId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Message", "Zeze.Builtin.MQ.BMessage", "", ""));
         return _v_;
     }
 
@@ -339,6 +386,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 3196014057207271685L;
 
     private String _Topic; // 主题，用户不用填写
+    private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
     private Zeze.Builtin.MQ.BMessage.Data _Message;
 
@@ -350,6 +398,14 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_v_ == null)
             throw new IllegalArgumentException();
         _Topic = _v_;
+    }
+
+    public int getPartitionIndex() {
+        return _PartitionIndex;
+    }
+
+    public void setPartitionIndex(int _v_) {
+        _PartitionIndex = _v_;
     }
 
     public long getSessionId() {
@@ -377,10 +433,11 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _Topic_, long _SessionId_, Zeze.Builtin.MQ.BMessage.Data _Message_) {
+    public Data(String _Topic_, int _PartitionIndex_, long _SessionId_, Zeze.Builtin.MQ.BMessage.Data _Message_) {
         if (_Topic_ == null)
             _Topic_ = "";
         _Topic = _Topic_;
+        _PartitionIndex = _PartitionIndex_;
         _SessionId = _SessionId_;
         if (_Message_ == null)
             _Message_ = new Zeze.Builtin.MQ.BMessage.Data();
@@ -390,6 +447,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void reset() {
         _Topic = "";
+        _PartitionIndex = 0;
         _SessionId = 0;
         _Message.reset();
     }
@@ -408,12 +466,14 @@ public static final class Data extends Zeze.Transaction.Data {
 
     public void assign(BPushMessage _o_) {
         _Topic = _o_.getTopic();
+        _PartitionIndex = _o_.getPartitionIndex();
         _SessionId = _o_.getSessionId();
         _Message.assign(_o_._Message.getValue());
     }
 
     public void assign(BPushMessage.Data _o_) {
         _Topic = _o_._Topic;
+        _PartitionIndex = _o_._PartitionIndex;
         _SessionId = _o_._SessionId;
         _Message.assign(_o_._Message);
     }
@@ -453,6 +513,7 @@ public static final class Data extends Zeze.Transaction.Data {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.MQ.BPushMessage: {\n");
         _s_.append(_i1_).append("Topic=").append(_Topic).append(",\n");
+        _s_.append(_i1_).append("PartitionIndex=").append(_PartitionIndex).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(_SessionId).append(",\n");
         _s_.append(_i1_).append("Message=");
         _Message.buildString(_s_, _l_ + 8);
@@ -481,15 +542,22 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            long _x_ = _SessionId;
+            int _x_ = _PartitionIndex;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
+        {
+            long _x_ = _SessionId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
         {
             int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 3, ByteBuffer.BEAN);
+            int _j_ = _o_.WriteTag(_i_, 4, ByteBuffer.BEAN);
             int _b_ = _o_.WriteIndex;
             _Message.encode(_o_);
             if (_b_ + 1 == _o_.WriteIndex)
@@ -509,10 +577,14 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _SessionId = _o_.ReadLong(_t_);
+            _PartitionIndex = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
+            _SessionId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
             _o_.ReadBean(_Message, _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -531,6 +603,8 @@ public static final class Data extends Zeze.Transaction.Data {
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BPushMessage.Data)_o_;
         if (!_Topic.equals(_b_._Topic))
+            return false;
+        if (_PartitionIndex != _b_._PartitionIndex)
             return false;
         if (_SessionId != _b_._SessionId)
             return false;

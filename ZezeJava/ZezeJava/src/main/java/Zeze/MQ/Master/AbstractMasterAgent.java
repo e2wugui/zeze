@@ -20,6 +20,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public static final int eTopicNotExist = 2;
     public static final int eManagerNotFound = 3;
     public static final int eTopicExist = 4;
+    public static final int eConsumerNotFound = 5;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

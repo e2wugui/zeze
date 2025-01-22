@@ -21,8 +21,8 @@ import Zeze.Net.Connector;
  * masterAgent,mqAgent都是静态的(static)，整个进程共享。
  */
 public class MQ {
-	private static final MasterAgent masterAgent;
-	private static final MQAgent mqAgent;
+	static final MasterAgent masterAgent;
+	static final MQAgent mqAgent;
 
 	static {
 		masterAgent = new MasterAgent(Config.load());
