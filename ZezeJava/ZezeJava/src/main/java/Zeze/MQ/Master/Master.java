@@ -3,12 +3,16 @@ package Zeze.MQ.Master;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.MQ.Master.CreateMQ;
+import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Builtin.MQ.Master.ReportLoad;
 import Zeze.Builtin.MQ.Master.BMQServer;
 import Zeze.Builtin.MQ.Master.Register;
 import Zeze.Builtin.MQ.Master.Subscribe;
 import Zeze.Config;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
@@ -23,11 +27,13 @@ public class Master extends AbstractMaster {
     private final RocksDatabase masterDb;
     private final RocksDatabase.Table mqTable;
     private final Config zezeConfig;
+    private final AtomicLong sessionIdGen = new AtomicLong();
 
     public static class Manager {
         private final AsyncSocket socket;
         private final BMQServer.Data info;
         private double load;
+        private final HashSet<Integer> partitionIndexes = new HashSet<>();
 
         public Manager(AsyncSocket socket, BMQServer.Data data) {
             this.socket = socket;
@@ -93,6 +99,8 @@ public class Master extends AbstractMaster {
         if (r.Argument.getPartition() < 1)
             return errorCode(ePartition);
 
+        servers.setSessionId(sessionIdGen.incrementAndGet());
+
         // 分配manager
         var managers = choiceManager(r.Argument.getPartition());
         for (var i = 0; i < r.Argument.getPartition(); ++i) {
@@ -101,8 +109,18 @@ public class Master extends AbstractMaster {
             info.setPartitionIndex(i);
             info.setTopic(r.Argument.getTopic());
             servers.getServers().add(info);
+            manager.partitionIndexes.add(i);
         }
-
+        for (var manager : managers) {
+            var cp = new CreatePartition();
+            cp.Argument.setTopic(r.Argument.getTopic());
+            cp.Argument.setPartitionIndexes(manager.partitionIndexes);
+            cp.SendForWait(manager.socket).await();
+            if (cp.getResultCode() != 0) {
+                logger.error("create partition error=" + IModule.getErrorCode(cp.getResultCode()) + " r=" + cp);
+                return errorCode(eCreatePartition);
+            }
+        }
         // save mq info
         var value = ByteBuffer.Allocate();
         servers.encode(value);
@@ -120,6 +138,7 @@ public class Master extends AbstractMaster {
             return errorCode(eTopicNotExist);
         var servers = r.Result;
         servers.decode(ByteBuffer.Wrap(mq));
+        servers.setSessionId(sessionIdGen.incrementAndGet()); // 生成id，必须在decode之后设置。
         r.SendResult();
         return 0;
     }

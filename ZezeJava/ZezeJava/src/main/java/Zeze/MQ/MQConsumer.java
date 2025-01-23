@@ -14,8 +14,6 @@ public class MQConsumer {
 	private final BMQInfo.Data info;
 	private final HashSet<Connector> managers = new HashSet<>();
 
-	private final static AtomicLong sessionIdGen = new AtomicLong();
-
 	public static Collection<MQConsumer> getConsumers() {
 		return MQ.mqAgent.getConsumers().values();
 	}
@@ -29,7 +27,7 @@ public class MQConsumer {
 		for (var server : servers.getServers()) {
 			managers.add(MQ.mqAgent.getOrAddConnector(server.getHost(), server.getPort()));
 		}
-		this.sessionId = sessionIdGen.incrementAndGet();
+		this.sessionId = servers.getSessionId();
 		MQ.mqAgent.subscribe(topic, sessionId, this, managers);
 	}
 

@@ -2,6 +2,7 @@ package Zeze.MQ;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
@@ -10,6 +11,8 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.MQ.Master.AbstractMaster.ePartition;
+import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
 
 public class MQManager extends AbstractMQManager {
     private static final Logger logger = LogManager.getLogger();
@@ -23,7 +26,7 @@ public class MQManager extends AbstractMQManager {
 
     // 本manager的所有队列实现。
     // { topic -> { partitionIndex -> MQFile } }
-    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, MQSingle>> mqFiles = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, MQPartition> queues = new ConcurrentHashMap<>();
 
     public MQManager(String home, String configXml) {
         this.home = home;
@@ -31,7 +34,7 @@ public class MQManager extends AbstractMQManager {
         config.parseCustomize(this.mqConfig);
         proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout());
         masterService = new Service(config, proxyServer);
-        masterAgent = new MasterAgent(config, masterService);
+        masterAgent = new MasterAgent(config, masterService, this::createPartition);
     }
 
     public MQConfig getMqConfig() {
@@ -44,8 +47,8 @@ public class MQManager extends AbstractMQManager {
 
     public int queueCount() {
         int count = 0;
-        for (var mqs : mqFiles.values())
-            count += mqs.size();
+        for (var queue : queues.values())
+            count += queue.size();
         return count;
     }
 
@@ -70,39 +73,50 @@ public class MQManager extends AbstractMQManager {
 
     private void loadMonitor() {
         var loadManager = 0.0;
-        for (var mqs : mqFiles.values()) {
-            for (var mqFile : mqs.values()) {
-                var load = mqFile.load();
-                loadManager += load;
-            }
+        for (var queue : queues.values()) {
+            loadManager += queue.load();
         }
         masterAgent.reportLoad(loadManager);
     }
 
+    protected long createPartition(CreatePartition r) {
+        var cp = queues.computeIfAbsent(r.Argument.getTopic(), (key) -> new MQPartition());
+        cp.createPartitions(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
+        r.SendResult();
+        return 0;
+    }
+
     @Override
     protected long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) {
-        // todo 这里mqFile应该已经创建好了，需要master通知manager创建。这里临时使用putIfAbsent。
-        var mqsNew = new ConcurrentHashMap<Integer, MQSingle>();
-        var mqs = mqFiles.putIfAbsent(r.Argument.getTopic(), mqsNew);
-        if (mqs == null)
-            mqs = mqsNew;
-        var mqFileNew = new MQSingle(r.Argument.getTopic(), r.Argument.getPartitionIndex());
-        var mqFile = mqs.putIfAbsent(r.Argument.getPartitionIndex(), mqFileNew);
-        if (mqFile == null)
-            mqFile = mqFileNew;
-        mqFile.sendMessage(r.Argument);
+        var queue = queues.get(r.Argument.getTopic());
+        if (queue == null)
+            return errorCode(eTopicNotExist);
+        var partition = queue.get(r.Argument.getPartitionIndex());
+        if (partition == null)
+            return errorCode(ePartition);
+        partition.sendMessage(r.Argument);
         r.SendResult();
         return 0;
     }
 
     @Override
     protected long ProcessSubscribeRequest(Zeze.Builtin.MQ.Subscribe r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        var queue = queues.get(r.Argument.getTopic());
+        if (queue == null)
+            return errorCode(eTopicNotExist);
+        queue.subscribe(r.getSender(), r.Argument.getSessionId());
+        r.SendResult();
+        return 0;
     }
 
     @Override
     protected long ProcessUnsubscribeRequest(Zeze.Builtin.MQ.Unsubscribe r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        var queue = queues.get(r.Argument.getTopic());
+        if (queue == null)
+            return errorCode(eTopicNotExist);
+        queue.unsubscribe(r.getSender(), r.Argument.getSessionId());
+        r.SendResult();
+        return 0;
     }
 
     public static class Service extends Zeze.MQ.Master.MasterAgent.Service {

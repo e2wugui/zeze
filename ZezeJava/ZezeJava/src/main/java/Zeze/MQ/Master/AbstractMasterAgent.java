@@ -21,6 +21,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public static final int eManagerNotFound = 3;
     public static final int eTopicExist = 4;
     public static final int eConsumerNotFound = 5;
+    public static final int eCreatePartition = 6;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
@@ -30,6 +31,14 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateMQResponse", Zeze.Transaction.TransactionLevel.Serializable);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreateMQResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47420243782922L, factoryHandle); // 11040, -490132214
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.CreatePartition.class, Zeze.Builtin.MQ.Master.CreatePartition.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.CreatePartition::new;
+            factoryHandle.Handle = this::ProcessCreatePartitionRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreatePartitionRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCreatePartitionRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47418254762936L, factoryHandle); // 11040, 1815815096
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.OpenMQ.class, Zeze.Builtin.MQ.Master.OpenMQ.TypeId_);
@@ -63,6 +72,7 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47420243782922L);
+        service.getFactorys().remove(47418254762936L);
         service.getFactorys().remove(47419582250441L);
         service.getFactorys().remove(47417719098028L);
         service.getFactorys().remove(47416592360823L);
@@ -77,4 +87,6 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
+
+    protected abstract long ProcessCreatePartitionRequest(Zeze.Builtin.MQ.Master.CreatePartition r) throws Exception;
 }

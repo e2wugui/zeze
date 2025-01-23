@@ -10,6 +10,18 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info;
     private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers;
+    private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
+
+    private static final java.lang.invoke.VarHandle vh_SessionId;
+
+    static {
+        var _l_ = java.lang.invoke.MethodHandles.lookup();
+        try {
+            vh_SessionId = _l_.findVarHandle(BMQServers.class, "_SessionId", long.class);
+        } catch (ReflectiveOperationException _e_) {
+            throw Zeze.Util.Task.forceThrow(_e_);
+        }
+    }
 
     public Zeze.Builtin.MQ.Master.BMQInfo getInfo() {
         return _Info.getValue();
@@ -33,6 +45,26 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         return new Zeze.Transaction.Collections.PList2ReadOnly<>(_Servers);
     }
 
+    @Override
+    public long getSessionId() {
+        if (!isManaged())
+            return _SessionId;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _SessionId;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
+        return log != null ? log.value : _SessionId;
+    }
+
+    public void setSessionId(long _v_) {
+        if (!isManaged()) {
+            _SessionId = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_SessionId, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BMQServers() {
         _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
@@ -41,10 +73,20 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         _Servers.variableId(2);
     }
 
+    @SuppressWarnings("deprecation")
+    public BMQServers(long _SessionId_) {
+        _Info = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.MQ.Master.BMQInfo(), Zeze.Builtin.MQ.Master.BMQInfo.class);
+        _Info.variableId(1);
+        _Servers = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.MQ.Master.BMQServer.class);
+        _Servers.variableId(2);
+        _SessionId = _SessionId_;
+    }
+
     @Override
     public void reset() {
         _Info.reset();
         _Servers.clear();
+        setSessionId(0);
         _unknown_ = null;
     }
 
@@ -70,6 +112,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
             _v_.assign(_e_);
             _Servers.add(_v_);
         }
+        setSessionId(_o_._SessionId);
         _unknown_ = null;
     }
 
@@ -78,6 +121,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         _Servers.clear();
         for (var _e_ : _o_._Servers)
             _Servers.add(_e_.copy());
+        setSessionId(_o_.getSessionId());
         _unknown_ = _o_._unknown_;
     }
 
@@ -128,7 +172,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
             }
             _s_.append(_i1_);
         }
-        _s_.append("]\n");
+        _s_.append("],\n");
+        _s_.append(_i1_).append("SessionId=").append(getSessionId()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -184,6 +229,13 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            long _x_ = getSessionId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -207,6 +259,10 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setSessionId(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -222,6 +278,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         if (!_Info.equals(_b_._Info))
             return false;
         if (!_Servers.equals(_b_._Servers))
+            return false;
+        if (getSessionId() != _b_.getSessionId())
             return false;
         return true;
     }
@@ -246,6 +304,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
             if (_v_.negativeCheck())
                 return true;
         }
+        if (getSessionId() < 0)
+            return true;
         return false;
     }
 
@@ -260,6 +320,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
             switch (_v_.getVariableId()) {
                 case 1: _Info.followerApply(_v_); break;
                 case 2: _Servers.followerApply(_v_); break;
+                case 3: _SessionId = _v_.longValue(); break;
             }
         }
     }
@@ -271,6 +332,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         _p_.remove(_p_.size() - 1);
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         Zeze.Serialize.Helper.decodeJsonList(_Servers, Zeze.Builtin.MQ.Master.BMQServer.class, _r_.getString(_pn_ + "Servers"));
+        setSessionId(_r_.getLong(_pn_ + "SessionId"));
     }
 
     @Override
@@ -280,6 +342,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         _p_.remove(_p_.size() - 1);
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Servers", Zeze.Serialize.Helper.encodeJson(_Servers));
+        _s_.appendLong(_pn_ + "SessionId", getSessionId());
     }
 
     @Override
@@ -287,6 +350,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Info", "Zeze.Builtin.MQ.Master.BMQInfo", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Servers", "list", "", "Zeze.Builtin.MQ.Master.BMQServer"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SessionId", "long", "", ""));
         return _v_;
     }
 
@@ -296,6 +360,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private Zeze.Builtin.MQ.Master.BMQInfo.Data _Info;
     private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers;
+    private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 
     public Zeze.Builtin.MQ.Master.BMQInfo.Data getInfo() {
         return _Info;
@@ -317,6 +382,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Servers = _v_;
     }
 
+    public long getSessionId() {
+        return _SessionId;
+    }
+
+    public void setSessionId(long _v_) {
+        _SessionId = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Info = new Zeze.Builtin.MQ.Master.BMQInfo.Data();
@@ -324,19 +397,21 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(Zeze.Builtin.MQ.Master.BMQInfo.Data _Info_, java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers_) {
+    public Data(Zeze.Builtin.MQ.Master.BMQInfo.Data _Info_, java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers_, long _SessionId_) {
         if (_Info_ == null)
             _Info_ = new Zeze.Builtin.MQ.Master.BMQInfo.Data();
         _Info = _Info_;
         if (_Servers_ == null)
             _Servers_ = new java.util.ArrayList<>();
         _Servers = _Servers_;
+        _SessionId = _SessionId_;
     }
 
     @Override
     public void reset() {
         _Info.reset();
         _Servers.clear();
+        _SessionId = 0;
     }
 
     @Override
@@ -359,6 +434,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _v_.assign(_e_);
             _Servers.add(_v_);
         }
+        _SessionId = _o_.getSessionId();
     }
 
     public void assign(BMQServers.Data _o_) {
@@ -366,6 +442,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _Servers.clear();
         for (var _e_ : _o_._Servers)
             _Servers.add(_e_.copy());
+        _SessionId = _o_._SessionId;
     }
 
     @Override
@@ -416,7 +493,8 @@ public static final class Data extends Zeze.Transaction.Data {
             }
             _s_.append(_i1_);
         }
-        _s_.append("]\n");
+        _s_.append("],\n");
+        _s_.append(_i1_).append("SessionId=").append(_SessionId).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -458,6 +536,13 @@ public static final class Data extends Zeze.Transaction.Data {
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            long _x_ = _SessionId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -479,6 +564,10 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            _SessionId = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -496,6 +585,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (!_Info.equals(_b_._Info))
             return false;
         if (!_Servers.equals(_b_._Servers))
+            return false;
+        if (_SessionId != _b_._SessionId)
             return false;
         return true;
     }

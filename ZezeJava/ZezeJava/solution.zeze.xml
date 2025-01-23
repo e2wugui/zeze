@@ -1926,6 +1926,7 @@
 				<enum name="eManagerNotFound" value="3"/>
 				<enum name="eTopicExist" value="4"/>
 				<enum name="eConsumerNotFound" value="5"/>
+				<enum name="eCreatePartition" value="6"/>
 
 				<bean name="BSubscribe">
 					<variable id="1" name="Topic" type="string"/>
@@ -1944,16 +1945,23 @@
 				<bean name="BMQServers">
 					<variable id="1" name="Info" type="BMQInfo"/>
 					<variable id="2" name="Servers" type="list[BMQServer]"/>
+					<variable id="3" name="SessionId" type="long"/> 创建或打开的时候，由Master分配的唯一递增会话。
+																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 				</bean>
-
+				<bean name="BCreatePartition">
+					<variable id="1" name="Topic" type="string"/>
+					<variable id="2" name="PartitionIndexes" type="set[int]"/>
+				</bean>
+				
 				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/>
 				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/>
+				<rpc name="CreatePartition" argument="BCreatePartition" handle="client"/>
 				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
 				<rpc name="Register" argument="BMQServer" handle="server"/>
 				<bean name="BLoad">
 					<variable id="1" name="Load" type="double"/>
 				</bean>
-				<rpc name="ReportLoad" argument="BLoad" UseData="true" handle="server"/>
+				<rpc name="ReportLoad" argument="BLoad" handle="server"/>
 			</module>
 
 			<bean name="BOptions">

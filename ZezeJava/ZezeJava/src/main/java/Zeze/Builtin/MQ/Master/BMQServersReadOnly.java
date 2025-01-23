@@ -9,4 +9,5 @@ public interface BMQServersReadOnly {
 
     Zeze.Builtin.MQ.Master.BMQInfoReadOnly getInfoReadOnly();
     Zeze.Transaction.Collections.PList2ReadOnly<Zeze.Builtin.MQ.Master.BMQServer, Zeze.Builtin.MQ.Master.BMQServerReadOnly> getServersReadOnly();
+    long getSessionId();
 }

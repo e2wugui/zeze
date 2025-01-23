@@ -1,6 +1,7 @@
 package Zeze.MQ.Master;
 
 import Zeze.Builtin.MQ.Master.CreateMQ;
+import Zeze.Builtin.MQ.Master.CreatePartition;
 import Zeze.Builtin.MQ.Master.ReportLoad;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQServers;
@@ -10,14 +11,25 @@ import Zeze.Builtin.MQ.Master.Register;
 import Zeze.Config;
 import Zeze.IModule;
 import Zeze.Net.Connector;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Transaction.Procedure;
+import org.jetbrains.annotations.NotNull;
 
 public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.MQ.Master.Agent";
 	private final Service service;
+	private final ProtocolHandle<CreatePartition> createPartitionHandle;
 
 	public MasterAgent(Config config) {
 		service = new Service(config);
+		this.createPartitionHandle = null;
 		RegisterProtocols(service);
+	}
+
+	public MasterAgent(Config config, Service service, ProtocolHandle<CreatePartition> createPartitionHandle) {
+		this.service = service;
+		this.createPartitionHandle = createPartitionHandle;
+		RegisterProtocols(this.service);
 	}
 
 	public void startAndWaitConnectionReady() {
@@ -37,9 +49,11 @@ public class MasterAgent extends AbstractMasterAgent {
 		}
 	}
 
-	public MasterAgent(Config config, Service service) {
-		this.service = service;
-		RegisterProtocols(this.service);
+	@Override
+	protected long ProcessCreatePartitionRequest(CreatePartition r) throws Exception {
+		if (null == this.createPartitionHandle)
+			return Procedure.NotImplement;
+		return this.createPartitionHandle.handle(r);
 	}
 
 	public static class Service extends Zeze.Net.Service {
