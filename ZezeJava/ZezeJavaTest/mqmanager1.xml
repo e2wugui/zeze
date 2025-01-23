@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze
+	GlobalCacheManagerPort="5002"
+	CheckpointPeriod="0"
+	ServerId="-1"
+	ServiceManager="disable"
+	>
+	<ServiceConf Name="Zeze.MQ.Master.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="6000"/>
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Raft.ProxyServer">
+		<Acceptor Ip="127.0.0.1" Port="6002"/>
+	</ServiceConf>
+</zeze>

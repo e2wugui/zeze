@@ -63,10 +63,15 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	public void bind(long sessionId, AsyncSocket socket) {
-		this.bindSessionId = sessionId;
-		this.bindSocket = socket;
-		if (null != bindSocket)
-			tryPushMessage();
+		lock();
+		try {
+			this.bindSessionId = sessionId;
+			this.bindSocket = socket;
+			if (null != bindSocket)
+				tryPushMessage();
+		} finally {
+			unlock();
+		}
 	}
 
 	public String getTopic() {

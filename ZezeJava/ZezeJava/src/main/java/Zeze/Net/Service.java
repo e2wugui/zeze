@@ -768,7 +768,8 @@ public class Service extends ReentrantLock {
 				ipPort.setValue(a.getPort());
 				return false;
 			}
-			// 获得最后一个配置的port。允许返回(null, port)。
+			// 获得最后一个配置的ip,port。
+			ipPort.setKey(a.getIp());
 			ipPort.setValue(a.getPort());
 			return true;
 		});

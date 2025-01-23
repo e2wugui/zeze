@@ -35,6 +35,7 @@ public class MQManager extends AbstractMQManager {
         proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout());
         masterService = new Service(config, proxyServer);
         masterAgent = new MasterAgent(config, masterService, this::createPartition);
+        RegisterProtocols(proxyServer);
     }
 
     public MQConfig getMqConfig() {

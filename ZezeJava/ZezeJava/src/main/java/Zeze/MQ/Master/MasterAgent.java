@@ -13,7 +13,6 @@ import Zeze.IModule;
 import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
-import org.jetbrains.annotations.NotNull;
 
 public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.MQ.Master.Agent";
