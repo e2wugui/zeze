@@ -23,7 +23,7 @@ dependencies {
     implementation 'com.mysql:mysql-connector-j:8.4.0'
 
     // for websocket
-    implementation 'org.java-websocket:Java-WebSocket:1.5.7'
+    implementation 'org.java-websocket:Java-WebSocket:1.6.0'
 
     // for log4j2
     implementation 'com.lmax:disruptor:4.0.0'
@@ -36,15 +36,15 @@ dependencies {
 
     // for task component
     implementation 'org.jgrapht:jgrapht-core:1.5.2'
-    implementation 'com.opencsv:opencsv:5.9'
+    implementation 'com.opencsv:opencsv:5.10'
     implementation 'org.glassfish:javax.json:1.1.4'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    implementation 'com.github.luben:zstd-jni:1.5.6-4'
+    implementation 'com.github.luben:zstd-jni:1.5.6-9'
 
-    implementation 'org.freemarker:freemarker:2.3.33'
-    implementation 'org.thymeleaf:thymeleaf:3.1.2.RELEASE'
-    // implementation 'com.github.marianobarrios:tls-channel:0.8.1'
+    implementation 'org.freemarker:freemarker:2.3.34'
+    implementation 'org.thymeleaf:thymeleaf:3.1.3.RELEASE'
+    // implementation 'com.github.marianobarrios:tls-channel:0.9.1'
 }
 
 tasks.withType(JavaCompile) {
