@@ -91,7 +91,7 @@ public class TestGTable {
 			var gTable1 = table.getOrAdd(1L);
 			var bean1 = gTable1.getGTable().get(1, 1);
 			Assert.assertNotNull(bean1);
-			Assert.assertEquals(bean1.getIntVar(), 0);
+			Assert.assertEquals(0, bean1.getIntVar());
 			return 0; // rollback
 		}, "setGTableBeanRollbackCheck").call();
 	}

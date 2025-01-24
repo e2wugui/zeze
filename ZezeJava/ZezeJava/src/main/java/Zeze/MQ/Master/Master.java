@@ -117,7 +117,7 @@ public class Master extends AbstractMaster {
             cp.Argument.setPartitionIndexes(manager.partitionIndexes);
             cp.SendForWait(manager.socket).await();
             if (cp.getResultCode() != 0) {
-                logger.error("create partition error=" + IModule.getErrorCode(cp.getResultCode()) + " r=" + cp);
+                logger.error("create partition error={} r={}", IModule.getErrorCode(cp.getResultCode()), cp);
                 return errorCode(eCreatePartition);
             }
         }

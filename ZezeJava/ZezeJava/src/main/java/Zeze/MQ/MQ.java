@@ -57,12 +57,7 @@ public class MQ {
 			var connector = mqAgent.getOrAddConnector(server.getHost(), server.getPort());
 			mqConnectors[i++] = new MQConnector(server, connector);
 		}
-		Arrays.sort(mqConnectors, new Comparator<MQConnector>() {
-			@Override
-			public int compare(MQConnector o1, MQConnector o2) {
-				return Integer.compare(o1.server.getPartitionIndex(), o2.server.getPartitionIndex());
-			}
-		});
+		Arrays.sort(mqConnectors, Comparator.comparingInt(o -> o.server.getPartitionIndex()));
 	}
 
 	public void sendMessage(int hash, BMessage.Data message) {

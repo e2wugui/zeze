@@ -10,9 +10,7 @@ import javax.annotation.CheckForNull;
  *
  * @author Jared Levy
  */
-abstract class AbstractMapEntry<K extends Object, V extends Object>
-		implements Entry<K, V> {
-
+abstract class AbstractMapEntry<K, V> implements Entry<K, V> {
 	@Override
 	public abstract K getKey();
 

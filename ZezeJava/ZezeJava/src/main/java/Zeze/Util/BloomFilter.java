@@ -11,7 +11,7 @@ public class BloomFilter {
 		boolean getBit(long index); // index:[0,capacity)
 	}
 
-	private final @NotNull BloomFilter.BitArray bitArray;
+	private final @NotNull BitArray bitArray;
 	private final long capacity; // maxIndex+1
 	private final long mask; // capacity-1 if isPowerOfTwo(capacity) else 0
 	private final int bitsPerKey; // set/test bit count per key
@@ -31,7 +31,7 @@ public class BloomFilter {
 	/**
 	 * @param bitsPerKey 每个key的hash计算次数和设置/判断bit的次数. 这个次数可通过下面main方法测量出一个合适的值
 	 */
-	public BloomFilter(@NotNull BloomFilter.BitArray bitArray, int bitsPerKey) {
+	public BloomFilter(@NotNull BitArray bitArray, int bitsPerKey) {
 		this.bitArray = bitArray;
 		capacity = bitArray.getCapacity();
 		mask = isPowerOfTwo(capacity) ? capacity - 1 : 0;

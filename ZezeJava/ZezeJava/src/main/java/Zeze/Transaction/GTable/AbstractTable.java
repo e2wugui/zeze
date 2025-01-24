@@ -28,10 +28,7 @@ import javax.annotation.CheckForNull;
  *
  * @author Louis Wasserman
  */
-abstract class AbstractTable<
-        R extends Object, C extends Object, V extends Object>
-    implements Table<R, C, V> {
-
+abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   @Override
   public boolean containsRow(@CheckForNull Object rowKey) {
     return Utils.safeContainsKey(rowMap(), rowKey);
@@ -181,7 +178,7 @@ abstract class AbstractTable<
   }
 
   Iterator<V> valuesIterator() {
-    return new TransformedIterator<Cell<R, C, V>, V>(cellSet().iterator()) {
+    return new TransformedIterator<>(cellSet().iterator()) {
       @Override
       V transform(Cell<R, C, V> cell) {
         return cell.getValue();

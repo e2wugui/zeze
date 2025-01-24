@@ -4,12 +4,11 @@ import java.util.Iterator;
 
 /**
  * An iterator that transforms a backing iterator; for internal use. This avoids the object overhead
- * of constructing a {@link com.google.common.base.Function Function} for internal methods.
+ * of constructing a com.google.common.base.Function Function for internal methods.
  *
  * @author Louis Wasserman
  */
-abstract class TransformedIterator<F extends Object, T extends Object>
-		implements Iterator<T> {
+abstract class TransformedIterator<F, T> implements Iterator<T> {
 	final Iterator<? extends F> backingIterator;
 
 	TransformedIterator(Iterator<? extends F> backingIterator) {

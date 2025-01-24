@@ -24,8 +24,7 @@ import java.util.ListIterator;
  * @since 7.0
  * @author Louis Wasserman
  */
-public abstract class UnmodifiableListIterator<E extends Object>
-		extends UnmodifiableIterator<E> implements ListIterator<E> {
+public abstract class UnmodifiableListIterator<E> extends UnmodifiableIterator<E> implements ListIterator<E> {
 	/** Constructor for use by subclasses. */
 	protected UnmodifiableListIterator() {}
 

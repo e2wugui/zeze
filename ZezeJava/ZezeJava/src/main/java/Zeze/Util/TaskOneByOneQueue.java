@@ -229,7 +229,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 
 		public abstract boolean isBarrier();
 
-		public abstract boolean process(@NotNull TaskOneByOneQueue.BatchTask batch);
+		public abstract boolean process(@NotNull BatchTask batch);
 	}
 
 	public static final class TaskAction extends Task {

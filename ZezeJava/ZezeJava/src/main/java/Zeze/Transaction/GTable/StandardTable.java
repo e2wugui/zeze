@@ -25,7 +25,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.CheckForNull;
 
@@ -377,7 +376,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
         return Utils.emptyModifiableIterator();
       }
       final Iterator<Entry<C, V>> iterator = backingRowMap.entrySet().iterator();
-      return new Iterator<Entry<C, V>>() {
+      return new Iterator<>() {
         @Override
         public boolean hasNext() {
           return iterator.hasNext();
@@ -406,7 +405,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     }
 
     Entry<C, V> wrapEntry(final Entry<C, V> entry) {
-      return new ForwardingMapEntry<C, V>() {
+      return new ForwardingMapEntry<>() {
         @Override
         protected Entry<C, V> delegate() {
           return entry;
@@ -609,7 +608,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean retainAll(final Collection<?> c) {
-        return removeFromColumnIf(Utils.<R>keyPredicateOnEntries(Utils.not(Utils.in(c))));
+        return removeFromColumnIf(Utils.keyPredicateOnEntries(Utils.not(Utils.in(c))));
       }
     }
 
@@ -625,17 +624,17 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean remove(@CheckForNull Object obj) {
-        return obj != null && removeFromColumnIf(Utils.<V>valuePredicateOnEntries(Utils.equalTo(obj)));
+        return obj != null && removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.equalTo(obj)));
       }
 
       @Override
       public boolean removeAll(final Collection<?> c) {
-        return removeFromColumnIf(Utils.<V>valuePredicateOnEntries(Utils.in(c)));
+        return removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.in(c)));
       }
 
       @Override
       public boolean retainAll(final Collection<?> c) {
-        return removeFromColumnIf(Utils.<V>valuePredicateOnEntries(Utils.not(Utils.in(c))));
+        return removeFromColumnIf(Utils.valuePredicateOnEntries(Utils.not(Utils.in(c))));
       }
     }
   }
@@ -816,14 +815,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     private final class EntrySet extends TableSet<Entry<R, Map<C, V>>> {
       @Override
       public Iterator<Entry<R, Map<C, V>>> iterator() {
-        return Utils.asMapEntryIterator(
-            backingMap.keySet(),
-            new Function<R, Map<C, V>>() {
-              @Override
-              public Map<C, V> apply(R rowKey) {
-                return row(rowKey);
-              }
-            });
+        return Utils.asMapEntryIterator(backingMap.keySet(), StandardTable.this::row);
       }
 
       @Override
@@ -903,14 +895,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
     private final class ColumnMapEntrySet extends TableSet<Entry<C, Map<R, V>>> {
       @Override
       public Iterator<Entry<C, Map<R, V>>> iterator() {
-        return Utils.asMapEntryIterator(
-            columnKeySet(),
-            new Function<C, Map<R, V>>() {
-              @Override
-              public Map<R, V> apply(C columnKey) {
-                return column(columnKey);
-              }
-            });
+        return Utils.asMapEntryIterator(columnKeySet(), StandardTable.this::column);
       }
 
       @Override

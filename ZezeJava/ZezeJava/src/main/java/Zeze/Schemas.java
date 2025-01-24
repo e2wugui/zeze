@@ -1038,8 +1038,7 @@ public class Schemas implements Serializable {
 	}
 	*/
 
-	public static @NotNull Schemas.RelationalTable newRelationalTable(@NotNull Schemas.Table cur,
-																	  @Nullable Schemas.Table other) {
+	public static @NotNull RelationalTable newRelationalTable(@NotNull Table cur, @Nullable Table other) {
 		var relational = new RelationalTable(cur.name);
 		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
 		//System.out.println(relational.createTableSql());

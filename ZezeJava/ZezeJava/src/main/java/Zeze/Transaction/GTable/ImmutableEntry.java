@@ -19,12 +19,11 @@ package Zeze.Transaction.GTable;
 import java.io.Serializable;
 
 /**
- * An immutable {@code Map.Entry}, used both by {@link
- * com.google.common.collect.Maps#immutableEntry(Object, Object)} and by other parts of {@code
+ * An immutable {@code Map.Entry}, used both by
+ * com.google.common.collect.Maps#immutableEntry(Object, Object) and by other parts of {@code
  * common.collect} as a superclass.
  */
-class ImmutableEntry<K extends Object, V extends Object>
-		extends AbstractMapEntry<K, V> implements Serializable {
+class ImmutableEntry<K, V> extends AbstractMapEntry<K, V> implements Serializable {
 	final K key;
 	final V value;
 

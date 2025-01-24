@@ -300,7 +300,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;
 		}
-		var sender = (GlobalCacheManagerAsyncServer.CacheHolder)rpc.getSender().getUserState();
+		var sender = (CacheHolder)rpc.getSender().getUserState();
 		sender.setActiveTime(System.currentTimeMillis());
 		rpc.SendResult();
 		return 0;
@@ -318,7 +318,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			rpc.SendResultCode(AcquireNotLogin);
 		} else {
 			try {
-				var sender = (GlobalCacheManagerAsyncServer.CacheHolder)rpc.getSender().getUserState();
+				var sender = (CacheHolder)rpc.getSender().getUserState();
 				sender.setActiveTime(System.currentTimeMillis());
 				switch (acquireState) {
 				case StateInvalid: // release

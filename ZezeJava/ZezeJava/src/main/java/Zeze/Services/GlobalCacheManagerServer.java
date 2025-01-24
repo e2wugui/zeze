@@ -110,7 +110,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
-	public GlobalCacheManagerServer.GCMConfig getGcmConfig() {
+	public GCMConfig getGcmConfig() {
 		return gcmConfig;
 	}
 

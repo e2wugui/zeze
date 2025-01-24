@@ -2,7 +2,6 @@ package Zeze.MQ;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.Builtin.MQ.Master.BMQInfo;
 import Zeze.Net.Connector;

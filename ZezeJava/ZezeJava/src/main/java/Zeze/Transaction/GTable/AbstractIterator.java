@@ -93,7 +93,7 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 		if (!hasNext()) {
 			throw new NoSuchElementException();
 		}
-		state = AbstractIterator.State.NOT_READY;
+		state = State.NOT_READY;
 		// Safe because hasNext() ensures that tryToComputeNext() has put a T into `next`.
 		T result = Utils.uncheckedCastNullableTToT(next);
 		next = null;

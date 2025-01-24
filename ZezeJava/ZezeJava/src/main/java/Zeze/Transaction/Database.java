@@ -172,8 +172,8 @@ public abstract class Database extends ReentrantLock {
 		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
 	}
 
-	public final void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Transaction> tss,
-							@Nullable Database.Transaction lct) {
+	public final void flush(@NotNull Transaction t, @NotNull HashMap<Database, Transaction> tss,
+							@Nullable Transaction lct) {
 		int countFlush = 0;
 		for (var storage : storages)
 			countFlush += storage.flush(t, tss, lct);

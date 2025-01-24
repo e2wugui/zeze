@@ -43,8 +43,7 @@ import javax.annotation.CheckForNull;
  * @author Louis Wasserman
  * @since 2.0
  */
-public abstract class ForwardingMapEntry<K extends Object, V extends Object>
-		extends ForwardingObject implements Map.Entry<K, V> {
+public abstract class ForwardingMapEntry<K, V> extends ForwardingObject implements Map.Entry<K, V> {
 	// TODO(lowasser): identify places where thread safety is actually lost
 
 	/** Constructor for use by subclasses. */

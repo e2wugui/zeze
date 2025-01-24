@@ -927,7 +927,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);
 			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
-			var conf = new ServiceManagerServer.Conf();
+			var conf = new Conf();
 			var config = Config.load();
 			config.parseCustomize(conf);
 			try (var ignored = new ServiceManagerServer(address, port, config, autokeys)) {

@@ -24,7 +24,7 @@ import java.util.Iterator;
  * @author Jared Levy
  * @since 2.0
  */
-public abstract class UnmodifiableIterator<E extends Object> implements Iterator<E> {
+public abstract class UnmodifiableIterator<E> implements Iterator<E> {
 	/** Constructor for use by subclasses. */
 	protected UnmodifiableIterator() {}
 

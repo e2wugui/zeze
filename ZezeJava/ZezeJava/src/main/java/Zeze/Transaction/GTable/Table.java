@@ -53,8 +53,7 @@ import javax.annotation.CheckForNull;
  * @param <V> the type of the mapped values
  * @since 7.0
  */
-public interface Table<
-    R extends Object, C extends Object, V extends Object> {
+public interface Table<R, C, V> {
   // TODO(jlevy): Consider adding methods similar to ConcurrentMap methods.
 
   // Accessors
@@ -250,8 +249,7 @@ public interface Table<
    *
    * @since 7.0
    */
-  interface Cell<
-      R extends Object, C extends Object, V extends Object> {
+  interface Cell<R, C, V> {
     /** Returns the row key of this cell. */
     R getRowKey();
 

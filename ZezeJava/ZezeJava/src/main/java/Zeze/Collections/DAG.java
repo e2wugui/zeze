@@ -76,7 +76,7 @@ public class DAG<V extends Bean> {
 		}
 	}
 
-	private DAG(DAG.Module module, String name, Class<V> valueClass) {
+	private DAG(Module module, String name, Class<V> valueClass) {
 		this.module = module;
 		this.name = name;
 		this.valueConstructor = beanFactory.register(valueClass);

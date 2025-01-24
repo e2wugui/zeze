@@ -7,14 +7,13 @@ import javax.annotation.CheckForNull;
 import static java.lang.Math.max;
 
 public class CollectSpliterators2 {
-	static <InElementT extends Object, OutElementT extends Object>
+	static <InElementT, OutElementT>
 	Spliterator<OutElementT> map(
 			Spliterator<InElementT> fromSpliterator,
 			Function<? super InElementT, ? extends OutElementT> function) {
 		Utils.checkNotNull(fromSpliterator);
 		Utils.checkNotNull(function);
-		return new Spliterator<OutElementT>() {
-
+		return new Spliterator<>() {
 			@Override
 			public boolean tryAdvance(Consumer<? super OutElementT> action) {
 				return fromSpliterator.tryAdvance(
@@ -46,7 +45,7 @@ public class CollectSpliterators2 {
 		};
 	}
 
-	static <InElementT extends Object, OutElementT extends Object>
+	static <InElementT, OutElementT>
 	Spliterator<OutElementT> flatMap(
 			Spliterator<InElementT> fromSpliterator,
 			Function<? super InElementT, Spliterator<OutElementT>> function,
@@ -65,13 +64,13 @@ public class CollectSpliterators2 {
 	}
 
 	abstract static class FlatMapSpliterator<
-			InElementT extends Object,
-			OutElementT extends Object,
+			InElementT,
+			OutElementT,
 			OutSpliteratorT extends Spliterator<OutElementT>>
 			implements Spliterator<OutElementT> {
 		/** Factory for constructing {@link FlatMapSpliterator} instances. */
 		@FunctionalInterface
-		interface Factory<InElementT extends Object, OutSpliteratorT extends Spliterator<?>> {
+		interface Factory<InElementT, OutSpliteratorT extends Spliterator<?>> {
 			OutSpliteratorT newFlatMapSpliterator(
 					@CheckForNull OutSpliteratorT prefix,
 					Spliterator<InElementT> fromSplit,
@@ -83,7 +82,7 @@ public class CollectSpliterators2 {
 		@CheckForNull OutSpliteratorT prefix;
 		final Spliterator<InElementT> from;
 		final Function<? super InElementT, OutSpliteratorT> function;
-		final FlatMapSpliterator.Factory<InElementT, OutSpliteratorT> factory;
+		final Factory<InElementT, OutSpliteratorT> factory;
 		int characteristics;
 		long estimatedSize;
 
@@ -91,7 +90,7 @@ public class CollectSpliterators2 {
 				@CheckForNull OutSpliteratorT prefix,
 				Spliterator<InElementT> from,
 				Function<? super InElementT, OutSpliteratorT> function,
-				FlatMapSpliterator.Factory<InElementT, OutSpliteratorT> factory,
+				Factory<InElementT, OutSpliteratorT> factory,
 				int characteristics,
 				long estimatedSize) {
 			this.prefix = prefix;
@@ -117,9 +116,8 @@ public class CollectSpliterators2 {
 						estimatedSize--;
 					}
 					return true;
-				} else {
-					prefix = null;
 				}
+				prefix = null;
 				if (!from.tryAdvance(fromElement -> prefix = function.apply(fromElement))) {
 					return false;
 				}
@@ -159,13 +157,13 @@ public class CollectSpliterators2 {
 								this.prefix, fromSplit, function, splitCharacteristics, estSplitSize);
 				this.prefix = null;
 				return result;
-			} else if (prefix != null) {
+			}
+			if (prefix != null) {
 				OutSpliteratorT result = prefix;
 				this.prefix = null;
 				return result;
-			} else {
-				return null;
 			}
+			return null;
 		}
 
 		@Override
@@ -183,8 +181,7 @@ public class CollectSpliterators2 {
 	}
 
 
-	static final class FlatMapSpliteratorOfObject<
-			InElementT extends Object, OutElementT extends Object>
+	static final class FlatMapSpliteratorOfObject<InElementT, OutElementT>
 			extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {
 		FlatMapSpliteratorOfObject(
 				@CheckForNull Spliterator<OutElementT> prefix,
@@ -196,5 +193,4 @@ public class CollectSpliterators2 {
 					prefix, from, function, FlatMapSpliteratorOfObject::new, characteristics, estimatedSize);
 		}
 	}
-
 }

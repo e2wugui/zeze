@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -23,8 +24,7 @@ import static java.lang.Math.ceil;
 import static java.util.logging.Level.WARNING;
 
 public class Utils {
-	public static <T extends Object> boolean addAll(
-			Collection<T> addTo, Iterator<? extends T> iterator) {
+	public static <T> boolean addAll(Collection<T> addTo, Iterator<? extends T> iterator) {
 		checkNotNull(addTo);
 		checkNotNull(iterator);
 		boolean wasModified = false;
@@ -34,11 +34,11 @@ public class Utils {
 		return wasModified;
 	}
 
-	public static <E extends Object> ArrayList<E> newArrayList() {
+	public static <E> ArrayList<E> newArrayList() {
 		return new ArrayList<>();
 	}
 
-	public static <E extends Object> ArrayList<E> newArrayList(
+	public static <E> ArrayList<E> newArrayList(
 			Iterator<? extends E> elements) {
 		ArrayList<E> list = newArrayList();
 		addAll(list, elements);
@@ -97,8 +97,7 @@ public class Utils {
 		}
 	}
 
-	private static class InPredicate<T>
-			implements Predicate<T>, Serializable {
+	private static class InPredicate<T> implements Predicate<T>, Serializable {
 		private final Collection<?> target;
 
 		private InPredicate(Collection<?> target) {
@@ -179,18 +178,17 @@ public class Utils {
 		}
 	}
 
-	public static <T extends Object> Predicate<T> isNull() {
+	public static <T> Predicate<T> isNull() {
 		return ObjectPredicate.IS_NULL.withNarrowedType();
 	}
 
-	public static <T extends Object> Predicate<T> equalTo(T target) {
+	public static <T> Predicate<T> equalTo(T target) {
 		return (target == null)
 				? isNull()
 				: new IsEqualToPredicate(target).withNarrowedType();
 	}
 
-	private static class NotPredicate<T extends Object>
-			implements Predicate<T>, Serializable {
+	private static class NotPredicate<T> implements Predicate<T>, Serializable {
 		final Predicate<T> predicate;
 
 		NotPredicate(Predicate<T> predicate) {
@@ -224,7 +222,7 @@ public class Utils {
 		private static final long serialVersionUID = 0;
 	}
 
-	public static <T extends Object> Predicate<T> not(Predicate<T> predicate) {
+	public static <T> Predicate<T> not(Predicate<T> predicate) {
 		return new NotPredicate<>(predicate);
 	}
 
@@ -275,12 +273,12 @@ public class Utils {
 		};
 
 		@SuppressWarnings("unchecked") // safe contravariant cast
-		<T extends Object> Predicate<T> withNarrowedType() {
+		<T> Predicate<T> withNarrowedType() {
 			return (Predicate<T>) this;
 		}
 	}
 
-	public static <T extends Object> Predicate<T> alwaysTrue() {
+	public static <T> Predicate<T> alwaysTrue() {
 		return ObjectPredicate.ALWAYS_TRUE.withNarrowedType();
 	}
 
@@ -347,23 +345,23 @@ public class Utils {
 		return builder.toString();
 	}
 
-	public static <K extends Object, V extends Object> Map.Entry<K, V> immutableEntry(
-			K key, V value) {
+	public static <K, V> Map.Entry<K, V> immutableEntry(K key, V value) {
 		return new ImmutableEntry<>(key, value);
 	}
 
 	public static boolean equal(@CheckForNull Object a, @CheckForNull Object b) {
-		return a == b || (a != null && a.equals(b));
+		return Objects.equals(a, b);
 	}
 
 	private static String badPositionIndex(int index, int size, String desc) {
 		if (index < 0) {
 			return lenientFormat("%s (%s) must not be negative", desc, index);
-		} else if (size < 0) {
-			throw new IllegalArgumentException("negative size: " + size);
-		} else { // index > size
-			return lenientFormat("%s (%s) must not be greater than size (%s)", desc, index, size);
 		}
+		if (size < 0) {
+			throw new IllegalArgumentException("negative size: " + size);
+		}
+		// index > size
+		return lenientFormat("%s (%s) must not be greater than size (%s)", desc, index, size);
 	}
 
 	public static int checkPositionIndex(int index, int size, String desc) {
@@ -389,7 +387,7 @@ public class Utils {
 	}
 
 	@CheckForNull
-	static <V extends Object> V safeRemove(Map<?, V> map, @CheckForNull Object key) {
+	static <V> V safeRemove(Map<?, V> map, @CheckForNull Object key) {
 		checkNotNull(map);
 		try {
 			return map.remove(key);
@@ -410,12 +408,12 @@ public class Utils {
 	static boolean equalsImpl(Table<?, ?, ?> table, @CheckForNull Object obj) {
 		if (obj == table) {
 			return true;
-		} else if (obj instanceof Table) {
+		}
+		if (obj instanceof Table) {
 			Table<?, ?, ?> that = (Table<?, ?, ?>) obj;
 			return table.cellSet().equals(that.cellSet());
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 	static boolean safeContainsKey(Map<?, ?> map, Object key) {
@@ -438,9 +436,9 @@ public class Utils {
 		}
 	}
 
-	static <K extends Object, V extends Object>
+	static <K, V>
 	Iterator<Map.Entry<K, V>> asMapEntryIterator(Set<K> set, final Function<? super K, V> function) {
-		return new TransformedIterator<K, Map.Entry<K, V>>(set.iterator()) {
+		return new TransformedIterator<>(set.iterator()) {
 			@Override
 			Map.Entry<K, V> transform(final K key) {
 				return immutableEntry(key, function.apply(key));
@@ -457,17 +455,16 @@ public class Utils {
 		}
 	}
 
-	static <T extends Object> UnmodifiableIterator<T> emptyIterator() {
+	static <T> UnmodifiableIterator<T> emptyIterator() {
 		return emptyListIterator();
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T extends Object> UnmodifiableListIterator<T> emptyListIterator() {
+	static <T> UnmodifiableListIterator<T> emptyListIterator() {
 		return (UnmodifiableListIterator<T>) ArrayItr.EMPTY;
 	}
 
-	private static final class ArrayItr<T extends Object>
-			extends AbstractIndexedListIterator<T> {
+	private static final class ArrayItr<T> extends AbstractIndexedListIterator<T> {
 		static final UnmodifiableListIterator<Object> EMPTY = new ArrayItr<>(new Object[0], 0, 0, 0);
 
 		private final T[] array;
@@ -485,9 +482,7 @@ public class Utils {
 		}
 	}
 
-	abstract static class ViewCachingAbstractMap<
-			K extends Object, V extends Object>
-			extends AbstractMap<K, V> {
+	abstract static class ViewCachingAbstractMap<K, V> extends AbstractMap<K, V> {
 		/**
 		 * Creates the entry set to be returned by {@link #entrySet()}. This method is invoked at most
 		 * once on a given map, at the time when {@code entrySet} is first called.
@@ -543,9 +538,8 @@ public class Utils {
 		 */
 		if (collection instanceof Set && collection.size() > set.size()) {
 			return removeAll(set.iterator(), collection);
-		} else {
-			return removeAllImpl(set, collection.iterator());
 		}
+		return removeAllImpl(set, collection.iterator());
 	}
 
 	static boolean removeAllImpl(Set<?> set, Iterator<?> iterator) {
@@ -557,7 +551,7 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <T extends Object> Iterator<T> emptyModifiableIterator() {
+	static <T> Iterator<T> emptyModifiableIterator() {
 		return (Iterator<T>) EmptyModifiableIterator.INSTANCE;
 	}
 
@@ -568,8 +562,7 @@ public class Utils {
 		return reference;
 	}
 
-	private static class CompositionPredicate<A extends Object, B extends Object>
-			implements Predicate<A>, Serializable {
+	private static class CompositionPredicate<A, B> implements Predicate<A>, Serializable {
 		final Predicate<B> p;
 		final Function<A, ? extends B> f;
 
@@ -606,19 +599,19 @@ public class Utils {
 		private static final long serialVersionUID = 0;
 	}
 
-	public static <A extends Object, B extends Object> Predicate<A> compose(
-			Predicate<B> predicate, Function<A, ? extends B> function) {
+	public static <A, B> Predicate<A> compose(Predicate<B> predicate, Function<A, ? extends B> function) {
 		return new CompositionPredicate<>(predicate, function);
 	}
 
-	static <V extends Object> Predicate<Map.Entry<?, V>> valuePredicateOnEntries(
-			Predicate<? super V> valuePredicate) {
-		return compose(valuePredicate, Utils.<V>valueFunction());
+	static <V> Predicate<Map.Entry<?, V>> valuePredicateOnEntries(Predicate<? super V> valuePredicate) {
+		return compose(valuePredicate, Utils.valueFunction());
 	}
-	@SuppressWarnings("unchecked")
-	static <V extends Object> Function<Map.Entry<?, V>, V> valueFunction() {
-		return (Function) Utils.EntryFunction.VALUE;
+
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	static <V> Function<Map.Entry<?, V>, V> valueFunction() {
+		return (Function) EntryFunction.VALUE;
 	}
+
 	private enum EmptyModifiableIterator implements Iterator<Object> {
 		INSTANCE;
 
@@ -642,7 +635,7 @@ public class Utils {
 		checkState(canRemove, "no calls to next() since the last call to remove()");
 	}
 
-	abstract static class ImprovedAbstractSet<E extends Object> extends AbstractSet<E> {
+	abstract static class ImprovedAbstractSet<E> extends AbstractSet<E> {
 		@Override
 		public boolean removeAll(Collection<?> c) {
 			return removeAllImpl(this, c);
@@ -654,9 +647,8 @@ public class Utils {
 		}
 	}
 
-	static <K extends Object, V extends Object> Iterator<K> keyIterator(
-			Iterator<Map.Entry<K, V>> entryIterator) {
-		return new TransformedIterator<Map.Entry<K, V>, K>(entryIterator) {
+	static <K, V> Iterator<K> keyIterator(Iterator<Map.Entry<K, V>> entryIterator) {
+		return new TransformedIterator<>(entryIterator) {
 			@Override
 			K transform(Map.Entry<K, V> entry) {
 				return entry.getKey();
@@ -664,7 +656,7 @@ public class Utils {
 		};
 	}
 
-	static class KeySet<K extends Object, V extends Object>
+	static class KeySet<K, V>
 			extends ImprovedAbstractSet<K> {
 		final Map<K, V> map;
 
@@ -718,9 +710,8 @@ public class Utils {
 		}
 	}
 
-	static <K extends Object, V extends Object> Iterator<V> valueIterator(
-			Iterator<Map.Entry<K, V>> entryIterator) {
-		return new TransformedIterator<Map.Entry<K, V>, V>(entryIterator) {
+	static <K, V> Iterator<V> valueIterator(Iterator<Map.Entry<K, V>> entryIterator) {
+		return new TransformedIterator<>(entryIterator) {
 			@Override
 			V transform(Map.Entry<K, V> entry) {
 				return entry.getValue();
@@ -728,7 +719,7 @@ public class Utils {
 		};
 	}
 
-	public static <E extends Object> HashSet<E> newHashSet() {
+	public static <E> HashSet<E> newHashSet() {
 		return new HashSet<>();
 	}
 
@@ -764,13 +755,11 @@ public class Utils {
 		return Integer.MAX_VALUE; // any large value
 	}
 
-	public static <E extends Object> HashSet<E> newHashSetWithExpectedSize(
-			int expectedSize) {
+	public static <E> HashSet<E> newHashSetWithExpectedSize(int expectedSize) {
 		return new HashSet<>(capacity(expectedSize));
 	}
 
-	static class Values<K extends Object, V extends Object>
-			extends AbstractCollection<V> {
+	static class Values<K, V> extends AbstractCollection<V> {
 		final Map<K, V> map;
 
 		Values(Map<K, V> map) {
@@ -859,8 +848,7 @@ public class Utils {
 		}
 	}
 
-	abstract static class EntrySet<K extends Object, V extends Object>
-			extends ImprovedAbstractSet<Map.Entry<K, V>> {
+	abstract static class EntrySet<K, V> extends ImprovedAbstractSet<Map.Entry<K, V>> {
 		abstract Map<K, V> map();
 
 		@Override
@@ -934,9 +922,7 @@ public class Utils {
 		}
 	}
 
-	abstract static class IteratorBasedAbstractMap<
-			K extends Object, V extends Object>
-			extends AbstractMap<K, V> {
+	abstract static class IteratorBasedAbstractMap<K, V> extends AbstractMap<K, V> {
 		@Override
 		public abstract int size();
 
@@ -949,10 +935,10 @@ public class Utils {
 
 		@Override
 		public Set<Entry<K, V>> entrySet() {
-			return new Utils.EntrySet<K, V>() {
+			return new EntrySet<>() {
 				@Override
 				Map<K, V> map() {
-					return Utils.IteratorBasedAbstractMap.this;
+					return IteratorBasedAbstractMap.this;
 				}
 
 				@Override
@@ -982,10 +968,11 @@ public class Utils {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	static <K extends Object> Function<Map.Entry<K, ?>, K> keyFunction() {
+	@SuppressWarnings({"unchecked", "rawtypes"})
+	static <K> Function<Map.Entry<K, ?>, K> keyFunction() {
 		return (Function) EntryFunction.KEY;
 	}
+
 	private enum EntryFunction implements Function<Map.Entry<?, ?>, Object> {
 		KEY {
 			@Override
@@ -1000,16 +987,15 @@ public class Utils {
 			public Object apply(Map.Entry<?, ?> entry) {
 				return entry.getValue();
 			}
-		};
-	}
-	static <K extends Object> Predicate<Map.Entry<K, ?>> keyPredicateOnEntries(
-			Predicate<? super K> keyPredicate) {
-		return compose(keyPredicate, Utils.<K>keyFunction());
+		}
 	}
 
-	abstract static class AbstractCell<
-			R extends Object, C extends Object, V extends Object>
-			implements Table.Cell<R, C, V> {
+	static <K> Predicate<Map.Entry<K, ?>> keyPredicateOnEntries(
+			Predicate<? super K> keyPredicate) {
+		return compose(keyPredicate, Utils.keyFunction());
+	}
+
+	abstract static class AbstractCell<R, C, V> implements Table.Cell<R, C, V> {
 		// needed for serialization
 		AbstractCell() {}
 
@@ -1050,25 +1036,16 @@ public class Utils {
 	 * @param columnKey the column key to be associated with the returned cell
 	 * @param value the value to be associated with the returned cell
 	 */
-	public static <R extends Object, C extends Object, V extends Object>
-	Table.Cell<R, C, V> immutableCell(
-			R rowKey,
-			C columnKey,
-			V value) {
+	public static <R, C, V> Table.Cell<R, C, V> immutableCell(R rowKey, C columnKey, V value) {
 		return new ImmutableCell<>(rowKey, columnKey, value);
 	}
 
-	static final class ImmutableCell<
-			R extends Object, C extends Object, V extends Object>
-			extends AbstractCell<R, C, V> implements Serializable {
+	static final class ImmutableCell<R, C, V> extends AbstractCell<R, C, V> implements Serializable {
 		private final R rowKey;
 		private final C columnKey;
 		private final V value;
 
-		ImmutableCell(
-				R rowKey,
-				C columnKey,
-				V value) {
+		ImmutableCell(R rowKey, C columnKey, V value) {
 			this.rowKey = rowKey;
 			this.columnKey = columnKey;
 			this.value = value;
