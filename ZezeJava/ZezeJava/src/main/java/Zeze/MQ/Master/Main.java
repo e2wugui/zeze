@@ -20,7 +20,7 @@ public class Main {
 	public Main(String configXml) throws RocksDBException {
 		var config = Config.load(configXml);
 		service = new MasterService(this, config);
-		master = new Master("master", config);
+		master = new Master("mqmaster", config);
 		master.RegisterProtocols(service);
 	}
 

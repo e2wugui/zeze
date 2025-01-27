@@ -29,13 +29,15 @@ public class MQ {
 		mqAgent = new MQAgent();
 	}
 
-	public static MQ createMQ(String topic, int partition, BOptions.Data options) {
+	public static MQ createMQ(String topic, int partition, BOptions.Data options) throws Exception {
 		masterAgent.startAndWaitConnectionReady();
+		mqAgent.start();
 		return new MQ(masterAgent.createMQ(topic, partition, options));
 	}
 
-	public static MQ openMQ(String topic) {
+	public static MQ openMQ(String topic) throws Exception {
 		masterAgent.startAndWaitConnectionReady();
+		mqAgent.start();
 		return new MQ(masterAgent.openMQ(topic));
 	}
 

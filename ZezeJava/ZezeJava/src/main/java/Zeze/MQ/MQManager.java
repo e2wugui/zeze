@@ -1,5 +1,8 @@
 package Zeze.MQ;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import Zeze.Builtin.MQ.Master.CreatePartition;
@@ -38,6 +41,10 @@ public class MQManager extends AbstractMQManager {
         RegisterProtocols(proxyServer);
     }
 
+    public String getHome() {
+        return home;
+    }
+
     public MQConfig getMqConfig() {
         return mqConfig;
     }
@@ -56,6 +63,7 @@ public class MQManager extends AbstractMQManager {
     public void start() throws Exception {
         ShutdownHook.add(this, this::stop);
         logger.info("start MQManager from '{}'", home);
+        loadMQ();
         masterAgent.startAndWaitConnectionReady();
         var acceptorAddress = masterService.getAcceptorAddress();
         masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
@@ -80,9 +88,36 @@ public class MQManager extends AbstractMQManager {
         masterAgent.reportLoad(loadManager);
     }
 
-    protected long createPartition(CreatePartition r) {
-        var cp = queues.computeIfAbsent(r.Argument.getTopic(), (key) -> new MQPartition());
-        cp.createPartitions(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
+    private void loadMQ() throws IOException {
+        var topics = new File(home).listFiles();
+        if (null == topics)
+            return ;
+
+        for (var topic : topics) {
+            if (topic.isDirectory()) {
+                var partitions = topic.listFiles();
+                if (null == partitions)
+                    continue;
+                var partitionIndexes = new HashSet<Integer>();
+                for (var partition : partitions) {
+                    if (partition.isFile())
+                        partitionIndexes.add(Integer.parseInt(partition.getName()));
+                }
+                createPartition(topic.getName(), partitionIndexes);
+            }
+        }
+    }
+
+    private void createPartition(String topic, HashSet<Integer> partitionIndexes) {
+        var cp = queues.computeIfAbsent(topic, (key) -> new MQPartition(this));
+        var topicDir = new File(home, topic);
+        //noinspection ResultOfMethodCallIgnored
+        topicDir.mkdirs();
+        cp.createPartitions(topic, partitionIndexes);
+    }
+
+    protected long createPartition(CreatePartition r) throws IOException {
+        createPartition(r.Argument.getTopic(), r.Argument.getPartitionIndexes());
         r.SendResult();
         return 0;
     }

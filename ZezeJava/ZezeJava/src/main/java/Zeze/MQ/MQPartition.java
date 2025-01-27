@@ -1,5 +1,7 @@
 package Zeze.MQ;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Set;
@@ -10,6 +12,11 @@ import Zeze.Net.AsyncSocket;
 public class MQPartition extends ReentrantLock {
 	private final ConcurrentHashMap<Integer, MQSingle> partitions = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, AsyncSocket> subscribes = new ConcurrentHashMap<>();
+	private final MQManager manager;
+
+	public MQPartition(MQManager manager) {
+		this.manager = manager;
+	}
 
 	public int size() {
 		return partitions.size();
@@ -26,9 +33,13 @@ public class MQPartition extends ReentrantLock {
 		return partitions.get(partitionIndex);
 	}
 
+	public MQManager getManager() {
+		return manager;
+	}
+
 	public void createPartitions(String topic, Set<Integer> partitionIndexes) {
 		for (var index : partitionIndexes)
-			partitions.computeIfAbsent(index, (key) -> new MQSingle(topic, index));
+			partitions.computeIfAbsent(index, (key) -> new MQSingle(this, topic, index));
 	}
 
 	public void subscribe(AsyncSocket sender, long sessionId) {

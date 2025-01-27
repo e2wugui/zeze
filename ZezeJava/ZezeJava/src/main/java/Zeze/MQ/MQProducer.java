@@ -13,7 +13,7 @@ public class MQProducer {
 	private final MQ mq; // 这里直接保存MQ引用，并且内部不管理，因为一个进程很少对同一个队列打开多个生产者消费者。
 	private final Random rand = new Random();
 
-	public MQProducer(String topic) {
+	public MQProducer(String topic) throws Exception {
 		mq = MQ.openMQ(topic);
 	}
 

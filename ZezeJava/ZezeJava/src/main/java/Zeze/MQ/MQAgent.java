@@ -23,6 +23,14 @@ public class MQAgent extends AbstractMQAgent {
 		RegisterProtocols(service);
 	}
 
+	public void start() throws Exception {
+		service.start();
+	}
+
+	public void stop() throws Exception {
+		service.stop();
+	}
+
 	public Connector getOrAddConnector(String host, int port) {
 		var out = new OutObject<Connector>();
 		if (service.getConfig().tryGetOrAddConnector(host, port, true, out))

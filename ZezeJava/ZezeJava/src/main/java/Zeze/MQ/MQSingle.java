@@ -1,5 +1,7 @@
 package Zeze.MQ;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -15,10 +17,24 @@ public class MQSingle extends ReentrantLock {
 	private long bindSessionId;
 	private @Nullable AsyncSocket bindSocket;
 	private @Nullable PushMessage pendingPushMessage;
+	private final MQPartition mqPartition;
+	private final File file;
 
 	private final Queue<BMessage.Data> messages = new ArrayDeque<>(); // 需要写入文件，临时放内存用来测试。
 
-	public MQSingle(String topic, int partitionId) {
+	public MQPartition getMQPartition() {
+		return mqPartition;
+	}
+
+	public MQSingle(MQPartition partition, String topic, int partitionId) {
+		this.mqPartition = partition;
+		file = Paths.get(partition.getManager().getHome(), topic, String.valueOf(partitionId)).toFile();
+		try {
+			//noinspection ResultOfMethodCallIgnored
+			file.createNewFile();
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
 		this.topic = topic;
 		this.partitionIndex = partitionId;
 	}
