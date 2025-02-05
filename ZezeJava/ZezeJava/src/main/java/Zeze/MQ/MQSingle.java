@@ -18,6 +18,7 @@ public class MQSingle extends ReentrantLock {
 	private @Nullable PushMessage pendingPushMessage;
 	private final MQPartition mqPartition;
 	private final MQFileWithIndex fileWithIndex;
+	private long highLoad = 0;
 
 	public static final int maxFillMessageCount = 4 * 1024;
 
@@ -33,7 +34,8 @@ public class MQSingle extends ReentrantLock {
 		this.partitionIndex = partitionId;
 		try {
 			this.fileWithIndex = new MQFileWithIndex(partition.getManager(), topic, partitionId);
-			this.fileWithIndex.fillMessage(messages, maxFillMessageCount);
+			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
+			pullMessage();
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -47,16 +49,28 @@ public class MQSingle extends ReentrantLock {
 		lock();
 		try {
 			fileWithIndex.appendMessage(message.getMessage());
-			messages.offer(message.getMessage());
+			if (highLoad == 0 && messages.size() < maxFillMessageCount) {
+				// 低负载，缓冲足够大，直接进入缓冲，保持highLoad为0.
+				messages.offer(message.getMessage());
+			} else {
+				highLoad++;
+			}
 			tryPushMessage();
 		} finally {
 			unlock();
 		}
 	}
 
+	private void pullMessage() {
+		if (messages.isEmpty() && highLoad > 0) {
+			var fillCount = Math.min(highLoad, maxFillMessageCount);
+			fileWithIndex.fillMessage(messages, (int)fillCount);
+			highLoad -= fillCount;
+		}
+	}
+
 	private void tryPushMessage() {
-		if (messages.isEmpty())
-			fileWithIndex.fillMessage(messages, maxFillMessageCount);
+		pullMessage();
 		if (null == pendingPushMessage && !messages.isEmpty() && bindSocket != null) {
 			pendingPushMessage = new PushMessage();
 			pendingPushMessage.Argument.setTopic(topic);
