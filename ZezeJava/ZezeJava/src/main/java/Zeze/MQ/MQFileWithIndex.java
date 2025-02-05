@@ -96,7 +96,7 @@ public class MQFileWithIndex {
 			lock.unlock();
 		}
 		try {
-			if (headMessageId < endMessageId) {
+			while (headMessageId < endMessageId) {
 				var floor = indexes.floorEntry(headMessageId);
 				if (null != floor) {
 					var headMessageIdValue = new byte[8];
@@ -112,6 +112,7 @@ public class MQFileWithIndex {
 							long messageId;
 							int messageSize;
 							var messageHead = new byte[12];
+							// locate headMessageId
 							while (true) {
 								fileInput.read(messageHead);
 								var bbHead = ByteBuffer.Wrap(messageHead);
@@ -122,8 +123,11 @@ public class MQFileWithIndex {
 								if (fileInput.skipBytes(messageSize) < messageSize)
 									throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被阶段了。
 							}
+							floorIt.seekToLast();
+							var fileInputEnd = ByteBuffer.Wrap(floorIt.value()).ReadLong8();
+
 							// fill now
-							while (headMessageId < endMessageId) {
+							while (headMessageId <= fileInputEnd) {
 								var messageBuffer = new byte[messageSize];
 								fileInput.read(messageBuffer);
 								var message = new BMessage.Data();
@@ -131,7 +135,7 @@ public class MQFileWithIndex {
 								out.add(message);
 
 								headMessageId++;
-								if (headMessageId < endMessageId) {
+								if (headMessageId <= fileInputEnd) {
 									fileInput.read(messageHead);
 									var bbHead = ByteBuffer.Wrap(messageHead);
 									bbHead.ReadLong8(); // skip result
