@@ -87,4 +87,9 @@ public class MQPartition extends ReentrantLock {
 			return Long.compare(o1.getKey(), o2.getKey());
 		}
 	}
+
+	public void close() throws IOException {
+		for (var partition : partitions.values())
+			partition.close();
+	}
 }

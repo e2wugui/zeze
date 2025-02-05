@@ -1,7 +1,6 @@
 package Zeze.MQ;
 
-import java.io.File;
-import java.nio.file.Paths;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,7 +17,7 @@ public class MQSingle extends ReentrantLock {
 	private @Nullable AsyncSocket bindSocket;
 	private @Nullable PushMessage pendingPushMessage;
 	private final MQPartition mqPartition;
-	private final File file;
+	private final MQFileWithIndex fileWithIndex;
 
 	private final Queue<BMessage.Data> messages = new ArrayDeque<>(); // 需要写入文件，临时放内存用来测试。
 
@@ -28,15 +27,14 @@ public class MQSingle extends ReentrantLock {
 
 	public MQSingle(MQPartition partition, String topic, int partitionId) {
 		this.mqPartition = partition;
-		file = Paths.get(partition.getManager().getHome(), topic, String.valueOf(partitionId)).toFile();
+		this.topic = topic;
+		this.partitionIndex = partitionId;
 		try {
-			//noinspection ResultOfMethodCallIgnored
-			file.createNewFile();
+			this.fileWithIndex = new MQFileWithIndex(partition.getManager(), topic, partitionId);
+			this.fileWithIndex.fillMessage(messages, 1024 * 2);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
-		this.topic = topic;
-		this.partitionIndex = partitionId;
 	}
 
 	public double load() {
@@ -46,6 +44,7 @@ public class MQSingle extends ReentrantLock {
 	public void sendMessage(BSendMessage.Data message) {
 		lock();
 		try {
+			fileWithIndex.appendMessage(message.getMessage());
 			messages.offer(message.getMessage());
 			tryPushMessage();
 		} finally {
@@ -64,8 +63,10 @@ public class MQSingle extends ReentrantLock {
 			pendingPushMessage.Send(bindSocket, (p) -> {
 				lock();
 				try {
-					if (pendingPushMessage.getResultCode() == 0)
+					if (pendingPushMessage.getResultCode() == 0) {
 						messages.poll();
+						fileWithIndex.setFirstMessageId(fileWithIndex.getFirstMessageId() + 1);
+					}
 
 					// 不管是否失败，都尝试重新pushMessage。出错的时候要不要随机延迟一下再重试？
 					pendingPushMessage = null;
@@ -96,5 +97,9 @@ public class MQSingle extends ReentrantLock {
 
 	public int getPartitionIndex() {
 		return partitionIndex;
+	}
+
+	public void close() throws IOException {
+		fileWithIndex.close();
 	}
 }

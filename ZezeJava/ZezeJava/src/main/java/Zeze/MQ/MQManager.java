@@ -10,10 +10,12 @@ import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
 import Zeze.Util.KV;
+import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 import static Zeze.MQ.Master.AbstractMaster.ePartition;
 import static Zeze.MQ.Master.AbstractMaster.eTopicNotExist;
 
@@ -26,13 +28,19 @@ public class MQManager extends AbstractMQManager {
     private final String home;
     private final MQConfig mqConfig = new MQConfig();
     private Future<?> loadMonitorTimer;
+    private RocksDatabase rocksDatabase;
+
+    public RocksDatabase getRocksDatabase() {
+        return rocksDatabase;
+    }
 
     // 本manager的所有队列实现。
     // { topic -> { partitionIndex -> MQFile } }
     private final ConcurrentHashMap<String, MQPartition> queues = new ConcurrentHashMap<>();
 
-    public MQManager(String home, String configXml) {
+    public MQManager(String home, String configXml) throws RocksDBException {
         this.home = home;
+        this.rocksDatabase = new RocksDatabase(this.home);
         var config = Config.load(configXml);
         config.parseCustomize(this.mqConfig);
         proxyServer = new ProxyServer(config, mqConfig.getRpcTimeout());
@@ -78,6 +86,8 @@ public class MQManager extends AbstractMQManager {
         ShutdownHook.remove(this);
         proxyServer.stop();
         masterAgent.stop();
+        for (var queue : queues.values())
+            queue.close();
     }
 
     private void loadMonitor() {
@@ -100,8 +110,12 @@ public class MQManager extends AbstractMQManager {
                     continue;
                 var partitionIndexes = new HashSet<Integer>();
                 for (var partition : partitions) {
-                    if (partition.isFile())
-                        partitionIndexes.add(Integer.parseInt(partition.getName()));
+                    if (partition.isFile()) {
+                        // 相同分区的文件可能有多个，这里使用HashSet会去重。
+                        var pa = partition.getName().split("\\.");
+                        if (pa.length == 2)
+                            partitionIndexes.add(Integer.parseInt(pa[0]));
+                    }
                 }
                 createPartition(topic.getName(), partitionIndexes);
             }
