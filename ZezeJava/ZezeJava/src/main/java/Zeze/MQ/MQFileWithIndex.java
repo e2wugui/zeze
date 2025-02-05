@@ -98,45 +98,49 @@ public class MQFileWithIndex {
 		}
 		try {
 			var floor = indexes.floorEntry(headMessageId);
-			if (null != floor) {
+			if (null != floor && headMessageId < endMessageId) {
 				var topicDir = new File(manager.getHome(), topic);
 				var file = new File(topicDir, partitionId + "." + floor.getKey());
 				var fileInput = new RandomAccessFile(file, "r");
-				var headMessageIdValue = new byte[8];
-				ByteBuffer.longLeHandler.set(headMessageIdValue, 0, headMessageId);
-				var floorIt = floor.getValue().iterator();
-				floorIt.seekForPrev(headMessageIdValue);
-				if (floorIt.isValid()) {
-					fileInput.seek(ByteBuffer.Wrap(floorIt.value()).ReadLong8());
-					long messageId;
-					int messageSize;
-					var messageHead = new byte[12];
-					while (true) {
-						fileInput.read(messageHead);
-						var bbHead = ByteBuffer.Wrap(messageHead);
-						messageId = bbHead.ReadLong8();
-						messageSize = bbHead.ReadInt4();
-						if (messageId == headMessageId)
-							break; // message found.
-						if (fileInput.skipBytes(messageSize) < messageSize)
-							throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被阶段了。
-					}
-					// fill now
-					while (headMessageId < endMessageId) {
-						var messageBuffer = new byte[messageSize];
-						fileInput.read(messageBuffer);
-						var message = new BMessage.Data();
-						message.decode(ByteBuffer.Wrap(messageBuffer));
-						out.add(message);
-
-						headMessageId++;
-						if (headMessageId < endMessageId) {
+				try {
+					var headMessageIdValue = new byte[8];
+					ByteBuffer.longLeHandler.set(headMessageIdValue, 0, headMessageId);
+					var floorIt = floor.getValue().iterator();
+					floorIt.seekForPrev(headMessageIdValue);
+					if (floorIt.isValid()) {
+						fileInput.seek(ByteBuffer.Wrap(floorIt.value()).ReadLong8());
+						long messageId;
+						int messageSize;
+						var messageHead = new byte[12];
+						while (true) {
 							fileInput.read(messageHead);
 							var bbHead = ByteBuffer.Wrap(messageHead);
-							bbHead.ReadLong8(); // skip result
+							messageId = bbHead.ReadLong8();
 							messageSize = bbHead.ReadInt4();
+							if (messageId == headMessageId)
+								break; // message found.
+							if (fileInput.skipBytes(messageSize) < messageSize)
+								throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被阶段了。
+						}
+						// fill now
+						while (headMessageId < endMessageId) {
+							var messageBuffer = new byte[messageSize];
+							fileInput.read(messageBuffer);
+							var message = new BMessage.Data();
+							message.decode(ByteBuffer.Wrap(messageBuffer));
+							out.add(message);
+
+							headMessageId++;
+							if (headMessageId < endMessageId) {
+								fileInput.read(messageHead);
+								var bbHead = ByteBuffer.Wrap(messageHead);
+								bbHead.ReadLong8(); // skip result
+								messageSize = bbHead.ReadInt4();
+							}
 						}
 					}
+				} finally {
+					fileInput.close();
 				}
 			}
 		} catch (Exception e) {
