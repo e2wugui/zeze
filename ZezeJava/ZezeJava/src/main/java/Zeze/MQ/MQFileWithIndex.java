@@ -126,6 +126,7 @@ public class MQFileWithIndex {
 
 							// fill now
 							var fileInputChannel = fileInput.getChannel();
+							// 下面while判断的时候，headMessageId肯定小于endMessageId。
 							while (fileInputChannel.position() < fileInputChannel.size()) {
 								var messageBuffer = new byte[messageSize];
 								fileInput.read(messageBuffer);
@@ -134,8 +135,8 @@ public class MQFileWithIndex {
 								out.add(message);
 
 								headMessageId++;
-								if (fileInputChannel.position() >= fileInputChannel.size())
-									break; // eof
+								if (fileInputChannel.position() >= fileInputChannel.size() || headMessageId >= endMessageId)
+									break; // eof or enough
 
 								fileInput.read(messageHead);
 								var bbHead = ByteBuffer.Wrap(messageHead);
