@@ -19,6 +19,8 @@ public class MQSingle extends ReentrantLock {
 	private final MQPartition mqPartition;
 	private final MQFileWithIndex fileWithIndex;
 
+	public static final int maxFillMessageCount = 4 * 1024;
+
 	private final Queue<BMessage.Data> messages = new ArrayDeque<>(); // 需要写入文件，临时放内存用来测试。
 
 	public MQPartition getMQPartition() {
@@ -31,7 +33,7 @@ public class MQSingle extends ReentrantLock {
 		this.partitionIndex = partitionId;
 		try {
 			this.fileWithIndex = new MQFileWithIndex(partition.getManager(), topic, partitionId);
-			this.fileWithIndex.fillMessage(messages, 1024 * 2);
+			this.fileWithIndex.fillMessage(messages, maxFillMessageCount);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -53,6 +55,8 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	private void tryPushMessage() {
+		if (messages.isEmpty())
+			fileWithIndex.fillMessage(messages, maxFillMessageCount);
 		if (null == pendingPushMessage && !messages.isEmpty() && bindSocket != null) {
 			pendingPushMessage = new PushMessage();
 			pendingPushMessage.Argument.setTopic(topic);
