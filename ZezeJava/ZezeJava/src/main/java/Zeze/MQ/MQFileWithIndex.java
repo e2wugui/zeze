@@ -99,15 +99,15 @@ public class MQFileWithIndex {
 			if (headMessageId < endMessageId) {
 				var floor = indexes.floorEntry(headMessageId);
 				if (null != floor) {
-					var topicDir = new File(manager.getHome(), topic);
-					var file = new File(topicDir, partitionId + "." + floor.getKey());
-					var fileInput = new RandomAccessFile(file, "r");
-					try {
-						var headMessageIdValue = new byte[8];
-						ByteBuffer.longLeHandler.set(headMessageIdValue, 0, headMessageId);
-						var floorIt = floor.getValue().iterator();
-						floorIt.seekForPrev(headMessageIdValue);
-						if (floorIt.isValid()) {
+					var headMessageIdValue = new byte[8];
+					ByteBuffer.longLeHandler.set(headMessageIdValue, 0, headMessageId);
+					var floorIt = floor.getValue().iterator();
+					floorIt.seekForPrev(headMessageIdValue);
+					if (floorIt.isValid()) {
+						var topicDir = new File(manager.getHome(), topic);
+						var file = new File(topicDir, partitionId + "." + floor.getKey());
+						var fileInput = new RandomAccessFile(file, "r");
+						try {
 							fileInput.seek(ByteBuffer.Wrap(floorIt.value()).ReadLong8());
 							long messageId;
 							int messageSize;
@@ -138,9 +138,9 @@ public class MQFileWithIndex {
 									messageSize = bbHead.ReadInt4();
 								}
 							}
+						} finally {
+							fileInput.close();
 						}
-					} finally {
-						fileInput.close();
 					}
 				}
 			}
