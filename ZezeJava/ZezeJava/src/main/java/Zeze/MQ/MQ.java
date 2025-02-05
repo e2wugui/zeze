@@ -65,6 +65,7 @@ public class MQ {
 	public void sendMessage(int hash, BMessage.Data message) {
 		// 查找发送队列服务器
 		var index = (int)(Integer.toUnsignedLong(hash) % mqConnectors.length);
+		//System.out.println("hash = " + hash + " " + index);
 		var conn = mqConnectors[index];
 		if (conn.server.getPartitionIndex() != index)
 			throw new RuntimeException("fatal error, index mismatch: " + conn.server.getPartitionIndex() + "," + index);

@@ -80,7 +80,7 @@ public class MQFileWithIndex {
 		} else {
 			lastFile = new File(topicDir, partitionId + "." + lastEntry.getKey());
 		}
-		lastFileOutputStream = new FileOutputStream(lastFile); // todo 没有buffer是不是很慢？
+		lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
 	}
 
 	public void fillMessage(Queue<BMessage.Data> out, int maxLength) {
