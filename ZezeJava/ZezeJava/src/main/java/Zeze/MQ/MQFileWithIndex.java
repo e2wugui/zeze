@@ -204,7 +204,7 @@ public class MQFileWithIndex {
 				lastFile = new File(topicDir, partitionId + "." + nextMessageId);
 				indexes.put(nextMessageId, manager.getRocksDatabase().getOrAddTable(
 						topic + "." + partitionId + "." + nextMessageId));
-				lastFileOutputStream = new FileOutputStream(lastFile); // todo 没有buffer是不是很慢？
+				lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
