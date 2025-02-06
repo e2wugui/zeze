@@ -109,14 +109,19 @@ public class MQFileWithIndex {
 						var topicDir = new File(manager.getHome(), topic);
 						var file = new File(topicDir, partitionId + "." + floor.getKey());
 						var fileInput = new RandomAccessFile(file, "r");
+						var fileSize = fileInput.getChannel().size();
+						var filePosition = 0;
 						try {
-							fileInput.seek(ByteBuffer.ToLongBE(floorIt.value(), 0));
+							var offset = ByteBuffer.ToLongBE(floorIt.value(), 0);
+							fileInput.seek(offset);
+							filePosition += offset;
 							long messageId;
 							int messageSize;
 							var messageHead = new byte[12];
 							// locate headMessageId
 							while (true) {
 								fileInput.read(messageHead);
+								filePosition += messageHead.length;
 								var bbHead = ByteBuffer.Wrap(messageHead);
 								messageId = bbHead.ReadLong8();
 								messageSize = bbHead.ReadInt4();
@@ -124,23 +129,24 @@ public class MQFileWithIndex {
 									break; // message found.
 								if (fileInput.skipBytes(messageSize) < messageSize)
 									throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被阶段了。
+								filePosition += messageSize;
 							}
 
 							// fill now
-							var fileInputChannel = fileInput.getChannel();
-							// 下面while判断的时候，headMessageId肯定小于endMessageId。
-							while (fileInputChannel.position() < fileInputChannel.size()) {
+							while (true) {
 								var messageBuffer = new byte[messageSize];
 								fileInput.read(messageBuffer);
+								filePosition += messageBuffer.length;
 								var message = new BMessage.Data();
 								message.decode(ByteBuffer.Wrap(messageBuffer));
 								out.add(message);
 
 								headMessageId++;
-								if (fileInputChannel.position() >= fileInputChannel.size() || headMessageId >= endMessageId)
+								if (filePosition >= fileSize || headMessageId >= endMessageId)
 									break; // eof or enough
 
 								fileInput.read(messageHead);
+								filePosition += messageHead.length;
 								var bbHead = ByteBuffer.Wrap(messageHead);
 								bbHead.ReadLong8(); // skip result
 								messageSize = bbHead.ReadInt4();
