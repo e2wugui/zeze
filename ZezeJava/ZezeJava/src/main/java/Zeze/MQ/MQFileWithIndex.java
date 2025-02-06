@@ -18,7 +18,8 @@ public class MQFileWithIndex {
 	private final ReentrantLock lock = new ReentrantLock();
 	private final TreeMap<Long, RocksDatabase.Table> indexes = new TreeMap<>();
 	private final RocksDatabase.Table meta;
-	private final MQManager manager;
+	private final String home;
+	private final RocksDatabase database;
 	private final String topic;
 	private final int partitionId;
 	private File lastFile;
@@ -30,7 +31,8 @@ public class MQFileWithIndex {
 	private static final byte[] firstMessageIdName = "firstMessageId".getBytes(StandardCharsets.UTF_8);
 	private long firstMessageId;
 
-	private static int trunkFileSize = 100 * 1024 * 1024;
+	public static int trunkFileSize = 100 * 1024 * 1024;
+	public static int makeIndexPeriod = 100;
 
 	public File getLastFile() {
 		return lastFile;
@@ -44,19 +46,22 @@ public class MQFileWithIndex {
 		return firstMessageId;
 	}
 
-	public MQFileWithIndex(MQManager manager, String topic, int partitionId) throws RocksDBException, FileNotFoundException {
-		this.manager = manager;
+	public MQFileWithIndex(String home, RocksDatabase database, String topic, int partitionId)
+			throws RocksDBException, FileNotFoundException {
+		this.home = home;
+		this.database = database;
 		this.topic = topic;
 		this.partitionId = partitionId;
 
-		this.meta = manager.getRocksDatabase().getOrAddTable(topic + "." + partitionId);
+		this.meta = database.getOrAddTable(topic + "." + partitionId);
 
 		var nextMessageIdValue = this.meta.get(nextMessageIdName);
 		nextMessageId = null != nextMessageIdValue ? ByteBuffer.ToLongBE(nextMessageIdValue, 0) : 0;
 		var firstMessageIdValue = this.meta.get(firstMessageIdName);
 		firstMessageId = null != firstMessageIdValue ? ByteBuffer.ToLongBE(firstMessageIdValue, 0) : 0;
 
-		var topicDir = new File(manager.getHome(), topic);
+		var topicDir = new File(home, topic);
+		topicDir.mkdirs();
 		var files = topicDir.listFiles();
 		if (null != files) {
 			for (var file : files) {
@@ -68,7 +73,7 @@ public class MQFileWithIndex {
 					if (pid != partitionId)
 						continue;
 					var index = Long.parseLong(partIndex[1]);
-					indexes.put(index, manager.getRocksDatabase().getOrAddTable(
+					indexes.put(index, database.getOrAddTable(
 							topic + "." + partitionId + "." + index));
 				} catch (Exception ex) {
 					continue;
@@ -78,7 +83,7 @@ public class MQFileWithIndex {
 		var lastEntry = indexes.lastEntry();
 		if (lastEntry == null) {
 			lastFile = new File(topicDir, partitionId + ".0");
-			indexes.put(0L, manager.getRocksDatabase().getOrAddTable(topic + "." + partitionId + ".0"));
+			indexes.put(0L, database.getOrAddTable(topic + "." + partitionId + ".0"));
 		} else {
 			lastFile = new File(topicDir, partitionId + "." + lastEntry.getKey());
 		}
@@ -106,7 +111,7 @@ public class MQFileWithIndex {
 					var floorIt = floor.getValue().iterator();
 					floorIt.seekForPrev(headMessageIdValue);
 					if (floorIt.isValid()) {
-						var topicDir = new File(manager.getHome(), topic);
+						var topicDir = new File(home, topic);
 						var file = new File(topicDir, partitionId + "." + floor.getKey());
 						var fileInput = new RandomAccessFile(file, "r");
 						var fileSize = fileInput.getChannel().size();
@@ -171,10 +176,12 @@ public class MQFileWithIndex {
 	public void increaseFirstMessageId() {
 		lock.lock();
 		try {
-			firstMessageId++;
-			var bbFirstMessageId = new byte[8];
-			ByteBuffer.longBeHandler.set(bbFirstMessageId, 0, firstMessageId);
-			meta.put(firstMessageIdName, bbFirstMessageId);
+			if (firstMessageId < nextMessageId) {
+				firstMessageId++;
+				var bbFirstMessageId = new byte[8];
+				ByteBuffer.longBeHandler.set(bbFirstMessageId, 0, firstMessageId);
+				meta.put(firstMessageIdName, bbFirstMessageId);
+			}
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		} finally {
@@ -194,7 +201,7 @@ public class MQFileWithIndex {
 
 			var fileOffset = lastFileOutputStream.getChannel().size();
 			lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());
-			if (nextMessageId % 500 == 0) {
+			if (nextMessageId % makeIndexPeriod == 0) {
 				var bytesMessageId = new byte[8];
 				ByteBuffer.longBeHandler.set(bytesMessageId, 0, nextMessageId);
 				var bytesFileOffset = new byte[8];
@@ -209,13 +216,14 @@ public class MQFileWithIndex {
 			meta.put(nextMessageIdName, bbNextMessageId);
 
 			// 文件大小超过100M，就新建文件和索引表。
-			// 除了文件大小，还需额外判断下一个消息Id也是500整除，这样新文件的第一个消息肯定会被建立索引，
+			// 除了文件大小，还需额外判断下一个消息Id也是makeIndexPeriod整除，这样新文件的第一个消息肯定会被建立索引，
 			// 新文件第一个消息必须建立索引，否则开头的消息定位不到。
-			if (fileOffset + bb.size() >= trunkFileSize && nextMessageId % 500 == 0) {
-				var topicDir = new File(manager.getHome(), topic);
+			if (fileOffset + bb.size() >= trunkFileSize && nextMessageId % makeIndexPeriod == 0) {
+				var topicDir = new File(home, topic);
 				lastFile = new File(topicDir, partitionId + "." + nextMessageId);
-				indexes.put(nextMessageId, manager.getRocksDatabase().getOrAddTable(
+				indexes.put(nextMessageId, database.getOrAddTable(
 						topic + "." + partitionId + "." + nextMessageId));
+				lastFileOutputStream.close();
 				lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
 			}
 		} catch (Exception e) {

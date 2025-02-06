@@ -86,6 +86,7 @@ public class MQManager extends AbstractMQManager {
         ShutdownHook.remove(this);
         proxyServer.stop();
         masterAgent.stop();
+        rocksDatabase.close();
         for (var queue : queues.values())
             queue.close();
     }

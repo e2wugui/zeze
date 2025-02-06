@@ -33,7 +33,10 @@ public class MQSingle extends ReentrantLock {
 		this.topic = topic;
 		this.partitionIndex = partitionId;
 		try {
-			this.fileWithIndex = new MQFileWithIndex(partition.getManager(), topic, partitionId);
+			this.fileWithIndex = new MQFileWithIndex(
+					partition.getManager().getHome(),
+					partition.getManager().getRocksDatabase(),
+					topic, partitionId);
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage();
 		} catch (Exception ex) {
