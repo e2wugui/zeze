@@ -63,6 +63,8 @@ public class TestFileWithIndexed {
 		} finally {
 			database.close();
 			file.close();
+			MQFileWithIndex.trunkFileSize = 100 * 1024 * 1024;
+			MQFileWithIndex.makeIndexPeriod = 100;
 			// 注释掉这一行可以看到持久化的结果。
 			Application.deleteDirectory(new File(home));
 		}
