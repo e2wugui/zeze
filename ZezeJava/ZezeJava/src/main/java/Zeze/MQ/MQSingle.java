@@ -83,7 +83,7 @@ public class MQSingle extends ReentrantLock {
 				try {
 					if (pendingPushMessage.getResultCode() == 0) {
 						messages.poll();
-						fileWithIndex.setFirstMessageId(fileWithIndex.getFirstMessageId() + 1);
+						fileWithIndex.increaseFirstMessageId();
 					}
 
 					// 不管是否失败，都尝试重新pushMessage。出错的时候要不要随机延迟一下再重试？

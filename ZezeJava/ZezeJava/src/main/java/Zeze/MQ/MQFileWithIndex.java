@@ -30,6 +30,8 @@ public class MQFileWithIndex {
 	private static final byte[] firstMessageIdName = "firstMessageId".getBytes(StandardCharsets.UTF_8);
 	private long firstMessageId;
 
+	private static int trunkFileSize = 100 * 1024 * 1024;
+
 	public File getLastFile() {
 		return lastFile;
 	}
@@ -154,10 +156,10 @@ public class MQFileWithIndex {
 		}
 	}
 
-	public void setFirstMessageId(long messageId) {
+	public void increaseFirstMessageId() {
 		lock.lock();
 		try {
-			firstMessageId = messageId;
+			firstMessageId++;
 			var bbFirstMessageId = new byte[8];
 			ByteBuffer.longLeHandler.set(bbFirstMessageId, 0, firstMessageId);
 			meta.put(firstMessageIdName, bbFirstMessageId);
@@ -195,7 +197,9 @@ public class MQFileWithIndex {
 			meta.put(nextMessageIdName, bbNextMessageId);
 
 			// 文件大小超过100M，就新建文件和索引表。
-			if (fileOffset + bb.size() >= 100 * 1024 * 1024) {
+			// 除了文件大小，还需额外判断下一个消息Id也是500整除，这样新文件的第一个消息肯定会被建立索引，
+			// 新文件第一个消息必须建立索引，否则开头的消息定位不到。
+			if (fileOffset + bb.size() >= trunkFileSize && nextMessageId % 500 == 0) {
 				var topicDir = new File(manager.getHome(), topic);
 				lastFile = new File(topicDir, partitionId + "." + nextMessageId);
 				indexes.put(nextMessageId, manager.getRocksDatabase().getOrAddTable(
