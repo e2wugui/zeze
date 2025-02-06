@@ -52,9 +52,9 @@ public class MQFileWithIndex {
 		this.meta = manager.getRocksDatabase().getOrAddTable(topic + "." + partitionId);
 
 		var nextMessageIdValue = this.meta.get(nextMessageIdName);
-		nextMessageId = null != nextMessageIdValue ? ByteBuffer.Wrap(nextMessageIdValue).ReadLong8() : 0;
+		nextMessageId = null != nextMessageIdValue ? ByteBuffer.ToLongBE(nextMessageIdValue, 0) : 0;
 		var firstMessageIdValue = this.meta.get(firstMessageIdName);
-		firstMessageId = null != firstMessageIdValue ? ByteBuffer.Wrap(firstMessageIdValue).ReadLong8() : 0;
+		firstMessageId = null != firstMessageIdValue ? ByteBuffer.ToLongBE(firstMessageIdValue, 0) : 0;
 
 		var topicDir = new File(manager.getHome(), topic);
 		var files = topicDir.listFiles();
@@ -102,7 +102,7 @@ public class MQFileWithIndex {
 				var floor = indexes.floorEntry(headMessageId);
 				if (null != floor) {
 					var headMessageIdValue = new byte[8];
-					ByteBuffer.longLeHandler.set(headMessageIdValue, 0, headMessageId);
+					ByteBuffer.longBeHandler.set(headMessageIdValue, 0, headMessageId);
 					var floorIt = floor.getValue().iterator();
 					floorIt.seekForPrev(headMessageIdValue);
 					if (floorIt.isValid()) {
@@ -110,7 +110,7 @@ public class MQFileWithIndex {
 						var file = new File(topicDir, partitionId + "." + floor.getKey());
 						var fileInput = new RandomAccessFile(file, "r");
 						try {
-							fileInput.seek(ByteBuffer.Wrap(floorIt.value()).ReadLong8());
+							fileInput.seek(ByteBuffer.ToLongBE(floorIt.value(), 0));
 							long messageId;
 							int messageSize;
 							var messageHead = new byte[12];
@@ -161,7 +161,7 @@ public class MQFileWithIndex {
 		try {
 			firstMessageId++;
 			var bbFirstMessageId = new byte[8];
-			ByteBuffer.longLeHandler.set(bbFirstMessageId, 0, firstMessageId);
+			ByteBuffer.longBeHandler.set(bbFirstMessageId, 0, firstMessageId);
 			meta.put(firstMessageIdName, bbFirstMessageId);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
@@ -184,16 +184,16 @@ public class MQFileWithIndex {
 			lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());
 			if (nextMessageId % 500 == 0) {
 				var bytesMessageId = new byte[8];
-				ByteBuffer.longLeHandler.set(bytesMessageId, 0, nextMessageId);
+				ByteBuffer.longBeHandler.set(bytesMessageId, 0, nextMessageId);
 				var bytesFileOffset = new byte[8];
-				ByteBuffer.longLeHandler.set(bytesFileOffset, 0, fileOffset);
+				ByteBuffer.longBeHandler.set(bytesFileOffset, 0, fileOffset);
 				indexes.lastEntry().getValue().put(bytesMessageId, bytesFileOffset);
 			}
 
 			// 递增消息编号，准备下一次使用，并且马上写入meta。
 			++nextMessageId;
 			var bbNextMessageId = new byte[8];
-			ByteBuffer.longLeHandler.set(bbNextMessageId, 0, nextMessageId);
+			ByteBuffer.longBeHandler.set(bbNextMessageId, 0, nextMessageId);
 			meta.put(nextMessageIdName, bbNextMessageId);
 
 			// 文件大小超过100M，就新建文件和索引表。
