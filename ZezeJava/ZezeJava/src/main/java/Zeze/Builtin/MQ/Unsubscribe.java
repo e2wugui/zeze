@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ;
 
+// 消息消费者向某个Manager取消订阅某个主题
 public class Unsubscribe extends Zeze.Net.Rpc<Zeze.Builtin.MQ.BSubscribeConsumer.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11039;
     public static final int ProtocolId_ = 229847595;

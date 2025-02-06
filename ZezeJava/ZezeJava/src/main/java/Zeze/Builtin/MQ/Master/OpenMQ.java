@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// 向Master打开现有队列. 指定的主题必须创建过
 public class OpenMQ extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BSubscribe.Data, Zeze.Builtin.MQ.Master.BMQServers.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = -1151664695; // 3143302601

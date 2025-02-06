@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// Manager向Master注册
 public class Register extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BMQServer.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = 1280150188;

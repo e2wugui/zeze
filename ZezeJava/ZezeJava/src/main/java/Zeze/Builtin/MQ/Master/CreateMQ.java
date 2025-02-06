@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// 向Master创建新队列. 相同Topic不能重复创建
 public class CreateMQ extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BMQInfo.Data, Zeze.Builtin.MQ.Master.BMQServers.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = -490132214; // 3804835082

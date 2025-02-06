@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly {
     public static final long TYPEID = -3270807260625529916L;
 
-    private double _Load;
+    private double _Load; // 负载指数
 
     private static final java.lang.invoke.VarHandle vh_Load;
 
@@ -217,7 +217,7 @@ public final class BLoad extends Zeze.Transaction.Bean implements BLoadReadOnly 
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3270807260625529916L;
 
-    private double _Load;
+    private double _Load; // 负载指数
 
     public double getLoad() {
         return _Load;

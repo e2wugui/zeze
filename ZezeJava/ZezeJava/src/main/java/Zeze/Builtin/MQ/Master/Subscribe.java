@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// 从Master获取现有队列的信息
 public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BSubscribe.Data, Zeze.Builtin.MQ.Master.BMQServers.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = -1754779275; // 2540188021

@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// Manager向Master报告自己的负载指数
 public class ReportLoad extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BLoad.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = 153412983;

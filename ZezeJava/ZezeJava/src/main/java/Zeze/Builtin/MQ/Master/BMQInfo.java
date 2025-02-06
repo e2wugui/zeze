@@ -8,8 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadOnly {
     public static final long TYPEID = 1467226550828193896L;
 
-    private String _Topic;
-    private int _Partition;
+    private String _Topic; // 主题. 只能使用文件名可用的字符
+    private int _Partition; // 分区数量. 至少为1
     private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BOptions> _Options;
 
     private static final java.lang.invoke.VarHandle vh_Topic;
@@ -338,8 +338,8 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1467226550828193896L;
 
-    private String _Topic;
-    private int _Partition;
+    private String _Topic; // 主题. 只能使用文件名可用的字符
+    private int _Partition; // 分区数量. 至少为1
     private Zeze.Builtin.MQ.BOptions.Data _Options;
 
     public String getTopic() {

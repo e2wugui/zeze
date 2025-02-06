@@ -8,8 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BMQServers extends Zeze.Transaction.Bean implements BMQServersReadOnly {
     public static final long TYPEID = 723031994174062842L;
 
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.Master.BMQInfo> _Info; // 主题信息
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.MQ.Master.BMQServer> _Servers; // 该主题现有的MQ服务器列表
     private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 
     private static final java.lang.invoke.VarHandle vh_SessionId;
@@ -358,8 +358,8 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 723031994174062842L;
 
-    private Zeze.Builtin.MQ.Master.BMQInfo.Data _Info;
-    private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers;
+    private Zeze.Builtin.MQ.Master.BMQInfo.Data _Info; // 主题信息
+    private java.util.ArrayList<Zeze.Builtin.MQ.Master.BMQServer.Data> _Servers; // 该主题现有的MQ服务器列表
     private long _SessionId; // 创建或打开的时候，由Master分配的唯一递增会话。																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 
     public Zeze.Builtin.MQ.Master.BMQInfo.Data getInfo() {

@@ -11,7 +11,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
     private String _Topic; // 主题，用户不用填写
     private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
-    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BMessage> _Message;
+    private final Zeze.Transaction.Collections.CollOne<Zeze.Builtin.MQ.BMessage> _Message; // 消息内容
 
     private static final java.lang.invoke.VarHandle vh_Topic;
     private static final java.lang.invoke.VarHandle vh_PartitionIndex;
@@ -388,7 +388,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private String _Topic; // 主题，用户不用填写
     private int _PartitionIndex; // 分区索引，用户不用填写
     private long _SessionId; // Consumer SessionId，用户不用填写
-    private Zeze.Builtin.MQ.BMessage.Data _Message;
+    private Zeze.Builtin.MQ.BMessage.Data _Message; // 消息内容
 
     public String getTopic() {
         return _Topic;

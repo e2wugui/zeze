@@ -1921,48 +1921,48 @@
 
 		<module name="MQ" id="11039" UseData="true">
 			<module name="Master" id="11040" UseData="true">
-				<enum name="ePartition" value="1"/>
-				<enum name="eTopicNotExist" value="2"/>
-				<enum name="eManagerNotFound" value="3"/>
-				<enum name="eTopicExist" value="4"/>
-				<enum name="eConsumerNotFound" value="5"/>
-				<enum name="eCreatePartition" value="6"/>
-				<enum name="eTopicHasReserveChar" value="7"/>
+				<enum name="ePartition"           value="1"/> 分区数或分区索引无效
+				<enum name="eTopicNotExist"       value="2"/> 找不到指定主题
+				<enum name="eManagerNotFound"     value="3"/> Master处理ReportLoad时找不到所属的Manager上下文
+				<enum name="eTopicExist"          value="4"/> 指定的主题已存在,无法再次CreateMQ
+				<enum name="eConsumerNotFound"    value="5"/> Agent收到PushMessage时找不到所属的MQConsumer上下文
+				<enum name="eCreatePartition"     value="6"/> Master向Manager请求CreatePartition失败
+				<enum name="eTopicHasReserveChar" value="7"/> 指定的主题含有非法字符
 
 				<bean name="BSubscribe">
-					<variable id="1" name="Topic" type="string"/>
+					<variable id="1" name="Topic" type="string"/> 主题
 				</bean>
 				<bean name="BMQInfo">
-					<variable id="1" name="Topic" type="string"/>
-					<variable id="2" name="Partition" type="int"/>
+					<variable id="1" name="Topic" type="string"/> 主题. 只能使用文件名可用的字符
+					<variable id="2" name="Partition" type="int"/> 分区数量. 至少为1
 					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
 				</bean>
 				<bean name="BMQServer">
-					<variable id="1" name="Host" type="string"/>
-					<variable id="2" name="Port" type="int"/>
-					<variable id="3" name="PartitionIndex" type="int"/>
-					<variable id="4" name="Topic" type="string"/>
+					<variable id="1" name="Host" type="string"/> 地址
+					<variable id="2" name="Port" type="int"/> 端口
+					<variable id="3" name="PartitionIndex" type="int"/> 分区索引. 从0开始
+					<variable id="4" name="Topic" type="string"/> 主题
 				</bean>
 				<bean name="BMQServers">
-					<variable id="1" name="Info" type="BMQInfo"/>
-					<variable id="2" name="Servers" type="list[BMQServer]"/>
+					<variable id="1" name="Info" type="BMQInfo"/> 主题信息
+					<variable id="2" name="Servers" type="list[BMQServer]"/> 该主题现有的MQ服务器列表
 					<variable id="3" name="SessionId" type="long"/> 创建或打开的时候，由Master分配的唯一递增会话。
 																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
 				</bean>
 				<bean name="BCreatePartition">
-					<variable id="1" name="Topic" type="string"/>
-					<variable id="2" name="PartitionIndexes" type="set[int]"/>
+					<variable id="1" name="Topic" type="string"/> 主题
+					<variable id="2" name="PartitionIndexes" type="set[int]"/> 分区索引集合
 				</bean>
-				
-				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/>
-				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/>
-				<rpc name="CreatePartition" argument="BCreatePartition" handle="client"/>
-				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/>
-				<rpc name="Register" argument="BMQServer" handle="server"/>
+
+				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/> 向Master打开现有队列. 指定的主题必须创建过
+				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/> 向Master创建新队列. 相同Topic不能重复创建
+				<rpc name="CreatePartition" argument="BCreatePartition" handle="client"/> 创建新队列时Master向Manager发起创建分区
+				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/> 从Master获取现有队列的信息
+				<rpc name="Register" argument="BMQServer" handle="server"/> Manager向Master注册
 				<bean name="BLoad">
-					<variable id="1" name="Load" type="double"/>
+					<variable id="1" name="Load" type="double"/> 负载指数
 				</bean>
-				<rpc name="ReportLoad" argument="BLoad" handle="server"/>
+				<rpc name="ReportLoad" argument="BLoad" handle="server"/> Manager向Master报告自己的负载指数
 			</module>
 
 			<bean name="BOptions">
@@ -1979,24 +1979,24 @@
 				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
 			</bean>
 			<bean name="BSubscribeConsumer">
-				<variable id="1" name="Topic" type="string"/>
+				<variable id="1" name="Topic" type="string"/> 主题
 				<variable id="2" name="SessionId" type="long"/>
 			</bean>
 			<bean name="BSendMessage">
 				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
 				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
-				<variable id="3" name="Message" type="BMessage"/>
+				<variable id="3" name="Message" type="BMessage"/> 消息内容
 			</bean>
 			<bean name="BPushMessage">
 				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
 				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
 				<variable id="3" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
-				<variable id="4" name="Message" type="BMessage"/>
+				<variable id="4" name="Message" type="BMessage"/> 消息内容
 			</bean>
-			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/>
-			<rpc name="Unsubscribe" argument="BSubscribeConsumer" handle="server"/>
-			<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
-			<rpc name="PushMessage" argument="BPushMessage" handle="client"/>
+			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager订阅某个主题
+			<rpc name="Unsubscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager取消订阅某个主题
+			<rpc name="SendMessage" argument="BSendMessage" handle="server"/> 消息生产者向某个Manager发送消息
+			<rpc name="PushMessage" argument="BPushMessage" handle="client"/> Manager向消息消费者推送消息
 		</module>
 		<!--
 		可用id范围 [11041, 11100) [11102, 11999]

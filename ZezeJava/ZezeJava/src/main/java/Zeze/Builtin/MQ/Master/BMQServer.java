@@ -8,10 +8,10 @@ import Zeze.Serialize.IByteBuffer;
 public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerReadOnly {
     public static final long TYPEID = -5289186167189120717L;
 
-    private String _Host;
-    private int _Port;
-    private int _PartitionIndex;
-    private String _Topic;
+    private String _Host; // 地址
+    private int _Port; // 端口
+    private int _PartitionIndex; // 分区索引. 从0开始
+    private String _Topic; // 主题
 
     private static final java.lang.invoke.VarHandle vh_Host;
     private static final java.lang.invoke.VarHandle vh_Port;
@@ -375,10 +375,10 @@ public final class BMQServer extends Zeze.Transaction.Bean implements BMQServerR
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -5289186167189120717L;
 
-    private String _Host;
-    private int _Port;
-    private int _PartitionIndex;
-    private String _Topic;
+    private String _Host; // 地址
+    private int _Port; // 端口
+    private int _PartitionIndex; // 分区索引. 从0开始
+    private String _Topic; // 主题
 
     public String getHost() {
         return _Host;

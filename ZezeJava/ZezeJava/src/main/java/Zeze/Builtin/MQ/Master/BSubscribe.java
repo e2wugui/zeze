@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscribeReadOnly {
     public static final long TYPEID = 8415845973205738044L;
 
-    private String _Topic;
+    private String _Topic; // 主题
 
     private static final java.lang.invoke.VarHandle vh_Topic;
 
@@ -224,7 +224,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean implements BSubscrib
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 8415845973205738044L;
 
-    private String _Topic;
+    private String _Topic; // 主题
 
     public String getTopic() {
         return _Topic;

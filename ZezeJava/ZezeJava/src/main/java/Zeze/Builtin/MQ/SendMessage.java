@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ;
 
+// 消息生产者向某个Manager发送消息
 public class SendMessage extends Zeze.Net.Rpc<Zeze.Builtin.MQ.BSendMessage.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11039;
     public static final int ProtocolId_ = -944163063; // 3350804233

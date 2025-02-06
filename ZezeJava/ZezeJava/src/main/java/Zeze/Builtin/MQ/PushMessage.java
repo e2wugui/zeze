@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ;
 
+// Manager向消息消费者推送消息
 public class PushMessage extends Zeze.Net.Rpc<Zeze.Builtin.MQ.BPushMessage.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11039;
     public static final int ProtocolId_ = -923714121; // 3371253175

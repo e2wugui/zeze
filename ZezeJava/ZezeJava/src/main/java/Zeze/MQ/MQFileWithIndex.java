@@ -14,9 +14,12 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
 import org.rocksdb.RocksDBException;
 
+// 文件路径: {ManagerHome}/{topic}/{partitionId}.{nextMessageId}
+// meta表名: {topic}.{partitionId}
+// index表名: {topic}.{partitionId}.{nextMessageId}
 public class MQFileWithIndex {
 	private final ReentrantLock lock = new ReentrantLock();
-	private final TreeMap<Long, RocksDatabase.Table> indexes = new TreeMap<>();
+	private final TreeMap<Long, RocksDatabase.Table> indexes = new TreeMap<>(); // key:nextMessageId, value.key:Long8BE(messageId), value.value:Long8BE(offset)
 	private final RocksDatabase.Table meta;
 	private final String home;
 	private final RocksDatabase database;
@@ -135,7 +138,7 @@ public class MQFileWithIndex {
 								if (messageId == headMessageId)
 									break; // message found.
 								if (fileInput.skipBytes(messageSize) < messageSize)
-									throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被阶段了。
+									throw new RuntimeException("message not found"); // 忽略的长度不够，表示数据文件被截断了。
 								filePosition += messageSize;
 							}
 
@@ -197,7 +200,7 @@ public class MQFileWithIndex {
 			var sizeOffset = bb.WriteIndex;
 			bb.WriteInt4(0);
 			message.encode(bb);
-			ByteBuffer.intLeHandler.set(bb.Bytes,  sizeOffset, bb.WriteIndex - sizeOffset - 4);
+			ByteBuffer.intLeHandler.set(bb.Bytes, sizeOffset, bb.WriteIndex - sizeOffset - 4);
 
 			var fileOffset = lastFileOutputStream.getChannel().size();
 			lastFileOutputStream.write(bb.Bytes, bb.ReadIndex, bb.size());

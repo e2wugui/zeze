@@ -25,7 +25,7 @@ public class Master extends AbstractMaster {
     public static final String MasterDbName = "__mq_master__";
     private final String home;
     private final RocksDatabase masterDb;
-    private final RocksDatabase.Table mqTable;
+    private final RocksDatabase.Table mqTable; // key:utf8(topic), value:encode(BMQServers)
     private final Config zezeConfig;
     private final AtomicLong sessionIdGen = new AtomicLong();
 
@@ -79,8 +79,13 @@ public class Master extends AbstractMaster {
     }
 
     private Manager[] choiceManager(int hint) {
-        // todo load
-        return managers.toArray(new Manager[managers.size()]);
+        lock();
+        try {
+            // todo load
+            return managers.toArray(new Manager[managers.size()]);
+        } finally {
+            unlock();
+        }
     }
 
     @Override

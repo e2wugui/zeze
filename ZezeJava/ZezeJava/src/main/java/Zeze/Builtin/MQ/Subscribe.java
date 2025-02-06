@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ;
 
+// 消息消费者向某个Manager订阅某个主题
 public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.MQ.BSubscribeConsumer.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11039;
     public static final int ProtocolId_ = 873492185;

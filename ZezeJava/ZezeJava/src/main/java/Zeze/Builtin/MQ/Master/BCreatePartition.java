@@ -8,8 +8,8 @@ import Zeze.Serialize.IByteBuffer;
 public final class BCreatePartition extends Zeze.Transaction.Bean implements BCreatePartitionReadOnly {
     public static final long TYPEID = -6151628565091328456L;
 
-    private String _Topic;
-    private final Zeze.Transaction.Collections.PSet1<Integer> _PartitionIndexes;
+    private String _Topic; // 主题
+    private final Zeze.Transaction.Collections.PSet1<Integer> _PartitionIndexes; // 分区索引集合
 
     private static final java.lang.invoke.VarHandle vh_Topic;
 
@@ -301,8 +301,8 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -6151628565091328456L;
 
-    private String _Topic;
-    private java.util.HashSet<Integer> _PartitionIndexes;
+    private String _Topic; // 主题
+    private java.util.HashSet<Integer> _PartitionIndexes; // 分区索引集合
 
     public String getTopic() {
         return _Topic;

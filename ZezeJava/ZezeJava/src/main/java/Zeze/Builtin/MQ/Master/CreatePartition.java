@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.MQ.Master;
 
+// 创建新队列时Master向Manager发起创建分区
 public class CreatePartition extends Zeze.Net.Rpc<Zeze.Builtin.MQ.Master.BCreatePartition.Data, Zeze.Transaction.EmptyBean.Data> {
     public static final int ModuleId_ = 11040;
     public static final int ProtocolId_ = 1815815096;

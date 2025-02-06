@@ -16,13 +16,13 @@ public abstract class AbstractMaster implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
-    public static final int ePartition = 1;
-    public static final int eTopicNotExist = 2;
-    public static final int eManagerNotFound = 3;
-    public static final int eTopicExist = 4;
-    public static final int eConsumerNotFound = 5;
-    public static final int eCreatePartition = 6;
-    public static final int eTopicHasReserveChar = 7;
+    public static final int ePartition = 1; // 分区数或分区索引无效
+    public static final int eTopicNotExist = 2; // 找不到指定主题
+    public static final int eManagerNotFound = 3; // Master处理ReportLoad时找不到所属的Manager上下文
+    public static final int eTopicExist = 4; // 指定的主题已存在,无法再次CreateMQ
+    public static final int eConsumerNotFound = 5; // Agent收到PushMessage时找不到所属的MQConsumer上下文
+    public static final int eCreatePartition = 6; // Master向Manager请求CreatePartition失败
+    public static final int eTopicHasReserveChar = 7; // 指定的主题含有非法字符
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
