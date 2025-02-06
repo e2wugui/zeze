@@ -21,10 +21,11 @@ public class TestFileWithIndexed {
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		try {
 			var queueOrigin = new ArrayDeque<BMessage.Data>();
+			var rand = new Random();
 			for (var i = 0; i < 256; ++i) {
 				var message = new BMessage.Data();
 				for (var j = 0; j < 5; ++j)
-					message.getProperties().put(String.valueOf(j), "0");
+					message.getProperties().put(String.valueOf(j), String.valueOf(rand.nextInt()));
 				file.appendMessage(message);
 				queueOrigin.offer(message);
 			}
@@ -39,7 +40,6 @@ public class TestFileWithIndexed {
 					Assert.assertEquals(origin, fill);
 				}
 			}
-			var rand = new Random();
 			// 这里本不需要循环256次，确保全部清空才写了这么多。
 			for (var i = 0; i < 256; ++i) {
 				var poll = rand.nextInt(10);
