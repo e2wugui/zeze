@@ -22,6 +22,7 @@ public abstract class AbstractMaster implements Zeze.IModule {
     public static final int eTopicExist = 4;
     public static final int eConsumerNotFound = 5;
     public static final int eCreatePartition = 6;
+    public static final int eTopicHasReserveChar = 7;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());

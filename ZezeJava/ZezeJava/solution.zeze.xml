@@ -1927,6 +1927,7 @@
 				<enum name="eTopicExist" value="4"/>
 				<enum name="eConsumerNotFound" value="5"/>
 				<enum name="eCreatePartition" value="6"/>
+				<enum name="eTopicHasReserveChar" value="7"/>
 
 				<bean name="BSubscribe">
 					<variable id="1" name="Topic" type="string"/>

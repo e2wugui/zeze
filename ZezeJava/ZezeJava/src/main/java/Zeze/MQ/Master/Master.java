@@ -85,6 +85,12 @@ public class Master extends AbstractMaster {
 
     @Override
     protected long ProcessCreateMQRequest(CreateMQ r) throws Exception {
+        if (r.Argument.getTopic().contains("."))
+            return errorCode(eTopicHasReserveChar);
+        if (r.Argument.getTopic().contains("/"))
+            return errorCode(eTopicHasReserveChar);
+        if (r.Argument.getTopic().contains("\\"))
+            return errorCode(eTopicHasReserveChar);
         var topicBytes = r.Argument.getTopic().getBytes(StandardCharsets.UTF_8);
         var mq = mqTable.get(topicBytes);
         if (null != mq)
