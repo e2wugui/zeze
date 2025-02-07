@@ -16,7 +16,7 @@ public class TestFileWithIndexed {
 		var home = "testFileWithIndexed";
 		Application.deleteDirectory(new File(home));
 		var database = new RocksDatabase(home);
-		MQFileWithIndex.trunkFileSize = 128;
+		MQFileWithIndex.trunkFileSize = 2048;
 		MQFileWithIndex.makeIndexPeriod = 10;
 		var file = new MQFileWithIndex(home, database, "topic", 0);
 		try {
