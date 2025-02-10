@@ -5,7 +5,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.jar.JarFile;
 import Zeze.Application;
@@ -26,11 +26,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class BeanFactory {
-	private static final Logger logger = LogManager.getLogger(BeanFactory.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(BeanFactory.class);
 	private static final LongHashMap<Object> allClassNameMap = new LongHashMap<>();
-	private static final ReentrantLock allClassNameMapLock = new ReentrantLock();
 	private static final LongHashMap<Object> allDataClassNameMap = new LongHashMap<>();
-	private static Application zeze;
+	private static final @NotNull ReentrantReadWriteLock.ReadLock allClassNameMapReadLock;
+	private static final @NotNull ReentrantReadWriteLock.WriteLock allClassNameMapWriteLock;
+	private static final @NotNull ReentrantReadWriteLock.ReadLock allDataNameMapReadLock;
+	private static final @NotNull ReentrantReadWriteLock.WriteLock allDataNameMapWriteLock;
+	private static @Nullable Application zeze;
+
+	static {
+		var rwLock = new ReentrantReadWriteLock();
+		allClassNameMapReadLock = rwLock.readLock();
+		allClassNameMapWriteLock = rwLock.writeLock();
+		rwLock = new ReentrantReadWriteLock();
+		allDataNameMapReadLock = rwLock.readLock();
+		allDataNameMapWriteLock = rwLock.writeLock();
+	}
 
 	private final LongHashMap<MethodHandle> writingBeanFactory = new LongHashMap<>();
 	private final FastLock writingBeanFactoryLock = new FastLock();
@@ -77,6 +89,7 @@ public final class BeanFactory {
 		for (JarFile jf : hotModules)
 			reloadClassesFromJar(jf);
 
+		assert zeze != null;
 		var hotRedirect = zeze.getHotManager().getHotRedirect();
 		for (var e : beanFactories.entrySet()) {
 			var bf = e.getKey();
@@ -123,14 +136,19 @@ public final class BeanFactory {
 	public static int loadAllClasses(@NotNull String classPrefix, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapLock.lock();
+		allClassNameMapWriteLock.lock();
 		try {
-			for (var cn : Reflect.collectAllClassNames(null)) {
-				if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
-					n++;
+			allDataNameMapWriteLock.lock();
+			try {
+				for (var cn : Reflect.collectAllClassNames(null)) {
+					if (cn.startsWith(classPrefix) && (initClasses ? loadClass(cn) : loadClassName(cn)))
+						n++;
+				}
+			} finally {
+				allDataNameMapWriteLock.unlock();
 			}
 		} finally {
-			allClassNameMapLock.unlock();
+			allClassNameMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} for prefix '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", classPrefix, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -140,14 +158,19 @@ public final class BeanFactory {
 	public static int loadClassesFromPath(@NotNull String path, boolean initClasses) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapLock.lock();
+		allClassNameMapWriteLock.lock();
 		try {
-			for (var cn : Reflect.collectClassNamesFromPath(path)) {
-				if (initClasses ? loadClass(cn) : loadClassName(cn))
-					n++;
+			allDataNameMapWriteLock.lock();
+			try {
+				for (var cn : Reflect.collectClassNamesFromPath(path)) {
+					if (initClasses ? loadClass(cn) : loadClassName(cn))
+						n++;
+				}
+			} finally {
+				allDataNameMapWriteLock.unlock();
 			}
 		} finally {
-			allClassNameMapLock.unlock();
+			allClassNameMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} from path '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", path, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -157,14 +180,19 @@ public final class BeanFactory {
 	public static int loadClassesFromJar(@NotNull String jarFile, boolean initClasses) throws IOException {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapLock.lock();
+		allClassNameMapWriteLock.lock();
 		try {
-			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
-				if (initClasses ? loadClass(cn) : loadClassName(cn))
-					n++;
+			allDataNameMapWriteLock.lock();
+			try {
+				for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+					if (initClasses ? loadClass(cn) : loadClassName(cn))
+						n++;
+				}
+			} finally {
+				allDataNameMapWriteLock.unlock();
 			}
 		} finally {
-			allClassNameMapLock.unlock();
+			allClassNameMapWriteLock.unlock();
 		}
 		logger.info("loaded {} {} from jar '{}' ({} ms)",
 				n, initClasses ? "classes" : "class names", jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -174,14 +202,19 @@ public final class BeanFactory {
 	public static int reloadClassesFromJar(@NotNull JarFile jarFile) {
 		var timeBegin = System.nanoTime();
 		int n = 0;
-		allClassNameMapLock.lock();
+		allClassNameMapWriteLock.lock();
 		try {
-			for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
-				reloadClassName(cn);
-				n++;
+			allDataNameMapWriteLock.lock();
+			try {
+				for (var cn : Reflect.collectClassNamesFromJar(jarFile)) {
+					reloadClassName(cn);
+					n++;
+				}
+			} finally {
+				allDataNameMapWriteLock.unlock();
 			}
 		} finally {
-			allClassNameMapLock.unlock();
+			allClassNameMapWriteLock.unlock();
 		}
 		logger.info("reloaded {} class names from jar '{}' ({} ms)",
 				n, jarFile, (System.nanoTime() - timeBegin) / 1_000_000);
@@ -193,7 +226,9 @@ public final class BeanFactory {
 		try {
 			long typeId;
 			Object oldObj;
-			var cls = Class.forName(className, true, zeze.getHotManager());
+			var cls = zeze == null || zeze.getHotManager() == null
+					? Class.forName(className)
+					: Class.forName(className, true, zeze.getHotManager().getHotRedirect());
 			if (Bean.class.isAssignableFrom(cls)) {
 				typeId = ((Bean)cls.newInstance()).typeId();
 				oldObj = allClassNameMap.put(typeId, cls);
@@ -256,17 +291,27 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Bean> findClass(long typeId) {
-		allClassNameMapLock.lock();
+		allClassNameMapReadLock.lock();
+		try {
+			var obj = allClassNameMap.get(typeId);
+			if (obj instanceof Class)
+				return (Class<? extends Bean>)obj;
+			if (obj == null && !allClassNameMap.isEmpty())
+				return null;
+		} finally {
+			allClassNameMapReadLock.unlock();
+		}
+
+		allClassNameMapWriteLock.lock();
 		try {
 			var obj = allClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Bean>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = null == zeze || null == zeze.getHotManager()
+					var cls = zeze == null || zeze.getHotManager() == null
 							? Class.forName((String)obj)
 							: Class.forName((String)obj, true, zeze.getHotManager().getHotRedirect());
-
 					if (Bean.class.isAssignableFrom(cls))
 						allClassNameMap.put(typeId, cls);
 					else {
@@ -281,7 +326,7 @@ public final class BeanFactory {
 			if (allClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findClass(typeId);
 		} finally {
-			allClassNameMapLock.unlock();
+			allClassNameMapWriteLock.unlock();
 		}
 		return null;
 	}
@@ -291,14 +336,27 @@ public final class BeanFactory {
 	 */
 	@SuppressWarnings("unchecked")
 	public static @Nullable Class<? extends Data> findDataClass(long typeId) {
-		allClassNameMapLock.lock();
+		allDataNameMapReadLock.lock();
+		try {
+			var obj = allDataClassNameMap.get(typeId);
+			if (obj instanceof Class)
+				return (Class<? extends Data>)obj;
+			if (obj == null && !allDataClassNameMap.isEmpty())
+				return null;
+		} finally {
+			allDataNameMapReadLock.unlock();
+		}
+
+		allDataNameMapWriteLock.lock();
 		try {
 			var obj = allDataClassNameMap.get(typeId);
 			if (obj instanceof Class)
 				return (Class<? extends Data>)obj;
 			if (obj instanceof String) {
 				try {
-					var cls = Class.forName((String)obj, true, zeze.getHotManager());
+					var cls = zeze == null || zeze.getHotManager() == null
+							? Class.forName((String)obj)
+							: Class.forName((String)obj, true, zeze.getHotManager().getHotRedirect());
 					if (Data.class.isAssignableFrom(cls))
 						allDataClassNameMap.put(typeId, cls);
 					else {
@@ -313,7 +371,7 @@ public final class BeanFactory {
 			if (allDataClassNameMap.isEmpty() && loadAllClasses("", false) != 0)
 				return findDataClass(typeId);
 		} finally {
-			allClassNameMapLock.unlock();
+			allDataNameMapWriteLock.unlock();
 		}
 		return null;
 	}
