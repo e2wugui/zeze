@@ -680,7 +680,7 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
       Iterator<Map<C, V>> iterator = backingMap.values().iterator();
       while (iterator.hasNext()) {
         Map<C, V> map = iterator.next();
-        if (map.keySet().remove(obj)) {
+        if (map.remove(obj) != null) {
           changed = true;
           if (map.isEmpty()) {
             iterator.remove();

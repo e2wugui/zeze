@@ -52,15 +52,15 @@ public final class BeanFactory {
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
 
-	public void registerWatch(Consumer<Class<?>> consumer) {
+	public void registerWatch(@NotNull Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.add(consumer);
 	}
 
-	public void unregisterWatch(Consumer<Class<?>> consumer) {
+	public void unregisterWatch(@NotNull Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.remove(consumer);
 	}
 
-	private void notifyAllWatcher(Class<?> cls) {
+	private void notifyAllWatcher(@NotNull Class<?> cls) {
 		for (var consumer : globalToLocalWatchers)
 			consumer.accept(cls);
 	}
@@ -222,7 +222,7 @@ public final class BeanFactory {
 	}
 
 	@SuppressWarnings("deprecation")
-	private static boolean loadClass(String className) {
+	private static boolean loadClass(@NotNull String className) {
 		try {
 			long typeId;
 			Object oldObj;
@@ -248,7 +248,7 @@ public final class BeanFactory {
 		return false;
 	}
 
-	private static boolean loadClassName(String className) {
+	private static boolean loadClassName(@NotNull String className) {
 		long typeId;
 		LongHashMap<Object> classNameMap;
 		if (className.endsWith("$Data")) {
@@ -273,7 +273,7 @@ public final class BeanFactory {
 		return true;
 	}
 
-	private static void reloadClassName(String className) {
+	private static void reloadClassName(@NotNull String className) {
 		long typeId;
 		LongHashMap<Object> classNameMap;
 		if (className.endsWith("$Data")) {

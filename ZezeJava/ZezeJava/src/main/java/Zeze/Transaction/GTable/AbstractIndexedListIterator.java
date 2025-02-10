@@ -11,23 +11,13 @@ import java.util.NoSuchElementException;
  *
  * @author Jared Levy
  */
+@SuppressWarnings("deprecation")
 abstract class AbstractIndexedListIterator<E> extends UnmodifiableListIterator<E> {
 	private final int size;
 	private int position;
 
 	/** Returns the element with the specified index. This method is called by {@link #next()}. */
 	protected abstract E get(int index);
-
-	/**
-	 * Constructs an iterator across a sequence of the given size whose initial position is 0. That
-	 * is, the first call to {@link #next()} will return the first element (or throw {@link
-	 * NoSuchElementException} if {@code size} is zero).
-	 *
-	 * @throws IllegalArgumentException if {@code size} is negative
-	 */
-	protected AbstractIndexedListIterator(int size) {
-		this(size, 0);
-	}
 
 	/**
 	 * Constructs an iterator across a sequence of the given size with the given initial position.

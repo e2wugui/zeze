@@ -18,7 +18,7 @@ public class MQSingle extends ReentrantLock {
 	private @Nullable PushMessage pendingPushMessage;
 	private final MQPartition mqPartition;
 	private final MQFileWithIndex fileWithIndex;
-	private long highLoad = 0;
+	private long highLoad;
 
 	public static final int maxFillMessageCount = 4 * 1024;
 

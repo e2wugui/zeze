@@ -885,7 +885,7 @@ public class Utils {
 			 */
 			if (contains(o) && o instanceof Map.Entry) {
 				Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
-				return map().keySet().remove(entry.getKey());
+				return map().remove(entry.getKey()) != null;
 			}
 			return false;
 		}

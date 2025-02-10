@@ -79,7 +79,7 @@ public class MQFileWithIndex {
 					indexes.put(index, database.getOrAddTable(
 							topic + "." + partitionId + "." + index));
 				} catch (Exception ex) {
-					continue;
+					// continue;
 				}
 			}
 		}
@@ -116,10 +116,9 @@ public class MQFileWithIndex {
 					if (floorIt.isValid()) {
 						var topicDir = new File(home, topic);
 						var file = new File(topicDir, partitionId + "." + floor.getKey());
-						var fileInput = new RandomAccessFile(file, "r");
-						var fileSize = fileInput.getChannel().size();
-						var filePosition = 0;
-						try {
+						try (var fileInput = new RandomAccessFile(file, "r")) {
+							var fileSize = fileInput.getChannel().size();
+							var filePosition = 0;
 							var offset = ByteBuffer.ToLongBE(floorIt.value(), 0);
 							fileInput.seek(offset);
 							filePosition += offset;
@@ -165,8 +164,6 @@ public class MQFileWithIndex {
 								bbHead.ReadLong8(); // skip result
 								messageSize = bbHead.ReadInt4();
 							}
-						} finally {
-							fileInput.close();
 						}
 					}
 				}

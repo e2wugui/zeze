@@ -28,7 +28,7 @@ public class MQManager extends AbstractMQManager {
     private final String home;
     private final MQConfig mqConfig = new MQConfig();
     private Future<?> loadMonitorTimer;
-    private RocksDatabase rocksDatabase;
+    private final RocksDatabase rocksDatabase;
 
     public RocksDatabase getRocksDatabase() {
         return rocksDatabase;
