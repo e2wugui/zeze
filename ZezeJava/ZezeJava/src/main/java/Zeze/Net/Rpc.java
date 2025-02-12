@@ -148,8 +148,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 			return false;
 		Service service = so.getService();
 
-		// try remove. 只维护一个上下文。
-		service.removeRpcContext(sessionId, this);
+		// try remove. 只维护一个上下文。??? sessionId还没生成，没法remove。
+		//service.removeRpcContext(sessionId, this);
 		this.responseHandle = responseHandle;
 		sessionId = service.addRpcContext(this);
 		timeout = millisecondsTimeout;
