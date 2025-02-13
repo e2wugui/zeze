@@ -137,6 +137,7 @@ public class MasterAgent extends AbstractMasterAgent {
 	public static class Service extends Zeze.Net.Service {
 		public Service(Config config) {
 			super(eServiceName, config);
+			setNoProcedure(true);
 		}
 	}
 

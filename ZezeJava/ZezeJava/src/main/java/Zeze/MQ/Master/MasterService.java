@@ -11,6 +11,7 @@ public class MasterService extends Service {
 
 	public MasterService(Main main, Config config) {
 		super("Zeze.MQ.Master", config);
+		setNoProcedure(true);
 		this.main = main;
 	}
 

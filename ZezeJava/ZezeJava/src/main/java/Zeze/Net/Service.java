@@ -449,7 +449,7 @@ public class Service extends ReentrantLock {
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		Application zeze;
-		if (!noProcedure && (zeze = this.zeze) != null && factoryHandle.Level != TransactionLevel.None) {
+		if (!noProcedure && (zeze = this.zeze) != null && !zeze.isNoDatabase() && factoryHandle.Level != TransactionLevel.None) {
 			Task.executeRpcResponseUnsafe(zeze.newProcedure(() -> responseHandle.handle(rpc),
 					rpc.getClass().getName() + ":Response", factoryHandle.Level), factoryHandle.Mode);
 		} else
@@ -501,7 +501,7 @@ public class Service extends ReentrantLock {
 		// 一般来说到达这个函数，肯定执行非事务分支了，事务分支在下面的dispatchProtocol中就被拦截。
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
-		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
+		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null && !zeze.isNoDatabase()) {
 			var protocolClassName = p.getClass().getName();
 			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
 			Task.executeUnsafe(proc, p, Protocol::trySendResultCode, factoryHandle.Mode);
@@ -520,7 +520,7 @@ public class Service extends ReentrantLock {
 			return;
 		}
 		Application zeze;
-		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null) {
+		if (!noProcedure && factoryHandle.Level != TransactionLevel.None && (zeze = this.zeze) != null && !zeze.isNoDatabase()) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
 			var protocolRawArgument = new Binary(bb.Copy());

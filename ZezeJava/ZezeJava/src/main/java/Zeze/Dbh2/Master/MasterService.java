@@ -10,6 +10,7 @@ public class MasterService extends Zeze.Net.Service {
 
 	public MasterService(Main main, Config config) {
 		super("Zeze.Dbh2.Master", config);
+		setNoProcedure(true);
 		this.main = main;
 	}
 
