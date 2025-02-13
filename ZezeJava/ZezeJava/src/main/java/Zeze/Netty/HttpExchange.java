@@ -433,7 +433,7 @@ public class HttpExchange {
 		if (handler == null)
 			return;
 		var r = parseRange(req, HttpHeaderNames.CONTENT_RANGE);
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
@@ -455,7 +455,8 @@ public class HttpExchange {
 		var handle = handler != null ? handler.StreamContentHandle : null;
 		if (handle == null)
 			return;
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
+			//noinspection DataFlowIssue
 			var p = server.zeze.newProcedure(() -> {
 				handle.onStreamContent(this, c);
 				return Procedure.Success;
@@ -504,7 +505,7 @@ public class HttpExchange {
 
 	@SuppressWarnings("ConstantConditions")
 	protected void fireEndStreamHandle() {
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
 			var p = server.zeze.newProcedure(() -> {
 				var handle = handler.EndStreamHandle;
 				if (handle != null)
@@ -539,7 +540,8 @@ public class HttpExchange {
 	protected void fireWebSocket(@NotNull WebSocketFrame frame) {
 		if (handler == null)
 			return;
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+		if (!server.noProcedure && handler.Level != TransactionLevel.None) {
+			//noinspection DataFlowIssue
 			var p = server.zeze.newProcedure(() -> {
 				fireWebSocket0(frame);
 				return Procedure.Success;
@@ -703,7 +705,7 @@ public class HttpExchange {
 		close(CLOSE_FORCE, null);
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// //////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
 	public @NotNull ChannelFuture send(@NotNull HttpResponseStatus status, @Nullable String contentType,
 									   @Nullable ByteBuf content) { // content所有权会被转移
@@ -920,7 +922,7 @@ public class HttpExchange {
 		return context.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
-	/////////////////////////////////////////////////////////////////////////////////////////////////
+	/// //////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	public @NotNull ChannelFuture beginStream(@NotNull HttpResponseStatus status, @NotNull HttpHeaders headers) {
 		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))

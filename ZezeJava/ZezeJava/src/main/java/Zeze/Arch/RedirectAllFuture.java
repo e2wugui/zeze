@@ -143,7 +143,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 	void result(@NotNull RedirectAllContext<R> ctx, @NotNull R result) {
 		if (this.ctx == null)
 			this.ctx = ctx;
-		if (onResult == null)
+		var onRes = onResult;
+		if (onRes == null)
 			return; // 等设置了onResult再处理
 		var hashes = getFinishedHashes();
 		lock(); // synchronized (hashes)
@@ -153,11 +154,19 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		} finally {
 			unlock();
 		}
-		ctx.getService().getZeze().newProcedure(() -> {
-			//noinspection DataFlowIssue
-			onResult.run(result);
-			return Procedure.Success;
-		}, "RedirectAllFutureImpl.result").call();
+		var zeze = ctx.getService().getZeze();
+		if (zeze != null && !zeze.isNoDatabase()) {
+			zeze.newProcedure(() -> {
+				onRes.run(result);
+				return Procedure.Success;
+			}, "RedirectAllFutureImpl.result").call();
+		} else {
+			try {
+				onRes.run(result);
+			} catch (Exception e) {
+				Task.forceThrow(e);
+			}
+		}
 	}
 
 	@SuppressWarnings("RedundantThrows")
@@ -186,11 +195,17 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		} finally {
 			c.unlock();
 		}
-		for (R result : readyResults) {
-			c.getService().getZeze().newProcedure(() -> {
+		var zeze = c.getService().getZeze();
+		if (zeze != null && !zeze.isNoDatabase()) {
+			for (R result : readyResults) {
+				zeze.newProcedure(() -> {
+					onResult.run(result);
+					return Procedure.Success;
+				}, "RedirectAllFutureImpl.onResult").call();
+			}
+		} else {
+			for (R result : readyResults)
 				onResult.run(result);
-				return Procedure.Success;
-			}, "RedirectAllFutureImpl.onResult").call();
 		}
 		return this;
 	}
@@ -210,10 +225,19 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 		@SuppressWarnings("unchecked")
 		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		if (onA != null) {
-			ctx.getService().getZeze().newProcedure(() -> {
-				onA.run(ctx);
-				return Procedure.Success;
-			}, "RedirectAllFutureImpl.allDone").call();
+			var zeze = ctx.getService().getZeze();
+			if (zeze != null && !zeze.isNoDatabase()) {
+				zeze.newProcedure(() -> {
+					onA.run(ctx);
+					return Procedure.Success;
+				}, "RedirectAllFutureImpl.allDone").call();
+			} else {
+				try {
+					onA.run(ctx);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			}
 		}
 		lock();
 		try {
@@ -235,11 +259,15 @@ final class RedirectAllFutureImpl<R extends RedirectResult> extends FastLock imp
 			if ((c = ctx) == null || !c.isCompleted() || !ON_ALL_DONE.compareAndSet(this, onAllDone, null)) // 再次确认,避免并发窗口问题
 				return this;
 		}
-		var c1 = c;
-		c.getService().getZeze().newProcedure(() -> {
-			onAllDone.run(c1);
-			return Procedure.Success;
-		}, "RedirectAllFutureImpl.onAllDone").call();
+		var zeze = c.getService().getZeze();
+		if (zeze != null && !zeze.isNoDatabase()) {
+			var c1 = c;
+			zeze.newProcedure(() -> {
+				onAllDone.run(c1);
+				return Procedure.Success;
+			}, "RedirectAllFutureImpl.onAllDone").call();
+		} else
+			onAllDone.run(c);
 		return this;
 	}
 

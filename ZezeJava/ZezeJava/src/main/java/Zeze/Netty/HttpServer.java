@@ -76,7 +76,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 			.setValidateHeaders(false);
 	protected static long lastSecond;
 	protected static String lastDateStr;
-	protected final @Nullable Application zeze; // 只用于通过事务处理HTTP请求
+	protected final Application zeze; // 只用于通过事务处理HTTP请求
 	protected final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	protected final FewModifySortedMap<String, HttpHandler> prefixHandlers = new FewModifySortedMap<>();
 	protected final ConcurrentHashSet<Channel> channels = new ConcurrentHashSet<>();
@@ -91,6 +91,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	protected ChannelFuture channelFuture;
 	protected final ReentrantLock thisLock = new ReentrantLock();
 	protected @Nullable HttpSession httpSession;
+	protected final boolean noProcedure;
 
 	public static @NotNull String getDate() {
 		var second = GlobalTimer.getCurrentMillis() / 1000;
@@ -127,6 +128,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 
 	public HttpServer(@Nullable Application zeze) {
 		this.zeze = zeze;
+		noProcedure = zeze == null || zeze.isNoDatabase();
 	}
 
 	public void lock() {
@@ -140,7 +142,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	// before start
 	public void enableHttpSession() {
 		if (zeze == null)
-			throw new IllegalStateException("zeze is null.");
+			throw new IllegalStateException("zeze is null");
+		if (zeze.isNoDatabase())
+			throw new IllegalStateException("zeze is noDatabase");
 		httpSession = new HttpSession(zeze);
 	}
 
@@ -265,8 +269,8 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		return addr.getPort();
 	}
 
-	public void publishService(String serviceName) throws InterruptedException {
-		if (null == zeze)
+	public void publishService(String serviceName) {
+		if (zeze == null)
 			throw new IllegalStateException("without zeze env. use another publishService method with your special agent");
 		publishService(serviceName, 0, zeze.getServiceManager());
 	}
@@ -277,8 +281,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	 * @param serviceName 服务名
 	 * @param version     服务版本
 	 */
-	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent)
-			throws InterruptedException {
+	public void publishService(@NotNull String serviceName, long version, @NotNull AbstractAgent agent) {
 		var ip = getExportIp();
 		int port = getPort();
 		agent.registerService(new BServiceInfo(serviceName, "@" + ip + ":" + port, version, ip, port));
