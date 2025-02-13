@@ -31,6 +31,7 @@ public class LinkdService extends HandshakeServer {
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);
+		setNoProcedure(true); // 应该需要加这个吧。
 
 		if (getSocketOptions().getOverBandwidth() != null) {
 			var lastSendSize = new OutLong();
