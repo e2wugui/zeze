@@ -37,6 +37,7 @@ import Zeze.Builtin.Game.Online.tRoleOfflineTimers;
 import Zeze.Builtin.Game.Online.tRoleTimers;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Send;
@@ -2172,5 +2173,22 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return errorCode(syncResultCode);
 
 		return Procedure.Success;
+	}
+
+	public boolean bindModule(long roleId, int moduleId, BModule.Data module) {
+		var bean = getLoginOnlineShared(roleId);
+		if (null == bean)
+			return false;
+		var link = bean.getLink();
+
+		Transaction.whileCommit(() -> {
+			var bind = new Zeze.Builtin.Provider.Bind();
+			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
+			var socket = connector.getSocket();
+			bind.Argument.getLinkSids().add(link.getLinkSid());
+			bind.Argument.getModules().put(moduleId, module);
+			bind.SendForWait(socket);
+		});
+		return true;
 	}
 }

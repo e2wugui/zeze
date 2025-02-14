@@ -26,6 +26,7 @@ import Zeze.Builtin.Online.BReliableNotify;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Send;
@@ -1822,5 +1823,26 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return errorCode((short)syncResultCode);
 
 		return Procedure.Success;
+	}
+
+	public boolean bindModule(String account, String clientId, int moduleId, BModule.Data module) {
+		var bean = getOnline(account);
+		if (null == bean)
+			return false;
+		var login = bean.getLogins().get(clientId);
+		if (null == login)
+			return false;
+
+		var link = login.getLink();
+
+		Transaction.whileCommit(() -> {
+			var bind = new Zeze.Builtin.Provider.Bind();
+			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
+			var socket = connector.getSocket();
+			bind.Argument.getLinkSids().add(link.getLinkSid());
+			bind.Argument.getModules().put(moduleId, module);
+			bind.SendForWait(socket);
+		});
+		return true;
 	}
 }
