@@ -2175,7 +2175,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return Procedure.Success;
 	}
 
-	public boolean bindModule(long roleId, int moduleId, BModule.Data module) {
+	public boolean bindDynamic(long roleId, int ... moduleIds) {
 		var bean = getLoginOnlineShared(roleId);
 		if (null == bean)
 			return false;
@@ -2186,7 +2186,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
 			var socket = connector.getSocket();
 			bind.Argument.getLinkSids().add(link.getLinkSid());
-			bind.Argument.getModules().put(moduleId, module);
+			for (var moduleId : moduleIds) {
+				bind.Argument.getModules().put(moduleId, new BModule.Data(
+						BModule.ChoiceTypeDefault, BModule.ConfigTypeDynamic));
+			}
 			bind.SendForWait(socket);
 		});
 		return true;

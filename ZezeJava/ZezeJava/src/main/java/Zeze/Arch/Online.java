@@ -1825,7 +1825,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return Procedure.Success;
 	}
 
-	public boolean bindModule(String account, String clientId, int moduleId, BModule.Data module) {
+	public boolean bindDynamic(String account, String clientId, int ... moduleIds) {
 		var bean = getOnline(account);
 		if (null == bean)
 			return false;
@@ -1840,7 +1840,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var connector = providerApp.providerService.getLinks().get(link.getLinkName());
 			var socket = connector.getSocket();
 			bind.Argument.getLinkSids().add(link.getLinkSid());
-			bind.Argument.getModules().put(moduleId, module);
+			for (var moduleId : moduleIds) {
+				bind.Argument.getModules().put(moduleId, new BModule.Data(
+						BModule.ChoiceTypeDefault, BModule.ConfigTypeDynamic));
+			}
 			bind.SendForWait(socket);
 		});
 		return true;
