@@ -3,6 +3,7 @@ package Zeze.MQ.Master;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.MQ.Master.CreateMQ;
@@ -81,8 +82,14 @@ public class Master extends AbstractMaster {
     private Manager[] choiceManager(int hint) {
         lock();
         try {
-            // todo load
-            return managers.toArray(new Manager[managers.size()]);
+            managers.sort(new Comparator<>() {
+                @Override
+                public int compare(Manager o1, Manager o2) {
+                    return Double.compare(o1.load, o2.load);
+                }
+            });
+            var size = Math.min(hint, managers.size());
+            return managers.toArray(new Manager[size]);
         } finally {
             unlock();
         }

@@ -46,15 +46,6 @@ public class TestClient : HandshakeClient
     {
         Console.WriteLine("OnSocketConnected");
         base.OnSocketConnected(so);
-
-        // 当前需要连接成功后客户端先发握手协议
-        var p = new SHandshake0Argument
-        {
-            EncryptType = Constant.eEncryptTypeAes,
-            CompressC2s = Constant.eCompressTypeMppc,
-            CompressS2c = Constant.eCompressTypeMppc
-        };
-        StartHandshake(p, so);
     }
 
     public override void OnHandshakeDone(AsyncSocket sender)
