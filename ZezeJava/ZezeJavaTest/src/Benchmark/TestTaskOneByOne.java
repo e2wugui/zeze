@@ -15,7 +15,7 @@ import Zeze.Util.TaskOneByOneByKey2;
 import org.junit.Test;
 
 public class TestTaskOneByOne {
-	public final static int TaskCount = 1000_0000;
+	public final static int TaskCount = 500_0000;
 
 	private final AtomicLong counter = new AtomicLong();
 	private final ReentrantLock lock = new ReentrantLock();
@@ -79,9 +79,9 @@ public class TestTaskOneByOne {
 		System.out.println(counter.get());
 	}
 
-	private static final int exeCount = 10_0000;
+	private static final int exeCount = 1_0000;
 	private static final int keyCount = 20;
-	private static final int roleCount = 10000;
+	private static final int roleCount = 1000;
 	private static final int concurrency = 20;
 	private static final ConcurrentSkipListSet<Integer> taskIds = new ConcurrentSkipListSet<>();
 

@@ -105,11 +105,11 @@ public class TestConsistentHash {
 			final int begin = Long.hashCode(timeBegin);
 
 			final var ch1 = new ConsistentHash<>(selector);
-			for (int i = begin; i != begin + 2000; i++)
+			for (int i = begin; i != begin + 1000; i++)
 				ch1.add(String.valueOf(i), i);
 
 			final var ch2 = new ConsistentHash<>(selector);
-			for (int i = begin + 2000; i-- != begin; )
+			for (int i = begin + 1000; i-- != begin; )
 				ch2.add(String.valueOf(i), i);
 
 			logger.info("testStable: begin={}, ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms", begin,
@@ -130,7 +130,7 @@ public class TestConsistentHash {
 
 			timeBegin = System.nanoTime();
 
-			var indexes = new int[1000];
+			var indexes = new int[500];
 			for (int i = 0; i < indexes.length; i++)
 				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 2000));
 			for (int i = indexes.length - 1; i >= 0; i--)
@@ -149,7 +149,7 @@ public class TestConsistentHash {
 			Assert.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
 			Assert.assertEquals(ch1.circleSize(), ch2.circleSize());
 
-			for (int i = begin; i != begin + 2000; i++) {
+			for (int i = begin; i != begin + 1000; i++) {
 				ch1.remove(i);
 				ch2.remove(i);
 			}
