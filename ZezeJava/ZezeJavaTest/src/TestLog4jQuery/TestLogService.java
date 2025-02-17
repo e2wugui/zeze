@@ -30,7 +30,7 @@ public class TestLogService {
 			cond.setEndTime(-1);
 			cond.setContainsType(BCondition.ContainsAll);
 			var words = new ArrayList<String>();
-			words.add("23-08-25 09:19:00.813");
+			words.add("ShutdownHook: ShutdownHook end");
 			cond.setWords(words);
 			var logName = "zeze.log";
 			for (var serverName : logAgent.getLogServers()) {

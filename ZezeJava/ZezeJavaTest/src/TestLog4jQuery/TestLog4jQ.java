@@ -25,7 +25,7 @@ public class TestLog4jQ {
 		var beginTime = beginDate.getTime().getTime();
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:00.816");
 		var logActive = "zeze.log";
-		var pattern = "23-10-16 17:01:59.497";
+		var pattern = "ShutdownHook: ShutdownHook end";
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = logActive;
 		var logManager = new Log4jFileManager(logConf);
@@ -56,7 +56,7 @@ public class TestLog4jQ {
 		var beginTime = beginDate.getTime().getTime();
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:01.239");
 		var logActive = "zeze.log";
-		var pattern = "ZezeTaskPool-101";
+		var pattern = "ShutdownHook: ShutdownHook end";
 		var logConf = new LogServiceConf.LogConf();
 		logConf.logActive = logActive;
 

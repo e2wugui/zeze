@@ -3,6 +3,7 @@ package Zeze.MQ;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BSendMessage;
@@ -19,6 +20,9 @@ public class MQSingle extends ReentrantLock {
 	private final MQPartition mqPartition;
 	private final MQFileWithIndex fileWithIndex;
 	private long highLoad;
+	private final AtomicLong loadCounter = new AtomicLong();
+	private long lastLoadCounter;
+	private long lastReportTime = System.currentTimeMillis();
 
 	public static final int maxFillMessageCount = 4 * 1024;
 
@@ -38,13 +42,22 @@ public class MQSingle extends ReentrantLock {
 					partition.getManager().getRocksDatabase(),
 					topic, partitionId);
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
-			pullMessage();
+			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
 	}
 
 	public double load() {
+		var now = System.currentTimeMillis();
+		var elapse = (now - lastReportTime) / 1000.0f;
+		lastReportTime = now;
+		var load = loadCounter.get();
+		var diffLoad = load - lastLoadCounter;
+		if (diffLoad > 0) {
+			lastLoadCounter = load;
+			return diffLoad / elapse;
+		}
 		return 0.0;
 	}
 
@@ -84,6 +97,8 @@ public class MQSingle extends ReentrantLock {
 			pendingPushMessage.Send(bindSocket, (p) -> {
 				lock();
 				try {
+					loadCounter.incrementAndGet(); // 处理失败也进行计数。
+
 					if (pendingPushMessage.getResultCode() == 0) {
 						messages.poll();
 						fileWithIndex.increaseFirstMessageId();
