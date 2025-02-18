@@ -80,8 +80,7 @@ public class MQSingle extends ReentrantLock {
 	private void pullMessage() {
 		if (messages.isEmpty() && highLoad > 0) {
 			var fillCount = Math.min(highLoad, maxFillMessageCount);
-			fileWithIndex.fillMessage(messages, (int)fillCount);
-			highLoad -= fillCount;
+			highLoad -= fileWithIndex.fillMessage(messages, fillCount);
 		}
 	}
 

@@ -93,7 +93,7 @@ public class MQFileWithIndex {
 		lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
 	}
 
-	public void fillMessage(Queue<BMessage.Data> out, int maxLength) {
+	public long fillMessage(Queue<BMessage.Data> out, long maxLength) {
 		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
 		long headMessageId;
 		long endMessageId;
@@ -168,6 +168,7 @@ public class MQFileWithIndex {
 					}
 				}
 			}
+			return headMessageId - this.firstMessageId;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
