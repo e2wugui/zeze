@@ -31,7 +31,7 @@ public class MQSingle extends ReentrantLock {
 
 	private final Queue<BMessage.Data> messageQueue = new ConcurrentLinkedQueue<>();
 	private volatile Future<?> messageFillFuture;
-	private final Future<?> fillGuardTimer;
+	//private final Future<?> fillGuardTimer;
 
 	public MQPartition getMQPartition() {
 		return mqPartition;
@@ -48,7 +48,7 @@ public class MQSingle extends ReentrantLock {
 					topic, partitionId);
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
-			fillGuardTimer = Task.scheduleUnsafe(5_000, 5_000, this::tryStartBackgroundFill);
+			//fillGuardTimer = Task.scheduleUnsafe(5_000, 5_000, this::tryStartBackgroundFill);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -107,8 +107,9 @@ public class MQSingle extends ReentrantLock {
 			unlock();
 		}
 		fileWithIndex.fillMessage(messageQueue, first.value, last.value);
-		// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。目前解决方法是启动一个Timer。
+		// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。
 		messageFillFuture = null; // 这个清除没加锁
+		tryStartBackgroundFill(); // 这个调用是为了解决上面的时间窗口的。
 	}
 
 	private void tryPushMessage() {
@@ -162,7 +163,7 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	public void close() throws IOException {
-		fillGuardTimer.cancel(true);
+		//fillGuardTimer.cancel(true);
 		fileWithIndex.close();
 	}
 }
