@@ -11,6 +11,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
 import org.rocksdb.RocksDBException;
 
@@ -93,18 +94,22 @@ public class MQFileWithIndex {
 		lastFileOutputStream = new FileOutputStream(lastFile, true); // todo 没有buffer是不是很慢？
 	}
 
-	public long fillMessage(Queue<BMessage.Data> out, long maxLength) {
-		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
-		long headMessageId;
-		long endMessageId;
+	// 需要在MQSingle锁内，首先在外部加锁。执行这个函数需要两把锁。
+	public long calculateFill(Queue<BMessage.Data> messageQueue, OutLong first, OutLong last, long maxLength) {
 		lock.lock();
 		try {
-			var fillCount = Math.min(this.nextMessageId - this.firstMessageId, maxLength);
-			headMessageId = this.firstMessageId;
-			endMessageId = this.firstMessageId + fillCount;
+			var remain = messageQueue.size();
+			var fillCount = Math.min(this.nextMessageId - this.firstMessageId - remain, maxLength - remain);
+			first.value = this.firstMessageId + remain;
+			last.value = first.value + fillCount;
+			return fillCount;
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
+		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
 		try {
 			while (headMessageId < endMessageId) {
 				var floor = indexes.floorEntry(headMessageId);
@@ -150,7 +155,7 @@ public class MQFileWithIndex {
 								fileInput.read(messageBuffer);
 								var message = new BMessage.Data();
 								message.decode(ByteBuffer.Wrap(messageBuffer));
-								out.add(message);
+								messageQueue.add(message);
 
 								headMessageId++;
 								if (filePosition >= fileSize || headMessageId >= endMessageId)
@@ -168,7 +173,6 @@ public class MQFileWithIndex {
 					}
 				}
 			}
-			return headMessageId - this.firstMessageId;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

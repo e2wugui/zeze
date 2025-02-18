@@ -6,6 +6,7 @@ import java.util.Random;
 import Zeze.Application;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.MQ.MQFileWithIndex;
+import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
 import org.junit.Assert;
 import org.junit.Test;
@@ -31,7 +32,10 @@ public class TestFileWithIndexed {
 			}
 			{
 				var queue = new ArrayDeque<BMessage.Data>();
-				file.fillMessage(queue, 300);
+				var first = new OutLong();
+				var last = new OutLong();
+				file.calculateFill(queue, first, last, 300);
+				file.fillMessage(queue, first.value, last.value);
 				var queueEquals = new ArrayDeque<>(queueOrigin);
 				Assert.assertEquals(queueEquals.size(), queue.size());
 				for (var i = 0; i < queue.size(); ++i) {
@@ -49,7 +53,10 @@ public class TestFileWithIndexed {
 				}
 				{
 					var queue = new ArrayDeque<BMessage.Data>();
-					file.fillMessage(queue, 300);
+					var first = new OutLong();
+					var last = new OutLong();
+					file.calculateFill(queue, first, last, 300);
+					file.fillMessage(queue, first.value, last.value);
 					//System.out.println("=====>" + i);
 					var queueEquals = new ArrayDeque<>(queueOrigin);
 					Assert.assertEquals(queueEquals.size(), queue.size());

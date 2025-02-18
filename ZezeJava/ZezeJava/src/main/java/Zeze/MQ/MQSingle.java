@@ -1,14 +1,17 @@
 package Zeze.MQ;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Net.AsyncSocket;
+import Zeze.Util.OutLong;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.Nullable;
 
 public class MQSingle extends ReentrantLock {
@@ -26,7 +29,9 @@ public class MQSingle extends ReentrantLock {
 
 	public static final int maxFillMessageCount = 4 * 1024;
 
-	private final Queue<BMessage.Data> messages = new ArrayDeque<>(); // 需要写入文件，临时放内存用来测试。
+	private final Queue<BMessage.Data> messageQueue = new ConcurrentLinkedQueue<>();
+	private volatile Future<?> messageFillFuture;
+	private final Future<?> fillGuardTimer;
 
 	public MQPartition getMQPartition() {
 		return mqPartition;
@@ -43,6 +48,7 @@ public class MQSingle extends ReentrantLock {
 					topic, partitionId);
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
+			fillGuardTimer = Task.scheduleUnsafe(5_000, 5_000, this::tryStartBackgroundFill);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -65,9 +71,9 @@ public class MQSingle extends ReentrantLock {
 		lock();
 		try {
 			fileWithIndex.appendMessage(message.getMessage());
-			if (highLoad == 0 && messages.size() < maxFillMessageCount) {
+			if (highLoad == 0 && messageQueue.size() < maxFillMessageCount) {
 				// 低负载，缓冲足够大，直接进入缓冲，保持highLoad为0.
-				messages.offer(message.getMessage());
+				messageQueue.offer(message.getMessage());
 			} else {
 				highLoad++;
 			}
@@ -77,21 +83,41 @@ public class MQSingle extends ReentrantLock {
 		}
 	}
 
-	private void pullMessage() {
-		if (messages.isEmpty() && highLoad > 0) {
-			var fillCount = Math.min(highLoad, maxFillMessageCount);
-			highLoad -= fileWithIndex.fillMessage(messages, fillCount);
+	private void tryStartBackgroundFill() {
+		lock();
+		try {
+			if (highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
+				messageFillFuture = Task.runUnsafe(this::pullMessage, "pullMessage");
+		} finally {
+			unlock();
 		}
 	}
 
+	private void pullMessage() {
+		// 在另一个线程中调用，但只有一个线程任务。
+		var first = new OutLong();
+		var last = new OutLong();
+		lock();
+		try {
+			if (highLoad > 0) {
+				// calculateFill 里面还会加fileWithIndex的锁. 两把锁得到一个快照。
+				highLoad -= fileWithIndex.calculateFill(messageQueue, first, last, maxFillMessageCount);
+			}
+		} finally {
+			unlock();
+		}
+		fileWithIndex.fillMessage(messageQueue, first.value, last.value);
+		// 这里有一个时间窗口：刚刚fill的消息全部都消费完毕，下面才置空，导致fill停止。目前解决方法是启动一个Timer。
+		messageFillFuture = null; // 这个清除没加锁
+	}
+
 	private void tryPushMessage() {
-		pullMessage();
-		if (null == pendingPushMessage && !messages.isEmpty() && bindSocket != null) {
+		if (null == pendingPushMessage && !messageQueue.isEmpty() && bindSocket != null) {
 			pendingPushMessage = new PushMessage();
 			pendingPushMessage.Argument.setTopic(topic);
 			pendingPushMessage.Argument.setPartitionIndex(partitionIndex);
 			pendingPushMessage.Argument.setSessionId(bindSessionId);
-			var message = messages.peek();
+			var message = messageQueue.peek();
 			pendingPushMessage.Argument.setMessage(message);
 			pendingPushMessage.Send(bindSocket, (p) -> {
 				lock();
@@ -99,8 +125,9 @@ public class MQSingle extends ReentrantLock {
 					loadCounter.incrementAndGet(); // 处理失败也进行计数。
 
 					if (pendingPushMessage.getResultCode() == 0) {
-						messages.poll();
+						messageQueue.poll();
 						fileWithIndex.increaseFirstMessageId();
+						tryStartBackgroundFill();
 					}
 
 					// 不管是否失败，都尝试重新pushMessage。出错的时候要不要随机延迟一下再重试？
@@ -135,6 +162,7 @@ public class MQSingle extends ReentrantLock {
 	}
 
 	public void close() throws IOException {
+		fillGuardTimer.cancel(true);
 		fileWithIndex.close();
 	}
 }
