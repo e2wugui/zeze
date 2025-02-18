@@ -33,6 +33,7 @@ import Zeze.Builtin.Game.Online.ReLogin;
 import Zeze.Builtin.Game.Online.ReliableNotifyConfirm;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.tOnline;
+import Zeze.Builtin.Game.Online.tOnlineShared;
 import Zeze.Builtin.Game.Online.tRoleOfflineTimers;
 import Zeze.Builtin.Game.Online.tRoleTimers;
 import Zeze.Builtin.Provider.BBroadcast;
@@ -463,6 +464,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public @NotNull tOnline getTOnline() {
 		return _tOnline;
+	}
+
+	public @NotNull tOnlineShared getTOnlineShared() {
+		return _tOnlineShared;
 	}
 
 	@SuppressWarnings("unchecked")
