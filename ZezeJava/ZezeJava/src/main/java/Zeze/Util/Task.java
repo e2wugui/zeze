@@ -40,6 +40,7 @@ public final class Task {
 	private static final FastLock taskLock = new FastLock();
 	private static final TaskOneByOneByKey oneByOne = new TaskOneByOneByKey();
 
+	@FunctionalInterface
 	public interface ILogAction {
 		void run(@Nullable Throwable ex, long result, @Nullable Protocol<?> p, @NotNull String actionName);
 	}

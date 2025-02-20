@@ -108,6 +108,13 @@ public class MQFileWithIndex {
 		}
 	}
 
+	/**
+	 * 从文件中装载消息填充到队列中。
+	 * 注意：参数未经验证，需要外部确保正确（请使用calculateFill得到参数）。
+	 * @param messageQueue 队列
+	 * @param headMessageId 开始Id。
+	 * @param endMessageId 结束Id。
+	 */
 	public void fillMessage(Queue<BMessage.Data> messageQueue, long headMessageId, long endMessageId) {
 		// 锁内计算需要读取的消息数量，并且推进firstMessageId。
 		try {

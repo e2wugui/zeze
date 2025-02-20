@@ -55,6 +55,7 @@ public class Procedure {
 		this.protocolRawArgument = protocolRawArgument;
 	}
 
+	@FunctionalInterface
 	public interface ILogAction {
 		void run(@Nullable Throwable ex, long result, @NotNull Procedure p, @NotNull String message);
 	}
