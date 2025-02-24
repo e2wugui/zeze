@@ -55,7 +55,7 @@ public final class Task {
 	// private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	@SuppressWarnings("CanBeFinal")
-	public static ILogAction logAction = Task::DefaultLogAction;
+	public static @Nullable ILogAction logAction = Task::DefaultLogAction;
 
 	static {
 		ShutdownHook.init();
