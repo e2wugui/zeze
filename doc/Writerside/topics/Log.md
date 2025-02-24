@@ -51,7 +51,7 @@ PerfCounter.instance.tryStartScheduledLog();
 ```
 
 #### 日志输出说明
-首行日志如下(高亮部分是输出的日志,其余为说明)
+首行日志如下(引用部分是输出的日志，其余为说明)
 ```
 PerfCounter: count last 100002ms:
 ```
@@ -66,30 +66,30 @@ PerfCounter: count last 100002ms:
 ```
  [run: 8593, 1055ms]
 ```
-第2组为Task.call,Task.run,Task.schedule的统计(包括事务的执行)次数和总运行时间，下面的条目按总运行时间排序:
+第2组为Task.call、Task.run、Task.schedule的统计(包括事务的执行)次数和总运行时间，下面的条目按总运行时间排序:
 ```
   Zeze.Builtin.Provider.Dispatch: 492ms = 113 * 4,358,488ns
   action名: 该action的总耗时(毫秒) = 执行次数 * 平均单次时间(纳秒)
   ......
  [recv: 265, 13K, 49ms]
 ```
-第3组为网络接收协议的数量,总字节大小,处理所有协议占IO线程的总耗时(毫秒)，下面的条目按总耗时排序:
+第3组为网络接收协议的数量、总字节大小、处理所有协议占IO线程的总耗时(毫秒)，下面的条目按总耗时排序:
 ```
   Zeze.Builtin.Provider.Dispatch: 20ms = 113 * 180,824ns,75B
   协议类: 该类协议占IO线程的总耗时(毫秒) = 数量 * 平均单个协议的耗时(纳秒)，平均单个协议的字节大小(包括协议头)
   ......
  [send: 206, 347K]
 ```
-第4组为网络发送协议的数量，总字节大小，不包括Send方法返回失败的(网络连接失效,缓冲区溢出)，下面的条目按总大小排序:
+第4组为网络发送协议的数量，总字节大小，不包括Send方法返回失败的(网络连接失效、缓冲区溢出)，下面的条目按总大小排序:
 ```
   Zeze.Builtin.Provider.Send: 175K = 92 * 1,903B
   协议类: 该类协议的发送字节大小 = 数量 * 平均单个协议的字节大小(包括协议头)
   ......
 ```
 #### 其它说明
-1. 统计的时间值只是占用线程的时间，包括其中各种等待的调用(如等锁,同步等IO等),可能不与CPU开销一致。如果只需要统计CPU开销,可使用Async Profiler、Visual VM等统计工具。
+1. 统计的时间值只是占用线程的时间，包括其中各种等待的调用(如等锁、同步等IO等)，可能不与CPU开销一致。如果只需要统计CPU开销，可使用Async Profiler、Visual VM等统计工具。
 2. PerfCounter会自动统计Dispatch和Send内部封装的协议。
-3. PerfCounter有addRunInfo,addRecvInfo,addSendInfo三个方法可以提供额外的数据供统计。
+3. PerfCounter有addRunInfo、addRecvInfo、addSendInfo三个方法可以提供额外的数据供统计。
 4. PerfCounter通常用instance单例就够了，也可以创建新实例做完全自定义的统计。
 5. 也可以不启动定时统计输出，而是手动调用getLogAndReset()获取统计信息并重置统计数据。
 6. 可通过PerfCounter.cancelScheduledLog方法停止定时输出日志。
@@ -108,7 +108,7 @@ PerfCounter.instance.addExcludeProtocolTypeId(long typeId)
 ```
 Service: 服务名.stat: select=SN/ST, recv=RS/RC, send=SS/SC, sendRaw=SR, sockets=SO, ops=OP, outBuf=OB
 ```
-上述两个大写字母代表的数值都是定时间隔期间累计的数值,含义分别如下:
+上述两个大写字母代表的数值都是定时间隔期间累计的数值，含义分别如下:
 - SN: 服务所属selectors的所有线程调用select的次数(不同服务有可能共享相同的selectors)
 - ST: 服务所属selectors的线程数(不同服务有可能共享相同的selectors)
 - RS: 服务中所有socket的接收字节数(压缩加密后)
