@@ -7,8 +7,6 @@ import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.BUserState;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Service;
-import Zeze.Util.GlobalTimer;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
@@ -23,7 +21,6 @@ public class LinkdUserSession {
 	protected IntHashMap<Long> binds = new IntHashMap<>(); // 动态绑定(也会混合静态绑定) <moduleId,providerSessionId>
 	protected long sessionId; // Linkd.SessionId
 	protected long clientAppVersion;
-	protected long keepAliveTime = GlobalTimer.getCurrentMillis();
 	protected long lastReportUnbindDynamicModuleTime;
 	protected volatile boolean authed;
 
@@ -168,14 +165,6 @@ public class LinkdUserSession {
 		}
 		logger.info("unbind: account={}, moduleIds={}, removeCount={}, leftCount={}",
 				account, moduleIds, removeCount, binds.size());
-	}
-
-	public void keepAlive(Service linkdService) {
-		keepAliveTime = GlobalTimer.getCurrentMillis();
-	}
-
-	public boolean keepAliveTimeout(long now, long timeout) {
-		return now - keepAliveTime > timeout;
 	}
 
 	/*
