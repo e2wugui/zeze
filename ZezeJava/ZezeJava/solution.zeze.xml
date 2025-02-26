@@ -1119,6 +1119,7 @@
 		</module>
 
 		<module name="DbWeb" id="11021">
+			<servlet name="Index" TransactionLevel="None"/>
 			<servlet name="ListTable" TransactionLevel="None"/>
 			<servlet name="GetValue" TransactionLevel="None"/>
 			<servlet name="WalkTable" TransactionLevel="None"/>

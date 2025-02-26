@@ -45,6 +45,10 @@ public abstract class AbstractDbWeb implements Zeze.IModule {
                 _reflect.getTransactionLevel("OnServletGetValue", Zeze.Transaction.TransactionLevel.None),
                 _reflect.getDispatchMode("OnServletGetValue", Zeze.Transaction.DispatchMode.Normal),
                 this::OnServletGetValue);
+        httpServer.addHandler("/Zeze/Builtin/DbWeb/Index", 8192,
+                _reflect.getTransactionLevel("OnServletIndex", Zeze.Transaction.TransactionLevel.None),
+                _reflect.getDispatchMode("OnServletIndex", Zeze.Transaction.DispatchMode.Normal),
+                this::OnServletIndex);
         httpServer.addHandler("/Zeze/Builtin/DbWeb/ListTable", 8192,
                 _reflect.getTransactionLevel("OnServletListTable", Zeze.Transaction.TransactionLevel.None),
                 _reflect.getDispatchMode("OnServletListTable", Zeze.Transaction.DispatchMode.Normal),
@@ -62,6 +66,7 @@ public abstract class AbstractDbWeb implements Zeze.IModule {
     protected abstract void OnServletClearTable(Zeze.Netty.HttpExchange x) throws Exception;
     protected abstract void OnServletDeleteRecord(Zeze.Netty.HttpExchange x) throws Exception;
     protected abstract void OnServletGetValue(Zeze.Netty.HttpExchange x) throws Exception;
+    protected abstract void OnServletIndex(Zeze.Netty.HttpExchange x) throws Exception;
     protected abstract void OnServletListTable(Zeze.Netty.HttpExchange x) throws Exception;
     protected abstract void OnServletPutRecord(Zeze.Netty.HttpExchange x) throws Exception;
     protected abstract void OnServletWalkTable(Zeze.Netty.HttpExchange x) throws Exception;

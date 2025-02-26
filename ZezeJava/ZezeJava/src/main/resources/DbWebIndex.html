@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KV Database</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .container { max-width: 800px; }
+        select, textarea { width: 100%; margin: 5px 0; }
+        button { padding: 5px 15px; margin: 5px; }
+        .flex { display: flex; gap: 10px; align-items: center; }
+        #jsonEditor { height: 200px; font-family: monospace; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .button-group { margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="flex">
+        <select id="tableList" style="width: 300px;" onchange="loadKeys()"></select>
+        <select id="keyList" style="width: 200px;" onchange="loadValue()"></select>
+        <div class="flex">
+            <button id="nextPage" onclick="nextPage()" title="Next page">next</button>
+            <button onclick="location.reload()">reload</button>
+        </div>
+    </div>
+    <textarea id="jsonEditor"></textarea>
+    <div class="button-group">
+        <button onclick="saveValue()">Save</button>
+        <button onclick="deleteKey()">Delete</button>
+    </div>
+</div>
+
+<script>
+    const API = {
+        tables: '/Zeze/Builtin/DbWeb/ListTable',
+        keys: '/Zeze/Builtin/DbWeb/WalkTable',
+        value: '/Zeze/Builtin/DbWeb/GetValue',
+        save: '/Zeze/Builtin/DbWeb/PutRecord',
+        delete: '/Zeze/Builtin/DbWeb/DeleteRecord'
+    };
+
+    let pagination = {
+        currentTable: null,
+        startKey: '',
+        pageSize: 20,
+        hasMore: false
+    };
+
+    async function init() {
+        try {
+            const response = await fetch(API.tables);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const tables = await response.json();
+            const select = document.getElementById('tableList');
+            tables.forEach(table => select.add(new Option(table, table)));
+        } catch (error) {
+            alert(`加载表失败: ${error.message}`);
+        }
+    }
+    init();
+
+    async function loadKeys(reset = true) {
+        try {
+            const table = document.getElementById('tableList').value;
+            if (!table) return;
+            
+            if (reset) pagination.startKey = '';    
+            pagination.currentTable = table;
+
+            const url = `${API.keys}?t=${table}&k=${encodeURIComponent(pagination.startKey)}&n=${pagination.pageSize}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const { keys, hasMore } = await response.json();
+            pagination.hasMore = hasMore;
+            document.getElementById('nextPage').disabled = !hasMore;
+            document.getElementById('jsonEditor').value = '';
+
+            const select = document.getElementById('keyList');
+            if (reset) select.innerHTML = '';
+            keys.forEach(key => select.add(new Option(key, key)));
+            
+            if (reset && keys.length > 0) {
+                select.selectedIndex = 0;
+                loadValue();
+            }
+        } catch (error) {
+            alert(`加载键失败: ${error.message}`);
+        }
+    }
+
+    async function nextPage() {
+        try {
+            const select = document.getElementById('keyList');
+            if (select.options.length > 0) {
+                pagination.startKey = select.options[select.options.length - 1].value;
+            }
+            await loadKeys(false);
+        } catch (error) {
+            alert(`翻页失败: ${error.message}`);
+        }
+    }
+
+    async function loadValue() {
+        try {
+            const table = document.getElementById('tableList').value;
+            const key = document.getElementById('keyList').value;
+            const url = `${API.value}?t=${table}&k=${key}`;
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const value = await response.json();
+            document.getElementById('jsonEditor').value = JSON.stringify(value, null, 2);
+        } catch (error) {
+            alert(`加载值失败: ${error.message}`);
+        }
+    }
+
+    async function saveValue() {
+        try {
+            const table = document.getElementById('tableList').value;
+            const key = document.getElementById('keyList').value;
+            const value = document.getElementById('jsonEditor').value;
+            
+            try {
+                JSON.parse(value);
+            } catch {
+                throw new Error('无效的JSON格式');
+            }
+            
+            const url = `${API.save}?t=${table}&k=${key}`;
+            const response = await fetch(url, {
+                method: 'Put',
+                headers: { 'Content-Type': 'application/json' },
+                body: value
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            alert('保存成功');
+        } catch (error) {
+            alert(`保存失败: ${error.message}`);
+        }
+    }
+
+    
+    async function deleteKey() {
+        try {
+            const table = document.getElementById('tableList').value;
+            const key = document.getElementById('keyList').value;
+            if (!table || !key) {
+                alert('Please select a table and a key.');
+                return;
+            }
+            
+            const confirmed = confirm(`Are you sure you want to delete key "${key}"? This action cannot be undone!`);
+            if (!confirmed) return;
+
+            const url = `${API.delete}?t=${table}&k=${encodeURIComponent(key)}`;
+            const response = await fetch(url, { method: 'Delete' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            alert('Key deleted successfully.');
+            loadKeys(true); // 重新加载键列表
+            document.getElementById('jsonEditor').value = ''; // 清空当前值
+        } catch (error) {
+            alert(`Failed to delete key: ${error.message}`);
+        }
+    }
+</script>
+</body>
+</html>
