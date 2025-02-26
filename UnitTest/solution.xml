@@ -146,25 +146,25 @@
 		</service>
 	</project>
 
-	<project name="cxx" gendir="../lua" platform="cxx+lua">
+	<project name="cxx" gendir="../lua" GenTables="None" platform="cxx+lua">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="TypeScript" gendir=".." scriptdir="" platform="ts">
+	<project name="TypeScript" gendir=".." scriptdir="" GenTables="client" platform="ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="ZezeUnity" gendir="../.." scriptdir="ts" platform="cs+ts">
+	<project name="ZezeUnity" gendir="../.." scriptdir="ts" GenTables="client" platform="cs+ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="ZezeUnreal" gendir="../.." scriptdir="ts" platform="ts">
+	<project name="ZezeUnreal" gendir="../.." scriptdir="ts" GenTables="client" platform="ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>

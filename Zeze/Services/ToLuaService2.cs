@@ -27,11 +27,9 @@ namespace Zeze.Services
     {
         public Service Service => this;
         public ToLua ToLua { get; } = new ToLua();
-        readonly bool clientFirst;
 
-        public ToLuaServiceClient2(string name, Config config, bool clientFirst = true) : base(name, config)
+        public ToLuaServiceClient2(string name, Config config) : base(name, config)
         {
-            this.clientFirst = clientFirst;
         }
 
         public void InitializeLua(ILua iLua)
@@ -42,18 +40,6 @@ namespace Zeze.Services
         public override void OnSocketConnected(AsyncSocket so)
         {
             base.OnSocketConnected(so);
-
-            if (clientFirst)
-            {
-                // todo 这里先让客户端发起流程，不适用SHandShake0 触发
-                var p = new Handshake.SHandshake0Argument
-                {
-                    EncryptType = Constant.eEncryptTypeAes,
-                    CompressS2c = Constant.eCompressTypeMppc,
-                    CompressC2s = Constant.eCompressTypeMppc
-                };
-                StartHandshake(p, so);
-            }
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)

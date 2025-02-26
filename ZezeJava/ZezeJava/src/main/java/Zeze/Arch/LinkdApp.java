@@ -6,14 +6,11 @@ import Zeze.Builtin.LinksInfo.BLinkInfo;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.Action1;
 import Zeze.Util.CommandConsoleService;
-import Zeze.Util.PropertiesHelper;
-import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,9 +81,6 @@ public class LinkdApp {
 		providerPort = kv.getValue();
 
 		commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
-
-		var checkPeriod = PropertiesHelper.getInt("KeepAliveCheckPeriod", 5000);
-		Task.scheduleUnsafe(checkPeriod, checkPeriod, this::keepAliveCheckTimer);
 	}
 
 	void applyOnChanged(@NotNull BEditService edit) {
@@ -96,16 +90,6 @@ public class LinkdApp {
 		for (var p : edit.getAdd()) {
 			linkdProvider.distributes.addServer(p);
 		}
-	}
-
-	private void keepAliveCheckTimer() throws Exception {
-		var now = System.currentTimeMillis();
-		var timeout = PropertiesHelper.getInt("KeepAliveTimeout", 180_000);
-		linkdService.foreach((link) -> {
-			var session = (LinkdUserSession)link.getUserState();
-			if (null != session && session.keepAliveTimeout(now, timeout))
-				link.close(Service.keepAliveException);
-		});
 	}
 
 	public @NotNull String getName() {
