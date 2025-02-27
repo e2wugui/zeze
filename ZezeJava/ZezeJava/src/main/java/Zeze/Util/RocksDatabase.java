@@ -52,6 +52,14 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static final @NotNull MethodHandle mhWriteBatchDeleteCf;
 	private static final @NotNull MethodHandle mhWriteBatchNativeNew;
 	private static final @NotNull MethodHandle mhWriteBatchNew;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbGetCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbPutCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbDeleteCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbDeleteRangeCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbWriteCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbTxnPutCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbTxnDeleteCounter;
+	private static final @NotNull ZezeCounter.LongCounter rocksDbCompactCounter;
 
 	static {
 		try {
@@ -76,6 +84,26 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			mhWriteBatchNew = lookup.unreflectConstructor(c);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
+		}
+
+		if (ZezeCounter.ENABLE_PERF) {
+			rocksDbGetCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.get");
+			rocksDbPutCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.put");
+			rocksDbDeleteCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.delete");
+			rocksDbDeleteRangeCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.deleteRange");
+			rocksDbWriteCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.write");
+			rocksDbTxnPutCounter = ZezeCounter.instance.getRunTimeCounter("RocksDBTxn.put");
+			rocksDbTxnDeleteCounter = ZezeCounter.instance.getRunTimeCounter("RocksDBTxn.delete");
+			rocksDbCompactCounter = ZezeCounter.instance.getRunTimeCounter("RocksDB.compact");
+		} else {
+			rocksDbGetCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbPutCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbDeleteCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbDeleteRangeCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbWriteCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbTxnPutCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbTxnDeleteCounter = ZezeCounter.LongCounter.dummy;
+			rocksDbCompactCounter = ZezeCounter.LongCounter.dummy;
 		}
 	}
 
@@ -535,7 +563,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var r = rocksDb.get(cfHandle, options, key);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.get", System.nanoTime() - timeBegin);
+				rocksDbGetCounter.add(System.nanoTime() - timeBegin);
 			return r;
 		}
 
@@ -544,7 +572,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			var r = rocksDb.get(cfHandle, options, key, offset, size);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.get", System.nanoTime() - timeBegin);
+				rocksDbGetCounter.add(System.nanoTime() - timeBegin);
 			return r;
 		}
 
@@ -561,7 +589,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.put(cfHandle, options, key, value);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.put", System.nanoTime() - timeBegin);
+				rocksDbPutCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen,
@@ -569,7 +597,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.put(cfHandle, options, key, keyOff, keyLen, value, valueOff, valueLen);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.put", System.nanoTime() - timeBegin);
+				rocksDbPutCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void delete(byte[] key) throws RocksDBException {
@@ -584,14 +612,14 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.delete(cfHandle, options, key);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.delete", System.nanoTime() - timeBegin);
+				rocksDbDeleteCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull WriteOptions options, byte[] key, int keyOff, int keyLen) throws RocksDBException {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.delete(cfHandle, options, key, keyOff, keyLen);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.delete", System.nanoTime() - timeBegin);
+				rocksDbDeleteCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void deleteRange(byte[] first, byte[] last) throws RocksDBException {
@@ -602,7 +630,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.deleteRange(cfHandle, options, first, last);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.deleteRange", System.nanoTime() - timeBegin);
+				rocksDbDeleteRangeCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull Transaction t, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
@@ -627,7 +655,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			value = Database.copyIf(value, valueOff, valueLen);
 			t.put(cfHandle, key, value);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDBTxn.put", System.nanoTime() - timeBegin);
+				rocksDbTxnPutCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void delete(@NotNull Transaction t, @NotNull Binary key) throws RocksDBException {
@@ -648,7 +676,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			key = Database.copyIf(key, keyOff, keyLen);
 			t.delete(cfHandle, key);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDBTxn.delete", System.nanoTime() - timeBegin);
+				rocksDbTxnDeleteCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void put(@NotNull Batch batch, @NotNull Binary key, @NotNull Binary value) throws RocksDBException {
@@ -736,7 +764,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.compactRange(cfHandle);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.compact", System.nanoTime() - timeBegin);
+				rocksDbCompactCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public void clear() throws RocksDBException {
@@ -807,7 +835,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			rocksDb.write(options, batch);
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.write", System.nanoTime() - timeBegin);
+				rocksDbWriteCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		// clear后可以再次put,delete,commit. 复用Batch性能更高
@@ -851,7 +879,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 				Task.forceThrow(e);
 			}
 			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("RocksDB.write", System.nanoTime() - timeBegin);
+				rocksDbWriteCounter.add(System.nanoTime() - timeBegin);
 		}
 
 		public byte[] copy() {

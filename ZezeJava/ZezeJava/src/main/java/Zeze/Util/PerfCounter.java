@@ -26,14 +26,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
 		final @NotNull String name;
+		long lastRecvSize;
 		final LongAdder procCount = new LongAdder(); // 处理次数
 		final LongAdder procTime = new LongAdder(); // 处理时间(ns)
 		long lastProcCount;
 		long lastProcTime;
 		int idleCount; // 没收集到信息的轮数
 
-		RunInfo(@NotNull String name) {
+		RunInfo(@NotNull String name, long serial) {
 			this.name = name;
+			this.lastRecvSize = serial;
 		}
 	}
 
@@ -41,12 +43,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		final LongAdder recvSize = new LongAdder(); // 接收字节
 		final LongAdder sendCount = new LongAdder(); // 发送次数
 		final LongAdder sendSize = new LongAdder(); // 发送字节
-		long lastRecvSize;
 		long lastSendCount;
 		long lastSendSize;
 
 		ProtocolInfo(String name) {
-			super(name);
+			super(name, 0);
 		}
 	}
 
@@ -255,6 +256,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = osBean.getProcessCpuTime();
+	private long clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 
 	public static long getMaxDirectMemory() {
@@ -326,20 +328,45 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	@Override
-	public void addRunTime(@NotNull Object key, long timeNs) {
+	private @Nullable RunInfo getRunInfo(@NotNull Object key) {
 		if (excludeRunKeys.contains(key))
-			return;
+			return null;
 		for (; ; ) {
 			var ri = runInfoMap.get(key);
-			if (ri != null) {
-				ri.procCount.increment();
-				ri.procTime.add(timeNs);
-				return;
-			}
+			if (ri != null)
+				return ri;
 			runInfoMap.putIfAbsent(key,
-					new RunInfo(key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key)));
+					new RunInfo(key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key), clearSerial));
 		}
+	}
+
+	@Override
+	public void addRunTime(@NotNull Object key, long timeNs) {
+		var ri = getRunInfo(key);
+		if (ri != null) {
+			ri.procCount.increment();
+			ri.procTime.add(timeNs);
+		}
+	}
+
+	@Override
+	public @NotNull LongCounter getRunTimeCounter(@NotNull Object key) {
+		var ri = getRunInfo(key);
+		if (ri == null)
+			return LongCounter.dummy;
+		var counterWrapper = new OutObject<>(ri);
+		return v -> {
+			var ri2 = counterWrapper.value;
+			if (ri2 != null) {
+				if (ri2.lastRecvSize != clearSerial) {
+					counterWrapper.value = ri2 = getRunInfo(key);
+					if (ri2 == null)
+						return;
+				}
+				ri2.procCount.increment();
+				ri2.procTime.add(v);
+			}
+		};
 	}
 
 	@Override
@@ -507,6 +534,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	public void resetCounter() {
+		clearSerial++;
 		runInfoMap.clear();
 		protocolInfoMap.clear();
 		procedureInfoMap.clear();
