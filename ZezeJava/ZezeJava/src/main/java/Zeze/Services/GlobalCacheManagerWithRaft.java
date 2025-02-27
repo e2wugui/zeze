@@ -35,8 +35,8 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -116,7 +116,7 @@ public class GlobalCacheManagerWithRaft
 
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
-		PerfCounter.instance.tryStartScheduledLog();
+		ZezeCounter.instance.init();
 
 		rocks.getRaft().getServer().start();
 

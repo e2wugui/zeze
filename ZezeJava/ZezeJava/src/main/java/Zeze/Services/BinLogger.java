@@ -29,10 +29,10 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FastLock;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -49,8 +49,8 @@ import org.jetbrains.annotations.Nullable;
 */
 public final class BinLogger extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(BinLogger.class);
-	private static final int perfIndexSendLogFail = PerfCounter.instance.registerCountIndex("BinLogger.SendLogFail");
-	private static final int perfIndexWriteLog = PerfCounter.instance.registerCountIndex("BinLogger.WriteLog");
+	private static final int perfIndexSendLogFail = ZezeCounter.instance.allocCounterIndex("BinLogger.SendLogFail");
+	private static final int perfIndexWriteLog = ZezeCounter.instance.allocCounterIndex("BinLogger.WriteLog");
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
@@ -216,8 +216,8 @@ public final class BinLogger extends ReentrantLock {
 			var so = connector.getSocket();
 			if (so != null && so.Send(new LogData(roleId, log)))
 				return true;
-			if (PerfCounter.ENABLE_PERF)
-				PerfCounter.instance.addCountInfo(perfIndexSendLogFail);
+			if (ZezeCounter.ENABLE_PERF)
+				ZezeCounter.instance.incCounterByIndex(perfIndexSendLogFail);
 			return false;
 		}
 	}
@@ -472,15 +472,15 @@ public final class BinLogger extends ReentrantLock {
 							return 0;
 						}
 						if (timeBegin == 0)
-							timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+							timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 						waitingQueue = true;
 						queueLockCond.await();
 					}
 				} finally {
 					queueLock.unlock();
 				}
-				if (PerfCounter.ENABLE_PERF && timeBegin != 0)
-					PerfCounter.instance.addRunInfo("BinLogger.waitQueue", System.nanoTime() - timeBegin);
+				if (ZezeCounter.ENABLE_PERF && timeBegin != 0)
+					ZezeCounter.instance.addRunTime("BinLogger.waitQueue", System.nanoTime() - timeBegin);
 				logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
 						p.roleId, p.dataType, dataSize, p.getSender());
 			}
@@ -549,8 +549,8 @@ public final class BinLogger extends ReentrantLock {
 							idFile.write(buf);
 						}
 						readLogQueue.clear();
-						if (PerfCounter.ENABLE_PERF)
-							PerfCounter.instance.addCountInfo(perfIndexWriteLog, queueSize);
+						if (ZezeCounter.ENABLE_PERF)
+							ZezeCounter.instance.addCounterByIndex(perfIndexWriteLog, queueSize);
 					} else {
 						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
 							lastFlushMs = curMs;
@@ -618,7 +618,7 @@ public final class BinLogger extends ReentrantLock {
 						new ThreadFactoryWithName("ZezeScheduledPool", Thread.NORM_PRIORITY + 2)));
 		if (Selectors.getInstance().getCount() < threadCount)
 			Selectors.getInstance().add(threadCount - Selectors.getInstance().getCount());
-		PerfCounter.instance.tryStartScheduledLog();
+		ZezeCounter.instance.init();
 
 		new BinLoggerService(path).start(host, port);
 		synchronized (Thread.currentThread()) {

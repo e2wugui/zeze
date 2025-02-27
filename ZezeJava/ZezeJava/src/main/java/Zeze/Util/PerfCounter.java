@@ -15,13 +15,12 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableKey;
 import com.sun.management.OperatingSystemMXBean;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class PerfCounter extends FastLock {
-	public static final @NotNull Logger logger = LogManager.getLogger("StatLog");
+public final class PerfCounter extends FastLock implements ZezeCounter {
+	public static class LongAdderCounter extends LongAdder implements LongCounter {
+	}
 
 	private static class RunInfo {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
@@ -96,20 +95,20 @@ public final class PerfCounter extends FastLock {
 		}
 	}
 
-	public static final class TableInfo {
-		public final @NotNull String tableName;
-		public final LongAdder readLock = new LongAdder();
-		public final LongAdder writeLock = new LongAdder();
-		public final LongAdder storageGet = new LongAdder();
+	public static final class TableInfo implements TableCounter {
+		private final @NotNull String tableName;
+		private final LongAdderCounter readLock = new LongAdderCounter();
+		private final LongAdderCounter writeLock = new LongAdderCounter();
+		private final LongAdderCounter storageGet = new LongAdderCounter();
 		// 这两个统计用来观察cache清理的影响
-		public final LongAdder tryReadLock = new LongAdder();
-		public final LongAdder tryWriteLock = new LongAdder();
+		private final LongAdderCounter tryReadLock = new LongAdderCounter();
+		private final LongAdderCounter tryWriteLock = new LongAdderCounter();
 		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		public final LongAdder acquireShare = new LongAdder();
-		public final LongAdder acquireModify = new LongAdder();
-		public final LongAdder acquireInvalid = new LongAdder();
-		public final LongAdder reduceInvalid = new LongAdder();
-		public final LongAdder redo = new LongAdder();
+		private final LongAdderCounter acquireShare = new LongAdderCounter();
+		private final LongAdderCounter acquireModify = new LongAdderCounter();
+		private final LongAdderCounter acquireInvalid = new LongAdderCounter();
+		private final LongAdderCounter reduceInvalid = new LongAdderCounter();
+		private final LongAdderCounter redo = new LongAdderCounter();
 
 		long readLockCount;
 		long writeLockCount;
@@ -125,6 +124,56 @@ public final class PerfCounter extends FastLock {
 
 		TableInfo(@NotNull String tableName) {
 			this.tableName = tableName;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter readLock() {
+			return readLock;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter writeLock() {
+			return writeLock;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter storageGet() {
+			return storageGet;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter tryReadLock() {
+			return tryReadLock;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter tryWriteLock() {
+			return tryWriteLock;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter acquireShare() {
+			return acquireShare;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter acquireModify() {
+			return acquireModify;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter acquireInvalid() {
+			return acquireInvalid;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter reduceInvalid() {
+			return reduceInvalid;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter redo() {
+			return redo;
 		}
 
 		boolean checkpointAndReset() {
@@ -176,7 +225,7 @@ public final class PerfCounter extends FastLock {
 
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
-	public static final boolean ENABLE_PERF = PERF_COUNT > 0;
+	public static final boolean ENABLE_PERF = ZezeCounter.ENABLE_PERF && PERF_COUNT > 0;
 	public static final OperatingSystemMXBean osBean = (OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
 	public static final Field fMaxDirectMemory; // long
 	public static final AtomicLong reservedDirectMemory;
@@ -194,8 +243,6 @@ public final class PerfCounter extends FastLock {
 			throw new ExceptionInInitializerError(e);
 		}
 	}
-
-	public static final PerfCounter instance = new PerfCounter(); // 通常用全局单例就够用了,也可以创建新实例
 
 	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
@@ -230,11 +277,12 @@ public final class PerfCounter extends FastLock {
 		return directCount.get();
 	}
 
-	public int registerCountIndex(String name) {
-		return registerCountIndex(name, false);
+	@Override
+	public int allocCounterIndex(@NotNull String name) {
+		return allocCounterIndex(name, false);
 	}
 
-	public int registerCountIndex(String name, boolean accumulate) {
+	public int allocCounterIndex(@NotNull String name, boolean accumulate) {
 		lock();
 		try {
 			int n = countInfos.length;
@@ -278,7 +326,8 @@ public final class PerfCounter extends FastLock {
 		}
 	}
 
-	public void addRunInfo(@NotNull Object key, long timeNs) {
+	@Override
+	public void addRunTime(@NotNull Object key, long timeNs) {
 		if (excludeRunKeys.contains(key))
 			return;
 		for (; ; ) {
@@ -293,7 +342,8 @@ public final class PerfCounter extends FastLock {
 		}
 	}
 
-	public void addRecvInfo(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
+	@Override
+	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
 		if (excludeProtocolTypeIds.contains(typeId))
 			return;
 		for (; ; ) {
@@ -310,7 +360,8 @@ public final class PerfCounter extends FastLock {
 		}
 	}
 
-	public void addSendInfo(byte @NotNull [] bytes, int offset, int length) {
+	@Override
+	public void addSendSize(byte @NotNull [] bytes, int offset, int length) {
 		while (length >= 12) {
 			int moduleId = ByteBuffer.ToInt(bytes, offset);
 			int protocolId = ByteBuffer.ToInt(bytes, offset + 4);
@@ -335,13 +386,13 @@ public final class PerfCounter extends FastLock {
 				}
 			}
 			if (typeId == Send.TypeId_)
-				addSendRpc(bytes, offset + Protocol.HEADER_SIZE, length - Protocol.HEADER_SIZE);
+				addSendRpcSize(bytes, offset + Protocol.HEADER_SIZE, length - Protocol.HEADER_SIZE);
 			offset += size;
 			length -= size;
 		}
 	}
 
-	private void addSendRpc(byte @NotNull [] bytes, int offset, int length) {
+	private void addSendRpcSize(byte @NotNull [] bytes, int offset, int length) {
 		try {
 			var bb = ByteBuffer.Wrap(bytes, offset, length);
 			var header = bb.ReadUInt();
@@ -363,7 +414,7 @@ public final class PerfCounter extends FastLock {
 			}
 			if (i == 3 && (t & ByteBuffer.TAG_MASK) == ByteBuffer.BYTES) { // protocolWholeData
 				int n = bb.ReadUInt();
-				addSendInfo(bytes, bb.ReadIndex, Math.min(n, bb.size()));
+				addSendSize(bytes, bb.ReadIndex, Math.min(n, bb.size()));
 			}
 		} catch (Exception e) {
 			logger.warn("addSendRpc: decode Send failed", e);
@@ -390,6 +441,7 @@ public final class PerfCounter extends FastLock {
 		return tableInfoMap.get(tableId);
 	}
 
+	@Override
 	public @NotNull TableInfo getOrAddTableInfo(long tableId) {
 		return tableInfoMap.computeIfAbsent(tableId, k -> {
 			var tableName = TableKey.tables.get(k);
@@ -397,15 +449,18 @@ public final class PerfCounter extends FastLock {
 		});
 	}
 
-	public void addProcedureInfo(@NotNull String name, long resultCode) {
+	@Override
+	public void countProcedureResultCode(@NotNull String name, long resultCode) {
 		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
 	}
 
-	public void addCountInfo(int index) {
-		addCountInfo(index, 1);
+	@Override
+	public void incCounterByIndex(int index) {
+		addCounterByIndex(index, 1);
 	}
 
-	public void addCountInfo(int index, long count) {
+	@Override
+	public void addCounterByIndex(int index, long count) {
 		countInfos[index].count.add(count);
 	}
 
@@ -415,6 +470,11 @@ public final class PerfCounter extends FastLock {
 
 	public long getLastLogTime() {
 		return lastLogTime;
+	}
+
+	@Override
+	public void init() {
+		tryStartScheduledLog();
 	}
 
 	public @Nullable ScheduledFuture<?> getScheduleFuture() {

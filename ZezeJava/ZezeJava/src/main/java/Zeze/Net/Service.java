@@ -29,9 +29,9 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -849,7 +849,7 @@ public class Service extends ReentrantLock {
 					});
 					operates.value /= periodSec;
 					outBufSize.value /= periodSec;
-					PerfCounter.logger.info(
+					ZezeCounter.logger.info(
 							"{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
 							name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
 							operates.value, outBufSize.value);

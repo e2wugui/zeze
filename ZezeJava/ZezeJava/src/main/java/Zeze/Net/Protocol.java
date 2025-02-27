@@ -9,8 +9,8 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ProtocolFactoryFinder;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -366,7 +366,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 			if (service.checkThrottle(so, moduleId, protocolId, size)
 					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
-				var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+				var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null)
@@ -376,8 +376,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
 				}
-				if (PerfCounter.ENABLE_PERF) {
-					PerfCounter.instance.addRecvInfo(typeId, factoryHandle != null ? factoryHandle.Class : null,
+				if (ZezeCounter.ENABLE_PERF) {
+					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
 							HEADER_SIZE + size, System.nanoTime() - timeBegin);
 				}
 			}

@@ -9,8 +9,8 @@ import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Contract;
@@ -19,8 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
 	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
-	private static final int perfIndexTransactionRedo = PerfCounter.instance.registerCountIndex("Transaction.Redo");
-	private static final int perfIndexTransactionRedoAndReleaseLock = PerfCounter.instance.registerCountIndex("Transaction.RedoAndReleaseLock");
+	private static final int perfIndexTransactionRedo = ZezeCounter.instance.allocCounterIndex("Transaction.Redo");
+	private static final int perfIndexTransactionRedoAndReleaseLock = ZezeCounter.instance.allocCounterIndex("Transaction.RedoAndReleaseLock");
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
 	public static @NotNull Transaction create(@NotNull Locks locks) {
@@ -359,12 +359,12 @@ public final class Transaction {
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
 							// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
-							if (PerfCounter.ENABLE_PERF)
-								PerfCounter.instance.addCountInfo(perfIndexTransactionRedoAndReleaseLock);
+							if (ZezeCounter.ENABLE_PERF)
+								ZezeCounter.instance.incCounterByIndex(perfIndexTransactionRedoAndReleaseLock);
 							break;
 						}
-						if (PerfCounter.ENABLE_PERF)
-							PerfCounter.instance.addCountInfo(perfIndexTransactionRedo);
+						if (ZezeCounter.ENABLE_PERF)
+							ZezeCounter.instance.incCounterByIndex(perfIndexTransactionRedo);
 					}
 				} finally {
 					checkpoint.exitFlushReadLock();
@@ -709,7 +709,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					return r;
@@ -730,7 +730,7 @@ public final class Transaction {
 					break;
 				case Redo:
 					conflict = true;
-					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					return r;
@@ -763,7 +763,7 @@ public final class Transaction {
 				case Redo:
 					// Impossible!
 					conflict = true;
-					PerfCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo.increment();
+					ZezeCounter.instance.getOrAddTableInfo(e.getKey().getId()).redo().increment();
 					break; // continue lock
 				default:
 					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
@@ -812,7 +812,7 @@ public final class Transaction {
 
 	@Contract("_, _, _ -> fail")
 	public void throwRedoAndReleaseLock(int tableId, @NotNull String msg, @Nullable Throwable cause) {
-		PerfCounter.instance.getOrAddTableInfo(tableId).redo.increment();
+		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running: " + state + ", msg: " + msg, cause);
 		state = TransactionState.RedoAndReleaseLock;
@@ -821,7 +821,7 @@ public final class Transaction {
 
 	@Contract("_, _ -> fail")
 	public void throwRedo(int tableId, @NotNull String msg) {
-		PerfCounter.instance.getOrAddTableInfo(tableId).redo.increment();
+		ZezeCounter.instance.getOrAddTableInfo(tableId).redo().increment();
 		if (state != TransactionState.Running)
 			throw new IllegalStateException("Redo: State Is Not Running: " + state);
 		state = TransactionState.Redo;

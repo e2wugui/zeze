@@ -50,11 +50,11 @@ import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -203,7 +203,7 @@ public final class Application extends ReentrantLock {
 
 		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
 		conf.createDatabase(this, databases);
-		PerfCounter.instance.tryStartScheduledLog();
+		ZezeCounter.instance.init();
 
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。
@@ -467,7 +467,6 @@ public final class Application extends ReentrantLock {
 		return newProcedure(action, actionName, level);
 	}
 	*/
-
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level) {
 		if (!isStart()) {

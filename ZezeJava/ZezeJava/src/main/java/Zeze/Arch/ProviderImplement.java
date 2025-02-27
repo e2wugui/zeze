@@ -23,9 +23,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.TransactionLevelAnnotation;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -166,7 +166,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 
 		try {
-			var timeBegin = PerfCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
@@ -204,8 +204,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level), outProtocol, session::trySendResponse);
-				if (PerfCounter.ENABLE_PERF) {
-					PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
+				if (ZezeCounter.ENABLE_PERF) {
+					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 				}
 				return r;
@@ -237,8 +237,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 			}, p3, session::trySendResponse);
-			if (PerfCounter.ENABLE_PERF) {
-				PerfCounter.instance.addRecvInfo(typeId, factoryHandle.Class,
+			if (ZezeCounter.ENABLE_PERF) {
+				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 			}
 			return r;

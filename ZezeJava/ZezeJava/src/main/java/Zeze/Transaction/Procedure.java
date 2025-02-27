@@ -4,8 +4,8 @@ import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Net.Binary;
 import Zeze.Util.FuncLong;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskCanceledException;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -151,9 +151,9 @@ public class Procedure {
 					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
 					currentT.reuseTransaction();
 				}
-				if (PerfCounter.ENABLE_PERF) {
-					PerfCounter.instance.addProcedureInfo(actionName, result);
-					PerfCounter.instance.addRunInfo(actionName, runTime);
+				if (ZezeCounter.ENABLE_PERF) {
+					ZezeCounter.instance.countProcedureResultCode(actionName, result);
+					ZezeCounter.instance.addRunTime(actionName, runTime);
 				}
 			}
 		}

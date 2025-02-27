@@ -38,9 +38,9 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,7 +102,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 			if (ENABLE_PERF)
 				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-			PerfCounter.instance.tryStartScheduledLog();
+			ZezeCounter.instance.init();
 
 			if (config == null)
 				config = Config.load();

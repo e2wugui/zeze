@@ -5,6 +5,7 @@ import Zeze.Transaction.DatabaseMemory;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -84,7 +85,7 @@ public final class Simulate {
 
 	@Test
 	public void testMain() throws Exception {
-		var perfScheduled = PerfCounter.instance.cancelScheduledLog();
+		var perfScheduled = ((PerfCounter)ZezeCounter.instance).cancelScheduledLog();
 		logger.fatal("Prepare");
 		try {
 			var taskDefTimeout = Task.defaultTimeout;
@@ -99,7 +100,7 @@ public final class Simulate {
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
 				app.startTest();
 			}
-			PerfCounter.instance.resetCounter();
+			((PerfCounter)ZezeCounter.instance).resetCounter();
 			for (int i = 0; i < BatchTaskCount; i++)
 				Tasks.randCreateTask().Run();
 			logger.fatal("Wait {}", BatchNumber);
@@ -121,7 +122,7 @@ public final class Simulate {
 			throw ex;
 		} finally {
 			if (perfScheduled)
-				PerfCounter.instance.tryStartScheduledLog();
+				((PerfCounter)ZezeCounter.instance).tryStartScheduledLog();
 		}
 	}
 

@@ -53,6 +53,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.TimerFuture;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -66,7 +67,7 @@ public final class Token extends AbstractToken {
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
 	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
 			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
-	private static final int perfIndexTokenSoftRefClean = PerfCounter.instance.registerCountIndex("TokenSoftRefClean");
+	private static final int perfIndexTokenSoftRefClean = ZezeCounter.instance.allocCounterIndex("TokenSoftRefClean");
 	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
 	private static final FastLock tokenRefCleanerLock = new FastLock();
 	private static @Nullable Thread tokenRefCleaner;
@@ -472,8 +473,8 @@ public final class Token extends AbstractToken {
 				} else {
 					if (!moveToDB(state, bb, stateBufCount == STATE_BUF_COUNT))
 						stateBuf[stateBufCount++] = state;
-					if (PerfCounter.ENABLE_PERF)
-						PerfCounter.instance.addCountInfo(perfIndexTokenSoftRefClean);
+					if (ZezeCounter.ENABLE_PERF)
+						ZezeCounter.instance.incCounterByIndex(perfIndexTokenSoftRefClean);
 				}
 			} catch (Throwable e) { // logger.error
 				logger.error("cleanTokenRef exception:", e);
@@ -516,7 +517,7 @@ public final class Token extends AbstractToken {
 				tokenRefCleanerLock.unlock();
 			}
 
-			PerfCounter.instance.tryStartScheduledLog();
+			ZezeCounter.instance.init();
 
 			service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 			RegisterProtocols(service);
@@ -745,7 +746,9 @@ public final class Token extends AbstractToken {
 		res.setCurCount(tokenMap.size());
 		var s = service;
 		res.setConnectCount(s != null ? s.getSocketCount() : -1);
-		res.setPerfLog(PerfCounter.instance.getLastLog());
+		var counter = ZezeCounter.instance;
+		if (counter instanceof PerfCounter)
+			res.setPerfLog(((PerfCounter)counter).getLastLog());
 		r.SendResultCode(0);
 		return Procedure.Success;
 	}

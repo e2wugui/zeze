@@ -4,8 +4,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Str;
+import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -103,7 +103,7 @@ public class Profiler {
 				if (nextTime <= curTimeNs) {
 					if (!State.vhNextProfileTime.compareAndSet(state, nextTime, curTimeNs + PROFILE_LOG_PERIOD))
 						continue;
-					PerfCounter.logger.info("profile procedure '{}' for {}ms:\n{}",
+					ZezeCounter.logger.info("profile procedure '{}' for {}ms:\n{}",
 							procName, runTimeNs / 1_000_000, this);
 				}
 				break;

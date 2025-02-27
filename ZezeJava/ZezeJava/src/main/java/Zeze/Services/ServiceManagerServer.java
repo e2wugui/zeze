@@ -32,11 +32,11 @@ import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -704,7 +704,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
 								@NotNull Config config,
 								@NotNull String autokeys) throws Exception {
-		PerfCounter.instance.tryStartScheduledLog();
+		ZezeCounter.instance.init();
 		config.parseCustomize(this.conf);
 
 		server = new NetServer(this, config);

@@ -12,8 +12,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -78,7 +78,7 @@ public class BenchClient {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			PerfCounter.instance.tryStartScheduledLog();
+			ZezeCounter.instance.init();
 
 			var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null);
 			dbh2AgentManager.start();

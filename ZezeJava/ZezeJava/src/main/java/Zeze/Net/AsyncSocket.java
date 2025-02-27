@@ -24,10 +24,10 @@ import Zeze.Util.Action0;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.LongHashSet;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -608,8 +608,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
-				if (PerfCounter.ENABLE_PERF)
-					PerfCounter.instance.addSendInfo(bytes, offset, length);
+				if (ZezeCounter.ENABLE_PERF)
+					ZezeCounter.instance.addSendSize(bytes, offset, length);
 			})) {
 				setActiveSendTime();
 				return true;
@@ -779,8 +779,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 			} else
 				outputBuffer.put(bytes, offset, length);
-			if (PerfCounter.ENABLE_PERF)
-				PerfCounter.instance.addSendInfo(bytes, offset, length);
+			if (ZezeCounter.ENABLE_PERF)
+				ZezeCounter.instance.addSendSize(bytes, offset, length);
 		});
 		if (result)
 			setActiveSendTime();

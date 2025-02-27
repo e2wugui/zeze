@@ -1,9 +1,9 @@
 package Zeze.Dbh2.Master;
 
 import Zeze.Config;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -58,7 +58,7 @@ public class Main {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			PerfCounter.instance.tryStartScheduledLog();
+			ZezeCounter.instance.init();
 
 			new Main(args[0]).start();
 

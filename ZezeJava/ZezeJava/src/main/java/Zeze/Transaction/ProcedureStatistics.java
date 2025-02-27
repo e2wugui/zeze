@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
 import Zeze.Util.TimerFuture;
+import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 
 public final class ProcedureStatistics {
@@ -32,10 +33,13 @@ public final class ProcedureStatistics {
 
 		static long getTotalCount(@NotNull String procedureName) {
 			long total = 0;
-			var pInfo = PerfCounter.instance.getProcedureInfo(procedureName);
-			if (pInfo != null) {
-				for (var v : pInfo.getResultMapLast())
-					total += v.sum();
+			var counter = ZezeCounter.instance;
+			if (counter instanceof PerfCounter) {
+				var pInfo = ((PerfCounter)counter).getProcedureInfo(procedureName);
+				if (pInfo != null) {
+					for (var v : pInfo.getResultMapLast())
+						total += v.sum();
+				}
 			}
 			return total;
 		}
@@ -46,7 +50,7 @@ public final class ProcedureStatistics {
 				try {
 					reachHandle.run();
 				} catch (Throwable e) { // logger.error
-					PerfCounter.logger.error("ProcedureStatistics.Watcher.check exception:", e);
+					ZezeCounter.logger.error("ProcedureStatistics.Watcher.check exception:", e);
 				}
 			}
 			last = total;

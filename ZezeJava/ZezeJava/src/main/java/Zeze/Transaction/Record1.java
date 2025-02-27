@@ -9,7 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Id128;
-import Zeze.Util.PerfCounter;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -140,16 +140,16 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		if (isTraceEnabled)
 			logger.trace("Acquire NewState={} {}", state, this);
-		var tInfo = PerfCounter.instance.getOrAddTableInfo(table.getId());
+		var tInfo = ZezeCounter.instance.getOrAddTableInfo(table.getId());
 		switch (state) {
 		case GlobalCacheManagerConst.StateInvalid:
-			tInfo.acquireInvalid.increment();
+			tInfo.acquireInvalid().increment();
 			break;
 		case GlobalCacheManagerConst.StateShare:
-			tInfo.acquireShare.increment();
+			tInfo.acquireShare().increment();
 			break;
 		case GlobalCacheManagerConst.StateModify:
-			tInfo.acquireModify.increment();
+			tInfo.acquireModify().increment();
 			break;
 		}
 		return agent.acquire(table.encodeGlobalKey(key), state, fresh, noWait);

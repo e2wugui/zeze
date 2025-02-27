@@ -5,6 +5,7 @@ import java.util.List;
 import Zeze.Services.Log4jQuery.handler.HandlerCmd;
 import Zeze.Services.Log4jQuery.handler.QueryHandler;
 import Zeze.Util.PerfCounter;
+import Zeze.Util.ZezeCounter;
 
 @HandlerCmd("procedure_results")
 public class SelectProcedureResultsHandler implements QueryHandler<String, List<SelectProcedureResultsHandler.ResultLog>> {
@@ -39,7 +40,8 @@ public class SelectProcedureResultsHandler implements QueryHandler<String, List<
 
 	@Override
 	public List<ResultLog> invoke(String param) {
-		var pInfo = PerfCounter.instance.getProcedureInfo(param);
+		var counter = ZezeCounter.instance;
+		var pInfo = counter instanceof PerfCounter ? ((PerfCounter)counter).getProcedureInfo(param) : null;
 		if (pInfo == null)
 			return List.of();
 		var resultLogs = new ArrayList<ResultLog>();

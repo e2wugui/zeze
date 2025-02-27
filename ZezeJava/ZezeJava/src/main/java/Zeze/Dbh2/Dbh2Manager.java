@@ -18,11 +18,11 @@ import Zeze.Dbh2.Master.MasterAgent;
 import Zeze.Raft.ProxyServer;
 import Zeze.Raft.RaftConfig;
 import Zeze.Util.KV;
-import Zeze.Util.PerfCounter;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -258,7 +258,7 @@ public class Dbh2Manager {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			PerfCounter.instance.tryStartScheduledLog();
+			ZezeCounter.instance.init();
 
 			var manager = new Dbh2Manager(args[0], args[1]);
 			manager.start();
