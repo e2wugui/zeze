@@ -258,7 +258,7 @@ public class Dbh2Manager {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			var manager = new Dbh2Manager(args[0], args[1]);
 			manager.start();

@@ -28,7 +28,7 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 				task.get();
 			}
 			b.report(this.getClass().getName(), AddCount);
-			System.out.println(((PerfCounter)ZezeCounter.instance).getLogAndReset());
+			System.out.println(PerfCounter.instance().getLogAndReset());
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Check, "check").call();
 			App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Remove, "remove").call();
 		} finally {

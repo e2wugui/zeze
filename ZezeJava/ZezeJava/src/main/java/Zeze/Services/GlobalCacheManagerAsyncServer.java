@@ -102,7 +102,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 
 			if (ENABLE_PERF)
 				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			if (config == null)
 				config = Config.load();

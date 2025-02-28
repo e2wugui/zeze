@@ -57,7 +57,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 
 	public ServiceManagerWithRaft(String raftName, RaftConfig raftConf, Config config,
 								  boolean RocksDbWriteOptionSync) throws Exception {
-		ZezeCounter.instance.init();
+		ZezeCounter.tryInit();
 
 		if (config == null)
 			config = Config.load();

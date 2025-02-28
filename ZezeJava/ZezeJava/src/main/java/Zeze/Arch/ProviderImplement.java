@@ -166,7 +166,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 
 		try {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
@@ -204,7 +204,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 				}, null, factoryHandle.Level), outProtocol, session::trySendResponse);
-				if (ZezeCounter.ENABLE_PERF) {
+				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 				}
@@ -237,7 +237,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
 			}, p3, session::trySendResponse);
-			if (ZezeCounter.ENABLE_PERF) {
+			if (ZezeCounter.instance != null) {
 				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
 			}

@@ -151,7 +151,7 @@ public class Procedure {
 					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
 					currentT.reuseTransaction();
 				}
-				if (ZezeCounter.ENABLE_PERF) {
+				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.countProcedureResultCode(actionName, result);
 					ZezeCounter.instance.addRunTime(actionName, runTime);
 				}

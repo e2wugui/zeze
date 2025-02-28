@@ -53,7 +53,7 @@ public class Main {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			new Main(args[0]).start();
 

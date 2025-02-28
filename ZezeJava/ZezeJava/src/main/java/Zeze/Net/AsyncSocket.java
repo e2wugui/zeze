@@ -608,7 +608,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 						outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 				} else
 					outputBuffer.put(bytes, offset, length);
-				if (ZezeCounter.ENABLE_PERF)
+				if (ZezeCounter.instance != null)
 					ZezeCounter.instance.addSendSize(bytes, offset, length);
 			})) {
 				setActiveSendTime();
@@ -779,7 +779,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					outputBufferSizeHandle.getAndAdd(this, (long)deltaLen);
 			} else
 				outputBuffer.put(bytes, offset, length);
-			if (ZezeCounter.ENABLE_PERF)
+			if (ZezeCounter.instance != null)
 				ZezeCounter.instance.addSendSize(bytes, offset, length);
 		});
 		if (result)

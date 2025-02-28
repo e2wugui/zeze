@@ -203,7 +203,7 @@ public final class Application extends ReentrantLock {
 
 		serviceManager = createServiceManager(conf, projectName); // 必须在createDatabase之前初始化。里面的Dbh2需要用到serviceManager
 		conf.createDatabase(this, databases);
-		ZezeCounter.instance.init();
+		ZezeCounter.tryInit();
 
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。

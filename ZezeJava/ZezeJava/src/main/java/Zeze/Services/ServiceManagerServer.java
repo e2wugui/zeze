@@ -704,7 +704,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 	public ServiceManagerServer(@Nullable InetAddress ipaddress, int port,
 								@NotNull Config config,
 								@NotNull String autokeys) throws Exception {
-		ZezeCounter.instance.init();
+		ZezeCounter.tryInit();
 		config.parseCustomize(this.conf);
 
 		server = new NetServer(this, config);

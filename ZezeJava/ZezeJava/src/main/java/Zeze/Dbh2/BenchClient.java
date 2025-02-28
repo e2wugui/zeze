@@ -78,7 +78,7 @@ public class BenchClient {
 			}
 
 			Zeze.Net.Selectors.getInstance().add(selector - 1);
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null);
 			dbh2AgentManager.start();

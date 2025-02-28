@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -212,10 +213,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	private static final class CountInfo {
+	private static final class CountInfo extends LongAdder implements LongCounter {
 		final @NotNull String name;
 		final boolean accumulate;
-		final LongAdder count = new LongAdder(); // 次数
 		long lastCount;
 
 		CountInfo(@NotNull String name, boolean accumulate) {
@@ -226,7 +226,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
 	public static final int PERF_PERIOD = Integer.parseInt(System.getProperty("perfPeriod", "100")); // 输出周期(秒)
-	public static final boolean ENABLE_PERF = ZezeCounter.ENABLE_PERF && PERF_COUNT > 0;
 	public static final OperatingSystemMXBean osBean = (OperatingSystemMXBean)ManagementFactory.getOperatingSystemMXBean();
 	public static final Field fMaxDirectMemory; // long
 	public static final AtomicLong reservedDirectMemory;
@@ -259,6 +258,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private long clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 
+	public static @NotNull PerfCounter instance() {
+		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
+	}
+
 	public static long getMaxDirectMemory() {
 		try {
 			return fMaxDirectMemory.getLong(null);
@@ -280,19 +283,20 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public int allocCounterIndex(@NotNull String name) {
-		return allocCounterIndex(name, false);
+	public @NotNull LongCounter allocCounter(@NotNull String name) {
+		return allocCounter(name, false);
 	}
 
-	public int allocCounterIndex(@NotNull String name, boolean accumulate) {
+	public @NotNull LongCounter allocCounter(@NotNull String name, boolean accumulate) {
 		lock();
 		try {
 			int n = countInfos.length;
 			var cis = new CountInfo[n + 1];
-			cis[n] = new CountInfo(name, accumulate);
 			System.arraycopy(countInfos, 0, cis, 0, n);
+			var ci = new CountInfo(name, accumulate);
+			cis[n] = ci;
 			countInfos = cis;
-			return n;
+			return ci;
 		} finally {
 			unlock();
 		}
@@ -481,16 +485,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
 	}
 
-	@Override
-	public void incCounterByIndex(int index) {
-		addCounterByIndex(index, 1);
-	}
-
-	@Override
-	public void addCounterByIndex(int index, long count) {
-		countInfos[index].count.add(count);
-	}
-
 	public @NotNull String getLastLog() {
 		return lastLog;
 	}
@@ -508,11 +502,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		return scheduleFuture;
 	}
 
-	public @Nullable ScheduledFuture<?> tryStartScheduledLog() {
+	public @NotNull ScheduledFuture<?> tryStartScheduledLog() {
 		lock();
 		try {
 			var f = scheduleFuture;
-			if (ENABLE_PERF && (f == null || f.isCancelled())) {
+			if (f == null || f.isCancelled()) {
 				var periodMs = Math.max(PERF_PERIOD, 1) * 1000L;
 				scheduleFuture = f = Task.scheduleUnsafe(periodMs, periodMs, () -> logger.info(getLogAndReset()));
 			}
@@ -540,7 +534,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		procedureInfoMap.clear();
 		tableInfoMap.clear();
 		for (var ci : countInfos) {
-			ci.count.reset();
+			ci.reset();
 			ci.lastCount = 0;
 		}
 	}
@@ -548,8 +542,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public @NotNull String getLogAndReset() {
 		lock();
 		try {
-			if (!ENABLE_PERF)
-				return lastLog = "";
 			var curTime = System.currentTimeMillis();
 			var time = curTime - lastLogTime;
 			lastLogTime = curTime;
@@ -704,7 +696,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 			var cList = new ArrayList<CountInfo>(countInfos.length);
 			for (var ci : countInfos) {
-				var newCount = ci.count.sumThenReset();
+				var newCount = ci.sumThenReset();
 				if (ci.accumulate)
 					ci.lastCount += newCount;
 				else

@@ -67,7 +67,8 @@ public final class Token extends AbstractToken {
 	private static final byte[] tokenCharTable = new byte[TOKEN_CHAR_USED];
 	private static final boolean canLogNotifyTopic = AsyncSocket.ENABLE_PROTOCOL_LOG
 			&& AsyncSocket.canLogProtocol(NotifyTopic.TypeId_);
-	private static final int perfIndexTokenSoftRefClean = ZezeCounter.instance.allocCounterIndex("TokenSoftRefClean");
+	private static final @Nullable ZezeCounter.LongCounter tokenSoftRefCleanCounter
+			= ZezeCounter.instance != null ? ZezeCounter.instance.allocCounter("TokenSoftRefClean") : null;
 	private static final ReferenceQueue<Object> refQueue = new ReferenceQueue<>();
 	private static final FastLock tokenRefCleanerLock = new FastLock();
 	private static @Nullable Thread tokenRefCleaner;
@@ -473,8 +474,8 @@ public final class Token extends AbstractToken {
 				} else {
 					if (!moveToDB(state, bb, stateBufCount == STATE_BUF_COUNT))
 						stateBuf[stateBufCount++] = state;
-					if (ZezeCounter.ENABLE_PERF)
-						ZezeCounter.instance.incCounterByIndex(perfIndexTokenSoftRefClean);
+					if (tokenSoftRefCleanCounter != null)
+						tokenSoftRefCleanCounter.increment();
 				}
 			} catch (Throwable e) { // logger.error
 				logger.error("cleanTokenRef exception:", e);
@@ -517,7 +518,7 @@ public final class Token extends AbstractToken {
 				tokenRefCleanerLock.unlock();
 			}
 
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			service = new TokenServer(conf != null ? conf : new Config().loadAndParse());
 			RegisterProtocols(service);

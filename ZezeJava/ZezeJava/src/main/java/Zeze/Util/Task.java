@@ -187,7 +187,7 @@ public final class Task {
 	}
 
 	public static void call(@NotNull Action0 action, @Nullable String name) {
-		var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
 			action.run();
 		} catch (Exception ex) {
@@ -195,13 +195,13 @@ public final class Task {
 			logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		} finally {
 			//noinspection ConstantValue
-			if (ZezeCounter.ENABLE_PERF && action != null)
+			if (ZezeCounter.instance != null && action != null)
 				ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
 
 	public static long call(@NotNull FuncLong func, @Nullable String name) {
-		var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
 			return func.call();
 		} catch (Exception ex) {
@@ -210,7 +210,7 @@ public final class Task {
 			return Procedure.Exception;
 		} finally {
 			//noinspection ConstantValue
-			if (ZezeCounter.ENABLE_PERF && func != null)
+			if (ZezeCounter.instance != null && func != null)
 				ZezeCounter.instance.addRunTime(name != null ? name : func.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
@@ -252,7 +252,7 @@ public final class Task {
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 											   @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var future = new TaskCompletionSource<Long>();
 			try {
 				action.run();
@@ -263,7 +263,7 @@ public final class Task {
 				future.setException(e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null) {
+				if (ZezeCounter.instance != null && action != null) {
 					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
@@ -272,7 +272,7 @@ public final class Task {
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
@@ -280,7 +280,7 @@ public final class Task {
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null) {
+				if (ZezeCounter.instance != null && action != null) {
 					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
@@ -300,7 +300,7 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 									 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try {
 				action.run();
 			} catch (Exception e) {
@@ -308,7 +308,7 @@ public final class Task {
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null) {
+				if (ZezeCounter.instance != null && action != null) {
 					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
@@ -317,7 +317,7 @@ public final class Task {
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
@@ -325,7 +325,7 @@ public final class Task {
 				logger.error("{} exception:", name != null ? name : action != null ? action.getClass().getName() : "", e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null) {
+				if (ZezeCounter.instance != null && action != null) {
 					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
@@ -355,14 +355,14 @@ public final class Task {
 
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
 				logger.error("schedule exception:", e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null)
+				if (ZezeCounter.instance != null && action != null)
 					ZezeCounter.instance.addRunTime(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
@@ -374,7 +374,7 @@ public final class Task {
 
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
@@ -382,7 +382,7 @@ public final class Task {
 				throw forceThrow(e);
 			} finally {
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && func != null)
+				if (ZezeCounter.instance != null && func != null)
 					ZezeCounter.instance.addRunTime(func.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
@@ -456,7 +456,7 @@ public final class Task {
 														 long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			future.lock();
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				//System.out.println(action);
@@ -468,7 +468,7 @@ public final class Task {
 			} finally {
 				future.unlock();
 				//noinspection ConstantValue
-				if (ZezeCounter.ENABLE_PERF && action != null)
+				if (ZezeCounter.instance != null && action != null)
 					ZezeCounter.instance.addRunTime(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
@@ -558,7 +558,7 @@ public final class Task {
 
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p != null && p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
@@ -587,7 +587,7 @@ public final class Task {
 			return errorCode;
 		} finally {
 			//noinspection ConstantValue
-			if (ZezeCounter.ENABLE_PERF && func != null) {
+			if (ZezeCounter.instance != null && func != null) {
 				ZezeCounter.instance.addRunTime(aName != null ? aName : (p != null ? p : func).getClass(),
 						System.nanoTime() - timeBegin);
 			}

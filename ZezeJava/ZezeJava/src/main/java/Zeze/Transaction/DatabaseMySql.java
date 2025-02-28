@@ -26,6 +26,13 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
+	private static final @Nullable ZezeCounter.LongCounter mysqlSelectCounter
+			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.SELECT") : null;
+	private static final @Nullable ZezeCounter.LongCounter mysqlDeleteCounter
+			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.DELETE") : null;
+	private static final @Nullable ZezeCounter.LongCounter mysqlReplaceCounter
+			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.REPLACE") : null;
+
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMySql());
@@ -632,7 +639,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
@@ -648,8 +655,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.SELECT", System.nanoTime() - timeBegin);
+				if (mysqlSelectCounter != null)
+					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -659,7 +666,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return false;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var st = new SQLStatement();
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
@@ -671,8 +678,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.SELECT", System.nanoTime() - timeBegin);
+				if (mysqlSelectCounter != null)
+					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -681,7 +688,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
 			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
@@ -692,8 +699,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.REPLACE", System.nanoTime() - timeBegin);
+				if (mysqlReplaceCounter != null)
+					mysqlReplaceCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -702,7 +709,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
@@ -711,8 +718,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.DELETE", System.nanoTime() - timeBegin);
+				if (mysqlDeleteCounter != null)
+					mysqlDeleteCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1113,7 +1120,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return null;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			byte[] v = null;
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sqlFind)) {
@@ -1125,8 +1132,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.SELECT", System.nanoTime() - timeBegin);
+				if (mysqlSelectCounter != null)
+					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1136,7 +1143,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlRemove)) {
 				ps.setBytes(1, k);
@@ -1144,8 +1151,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.DELETE", System.nanoTime() - timeBegin);
+				if (mysqlDeleteCounter != null)
+					mysqlDeleteCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1154,7 +1161,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			if (dropped)
 				return;
 
-			var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var k = key.CopyIf();
 			var v = value.CopyIf();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sqlReplace)) {
@@ -1164,8 +1171,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			} finally {
-				if (ZezeCounter.ENABLE_PERF)
-					ZezeCounter.instance.addRunTime("MySQL.REPLACE", System.nanoTime() - timeBegin);
+				if (mysqlReplaceCounter != null)
+					mysqlReplaceCounter.add(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1335,14 +1342,14 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	}
 
 	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
-		var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
 			return rs.next() ? rs.getLong(1) : -1;
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
 		} finally {
-			if (ZezeCounter.ENABLE_PERF)
-				ZezeCounter.instance.addRunTime("MySQL.SELECT", System.nanoTime() - timeBegin);
+			if (mysqlSelectCounter != null)
+				mysqlSelectCounter.add(System.nanoTime() - timeBegin);
 		}
 	}
 }

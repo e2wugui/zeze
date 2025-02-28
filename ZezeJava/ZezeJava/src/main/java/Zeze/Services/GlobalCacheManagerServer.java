@@ -129,7 +129,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 
 			if (ENABLE_PERF)
 				perf = new GlobalCacheManagerPerf("", serialIdGenerator);
-			ZezeCounter.instance.init();
+			ZezeCounter.tryInit();
 
 			if (config == null)
 				config = Config.load();

@@ -366,7 +366,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 			if (service.checkThrottle(so, moduleId, protocolId, size)
 					&& !service.discard(so, moduleId, protocolId, size)) { // 默认超速是丢弃请求
-				var timeBegin = ZezeCounter.ENABLE_PERF ? System.nanoTime() : 0;
+				var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 				var typeId = makeTypeId(moduleId, protocolId);
 				var factoryHandle = service.findProtocolFactoryHandle(typeId);
 				if (factoryHandle != null && factoryHandle.Factory != null)
@@ -376,7 +376,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 						AsyncSocket.log("RECV", so.getSessionId(), moduleId, protocolId, bb);
 					service.dispatchUnknownProtocol(so, moduleId, protocolId, bb);
 				}
-				if (ZezeCounter.ENABLE_PERF) {
+				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle != null ? factoryHandle.Class : null,
 							HEADER_SIZE + size, System.nanoTime() - timeBegin);
 				}

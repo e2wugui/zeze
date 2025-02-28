@@ -116,7 +116,7 @@ public class GlobalCacheManagerWithRaft
 
 		if (ENABLE_PERF)
 			perf = new GlobalCacheManagerPerf(raftName, serialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
-		ZezeCounter.instance.init();
+		ZezeCounter.tryInit();
 
 		rocks.getRaft().getServer().start();
 
