@@ -3,6 +3,7 @@ package UnitTest.Zeze.Game;
 import java.util.function.LongUnaryOperator;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankValue;
+import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Game.Rank;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
@@ -73,7 +74,7 @@ public class TestRank extends TestCase {
 			System.out.println("------ testRank begin");
 			SimpleApp app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
 
-			app.rank.funcConcurrentLevel = rankType -> CONC_LEVEL;
+			app.rank.setFuncConcurrentLevel(rankType -> CONC_LEVEL);
 			int concLevel = app.rank.getConcurrentLevel(RANK_TYPE);
 			var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
 			LongUnaryOperator roleId2Value = roleId -> roleId * 10;
@@ -82,7 +83,7 @@ public class TestRank extends TestCase {
 				int h = hash;
 				long roleId = ROLE_ID_BEGIN + h;
 				app.getZeze().newProcedure(() -> {
-					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().onSuccess(r -> {
+					app.rank.updateRank(h, rankKey, roleId, new BValueLong(roleId2Value.applyAsLong(roleId))).await().onSuccess(r -> {
 						assertNotNull(r);
 						assertEquals(Procedure.Success, r.longValue());
 					}).onFail(e -> {
@@ -101,7 +102,7 @@ public class TestRank extends TestCase {
 				assertEquals(concLevel, result.getRankList().size());
 				for (BRankValue rank : result.getRankList()) {
 					assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
-					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
+					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), ((BValueLong)rank.getDynamic().getBean()).getValue());
 				}
 				return Procedure.Success;
 			}, "getRankDirect").call();
@@ -119,7 +120,7 @@ public class TestRank extends TestCase {
 					assertEquals(1, r.rankList.getRankList().size());
 					var rank = r.rankList.getRankList().get(0);
 					assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
-					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
+					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), ((BValueLong)rank.getDynamic().getBean()).getValue());
 				}).onAllDone(ctx -> {
 					assertNotNull(ctx);
 					var results = ctx.getAllResults();
@@ -137,7 +138,7 @@ public class TestRank extends TestCase {
 						assertEquals(1, r.rankList.getRankList().size());
 						var rank = r.rankList.getRankList().get(0);
 						assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
-						assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
+						assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), ((BValueLong)rank.getDynamic().getBean()).getValue());
 					});
 				}).await();
 				return Procedure.Success;

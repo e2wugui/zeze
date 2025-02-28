@@ -5,100 +5,74 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnusedAssignment"})
-public final class BRankValue extends Zeze.Transaction.Bean implements BRankValueReadOnly {
-    public static final long TYPEID = 2276228832088785165L;
+public final class BValueLong extends Zeze.Transaction.Bean implements BValueLongReadOnly {
+    public static final long TYPEID = 4031590576404079301L;
 
-    private long _RoleId;
-    private final Zeze.Transaction.DynamicBean _Dynamic;
+    private long _Value;
 
-    public static Zeze.Transaction.DynamicBean newDynamicBean_Dynamic() {
-        return new Zeze.Transaction.DynamicBean(2, Zeze.Game.Rank::getSpecialTypeIdFromBean, Zeze.Game.Rank::createBeanFromSpecialTypeId);
-    }
-
-    public static long getSpecialTypeIdFromBean_2(Zeze.Transaction.Bean _b_) {
-        return Zeze.Game.Rank.getSpecialTypeIdFromBean(_b_);
-    }
-
-    public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long _t_) {
-        return Zeze.Game.Rank.createBeanFromSpecialTypeId(_t_);
-    }
-
-    private static final java.lang.invoke.VarHandle vh_RoleId;
+    private static final java.lang.invoke.VarHandle vh_Value;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
-            vh_RoleId = _l_.findVarHandle(BRankValue.class, "_RoleId", long.class);
+            vh_Value = _l_.findVarHandle(BValueLong.class, "_Value", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
     }
 
     @Override
-    public long getRoleId() {
+    public long getValue() {
         if (!isManaged())
-            return _RoleId;
+            return _Value;
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
-            return _RoleId;
+            return _Value;
         var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _RoleId;
+        return log != null ? log.value : _Value;
     }
 
-    public void setRoleId(long _v_) {
+    public void setValue(long _v_) {
         if (!isManaged()) {
-            _RoleId = _v_;
+            _Value = _v_;
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_RoleId, _v_));
-    }
-
-    public Zeze.Transaction.DynamicBean getDynamic() {
-        return _Dynamic;
-    }
-
-    @Override
-    public Zeze.Transaction.DynamicBeanReadOnly getDynamicReadOnly() {
-        return _Dynamic;
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_Value, _v_));
     }
 
     @SuppressWarnings("deprecation")
-    public BRankValue() {
-        _Dynamic = newDynamicBean_Dynamic();
+    public BValueLong() {
     }
 
     @SuppressWarnings("deprecation")
-    public BRankValue(long _RoleId_) {
-        _RoleId = _RoleId_;
-        _Dynamic = newDynamicBean_Dynamic();
+    public BValueLong(long _Value_) {
+        _Value = _Value_;
     }
 
     @Override
     public void reset() {
-        setRoleId(0);
-        _Dynamic.reset();
+        setValue(0);
         _unknown_ = null;
     }
 
-    public void assign(BRankValue _o_) {
-        setRoleId(_o_.getRoleId());
-        _Dynamic.assign(_o_._Dynamic);
+    public void assign(BValueLong _o_) {
+        setValue(_o_.getValue());
         _unknown_ = _o_._unknown_;
     }
 
-    public BRankValue copyIfManaged() {
+    public BValueLong copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BRankValue copy() {
-        var _c_ = new BRankValue();
+    public BValueLong copy() {
+        var _c_ = new BValueLong();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BRankValue _a_, BRankValue _b_) {
+    public static void swap(BValueLong _a_, BValueLong _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -119,11 +93,8 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.Game.Rank.BRankValue: {\n");
-        _s_.append(_i1_).append("RoleId=").append(getRoleId()).append(",\n");
-        _s_.append(_i1_).append("Dynamic=");
-        _Dynamic.getBean().buildString(_s_, _l_ + 8);
-        _s_.append('\n');
+        _s_.append("Zeze.Builtin.Game.Rank.BValueLong: {\n");
+        _s_.append(_i1_).append("Value=").append(getValue()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -156,17 +127,10 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            long _x_ = getRoleId();
+            long _x_ = getValue();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
-            }
-        }
-        {
-            var _x_ = _Dynamic;
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.DYNAMIC);
-                _x_.encode(_o_);
             }
         }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
@@ -179,11 +143,7 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setRoleId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _o_.ReadDynamic(_Dynamic, _t_);
+            setValue(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         //noinspection ConstantValue
@@ -194,30 +154,18 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BRankValue))
+        if (!(_o_ instanceof BValueLong))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BRankValue)_o_;
-        if (getRoleId() != _b_.getRoleId())
-            return false;
-        if (!_Dynamic.equals(_b_._Dynamic))
+        var _b_ = (BValueLong)_o_;
+        if (getValue() != _b_.getValue())
             return false;
         return true;
     }
 
     @Override
-    protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-        _Dynamic.initRootInfo(_r_, this);
-    }
-
-    @Override
-    protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-        _Dynamic.initRootInfoWithRedo(_r_, this);
-    }
-
-    @Override
     public boolean negativeCheck() {
-        if (getRoleId() < 0)
+        if (getValue() < 0)
             return true;
         return false;
     }
@@ -231,8 +179,7 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _RoleId = _v_.longValue(); break;
-                case 2: _Dynamic.followerApply(_v_); break;
+                case 1: _Value = _v_.longValue(); break;
             }
         }
     }
@@ -240,22 +187,19 @@ public final class BRankValue extends Zeze.Transaction.Bean implements BRankValu
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        setRoleId(_r_.getLong(_pn_ + "RoleId"));
-        Zeze.Serialize.Helper.decodeJsonDynamic(_Dynamic, _r_.getString(_pn_ + "Dynamic"));
+        setValue(_r_.getLong(_pn_ + "Value"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        _s_.appendLong(_pn_ + "RoleId", getRoleId());
-        _s_.appendString(_pn_ + "Dynamic", Zeze.Serialize.Helper.encodeJson(_Dynamic));
+        _s_.appendLong(_pn_ + "Value", getValue());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Dynamic", "dynamic", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Value", "long", "", ""));
         return _v_;
     }
 }

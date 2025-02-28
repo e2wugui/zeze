@@ -1,4 +1,4 @@
-// auto-generated @formatter:off
+import Zeze.Builtin.Game.Rank.BValueLong;// auto-generated @formatter:off
 public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     private final Zeze.Arch.RedirectBase _redirect_;
 
@@ -65,13 +65,13 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     }
 
     @Override
-    public Zeze.Arch.RedirectFuture<Long> updateRank(int hash, Zeze.Builtin.Game.Rank.BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+    public Zeze.Arch.RedirectFuture<Long> updateRank(int hash, Zeze.Builtin.Game.Rank.BConcurrentKey keyHint, long roleId, Zeze.Transaction.Bean value) {
         var _f_ = new Zeze.Arch.RedirectFuture<Long>();
         try {
             var _t_ = _redirect_.choiceHash(this, hash, getConcurrentLevel(keyHint.getRankType()));
             if (_t_ == null) { // local: loop-back
                 return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
-                    () -> super.updateRank(hash, keyHint, roleId, value, valueEx));
+                    () -> super.updateRank(hash, keyHint, roleId, value));
             }
 
             var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
@@ -85,8 +85,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
             keyHint.encode(_b_);
             _b_.WriteLong(roleId);
-            _b_.WriteLong(value);
-            _b_.WriteBinary(valueEx);
+            value.encode(_b_);
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
             if (!_p_.Send(_t_, _rpc_ -> {
@@ -137,14 +136,12 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
                 long roleId;
-                long value;
-                Zeze.Net.Binary valueEx;
+                var value = new BValueLong();
                 var _b_ = _params_.Wrap();
                 keyHint.decode(_b_);
                 roleId = _b_.ReadLong();
-                value = _b_.ReadLong();
-                valueEx = _b_.ReadBinary();
-                return super.updateRank(_hash_, keyHint, roleId, value, valueEx);
+                value.decode(_b_);
+                return super.updateRank(_hash_, keyHint, roleId, value);
             }, null, 0));
     }
 }

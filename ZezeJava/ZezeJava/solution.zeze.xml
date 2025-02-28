@@ -833,8 +833,14 @@
 
 				<bean name="BRankValue">
 					<variable id="1" name="RoleId"     type="long"/>
-					<variable id="2" name="Value"      type="long"/> 含义由 BConcurrentKey.RankType 决定
-					<variable id="3" name="ValueEx"    type="binary"/> 自定义数据。
+					<variable id="2" name="Dynamic"      type="dynamic"> 含义由 BConcurrentKey.RankType 决定
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Rank::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Rank::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				
+				<bean name="BValueLong">
+					<variable id="1" name="Value"     type="long"/>
 				</bean>
 
 				<bean name="BRankList">

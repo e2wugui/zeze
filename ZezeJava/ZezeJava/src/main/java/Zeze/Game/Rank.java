@@ -3,6 +3,7 @@ package Zeze.Game;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.IntUnaryOperator;
@@ -18,19 +19,74 @@ import Zeze.Arch.RedirectResult;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
-import Zeze.Net.Binary;
+import Zeze.Builtin.Game.Rank.BValueLong;
+import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManager.BServiceInfo;
+import Zeze.Transaction.Bean;
 import Zeze.Util.OutObject;
+import org.jetbrains.annotations.NotNull;
 
 public class Rank extends AbstractRank {
 	private final AppBase app;
+	protected static final BeanFactory beanFactory = new BeanFactory();
 
-	public volatile IntUnaryOperator funcRankSize;
-	public volatile IntUnaryOperator funcConcurrentLevel;
-	public volatile LongUnaryOperator funcRankCacheTimeout;
+	private volatile IntUnaryOperator funcRankSize;
+	private volatile IntUnaryOperator funcConcurrentLevel;
+	private volatile LongUnaryOperator funcRankCacheTimeout;
 
 	@SuppressWarnings("CanBeFinal")
-	public volatile float computeFactor = 2.5f;
+	private volatile float computeFactor = 2.5f;
+	private volatile Comparator<Bean> compactor = new LongOnlyCompactor();
+
+	public static class LongOnlyCompactor implements Comparator<Bean> {
+		@Override
+		public int compare(Bean o1, Bean o2) {
+			if (o1.typeId() == BValueLong.TYPEID)
+				return Long.compare(((BValueLong)o1).getValue(), ((BValueLong)o2).getValue());
+			throw new RuntimeException("unknown compactor bean");
+		}
+	}
+
+	public void setFuncConcurrentLevel(IntUnaryOperator funcConcurrentLevel) {
+		this.funcConcurrentLevel = funcConcurrentLevel;
+	}
+
+	public IntUnaryOperator getFuncConcurrentLevel() {
+		return funcConcurrentLevel;
+	}
+
+	public void setFuncRankCacheTimeout(LongUnaryOperator funcRankCacheTimeout) {
+		this.funcRankCacheTimeout = funcRankCacheTimeout;
+	}
+
+	public LongUnaryOperator getFuncRankCacheTimeout() {
+		return funcRankCacheTimeout;
+	}
+
+	public void setFuncRankSize(IntUnaryOperator funcRankSize) {
+		this.funcRankSize = funcRankSize;
+	}
+
+	public IntUnaryOperator getFuncRankSize() {
+		return funcRankSize;
+	}
+
+	public void setComputeFactor(float computeFactor) {
+		this.computeFactor = computeFactor;
+	}
+
+	public float getComputeFactor() {
+		return computeFactor;
+	}
+
+	public void setCompactor(Comparator<Bean> compactor) {
+		this.compactor = compactor;
+	}
+
+	public Comparator<Bean> getCompactor() {
+		return compactor;
+	}
 
 	public static Rank create(AppBase app) {
 		return GenModule.createRedirectModule(Rank.class, app);
@@ -48,6 +104,18 @@ public class Rank extends AbstractRank {
 			throw new IllegalArgumentException();
 		RegisterZezeTables(app.getZeze());
 		RegisterProtocols(app.getZeze().redirect.providerApp.providerService);
+	}
+
+	public static void register(@NotNull Class<? extends Serializable> cls) {
+		beanFactory.register(cls);
+	}
+
+	public static long getSpecialTypeIdFromBean(@NotNull Serializable bean) {
+		return bean.typeId();
+	}
+
+	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
+		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
 	@Override
@@ -201,17 +269,18 @@ public class Rank extends AbstractRank {
 	 * 根据 value 设置到排行榜中
 	 */
 	@RedirectHash(ConcurrentLevelSource = "getConcurrentLevel(keyHint.getRankType())")
-	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
+	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, Bean value) {
+		beanFactory.register(value);
 		var outExist = new OutObject<BRankValue>();
 		var rank = _removeRank(hash, keyHint, roleId, outExist);
 		int maxCount = getComputeCount(keyHint.getRankType());
 		// insert if in rank. 使用binarySearch会造成相同分数不稳定。
 		for (int i = 0; i < rank.getRankList().size(); ++i) {
-			if (rank.getRankList().get(i).getValue() < value) {
+			var c = compactor.compare(rank.getRankList().get(i).getDynamic().getBean(), value);
+			if (c < 0) {
 				BRankValue tempVar = new BRankValue();
 				tempVar.setRoleId(roleId);
-				tempVar.setValue(value);
-				tempVar.setValueEx(valueEx);
+				tempVar.getDynamic().setBean(value);
 				rank.getRankList().add(i, tempVar);
 				if (rank.getRankList().size() > maxCount) {
 					rank.getRankList().remove(rank.getRankList().size() - 1);
@@ -226,19 +295,20 @@ public class Rank extends AbstractRank {
 				|| (rank.getRankList().size() < maxCount && null == outExist.value)) {
 			BRankValue tempVar2 = new BRankValue();
 			tempVar2.setRoleId(roleId);
-			tempVar2.setValue(value);
-			tempVar2.setValueEx(valueEx);
+			tempVar2.getDynamic().setBean(value);
 			rank.getRankList().add(tempVar2);
 		}
 		return RedirectFuture.finish(0L);
 	}
 
-	private static BRankList merge(BRankList left, BRankList right) {
+	private BRankList merge(BRankList left, BRankList right) {
 		BRankList result = new BRankList();
 		int indexLeft = 0;
 		int indexRight = 0;
 		while (indexLeft < left.getRankList().size() && indexRight < right.getRankList().size()) {
-			if (left.getRankList().get(indexLeft).getValue() >= right.getRankList().get(indexRight).getValue()) {
+			var c = compactor.compare(left.getRankList().get(indexLeft).getDynamic().getBean(),
+					right.getRankList().get(indexRight).getDynamic().getBean());
+			if (c >= 0) {
 				result.getRankList().add(left.getRankList().get(indexLeft));
 				++indexLeft;
 			} else {
@@ -393,7 +463,10 @@ public class Rank extends AbstractRank {
 			return pos;
 
 		var list = total.value.getTableValue().getRankList();
-		var lastRankScore = list.isEmpty() ? 0 : list.get(list.size() - 1).getValue();
+		var bean = list.get(list.size() - 1).getDynamic().getBean();
+		if (bean.typeId() != BValueLong.TYPEID)
+			throw new RuntimeException("only value long has guess.");
+		var lastRankScore = list.isEmpty() ? 0 : ((BValueLong)bean).getValue();
 		var lastRankPosition = list.size();
 
 		return totalUser - (long)((double)score / lastRankScore * (totalUser - lastRankPosition));
@@ -430,7 +503,7 @@ public class Rank extends AbstractRank {
 		return merge(datas, countNeed);
 	}
 
-	private static BRankList merge(Collection<BRankList> datas, int countNeed) {
+	private BRankList merge(Collection<BRankList> datas, int countNeed) {
 		var size = datas.size();
 		if (0 == size)
 			return new BRankList();

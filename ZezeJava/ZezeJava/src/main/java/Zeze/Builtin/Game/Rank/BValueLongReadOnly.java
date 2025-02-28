@@ -1,12 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Game.Rank;
 
-public interface BRankValueReadOnly {
+public interface BValueLongReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BRankValue copy();
+    BValueLong copy();
 
-    long getRoleId();
-    Zeze.Transaction.DynamicBeanReadOnly getDynamicReadOnly();
+    long getValue();
 }
