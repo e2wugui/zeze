@@ -24,16 +24,23 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
 
 		final @NotNull String name;
-		long lastRecvSize;
 		final LongAdder procCount = new LongAdder(); // 处理次数
 		final LongAdder procTime = new LongAdder(); // 处理时间(ns)
 		long lastProcCount;
 		long lastProcTime;
 		int idleCount; // 没收集到信息的轮数
 
-		RunInfo(@NotNull String name, long serial) {
+		RunInfo(@NotNull String name) {
 			this.name = name;
-			this.lastRecvSize = serial;
+		}
+	}
+
+	private static final class RunInfoWithSerial extends RunInfo {
+		final int serial;
+
+		RunInfoWithSerial(@NotNull String name, int serial) {
+			super(name);
+			this.serial = serial;
 		}
 	}
 
@@ -41,11 +48,12 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		final LongAdder recvSize = new LongAdder(); // 接收字节
 		final LongAdder sendCount = new LongAdder(); // 发送次数
 		final LongAdder sendSize = new LongAdder(); // 发送字节
+		long lastRecvSize;
 		long lastSendCount;
 		long lastSendSize;
 
 		ProtocolInfo(String name) {
-			super(name, 0);
+			super(name);
 		}
 	}
 
@@ -241,7 +249,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	private final ConcurrentHashMap<Object, RunInfo> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
+	private final ConcurrentHashMap<Object, RunInfoWithSerial> runInfoMap = new ConcurrentHashMap<>(); // key: Class or others
 	private final LongConcurrentHashMap<ProtocolInfo> protocolInfoMap = new LongConcurrentHashMap<>(); // key: typeId
 	private final ConcurrentHashMap<String, ProcedureInfo> procedureInfoMap = new ConcurrentHashMap<>(); // key: procedureName
 	private final LongConcurrentHashMap<TableInfo> tableInfoMap = new LongConcurrentHashMap<>(); // key: tableId
@@ -252,7 +260,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private @NotNull String lastLog = "";
 	private long lastLogTime = System.currentTimeMillis();
 	private long lastCpuTime = osBean.getProcessCpuTime();
-	private long clearSerial;
+	private int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
 
 	public static @NotNull PerfCounter instance() {
@@ -329,21 +337,21 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
-	private @Nullable RunInfo getRunInfo(@NotNull Object key) {
+	private @Nullable RunInfoWithSerial getRunInfoWithSerial(@NotNull Object key) {
 		if (excludeRunKeys.contains(key))
 			return null;
 		for (; ; ) {
 			var ri = runInfoMap.get(key);
 			if (ri != null)
 				return ri;
-			runInfoMap.putIfAbsent(key,
-					new RunInfo(key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key), clearSerial));
+			runInfoMap.putIfAbsent(key, new RunInfoWithSerial(
+					key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key), clearSerial));
 		}
 	}
 
 	@Override
 	public void addRunTime(@NotNull Object key, long timeNs) {
-		var ri = getRunInfo(key);
+		var ri = getRunInfoWithSerial(key);
 		if (ri != null) {
 			ri.procCount.increment();
 			ri.procTime.add(timeNs);
@@ -352,15 +360,15 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public @NotNull LongCounter getRunTimeCounter(@NotNull Object key) {
-		var ri = getRunInfo(key);
+		var ri = getRunInfoWithSerial(key);
 		if (ri == null)
 			return LongCounter.dummy;
 		var counterWrapper = new OutObject<>(ri);
 		return v -> {
 			var ri2 = counterWrapper.value;
 			if (ri2 != null) {
-				if (ri2.lastRecvSize != clearSerial) {
-					counterWrapper.value = ri2 = getRunInfo(key);
+				if (ri2.serial != clearSerial) {
+					counterWrapper.value = ri2 = getRunInfoWithSerial(key);
 					if (ri2 == null)
 						return;
 				}
