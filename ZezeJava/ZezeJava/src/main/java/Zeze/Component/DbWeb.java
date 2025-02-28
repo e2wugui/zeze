@@ -90,7 +90,7 @@ public class DbWeb extends AbstractDbWeb {
 	@Override
 	protected void OnServletListTable(HttpExchange x) {
 		try {
-			List<String> tables = zeze.getTables().values().stream().map(Table::getName).toList();
+			var tables = zeze.getTables().values().stream().map(Table::getName).toArray();
 			x.sendJson(HttpResponseStatus.OK, toJsonForView(tables));
 		} catch (Exception e) {
 			x.sendPlainText(HttpResponseStatus.OK, Str.stacktrace(e));
