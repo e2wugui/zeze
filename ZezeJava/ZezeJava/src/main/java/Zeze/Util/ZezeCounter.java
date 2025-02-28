@@ -13,11 +13,11 @@ public interface ZezeCounter {
 	boolean ENABLE = instance != null;
 
 	private static @Nullable ZezeCounter createInstance() {
-		if (Boolean.parseBoolean(System.getProperty("disableZezeCounter")))
+		var className = System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter");
+		if (className.isBlank() || className.equalsIgnoreCase("null"))
 			return null;
 		try {
-			var counterClass = Class.forName(System.getProperty("ZezeCounter", "Zeze.Util.PerfCounter"));
-			return (ZezeCounter)counterClass.getConstructor().newInstance();
+			return (ZezeCounter)Class.forName(className).getConstructor().newInstance();
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		}
