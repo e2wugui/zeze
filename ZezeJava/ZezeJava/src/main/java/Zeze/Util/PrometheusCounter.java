@@ -10,6 +10,7 @@ import io.prometheus.metrics.model.snapshots.Unit;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -104,7 +105,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
-		return runTimeMap.computeIfAbsent(key, (k) -> {
+		return fastGetOrAdd(runTimeMap, key, (k) -> {
 			String name = k instanceof Class ? ((Class<?>)k).getName() : String.valueOf(k);
 			Histogram histogram = Histogram.builder().name(name).unit(Unit.SECONDS).register();
 			return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
@@ -129,7 +130,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull TableCounter getOrAddTableInfo(long tableId) {
-		return tableCounterMap.computeIfAbsent(tableId, k -> {
+		return fastGetOrAdd(tableCounterMap, tableId, k -> {
 			String tableName = TableKey.tables.get(tableId);
 			String table = tableName != null ? tableName : String.valueOf(tableId);
 			LongCounter readLock = database_table_operation.labelValues(table, "readLock")::inc;
@@ -199,27 +200,36 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public void addRecvSizeTime(long typeId, @Nullable Class<?> cls, int size, long timeNs) {
-		ProtocolRecvMetric metric = protocolRecvMap.computeIfAbsent(typeId, (k) -> {
+		ProtocolRecvMetric metric = fastGetOrAdd(protocolRecvMap, typeId, (k) -> {
 			Class<?> kls = (cls != null) ? cls : Protocol.getClassByTypeId(typeId);
 			String name = kls != null ? kls.getName() : String.valueOf(typeId);
 			return new ProtocolRecvMetric(
 					protocol_recv_bytes.labelValues(name), protocol_duration_seconds.labelValues(name));
-
 		});
+
 		metric.bytes.inc(size);
 		metric.processDuration.observe(Unit.nanosToSeconds(timeNs));
 	}
 
 	@Override
 	public void addSendSize(long typeId, int size) {
-		ProtocolSendMetric metric = protocolSendMap.computeIfAbsent(typeId, (k) -> {
+		ProtocolSendMetric metric = fastGetOrAdd(protocolSendMap, typeId, (k) -> {
 			Class<?> kls = Protocol.getClassByTypeId(typeId);
 			String name = kls != null ? kls.getName() : String.valueOf(typeId);
 			return new ProtocolSendMetric(
 					protocol_send.labelValues(name), protocol_send_bytes.labelValues(name));
-
 		});
+
 		metric.total.inc();
 		metric.bytes.inc(size);
+	}
+
+	static <K, V> V fastGetOrAdd(ConcurrentHashMap<K, V> map, K key, Function<? super K, ? extends V> mappingFunction) {
+		// 若map的读取命中率极高（例如超过90%的get能直接命中）先get应该效率会高点
+		V v = map.get(key);
+		if (v != null) {
+			return v;
+		}
+		return map.computeIfAbsent(key, mappingFunction);
 	}
 }
