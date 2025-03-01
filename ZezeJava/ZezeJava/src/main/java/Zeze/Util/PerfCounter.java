@@ -18,7 +18,14 @@ import org.jetbrains.annotations.Nullable;
 
 public final class PerfCounter extends FastLock implements ZezeCounter {
 	public static class LongAdderCounter extends LongAdder implements LongCounter {
+		@Override
+		public void inc(long v) {
+			add(v);
+		}
 	}
+
+	private static final LongObserver dummyLongObserver = v -> {
+	};
 
 	private static class RunInfo {
 		static final int MAX_IDLE_COUNT = 10; // 最多几轮没有收集到信息就自动清除该条目
@@ -227,6 +234,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			this.name = name;
 			this.accumulate = accumulate;
 		}
+
+		@Override
+		public void inc(long v) {
+			add(v);
+		}
 	}
 
 	public static final int PERF_COUNT = Integer.parseInt(System.getProperty("perfCount", "20")); // 输出条目数
@@ -290,6 +302,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	@Override
 	public @NotNull LongCounter allocCounter(@NotNull String name) {
 		return allocCounter(name, false);
+	}
+
+	@Override
+	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames) {
+		return labels -> allocCounter(name + "." + String.join(".", labels));
+	}
+
+	@Override
+	public @NotNull LabeledObserverCreator allocLabeledObserverCreator(@NotNull String name, @NotNull String... labelNames) {
+		return labels -> getRunTimeObserver(name + "." + String.join(".", labels));
 	}
 
 	public @NotNull LongCounter allocCounter(@NotNull String name, boolean accumulate) {
@@ -359,10 +381,20 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LongCounter getRunTimeCounter(@NotNull Object key) {
+	public void procedureStart(@NotNull String name) {
+	}
+
+	@Override
+	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
+		addRunTime(name, timeNs);
+		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
+	}
+
+	@Override
+	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
 		var ri = getRunInfoWithSerial(key);
 		if (ri == null)
-			return LongCounter.dummy;
+			return dummyLongObserver;
 		var counterWrapper = new OutObject<>(ri);
 		return v -> {
 			var ri2 = counterWrapper.value;
@@ -439,11 +471,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			var tableName = TableKey.tables.get(k);
 			return new TableInfo(tableName != null ? tableName : String.valueOf(k));
 		});
-	}
-
-	@Override
-	public void countProcedureResultCode(@NotNull String name, long resultCode) {
-		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
 	}
 
 	public @NotNull String getLastLog() {

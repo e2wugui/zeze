@@ -142,6 +142,9 @@ public class Procedure {
 			try {
 				currentT = Transaction.create(zeze.getLocks());
 				currentT.profiler.onProcedureBegin(actionName, timeBegin);
+				if (ZezeCounter.instance != null) {
+					ZezeCounter.instance.procedureStart(actionName);
+				}
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return result = currentT.perform(this);
 			} finally {
@@ -152,8 +155,7 @@ public class Procedure {
 					currentT.reuseTransaction();
 				}
 				if (ZezeCounter.instance != null) {
-					ZezeCounter.instance.countProcedureResultCode(actionName, result);
-					ZezeCounter.instance.addRunTime(actionName, runTime);
+					ZezeCounter.instance.procedureEnd(actionName, result, runTime);
 				}
 			}
 		}

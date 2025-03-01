@@ -33,15 +33,25 @@ public interface ZezeCounter {
 	}
 
 	interface LongCounter {
-		LongCounter dummy = v -> {
-		};
-
 		default void increment() {
-			add(1L);
+			inc(1L);
 		}
 
-		void add(long v);
+		void inc(long v);
 	}
+
+	interface LabeledCounterCreator {
+		LongCounter labelValues(String... labels);
+	}
+
+	interface LongObserver {
+		void observe(long v);
+	}
+
+	interface LabeledObserverCreator {
+		LongObserver labelValues(String... labels);
+	}
+
 
 	interface TableCounter {
 		@NotNull LongCounter readLock();
@@ -79,20 +89,27 @@ public interface ZezeCounter {
 	 */
 	@NotNull LongCounter allocCounter(@NotNull String name);
 
+
+	@NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames);
+
+	@NotNull LabeledObserverCreator allocLabeledObserverCreator(@NotNull String name, @NotNull String... labelNames);
+
 	/**
 	 * 通过指定的key获取其绑定的累加器. 通过equals方法判断绑定的key
 	 */
-	@NotNull LongCounter getRunTimeCounter(@NotNull Object key);
+	@NotNull LongObserver getRunTimeObserver(@NotNull Object key);
 
 	/**
 	 * 通过指定的key累加其绑定的时间累加器(纳秒)并自增次数累加器. 通过equals方法判断绑定的key
 	 */
 	void addRunTime(@NotNull Object key, long timeNs);
 
+	void procedureStart(@NotNull String name);
+
 	/**
 	 * 以{事务名,事务结果状态码}绑定的累加器自增1
 	 */
-	void countProcedureResultCode(@NotNull String name, long resultCode);
+	void procedureEnd(@NotNull String name, long resultCode, long timeNs);
 
 	/**
 	 * 根据表ID获取其绑定的表统计器

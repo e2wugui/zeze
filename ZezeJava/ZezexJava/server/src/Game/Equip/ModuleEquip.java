@@ -95,14 +95,14 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public void Stop(App app) {
 		App.Zeze.getHotManager().throwIfMatch("stop");
 
-		logger.info("Stop {}", this.getFullName());
+		logger.info("Stop " + this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
 			if (!isHotUpgrade()) {
 				timer.cancel(timerNamed);
 				timer.cancel(timerHot);
 			}
-			timer.getRoleTimer().cancelOnline(timerOnline);
+			timer.getRoleTimer().cancel(timerOnline);
 			return 0;
 		}, "cancel timers").call();
 	}
@@ -192,7 +192,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		{
 			var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
-			logger.info("verify oldAccess={}:{}", version0.getAttack(), oldAccess);
+			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			if (version0.getAttack() != oldAccess)
 				throw new RuntimeException(getLinkedMapName() + " error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
@@ -366,7 +366,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		}
 	}
 
-	public static int GetEquipPosition(int itemId) {
+	public int GetEquipPosition(int itemId) {
 		return 0;
 		// 如果装备可以穿到多个位置，则需要选择其中的一个位置返回。
 		// 比如戒指，优先返回空的位置，都不为空（可能的规则）返回等级低的位置。
@@ -377,8 +377,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Exception {
-		/*
 		var session = ProviderUserSession.get(rpc);
+		/*
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
 		if (null != bItem) {
@@ -420,8 +420,8 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Exception {
-		/*
 		var session = ProviderUserSession.get(rpc);
+		/*
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());
 		if (null != eItem) {
@@ -446,7 +446,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		return getEquipItem(equips, position);
 	}
 
-	public static Game.Item.IItem getEquipItem(BEquips equips, int position) {
+	public Game.Item.IItem getEquipItem(BEquips equips, int position) {
 		var equip = equips.getItems().get(position);
 		if (null != equip) {
 			var extraTypeId = equip.getExtra().getBean().typeId();
@@ -504,7 +504,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, 2000, 2000,
 				-1, -1, HotTimer.class, new BEquipExtra(0, 3, 0));
-		logger.info("timerOnline={}", timerOnline);
+		logger.info("timerOnline=" + timerOnline);
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

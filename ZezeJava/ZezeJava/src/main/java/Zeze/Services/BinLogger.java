@@ -49,12 +49,14 @@ import org.jetbrains.annotations.Nullable;
 */
 public final class BinLogger extends ReentrantLock {
 	private static final @NotNull Logger logger = LogManager.getLogger(BinLogger.class);
+	private static final @Nullable ZezeCounter.LabeledCounterCreator binLoggerCreator
+			= ZezeCounter.instance != null ? ZezeCounter.instance.allocLabeledCounterCreator("BinLogger", "type") : null;
 	private static final @Nullable ZezeCounter.LongCounter sendLogFailCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocCounter("BinLogger.SendLogFail") : null;
+			= binLoggerCreator != null ? binLoggerCreator.labelValues("SendLogFail") : null;
 	private static final @Nullable ZezeCounter.LongCounter writeLogCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocCounter("BinLogger.WriteLog") : null;
-	private static final @Nullable ZezeCounter.LongCounter mysqlSelectCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("BinLogger.waitQueue") : null;
+			= binLoggerCreator != null ? binLoggerCreator.labelValues("WriteLog") : null;
+	private static final @Nullable ZezeCounter.LongObserver waitQueueObserver
+			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeObserver("BinLogger.waitQueue") : null;
 	private static final int timeZoneOffset = TimeZone.getDefault().getRawOffset(); // 北京时间(+8): 28800_000
 	private static final int DEFAULT_PORT = 5004; // 服务的默认端口号
 	private static final int MAX_LOG_SIZE = 0xfffff; // 1M-1, 单条日志数据的最大长度(涉及文件格式设计,不能改动)
@@ -483,8 +485,8 @@ public final class BinLogger extends ReentrantLock {
 				} finally {
 					queueLock.unlock();
 				}
-				if (mysqlSelectCounter != null && timeBegin != 0)
-					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
+				if (waitQueueObserver != null && timeBegin != 0)
+					waitQueueObserver.observe(System.nanoTime() - timeBegin);
 				logger.info("drop LogData: roleId={}, type={}, size={}, sender={}",
 						p.roleId, p.dataType, dataSize, p.getSender());
 			}
@@ -554,7 +556,7 @@ public final class BinLogger extends ReentrantLock {
 						}
 						readLogQueue.clear();
 						if (writeLogCounter != null)
-							writeLogCounter.add(queueSize);
+							writeLogCounter.inc(queueSize);
 					} else {
 						if (curMs - lastFlushMs >= FLUSH_PERIOD) { // 定时刷新到OS
 							lastFlushMs = curMs;

@@ -36,7 +36,9 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public void enterReadLock() {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数. java 没有这个，那么每次访问都统计。
-		ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).readLock().increment();
+		if (ZezeCounter.instance != null) {
+			ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).readLock().increment();
+		}
 		// logger.debug("EnterReadLock {}", TableKey);
 		var readLock = rwLock.readLock();
 		if (readLock.tryLock())
@@ -52,8 +54,11 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 	}
 
 	public void enterWriteLock() {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
-			ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).writeLock().increment();
+		if (!rwLock.isWriteLockedByCurrentThread()) {// 第一次才计数
+			if (ZezeCounter.instance != null) {
+				ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).writeLock().increment();
+			}
+		}
 		// logger.debug("EnterWriteLock {}", TableKey);
 		var writeLock = rwLock.writeLock();
 		if (writeLock.tryLock())
@@ -70,7 +75,9 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public boolean tryEnterReadLock(int millisecondsTimeout) {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-		ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).tryReadLock().increment();
+		if (ZezeCounter.instance != null) {
+			ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).tryReadLock().increment();
+		}
 		try {
 			var readLock = rwLock.readLock();
 			if (millisecondsTimeout > 0)
@@ -83,7 +90,9 @@ public final class Lockey implements Zeze.Util.Lockey<Lockey> {
 
 	public boolean tryEnterWriteLock(int millisecondsTimeout) {
 		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-			ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).tryWriteLock().increment();
+			if (ZezeCounter.instance != null) {
+				ZezeCounter.instance.getOrAddTableInfo(tableKey.getId()).tryWriteLock().increment();
+			}
 		try {
 			var writeLock = rwLock.writeLock();
 			if (millisecondsTimeout > 0)

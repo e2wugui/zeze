@@ -26,12 +26,15 @@ public final class DatabaseMySql extends DatabaseJdbc {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
-	private static final @Nullable ZezeCounter.LongCounter mysqlSelectCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.SELECT") : null;
-	private static final @Nullable ZezeCounter.LongCounter mysqlDeleteCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.DELETE") : null;
-	private static final @Nullable ZezeCounter.LongCounter mysqlReplaceCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.getRunTimeCounter("MySQL.REPLACE") : null;
+	private static final @Nullable ZezeCounter.LabeledObserverCreator mysqlObserverCreator
+			= ZezeCounter.instance != null ? ZezeCounter.instance.allocLabeledObserverCreator("mysql_operation", "operation") : null;
+
+	private static final @Nullable ZezeCounter.LongObserver mysqlSelectCounter
+			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("select") : null;
+	private static final @Nullable ZezeCounter.LongObserver mysqlDeleteCounter
+			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("delete") : null;
+	private static final @Nullable ZezeCounter.LongObserver mysqlReplaceCounter
+			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("replace") : null;
 
 	public DatabaseMySql(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
@@ -656,7 +659,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -679,7 +682,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw Task.forceThrow(e);
 			} finally {
 				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -700,7 +703,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 			} finally {
 				if (mysqlReplaceCounter != null)
-					mysqlReplaceCounter.add(System.nanoTime() - timeBegin);
+					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -719,7 +722,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 			} finally {
 				if (mysqlDeleteCounter != null)
-					mysqlDeleteCounter.add(System.nanoTime() - timeBegin);
+					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1133,7 +1136,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 			} finally {
 				if (mysqlSelectCounter != null)
-					mysqlSelectCounter.add(System.nanoTime() - timeBegin);
+					mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 			}
 			return v != null ? ByteBuffer.Wrap(v) : null;
 		}
@@ -1152,7 +1155,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 			} finally {
 				if (mysqlDeleteCounter != null)
-					mysqlDeleteCounter.add(System.nanoTime() - timeBegin);
+					mysqlDeleteCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1172,7 +1175,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				Task.forceThrow(e);
 			} finally {
 				if (mysqlReplaceCounter != null)
-					mysqlReplaceCounter.add(System.nanoTime() - timeBegin);
+					mysqlReplaceCounter.observe(System.nanoTime() - timeBegin);
 			}
 		}
 
@@ -1349,7 +1352,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			throw Task.forceThrow(e);
 		} finally {
 			if (mysqlSelectCounter != null)
-				mysqlSelectCounter.add(System.nanoTime() - timeBegin);
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }
