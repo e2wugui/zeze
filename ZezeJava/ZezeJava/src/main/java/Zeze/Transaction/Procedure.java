@@ -153,9 +153,9 @@ public class Procedure {
 				if (currentT != null) {
 					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
 					currentT.reuseTransaction();
-				}
-				if (ZezeCounter.instance != null) {
-					ZezeCounter.instance.procedureEnd(actionName, result, runTime);
+					if (ZezeCounter.instance != null) {
+						ZezeCounter.instance.procedureEnd(actionName, result, runTime);
+					}
 				}
 			}
 		}

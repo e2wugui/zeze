@@ -40,18 +40,17 @@ public interface ZezeCounter {
 		void inc(long v);
 	}
 
-	interface LabeledCounterCreator {
-		LongCounter labelValues(String... labels);
-	}
-
 	interface LongObserver {
 		void observe(long v);
 	}
 
-	interface LabeledObserverCreator {
-		LongObserver labelValues(String... labels);
+	interface LabeledCounterCreator {
+		@NotNull LongCounter labelValues(@NotNull String... labels);
 	}
 
+	interface LabeledObserverCreator {
+		@NotNull LongObserver labelValues(@NotNull String... labels);
+	}
 
 	interface TableCounter {
 		@NotNull LongCounter readLock();
@@ -88,7 +87,6 @@ public interface ZezeCounter {
 	 * 注意: 不判断name是否重复出现,总是分配新的,通常用于初始化全局的累加器,数量不应过多
 	 */
 	@NotNull LongCounter allocCounter(@NotNull String name);
-
 
 	@NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames);
 

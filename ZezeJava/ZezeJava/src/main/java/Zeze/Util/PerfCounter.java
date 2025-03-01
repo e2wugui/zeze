@@ -305,13 +305,17 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames) {
-		return labels -> allocCounter(name + "." + String.join(".", labels));
+	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name,
+																	 @NotNull String... labelNames) {
+		var name0 = labelNames.length > 0 ? name + "." + String.join(".", labelNames) : name;
+		return labels -> allocCounter(labels.length > 0 ? name0 + "." + String.join(".", labels) : name0);
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames) {
-		return labels -> getRunTimeObserver(name + "." + String.join(".", labels));
+	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
+																	   @NotNull String... labelNames) {
+		var name0 = labelNames.length > 0 ? name + "." + String.join(".", labelNames) : name;
+		return labels -> getRunTimeObserver(labels.length > 0 ? name0 + "." + String.join(".", labels) : name0);
 	}
 
 	public @NotNull LongCounter allocCounter(@NotNull String name, boolean accumulate) {
@@ -386,7 +390,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
-		addRunTime(name, timeNs);
+		// addRunTime(name, timeNs);
 		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
 	}
 
