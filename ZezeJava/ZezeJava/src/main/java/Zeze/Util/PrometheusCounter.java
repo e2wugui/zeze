@@ -22,7 +22,7 @@ public class PrometheusCounter implements ZezeCounter {
 	public static void startHttpServer(int port) {
 		try {
 			HTTPServer server = HTTPServer.builder().port(port).buildAndStart();
-			System.out.println("HTTPServer listening on port http://localhost:" + server.getPort() + "/metrics");
+			logger.info("httpserver listening on port http://localhost:{}/metrics", server.getPort());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -80,6 +80,9 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames) {
+		if (labelNames.length == 0) {
+			throw new IllegalArgumentException("labelNames empty");
+		}
 		Counter counter = Counter.builder().name(name).labelNames(labelNames).register();
 		return labels -> {
 			CounterDataPoint dp = counter.labelValues(labels);
@@ -88,29 +91,29 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocLabeledObserverCreator(@NotNull String name, @NotNull String... labelNames) {
-		Histogram histogram = Histogram.builder().name(name).labelNames(labelNames).register();
+	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames) {
+		if (labelNames.length == 0) {
+			throw new IllegalArgumentException("labelNames empty");
+		}
+		Histogram histogram = Histogram.builder().name(name).unit(Unit.SECONDS).labelNames(labelNames).register();
 		return labels -> {
 			DistributionDataPoint dp = histogram.labelValues(labels);
-			return dp::observe;
+			return (amount) -> dp.observe(Unit.nanosToSeconds(amount));
 		};
 	}
 
 	@Override
 	public @NotNull LongObserver getRunTimeObserver(@NotNull Object key) {
-		String name = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
-		Histogram histogram = Histogram.builder().nativeOnly().name(name).register();
-		return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
+		return runTimeMap.computeIfAbsent(key, (k) -> {
+			String name = k instanceof Class ? ((Class<?>)k).getName() : String.valueOf(k);
+			Histogram histogram = Histogram.builder().name(name).unit(Unit.SECONDS).register();
+			return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
+		});
 	}
 
 	@Override
 	public void addRunTime(@NotNull Object key, long timeNs) {
-		LongObserver observer = runTimeMap.computeIfAbsent(key, (k) -> {
-			String name = k instanceof Class ? ((Class<?>)k).getName() : String.valueOf(k);
-			Histogram histogram = Histogram.builder().name(name).register();
-			return (amount) -> histogram.observe(Unit.nanosToSeconds(amount));
-		});
-		observer.observe(timeNs);
+		getRunTimeObserver(key).observe(timeNs);
 	}
 
 	@Override

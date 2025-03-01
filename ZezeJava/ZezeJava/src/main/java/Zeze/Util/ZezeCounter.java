@@ -92,7 +92,7 @@ public interface ZezeCounter {
 
 	@NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames);
 
-	@NotNull LabeledObserverCreator allocLabeledObserverCreator(@NotNull String name, @NotNull String... labelNames);
+	@NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames);
 
 	/**
 	 * 通过指定的key获取其绑定的累加器. 通过equals方法判断绑定的key

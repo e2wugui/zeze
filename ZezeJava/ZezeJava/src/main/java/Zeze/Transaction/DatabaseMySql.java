@@ -27,7 +27,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
 	private static final @Nullable ZezeCounter.LabeledObserverCreator mysqlObserverCreator
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocLabeledObserverCreator("mysql_operation", "operation") : null;
+			= ZezeCounter.instance != null ? ZezeCounter.instance.allocRunTimeObserverCreator("mysql_operation", "operation") : null;
 
 	private static final @Nullable ZezeCounter.LongObserver mysqlSelectCounter
 			= mysqlObserverCreator != null ? mysqlObserverCreator.labelValues("select") : null;

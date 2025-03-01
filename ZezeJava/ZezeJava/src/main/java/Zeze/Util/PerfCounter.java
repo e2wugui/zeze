@@ -310,7 +310,7 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public @NotNull LabeledObserverCreator allocLabeledObserverCreator(@NotNull String name, @NotNull String... labelNames) {
+	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames) {
 		return labels -> getRunTimeObserver(name + "." + String.join(".", labels));
 	}
 

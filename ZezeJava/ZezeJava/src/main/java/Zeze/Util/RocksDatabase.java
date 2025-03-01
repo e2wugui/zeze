@@ -87,7 +87,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		if (ZezeCounter.instance != null) {
-			ZezeCounter.LabeledObserverCreator creator = ZezeCounter.instance.allocLabeledObserverCreator("rocksdb_operation", "operation");
+			ZezeCounter.LabeledObserverCreator creator = ZezeCounter.instance.allocRunTimeObserverCreator("rocksdb_operation", "operation");
 			rocksDbGetObserver = creator.labelValues("get");
 			rocksDbPutObserver = creator.labelValues("put");
 			rocksDbDeleteObserver = creator.labelValues("delete");
