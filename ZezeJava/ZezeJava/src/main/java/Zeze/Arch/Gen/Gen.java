@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Bean;
 import Zeze.Util.Action3;
 import Zeze.Util.Action4;
 import Zeze.Util.StringBuilderCs;
@@ -211,7 +212,8 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
-			sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName().replace('$', '.'));
+			if (type != Bean.class)
+				sb.appendLine("{}var {} = new {}();", prefix, name, type.getTypeName().replace('$', '.'));
 			return;
 		}
 		var paramType = param.getParameterizedType();
@@ -256,6 +258,8 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
+			if (type == Bean.class)
+				sb.appendLine("{}{}.WriteLong({}.typeId());", prefix, bbName, varName);
 			sb.appendLine("{}{}.encode({});", prefix, varName, bbName);
 			return;
 		}
@@ -317,6 +321,8 @@ final class Gen {
 			return;
 		}
 		if (Serializable.class.isAssignableFrom(type)) {
+			if (type == Bean.class)
+				sb.appendLine("{}var {} = beanFactory.createBeanFromSpecialTypeId({}.ReadLong());", prefix, varName, bbName);
 			sb.appendLine("{}{}.decode({});", prefix, varName, bbName);
 			return;
 		}

@@ -1,4 +1,4 @@
-import Zeze.Builtin.Game.Rank.BValueLong;// auto-generated @formatter:off
+// auto-generated @formatter:off
 public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     private final Zeze.Arch.RedirectBase _redirect_;
 
@@ -85,6 +85,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
             keyHint.encode(_b_);
             _b_.WriteLong(roleId);
+            _b_.WriteLong(value.typeId());
             value.encode(_b_);
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
@@ -136,10 +137,10 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
                 long roleId;
-                var value = new BValueLong();
                 var _b_ = _params_.Wrap();
                 keyHint.decode(_b_);
                 roleId = _b_.ReadLong();
+                var value = beanFactory.createBeanFromSpecialTypeId(_b_.ReadLong());
                 value.decode(_b_);
                 return super.updateRank(_hash_, keyHint, roleId, value);
             }, null, 0));
