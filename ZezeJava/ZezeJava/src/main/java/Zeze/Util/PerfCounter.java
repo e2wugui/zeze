@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
 import com.sun.management.OperatingSystemMXBean;
 import org.jetbrains.annotations.NotNull;
@@ -382,6 +383,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			ri.procCount.increment();
 			ri.procTime.add(timeNs);
 		}
+	}
+
+	@Override
+	public void serviceStart(Service service) {
+
+	}
+
+	@Override
+	public void serviceStop(Service service) {
+
 	}
 
 	@Override

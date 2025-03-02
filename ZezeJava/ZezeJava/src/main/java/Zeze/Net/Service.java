@@ -257,6 +257,9 @@ public class Service extends ReentrantLock {
 
 	public void start() throws Exception {
 		config.start();
+		if (ZezeCounter.instance != null) {
+			ZezeCounter.instance.serviceStart(this);
+		}
 	}
 
 	public void Start() throws Exception {
@@ -283,6 +286,10 @@ public class Service extends ReentrantLock {
 			if (keepCheckTimer != null) {
 				keepCheckTimer.cancel(true);
 				keepCheckTimer = null;
+			}
+
+			if (ZezeCounter.instance != null) {
+				ZezeCounter.instance.serviceStop(this);
 			}
 		} finally {
 			unlock();

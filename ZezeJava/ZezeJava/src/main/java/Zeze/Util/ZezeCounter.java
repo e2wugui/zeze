@@ -3,6 +3,7 @@ package Zeze.Util;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -88,8 +89,14 @@ public interface ZezeCounter {
 	 */
 	@NotNull LongCounter allocCounter(@NotNull String name);
 
+	/**
+	 * @return 有标签的Counter指标
+	 */
 	@NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name, @NotNull String... labelNames);
 
+	/**
+	 * @return 有标签的数据分布指标
+	 */
 	@NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name, @NotNull String... labelNames);
 
 	/**
@@ -102,10 +109,23 @@ public interface ZezeCounter {
 	 */
 	void addRunTime(@NotNull Object key, long timeNs);
 
+	/**
+	 * 服务开启
+	 */
+	void serviceStart(Service service);
+
+	/**
+	 * 服务停止
+	 */
+	void serviceStop(Service service);
+
+	/**
+	 * 事务开始
+	 */
 	void procedureStart(@NotNull String name);
 
 	/**
-	 * 以{事务名,事务结果状态码}绑定的累加器自增1
+	 * 事务完成
 	 */
 	void procedureEnd(@NotNull String name, long resultCode, long timeNs);
 

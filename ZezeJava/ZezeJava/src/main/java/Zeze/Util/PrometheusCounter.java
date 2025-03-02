@@ -1,20 +1,28 @@
 package Zeze.Util;
 
 import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Transaction.TableKey;
 import io.prometheus.metrics.core.datapoints.CounterDataPoint;
 import io.prometheus.metrics.core.datapoints.DistributionDataPoint;
 import io.prometheus.metrics.core.metrics.Counter;
+import io.prometheus.metrics.core.metrics.CounterWithCallback;
 import io.prometheus.metrics.core.metrics.Histogram;
 import io.prometheus.metrics.model.snapshots.Unit;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class PrometheusCounter implements ZezeCounter {
+
+	private static final int ServiceOutputObserveInterval = PropertiesHelper.getInt("ServiceOutputObserveInterval", 60);
 
 	public static void startHttpServer() {
 		startHttpServer(9400);
@@ -49,17 +57,31 @@ public class PrometheusCounter implements ZezeCounter {
 		}
 	}
 
+	private static class ServiceMetric {
+		public final Service service;
+		public final DistributionDataPoint outputObserve;
+		public final ScheduledFuture<?> scheduler;
+
+		private ServiceMetric(Service service, DistributionDataPoint outputObserve, ScheduledFuture<?> scheduler) {
+			this.service = service;
+			this.scheduler = scheduler;
+			this.outputObserve = outputObserve;
+		}
+	}
+
 	private final ConcurrentHashMap<Object, LongObserver> runTimeMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, TableCounter> tableCounterMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
+	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
+	private final Object serviceMapMutex = new Object();
 
 	private final Counter procedure_started = Counter.builder().name("procedure_started")
-			.labelNames("name").register();
+			.labelNames("procedure").register();
 	private final Counter procedure_completed = Counter.builder().name("procedure_completed")
-			.labelNames("name", "result_code").register();
+			.labelNames("procedure", "result_code").register();
 	private final Histogram procedure_duration_seconds = Histogram.builder().name("procedure_duration_seconds")
-			.labelNames("name", "result_code").register();
+			.labelNames("procedure", "result_code").register();
 
 	private final Counter database_table_operation = Counter.builder().name("database_table_operation")
 			.labelNames("table", "operation").register();
@@ -72,6 +94,48 @@ public class PrometheusCounter implements ZezeCounter {
 			.labelNames("protocol").register();
 	private final Counter protocol_send_bytes = Counter.builder().name("protocol_send_bytes")
 			.labelNames("protocol").register();
+
+	private final Histogram service_output_buffer_bytes = Histogram.builder().name("service_output_buffer_bytes")
+			.labelNames("service").register();
+	private final CounterWithCallback service_recv = CounterWithCallback.builder().name("service_recv")
+			.labelNames("service").callback(callback -> {
+				List<Service> serviceSnapshot = getServiceSnapshot();
+				for (Service service : serviceSnapshot) {
+					callback.call(service.getRecvCount(), service.getName());
+				}
+			}).register();
+
+	private final CounterWithCallback service_recv_bytes = CounterWithCallback.builder().name("service_recv_bytes")
+			.labelNames("service").callback(callback -> {
+				List<Service> serviceSnapshot = getServiceSnapshot();
+				for (Service service : serviceSnapshot) {
+					callback.call(service.getRecvSize(), service.getName());
+				}
+			}).register();
+
+	private final CounterWithCallback service_send = CounterWithCallback.builder().name("service_send")
+			.labelNames("service").callback(callback -> {
+				List<Service> serviceSnapshot = getServiceSnapshot();
+				for (Service service : serviceSnapshot) {
+					callback.call(service.getSendCount(), service.getName());
+				}
+			}).register();
+
+	private final CounterWithCallback service_send_bytes = CounterWithCallback.builder().name("service_send_bytes")
+			.labelNames("service").callback(callback -> {
+				List<Service> serviceSnapshot = getServiceSnapshot();
+				for (Service service : serviceSnapshot) {
+					callback.call(service.getSendSize(), service.getName());
+				}
+			}).register();
+	private final CounterWithCallback service_send_raw_bytes = CounterWithCallback.builder().name("service_send_raw_bytes")
+			.labelNames("service").callback(callback -> {
+				List<Service> serviceSnapshot = getServiceSnapshot();
+				for (Service service : serviceSnapshot) {
+					callback.call(service.getSendRawSize(), service.getName());
+				}
+			}).register();
+
 
 	@Override
 	public @NotNull LongCounter allocCounter(@NotNull String name) {
@@ -115,6 +179,63 @@ public class PrometheusCounter implements ZezeCounter {
 	@Override
 	public void addRunTime(@NotNull Object key, long timeNs) {
 		getRunTimeObserver(key).observe(timeNs);
+	}
+
+	private static class ServiceOutputObserve implements Action0 {
+		private final Service service;
+		private final DistributionDataPoint outputObserve;
+
+		private ServiceOutputObserve(Service service, DistributionDataPoint outputObserve) {
+			this.service = service;
+			this.outputObserve = outputObserve;
+		}
+
+		@Override
+		public void run() throws Exception {
+			service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
+			service.foreach(socket -> outputObserve.observe(socket.getOutputBufferSize()));
+		}
+	}
+
+	@Override
+	public void serviceStart(Service service) {
+		synchronized (serviceMapMutex) {
+			String name = service.getName();
+			ServiceMetric metric = serviceMap.get(name);
+			if (metric != null) {// 按说不改有重名的，如果重名忽略后来的
+				return;
+			}
+
+			DistributionDataPoint outputObserve = service_output_buffer_bytes.labelValues(name);
+			long milliSec = ServiceOutputObserveInterval * 1000L;
+			ScheduledFuture<?> scheduler = Task.scheduleUnsafe(Random.getInstance().nextLong(milliSec),
+					milliSec, new ServiceOutputObserve(service, outputObserve));
+
+			serviceMap.put(name, new ServiceMetric(service, outputObserve, scheduler));
+		}
+	}
+
+	@Override
+	public void serviceStop(Service service) {
+		synchronized (serviceMapMutex) {
+			String name = service.getName();
+			ServiceMetric metric = serviceMap.get(name);
+			if (metric == null) { // 不应该出现
+				return;
+			}
+
+			if (service != metric.service) { //重名，并且是后来者
+				return;
+			}
+
+			metric.scheduler.cancel(false);
+		}
+	}
+
+	private List<Service> getServiceSnapshot() {
+		synchronized (serviceMapMutex) {
+			return serviceMap.values().stream().map(s -> s.service).toList();
+		}
 	}
 
 	@Override
