@@ -196,7 +196,7 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (ZezeCounter.instance != null && action != null)
-				ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(), System.nanoTime() - timeBegin);
+				ZezeCounter.instance.addTaskRunTime(name != null ? name : action.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
 
@@ -211,7 +211,7 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (ZezeCounter.instance != null && func != null)
-				ZezeCounter.instance.addRunTime(name != null ? name : func.getClass(), System.nanoTime() - timeBegin);
+				ZezeCounter.instance.addTaskRunTime(name != null ? name : func.getClass(), System.nanoTime() - timeBegin);
 		}
 	}
 
@@ -264,7 +264,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null) {
-					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
 			}
@@ -281,7 +281,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null) {
-					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
 			}
@@ -309,7 +309,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null) {
-					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
 			}
@@ -326,7 +326,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null) {
-					ZezeCounter.instance.addRunTime(name != null ? name : action.getClass(),
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : action.getClass(),
 							System.nanoTime() - timeBegin);
 				}
 			}
@@ -363,7 +363,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null)
-					ZezeCounter.instance.addRunTime(action.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -383,7 +383,7 @@ public final class Task {
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && func != null)
-					ZezeCounter.instance.addRunTime(func.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(func.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -469,7 +469,7 @@ public final class Task {
 				future.unlock();
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null)
-					ZezeCounter.instance.addRunTime(action.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(action.getClass(), System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
 		return future;
@@ -588,7 +588,7 @@ public final class Task {
 		} finally {
 			//noinspection ConstantValue
 			if (ZezeCounter.instance != null && func != null) {
-				ZezeCounter.instance.addRunTime(aName != null ? aName : (p != null ? p : func).getClass(),
+				ZezeCounter.instance.addTaskRunTime(aName != null ? aName : (p != null ? p : func).getClass(),
 						System.nanoTime() - timeBegin);
 			}
 		}

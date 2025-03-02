@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -75,6 +76,9 @@ public class PrometheusCounter implements ZezeCounter {
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
 	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
 	private final Object serviceMapMutex = new Object();
+
+	private final Histogram task_duration_seconds = Histogram.builder().name("task_duration_seconds")
+			.labelNames("task").register();
 
 	private final Counter procedure_started = Counter.builder().name("procedure_started")
 			.labelNames("procedure").register();
@@ -177,8 +181,9 @@ public class PrometheusCounter implements ZezeCounter {
 	}
 
 	@Override
-	public void addRunTime(@NotNull Object key, long timeNs) {
-		getRunTimeObserver(key).observe(timeNs);
+	public void addTaskRunTime(@NotNull Object key, long timeNs) {
+		String task = key instanceof Class ? ((Class<?>)key).getName() : String.valueOf(key);
+		task_duration_seconds.labelValues(task).observe(Unit.nanosToSeconds(timeNs));
 	}
 
 	private static class ServiceOutputObserve implements Action0 {
@@ -236,7 +241,7 @@ public class PrometheusCounter implements ZezeCounter {
 
 	private List<Service> getServiceSnapshot() {
 		synchronized (serviceMapMutex) {
-			return serviceMap.values().stream().map(s -> s.service).toList();
+			return serviceMap.values().stream().map(s -> s.service).collect(Collectors.toList());
 		}
 	}
 

@@ -107,7 +107,7 @@ public interface ZezeCounter {
 	/**
 	 * 通过指定的key累加其绑定的时间累加器(纳秒)并自增次数累加器. 通过equals方法判断绑定的key
 	 */
-	void addRunTime(@NotNull Object key, long timeNs);
+	void addTaskRunTime(@NotNull Object key, long timeNs);
 
 	/**
 	 * 服务开启
