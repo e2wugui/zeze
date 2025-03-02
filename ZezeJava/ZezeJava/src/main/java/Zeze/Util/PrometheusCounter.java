@@ -228,6 +228,8 @@ public class PrometheusCounter implements ZezeCounter {
 				return;
 			}
 
+			serviceMap.remove(name);
+			service_output_buffer_bytes.remove(name);
 			metric.scheduler.cancel(false);
 		}
 	}
