@@ -1,5 +1,5 @@
-local old_version = "1.5.2-SNAPSHOT"
-local new_version = "1.5.2"
+local old_version = "1.5.2"
+local new_version = "1.5.3-SNAPSHOT"
 
 local files = {
 	{ 1, "build.gradle" },
@@ -21,11 +21,13 @@ local files = {
 }
 
 local old_version_pat = old_version:gsub("%.", "%%."):gsub("%-", "%%-")
+local old_version_pom_pat = "<version>" .. old_version_pat .. "</version>"
+local new_version_pom = "<version>" .. new_version .. "</version>"
 
-local function find_count(str)
+local function find_count(str, pat)
 	local i, j, n = 0, 0, 0
 	while true do
-		i, j = str:find(old_version_pat, j + 1)
+		i, j = str:find(pat, j + 1)
 		if not i then return n end
 		n = n + 1
 	end
@@ -37,19 +39,19 @@ local function check_version(filename, change_count)
 	local s = f:read "*a"
 	f:close()
 
-	local count = find_count(s)
+	local count = find_count(s, filename:find "pom.xml$" and old_version_pom_pat or old_version_pat)
 	if count ~= change_count then
 		error(filename .. ": need " .. change_count .. " '" .. old_version .. "', but found " .. count)
 	end
 end
 
-local function change_version(filename)
+local function change_version(filename, pat, replaced)
 	local f = io.open(filename, "rb")
 	local s = f:read "*a"
 	f:close()
 
 	io.write("modify " .. filename .. " ... ")
-	local t = s:gsub(old_version_pat, new_version)
+	local t = s:gsub(pat, replaced)
 	if t ~= s then
 		local f = io.open(filename, "wb")
 		f:write(t)
@@ -65,7 +67,11 @@ end
 print "--- CHECK DONE ---"
 
 for _, f in ipairs(files) do
-	change_version(f[2])
+	if f[2]:find "pom.xml$" then
+		change_version(f[2], old_version_pom_pat, new_version_pom)
+	else
+		change_version(f[2], old_version_pat, new_version)
+	end
 end
 
 print "=== CHANGE DONE ==="

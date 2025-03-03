@@ -6,7 +6,7 @@
 
 	<groupId>com.zezeno</groupId>
 	<artifactId>zeze-java</artifactId>
-	<version>1.5.2</version>
+	<version>1.5.3-SNAPSHOT</version>
 
 	<name>zeze-java</name>
 	<description>A distributed transaction framework based on cache coherence embedded in Java</description>
