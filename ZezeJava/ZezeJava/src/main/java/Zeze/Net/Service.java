@@ -27,8 +27,8 @@ import Zeze.Util.GlobalTimer;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashMap;
-import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
+import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
@@ -82,9 +82,9 @@ public class Service extends ReentrantLock {
 	protected volatile int overflowCount;
 
 	private @Nullable Selectors selectors;
-	private @Nullable ScheduledFuture<?> statisticLogFuture;
 	private boolean noProcedure;
 	protected Future<?> keepCheckTimer;
+	private @Nullable PerfCounter.ServiceInfo servicePerf;
 
 	public @NotNull String getInstanceName() {
 		return instanceName;
@@ -827,49 +827,9 @@ public class Service extends ReentrantLock {
 	public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
 		lock();
 		try {
-			var f = statisticLogFuture;
-			if (f != null && !f.isCancelled())
-				return f;
-			var lastSizes = new long[6];
-			lastSizes[0] = -1;
-			f = Task.scheduleUnsafe(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L, () -> {
-				updateRecvSendSize();
-				var selectors = getSelectors();
-				long selectCount = selectors.getSelectCount();
-				long recvCount = this.recvCount;
-				long recvSize = this.recvSize;
-				long sendCount = this.sendCount;
-				long sendSize = this.sendSize;
-				long sendRawSize = this.sendRawSize;
-				if (lastSizes[0] != -1) {
-					long sn = (selectCount - lastSizes[0]) / periodSec;
-					long rc = (recvCount - lastSizes[1]) / periodSec;
-					long rs = (recvSize - lastSizes[2]) / periodSec;
-					long sc = (sendCount - lastSizes[3]) / periodSec;
-					long ss = (sendSize - lastSizes[4]) / periodSec;
-					long sr = (sendRawSize - lastSizes[5]) / periodSec;
-					var operates = new OutLong();
-					var outBufSize = new OutLong();
-					foreach(socket -> {
-						operates.value += socket.getOperateSize();
-						outBufSize.value += socket.getOutputBufferSize();
-					});
-					operates.value /= periodSec;
-					outBufSize.value /= periodSec;
-					ZezeCounter.logger.info(
-							"{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
-							name, instanceName, sn, selectors.getCount(), rs, rc, ss, sc, sr, getSocketCount(),
-							operates.value, outBufSize.value);
-				}
-				lastSizes[0] = selectCount;
-				lastSizes[1] = recvCount;
-				lastSizes[2] = recvSize;
-				lastSizes[3] = sendCount;
-				lastSizes[4] = sendSize;
-				lastSizes[5] = sendRawSize;
-			});
-			statisticLogFuture = f;
-			return f;
+			if (servicePerf == null)
+				servicePerf = new PerfCounter.ServiceInfo(this);
+			return servicePerf.startStatisticLog(periodSec);
 		} finally {
 			unlock();
 		}
@@ -878,9 +838,7 @@ public class Service extends ReentrantLock {
 	public boolean cancelStartStatisticLog() {
 		lock();
 		try {
-			var f = statisticLogFuture;
-			statisticLogFuture = null;
-			return f != null && f.cancel(false);
+			return servicePerf == null || servicePerf.cancelStartStatisticLog();
 		} finally {
 			unlock();
 		}

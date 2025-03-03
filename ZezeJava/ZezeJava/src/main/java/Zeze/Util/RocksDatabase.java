@@ -91,7 +91,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 			rocksDbGetObserver = creator.labelValues("get");
 			rocksDbPutObserver = creator.labelValues("put");
 			rocksDbDeleteObserver = creator.labelValues("delete");
-			rocksDbDeleteRangeObserver = creator.labelValues("deleteRange");
+			rocksDbDeleteRangeObserver = creator.labelValues("delete_range");
 			rocksDbWriteObserver = creator.labelValues("write");
 			rocksDbTxnPutObserver = creator.labelValues("txn_put");
 			rocksDbTxnDeleteObserver = creator.labelValues("txn_delete");
