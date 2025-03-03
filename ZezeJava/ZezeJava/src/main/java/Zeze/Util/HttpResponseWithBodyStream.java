@@ -74,16 +74,11 @@ public class HttpResponseWithBodyStream {
 			if (closed)
 				return;
 			closed = true;
-
-			try {
-				if (buffer.writableBytes() > 0) {
-					throw new IOException("Incomplete content: Expected " +
-							buffer.capacity() + " bytes, actual " + buffer.readableBytes());
-				}
-				ctx.writeAndFlush(new DefaultLastHttpContent(buffer));
-			} finally {
-				buffer.release();
+			if (buffer.writableBytes() > 0) {
+				throw new IOException("Incomplete content: Expected " +
+						buffer.capacity() + " bytes, actual " + buffer.readableBytes());
 			}
+			ctx.writeAndFlush(new DefaultLastHttpContent(buffer));
 		}
 
 		private void checkOpen() {
@@ -119,8 +114,8 @@ public class HttpResponseWithBodyStream {
 		@Override
 		public void write(byte[] b, int off, int len) {
 			checkOpen();
-			ByteBuf chunk = Unpooled.wrappedBuffer(b, off, len);
-			ctx.writeAndFlush(new DefaultHttpContent(chunk));
+			ByteBuf chunk = Unpooled.copiedBuffer(b, off, len);
+			ctx.write(new DefaultHttpContent(chunk));
 		}
 
 		@Override

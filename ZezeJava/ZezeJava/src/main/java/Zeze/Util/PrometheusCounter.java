@@ -5,6 +5,7 @@ import Zeze.Net.Service;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpServer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import io.netty.handler.codec.http.HttpRequest;
@@ -37,11 +38,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class PrometheusCounter implements ZezeCounter {
 
+	/**
+	 * service outputBuffSize的一个分布收集间隔。
+	 */
 	private static final int ServiceOutputObserveInterval = PropertiesHelper.getInt("ServiceOutputObserveInterval", 60);
-
-	public static void startHttpServer() {
-		startHttpServer(9400);
-	}
 
 	public static void startHttpServer(int port) {
 		try {
@@ -50,6 +50,15 @@ public class PrometheusCounter implements ZezeCounter {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public static void addHttpHandler(HttpServer httpServer) {
+		httpServer.addHandler("/metrics", 0,
+				TransactionLevel.None, DispatchMode.Normal,
+				new MetricHandler());
+		httpServer.addHandler("/healthy", 0,
+				TransactionLevel.None, DispatchMode.Direct,
+				new HealthyHandler());
 	}
 
 	static class HealthyHandler implements HttpEndStreamHandle {
@@ -66,7 +75,6 @@ public class PrometheusCounter implements ZezeCounter {
 		@Override
 		public void onEndStream(@NotNull HttpExchange x) throws Exception {
 			prometheusScrapeHandler.handleRequest(new HttpExchangeAdapter(x));
-
 		}
 	}
 
@@ -75,7 +83,7 @@ public class PrometheusCounter implements ZezeCounter {
 		private final HttpRequestAdaptor request = new HttpRequestAdaptor();
 		private final HttpResponseAdaptor response = new HttpResponseAdaptor();
 
-		public class HttpRequestAdaptor implements PrometheusHttpRequest {
+		class HttpRequestAdaptor implements PrometheusHttpRequest {
 
 			@Override
 			public String getQueryString() {
@@ -103,11 +111,10 @@ public class PrometheusCounter implements ZezeCounter {
 			@Override
 			public String getRequestPath() {
 				return httpExchange.path();
-
 			}
 		}
 
-		public class HttpResponseAdaptor implements PrometheusHttpResponse {
+		class HttpResponseAdaptor implements PrometheusHttpResponse {
 			private final Map<String, Object> headers = new LinkedHashMap<>();
 
 			@Override
@@ -151,16 +158,6 @@ public class PrometheusCounter implements ZezeCounter {
 		@Override
 		public void close() {
 		}
-	}
-
-	public static void addHttpHandler(HttpServer httpServer) {
-		httpServer.addHandler("/metrics", 0,
-				TransactionLevel.None, Zeze.Transaction.DispatchMode.Normal,
-				new MetricHandler());
-		httpServer.addHandler("/healthy", 0,
-				TransactionLevel.None, Zeze.Transaction.DispatchMode.Normal,
-				new HealthyHandler());
-
 	}
 
 	private static class ProtocolRecvMetric {
