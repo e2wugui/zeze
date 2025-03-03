@@ -95,7 +95,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 	public void Stop(App app) {
 		App.Zeze.getHotManager().throwIfMatch("stop");
 
-		logger.info("Stop " + this.getFullName());
+		logger.info("Stop {}", this.getFullName());
 		App.Zeze.newProcedure(() -> {
 			var timer = App.Zeze.getTimer();
 			if (!isHotUpgrade()) {
@@ -192,7 +192,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		{
 			var linkedMap = App.LinkedMapModule.open(getLinkedMapName(), BEquipExtra.class);
 			var version0 = linkedMap.getOrAdd(String.valueOf(0));
-			logger.info("verify oldAccess=" + version0.getAttack() + ":" + oldAccess);
+			logger.info("verify oldAccess={}:{}", version0.getAttack(), oldAccess);
 			if (version0.getAttack() != oldAccess)
 				throw new RuntimeException(getLinkedMapName() + " error oldAccess=" + version0.getAttack() + ":" + oldAccess);
 			version0.setAttack(oldAccess + 1);
@@ -504,7 +504,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 		timerOnline = App.Zeze.getTimer().getRoleTimer().scheduleOnlineHot(
 				this.roleId, 2000, 2000,
 				-1, -1, HotTimer.class, new BEquipExtra(0, 3, 0));
-		logger.info("timerOnline=" + timerOnline);
+		logger.info("timerOnline={}", timerOnline);
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
