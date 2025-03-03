@@ -226,6 +226,72 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 	}
 
+	public static final class ServiceInfo implements Action0 {
+		private final @NotNull Service service;
+		private @Nullable ScheduledFuture<?> statisticLogFuture;
+		private int periodSec;
+		private final long[] lastSizes = new long[]{-1, 0, 0, 0, 0, 0};
+
+		public ServiceInfo(@NotNull Service service) {
+			this.service = service;
+		}
+
+		public @NotNull ScheduledFuture<?> startStatisticLog(int periodSec) {
+			if (periodSec <= 0)
+				throw new IllegalArgumentException("periodSec(" + periodSec + ") < 0");
+			var f = statisticLogFuture;
+			if (f != null && !f.isCancelled())
+				cancelStartStatisticLog();
+			this.periodSec = periodSec;
+			f = Task.scheduleUnsafe(Random.getInstance().nextLong(periodSec * 1000L), periodSec * 1000L, this);
+			statisticLogFuture = f;
+			return f;
+		}
+
+		public boolean cancelStartStatisticLog() {
+			var f = statisticLogFuture;
+			statisticLogFuture = null;
+			return f != null && f.cancel(false);
+		}
+
+		@Override
+		public void run() throws Exception {
+			service.updateRecvSendSize();
+			var selectors = service.getSelectors();
+			long selectCount = selectors.getSelectCount();
+			long recvCount = service.getRecvCount();
+			long recvSize = service.getRecvSize();
+			long sendCount = service.getSendCount();
+			long sendSize = service.getSendSize();
+			long sendRawSize = service.getSendRawSize();
+			if (lastSizes[0] != -1) {
+				long sn = (selectCount - lastSizes[0]) / periodSec;
+				long rc = (recvCount - lastSizes[1]) / periodSec;
+				long rs = (recvSize - lastSizes[2]) / periodSec;
+				long sc = (sendCount - lastSizes[3]) / periodSec;
+				long ss = (sendSize - lastSizes[4]) / periodSec;
+				long sr = (sendRawSize - lastSizes[5]) / periodSec;
+				var operates = new OutLong();
+				var outBufSize = new OutLong();
+				service.foreach(socket -> {
+					operates.value += socket.getOperateSize();
+					outBufSize.value += socket.getOutputBufferSize();
+				});
+				operates.value /= periodSec;
+				outBufSize.value /= periodSec;
+				logger.info("{}.{}.stat: select={}/{}, recv={}/{}, send={}/{}, sendRaw={}, sockets={}, ops={}, outBuf={}",
+						service.getName(), service.getInstanceName(), sn, selectors.getCount(), rs, rc, ss, sc, sr,
+						service.getSocketCount(), operates.value, outBufSize.value);
+			}
+			lastSizes[0] = selectCount;
+			lastSizes[1] = recvCount;
+			lastSizes[2] = recvSize;
+			lastSizes[3] = sendCount;
+			lastSizes[4] = sendSize;
+			lastSizes[5] = sendRawSize;
+		}
+	}
+
 	private static final class CountInfo extends LongAdder implements LongCounter {
 		final @NotNull String name;
 		final boolean accumulate;
@@ -308,15 +374,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	@Override
 	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name,
 																	 @NotNull String... labelNames) {
-		var name0 = labelNames.length > 0 ? name + "." + String.join(".", labelNames) : name;
-		return labels -> allocCounter(labels.length > 0 ? name0 + "." + String.join(".", labels) : name0);
+		return labels -> allocCounter(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	@Override
 	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
 																	   @NotNull String... labelNames) {
-		var name0 = labelNames.length > 0 ? name + "." + String.join(".", labelNames) : name;
-		return labels -> getRunTimeObserver(labels.length > 0 ? name0 + "." + String.join(".", labels) : name0);
+		return labels -> getRunTimeObserver(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	public @NotNull LongCounter allocCounter(@NotNull String name, boolean accumulate) {
@@ -386,13 +450,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	}
 
 	@Override
-	public void serviceStart(Service service) {
-
+	public void serviceStart(@NotNull Service service) {
 	}
 
 	@Override
-	public void serviceStop(Service service) {
-
+	public void serviceStop(@NotNull Service service) {
 	}
 
 	@Override

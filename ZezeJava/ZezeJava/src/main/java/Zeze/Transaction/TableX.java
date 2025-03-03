@@ -95,7 +95,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return cache;
 	}
 
-	protected final @Nullable AutoKey getAutoKey() {
+	public final @Nullable AutoKey getAutoKey() {
 		return autoKey;
 	}
 
@@ -215,7 +215,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					var storage = this.storage;
 					if (storage != null) {
-						ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+						if (ZezeCounter.instance != null)
+							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
 						strongRef = storage.getDatabaseTable().find(this, key);
 						if (strongRef != null)
 							rocksCachePut(key, strongRef);
@@ -445,7 +446,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
-					ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
+					if (ZezeCounter.instance != null)
+						ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
@@ -458,7 +460,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
-					ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
+					if (ZezeCounter.instance != null)
+						ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult * {}", r);
@@ -1233,7 +1236,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					var now = System.currentTimeMillis();
 					var ts = r.getTimestamp();
 					if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过5秒则从数据库里加载最新值
-						ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+						if (ZezeCounter.instance != null)
+							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
 						V strongRef = storage.getDatabaseTable().find(this, key);
 						r.setSoftValue(strongRef); // r.Value still maybe null
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。

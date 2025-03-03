@@ -112,12 +112,12 @@ public interface ZezeCounter {
 	/**
 	 * 服务开启
 	 */
-	void serviceStart(Service service);
+	void serviceStart(@NotNull Service service);
 
 	/**
 	 * 服务停止
 	 */
-	void serviceStop(Service service);
+	void serviceStop(@NotNull Service service);
 
 	/**
 	 * 事务开始

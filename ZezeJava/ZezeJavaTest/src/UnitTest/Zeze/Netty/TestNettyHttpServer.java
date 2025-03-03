@@ -271,9 +271,11 @@ public class TestNettyHttpServer {
 					(x) -> {
 						throw new UnsupportedOperationException();
 					});
-			http.addHandler("/stream",
-					8192, TransactionLevel.Serializable, DispatchMode.Direct,
-					(x) -> {
+			http.addHandler("/stream", TransactionLevel.Serializable, DispatchMode.Direct,
+					(x, from, to, size) -> System.out.println("begin: from=" + from + ", to=" + to + ", size=" + size),
+					(x, c) -> System.out.println("content: " + c.content().readableBytes()),
+					x -> {
+						System.out.println("end");
 						var headers = new DefaultHttpHeaders();
 						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
 						x.beginStream(HttpResponseStatus.OK, headers);
