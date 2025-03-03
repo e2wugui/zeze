@@ -2,16 +2,30 @@ package Zeze.Util;
 
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Netty.HttpEndStreamHandle;
+import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpServer;
 import Zeze.Transaction.TableKey;
+import Zeze.Transaction.TransactionLevel;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.prometheus.metrics.core.datapoints.CounterDataPoint;
 import io.prometheus.metrics.core.datapoints.DistributionDataPoint;
 import io.prometheus.metrics.core.metrics.Counter;
 import io.prometheus.metrics.core.metrics.CounterWithCallback;
 import io.prometheus.metrics.core.metrics.Histogram;
+import io.prometheus.metrics.exporter.common.PrometheusHttpExchange;
+import io.prometheus.metrics.exporter.common.PrometheusHttpRequest;
+import io.prometheus.metrics.exporter.common.PrometheusHttpResponse;
+import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
 import io.prometheus.metrics.model.snapshots.Unit;
 import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +50,117 @@ public class PrometheusCounter implements ZezeCounter {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	static class HealthyHandler implements HttpEndStreamHandle {
+
+		@Override
+		public void onEndStream(@NotNull HttpExchange x) {
+			x.sendPlainText(HttpResponseStatus.OK, "Exporter is healthy.\n");
+		}
+	}
+
+	static class MetricHandler implements HttpEndStreamHandle {
+		private final PrometheusScrapeHandler prometheusScrapeHandler = new PrometheusScrapeHandler();
+
+		@Override
+		public void onEndStream(@NotNull HttpExchange x) throws Exception {
+			prometheusScrapeHandler.handleRequest(new HttpExchangeAdapter(x));
+
+		}
+	}
+
+	static class HttpExchangeAdapter implements PrometheusHttpExchange {
+		private final HttpExchange httpExchange;
+		private final HttpRequestAdaptor request = new HttpRequestAdaptor();
+		private final HttpResponseAdaptor response = new HttpResponseAdaptor();
+
+		public class HttpRequestAdaptor implements PrometheusHttpRequest {
+
+			@Override
+			public String getQueryString() {
+				return httpExchange.query();
+			}
+
+			@Override
+			public Enumeration<String> getHeaders(String name) {
+				HttpRequest req = httpExchange.request();
+				if (req == null) {
+					return Collections.emptyEnumeration();
+				}
+				return Collections.enumeration(req.headers().getAll(name));
+			}
+
+			@Override
+			public String getMethod() {
+				HttpRequest req = httpExchange.request();
+				if (req == null) {
+					return "";
+				}
+				return req.method().name();
+			}
+
+			@Override
+			public String getRequestPath() {
+				return httpExchange.path();
+
+			}
+		}
+
+		public class HttpResponseAdaptor implements PrometheusHttpResponse {
+			private final Map<String, Object> headers = new LinkedHashMap<>();
+
+			@Override
+			public void setHeader(String name, String value) {
+				headers.put(name, value);
+			}
+
+			@Override
+			public OutputStream sendHeadersAndGetBody(int statusCode, int contentLength) {
+				return HttpResponseWithBodyStream.sendHeadersAndGetBody(httpExchange.context(),
+						HttpResponseStatus.valueOf(statusCode),
+						headers,
+						contentLength);
+			}
+		}
+
+		public HttpExchangeAdapter(@NotNull HttpExchange x) {
+			httpExchange = x;
+		}
+
+		@Override
+		public PrometheusHttpRequest getRequest() {
+			return request;
+		}
+
+		@Override
+		public PrometheusHttpResponse getResponse() {
+			return response;
+		}
+
+		@Override
+		public void handleException(IOException e) {
+			httpExchange.send500(e);
+		}
+
+		@Override
+		public void handleException(RuntimeException e) {
+			httpExchange.send500(e);
+		}
+
+		@Override
+		public void close() {
+		}
+	}
+
+	public static void addHttpHandler(HttpServer httpServer) {
+		httpServer.addHandler("/metrics", 0,
+				TransactionLevel.None, Zeze.Transaction.DispatchMode.Normal,
+				new MetricHandler());
+		httpServer.addHandler("/healthy", 0,
+				TransactionLevel.None, Zeze.Transaction.DispatchMode.Normal,
+				new HealthyHandler());
+
 	}
 
 	private static class ProtocolRecvMetric {
@@ -139,7 +264,6 @@ public class PrometheusCounter implements ZezeCounter {
 					callback.call(service.getSendRawSize(), service.getName());
 				}
 			}).register();
-
 
 	@Override
 	public @NotNull LongCounter allocCounter(@NotNull String name) {
