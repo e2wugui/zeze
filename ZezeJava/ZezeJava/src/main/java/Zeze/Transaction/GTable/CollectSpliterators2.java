@@ -176,10 +176,10 @@ public class CollectSpliterators2 {
 
 		@Override
 		public final int characteristics() {
+			//noinspection MagicConstant
 			return characteristics;
 		}
 	}
-
 
 	static final class FlatMapSpliteratorOfObject<InElementT, OutElementT>
 			extends FlatMapSpliterator<InElementT, OutElementT, Spliterator<OutElementT>> {

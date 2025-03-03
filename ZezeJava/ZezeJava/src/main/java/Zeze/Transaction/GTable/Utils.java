@@ -627,6 +627,7 @@ public class Utils {
 
 		@Override
 		public void remove() {
+			//noinspection DataFlowIssue
 			checkRemove(false);
 		}
 	}

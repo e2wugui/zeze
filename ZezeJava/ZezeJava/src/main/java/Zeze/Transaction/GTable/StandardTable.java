@@ -417,6 +417,11 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
         }
 
         @Override
+        public int hashCode() {
+          return standardHashCode();
+        }
+
+        @Override
         public boolean equals(@CheckForNull Object object) {
           // TODO(lowasser): identify why this affects GWT tests
           return standardEquals(object);

@@ -82,12 +82,7 @@ public class Master extends AbstractMaster {
     private Manager[] choiceManager(int hint) {
         lock();
         try {
-            managers.sort(new Comparator<>() {
-                @Override
-                public int compare(Manager o1, Manager o2) {
-                    return Double.compare(o1.load, o2.load);
-                }
-            });
+            managers.sort(Comparator.comparingDouble(o -> o.load));
             var size = Math.min(hint, managers.size());
             return managers.toArray(new Manager[size]);
         } finally {
