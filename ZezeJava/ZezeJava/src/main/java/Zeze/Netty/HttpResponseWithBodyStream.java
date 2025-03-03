@@ -1,23 +1,30 @@
-package Zeze.Util;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.*;
+package Zeze.Netty;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Map;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class HttpResponseWithBodyStream {
+public final class HttpResponseWithBodyStream {
+	private static final NoBodyStream noBodyStream = new NoBodyStream();
 
-	public static OutputStream sendHeadersAndGetBody(ChannelHandlerContext ctx,
-													 HttpResponseStatus status,
-													 Map<String, Object> headers,
-													 int contentLength) {
+	private HttpResponseWithBodyStream() {
+	}
+
+	public static @NotNull OutputStream sendHeadersAndGetBody(@NotNull ChannelHandlerContext ctx,
+															  @NotNull HttpResponseStatus status,
+															  @Nullable Map<String, Object> headers,
+															  int contentLength) {
 		HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status);
-		for (Map.Entry<String, Object> e : headers.entrySet()) {
-			response.headers().set(e.getKey(), e.getValue());
+		if (headers != null) {
+			for (Map.Entry<String, Object> e : headers.entrySet()) {
+				response.headers().set(e.getKey(), e.getValue());
+			}
 		}
 
 		if (contentLength > 0) {
@@ -36,8 +43,9 @@ public class HttpResponseWithBodyStream {
 		}
 		// contentLength <= -1
 		// 无响应体模式
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, 0);
 		ctx.writeAndFlush(response); // 立即发送header并结束
-		return new NoBodyStream();
+		return noBodyStream;
 	}
 
 	// ========================= 三种Body处理模式 =========================
@@ -46,11 +54,11 @@ public class HttpResponseWithBodyStream {
 	 * 固定长度模式（contentLength > 0）
 	 */
 	private static class FixedLengthBodyStream extends OutputStream {
-		private final ChannelHandlerContext ctx;
-		private final ByteBuf buffer;
+		private final @NotNull ChannelHandlerContext ctx;
+		private final @NotNull ByteBuf buffer;
 		private boolean closed;
 
-		public FixedLengthBodyStream(ChannelHandlerContext ctx, int contentLength) {
+		public FixedLengthBodyStream(@NotNull ChannelHandlerContext ctx, int contentLength) {
 			this.ctx = ctx;
 			this.buffer = ctx.alloc().buffer(contentLength);
 		}
@@ -63,7 +71,7 @@ public class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(byte[] b, int off, int len) {
+		public void write(byte @NotNull [] b, int off, int len) {
 			checkOpen();
 			ensureCapacity(len);
 			buffer.writeBytes(b, off, len);
@@ -99,20 +107,22 @@ public class HttpResponseWithBodyStream {
 	 * 分块编码模式（contentLength == 0）
 	 */
 	private static class ChunkedBodyStream extends OutputStream {
-		private final ChannelHandlerContext ctx;
+		private final @NotNull ChannelHandlerContext ctx;
 		private boolean closed;
 
-		public ChunkedBodyStream(ChannelHandlerContext ctx) {
+		public ChunkedBodyStream(@NotNull ChannelHandlerContext ctx) {
 			this.ctx = ctx;
 		}
 
 		@Override
 		public void write(int b) {
-			write(new byte[]{(byte)b}, 0, 1);
+			checkOpen();
+			ByteBuf chunk = Unpooled.wrappedBuffer(new byte[]{(byte)b});
+			ctx.write(new DefaultHttpContent(chunk));
 		}
 
 		@Override
-		public void write(byte[] b, int off, int len) {
+		public void write(byte @NotNull [] b, int off, int len) {
 			checkOpen();
 			ByteBuf chunk = Unpooled.copiedBuffer(b, off, len);
 			ctx.write(new DefaultHttpContent(chunk));
@@ -143,7 +153,7 @@ public class HttpResponseWithBodyStream {
 		}
 
 		@Override
-		public void write(byte[] b, int off, int len) {
+		public void write(byte @NotNull [] b, int off, int len) {
 			throw new IllegalStateException("No body allowed");
 		}
 

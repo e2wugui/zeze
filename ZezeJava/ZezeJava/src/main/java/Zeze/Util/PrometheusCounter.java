@@ -4,6 +4,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpResponseWithBodyStream;
 import Zeze.Netty.HttpServer;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableKey;
