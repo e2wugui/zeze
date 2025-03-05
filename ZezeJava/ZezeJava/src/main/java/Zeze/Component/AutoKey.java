@@ -62,6 +62,10 @@ public class AutoKey extends ReentrantLock {
 		return fund.get();
 	}
 
+	public long next() {
+		return nextId();
+	}
+
 	public long nextId() {
 		var bb = nextByteBuffer();
 		if (bb.size() > 8) {

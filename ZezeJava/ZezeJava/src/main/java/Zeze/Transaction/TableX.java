@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.function.Supplier;
 import Zeze.Application;
+import Zeze.Component.AutoKey;
 import Zeze.History.ApplyTable;
 import Zeze.History.IApplyDatabase;
 import Zeze.Net.Binary;
@@ -13,7 +14,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerConst;
-import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
@@ -54,7 +54,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		setDatabase(database);
 
 		if (isAutoKey()) // autoKey可以发生变化，重新读取。
-			autoKey = app.getServiceManager().getAutoKey(getName());
+			autoKey = app.getAutoKey(getName());
 
 		setTableConf(exist.getTableConf()); // Old
 		if (!isMemory() || cache == null) // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
@@ -95,7 +95,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return cache;
 	}
 
-	public final @Nullable AutoKey getAutoKey() {
+	public final @NotNull AutoKey getAutoKey() {
+		var autoKey = this.autoKey;
+		if (autoKey == null)
+			throw new IllegalStateException("no autokey for table: " + getName());
 		return autoKey;
 	}
 
@@ -724,7 +727,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		setDatabase(database);
 
 		if (isAutoKey())
-			autoKey = app.getServiceManager().getAutoKey(getName());
+			autoKey = app.getAutoKey(getName());
 
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
