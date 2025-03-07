@@ -143,6 +143,10 @@ public class Rank extends AbstractRank {
 		return newRankKey(time, rankType, timeType, 0);
 	}
 
+	public static BConcurrentKey newRankKey(int rankType, long customizeId) {
+		return newRankKey(System.currentTimeMillis(), rankType, BConcurrentKey.TimeTypeCustomize, customizeId);
+	}
+
 	public static BConcurrentKey newRankKey(long time, int rankType, int timeType, long customizeId) {
 		var c = Calendar.getInstance();
 		c.setTimeInMillis(time);
@@ -213,7 +217,7 @@ public class Rank extends AbstractRank {
 		var volatileTmp = funcConcurrentLevel;
 		if (null != volatileTmp)
 			return volatileTmp.applyAsInt(rankType);
-		return 128; // default
+		return 256; // default
 	}
 
 	public final long getRankCacheTimeout(int rankType) {
@@ -234,7 +238,7 @@ public class Rank extends AbstractRank {
 	}
 
 	/**
-	 * 根据 value 设置到排行榜中
+	 * 删除rank
 	 */
 	@RedirectHash(ConcurrentLevelSource = "getConcurrentLevel(keyHint.getRankType())")
 	public RedirectFuture<Long> removeRank(int hash, BConcurrentKey keyHint, long roleId) {
@@ -482,6 +486,32 @@ public class Rank extends AbstractRank {
 					keyHint.getYear(),
 					keyHint.getOffset());
 			_trank.remove(concurrentKey);
+		}
+	}
+
+	/**
+	 * 直接合并hash分组，不适用缓存。
+	 * @param keyHintFrom from
+	 * @param keyHintTo to
+	 * @return 合并后的排行榜列表，数量是ComputeCount。
+	 */
+	public void mergeRank(BConcurrentKey keyHintFrom, BConcurrentKey keyHintTo) {
+		if (keyHintFrom.getRankType() != keyHintTo.getRankType()
+			|| keyHintFrom.getTimeType() != keyHintTo.getTimeType()
+			|| keyHintFrom.getYear() != keyHintTo.getYear())
+			throw new RuntimeException("rank type mismatch.");
+
+		if (keyHintFrom.getOffset() == keyHintTo.getOffset())// same hint
+			return;
+
+		int concurrentLevel = getConcurrentLevel(keyHintFrom.getRankType());
+		for (int i = 0; i < concurrentLevel; ++i) {
+			var concurrentKeyFrom = new BConcurrentKey(keyHintFrom.getRankType(), i, keyHintFrom.getTimeType(),
+					keyHintFrom.getYear(), keyHintFrom.getOffset());
+			var concurrentKeyTo = new BConcurrentKey(keyHintTo.getRankType(), i, keyHintTo.getTimeType(),
+					keyHintTo.getYear(), keyHintTo.getOffset());
+			var merged = merge(_trank.getOrAdd(concurrentKeyTo), _trank.getOrAdd(concurrentKeyFrom));
+			_trank.put(concurrentKeyTo, merged);
 		}
 	}
 
