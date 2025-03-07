@@ -505,12 +505,18 @@ public class Rank extends AbstractRank {
 			return;
 
 		int concurrentLevel = getConcurrentLevel(keyHintFrom.getRankType());
+		int countNeed = getComputeCount(keyHintFrom.getRankType());
 		for (int i = 0; i < concurrentLevel; ++i) {
 			var concurrentKeyFrom = new BConcurrentKey(keyHintFrom.getRankType(), i, keyHintFrom.getTimeType(),
 					keyHintFrom.getYear(), keyHintFrom.getOffset());
 			var concurrentKeyTo = new BConcurrentKey(keyHintTo.getRankType(), i, keyHintTo.getTimeType(),
 					keyHintTo.getYear(), keyHintTo.getOffset());
 			var merged = merge(_trank.getOrAdd(concurrentKeyTo), _trank.getOrAdd(concurrentKeyFrom));
+			if (merged.getRankList().size() > countNeed) { // 再次删除多余的结果。
+				//noinspection ListRemoveInLoop
+				for (int ir = merged.getRankList().size() - 1; ir >= countNeed; --ir)
+					merged.getRankList().remove(ir);
+			}
 			_trank.put(concurrentKeyTo, merged);
 		}
 	}
