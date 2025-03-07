@@ -511,12 +511,19 @@ public class Rank extends AbstractRank {
 					keyHintFrom.getYear(), keyHintFrom.getOffset());
 			var concurrentKeyTo = new BConcurrentKey(keyHintTo.getRankType(), i, keyHintTo.getTimeType(),
 					keyHintTo.getYear(), keyHintTo.getOffset());
-			var merged = merge(_trank.getOrAdd(concurrentKeyTo), _trank.getOrAdd(concurrentKeyFrom));
+			var from = _trank.getOrAdd(concurrentKeyFrom);
+			// 把from里面的所有玩家从目标列表中清除。
+			for (var j = 0; j < from.getRankList().size(); ++j)
+				_removeRank(i, keyHintTo, from.getRankList().get(j).getRoleId(), null);
+			// 合并到目标列表中。
+			var merged = merge(_trank.getOrAdd(concurrentKeyTo), from);
+			// 删除多余的数量。
 			if (merged.getRankList().size() > countNeed) { // 再次删除多余的结果。
 				//noinspection ListRemoveInLoop
 				for (int ir = merged.getRankList().size() - 1; ir >= countNeed; --ir)
 					merged.getRankList().remove(ir);
 			}
+			// 保存列表。
 			_trank.put(concurrentKeyTo, merged);
 		}
 	}
