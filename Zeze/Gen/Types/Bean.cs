@@ -274,7 +274,8 @@ namespace Zeze.Gen.Types
                 string nodename = e.Name;
 				switch (e.Name)
 				{
-					case "variable":
+                    case "var":
+                    case "variable":
 						Add(new Variable(this, e));
 						break;
 					case "enum":
