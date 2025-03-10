@@ -47,10 +47,10 @@ public abstract class Record extends ReentrantLock {
 	private boolean dirty;
 	protected volatile @Nullable Bean strongDirtyValue;
 
-	private volatile long timestamp;
+	private volatile long timestamp; // 正值表示load方式加载/修改的自增值;负值表示上次用dirty方式读取时间戳的负值
 	private volatile @NotNull SoftReference<Bean> softValue;
 	private volatile @NotNull RelativeRecordSet relativeRecordSet = new RelativeRecordSet();
-	private volatile int state;
+	private volatile int state = GlobalCacheManagerConst.StateInvalid;
 
 	// too many try
 	private boolean fresh;
@@ -61,7 +61,6 @@ public abstract class Record extends ReentrantLock {
 
 	public Record(@Nullable Bean value) {
 		super(true);
-		state = GlobalCacheManagerConst.StateInvalid;
 		softValue = new SoftReference<>(value);
 		// Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。
 	}

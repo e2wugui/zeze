@@ -1238,7 +1238,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == StateInvalid && storage != null) {
 					var now = System.currentTimeMillis();
 					var ts = r.getTimestamp();
-					if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过5秒则从数据库里加载最新值
+					if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
 						if (ZezeCounter.instance != null)
 							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
 						V strongRef = storage.getDatabaseTable().find(this, key);
@@ -1250,7 +1250,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 						} else
 							rocksCacheRemove(key);
-						r.setTimestamp(-now);
+						r.setTimestamp(-now); // 用负值表示dirty方式读取的时间戳
 						if (isTraceEnabled)
 							logger.trace("LoadDirty {}", r);
 						return strongRef;
