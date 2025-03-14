@@ -338,6 +338,15 @@ public class Rank extends AbstractRank {
 	public static class RankTotal extends ReentrantLock {
 		private long BuildTime;
 		private BRankList TableValue;
+		private final BConcurrentKey keyHint;
+
+		public RankTotal(BConcurrentKey keyHint) {
+			this.keyHint = keyHint;
+		}
+
+		public BConcurrentKey getKeyHint() {
+			return keyHint;
+		}
 
 		public final long getBuildTime() {
 			return BuildTime;
@@ -363,7 +372,7 @@ public class Rank extends AbstractRank {
 	}
 
 	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) throws Exception {
-		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal());
+		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal(keyHint));
 		rank.lock();
 		try {
 			long now = System.currentTimeMillis();
