@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,6 +50,7 @@ public class DemoMain {
 	}
 
 	public static void main(String[] args) throws IOException {
+		logger.log(Level.WARN, "n={}, s={}, p={}", 123, "abc", args, (Exception)null);
 		System.out.println("中文");
 		System.out.println(System.getProperty("user.name"));
 		System.out.println(InetAddress.getLocalHost().getHostName());

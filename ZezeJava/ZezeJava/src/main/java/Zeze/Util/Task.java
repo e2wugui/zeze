@@ -498,21 +498,21 @@ public final class Task {
 		Object userState;
 		String userStateStr = p != null && (userState = p.getUserState()) != null ? " UserState=" + userState : "";
 
-		if (result != 0 && p != null) {
-			if (result > 0) {
-				logger.log(level, "Action={}{} Return={}@{}:{} Arg={}", actionName, userStateStr, result,
-						IModule.getModuleId(result), IModule.getErrorCode(result), AsyncSocket.toStr(p.Argument), ex);
-			} else {
-				logger.log(level, "Action={}{} Return={} Arg={}", actionName, userStateStr, result,
-						AsyncSocket.toStr(p.Argument), ex);
-			}
-		} else {
-			if (result > 0) {
-				logger.log(level, "Action={}{} Return={}@{}:{}", actionName, userStateStr, result,
-						IModule.getModuleId(result), IModule.getErrorCode(result), ex);
-			} else
-				logger.log(level, "Action={}{} Return={}", actionName, userStateStr, result, ex);
+		var moduleId = 0;
+		var errCode = result;
+		if (result > 0) {
+			moduleId = IModule.getModuleId(result);
+			errCode = IModule.getErrorCode(result);
 		}
+
+		if (null == ex)
+			logger.log(level, "Action={}{} Return={}:{} Arg={}",
+					actionName, userStateStr, moduleId, errCode,
+					p != null ? AsyncSocket.toStr(p.Argument) : "");
+		else
+			logger.log(level, "Action={}{} Return={}:{} Arg={}",
+					actionName, userStateStr, moduleId, errCode,
+					p != null ? AsyncSocket.toStr(p.Argument) : "", ex);
 	}
 
 	public static void logAndStatistics(long result, @Nullable Protocol<?> p, boolean IsRequestSaved) {

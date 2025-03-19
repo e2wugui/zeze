@@ -78,8 +78,16 @@ public class Procedure {
 		else
 			return;
 
-		String module = result > 0 ? "@" + IModule.getModuleId(result) + ":" + IModule.getErrorCode(result) : "";
-		logger.log(level, "Procedure={} Return={}{}:{}", p, result, module, message, ex);
+		var moduleId = 0;
+		var errCode = result;
+		if (result > 0) {
+			moduleId = IModule.getModuleId(result);
+			errCode = IModule.getErrorCode(result);
+		}
+		if (null == ex)
+			logger.log(level, "Procedure={} Return={}:{} {}", p, moduleId, errCode, message);
+		else
+			logger.log(level, "Procedure={} Return={}:{} {}", p, moduleId, errCode, message, ex);
 	}
 
 	private final @NotNull Application zeze;
