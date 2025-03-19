@@ -271,10 +271,9 @@ public class Service extends ReentrantLock {
 	}
 
 	public void stop() throws Exception {
+		config.stop();
 		lock();
 		try {
-			config.stop();
-
 			for (AsyncSocket as : socketMap)
 				as.close(serviceStoppedException); // remove in callback OnSocketClose
 
