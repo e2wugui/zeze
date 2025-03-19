@@ -17,7 +17,6 @@ import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
 import Zeze.Component.Auth;
 import Zeze.Component.AutoKey;
-import Zeze.Component.AutoKeyOld;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
 import Zeze.Dbh2.Dbh2AgentManager;
@@ -73,8 +72,6 @@ public final class Application extends ReentrantLock {
 	private final AbstractAgent serviceManager;
 	private AutoKey.Module autoKey;
 	private AutoKey transactionIdAutoKey;
-	@Deprecated // 暂时保留
-	private AutoKeyOld.Module autoKeyOld;
 	private Timer timer;
 	private Zeze.Collections.Queue.Module queueModule;
 	private DelayRemove delayRemove;
@@ -208,7 +205,6 @@ public final class Application extends ReentrantLock {
 		if (!isNoDatabase()) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
-			autoKeyOld = new AutoKeyOld.Module(this);
 			queueModule = new Zeze.Collections.Queue.Module(this);
 			historyModule = new HistoryModule(this);
 			delayRemove = new DelayRemove(this);
@@ -430,11 +426,6 @@ public final class Application extends ReentrantLock {
 
 	public AutoKey getTransactionIdAutoKey() {
 		return transactionIdAutoKey;
-	}
-
-	@Deprecated // 暂时保留
-	public @NotNull AutoKeyOld getAutoKeyOld(@NotNull String name) {
-		return autoKeyOld.getOrAdd(name);
 	}
 
 	public Timer getTimer() {
@@ -819,11 +810,6 @@ public final class Application extends ReentrantLock {
 				autoKey = null;
 				transactionIdAutoKey = null;
 			}
-			if (autoKeyOld != null) {
-				autoKeyOld.UnRegister();
-				autoKeyOld = null;
-			}
-
 			if (!isNoDatabase())
 				conf.clearInUseAndIAmSureAppStopped(this, databases);
 

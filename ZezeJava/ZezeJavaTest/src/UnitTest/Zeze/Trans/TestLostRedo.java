@@ -54,8 +54,7 @@ public class TestLostRedo {
 	}
 
 	private long write() {
-		@SuppressWarnings("deprecation")
-		var key = App.Instance.Zeze.getAutoKeyOld("lostredo.autokey").nextId();
+		var key = App.Instance.Zeze.getAutoKey("lostredo.autokey").nextId();
 		var mkey = key % 1000;
 		keys.add(mkey);
 		App.Instance.demo_Module1.getTable1().getOrAdd(mkey).getLongList().add(key);
@@ -79,8 +78,7 @@ public class TestLostRedo {
 
 	private long autoKeyConflict() {
 		runTimes.incrementAndGet();
-		@SuppressWarnings("deprecation")
-		var key = App.Instance.Zeze.getAutoKeyOld("conflict.autokey").nextId();
+		var key = App.Instance.Zeze.getAutoKey("conflict.autokey").nextId();
 		Transaction.whileCommit(() -> Assert.assertNull(autos.putIfAbsent(key, key)));
 		return 0;
 	}
@@ -98,13 +96,6 @@ public class TestLostRedo {
 			return 0;
 		}, "clear").call();
 
-		/*
-		App.Instance.Zeze.newProcedure(() -> {
-					App.Instance.Zeze.getAutoKeyOld("insert.autokey").setSeed(System.currentTimeMillis());
-					return 0;
-				}, "set seed to now").call();
-		*/
-
 		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < count; ++i)
@@ -120,8 +111,7 @@ public class TestLostRedo {
 
 	private long autoKeyWithInsert() {
 		runTimes.incrementAndGet();
-		@SuppressWarnings("deprecation")
-		var key = App.Instance.Zeze.getAutoKeyOld("insert.autokey").nextId();
+		var key = App.Instance.Zeze.getAutoKey("insert.autokey").nextId();
 		App.Instance.demo_Module1.getTable1().insert(key, new BValue());
 		Transaction.whileCommit(insertOks::incrementAndGet);
 		return 0;

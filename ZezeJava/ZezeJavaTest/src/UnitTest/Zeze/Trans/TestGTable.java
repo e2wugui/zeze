@@ -21,6 +21,11 @@ public class TestGTable {
 
 	@Test
 	public void testGTable1Basic() {
+		App.Instance.Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			table.remove(1L);
+			return 0;
+		}, "Remove Record").call();
 		// putGTable
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable();
@@ -52,6 +57,11 @@ public class TestGTable {
 
 	@Test
 	public void testGTable2Basic() {
+		App.Instance.Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable2();
+			table.remove(1L);
+			return 0;
+		}, "Remove Record").call();
 		// putGTable
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable2();
@@ -132,6 +142,11 @@ public class TestGTable {
 
 	@Test
 	public void testGTableRowCol() {
+		App.Instance.Zeze.newProcedure(() -> {
+			var table = App.getInstance().demo_ModuleGTable.getGTable();
+			table.remove(1L);
+			return 0;
+		}, "Remove Record").call();
 		App.getInstance().Zeze.newProcedure(() -> {
 			var table = App.getInstance().demo_ModuleGTable.getGTable();
 			var gTable1 = table.getOrAdd(1L);
