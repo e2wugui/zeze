@@ -134,11 +134,7 @@ public class Rank extends AbstractRank {
 	public static BConcurrentKey newRankKey(int rankType, int timeType) {
 		return newRankKey(System.currentTimeMillis(), rankType, timeType, 0);
 	}
-
-	public static BConcurrentKey newRankKey(int rankType, int timeType, long customizeId) {
-		return newRankKey(System.currentTimeMillis(), rankType, timeType, customizeId);
-	}
-
+	
 	public static BConcurrentKey newRankKey(long time, int rankType, int timeType) {
 		return newRankKey(time, rankType, timeType, 0);
 	}
