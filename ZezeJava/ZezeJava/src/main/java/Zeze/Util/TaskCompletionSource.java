@@ -81,7 +81,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 		return result;
 	}
 
-	private boolean setRawResult(@NotNull Object r) {
+	public boolean setRawResult(@NotNull Object r) {
 		if (!RESULT.compareAndSet(this, null, r))
 			return false;
 		unparkAll();

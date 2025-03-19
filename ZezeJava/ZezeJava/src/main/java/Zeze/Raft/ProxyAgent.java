@@ -7,6 +7,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
@@ -129,14 +130,20 @@ public class ProxyAgent extends Service {
 				return proxyRpc.Send(leaderSocket, (proxyRpcThis) -> {
 					if (proxyRpc.getResultCode() == 0) {
 						var outFh = new OutObject<Service.ProtocolFactoryHandle<?>>();
-						var resultRpc = Protocol.decode(
+						var resultRpc = (Rpc<?, ?>)Protocol.decode(
 								localService::findProtocolFactoryHandle,
 								ByteBuffer.Wrap(proxyRpc.Result.getData()),
 								outFh);
-						if (null != resultRpc && null != rpc.getResponseHandle()) {
-							@SuppressWarnings("rawtypes")
-							var originHandle = (ProtocolHandle)rpc.getResponseHandle();
-							localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+						if (null != resultRpc) {
+							if (null != rpc.getResponseHandle()) {
+								@SuppressWarnings("rawtypes")
+								var originHandle = (ProtocolHandle)rpc.getResponseHandle();
+								localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
+							} else if (rpc.getFuture() != null){
+								rpc.getFuture().setRawResult(resultRpc.Result);
+							}
+						} else {
+							logger.error("Agent ProxyRequest({}) resultRpc not found.", proxyArgument.getRaftName());
 						}
 					} else {
 						logger.error("Agent ProxyRequest({}) error={}",
