@@ -117,7 +117,9 @@ public class ProxyServer extends Service {
 						var originHandle = (ProtocolHandle)rpc.getResponseHandle();
 						localService.dispatchRpcResponse(resultRpc, originHandle, outFh.value);
 					}
+					// todo error handle
 				} else {
+					// todo error handle
 					logger.error("Server ProxyRequest error={}", IModule.getErrorCode(proxyRpc.getResultCode()));
 				}
 				return 0;

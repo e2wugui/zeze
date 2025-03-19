@@ -146,6 +146,7 @@ public class ProxyAgent extends Service {
 							logger.error("Agent ProxyRequest({}) resultRpc not found.", proxyArgument.getRaftName());
 						}
 					} else {
+						// todo error handle
 						logger.error("Agent ProxyRequest({}) error={}",
 								proxyArgument.getRaftName(), IModule.getErrorCode(proxyRpc.getResultCode()));
 					}
