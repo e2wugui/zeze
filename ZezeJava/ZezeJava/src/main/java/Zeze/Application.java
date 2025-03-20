@@ -188,7 +188,6 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {
 		this.projectName = projectName;
 		conf = config != null ? config : Config.load();

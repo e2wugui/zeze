@@ -99,18 +99,6 @@
 			<table name="tRocks" key="int" value="BValue" kind="rocks"/>
 		</module>
 
-		<!-- 应用内部唯一ID生成器，仅支持long类型。-->
-		<module name="AutoKeyOld" id="11003">
-			<beankey name="BSeedKey">
-				<variable id="1" name="ServerId" type="int"/>
-				<variable id="2" name="KeyName"  type="string"/>
-			</beankey>
-			<bean name="BAutoKey">
-				<variable id="1" name="NextId" type="long"/>
-			</bean>
-			<table name="tAutoKeys" key="BSeedKey" value="BAutoKey" />
-		</module>
-
 		<module name="Collections" id="11004">
 			<!-- 一个简单的大容量Map，同时所有的分段节点按双向链表组织起来。新增节点放到链表尾部 -->
 			<module name="LinkedMap" id="11005">
@@ -2290,12 +2278,6 @@
 	<component name="DepartmentTree" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.DepartmentTree"/>
-		</service>
-	</component>
-
-	<component name="AutoKeyOld" gendir="src/main/java" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.AutoKeyOld"/>
 		</service>
 	</component>
 
