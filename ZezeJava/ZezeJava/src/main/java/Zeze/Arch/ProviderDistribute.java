@@ -104,7 +104,7 @@ public class ProviderDistribute extends ReentrantLock {
 		if (dataConcurrentLevel <= 1)
 			return consistentHash.get(hash);
 
-		return choiceDataIndex(providers, consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel),
+		return choiceDataIndex(providers, consistentHash, Integer.remainderUnsigned(hash, dataConcurrentLevel),
 				dataConcurrentLevel);
 	}
 

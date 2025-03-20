@@ -167,7 +167,7 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 
 	@Override
 	public int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
-		return gkey.hashCode() % agents.length;
+		return Integer.remainderUnsigned(gkey.hashCode(), agents.length);
 	}
 
 	@Override

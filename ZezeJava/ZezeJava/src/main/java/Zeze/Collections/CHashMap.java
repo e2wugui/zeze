@@ -34,12 +34,12 @@ public class CHashMap<V extends Bean> {
 	}
 
 	public V get(String key) {
-		var index = ByteBuffer.calc_hashnr(key) % buckets.length;
+		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		return buckets[index].get(key);
 	}
 
 	public V getOrAdd(String key) {
-		var index = ByteBuffer.calc_hashnr(key) % buckets.length;
+		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.getOrAdd(key);
 		Transaction.whileCommit(() -> sizes[index] = bucket.size());
@@ -47,7 +47,7 @@ public class CHashMap<V extends Bean> {
 	}
 
 	public V put(String key, V value) {
-		var index = ByteBuffer.calc_hashnr(key) % buckets.length;
+		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.put(key, value);
 		Transaction.whileCommit(() -> sizes[index] = bucket.size());
@@ -55,7 +55,7 @@ public class CHashMap<V extends Bean> {
 	}
 
 	public V remove(String key) {
-		var index = ByteBuffer.calc_hashnr(key) % buckets.length;
+		var index = Integer.remainderUnsigned(ByteBuffer.calc_hashnr(key), buckets.length);
 		var bucket = buckets[index];
 		var result = bucket.remove(key);
 		Transaction.whileCommit(() -> sizes[index] = bucket.size());

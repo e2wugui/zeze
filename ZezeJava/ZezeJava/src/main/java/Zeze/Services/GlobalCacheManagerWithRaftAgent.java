@@ -161,7 +161,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 	@Override
 	public final int getGlobalCacheManagerHashIndex(@NotNull Binary gkey) {
-		return gkey.hashCode() % agents.length;
+		return Integer.remainderUnsigned(gkey.hashCode(), agents.length);
 	}
 
 	@Override

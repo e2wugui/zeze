@@ -153,7 +153,7 @@ public class Selectors extends ReentrantLock {
 			throw new IllegalStateException("closed");
 
 		long count = choiceCount.getAndIncrement();
-		int index = (int)((count & Long.MAX_VALUE) % tmp.length);
+		int index = (int)Long.remainderUnsigned(count, tmp.length);
 		return tmp[index];
 	}
 
