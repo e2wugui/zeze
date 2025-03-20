@@ -22,6 +22,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.MathEx;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,7 +52,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
-				hash % concurrentLevel,
+				MathEx.unsignedMod(hash, concurrentLevel),
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 
 		var rank = _trank.getOrAdd(concurrentKey);
@@ -230,7 +231,8 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		var result = new RRankList();
 		try {
 			int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-			var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+			var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
+					MathEx.unsignedMod(hash, concurrentLevel),
 					keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 			result.rankList = _trank.getOrAdd(concurrentKey);
 		} catch (Throwable e) {
