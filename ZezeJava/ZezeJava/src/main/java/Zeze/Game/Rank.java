@@ -11,11 +11,8 @@ import java.util.function.LongUnaryOperator;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderDistribute;
-import Zeze.Arch.RedirectAll;
-import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
-import Zeze.Arch.RedirectResult;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
@@ -364,93 +361,31 @@ public class Rank extends AbstractRank {
 
 	private final ConcurrentHashMap<BConcurrentKey, RankTotal> rankCached = new ConcurrentHashMap<>();
 
-	public RankTotal getRankTotal(BConcurrentKey keyHint) throws Exception {
+	public RankTotal getRankTotal(BConcurrentKey keyHint) {
 		return getRankTotal(keyHint, getRankSize(keyHint.getRankType()));
 	}
 
-	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) throws Exception {
+	public RankTotal getRankTotal(BConcurrentKey keyHint, int countNeed) {
 		var rank = rankCached.computeIfAbsent(keyHint, __ -> new RankTotal(keyHint));
-		rank.lock();
+		long now = System.currentTimeMillis();
+		rank.lock(); // 这个锁好像不是很必要。
 		try {
-			long now = System.currentTimeMillis();
 			if (now - rank.getBuildTime() < getRankCacheTimeout(keyHint.getRankType())) {
 				return rank;
 			}
-			getRankAll(keyHint).onAllDone(ctx -> {
-				var it = ctx.getAllResults().iterator();
-				switch (ctx.getAllResults().size()) {
-				case 0:
-					rank.setTableValue(new BRankList());
-					break;
-
-				case 1:
-					it.moveToNext();
-					rank.setTableValue(it.value().rankList.copy());
-					break;
-
-				default:
-					// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
-					// 最后 Copy 一次。
-					it.moveToNext();
-					BRankList current = it.value().rankList;
-					while (it.moveToNext()) {
-						current = merge(current, it.value().rankList);
-						if (current.getRankList().size() > countNeed) {
-							// 合并中间结果超过需要的数量可以先删除。
-							// 第一个current直接引用table.data，不能删除。
-							//noinspection ListRemoveInLoop
-							for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
-								current.getRankList().remove(ir);
-							//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
-						}
-					}
-					rank.setTableValue(current.copy()); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
-					break;
-				}
-				rank.setBuildTime(System.currentTimeMillis());
-				if (rank.getTableValue().getRankList().size() > countNeed) { // 再次删除多余的结果。
-					//noinspection ListRemoveInLoop
-					for (int ir = rank.getTableValue().getRankList().size() - 1; ir >= countNeed; --ir)
-						rank.getTableValue().getRankList().remove(ir);
-					//Rank.TableValue.getRankList().RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
-				}
-			}).await();
-			return rank;
 		} finally {
 			rank.unlock();
 		}
+		rank.setTableValue(getRankDirect(keyHint, countNeed));
+		rank.setBuildTime(now);
+		return rank;
 	}
 
-	public static class RRankList extends RedirectResult {
-		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
-	}
-
-	/**
-	 * 分别去hash分组所在的服务器上查询，并得到所有的hash分组。
-	 */
-	public RedirectAllFuture<RRankList> getRankAll(BConcurrentKey keyHint) {
-		return getRankAll(getConcurrentLevel(keyHint.getRankType()), keyHint);
-	}
-
-	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
-	// 最好改成protected并新增一个隐藏hash参数的public方法调用这里
-	@RedirectAll
-	protected RedirectAllFuture<RRankList> getRankAll(int hash, BConcurrentKey keyHint) {
-		// 根据hash获取分组rank。
-		var result = new RRankList();
-		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
-				MathEx.unsignedMod(hash, concurrentLevel),
-				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-		result.rankList = _trank.getOrAdd(concurrentKey);
-		return RedirectAllFuture.result(result);
-	}
-
-	public long getRankPosition(BConcurrentKey keyHint, long roleId) throws Exception {
+	public long getRankPosition(BConcurrentKey keyHint, long roleId) {
 		return getRankPosition(keyHint, roleId, null);
 	}
 
-	public long getRankPosition(BConcurrentKey keyHint, long roleId, OutObject<RankTotal> out) throws Exception {
+	public long getRankPosition(BConcurrentKey keyHint, long roleId, OutObject<RankTotal> out) {
 		var total = getRankTotal(keyHint);
 		if (null != out)
 			out.value = total;
@@ -467,7 +402,7 @@ public class Rank extends AbstractRank {
 		return -1;
 	}
 
-	public long getRankPositionWithGuess(BConcurrentKey keyHint, long roleId, long score, long totalUser) throws Exception {
+	public long getRankPositionWithGuess(BConcurrentKey keyHint, long roleId, long score, long totalUser) {
 		var total = new OutObject<RankTotal>();
 		var pos = getRankPosition(keyHint, roleId, total);
 		if (pos > 0)
@@ -500,7 +435,6 @@ public class Rank extends AbstractRank {
 	 * 直接合并hash分组，不适用缓存。
 	 * @param keyHintFrom from
 	 * @param keyHintTo to
-	 * @return 合并后的排行榜列表，数量是ComputeCount。
 	 */
 	public void mergeRank(BConcurrentKey keyHintFrom, BConcurrentKey keyHintTo) {
 		if (keyHintFrom.getRankType() != keyHintTo.getRankType()

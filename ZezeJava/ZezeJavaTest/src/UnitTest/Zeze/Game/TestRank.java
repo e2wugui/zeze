@@ -106,45 +106,6 @@ public class TestRank extends TestCase {
 				}
 				return Procedure.Success;
 			}, "getRankDirect").call();
-
-			var hashSet1 = new ConcurrentHashSet<Integer>();
-			var hashSet2 = new ConcurrentHashSet<Integer>();
-			app.getZeze().newProcedure(() -> {
-				app.rank.getRankAll(rankKey).onResult(r -> {
-					assertNotNull(r);
-//					System.out.format("--- getRankAll onResult: hash=%d, resultCode=%d, rankList=%s%n",
-//							r.getHash(), r.getResultCode(), r.rankList);
-					assertTrue(r.getHash() >= 0 && r.getHash() < concLevel);
-					assertTrue(hashSet1.add(r.getHash()));
-					assertEquals(0, r.getResultCode());
-					assertEquals(1, r.rankList.getRankList().size());
-					var rank = r.rankList.getRankList().get(0);
-					assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
-					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), ((BValueLong)rank.getDynamic().getBean()).getValue());
-				}).onAllDone(ctx -> {
-					assertNotNull(ctx);
-					var results = ctx.getAllResults();
-//					System.out.format("--- getRankAll onAllDone: timeout=%b, results.size=%d, concurrent=%d%n",
-//							ctx.isTimeout(), results.size(), ctx.getConcurrentLevel());
-					assertFalse(ctx.isTimeout());
-					assertEquals(concLevel, results.size());
-					assertEquals(concLevel, ctx.getConcurrentLevel());
-					results.foreachValue(r -> {
-//						System.out.format("        hash=%d, resultCode=%d, rankList=[%d]:%s%n",
-//								r.getHash(), r.getResultCode(), r.rankList.getRankList().size(), r.rankList);
-						assertTrue(r.getHash() >= 0 && r.getHash() < concLevel);
-						assertTrue(hashSet2.add(r.getHash()));
-						assertEquals(0, r.getResultCode());
-						assertEquals(1, r.rankList.getRankList().size());
-						var rank = r.rankList.getRankList().get(0);
-						assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
-						assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), ((BValueLong)rank.getDynamic().getBean()).getValue());
-					});
-				}).await();
-				return Procedure.Success;
-			}, "getRankAll").call();
-			assertEquals(concLevel, hashSet1.size());
-			assertEquals(concLevel, hashSet2.size());
 		} catch (Throwable e) {
 			// print stacktrace.
 			e.printStackTrace();
