@@ -11,7 +11,6 @@ import Zeze.Builtin.MQ.Master.BMQServers;
 import Zeze.Config;
 import Zeze.MQ.Master.MasterAgent;
 import Zeze.Net.Connector;
-import Zeze.Util.MathEx;
 
 /**
  * 一个topic队列实现，包含多个分区partition.
@@ -65,7 +64,7 @@ public class MQ {
 
 	public void sendMessage(int hash, BMessage.Data message) {
 		// 查找发送队列服务器
-		var index = MathEx.unsignedMod(hash, mqConnectors.length);
+		var index = Integer.remainderUnsigned(hash, mqConnectors.length);
 		//System.out.println("hash = " + hash + " " + index);
 		var conn = mqConnectors[index];
 		if (conn.server.getPartitionIndex() != index)
