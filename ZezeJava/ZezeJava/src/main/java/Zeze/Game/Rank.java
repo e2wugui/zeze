@@ -24,6 +24,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
+import Zeze.Util.MathEx;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
 
@@ -246,7 +247,7 @@ public class Rank extends AbstractRank {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
-				hash % concurrentLevel,
+				MathEx.unsignedMod(hash, concurrentLevel),
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 
 		var rank = _trank.getOrAdd(concurrentKey);
@@ -438,7 +439,8 @@ public class Rank extends AbstractRank {
 		// 根据hash获取分组rank。
 		var result = new RRankList();
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+		var concurrentKey = new BConcurrentKey(keyHint.getRankType(),
+				MathEx.unsignedMod(hash, concurrentLevel),
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		result.rankList = _trank.getOrAdd(concurrentKey);
 		return RedirectAllFuture.result(result);
