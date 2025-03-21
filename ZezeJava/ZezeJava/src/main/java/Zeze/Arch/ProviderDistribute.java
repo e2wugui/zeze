@@ -101,7 +101,7 @@ public class ProviderDistribute extends ReentrantLock {
 		var consistentHash = consistentHashes.get(serviceName);
 		if (consistentHash == null)
 			throw new IllegalStateException("ChoiceHash: not found ConsistentHash for serviceName=" + serviceName);
-		if (dataConcurrentLevel <= 1)
+		if (dataConcurrentLevel < 1)
 			return consistentHash.get(hash);
 
 		return choiceDataIndex(providers, consistentHash, Integer.remainderUnsigned(hash, dataConcurrentLevel),
@@ -109,7 +109,7 @@ public class ProviderDistribute extends ReentrantLock {
 	}
 
 	public @Nullable BServiceInfo choiceHash(@NotNull Agent.SubscribeState providers, int hash) {
-		return choiceHash(providers, hash, 1);
+		return choiceHash(providers, hash, 0);
 	}
 
 	public boolean choiceHash(@NotNull Agent.SubscribeState providers, int hash, @NotNull OutLong provider) {
