@@ -206,6 +206,6 @@ final class MethodOverride {
 
 	String getConcurrentLevelSource() {
 		var source = ((RedirectHash)annotation).ConcurrentLevelSource();
-		return source != null && !source.isBlank() ? source : "1";
+		return source != null && !source.isBlank() ? source : "0";
 	}
 }
