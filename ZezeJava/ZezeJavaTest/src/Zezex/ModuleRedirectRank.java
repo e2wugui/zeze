@@ -158,7 +158,7 @@ public class ModuleRedirectRank extends TestCase {
 				assertEquals(Procedure.Exception, allResults.get(2).getResultCode()); // local exception
 				assertEquals(Procedure.Exception, allResults.get(3).getResultCode()); // remote exception
 				assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // local async
-				assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // remote async
+				assertEquals(Procedure.Success, allResults.get(5).getResultCode()); // remote async
 			} finally {
 				future1.setResult(true);
 			}
