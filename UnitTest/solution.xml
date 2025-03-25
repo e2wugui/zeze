@@ -140,8 +140,8 @@
 		</ModuleStartOrder>
 	</project>
 
-	<project name="csharp" gendir="../lua" platform="cs+lua" GenTables="client">
-		<service name="Client" handle="clientscript" base="Zeze.Services.ToLuaServiceClient">
+	<project name="csharp" gendir="../lua" platform="luaclient" GenTables="client">
+		<service name="Client" handle="clientscript" base="Zeze.Services.ToLuaServiceClient2">
 			<module ref="Module1" />
 		</service>
 	</project>
