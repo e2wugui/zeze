@@ -2008,7 +2008,7 @@
 			</bean>
 			<rpc name="Register" argument="BRegister" handle="server"/> 连上服务器马上发送，登记自己的名字。
 			<rpc name="Login" argument="BLogin" handle="server"/> auth过后，登录，判断唯一。
-			<rpc name="Logout" arugment="BAccountLink" handle="server"/> 断线时自动登出。
+			<rpc name="Logout" argument="BAccountLink" handle="server"/> 断线时自动登出。
 			<rpc name="Kick" argument="BAccountLink" handle="client"/> 重复登录并且需要踢掉旧的登录。
 		</module>
 		<!--
