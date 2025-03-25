@@ -1993,13 +1993,43 @@
 			<rpc name="SendMessage" argument="BSendMessage" handle="server"/> 消息生产者向某个Manager发送消息
 			<rpc name="PushMessage" argument="BPushMessage" handle="client"/> Manager向消息消费者推送消息
 		</module>
+		<module name="AccountOnline" id="11041" UseData="true">
+			<bean name="BRegister">
+				<var id="1" name="LinkName" type="string"/> 使用ProviderService的配置作为名字。
+			</bean>
+			<bean name="BAccountLink">
+				<var id="1" name="Account" type="string"/>
+				<var id="2" name="LinkName" type="string"/>
+				<var id="3" name="LinkSid" type="long"/>
+			</bean>
+			<bean name="BLogin">
+				<var id="1" name="AccountLink" type="BAccountLink"/>
+				<var id="2" name="KickOld" type="bool"/>
+			</bean>
+			<rpc name="Register" argument="BRegister" handle="server"/> 连上服务器马上发送，登记自己的名字。
+			<rpc name="Login" argument="BLogin" handle="server"/> auth过后，登录，判断唯一。
+			<rpc name="Logout" arugment="BAccountLink" handle="server"/> 断线时自动登出。
+			<rpc name="Kick" argument="BAccountLink" handle="client"/> 重复登录并且需要踢掉旧的登录。
+		</module>
 		<!--
-		可用id范围 [11041, 11100) [11102, 11999]
+		可用id范围 [11042, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="AccountOnline" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.AccountOnline"/>
+		</service>
+	</component>
+
+	<component name="AccountOnlineAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.AccountOnline"/>
+		</service>
+	</component>
+
 	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/MQ/Master" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.MQ.Master"/>
