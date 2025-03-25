@@ -8,6 +8,8 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.FastLock;
+import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,6 +17,20 @@ public class AccountOnline extends AbstractAccountOnline {
     private final AccountOnlineService service;
     private final ConcurrentHashMap<String, AsyncSocket> links = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AccountInfo> accounts = new ConcurrentHashMap<>();
+
+    public static void main(String []args) throws Exception {
+        Task.tryInitThreadPool();
+        ZezeCounter.tryInit();
+        var server = new AccountOnline(Config.load("accountOnline.xml"));
+        try {
+            server.start();
+            synchronized (Thread.currentThread()) {
+                Thread.currentThread().wait();
+            }
+        } finally {
+            server.stop();
+        }
+    }
 
     public AccountOnline(Config config) {
         service = new AccountOnlineService(config);
