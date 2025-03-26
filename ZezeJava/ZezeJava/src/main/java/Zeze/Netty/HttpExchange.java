@@ -57,6 +57,7 @@ import io.netty.handler.codec.http.multipart.MemoryAttribute;
 import io.netty.handler.codec.http.multipart.MemoryFileUpload;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.ContinuationWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -107,6 +108,7 @@ public class HttpExchange {
 	protected volatile @SuppressWarnings("unused") int detached; // 0:not detached; 1:detached; 2:detached and closed
 	protected boolean willCloseConnection; // true表示close时会关闭连接
 	protected boolean inStreamMode; // 是否在流/WebSocket模式过程中
+	protected boolean isWebSocketTextContent;
 
 	public HttpExchange(@NotNull HttpServer server, @NotNull ChannelHandlerContext context) {
 		this.server = server;
@@ -413,19 +415,25 @@ public class HttpExchange {
 							headersFactory, trailersFactory)));
 					return;
 				}
-				b.retain();
-				if (content == Unpooled.EMPTY_BUFFER)
-					content = b;
-				else if (content instanceof CompositeByteBuf)
-					((CompositeByteBuf)content).addComponent(true, b);
-				else
-					content = context.alloc().compositeBuffer().addComponent(true, content).addComponent(true, b);
+				addContent(b.retain());
 			}
 		}
 		if (c instanceof LastHttpContent) {
 			inStreamMode = false;
 			fireEndStreamHandle(); // 流模式和非流模式通用
 		}
+	}
+
+	// newContent会被转移所有权,调用者需要继续用的话,应该retain一次再传. 返回当前累积的content
+	public @NotNull ByteBuf addContent(@NotNull ByteBuf newContent) {
+		var c = content;
+		if (c == Unpooled.EMPTY_BUFFER)
+			content = c = newContent;
+		else if (c instanceof CompositeByteBuf)
+			((CompositeByteBuf)c).addComponent(true, newContent);
+		else
+			content = c = c.alloc().compositeBuffer().addComponent(true, c).addComponent(true, newContent);
+		return c;
 	}
 
 	@SuppressWarnings("DataFlowIssue")
@@ -574,10 +582,14 @@ public class HttpExchange {
 
 	@SuppressWarnings("ConstantConditions")
 	protected void fireWebSocket0(@NotNull WebSocketFrame frame) throws Exception {
-		if (frame instanceof BinaryWebSocketFrame)
-			handler.WebSocketHandle.onBinary(this, frame.content());
-		else if (frame instanceof TextWebSocketFrame)
-			handler.WebSocketHandle.onText(this, ((TextWebSocketFrame)frame).text());
+		if (frame instanceof BinaryWebSocketFrame) {
+			isWebSocketTextContent = false;
+			handler.WebSocketHandle.onContent(this, frame.content(), false, frame.isFinalFragment());
+		} else if (frame instanceof TextWebSocketFrame) {
+			isWebSocketTextContent = true;
+			handler.WebSocketHandle.onContent(this, frame.content(), true, frame.isFinalFragment());
+		} else if (frame instanceof ContinuationWebSocketFrame)
+			handler.WebSocketHandle.onContent(this, frame.content(), isWebSocketTextContent, frame.isFinalFragment());
 		else if (frame instanceof CloseWebSocketFrame) {
 			inStreamMode = false;
 			//noinspection PatternVariableCanBeUsed

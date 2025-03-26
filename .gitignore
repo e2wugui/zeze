@@ -21,6 +21,7 @@ x64/
 /GlobalCacheManager/Properties
 /lua/csharp/Gen
 /lua/csharp/LuaGen
+/lua/csharp/msg
 /lua/cxx/*.exe
 /lua/cxx/*.pdb
 /lua/cxx/Gen
@@ -44,8 +45,3 @@ x64/
 /UnitTest/gsd/Gen
 /UnitTest/Properties
 /Zeze/Arch/linkd
-/ZezeJava/ZezeJavaTest/mqmanager0
-/ZezeJava/ZezeJavaTest/mqmanager1
-/ZezeJava/ZezeJavaTest/mqmanager2
-/ZezeJava/ZezeJavaTest/mqmaster
-/lua/csharp/msg

@@ -30,6 +30,8 @@ test.ks
 /ZezeJavaTest/hot/distributes
 /ZezeJavaTest/manager*
 /ZezeJavaTest/master
+/ZezeJavaTest/mqmanager*
+/ZezeJavaTest/mqmaster
 /ZezeJavaTest/testMmapFile*
 /ZezexJava/server/hot
 /ZezexJava/server/hotrun
