@@ -3,14 +3,14 @@
         ret schema_namespace +'.' + name + 'Meta'
     end
 -}}
-{{- 
+{{-
 use_empty = false
-for protocol in protocols 
+for protocol in protocols
     if protocol.argument_type == null
         use_empty = true
         break
     end
-    if protocol.result 
+    if protocol.result
         if protocol.result_type == null
             use_empty = true
             break

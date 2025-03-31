@@ -10,19 +10,19 @@
 
 {{-func typestr(type)
     case type.name
-    when "binary" 
+    when "binary"
         ret "userdata"
-    when "bool" 
+    when "bool"
         ret "boolean"
-    when "byte" 
+    when "byte"
         ret "userdata"
-    when "double", "float" 
+    when "double", "float"
         ret "number"
-    when "int", "short" 
+    when "int", "short"
         ret "integer"
-    when "long" 
+    when "long"
         ret "long"
-    when "string" 
+    when "string"
         ret "string"
     when "map" -}}
         table<{{ typestr type.key_type }}, {{ typestr type.value_type}}>
@@ -46,27 +46,27 @@ end}}
     when "byte", 'binary'
         ret 'nil'
     when "double", "float"
-        if variable.initial != '' 
-            ret variable.initial 
+        if variable.initial != ''
+            ret variable.initial
         else
             ret "0.0"
         end
     when "int", "short"
-        if variable.initial !='' 
-            ret variable.initial 
-        else 
+        if variable.initial !=''
+            ret variable.initial
+        else
             ret "0"
         end
     when "long"
-        if variable.initial !='' 
-            ret variable.initial 
-        else 
+        if variable.initial !=''
+            ret variable.initial
+        else
             ret "0"
         end
     when "string"
-        if variable.initial !='' 
-            ret variable.initial 
-        else 
+        if variable.initial !=''
+            ret variable.initial
+        else
             ret "''"
         end
     when "map",'list', 'set'
@@ -181,4 +181,4 @@ end -}}
 {{- end }}
 end
 
-return {{module.name}} 
+return {{module.name}}

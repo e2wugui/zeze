@@ -25,4 +25,4 @@ end
 function Module1.OnMsg_Rpc2(p)
 end
 
-return Module1 
+return Module1

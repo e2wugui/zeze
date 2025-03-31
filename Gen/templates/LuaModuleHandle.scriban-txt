@@ -24,4 +24,4 @@ function {{module.name}}.OnMsg_{{protocol.name}}(p)
 end
 {{-end}}
 
-return {{module.name}} 
+return {{module.name}}

@@ -13,7 +13,7 @@ message.vector3 = message_init.vector3
 message.vector3int = message_init.vector3int
 message.vector4 = message_init.vector4
 {{_set = [solution.name]}}
-{{- 
+{{-
 modules_list = []
 solution_in_module = false
 for module in modules
@@ -30,7 +30,7 @@ message.{{solution.name}} = {}
 {{-end}}
 {{-module_names = modules_list | array.map 'full_name'| array.sort }}
 {{-for module_name in module_names}}
-{{- name_space_array = string.split(module_name, '.') 
+{{- name_space_array = string.split(module_name, '.')
    name_space_array =  array.remove_at(name_space_array, -1)
    name_space_s = []
 }}

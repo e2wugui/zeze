@@ -355,21 +355,31 @@ namespace Zeze.Gen.java
         public void RegisterZezeTables(StreamWriter sw, string zeze = null)
         {
             var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
+            var first = true;
+            var indent = "        ";
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
+                    if (first && string.IsNullOrEmpty(zeze))
+                    {
+                        first = false;
+                        sw.WriteLine($"{indent}if ({zezeVar} != null) {{");
+                        indent += "    ";
+                    }
                     if (project.Hot && module.Hot)
                     {
                         //if (table.IsMemory) // 暂时禁掉。这是模块状态的一部分了，需要 upgrade 支持。【已经允许了】
                         //    throw new Exception("hot module can not use memory table.");
 
-                        sw.WriteLine($"        {zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                        sw.WriteLine($"{indent}{zezeVar}.replaceTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                     }
                     else
-                        sw.WriteLine($"        {zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                        sw.WriteLine($"{indent}{zezeVar}.addTable({zezeVar}.getConfig().getTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
                 }
             }
+            if (!first)
+                sw.WriteLine($"{indent[..^4]}}}");
         }
 
         public void UnRegisterProtocols(StreamWriter sw, string serviceVarName = null)
@@ -634,7 +644,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
             CreateZezeTables(sw);
             sw.WriteLine("        App = app;");
-            sw.WriteLine("        Register();");
+            sw.WriteLine("        if (app != null)");
+            sw.WriteLine("            Register();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
