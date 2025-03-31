@@ -85,15 +85,27 @@ public class AccountOnline extends AbstractAccountOnline {
 
     @Override
     protected long ProcessLogoutRequest(Zeze.Builtin.AccountOnline.Logout r) {
-        accounts.computeIfPresent(r.Argument.getAccount(), (key, exist) -> {
-            if (exist.link.equals(r.Argument)) {
-                exist.removed = true;
-                return null; // 是自己，删除掉。
+        while (true) {
+            var info = accounts.get(r.Argument.getAccount());
+            if (info == null) {
+                r.SendResult();
+                return 0;
             }
-            return exist;
-        });
-        r.SendResult();
-        return 0;
+            info.lock();
+            try {
+                if (info.removed)
+                    continue;
+
+                if (info.link != null && info.link.equals(r.Argument)) {
+                    info.removed = true;
+                    accounts.remove(r.Argument.getAccount());
+                }
+                r.SendResult();
+                return 0;
+            } finally {
+                info.unlock();
+            }
+        }
     }
 
     @Override
