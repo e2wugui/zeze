@@ -14,11 +14,9 @@
         ret "userdata"
     when "bool"
         ret "boolean"
-    when "byte"
-        ret "userdata"
     when "double", "float"
         ret "number"
-    when "int", "short"
+    when "int", "short", "byte"
         ret "integer"
     when "long"
         ret "long"
@@ -28,7 +26,11 @@
         table<{{ typestr type.key_type }}, {{ typestr type.value_type}}>
     {{- when "list","set" }}table<{{typestr type.value_type}}>
     {{- when "dynamic" }}
-        {{- for real_bean_kv in variable.variable_type.real_beans}}{{if !for.first}}|{{end}}{{toname(real_bean_kv.value.full_name)}}
+        {{- if variable.variable_type.real_beans.empty? }}
+            {{ any }}
+        {{- else}}
+            {{- for real_bean_kv in variable.variable_type.real_beans}}{{if !for.first}}|{{end}}{{toname(real_bean_kv.value.full_name)}}
+            {{- end}}
         {{- end}}
     {{- else
         ret toname(type.full_name?? type)
@@ -43,7 +45,7 @@ end}}
         else
             ret 'false'
         end
-    when "byte", 'binary'
+    when 'binary'
         ret 'nil'
     when "double", "float"
         if variable.initial != ''
@@ -51,7 +53,7 @@ end}}
         else
             ret "0.0"
         end
-    when "int", "short"
+    when "int", "short", "byte"
         if variable.initial !=''
             ret variable.initial
         else
@@ -90,7 +92,7 @@ local {{module.name}} = {}
 ---@field {{variable.name}} {{ typestr(variable.variable_type) }}
 {{- end }}
 ---@field new fun(t: table):{{toname bean.full_name}}
-{{module.name}}.{{bean.name}} = {
+local {{bean.name}} = {
     __type_name__ = '{{bean.full_name}}',
     __type_id__ = '{{bean.type_id}}',
     new = message_core.bean_new,
@@ -110,6 +112,7 @@ for variable in bean.variables
         bean_variables = array.add(bean_variables, variable)
     end
 end -}}
+{{module.name}}.{{bean.name}} = {{bean.name}}
 {{- if bean_variables.size > 0 }}
 {{module.name}}.{{bean.name}}.__index = message_core.build_index({{module.name}}.{{bean.name}})
 {{module.name}}.{{bean.name}}.__newindex = message_core.build_newindex({{module.name}}.{{bean.name}})
@@ -123,13 +126,16 @@ end -}}
 ---@field argument {{toname beantype(protocol.argument_type)}}
 {{- if protocol.result}}
 ---@field result {{toname beantype(protocol.result_type)}}
+---@field new fun(self: {{toname protocol.full_name}}, argument : table | nil):{{toname protocol.full_name}}
+---@field send fun(self: {{toname protocol.full_name}}, handler: fun(response: {{toname beantype(protocol.result_type)}}))
+{{- else}}
+---@field new fun(self: {{toname protocol.full_name}}, argument : table | nil):{{toname protocol.full_name}}
+---@field send fun(self: {{toname protocol.full_name}})
 {{- end}}
----@field new fun(t: table):{{toname protocol.full_name}}
----@field send fun(self: {{toname protocol.full_name}}):void
 {{- for e in  protocol.enums}}
 ---@field {{e.name}} integer
 {{- end }}
-{{module.name}}.{{protocol.name}} = {
+local {{protocol.name}} = {
     __type_name__ = '{{protocol.full_name}}',
     __type_id__ = '{{protocol.type_id}}',
     protocolId = {{protocol.id}},
@@ -149,6 +155,7 @@ end -}}
     {{- end }}
 }
 
+{{module.name}}.{{protocol.name}} = {{protocol.name}}
 {{module.name}}.{{protocol.name}}.__index = message_core.build_index({{module.name}}.{{protocol.name}})
 {{module.name}}.{{protocol.name}}.__newindex = message_core.build_newindex({{module.name}}.{{protocol.name}})
 
