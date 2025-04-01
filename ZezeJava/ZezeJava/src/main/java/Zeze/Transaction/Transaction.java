@@ -492,7 +492,11 @@ public final class Transaction {
 			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
 				var future = zeze.getServiceManager().getLastTid128CacheFuture();
 				assert future != null;
-				return History.buildLogChanges(future, cc, proc.getProtocolClassName(), proc.getProtocolRawArgument());
+				if (proc instanceof ProtocolProcedure) {
+					var pp = (ProtocolProcedure)proc;
+					return History.buildLogChanges(future, cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
+				}
+				return History.buildLogChanges(future, cc, null, null);
 			}
 			return null;
 		}); // onz patch: 新增参数

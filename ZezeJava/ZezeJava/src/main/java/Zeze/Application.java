@@ -24,6 +24,7 @@ import Zeze.History.HistoryModule;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotUpgradeMemoryTable;
+import Zeze.Net.Binary;
 import Zeze.Onz.Onz;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Daemon;
@@ -42,6 +43,7 @@ import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureLockWatcher;
+import Zeze.Transaction.ProtocolProcedure;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
@@ -447,16 +449,6 @@ public final class Application extends ReentrantLock {
 		return newProcedure(action, actionName, TransactionLevel.Serializable);
 	}
 
-	/**
-	 * 请使用没有userState的版本，userState已经被废弃！！！
-	 */
-	/*
-	@Deprecated
-	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
-										   @Nullable TransactionLevel level, @Nullable Object userState) {
-		return newProcedure(action, actionName, level);
-	}
-	*/
 	public @NotNull Procedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
 										   @Nullable TransactionLevel level) {
 		if (!isStart()) {
@@ -464,6 +456,16 @@ public final class Application extends ReentrantLock {
 					+ ", action=" + (actionName != null ? actionName : action.getClass()));
 		}
 		return new Procedure(this, action, actionName, level);
+	}
+
+	public @NotNull ProtocolProcedure newProcedure(@NotNull FuncLong action, @Nullable String actionName,
+												   @Nullable TransactionLevel level, @NotNull String protocolClassName,
+												   @NotNull Binary protocolRawArgument) {
+		if (!isStart()) {
+			throw new IllegalStateException("App Not Start: " + startState
+					+ ", action=" + (actionName != null ? actionName : action.getClass()));
+		}
+		return new ProtocolProcedure(this, action, actionName, level, protocolClassName, protocolRawArgument);
 	}
 
 	public static void deleteDirectory(@NotNull File directoryToBeDeleted) throws IOException, InterruptedException {

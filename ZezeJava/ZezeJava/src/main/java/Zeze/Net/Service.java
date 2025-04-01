@@ -20,9 +20,11 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.KeepAlive;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
+import Zeze.Util.FuncLong;
 import Zeze.Util.GlobalTimer;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -527,19 +529,23 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			// 事务模式，需要从decode重启。
 			// 传给事务的buffer可能重做需要重新decode，不能直接引用网络层的buffer，需要copy一次。
-			var protocolRawArgument = new Binary(bb.Copy());
-			var bbCopy = ByteBuffer.Wrap(protocolRawArgument);
+			var bytesCopy = bb.Copy();
+			var bbCopy = ByteBuffer.Wrap(bytesCopy);
 			var outProtocol = new OutObject<Protocol<?>>();
 			var protocolClassName = factoryHandle.Class.getName();
-			var proc = zeze.newProcedure(() -> {
+			FuncLong action = () -> {
 				var needLog = bbCopy.ReadIndex == 0;
 				bbCopy.ReadIndex = 0; // 考虑redo,要重置读指针
 				var p = decodeProtocol(typeId, bbCopy, factoryHandle, so, needLog);
 				outProtocol.value = p;
 				return p.handle(this, factoryHandle);
-			}, protocolClassName, factoryHandle.Level);
-			proc.setProtocolClassName(protocolClassName);
-			proc.setProtocolRawArgument(protocolRawArgument);
+			};
+			Procedure proc;
+			if (zeze.getConfig().isHistory()) {
+				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level,
+						protocolClassName, new Binary(bytesCopy));
+			} else
+				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
 			Task.executeUnsafe(proc, outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
