@@ -84,7 +84,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final @NotNull SelectionKey selectionKey;
 	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
 	private volatile Object userState;
-	private volatile HaProxyHeader haProxyHeader;
 
 	@SuppressWarnings("unused")
 	private volatile long outputBufferSize;
@@ -103,7 +102,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private long recvCount, recvSize; // 已处理接收的次数, 已从socket接收数据的统计总字节数
 	private long sendCount, sendSize; // 已处理发送的次数, 已向socket发送数据的统计总字节数
 	private long sendRawSize; // 准备发送数据的统计总字节数(只在SetOutputSecurityCodec后统计,压缩加密之前的大小)
-	private final TimeThrottle timeThrottle;
+	private final @Nullable TimeThrottle timeThrottle;
+	private @Nullable HaProxyHeader haProxyHeader;
 
 	public enum Type {
 		eServer,
@@ -114,14 +114,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final Type type;
 	private int activeRecvTime; // 上次接收的时间戳(秒)
 	private int activeSendTime; // 上次发送的时间戳(秒)
-
-	public @Nullable HaProxyHeader getHaProxyHeader() {
-		return haProxyHeader;
-	}
-
-	public void setHaProxyHeader(@NotNull HaProxyHeader haProxyHeader) {
-		this.haProxyHeader = haProxyHeader;
-	}
 
 	public Type getType() {
 		return type;
@@ -147,8 +139,16 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		activeSendTime = activeRecvTime = (int)GlobalTimer.getCurrentSeconds();
 	}
 
-	public TimeThrottle getTimeThrottle() {
+	public @Nullable TimeThrottle getTimeThrottle() {
 		return timeThrottle;
+	}
+
+	public @Nullable HaProxyHeader getHaProxyHeader() {
+		return haProxyHeader;
+	}
+
+	public void setHaProxyHeader(@NotNull HaProxyHeader haProxyHeader) {
+		this.haProxyHeader = haProxyHeader;
 	}
 
 	public long getSessionId() {

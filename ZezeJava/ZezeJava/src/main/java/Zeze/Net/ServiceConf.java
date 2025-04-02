@@ -28,11 +28,7 @@ public final class ServiceConf extends ReentrantLock {
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
-	private String haProxyKey = null;
-
-	public @Nullable String getHaProxyKey() {
-		return haProxyKey;
-	}
+	private @Nullable String haProxyKey;
 
 	public Service getService() {
 		return service;
@@ -40,10 +36,6 @@ public final class ServiceConf extends ReentrantLock {
 
 	public @NotNull String getName() {
 		return name;
-	}
-
-	public int getMaxConnections() {
-		return maxConnections;
 	}
 
 	public @NotNull SocketOptions getSocketOptions() {
@@ -64,6 +56,14 @@ public final class ServiceConf extends ReentrantLock {
 		//noinspection ConstantValue
 		if (value != null)
 			handshakeOptions = value;
+	}
+
+	public int getMaxConnections() {
+		return maxConnections;
+	}
+
+	public @Nullable String getHaProxyKey() {
+		return haProxyKey;
 	}
 
 	public void setService(Service service) {

@@ -374,10 +374,10 @@ public class Service extends ReentrantLock {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
-		if (getConfig().getHaProxyKey() != null)
-			so.setHaProxyHeader(new HaProxyHeader(getConfig().getHaProxyKey()));
 		if (socketMap.size() > config.getMaxConnections())
 			throw new IllegalStateException("too many connections");
+		if (config.getHaProxyKey() != null)
+			so.setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
 		addSocket(so);
 		OnHandshakeDone(so);
 	}
@@ -431,10 +431,8 @@ public class Service extends ReentrantLock {
 	 */
 	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
 		var haProxyHeader = so.getHaProxyHeader();
-		if (null != haProxyHeader) {
-			if (!haProxyHeader.decodeHeader(input))
-				return true; // 没有解析完header，看作成功。
-		}
+		if (haProxyHeader != null && !haProxyHeader.decodeHeader(input))
+			return true; // 没有解析完header，看作成功。
 
 		Protocol.decode(this, so, input);
 		return true;

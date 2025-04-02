@@ -505,14 +505,15 @@ public final class Task {
 			errCode = IModule.getErrorCode(result);
 		}
 
-		if (null == ex)
+		if (null == ex) {
 			logger.log(level, "Action={}{} Return={}:{} Arg={}",
 					actionName, userStateStr, moduleId, errCode,
 					p != null ? AsyncSocket.toStr(p.Argument) : "");
-		else
+		} else {
 			logger.log(level, "Action={}{} Return={}:{} Arg={}",
 					actionName, userStateStr, moduleId, errCode,
 					p != null ? AsyncSocket.toStr(p.Argument) : "", ex);
+		}
 	}
 
 	public static void logAndStatistics(long result, @Nullable Protocol<?> p, boolean IsRequestSaved) {
