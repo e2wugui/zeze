@@ -290,6 +290,30 @@ public final class TestJson extends TestCase {
 		assertEquals(-1, a.get(4));
 	}
 
+	public void testF() throws ReflectiveOperationException {
+		Object o = JsonReader.local().buf("[Infinity,-Infinity,NaN,0x1234567890abcdef,-0x1]").parse();
+		assertNotNull(o);
+		assertEquals(ArrayList.class, o.getClass());
+		ArrayList<?> a = (ArrayList<?>)o;
+		assertEquals(5, a.size());
+		assertEquals(Double.POSITIVE_INFINITY, a.get(0));
+		assertEquals(Double.NEGATIVE_INFINITY, a.get(1));
+		assertEquals(Double.NaN, a.get(2));
+		assertEquals(0x1234567890abcdefL, a.get(3));
+		assertEquals(-1, a.get(4));
+	}
+
+	record Record(int v, String s) {
+	}
+
+	public void testG() throws ReflectiveOperationException {
+		Record r = new Record(123, "abc");
+		String json = JsonWriter.local().clear().write(r).toString();
+		// System.out.println(json); // {"v":123,"s":"abc"}
+		Record r2 = JsonReader.local().buf(json).parse(Record.class);
+		assertEquals(r, r2);
+	}
+
 	public static void main(String[] args) throws ReflectiveOperationException {
 		TestJson t = new TestJson();
 		t.test1();
@@ -306,6 +330,8 @@ public final class TestJson extends TestCase {
 		t.testC();
 		t.testD();
 		t.testE();
-		System.out.println(t.getClass().getSimpleName() + ": 14 tests OK!");
+		t.testF();
+		t.testG();
+		System.out.println(t.getClass().getSimpleName() + ": 16 tests OK!");
 	}
 }

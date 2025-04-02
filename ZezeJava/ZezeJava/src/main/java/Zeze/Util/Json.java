@@ -400,14 +400,15 @@ public final class Json implements Cloneable {
 		}
 	}
 
+	public static final int javaVersion;
 	static final @NotNull Unsafe unsafe;
 	private static final @NotNull MethodHandle getDeclaredFields0MH;
+	static final @NotNull MethodHandle objectFieldOffsetMH;
 	static final @NotNull MethodHandle stringCtorMH;
 	private static final long OVERRIDE_OFFSET;
 	static final long STRING_VALUE_OFFSET, STRING_CODE_OFFSET;
 	static final boolean BYTE_STRING;
 	static final int keyHashMultiplier = 0x100_0193; // 1677_7619 can be changed to another prime number
-	public static final int javaVersion;
 	public static final Json instance = new Json();
 
 	private final @NotNull ConcurrentHashMap<Class<?>, ClassMeta<?>> classMetas = new ConcurrentHashMap<>();
@@ -424,6 +425,7 @@ public final class Json implements Cloneable {
 
 	static {
 		try {
+			javaVersion = (int)Float.parseFloat(System.getProperty("java.specification.version"));
 			Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
 			theUnsafeField.setAccessible(true);
 			unsafe = ensureNotNull((Unsafe)theUnsafeField.get(null));
@@ -442,6 +444,15 @@ public final class Json implements Cloneable {
 			MethodHandles.Lookup lookup = MethodHandles.lookup();
 			getDeclaredFields0MH = ensureNotNull(lookup.unreflect(setAccessible(
 					Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class))));
+			if (javaVersion < 9) {
+				objectFieldOffsetMH = lookup.unreflect(
+						Unsafe.class.getMethod("objectFieldOffset", Field.class)).bindTo(unsafe);
+			} else {
+				Class<?> jdkUnsafeClass = Class.forName("jdk.internal.misc.Unsafe");
+				objectFieldOffsetMH = lookup.unreflect(Json.setAccessible(jdkUnsafeClass.getMethod(
+						"objectFieldOffset", Field.class))).bindTo(setAccessible(Objects.requireNonNull(
+						getDeclaredField(jdkUnsafeClass, "theUnsafe"))).get(null));
+			}
 			Field valueField = getDeclaredField(String.class, "value");
 			STRING_VALUE_OFFSET = objectFieldOffset(Objects.requireNonNull(valueField));
 			BYTE_STRING = valueField.getType() == byte[].class;
@@ -451,7 +462,6 @@ public final class Json implements Cloneable {
 			stringCtorMH = ensureNotNull(lookup.unreflectConstructor(setAccessible(BYTE_STRING
 					? String.class.getDeclaredConstructor(byte[].class, byte.class)
 					: String.class.getDeclaredConstructor(char[].class, boolean.class))));
-			javaVersion = (int)Float.parseFloat(System.getProperty("java.specification.version"));
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -461,12 +471,15 @@ public final class Json implements Cloneable {
 		return unsafe;
 	}
 
-	@SuppressWarnings("deprecation")
-	public static long objectFieldOffset(Field field) {
-		return unsafe.objectFieldOffset(field);
+	public static long objectFieldOffset(@NotNull Field field) {
+		try {
+			return (long)objectFieldOffsetMH.invoke(field);
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 	}
 
-	static Field[] getDeclaredFields(Class<?> klass) {
+	static @NotNull Field @NotNull [] getDeclaredFields(@NotNull Class<?> klass) {
 		try {
 			return (Field[])getDeclaredFields0MH.invokeExact(klass, false);
 		} catch (RuntimeException | Error e) {
@@ -477,7 +490,7 @@ public final class Json implements Cloneable {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	static @Nullable Field getDeclaredField(Class<?> klass, String fieldName) {
+	static @Nullable Field getDeclaredField(@NotNull Class<?> klass, @NotNull String fieldName) {
 		for (Field field : getDeclaredFields(klass))
 			if (field.getName().equals(fieldName))
 				return field;
@@ -498,7 +511,7 @@ public final class Json implements Cloneable {
 //		keyHashMultiplier = multiplier;
 //	}
 
-	public static int getKeyHash(byte[] buf, int pos, int end) {
+	public static int getKeyHash(byte @NotNull [] buf, int pos, int end) {
 		if (pos >= end)
 			return 0;
 		//noinspection UnnecessaryLocalVariable
@@ -508,7 +521,7 @@ public final class Json implements Cloneable {
 		return h;
 	}
 
-	static @NotNull String newByteString(byte[] buf, int pos, int end) {
+	static @NotNull String newByteString(byte @NotNull [] buf, int pos, int end) {
 		if (!BYTE_STRING) // for JDK8-
 			return new String(buf, pos, end - pos, StandardCharsets.ISO_8859_1);
 		try {
