@@ -29,7 +29,7 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 
 	public static class LoginEventHandle implements EventDispatcher.EventHandle {
 		@Override
-		public long invoke(@NotNull Object sender, EventDispatcher.EventArgument arg) throws Exception {
+		public long invoke(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) throws Exception {
 			var online = (Online)sender;
 			var login = (LoginArgument)arg;
 			var context = online.providerApp.zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);

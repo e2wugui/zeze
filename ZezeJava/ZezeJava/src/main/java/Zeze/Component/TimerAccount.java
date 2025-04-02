@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * 直接使用 Timer.timersFuture，从 ThreadPool 返回的future保存在这里。
  */
 public class TimerAccount {
-	private static final Logger logger = LogManager.getLogger(TimerAccount.class);
+	private static final @NotNull Logger logger = LogManager.getLogger(TimerAccount.class);
 	//public static final String eTimerHandleName = "Zeze.Component.TimerArchOnline.Handle";
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 
@@ -468,7 +468,7 @@ public class TimerAccount {
 			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////
+	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
 		@Override
@@ -515,14 +515,11 @@ public class TimerAccount {
 
 	// Online.Local 删除事件，取消这个用户所有的在线定时器。
 	private long onLocalRemoveEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
-		var local = (LocalRemoveEventArgument)arg;
-		if (local.local != null) {
-			var bAny = local.local.getDatas().get(eOnlineTimers);
-			if (bAny != null) {
-				var timers = (BOnlineTimers)bAny.getAny().getBean();
-				for (var timerId : timers.getTimerIds().keySet())
-					cancel(timerId);
-			}
+		var bAny = ((LocalRemoveEventArgument)arg).local.getDatas().get(eOnlineTimers);
+		if (bAny != null) {
+			var timers = (BOnlineTimers)bAny.getAny().getBean();
+			for (var timerId : timers.getTimerIds().keySet())
+				cancel(timerId);
 		}
 		return 0;
 	}

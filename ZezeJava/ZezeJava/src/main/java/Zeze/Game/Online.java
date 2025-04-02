@@ -82,7 +82,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
-	protected static final Logger logger = LogManager.getLogger(Online.class);
+	protected static final @NotNull Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
 	protected static @Nullable Online defaultInstance; // 默认Online实例,stop后会置null
 
@@ -106,7 +106,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private Future<?> verifyLocalTimer;
+	private @Nullable Future<?> verifyLocalTimer;
 
 	public @NotNull ProviderApp getProviderApp() {
 		return providerApp;
@@ -188,7 +188,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		final @NotNull String key;
 		final @NotNull Bean bean;
 
-		public Retreat(long roleId, @NotNull String key, @NotNull Bean bean) {
+		Retreat(long roleId, @NotNull String key, @NotNull Bean bean) {
 			this.roleId = roleId;
 			this.key = key;
 			this.bean = bean;
@@ -654,10 +654,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long removeLocalAndTrigger(long roleId, boolean notVerifyCount) throws Exception {
-		var arg = new LocalRemoveEventArgument();
-		arg.roleId = roleId;
-		arg.local = _tlocal.get(roleId);
-
+		var arg = new LocalRemoveEventArgument(roleId, _tlocal.get(roleId));
 		// local 没有数据不触发事件？
 		if (arg.local != null) {
 			_tlocal.remove(roleId); // remove first
@@ -723,11 +720,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long logoutTrigger(long roleId, @NotNull LogoutReason logoutReason) throws Exception {
-		var arg = new LogoutEventArgument();
-		arg.online = this;
-		arg.roleId = roleId;
-		arg.logoutReason = logoutReason;
-
 		var onlineShared = getOrAddOnlineShared(roleId);
 		var link = onlineShared.getLink();
 		onlineShared.setLink(new BLink(link.getLinkName(), link.getLinkSid(), eOffline));
@@ -738,6 +730,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		// 总是删除
 		removeLocalAndTrigger(roleId);
 
+		var arg = new LogoutEventArgument(this, roleId, logoutReason);
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (ret != 0)
 			return ret;
@@ -747,9 +740,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long linkBrokenTrigger(@SuppressWarnings("unused") @NotNull String account, long roleId) throws Exception {
-		var arg = new LinkBrokenArgument();
-		arg.roleId = roleId;
-
+		var arg = new LinkBrokenArgument(roleId);
 		// 由于account可能没有，这里就不传递这个参数了。
 		var ret = linkBrokenEvents.triggerEmbed(this, arg);
 		if (ret != 0)
@@ -760,12 +751,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long loginTrigger(@NotNull String account, long roleId) throws Exception {
-		var arg = new LoginArgument();
-		arg.online = this;
-		arg.roleId = roleId;
-		arg.account = account;
-
 		loginTimes.incrementAndGet();
+		var arg = new LoginArgument(this, account, roleId);
 		var ret = loginEvents.triggerEmbed(this, arg);
 		if (ret != 0)
 			return ret;
@@ -775,12 +762,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private long reloginTrigger(@NotNull String account, long roleId) throws Exception {
-		var arg = new LoginArgument();
-		arg.online = this;
-		arg.roleId = roleId;
-		arg.account = account;
-
 		loginTimes.incrementAndGet();
+		var arg = new LoginArgument(this, account, roleId);
 		var ret = reloginEvents.triggerEmbed(this, arg);
 		if (ret != 0)
 			return ret;
@@ -1789,15 +1772,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	class VerifyBatch {
-		final ArrayList<Long> roleIds = new ArrayList<>();
+		private final ArrayList<Long> roleIds = new ArrayList<>();
 		private int walkCount;
 		private int removeCount;
 
-		public int getRemainCount() {
+		int getRemainCount() {
 			return walkCount - removeCount;
 		}
 
-		public void add(long roleId) {
+		void add(long roleId) {
 			walkCount++;
 			var aTime = localActiveTimes.get(roleId);
 			if (aTime != null && System.currentTimeMillis() - aTime > localActiveTimeout) {
@@ -1806,12 +1789,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 		}
 
-		public void tryPerform() {
+		void tryPerform() {
 			if (roleIds.size() > 20)
 				perform();
 		}
 
-		public void perform() {
+		void perform() {
 			if (!roleIds.isEmpty()) {
 				try {
 					providerApp.zeze.newProcedure(() -> {
@@ -1880,7 +1863,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessLoginRequest(Login rpc) {
+	protected long ProcessLoginRequest(@NotNull Login rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("Login[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
@@ -1893,7 +1876,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessLoginRequestOnlineSet(rpc);
 	}
 
-	private long ProcessLoginRequestOnlineSet(Login rpc) {
+	private long ProcessLoginRequestOnlineSet(@NotNull Login rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
@@ -1904,7 +1887,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long ProcessLoginRequest(Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessLoginRequest(@NotNull Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1974,7 +1957,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessReLoginRequest(ReLogin rpc) {
+	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("ReLogin[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var onlineSet = getOnline(rpc.Argument.getOnlineSetName());
@@ -1987,7 +1970,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReLoginRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReLoginRequestOnlineSet(ReLogin rpc) {
+	protected long ProcessReLoginRequestOnlineSet(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
@@ -1998,7 +1981,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return 0;
 	}
 
-	private long ProcessReLoginRequest(ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessReLoginRequest(@NotNull ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -2070,7 +2053,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Logout rpc) throws Exception {
+	protected long ProcessLogoutRequest(@NotNull Logout rpc) throws Exception {
 		if (!AsyncSocket.ENABLE_PROTOCOL_LOG)
 			logger.info("Logout[{}]: {}", rpc.getSender().getSessionId(), AsyncSocket.toStr(rpc.Argument));
 		var session = ProviderUserSession.get(rpc);
@@ -2078,7 +2061,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet != null ? onlineSet.ProcessLogoutRequestOnlineSet(rpc) : 0; // skip logout error
 	}
 
-	protected long ProcessLogoutRequestOnlineSet(Logout rpc) throws Exception {
+	protected long ProcessLogoutRequestOnlineSet(@NotNull Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
 			return errorCode(ResultCodeNotLogin);
@@ -2099,7 +2082,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return localLogout(roleId, link.getSocket(), linkSid);
 	}
 
-	private long localLogout(long roleId, AsyncSocket link, long linkSid) throws Exception {
+	private long localLogout(long roleId, @NotNull AsyncSocket link, long linkSid) throws Exception {
 		//var local = _tlocal.get(session.getRoleId());
 		var onlineShared = getLoginOnlineShared(roleId);
 		if (onlineShared != null) {
@@ -2151,7 +2134,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc) throws Exception {
+	protected long ProcessReliableNotifyConfirmRequest(@NotNull ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var onlineSet = getOnline(session.getOnlineSetName());
 		if (onlineSet == null) {
@@ -2161,7 +2144,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return onlineSet.ProcessReliableNotifyConfirmRequestOnlineSet(rpc);
 	}
 
-	protected long ProcessReliableNotifyConfirmRequestOnlineSet(ReliableNotifyConfirm rpc) throws Exception {
+	protected long ProcessReliableNotifyConfirmRequestOnlineSet(@NotNull ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 		var roleId = session.getRoleId();
 		if (roleId == null)
@@ -2180,7 +2163,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return Procedure.Success;
 	}
 
-	public boolean bindDynamic(long roleId, int ... moduleIds) {
+	public boolean bindDynamic(long roleId, int @NotNull ... moduleIds) {
 		var bean = getLoginOnlineShared(roleId);
 		if (null == bean)
 			return false;

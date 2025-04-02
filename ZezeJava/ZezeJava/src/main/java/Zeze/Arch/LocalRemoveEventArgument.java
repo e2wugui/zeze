@@ -2,13 +2,14 @@ package Zeze.Arch;
 
 import Zeze.Builtin.Online.BLocal;
 import Zeze.Util.EventDispatcher;
+import org.jetbrains.annotations.NotNull;
 
 public class LocalRemoveEventArgument implements EventDispatcher.EventArgument {
-	public final String account;
-	public final String clientId;
-	public final BLocal local;
+	public final @NotNull String account;
+	public final @NotNull String clientId;
+	public final @NotNull BLocal local;
 
-	public LocalRemoveEventArgument(String account, String clientId, BLocal localData) {
+	public LocalRemoveEventArgument(@NotNull String account, @NotNull String clientId, @NotNull BLocal localData) {
 		this.account = account;
 		this.clientId = clientId;
 		this.local = localData;

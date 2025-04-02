@@ -23,6 +23,10 @@ import Zeze.Builtin.Online.BNotify;
 import Zeze.Builtin.Online.BOnline;
 import Zeze.Builtin.Online.BOnlines;
 import Zeze.Builtin.Online.BReliableNotify;
+import Zeze.Builtin.Online.Login;
+import Zeze.Builtin.Online.Logout;
+import Zeze.Builtin.Online.ReLogin;
+import Zeze.Builtin.Online.ReliableNotifyConfirm;
 import Zeze.Builtin.Online.SReliableNotify;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
@@ -63,21 +67,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Online extends AbstractOnline implements HotUpgrade {
-	protected static final Logger logger = LogManager.getLogger(Online.class);
+	protected static final @NotNull Logger logger = LogManager.getLogger(Online.class);
 
-	public final ProviderApp providerApp;
+	public final @NotNull ProviderApp providerApp;
 	private final AtomicLong loginTimes = new AtomicLong();
 
-	private final EventDispatcher loginEvents;
-	private final EventDispatcher reloginEvents;
-	private final EventDispatcher logoutEvents;
-	private final EventDispatcher localRemoveEvents;
+	private final @NotNull EventDispatcher loginEvents;
+	private final @NotNull EventDispatcher reloginEvents;
+	private final @NotNull EventDispatcher logoutEvents;
+	private final @NotNull EventDispatcher localRemoveEvents;
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
 	private boolean freshStopModule = false;
 
-	private void onHotModuleStop(HotModule hot) {
+	private void onHotModuleStop(@NotNull HotModule hot) {
 		freshStopModule |= hotModulesHaveLocal.remove(hot) != null;
 	}
 
@@ -89,12 +93,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	static class Retreat {
-		final String account;
-		final String clientId;
-		final String key;
-		final Bean bean;
+		final @NotNull String account;
+		final @NotNull String clientId;
+		final @NotNull String key;
+		final @NotNull Bean bean;
 
-		public Retreat(String account, String clientId, String key, Bean bean) {
+		Retreat(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {
 			this.account = account;
 			this.clientId = clientId;
 			this.key = key;
@@ -103,7 +107,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	@Override
-	public void upgrade(Function<Bean, Bean> retreatFunc) throws Exception {
+	public void upgrade(@NotNull Function<Bean, Bean> retreatFunc) throws Exception {
 		// 如果需要，重建_tlocal内存表的用户设置的bean。
 		var retreats = new ArrayList<Retreat>();
 		_tlocal.walkMemory((account, locals) -> {
@@ -127,7 +131,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			saveRetreats(retreats);
 	}
 
-	private void saveRetreats(ArrayList<Retreat> retreats) {
+	private void saveRetreats(@NotNull ArrayList<Retreat> retreats) {
 		// 【注意，这里不使用 Task.call or run，因为这个在热更流程中调用，避免去使用hotGuard。】
 		// 确认事务可以在更新流程中可以使用。
 		// 也许更优化的方法是为这个更新实现一个不是事务的版本。
@@ -144,11 +148,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		 * @param target        查询目标
 		 * @return 按普通事务处理过程返回值处理
 		 */
-		long call(@NotNull String senderAccount, @NotNull String senderClientId, @NotNull String target, Binary parameter);
+		long call(@NotNull String senderAccount, @NotNull String senderClientId, @NotNull String target,
+				  @Nullable Binary parameter);
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
-	private Future<?> verifyLocalTimer;
+	private @Nullable Future<?> verifyLocalTimer;
 
 	public static @NotNull Online create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Online.class, app);
@@ -160,7 +165,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	public static final BeanFactory beanFactory = new BeanFactory();
 
-	public static Bean createBeanFromSpecialTypeId(long typeId) {
+	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
 		return beanFactory.createBeanFromSpecialTypeId(typeId);
 	}
 
@@ -229,10 +234,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@Override
 	public void UnRegister() {
-		if (providerApp != null) {
-			UnRegisterZezeTables(providerApp.zeze);
-			UnRegisterProtocols(providerApp.providerService);
-		}
+		UnRegisterZezeTables(providerApp.zeze);
+		UnRegisterProtocols(providerApp.providerService);
 	}
 
 	public @Nullable BOnlines getOnline(@NotNull String account) {
@@ -294,7 +297,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return transmitActions;
 	}
 
-	private BLocal getLoginLocal(@NotNull String account, @NotNull String clientId) {
+	private @NotNull BLocal getLoginLocal(@NotNull String account, @NotNull String clientId) {
 		var bLocals = _tlocal.get(account);
 		if (bLocals == null)
 			throw new IllegalStateException("account not online. " + account);
@@ -307,15 +310,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	private final ConcurrentHashMap<String, Long> localActiveTimes = new ConcurrentHashMap<>();
 
-	private void putLocalActiveTime(String account) {
+	private void putLocalActiveTime(@NotNull String account) {
 		localActiveTimes.put(account, System.currentTimeMillis());
 	}
 
-	private void removeLocalActiveTime(String account) {
+	private void removeLocalActiveTime(@NotNull String account) {
 		localActiveTimes.remove(account);
 	}
 
-	public void setLocalActiveTimeIfPresent(String account) {
+	public void setLocalActiveTimeIfPresent(@NotNull String account) {
 		localActiveTimes.computeIfPresent(account, (k, v) -> System.currentTimeMillis());
 	}
 
@@ -358,7 +361,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T getOrAddLocalBean(@NotNull String account, @NotNull String clientId, String key, @NotNull T defaultHint) {
+	public <T extends Bean> @NotNull T getOrAddLocalBean(@NotNull String account, @NotNull String clientId,
+														 @NotNull String key, @NotNull T defaultHint) {
 		var login = getLoginLocal(account, clientId);
 		var bAny = login.getDatas().getOrAdd(key);
 		if (bAny.getAny().getBean().typeId() == defaultHint.typeId())
@@ -385,7 +389,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 		if (localData != null) {
 			var arg = new LocalRemoveEventArgument(account, clientId, localData);
-
 			var ret = localRemoveEvents.triggerEmbed(this, arg);
 			if (ret != 0)
 				return ret;
@@ -399,7 +402,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var bOnline = getOrAddOnline(account);
 		var bLink = bOnline.getLogins().getOrAdd(clientId).getLink();
 		bOnline.getLogins().getOrAdd(clientId).setLink(new BLink(bLink.getLinkName(), bLink.getLinkSid(), eOffline));
-		var arg = new LogoutEventArgument(account, clientId);
 
 		var loginVersion = bOnline.getLogins().getOrAdd(clientId);
 
@@ -409,6 +411,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// 总是删除
 		removeLocalAndTrigger(account, clientId);
 
+		var arg = new LogoutEventArgument(account, clientId);
 		var ret = logoutEvents.triggerEmbed(this, arg);
 		if (0 != ret)
 			return ret;
@@ -467,15 +470,16 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return Procedure.Success;
 	}
 
-	static Online instance;
+	static @Nullable Online instance;
 
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			assert context.customData != null;
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
-		public static void logout(BDelayLogoutCustom custom) throws Exception {
+		public static void logout(@NotNull BDelayLogoutCustom custom) throws Exception {
 			if (instance != null) {
 				var ret = instance.tryLogout(custom);
 				if (ret != 0)
@@ -977,8 +981,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public static class LoginOnLink {
-		public String linkName = ""; // empty when not online
-		public AsyncSocket linkSocket; // null if not online
+		public @NotNull String linkName = ""; // empty when not online
+		public @Nullable AsyncSocket linkSocket; // null if not online
 		public long providerSessionId;
 		public final HashMap<LoginKey, Long> logins = new HashMap<>();
 		public final HashMap<Long, LoginKey> contexts = new HashMap<>();
@@ -1003,7 +1007,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 
 		@Override
-		public boolean equals(Object obj) {
+		public boolean equals(@Nullable Object obj) {
 			if (obj == this)
 				return true;
 			if (obj instanceof LoginKey) {
@@ -1351,10 +1355,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public static class RoleOnServer {
-		public int serverId = -1; // empty when not online
+		public final int serverId; // empty when not online
 		public final HashSet<String> accounts = new HashSet<>();
 
-		public void addAll(@NotNull HashSet<String> accounts) {
+		RoleOnServer() {
+			this(-1);
+		}
+
+		RoleOnServer(int serverId) {
+			this.serverId = serverId;
+		}
+
+		void addAll(@NotNull HashSet<String> accounts) {
 			this.accounts.addAll(accounts);
 		}
 	}
@@ -1377,9 +1389,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(serverId);
 			if (group == null) {
-				group = new RoleOnServer();
-				group.serverId = serverId;
-				groups.put(group.serverId, group);
+				group = new RoleOnServer(serverId);
+				groups.put(serverId, group);
 			}
 			group.accounts.add(account);
 		}
@@ -1511,20 +1522,20 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	class VerifyBatch {
-		final ArrayList<String> accounts = new ArrayList<>();
+		private final ArrayList<String> accounts = new ArrayList<>();
 
-		public void add(String account) {
+		void add(@NotNull String account) {
 			var aTime = localActiveTimes.get(account);
 			if (aTime != null && System.currentTimeMillis() - aTime > localActiveTimeout)
 				accounts.add(account);
 		}
 
-		public void tryPerform() {
+		void tryPerform() {
 			if (accounts.size() > 20)
 				perform();
 		}
 
-		public void perform() {
+		void perform() {
 			if (!accounts.isEmpty()) {
 				try {
 					providerApp.zeze.newProcedure(() -> {
@@ -1589,7 +1600,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc) throws Exception {
+	protected long ProcessLoginRequest(@NotNull Login rpc) throws Exception {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
@@ -1599,7 +1610,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return 0;
 	}
 
-	private long ProcessLoginRequest(Zeze.Builtin.Online.Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessLoginRequest(@NotNull Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1666,7 +1677,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
-	protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Exception {
+	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
@@ -1676,7 +1687,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return 0;
 	}
 
-	private long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
+	private long ProcessReLoginRequest(@NotNull ReLogin rpc, @NotNull OutObject<Boolean> done) throws Exception {
 		done.value = true; // 默认设置成处理完成，包括错误的时候。下面分支需要的时候重新设置成false。
 
 		var session = ProviderUserSession.get(rpc);
@@ -1749,7 +1760,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Zeze.Builtin.Online.Logout rpc) throws Exception {
+	protected long ProcessLogoutRequest(@NotNull Logout rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		if (!session.isLogin())
@@ -1805,9 +1816,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return ResultCodeSuccess;
 	}
 
-	@SuppressWarnings("RedundantThrows")
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm rpc) throws Exception {
+	protected long ProcessReliableNotifyConfirmRequest(@NotNull ReliableNotifyConfirm rpc) throws Exception {
 		var session = ProviderUserSession.get(rpc);
 
 		var clientId = session.getContext();
@@ -1825,7 +1835,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return Procedure.Success;
 	}
 
-	public boolean bindDynamic(String account, String clientId, int ... moduleIds) {
+	public boolean bindDynamic(@NotNull String account, @NotNull String clientId, int... moduleIds) {
 		var bean = getOnline(account);
 		if (null == bean)
 			return false;

@@ -10,7 +10,7 @@ public class EventDispatcher {
 
 	@FunctionalInterface
 	public interface EventHandle {
-		long invoke(@NotNull Object sender, EventArgument arg) throws Exception;
+		long invoke(@NotNull Object sender, @NotNull EventArgument arg) throws Exception;
 	}
 
 	public interface EventArgument {
@@ -26,21 +26,23 @@ public class EventDispatcher {
 		RunThread,
 	}
 
+	static class HandleClass {
+		final @NotNull Object classNameOrHandle; // EventHandle handle || String className
+
+		HandleClass(@NotNull EventHandle handle) {
+			this.classNameOrHandle = handle;
+		}
+
+		HandleClass(@NotNull String className) {
+			this.classNameOrHandle = className;
+		}
+	}
+
 	private final @NotNull Application zeze;
 	private final @NotNull String name;
 	private final ConcurrentLinkedQueue<HandleClass> runEmbedEvents = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<HandleClass> runProcedureEvents = new ConcurrentLinkedQueue<>();
 	private final ConcurrentLinkedQueue<HandleClass> runThreadEvents = new ConcurrentLinkedQueue<>();
-
-	static class HandleClass {
-		final String className;
-		final EventHandle handle;
-
-		public HandleClass(String className, EventHandle handle) {
-			this.className = className;
-			this.handle = handle;
-		}
-	}
 
 	public EventDispatcher(@NotNull Application zeze, @NotNull String name) {
 		this.zeze = zeze;
@@ -71,7 +73,7 @@ public class EventDispatcher {
 	 */
 	public @NotNull Canceler addHot(@NotNull Mode mode, @NotNull Class<? extends EventHandle> handleClass) {
 		var events = getQueue(mode);
-		var handle = new HandleClass(handleClass.getName(), null);
+		var handle = new HandleClass(handleClass.getName());
 		events.offer(handle);
 		return () -> events.remove(handle);
 	}
@@ -84,7 +86,7 @@ public class EventDispatcher {
 	public @NotNull Canceler add(@NotNull Mode mode, @NotNull EventHandle handle_) {
 		zeze.verifyCallerCold(StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		var events = getQueue(mode);
-		var handle = new HandleClass(null, handle_);
+		var handle = new HandleClass(handle_);
 		events.offer(handle);
 		return () -> events.remove(handle);
 	}
@@ -92,18 +94,16 @@ public class EventDispatcher {
 	// 事件派发。需要触发者在明确的地方显式的调用。
 
 	// 启动新的线程执行。
-	public void triggerThread(@NotNull Object sender, EventArgument arg) {
+	public void triggerThread(@NotNull Object sender, @NotNull EventArgument arg) {
 		for (var handle : runThreadEvents) {
-			if (handle.handle != null) {
-				Task.run(() -> handle.handle.invoke(sender, arg),
-						"EventDispatch." + name + ".runAsync",
-						DispatchMode.Normal);
+			var classNameOrHandle = handle.classNameOrHandle;
+			if (classNameOrHandle instanceof EventHandle) {
+				Task.run(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg),
+						"EventDispatch." + name + ".runAsync", DispatchMode.Normal);
 			} else {
-				Task.run(() -> {
-							var h = zeze.getHotHandle().findHandle(zeze, handle.className);
-							h.invoke(sender, arg);
-						}, "EventDispatch." + name + ".runAsync " + handle.className,
-						DispatchMode.Normal);
+				var className = (String)classNameOrHandle;
+				Task.run(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg),
+						"EventDispatch." + name + ".runAsync " + className, DispatchMode.Normal);
 			}
 		}
 	}
@@ -111,36 +111,31 @@ public class EventDispatcher {
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
 	public long triggerEmbed(@NotNull Object sender, EventArgument arg) throws Exception {
 		for (var handle : runEmbedEvents) {
-			if (handle.handle != null) {
-				var ret = handle.handle.invoke(sender, arg);
-				if (ret != 0)
-					return ret;
-			} else {
-				var h = zeze.getHotHandle().findHandle(zeze, handle.className);
-				var ret = h.invoke(sender, arg);
-				if (ret != 0)
-					return ret;
-			}
+			var classNameOrHandle = handle.classNameOrHandle;
+			var ret = classNameOrHandle instanceof EventHandle
+					? ((EventHandle)classNameOrHandle).invoke(sender, arg)
+					: zeze.getHotHandle().findHandle(zeze, (String)classNameOrHandle).invoke(sender, arg);
+			if (ret != 0)
+				return ret;
 		}
 		return 0;
 	}
 
 	// 在当前线程中，创建新的存储过程并嵌套执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public void triggerProcedure(@NotNull Application app, @NotNull Object sender, EventArgument arg) {
+	public void triggerProcedure(@NotNull Application app, @NotNull Object sender, @NotNull EventArgument arg) {
 		for (var handle : runProcedureEvents) {
-			if (handle.handle != null) {
+			var classNameOrHandle = handle.classNameOrHandle;
+			if (classNameOrHandle instanceof EventHandle) {
 				Task.call(app.newProcedure(() -> {
-					// 忽略嵌套的存储的执行。
-					handle.handle.invoke(sender, arg);
+					((EventHandle)classNameOrHandle).invoke(sender, arg); // 忽略嵌套的存储的执行。
 					return 0L;
 				}, "EventDispatcher.triggerProcedure"));
 			} else {
+				var className = (String)classNameOrHandle;
 				Task.call(app.newProcedure(() -> {
-					var h = zeze.getHotHandle().findHandle(zeze, handle.className);
-					// 忽略嵌套的存储的执行。
-					h.invoke(sender, arg);
+					zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg); // 忽略嵌套的存储的执行。
 					return 0L;
-				}, "EventDispatcher.triggerProcedure." + handle.className));
+				}, "EventDispatcher.triggerProcedure." + className));
 			}
 		}
 	}
