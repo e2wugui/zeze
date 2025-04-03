@@ -62,7 +62,7 @@ public class GTable1<R, C, V> extends StandardTable<R, C, V> {
 				var k = keyParser.parse(reader, b);
 				reader.skipColon();
 				var map = (BeanMap1<Object, Object>)ensureNotNull(fm1.ctor).create();
-				reader.parseMap0(json, map, classMeta, fm2);
+				reader.parseMap0(map, classMeta, fm2);
 				obj.pMap2.put(k, map);
 			}
 			reader.pos(reader.pos() + 1);

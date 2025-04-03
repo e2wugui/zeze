@@ -286,7 +286,7 @@ public final class JsonWriter {
 	@SuppressWarnings({"null", "unused"})
 	void appendBlock(int len) {
 		Block block = allocator.alloc(len);
-		//noinspection ConstantConditions,UnreachableCode
+		//noinspection ConstantConditions
 		if (tail != null) {
 			block.next = tail.next;
 			tail.next = block;
@@ -393,6 +393,7 @@ public final class JsonWriter {
 			write(((Double)obj).doubleValue());
 			break;
 		case TYPE_STRING:
+			//noinspection LocalVariableUsedAndDeclaredInDifferentSwitchBranches
 			String s = (String)obj;
 			ensure(s.length() * 6 + 3); // "xxxxxx"
 			write(s, false);
