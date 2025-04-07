@@ -1,117 +1,18 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{51933975-1A63-4210-88C0-2B0633FFA3A4}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>
-    </RootNamespace>
-    <AssemblyName>confcs</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>disable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;USE_CONFCS;UNITY_EDITOR</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DefineConstants>TRACE;USE_CONFCS;UNITY_EDITOR</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DefineConstants>USE_CONFCS;UNITY_EDITOR</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="confcs\demo\Bean1.cs" />
-    <Compile Include="confcs\demo\Module1\AbstractModuleModule1.cs" />
-    <Compile Include="confcs\demo\Module1\AutoKey.cs" />
-    <Compile Include="confcs\demo\Module1\AutoValue.cs" />
-    <Compile Include="confcs\demo\Module1\Key.cs" />
-    <Compile Include="confcs\demo\Module1\Module11\AbstractModuleModule11.cs" />
-    <Compile Include="confcs\demo\Module1\Module11\Base.cs" />
-    <Compile Include="confcs\demo\Module1\Module11\Derive.cs" />
-    <Compile Include="confcs\demo\Module1\Module11\Dynamic.cs" />
-    <Compile Include="confcs\demo\Module1\Module11\Final.cs" />
-    <Compile Include="confcs\demo\Module1\Protocol1.cs" />
-    <Compile Include="confcs\demo\Module1\Protocol3.cs" />
-    <Compile Include="confcs\demo\Module1\ProtocolNoProcedure.cs" />
-    <Compile Include="confcs\demo\Module1\Removed2.cs" />
-    <Compile Include="confcs\demo\Module1\Rpc1.cs" />
-    <Compile Include="confcs\demo\Module1\Rpc2.cs" />
-    <Compile Include="confcs\demo\Module1\Simple.cs" />
-    <Compile Include="confcs\demo\Module1\Value.cs" />
-    <Compile Include="confcs\demo\Module2\Value.cs" />
-    <Compile Include="TestClient.cs" />
-    <Compile Include="Zeze\AppBase.cs" />
-    <Compile Include="Zeze\Application.cs" />
-    <Compile Include="Zeze\Config.cs" />
-    <Compile Include="Zeze\IModule.cs" />
-    <Compile Include="Zeze\Net\Acceptor.cs" />
-    <Compile Include="Zeze\Net\AsyncSocket.cs" />
-    <Compile Include="Zeze\Net\AsyncSocketType.cs" />
-    <Compile Include="Zeze\Net\Binary.cs" />
-    <Compile Include="Zeze\Net\Codec.cs" />
-    <Compile Include="Zeze\Net\Connector.cs" />
-    <Compile Include="Zeze\Net\FamilyClass.cs" />
-    <Compile Include="Zeze\Net\Protocol.cs" />
-    <Compile Include="Zeze\Net\ProtocolPool.cs" />
-    <Compile Include="Zeze\Net\Rpc.cs" />
-    <Compile Include="Zeze\Net\RpcTimeoutException.cs" />
-    <Compile Include="Zeze\Net\Service.cs" />
-    <Compile Include="Zeze\Net\ServiceConf.cs" />
-    <Compile Include="Zeze\Net\SocketOptions.cs" />
-    <Compile Include="Zeze\Serialize\ByteBuffer.cs" />
-    <Compile Include="Zeze\Serialize\Serializable.cs" />
-    <Compile Include="Zeze\Serialize\SerializeHelper.cs" />
-    <Compile Include="Zeze\Serialize\Vector3.cs" />
-    <Compile Include="Zeze\Services\Handshake.cs" />
-    <Compile Include="Zeze\Services\ToLuaService2.cs" />
-    <Compile Include="Zeze\Transaction\ChangesRecord.cs" />
-    <Compile Include="Zeze\Transaction\Collections\CollApply.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogBean.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogList.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogList1.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogList2.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogMap.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogMap1.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogMap2.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogOne.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogSet.cs" />
-    <Compile Include="Zeze\Transaction\Collections\LogSet1.cs" />
-    <Compile Include="Zeze\Transaction\DispatchMode.cs" />
-    <Compile Include="Zeze\Transaction\Log.cs" />
-    <Compile Include="Zeze\Transaction\TransactionLevel.cs" />
-    <Compile Include="Zeze\Util\AtomicLong.cs" />
-    <Compile Include="Zeze\Util\BeanFactory.cs" />
-    <Compile Include="Zeze\Util\Comparer.cs" />
-    <Compile Include="Zeze\Util\ConfBean.cs" />
-    <Compile Include="Zeze\Util\DispatchModeAttribute.cs" />
-    <Compile Include="Zeze\Util\FixedHash.cs" />
-    <Compile Include="Zeze\Util\Logger.cs" />
-    <Compile Include="Zeze\Util\Mission.cs" />
-    <Compile Include="Zeze\Util\Random.cs" />
-    <Compile Include="Zeze\Util\Reflect.cs" />
-    <Compile Include="Zeze\Util\ResultCode.cs" />
-    <Compile Include="Zeze\Util\Scheduler.cs" />
-    <Compile Include="Zeze\Util\Str.cs" />
-    <Compile Include="Zeze\Util\Time.cs" />
-    <Compile Include="Zeze\Util\UnityHelpers.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>
