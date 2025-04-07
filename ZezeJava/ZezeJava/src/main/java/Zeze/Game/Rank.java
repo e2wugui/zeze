@@ -210,7 +210,7 @@ public class Rank extends AbstractRank {
 		var volatileTmp = funcConcurrentLevel;
 		if (null != volatileTmp)
 			return volatileTmp.applyAsInt(rankType);
-		return 256; // default
+		return 128; // default
 	}
 
 	public final long getRankCacheTimeout(int rankType) {
