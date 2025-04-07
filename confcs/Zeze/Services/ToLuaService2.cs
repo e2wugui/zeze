@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Threading;
+using System.Runtime.InteropServices;
+using System.Text;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Services.ToLuaService2;
+using lua_State=System.IntPtr;
+using lua_Number=System.Double;
+using lua_Integer=System.Int64;
 
 // <summary>
 // 在lua线程中调用，一般实现：
@@ -26,7 +31,7 @@ namespace Zeze.Services
     public class ToLuaServiceClient2 : HandshakeClient, IFromLua2
     {
         public Service Service => this;
-        public ToLua ToLua { get; } = new ToLua();
+        public ToLua ToLua => ToLua.Instance;
 
         public ToLuaServiceClient2(string name, Config config) : base(name, config)
         {
@@ -35,11 +40,6 @@ namespace Zeze.Services
         public void InitializeLua(ILua iLua)
         {
             ToLua.InitializeLua(iLua);
-        }
-
-        public override void OnSocketConnected(AsyncSocket so)
-        {
-            base.OnSocketConnected(so);
         }
 
         public override void OnHandshakeDone(AsyncSocket sender)
@@ -61,7 +61,7 @@ namespace Zeze.Services
 
         public override void OnSocketClose(AsyncSocket so, Exception e)
         {
-            if (ToLua.callThreadId == Thread.CurrentThread.ManagedThreadId && ToLua.UpdateLuaState != default) // 在主线程中主动关闭网络，直接同步返回回调
+            if (ToLua.UpdateLuaState != default) // 在主线程中主动关闭网络，直接同步返回回调
                 ToLua.CallSocketClose(ToLua.UpdateLuaState, this, so.SessionId);
             else
                 ToLua.SetSocketClose(so.SessionId, this);
@@ -120,53 +120,96 @@ namespace Zeze.Services.ToLuaService2
         NoRef = -2
     }
 
-    public interface ILua
+     public interface ILua
     {
-        void PushNil(IntPtr luaState);
-        void PushBoolean(IntPtr luaState, bool v);
-        void PushInteger(IntPtr luaState, long l);
-        void PushLong(IntPtr luaState, long l);
-        void PushNumber(IntPtr luaState, double number);
-        void PushString(IntPtr luaState, string str);
-        void PushBuffer(IntPtr luaState, byte[] buffer);
-        void PushObject(IntPtr luaState, object obj);
-        void PushValue(IntPtr luaState, int index);
-        void Pop(IntPtr luaState, int n);
-        void Replace(IntPtr luaState, int index);
-        int GetTop(IntPtr luaState);
-        bool CheckStack(IntPtr luaState, int extra);
+        
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate int lua_CFunction(IntPtr luaState);
+#else
+	    public delegate int lua_CFunction(lua_State luaState);
+#endif
+        int LUA_REGISTRYINDEX { get; }
+        void lua_pushnil(lua_State luaState);
+        void lua_pushboolean(lua_State luaState, bool b);
+        void lua_pushinteger(lua_State luaState, lua_Integer n);
+        void lua_pushnumber(lua_State luaState, lua_Number n);
+        void lua_pushvalue(lua_State luaState, int index);
+        
+        void lua_pushcfunction (lua_State L, lua_CFunction f);
+        
+        void lua_pushstring (lua_State L, string s);
+        
+        void lua_pushlstring (lua_State L, byte[] s, int len);
+        void lua_pop(lua_State luaState, int n);
+        int lua_gettop(lua_State luaState);
+        bool lua_checkstack (lua_State luaState, int n);
+        
+        // int lua_isboolean (lua_State luaState, int index);
+        // int lua_isinteger (lua_State luaState, int index);
+        bool lua_isnil (lua_State luaState, int index);
+        bool lua_istable(lua_State luaState, int index);
+        void lua_setglobal(lua_State L, string name);
+        lua_Number lua_tonumber (lua_State L, int index);
+        lua_Integer lua_tointeger (lua_State L, int index);
+        bool lua_toboolean (lua_State L, int index);
+        
+        void lua_createtable (lua_State L, int narr, int nrec);
+        // int lua_gettable (lua_State L, int index);
+        void lua_settable (lua_State L, int index);
+        int lua_getmetatable (lua_State L, int index);
+        void lua_setmetatable (lua_State L, int index);
+        int lua_getfield (lua_State L, int index, string k);
+        int lua_rawget (lua_State L, int index);
+        int lua_rawgeti (lua_State L, int index, lua_Integer n);
+        bool lua_next (lua_State L, int index);
+        int lua_getglobal (lua_State L, string name);
+        LuaType lua_type (lua_State L, int index);
+            
+        int luaL_ref (lua_State L, int t);
+        void luaL_unref (lua_State L, int t, int @ref);
+        int lua_pcall (lua_State L, int nargs, int nresults, int msgh);
 
-        LuaType GetType(IntPtr luaState, int index);
-        bool IsNil(IntPtr luaState, int index);
-        bool IsTable(IntPtr luaState, int index);
-        bool ToBoolean(IntPtr luaState, int index);
-        long ToInteger(IntPtr luaState, int index);
-        long ToLong(IntPtr luaState, int index);
-        double ToNumber(IntPtr luaState, int index);
-        string ToString(IntPtr luaState, int index);
-        IntPtr ToLString(IntPtr luaState, int index, out IntPtr strLen);
-        byte[] ToBuffer(IntPtr luaState, int index);
-        T ToObject<T>(IntPtr luaState, int index);
-
-        void CreateTable(IntPtr luaState, int elements, int records);
-        void GetTable(IntPtr luaState, int index);
-        void SetTable(IntPtr luaState, int index);
-        int GetMetatable(IntPtr luaState, int index);
-        void SetMetatable(IntPtr luaState, int index);
-        void GetField(IntPtr luaState, int index, string name);
-        void RawGet(IntPtr luaState, int index);
-        void RawGetI(IntPtr luaState, int index, int n);
-        bool Next(IntPtr luaState, int index);
-        LuaType GetGlobal(IntPtr luaState, string name);
-
-        int LuaRegistryIndex { get; }
-        int LuaL_ref(IntPtr luaState, int t); // [-1, +0, m]
-        void LuaL_unref(IntPtr luaState, int t, int reference); // [-0, +0, -]
-
-        int PCallPrepare(IntPtr luaState, int funcRef);
-        void PCall(IntPtr luaState, int arguments, int results, int errFunc);
-        bool DoString(IntPtr luaState, string str);
-    }
+        string lua_tostring(lua_State L, int index)
+        {
+            IntPtr str = lua_tolstring(L, index, out var len); // fix il2cpp 64 bit
+            string s = null;
+            if (len > 0 && str != default)
+            {
+#if (UNITY_WSA && !UNITY_EDITOR)
+                byte[] b = new byte[len];
+                Marshal.Copy(str, b, 0, len);
+                s = System.Text.Encoding.Default.GetString(b);
+#else
+                s = Marshal.PtrToStringAnsi(str);
+                // fallback method
+                if(s == null)
+                {
+                    byte[] b = new byte[len];
+                    Marshal.Copy(str, b, 0, len);
+                    s = Encoding.Default.GetString(b);
+                }
+#endif
+            }
+            return s ?? string.Empty;
+        }
+        IntPtr lua_tolstring (lua_State L, int index, out int len);
+        
+        byte[] lua_tobytes(lua_State luaState, int index)
+        {
+            IntPtr str = lua_tolstring(luaState, index, out var len); // fix il2cpp 64 bit
+            if (str != IntPtr.Zero)
+            {
+                byte[] bytes = new byte[len];
+                Marshal.Copy(str, bytes,0,len);
+                return bytes;
+            }
+            return null;
+        }
+               
+        // int PCallPrepare(IntPtr luaState, int funcRef);
+        // void PCall(IntPtr luaState, int arguments, int results, int errFunc);
+    } 
 
     public class ToLua : Protocol.IDecodeAndDispatch
     {
@@ -261,7 +304,7 @@ namespace Zeze.Services.ToLuaService2
         {
             if (tableRefId != (int)LuaDefine.NoRef)
             {
-                Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, tableRefId);
+                Lua.luaL_unref(luaState, Lua.LUA_REGISTRYINDEX, tableRefId);
                 tableRefId = (int)LuaDefine.NoRef;
             }
             beanMetas.Clear();
@@ -269,7 +312,7 @@ namespace Zeze.Services.ToLuaService2
             structMetas.Clear();
         }
 
-        static int VariableType(string variableType, IReadOnlyDictionary<string, long> beanName2BeanId, out long beanId)
+        private static int ToVariableTypeId(string variableType, IReadOnlyDictionary<string, long> beanName2BeanId, out long beanId)
         {
             beanId = 0;
             switch (variableType)
@@ -304,17 +347,78 @@ namespace Zeze.Services.ToLuaService2
         void ParseVariableMeta(IntPtr luaState, IReadOnlyDictionary<string, long> beanName2BeanId,
             ICollection<DynamicMeta> dynamicMetas, List<VariableMeta> variables)
         {
-            Lua.GetField(luaState, -1, "variables"); // variables
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // -1 value of varMeta(table) -2 key of varId
+            Lua.lua_getfield(luaState, -1, "variables"); // variables
+            // LuaTable variablesLuaTable;
+            // foreach (var (variableName, variableLuaTable) in variablesLuaTable)
+            // {
+            //     var variableId = variableLuaTable.GetInt("Id");
+            //     var variableTypeName = variableLuaTable.GetString("type");
+            //     int variableType = ToVariableTypeId(variableTypeName, beanName2BeanId, out long variableBeanTypeId);
+            //     var variableMeta = new VariableMeta
+            //     {
+            //         Id = (int)variableId,
+            //         Name = variableName,
+            //         Type = variableType,
+            //         TypeBeanTypeId = variableBeanTypeId
+            //     };
+            //     switch (variableType)
+            //     {
+            //         case ByteBuffer.LIST:
+            //         {
+            //             var variableValueStr = variableLuaTable.GetString("type");
+            //             int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
+            //                 out long variableValueTypeId);
+            //             variableMeta.ValueType = variableValueType;
+            //             variableMeta.ValueBeanTypeId = variableValueTypeId;
+            //             break;
+            //         }
+            //         case ByteBuffer.MAP:
+            //         {
+            //             var variableKeyStr = variableLuaTable.GetString("key");
+            //             var variableValueStr = variableLuaTable.GetString("value");
+            //             
+            //             int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
+            //                 out long variableValueTypeId);
+            //             variableMeta.ValueType = variableValueType;
+            //             variableMeta.ValueBeanTypeId = variableValueTypeId;
+            //             int variableKeyType = ToVariableTypeId(variableKeyStr, beanName2BeanId, out long variableKeyTypeId);
+            //             variableMeta.KeyType = variableKeyType;
+            //             variableMeta.KeyBeanTypeId = variableKeyTypeId;
+            //             break;
+            //         }
+            //         case ByteBuffer.DYNAMIC:
+            //         {
+            //             var dynamicMeta = new DynamicMeta();
+            //             Lua.lua_getfield(luaState, -1, "dynamcic_meta");
+            //             for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1))
+            //             {
+            //                 long dynamicId = Convert.ToInt64(Lua.lua_tostring(luaState, -2));
+            //                 string dynamicType = Lua.lua_tostring(luaState, -1);
+            //                 if (!beanName2BeanId.TryGetValue(dynamicType, out var dynamicTypeId))
+            //                     throw new Exception($"error dynamic bean type not define {dynamicType}");
+            //                 dynamicMeta.BeanToSpecialTypeId[dynamicTypeId] = dynamicId;
+            //                 variableMeta.DynamicMeta = dynamicMeta;
+            //                 dynamicMetas.Add(dynamicMeta);
+            //             }
+            //             Lua.lua_pop(luaState, 1);
+            //             break;
+            //         }
+            //     }
+            //     int index = variables.BinarySearch(variableMeta, varComparer);
+            //     if (index < 0)
+            //         variables.Insert(~index, variableMeta);
+            //     
+            // }
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1)) // -1 value of varMeta(table) -2 key of varId
             {
-                string variableName = Lua.ToString(luaState, -2);
-                Lua.GetField(luaState, -1, "id");
-                int variableId = (int)Lua.ToInteger(luaState, -1);
-                Lua.Pop(luaState, 1);
-                Lua.GetField(luaState, -1, "type");
-                string variableTypeStr = Lua.ToString(luaState, -1);
-                Lua.Pop(luaState, 1);
-                int variableType = VariableType(variableTypeStr, beanName2BeanId, out long variableBeanTypeId);
+                string variableName = Lua.lua_tostring(luaState, -2);
+                Lua.lua_getfield(luaState, -1, "id");
+                int variableId = (int)Lua.lua_tointeger(luaState, -1);
+                Lua.lua_pop(luaState, 1);
+                Lua.lua_getfield(luaState, -1, "type");
+                string variableTypeStr = Lua.lua_tostring(luaState, -1);
+                Lua.lua_pop(luaState, 1);
+                int variableType = ToVariableTypeId(variableTypeStr, beanName2BeanId, out long variableBeanTypeId);
                 var variable = new VariableMeta
                 {
                     Id = variableId,
@@ -327,10 +431,10 @@ namespace Zeze.Services.ToLuaService2
                     // case ByteBuffer.SET:
                     case ByteBuffer.LIST:
                     {
-                        Lua.GetField(luaState, -1, "value");
-                        string variableValueStr = Lua.ToString(luaState, -1);
-                        Lua.Pop(luaState, 1);
-                        int variableValueType = VariableType(variableValueStr, beanName2BeanId,
+                        Lua.lua_getfield(luaState, -1, "value");
+                        string variableValueStr = Lua.lua_tostring(luaState, -1);
+                        Lua.lua_pop(luaState, 1);
+                        int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
                             out long variableValueTypeId);
                         variable.ValueType = variableValueType;
                         variable.ValueBeanTypeId = variableValueTypeId;
@@ -338,17 +442,17 @@ namespace Zeze.Services.ToLuaService2
                     }
                     case ByteBuffer.MAP:
                     {
-                        Lua.GetField(luaState, -1, "value");
-                        string variableValueStr = Lua.ToString(luaState, -1);
-                        Lua.Pop(luaState, 1);
-                        int variableValueType = VariableType(variableValueStr, beanName2BeanId,
+                        Lua.lua_getfield(luaState, -1, "value");
+                        string variableValueStr = Lua.lua_tostring(luaState, -1);
+                        Lua.lua_pop(luaState, 1);
+                        int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
                             out long variableValueTypeId);
                         variable.ValueType = variableValueType;
                         variable.ValueBeanTypeId = variableValueTypeId;
-                        Lua.GetField(luaState, -1, "key");
-                        string variableKeyStr = Lua.ToString(luaState, -1);
-                        Lua.Pop(luaState, 1);
-                        int variableKeyType = VariableType(variableKeyStr, beanName2BeanId, out long variableKeyTypeId);
+                        Lua.lua_getfield(luaState, -1, "key");
+                        string variableKeyStr = Lua.lua_tostring(luaState, -1);
+                        Lua.lua_pop(luaState, 1);
+                        int variableKeyType = ToVariableTypeId(variableKeyStr, beanName2BeanId, out long variableKeyTypeId);
                         variable.KeyType = variableKeyType;
                         variable.KeyBeanTypeId = variableKeyTypeId;
                         break;
@@ -356,18 +460,18 @@ namespace Zeze.Services.ToLuaService2
                     case ByteBuffer.DYNAMIC:
                     {
                         var dynamicMeta = new DynamicMeta();
-                        Lua.GetField(luaState, -1, "dynamcic_meta");
-                        for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1))
+                        Lua.lua_getfield(luaState, -1, "dynamcic_meta");
+                        for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1))
                         {
-                            long dynamicId = Convert.ToInt64(Lua.ToString(luaState, -2));
-                            string dynamicType = Lua.ToString(luaState, -1);
+                            long dynamicId = Convert.ToInt64(Lua.lua_tostring(luaState, -2));
+                            string dynamicType = Lua.lua_tostring(luaState, -1);
                             if (!beanName2BeanId.TryGetValue(dynamicType, out var dynamicTypeId))
                                 throw new Exception($"error dynamic bean type not define {dynamicType}");
                             dynamicMeta.BeanToSpecialTypeId[dynamicTypeId] = dynamicId;
                             variable.DynamicMeta = dynamicMeta;
                             dynamicMetas.Add(dynamicMeta);
                         }
-                        Lua.Pop(luaState, 1);
+                        Lua.lua_pop(luaState, 1);
                         break;
                     }
                 }
@@ -381,30 +485,42 @@ namespace Zeze.Services.ToLuaService2
         {
             FreeLuaMeta(luaState);
 
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("ZezeMeta not return a table: " + Lua.GetType(luaState, -1));
-            Lua.CreateTable(luaState, 0, 0); // LuaL_ref 使用
-            tableRefId = Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex);
-            Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [table, refTable]
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("ZezeMeta not return a table: " + Lua.lua_type(luaState, -1));
+            Lua.lua_createtable(luaState, 0, 0); // LuaL_ref 使用
+            tableRefId = Lua.luaL_ref(luaState, Lua.LUA_REGISTRYINDEX);
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, tableRefId); // [table, refTable]
 
-            Lua.GetField(luaState, -2, "beans"); // [table, refTable, table.beans]
+            Lua.lua_getfield(luaState, -2, "beans"); // [table, refTable, table.beans]
             var beanName2BeanId = new Dictionary<string, long>();
             var dynamicMetas = new List<DynamicMeta>();
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 2)) // [table, refTable, table.beans, beanName, bean]
+            LuaTable beans = new LuaTable();
+            // foreach (var (beanName, bean) in beans)
+            // {
+            //     var beanTypeId = bean.GetStringInt("type_id");
+            //     beanName2BeanId[beanName] = beanTypeId;
+            // }
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 2)) // [table, refTable, table.beans, beanName, bean]
             {
-                string beanName = Lua.ToString(luaState, -2);
-                Lua.GetField(luaState, -1, "type_id"); // [table, refTable, table.beans, beanName, bean, beanTypeId]
-                long beanTypeId = Convert.ToInt64(Lua.ToString(luaState, -1)); // 获取BeanId
+                string beanName = Lua.lua_tostring(luaState, -2);
+                Lua.lua_getfield(luaState, -1, "type_id"); // [table, refTable, table.beans, beanName, bean, beanTypeId]
+                long beanTypeId = Convert.ToInt64(Lua.lua_tostring(luaState, -1)); // 获取BeanId
                 beanName2BeanId[beanName] = beanTypeId;
             }
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 2)) // [table, refTable, table.beans, beanName, bean]
+            // foreach (var (beanName, bean) in beans)
+            // {
+            //     var beanTypeId = bean.GetStringInt("type_id");
+            //     beanName2BeanId[beanName] = beanTypeId;
+            // }
+            
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 2)) // [table, refTable, table.beans, beanName, bean]
             {
-                // string beanName = Lua.ToString(luaState, -2);
-                Lua.GetField(luaState, -1, "type_id"); // [table, refTable, table.beans, beanName, bean, beanTypeId]
-                long beanTypeId = Convert.ToInt64(Lua.ToString(luaState, -1)); // 获取BeanId
-                Lua.Pop(luaState, 1); // [table, refTable, table.beans, beanName, bean]
-                Lua.GetField(luaState, -1, "metatable"); // [table, refTable, table.beans, beanName, bean, bean.metatable]
-                int metatableRef = Lua.LuaL_ref(luaState, -5); // [table, refTable, table.beans, beanName, bean]
+                // string beanName = Lua.lua_tostring(luaState, -2);
+                Lua.lua_getfield(luaState, -1, "type_id"); // [table, refTable, table.beans, beanName, bean, beanTypeId]
+                long beanTypeId = Convert.ToInt64(Lua.lua_tostring(luaState, -1)); // 获取BeanId
+                Lua.lua_pop(luaState, 1); // [table, refTable, table.beans, beanName, bean]
+                Lua.lua_getfield(luaState, -1, "metatable"); // [table, refTable, table.beans, beanName, bean, bean.metatable]
+                int metatableRef = Lua.luaL_ref(luaState, -5); // [table, refTable, table.beans, beanName, bean]
                 var beanMeta = new BeanMeta
                 {
                     // TypeId = beanTypeId,
@@ -413,17 +529,17 @@ namespace Zeze.Services.ToLuaService2
                 ParseVariableMeta(luaState, beanName2BeanId, dynamicMetas, beanMeta.Variables);
                 beanMetas.Add(beanTypeId, beanMeta);
             }
-            Lua.Pop(luaState, 1); // pop beans
+            Lua.lua_pop(luaState, 1); // pop beans
 
-            Lua.GetField(luaState, -2, "structs"); // [table, refTable, table.structs]
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 2)) // [table, refTable, table.structs, structName, struct]
+            Lua.lua_getfield(luaState, -2, "structs"); // [table, refTable, table.structs]
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 2)) // [table, refTable, table.structs, structName, struct]
             {
-                // string beanName = Lua.ToString(luaState, -2);
-                Lua.GetField(luaState, -1, "type_id"); // [table, refTable, table.structs, structName, struct, structTypeId]
-                int typeId = Convert.ToInt32(Lua.ToString(luaState, -1)); // 获取StructId
-                Lua.Pop(luaState, 1); // [table, refTable, table.structs, structName, struct]
-                Lua.GetField(luaState, -1, "metatable"); // [table, refTable, table.structs, structName, struct, struct.metatable]
-                int metatableRef = Lua.LuaL_ref(luaState, -5); // [table, refTable, table.structs, structName, struct]
+                // string beanName = Lua.lua_tostring(luaState, -2);
+                Lua.lua_getfield(luaState, -1, "type_id"); // [table, refTable, table.structs, structName, struct, structTypeId]
+                int typeId = Convert.ToInt32(Lua.lua_tostring(luaState, -1)); // 获取StructId
+                Lua.lua_pop(luaState, 1); // [table, refTable, table.structs, structName, struct]
+                Lua.lua_getfield(luaState, -1, "metatable"); // [table, refTable, table.structs, structName, struct, struct.metatable]
+                int metatableRef = Lua.luaL_ref(luaState, -5); // [table, refTable, table.structs, structName, struct]
                 var beanMeta = new BeanMeta
                 {
                     // TypeId = typeId,
@@ -432,23 +548,23 @@ namespace Zeze.Services.ToLuaService2
                 ParseVariableMeta(luaState, beanName2BeanId, dynamicMetas, beanMeta.Variables);
                 structMetas.Add(typeId, beanMeta);
             }
-            Lua.Pop(luaState, 1); // pop structs
+            Lua.lua_pop(luaState, 1); // pop structs
 
-            Lua.GetField(luaState, -2, "protocols"); // [table, refTable, table.protocols]
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 5)) // [table, refTable, table.protocols, protocolName, protocol]
+            Lua.lua_getfield(luaState, -2, "protocols"); // [table, refTable, table.protocols]
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 5)) // [table, refTable, table.protocols, protocolName, protocol]
             {
 #if UNITY_2017_1_OR_NEWER
-                string protocolName = Lua.ToString(luaState, -2);
+                string protocolName = Lua.lua_tostring(luaState, -2);
 #endif
-                Lua.GetField(luaState, -1, "metatable");
-                int metatableRef = Lua.LuaL_ref(luaState, -5); // metatable
-                Lua.GetField(luaState, -1, "id");
-                // long id = Convert.ToInt64(Lua.ToString(luaState, -1));
-                Lua.GetField(luaState, -2, "type_id");
-                long typeId = Convert.ToInt64(Lua.ToString(luaState, -1));
-                Lua.GetField(luaState, -3, "argument");
-                string argumentType = Lua.ToString(luaState, -1);
-                Lua.GetField(luaState, -4, "result");
+                Lua.lua_getfield(luaState, -1, "metatable");
+                int metatableRef = Lua.luaL_ref(luaState, -5); // metatable
+                Lua.lua_getfield(luaState, -1, "id");
+                // long id = Convert.ToInt64(Lua.lua_tostring(luaState, -1));
+                Lua.lua_getfield(luaState, -2, "type_id");
+                long typeId = Convert.ToInt64(Lua.lua_tostring(luaState, -1));
+                Lua.lua_getfield(luaState, -3, "argument");
+                string argumentType = Lua.lua_tostring(luaState, -1);
+                Lua.lua_getfield(luaState, -4, "result");
                 if (!beanName2BeanId.TryGetValue(argumentType, out var argumentTypeId))
                     throw new Exception($"error bean type not define {argumentTypeId}");
 
@@ -460,16 +576,16 @@ namespace Zeze.Services.ToLuaService2
                     ArgumentBeanTypeId = argumentTypeId,
                     MetatableRef = metatableRef
                 };
-                if (!Lua.IsNil(luaState, -1)) // 存在result就把他视为rpc协议
+                if (!Lua.lua_isnil(luaState, -1)) // 存在result就把他视为rpc协议
                 {
-                    if (!beanName2BeanId.TryGetValue(Lua.ToString(luaState, -1), out var resultTypeId))
+                    if (!beanName2BeanId.TryGetValue(Lua.lua_tostring(luaState, -1), out var resultTypeId))
                         throw new Exception($"error bean type not define {resultTypeId}");
                     pa.ResultBeanTypeId = resultTypeId;
                     pa.IsRpc = true;
                 }
                 protocolMetas.Add(typeId, pa);
             }
-            Lua.Pop(luaState, 1); // pop protocols
+            Lua.lua_pop(luaState, 1); // pop protocols
 
             foreach (var dynamicMeta in dynamicMetas)
             {
@@ -482,44 +598,48 @@ namespace Zeze.Services.ToLuaService2
         {
             if (OnSocketClosed == 0)
             {
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
                 return;
             }
 
-            int errFunc = Lua.PCallPrepare(luaState, OnSocketClosed);
-            Lua.PushObject(luaState, service);
-            Lua.PushLong(luaState, socketSessionId);
-            Lua.PCall(luaState, 2, 0, errFunc);
+            // int errFunc = Lua.PCallPrepare(luaState, OnSocketClosed);
+            int errFunc = 0;
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, OnSocketClosed);
+            // Lua.PushObject(luaState, service);  
+            Lua.lua_pushinteger(luaState, socketSessionId);
+            Lua.lua_pcall(luaState, 1, 0, errFunc);
         }
 
         internal void CallHandshakeDone(IntPtr luaState, IFromLua2 service, long socketSessionId)
         {
             if (OnSocketConnected == 0)
             {
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
                 return;
             }
 
-            int errFunc = Lua.PCallPrepare(luaState, OnSocketConnected);
-            Lua.PushObject(luaState, service);
-            Lua.PushLong(luaState, socketSessionId);
-            Lua.PCall(luaState, 2, 0, errFunc);
+            // int errFunc = Lua.PCallPrepare(luaState, OnSocketConnected);
+            int errFunc = 0;
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, OnSocketConnected);
+            // Lua.PushObject(luaState, service);
+            Lua.lua_pushinteger(luaState, socketSessionId);
+            Lua.lua_pcall(luaState, 1, 0, errFunc);
         }
 
         public void SendProtocol(IntPtr luaState, AsyncSocket socket)
         {
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("SendProtocol param is not a table: " + Lua.GetType(luaState, -1));
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("SendProtocol param is not a table: " + Lua.lua_type(luaState, -1));
 
-            Lua.GetField(luaState, -1, "moduleId");
-            int moduleId = (int)Lua.ToInteger(luaState, -1);
-            Lua.Pop(luaState, 1);
-            Lua.GetField(luaState, -1, "protocolId");
-            int protocolId = (int)Lua.ToInteger(luaState, -1);
-            Lua.Pop(luaState, 1);
-            Lua.GetField(luaState, -1, "resultCode");
-            int resultCode = (int)Lua.ToInteger(luaState, -1);
-            Lua.Pop(luaState, 1);
+            Lua.lua_getfield(luaState, -1, "moduleId");
+            int moduleId = (int)Lua.lua_tointeger(luaState, -1);
+            Lua.lua_pop(luaState, 1);
+            Lua.lua_getfield(luaState, -1, "protocolId");
+            int protocolId = (int)Lua.lua_tointeger(luaState, -1);
+            Lua.lua_pop(luaState, 1);
+            Lua.lua_getfield(luaState, -1, "resultCode");
+            int resultCode = (int)Lua.lua_tointeger(luaState, -1);
+            Lua.lua_pop(luaState, 1);
 
             long type = Protocol.MakeTypeId(moduleId, protocolId);
             if (!protocolMetas.TryGetValue(type, out var pa))
@@ -527,15 +647,15 @@ namespace Zeze.Services.ToLuaService2
 
             if (pa.IsRpc)
             {
-                Lua.GetField(luaState, -1, "isRequest");
-                bool isRequest = Lua.ToBoolean(luaState, -1);
-                Lua.Pop(luaState, 1);
-                Lua.GetField(luaState, -1, "sessionId");
-                long sid = Lua.ToInteger(luaState, -1);
-                Lua.Pop(luaState, 1);
-                // Lua.GetField(luaState, -1, "Timeout");
-                // int timeout = (int)Lua.ToInteger(luaState, -1);
-                // Lua.Pop(luaState, 1);
+                Lua.lua_getfield(luaState, -1, "isRequest");
+                bool isRequest = Lua.lua_toboolean(luaState, -1);
+                Lua.lua_pop(luaState, 1);
+                Lua.lua_getfield(luaState, -1, "sessionId");
+                long sid = Lua.lua_tointeger(luaState, -1);
+                Lua.lua_pop(luaState, 1);
+                // Lua.lua_getfield(luaState, -1, "Timeout");
+                // int timeout = (int)Lua.lua_tointeger(luaState, -1);
+                // Lua.lua_pop(luaState, 1);
 
                 long argumentBeanTypeId;
                 string argumentName;
@@ -564,9 +684,9 @@ namespace Zeze.Services.ToLuaService2
                 if (resultCode != 0)
                     bb.WriteLong(resultCode);
                 bb.WriteLong(sid);
-                Lua.GetField(luaState, -1, argumentName);
+                Lua.lua_getfield(luaState, -1, argumentName);
                 EncodeBean(luaState, bb, argumentBeanTypeId);
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
                 bb.EndWriteWithSize4(outState);
                 socket.Send(bb);
 
@@ -589,9 +709,9 @@ namespace Zeze.Services.ToLuaService2
                 if (resultCode != 0)
                     bb.WriteLong(resultCode);
 
-                Lua.GetField(luaState, -1, "argument");
+                Lua.lua_getfield(luaState, -1, "argument");
                 EncodeBean(luaState, bb, pa.ArgumentBeanTypeId);
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
                 bb.EndWriteWithSize4(state);
                 socket.Send(bb);
             }
@@ -599,29 +719,29 @@ namespace Zeze.Services.ToLuaService2
 
         void EncodeStruct(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta, int index = -1) // [table]
         {
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeStruct need a table: " + Lua.GetType(luaState, -1));
-            if (!Lua.CheckStack(luaState, 1))
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("EncodeStruct need a table: " + Lua.lua_type(luaState, -1));
+            if (!Lua.lua_checkstack(luaState, 1))
                 throw new Exception("Lua stack overflow!");
 
             foreach (var v in beanMeta.Variables)
             {
                 // 这里使用string 类型，是为了让lua可以传 k：v格式的简单table，也可以通过new 的方式来携带类型信息，保证dynamic类型
                 // get table 方法是会trigger metatable 的，所以只通过string 类型访问就可以了，先这么做，以后再进行测试性能
-                Lua.PushString(luaState, v.Name); // [table, name]
-                Lua.RawGet(luaState, -1 + index); // [table, value]
+                Lua.lua_pushstring(luaState, v.Name); // [table, name]
+                Lua.lua_rawget(luaState, -1 + index); // [table, value]
                 EncodeVariable(luaState, bb, v); // [table, value]
-                Lua.Pop(luaState, 1); // [table]
+                Lua.lua_pop(luaState, 1); // [table]
             }
         }
 
         void EncodeBean(IntPtr luaState, ByteBuffer bb, long beanTypeId, int index = -1)
         {
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeBean need a table: " + Lua.GetType(luaState, -1));
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("EncodeBean need a table: " + Lua.lua_type(luaState, -1));
             if (!beanMetas.TryGetValue(beanTypeId, out var beanMeta))
                 throw new Exception("bean not found in meta for beanTypeId=" + beanTypeId);
-            if (!Lua.CheckStack(luaState, 1))
+            if (!Lua.lua_checkstack(luaState, 1))
                 throw new Exception("Lua stack overflow!");
 
             int lastId = 0;
@@ -629,27 +749,27 @@ namespace Zeze.Services.ToLuaService2
             {
                 // 这里使用string 类型，是为了让lua可以传 k：v格式的简单table，也可以通过new 的方式来携带类型信息，保证dynamic类型
                 // get table 方法是会trigger metatable 的，所以只通过string 类型访问就可以了，先这么做，以后再进行测试性能
-                Lua.PushString(luaState, v.Name);
-                Lua.RawGet(luaState, -1 + index);
-                if (!Lua.IsNil(luaState, -1)) // allow var not set
+                Lua.lua_pushstring(luaState, v.Name);
+                Lua.lua_rawget(luaState, -1 + index);
+                if (!Lua.lua_isnil(luaState, -1)) // allow var not set
                 {
                     // bb.WriteInt(v.Type | v.ID << ByteBuffer.TAG_SHIFT);
                     bb.WriteTag(lastId, v.Id, v.Type & ByteBuffer.TAG_MASK);
                     EncodeVariable(luaState, bb, v);
                     lastId = v.Id;
                 }
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
             }
             bb.WriteByte(0);
         }
 
         int EncodeGetTableLength(IntPtr luaState) // [table]
         {
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("EncodeGetTableLength: not a table: " + Lua.GetType(luaState, -1));
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("EncodeGetTableLength: not a table: " + Lua.lua_type(luaState, -1));
 
             int len = 0;
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // [table, key, value]
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1)) // [table, key, value]
                 len++;
             return len; // [table]
         }
@@ -661,33 +781,33 @@ namespace Zeze.Services.ToLuaService2
                 switch (v.Type)
                 {
                     case ByteBuffer.LUA_BOOL:
-                        bb.WriteBool(Lua.ToBoolean(luaState, index));
+                        bb.WriteBool(Lua.lua_toboolean(luaState, index));
                         break;
                     case ByteBuffer.INTEGER:
-                        bb.WriteLong(Lua.ToInteger(luaState, index));
+                        bb.WriteLong(Lua.lua_tointeger(luaState, index));
                         break;
                     case ByteBuffer.FLOAT:
-                        bb.WriteFloat((float)Lua.ToNumber(luaState, index));
+                        bb.WriteFloat((float)Lua.lua_tonumber(luaState, index));
                         break;
                     case ByteBuffer.DOUBLE:
-                        bb.WriteDouble(Lua.ToNumber(luaState, index));
+                        bb.WriteDouble(Lua.lua_tonumber(luaState, index));
                         break;
                     case ByteBuffer.BYTES:
-                        bb.WriteBytes(Lua.ToBuffer(luaState, index));
+                        bb.WriteBytes(Lua.lua_tobytes(luaState, index));
                         break;
                     case ByteBuffer.LIST:
                     {
-                        if (!Lua.IsTable(luaState, index))
-                            throw new Exception("list must be a table: " + Lua.GetType(luaState, index));
+                        if (!Lua.lua_istable(luaState, index))
+                            throw new Exception("list must be a table: " + Lua.lua_type(luaState, index));
                         if (v.Id <= 0)
                             throw new Exception("list cannot define in collection");
-                        if (!Lua.CheckStack(luaState, 2))
+                        if (!Lua.lua_checkstack(luaState, 2))
                             throw new Exception("Lua stack overflow!");
                         int n = EncodeGetTableLength(luaState);
                         bb.WriteListType(n, v.ValueType & ByteBuffer.TAG_MASK);
                         var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
-                        int topIdx = Lua.GetTop(luaState);
-                        for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1)) // [table, key, value]
+                        int topIdx = Lua.lua_gettop(luaState);
+                        for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, index - 1); Lua.lua_pop(luaState, 1)) // [table, key, value]
                         {
                             // 这里应该进行修改还没想好该怎么改~~~，先保留
                             try
@@ -696,25 +816,25 @@ namespace Zeze.Services.ToLuaService2
                             }
                             catch (Exception e)
                             {
-                                throw new Exception($"encode list value failed: key={Lua.ToString(luaState, topIdx + 1)}", e);
+                                throw new Exception($"encode list value failed: key={Lua.lua_tostring(luaState, topIdx + 1)}", e);
                             }
                         }
                         break;
                     }
                     case ByteBuffer.MAP:
                     {
-                        if (!Lua.IsTable(luaState, index))
-                            throw new Exception("map must be a table: " + Lua.GetType(luaState, index));
+                        if (!Lua.lua_istable(luaState, index))
+                            throw new Exception("map must be a table: " + Lua.lua_type(luaState, index));
                         if (v.Id <= 0)
                             throw new Exception("map cannot define in collection");
-                        if (!Lua.CheckStack(luaState, 2))
+                        if (!Lua.lua_checkstack(luaState, 2))
                             throw new Exception("Lua stack overflow!");
                         int n = EncodeGetTableLength(luaState);
                         bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
                         var keyMeta = new VariableMeta { Type = v.KeyType, TypeBeanTypeId = v.KeyBeanTypeId };
                         var valueMeta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
-                        int topIdx = Lua.GetTop(luaState);
-                        for (Lua.PushNil(luaState); Lua.Next(luaState, index - 1); Lua.Pop(luaState, 1)) // [table, key, value]
+                        int topIdx = Lua.lua_gettop(luaState);
+                        for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, index - 1); Lua.lua_pop(luaState, 1)) // [table, key, value]
                         {
                             EncodeVariable(luaState, bb, keyMeta, -2);
                             try
@@ -723,7 +843,7 @@ namespace Zeze.Services.ToLuaService2
                             }
                             catch (Exception e)
                             {
-                                throw new Exception($"encode map value failed: key={Lua.ToString(luaState, topIdx + 1)}", e);
+                                throw new Exception($"encode map value failed: key={Lua.lua_tostring(luaState, topIdx + 1)}", e);
                             }
                         }
                         break;
@@ -744,20 +864,20 @@ namespace Zeze.Services.ToLuaService2
                     {
                         if (v.Id <= 0)
                             throw new Exception("dynamic cannot define in collection");
-                        if (!Lua.CheckStack(luaState, 1))
+                        if (!Lua.lua_checkstack(luaState, 1))
                             throw new Exception("Lua stack overflow!");
-                        Lua.GetField(luaState, index, "__type_id__");
-                        if (Lua.IsNil(luaState, -1))
+                        Lua.lua_getfield(luaState, index, "__type_id__");
+                        if (Lua.lua_isnil(luaState, -1))
                         {
-                            Lua.Pop(luaState, 1);
-                            Lua.GetField(luaState, index, "__type_name__");
-                            string id = Lua.ToString(luaState, -1);
+                            Lua.lua_pop(luaState, 1);
+                            Lua.lua_getfield(luaState, index, "__type_name__");
+                            string id = Lua.lua_tostring(luaState, -1);
                             throw new Exception($"'__type_id__' not found. dynamic bean needed. {v.Name} {id}");
                         }
 
                         // 在lua就处理好了相应的类型转换，可以做到协议的生成里，不想把这么特殊的代码保持在c#中
                         var dynamicBeanId = LuaStringToInt64(luaState, -1);
-                        Lua.Pop(luaState, 1);
+                        Lua.lua_pop(luaState, 1);
                         bb.WriteLong(dynamicBeanId);
                         if (dynamicBeanId != 0) // 不是empty bean
                         {
@@ -802,8 +922,9 @@ namespace Zeze.Services.ToLuaService2
 
         public bool DecodeAndDispatch(IntPtr luaState, Service service, long typeId, ByteBuffer os)
         {
-            int errFunc = Lua.PCallPrepare(luaState, OnReceiveProtocol);
-
+            // int errFunc = Lua.PCallPrepare(luaState, OnReceiveProtocol);
+            int errFunc = 0;
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, OnReceiveProtocol);
             if (!protocolMetas.TryGetValue(typeId, out var pa))
             {
                 throw new Exception($"protocol not found in meta for typeId={typeId} moduleId=" +
@@ -812,7 +933,7 @@ namespace Zeze.Services.ToLuaService2
 
             int cacheRef = pa.CacheRef;
             if (cacheRef != (int)LuaDefine.NoRef)
-                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef);
+                Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, cacheRef);
             else
             {
                 int n;
@@ -821,18 +942,19 @@ namespace Zeze.Services.ToLuaService2
                 {
                     cacheRef = pool[--n];
                     pool.RemoveAt(n);
-                    Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef);
-                    Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, cacheRef);
+                    Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, cacheRef);
+                    Lua.luaL_unref(luaState, Lua.LUA_REGISTRYINDEX, cacheRef);
                 }
                 else
-                    Lua.CreateTable(luaState, 0, 8);
+                    Lua.lua_createtable(luaState, 0, 8);
             }
 
             if (service is IFromLua2 fromLua) // 必须是，不报错了。
             {
-                Lua.PushString(luaState, "Service");
-                Lua.PushObject(luaState, fromLua);
-                Lua.SetTable(luaState, -3);
+                // 先把这里的逻辑屏蔽了，如果lua 需要的的话，通过 id 转递的方式，基于基础的lua 接口，就不做对象的传递了
+                // Lua.lua_pushstring(luaState, "Service");
+                // Lua.PushObject(luaState, fromLua);
+                // Lua.lua_settable(luaState, -3);
             }
 
             if (pa.IsRpc)
@@ -857,22 +979,22 @@ namespace Zeze.Services.ToLuaService2
                     beanTypeId = pa.ResultBeanTypeId;
                 }
 
-                Lua.PushString(luaState, "isRpc");
-                Lua.PushBoolean(luaState, true);
-                Lua.SetTable(luaState, -3);
-                Lua.PushString(luaState, "isRequest");
-                Lua.PushBoolean(luaState, isRequest);
-                Lua.SetTable(luaState, -3);
-                Lua.PushString(luaState, "sessionId");
-                Lua.PushLong(luaState, sid);
-                Lua.SetTable(luaState, -3);
-                Lua.PushString(luaState, "resultCode");
-                Lua.PushLong(luaState, resultCode1);
-                Lua.SetTable(luaState, -3);
-                Lua.PushString(luaState, "resultCodeModule");
-                Lua.PushLong(luaState, resultCode0);
-                Lua.SetTable(luaState, -3); // [table]
-                Lua.PushString(luaState, argument); // [table, arg]
+                Lua.lua_pushstring(luaState, "isRpc");
+                Lua.lua_pushboolean(luaState, true);
+                Lua.lua_settable(luaState, -3);
+                Lua.lua_pushstring(luaState, "isRequest");
+                Lua.lua_pushboolean(luaState, isRequest);
+                Lua.lua_settable(luaState, -3);
+                Lua.lua_pushstring(luaState, "sessionId");
+                Lua.lua_pushinteger(luaState, sid);
+                Lua.lua_settable(luaState, -3);
+                Lua.lua_pushstring(luaState, "resultCode");
+                Lua.lua_pushinteger(luaState, resultCode1);
+                Lua.lua_settable(luaState, -3);
+                Lua.lua_pushstring(luaState, "resultCodeModule");
+                Lua.lua_pushinteger(luaState, resultCode0);
+                Lua.lua_settable(luaState, -3); // [table]
+                Lua.lua_pushstring(luaState, argument); // [table, arg]
                 if (!beanMetas.TryGetValue(beanTypeId, out var beanMeta))
                     throw new Exception("bean not found in meta for typeId=" + beanTypeId);
 
@@ -884,7 +1006,7 @@ namespace Zeze.Services.ToLuaService2
                 {
                     throw new Exception("decode rpc typeId=" + typeId + " exception:", e);
                 }
-                Lua.SetTable(luaState, -3);
+                Lua.lua_settable(luaState, -3);
             }
             else
             {
@@ -892,10 +1014,10 @@ namespace Zeze.Services.ToLuaService2
                 //int familyClass = compress & FamilyClass.FamilyClassMask; // lua需要的话，Push，但懒得看table索引，先不公开了。
                 long resultCode = (compress & FamilyClass.BitResultCode) != 0 ? os.ReadLong() : 0;
 
-                Lua.PushString(luaState, "resultCode");
-                Lua.PushLong(luaState, resultCode);
-                Lua.SetTable(luaState, -3); // [table]
-                Lua.PushString(luaState, "argument"); // [table, arg]
+                Lua.lua_pushstring(luaState, "resultCode");
+                Lua.lua_pushinteger(luaState, resultCode);
+                Lua.lua_settable(luaState, -3); // [table]
+                Lua.lua_pushstring(luaState, "argument"); // [table, arg]
                 // _ = os.ReadLong();
                 if (!beanMetas.TryGetValue(pa.ArgumentBeanTypeId, out var beanMeta))
                     throw new Exception("bean not found in meta for typeId=" + pa.ArgumentBeanTypeId);
@@ -908,40 +1030,40 @@ namespace Zeze.Services.ToLuaService2
                 {
                     throw new Exception("decode protocol typeId=" + typeId + " exception:", e);
                 }
-                Lua.SetTable(luaState, -3);
+                Lua.lua_settable(luaState, -3);
             }
 
-            Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId);
-            Lua.RawGetI(luaState, -1, pa.MetatableRef);
-            Lua.SetMetatable(luaState, -3);
-            Lua.Pop(luaState, 1); // pop tableRef
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, tableRefId);
+            Lua.lua_rawgeti(luaState, -1, pa.MetatableRef);
+            Lua.lua_setmetatable(luaState, -3);
+            Lua.lua_pop(luaState, 1); // pop tableRef
 
 #if UNITY_2017_1_OR_NEWER
             UnityEngine.Profiling.Profiler.BeginSample(pa.ProtocolName);
 #endif
-            Lua.PCall(luaState, 1, 0, errFunc);
+            Lua.lua_pcall(luaState, 1, 0, errFunc);
 #if UNITY_2017_1_OR_NEWER
             UnityEngine.Profiling.Profiler.EndSample();
 #endif
-
+            
             if (pa.CacheRef != (int)LuaDefine.NoRef)
             {
-                Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef); // [cache]
+                Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, cacheRef); // [cache]
                 CleanLuaTable(luaState);
-                Lua.Pop(luaState, 1);
+                Lua.lua_pop(luaState, 1);
             }
             return true;
         }
 
         public ByteBuffer Encode(IntPtr luaState)
         {
-            if (!Lua.IsTable(luaState, -1))
-                throw new Exception("Encode param is not a table: " + Lua.GetType(luaState, -1));
+            if (!Lua.lua_istable(luaState, -1))
+                throw new Exception("Encode param is not a table: " + Lua.lua_type(luaState, -1));
 
             var os = ByteBuffer.Allocate();
-            Lua.GetField(luaState, -1, "__type_id__");
+            Lua.lua_getfield(luaState, -1, "__type_id__");
             var typeId = LuaStringToInt64(luaState, -1);
-            Lua.Pop(luaState, 1);
+            Lua.lua_pop(luaState, 1);
             os.WriteLong8(typeId);
             try
             {
@@ -967,7 +1089,7 @@ namespace Zeze.Services.ToLuaService2
         {
             if (beanMeta == null)
                 throw new Exception("beanMeta type is not found");
-            if (!Lua.CheckStack(luaState, 3))
+            if (!Lua.lua_checkstack(luaState, 3))
                 throw new Exception("Lua stack overflow!");
 
             if (!hasTable)
@@ -978,16 +1100,16 @@ namespace Zeze.Services.ToLuaService2
                 {
                     int cacheRef = pool[--n];
                     pool.RemoveAt(n);
-                    Lua.RawGetI(luaState, Lua.LuaRegistryIndex, cacheRef); // [table]
-                    Lua.LuaL_unref(luaState, Lua.LuaRegistryIndex, cacheRef); // [table]
+                    Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, cacheRef); // [table]
+                    Lua.luaL_unref(luaState, Lua.LUA_REGISTRYINDEX, cacheRef); // [table]
                 }
                 else
-                    Lua.CreateTable(luaState, 0, beanMeta.Variables.Count); // [table]
+                    Lua.lua_createtable(luaState, 0, beanMeta.Variables.Count); // [table]
             }
-            Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [table, tableRef]
-            Lua.RawGetI(luaState, -1, beanMeta.MetatableRef); // [table, tableRef, metatableRef]
-            Lua.SetMetatable(luaState, -3); // [table, tableRef]
-            Lua.Pop(luaState, 1); // [table]
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, tableRefId); // [table, tableRef]
+            Lua.lua_rawgeti(luaState, -1, beanMeta.MetatableRef); // [table, tableRef, metatableRef]
+            Lua.lua_setmetatable(luaState, -3); // [table, tableRef]
+            Lua.lua_pop(luaState, 1); // [table]
 
             int id = 0;
             using (var it = beanMeta.Variables.GetEnumerator())
@@ -1016,20 +1138,20 @@ namespace Zeze.Services.ToLuaService2
                             find = true;
                             // 这里本来想设置成int，再通过元表来访问，可是lua 5.1有一些问题，如果升级的话再改
                             // 主要是保持协议版本兼容性，否则升级协议还要进行特殊判断，记得把__next__重写
-                            Lua.PushString(luaState, variableMeta.Name); // [table, name]
+                            Lua.lua_pushstring(luaState, variableMeta.Name); // [table, name]
                             DecodeVariable(luaState, bb, t, variableMeta.Type, variableMeta); // [table, name, value]
-                            Lua.SetTable(luaState, -3); // [table]
+                            Lua.lua_settable(luaState, -3); // [table]
                             break;
                         }
                         if (variableMeta.Type == ByteBuffer.LIST || variableMeta.Type == ByteBuffer.MAP)
                         {
-                            Lua.PushString(luaState, variableMeta.Name); // [table, name]
+                            Lua.lua_pushstring(luaState, variableMeta.Name); // [table, name]
                             if (hasTable && PushTableField(luaState)) // [table, name, value] or [table, name]
-                                Lua.Pop(luaState, 2); // [table]
+                                Lua.lua_pop(luaState, 2); // [table]
                             else
                             {
-                                Lua.CreateTable(luaState, 0, 0); // [table, name, newTable]
-                                Lua.SetTable(luaState, -3); // [table]
+                                Lua.lua_createtable(luaState, 0, 0); // [table, name, newTable]
+                                Lua.lua_settable(luaState, -3); // [table]
                             }
                         }
                     }
@@ -1046,17 +1168,17 @@ namespace Zeze.Services.ToLuaService2
         void DecodeStruct(IntPtr luaState, ByteBuffer bb, BeanMeta beanMeta, bool hasTable)
         {
             if (!hasTable)
-                Lua.CreateTable(luaState, 0, beanMeta.Variables.Count); // [table]
-            Lua.RawGetI(luaState, Lua.LuaRegistryIndex, tableRefId); // [table, tableRef]
-            Lua.RawGetI(luaState, -1, beanMeta.MetatableRef); // [table, tableRef, metatable]
-            Lua.SetMetatable(luaState, -3); // [table, tableRef]
-            Lua.Pop(luaState, 1); // [table]
+                Lua.lua_createtable(luaState, 0, beanMeta.Variables.Count); // [table]
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, tableRefId); // [table, tableRef]
+            Lua.lua_rawgeti(luaState, -1, beanMeta.MetatableRef); // [table, tableRef, metatable]
+            Lua.lua_setmetatable(luaState, -3); // [table, tableRef]
+            Lua.lua_pop(luaState, 1); // [table]
 
             foreach (var variablesValue in beanMeta.Variables)
             {
-                Lua.PushString(luaState, variablesValue.Name); // [table, name]
+                Lua.lua_pushstring(luaState, variablesValue.Name); // [table, name]
                 DecodeVariable(luaState, bb, variablesValue.Type, variablesValue.Type, variablesValue); // [table, name, value]
-                Lua.SetTable(luaState, -3); // [table]
+                Lua.lua_settable(luaState, -3); // [table]
             }
         }
 
@@ -1083,44 +1205,45 @@ namespace Zeze.Services.ToLuaService2
             switch (tagType)
             {
                 case ByteBuffer.LUA_BOOL:
-                    Lua.PushBoolean(luaState, bb.ReadBool());
+                    Lua.lua_pushboolean(luaState, bb.ReadBool());
                     break;
                 case ByteBuffer.INTEGER:
                     if (defType == ByteBuffer.LUA_BOOL)
-                        Lua.PushBoolean(luaState, bb.ReadBool());
+                        Lua.lua_pushboolean(luaState, bb.ReadBool());
                     else
-                        Lua.PushInteger(luaState, bb.ReadLong());
+                        Lua.lua_pushinteger(luaState, bb.ReadLong());
                     break;
                 case ByteBuffer.FLOAT:
-                    Lua.PushNumber(luaState, bb.ReadFloat());
+                    Lua.lua_pushnumber(luaState, bb.ReadFloat());
                     break;
                 case ByteBuffer.DOUBLE:
-                    Lua.PushNumber(luaState, bb.ReadDouble());
+                    Lua.lua_pushnumber(luaState, bb.ReadDouble());
                     break;
                 case ByteBuffer.BYTES:
-                    Lua.PushBuffer(luaState, bb.ReadBytes());
+                    var bytes = bb.ReadBytes();
+                    Lua.lua_pushlstring(luaState, bytes, bytes.Length);
                     break;
                 case ByteBuffer.LIST:
                 {
-                    if (!Lua.CheckStack(luaState, 3))
+                    if (!Lua.lua_checkstack(luaState, 3))
                         throw new Exception("Lua stack overflow!");
                     int t = bb.ReadByte();
                     int n = bb.ReadTagSize(t);
                     if (isKV || !PushTableField(luaState))
-                        Lua.CreateTable(luaState, Math.Min(n, 1000), 0);
+                        Lua.lua_createtable(luaState, Math.Min(n, 1000), 0);
                     t &= ByteBuffer.TAG_MASK;
                     var valueBeanMeta = GetBeanMeta(t, varMeta.ValueBeanTypeId);
                     for (int i = 1; i <= n; i++) // 从1开始？
                     {
-                        Lua.PushInteger(luaState, i);
+                        Lua.lua_pushinteger(luaState, i);
                         DecodeVariable(luaState, bb, t, varMeta.ValueType, varMeta, valueBeanMeta, true);
-                        Lua.SetTable(luaState, -3);
+                        Lua.lua_settable(luaState, -3);
                     }
                     break;
                 }
                 case ByteBuffer.MAP:
                 {
-                    if (!Lua.CheckStack(luaState, 3))
+                    if (!Lua.lua_checkstack(luaState, 3))
                         throw new Exception("Lua stack overflow!");
                     int t = bb.ReadByte();
                     int s = t >> ByteBuffer.TAG_SHIFT;
@@ -1129,12 +1252,12 @@ namespace Zeze.Services.ToLuaService2
                     var keyBeanMeta = GetBeanMeta(s, varMeta.KeyBeanTypeId);
                     var valueBeanMeta = GetBeanMeta(t, varMeta.ValueBeanTypeId);
                     if (isKV || !PushTableField(luaState))
-                        Lua.CreateTable(luaState, 0, Math.Min(n, 1000));
+                        Lua.lua_createtable(luaState, 0, Math.Min(n, 1000));
                     for (; n > 0; n--)
                     {
                         DecodeVariable(luaState, bb, s, varMeta.KeyType, varMeta, keyBeanMeta, true);
                         DecodeVariable(luaState, bb, t, varMeta.ValueType, varMeta, valueBeanMeta, true);
-                        Lua.SetTable(luaState, -3);
+                        Lua.lua_settable(luaState, -3);
                     }
                     break;
                 }
@@ -1158,10 +1281,10 @@ namespace Zeze.Services.ToLuaService2
                     {
                         bb.SkipUnknownField(ByteBuffer.BEAN);
                         if (!hasTable)
-                            Lua.CreateTable(luaState, 0, 0);
-                        Lua.PushString(luaState, "__type_id__");
-                        Lua.PushString(luaState, beanTypeId.ToString());
-                        Lua.SetTable(luaState, -3);
+                            Lua.lua_createtable(luaState, 0, 0);
+                        Lua.lua_pushstring(luaState, "__type_id__");
+                        Lua.lua_pushstring(luaState, beanTypeId.ToString());
+                        Lua.lua_settable(luaState, -3);
                     }
                     break;
                 }
@@ -1171,7 +1294,7 @@ namespace Zeze.Services.ToLuaService2
                 case ByteBuffer.VECTOR3INT:
                 case ByteBuffer.VECTOR4:
                 {
-                    if (!Lua.CheckStack(luaState, 3))
+                    if (!Lua.lua_checkstack(luaState, 3))
                         throw new Exception("Lua stack overflow!");
                     if (beanMeta == null)
                         beanMeta = GetStructMeta(tagType);
@@ -1225,13 +1348,7 @@ namespace Zeze.Services.ToLuaService2
 
             foreach (var e in toLuaVariableUpdating.toLuaHandshakeDone)
             {
-#if UNITY_2017_1_OR_NEWER
-                UnityEngine.Profiling.Profiler.BeginSample("CallHandshakeDone");
-#endif
                 CallHandshakeDone(luaState, e.Value, e.Key);
-#if UNITY_2017_1_OR_NEWER
-                UnityEngine.Profiling.Profiler.EndSample();
-#endif
             }
 
             UpdateLuaState = luaState;
@@ -1302,8 +1419,8 @@ namespace Zeze.Services.ToLuaService2
         {
             if (!protocolMetas.TryGetValue(Protocol.MakeTypeId(moduleId, protocolId), out var meta))
                 return false;
-            Lua.CreateTable(luaState, 0, 8); // [cacheTable]
-            meta.CacheRef = Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex);
+            Lua.lua_createtable(luaState, 0, 8); // [cacheTable]
+            meta.CacheRef = Lua.luaL_ref(luaState, Lua.LUA_REGISTRYINDEX);
             return true;
         }
 
@@ -1320,40 +1437,40 @@ namespace Zeze.Services.ToLuaService2
             else if (pool.Count >= maxCount)
                 return false;
             CleanLuaTable(luaState);
-            Lua.PushValue(luaState, -1); // [protoTable, protoTable]
-            pool.Add(Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex)); // [protoTable]
+            Lua.lua_pushvalue(luaState, -1); // [protoTable, protoTable]
+            pool.Add(Lua.luaL_ref(luaState, Lua.LUA_REGISTRYINDEX)); // [protoTable]
             return true;
         }
 
         bool PushTableField(IntPtr luaState) // [table, key]
         {
-            Lua.PushValue(luaState, -1); // [table, key, key]
-            Lua.RawGet(luaState, -3); // [table, key, value]
-            if (Lua.IsTable(luaState, -1))
+            Lua.lua_pushvalue(luaState, -1); // [table, key, key]
+            Lua.lua_rawget(luaState, -3); // [table, key, value]
+            if (Lua.lua_istable(luaState, -1))
                 return true;
-            Lua.Pop(luaState, 1); // [table, key]
+            Lua.lua_pop(luaState, 1); // [table, key]
             return false;
         }
 
         bool CleanLuaTable(IntPtr luaState, int depth = 0)
         {
             var removeTable = false;
-            for (Lua.PushNil(luaState); Lua.Next(luaState, -2); Lua.Pop(luaState, 1)) // [table, key, value]
+            for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1)) // [table, key, value]
             {
-                if (!Lua.IsTable(luaState, -1) || depth > 16 || !Lua.CheckStack(luaState, 4) || CleanLuaTable(luaState, depth + 1)) // 确保不递归太多层,避免无限递归导致栈溢出
+                if (!Lua.lua_istable(luaState, -1) || depth > 16 || !Lua.lua_checkstack(luaState, 4) || CleanLuaTable(luaState, depth + 1)) // 确保不递归太多层,避免无限递归导致栈溢出
                 {
-                    Lua.PushValue(luaState, -2); // [table, key, value, key]
-                    Lua.PushNil(luaState); // [table, key, value, key, nil]
-                    Lua.SetTable(luaState, -5); // [table, key, value] value置nil,通常不会真的删除table的node
+                    Lua.lua_pushvalue(luaState, -2); // [table, key, value, key]
+                    Lua.lua_pushnil(luaState); // [table, key, value, key, nil]
+                    Lua.lua_settable(luaState, -5); // [table, key, value] value置nil,通常不会真的删除table的node
                 }
             }
-            if (depth != 0 && Lua.GetMetatable(luaState, -1) != 0) // [table, metatable] or [table]
+            if (depth != 0 && Lua.lua_getmetatable(luaState, -1) != 0) // [table, metatable] or [table]
             {
-                Lua.PushNil(luaState); // [table, metatable, nil]
-                Lua.SetMetatable(luaState, -3); // [table, metatable]
-                Lua.PushString(luaState, "__type_id__"); // [table, metatable, "__type_id__"]
-                Lua.RawGet(luaState, -2); // [table, metatable, type_id]
-                if (Lua.GetType(luaState, -1) == LuaType.String)
+                Lua.lua_pushnil(luaState); // [table, metatable, nil]
+                Lua.lua_setmetatable(luaState, -3); // [table, metatable]
+                Lua.lua_pushstring(luaState, "__type_id__"); // [table, metatable, "__type_id__"]
+                Lua.lua_rawget(luaState, -2); // [table, metatable, type_id]
+                if (Lua.lua_type(luaState, -1) == LuaType.String)
                 {
                     var typeId = LuaStringToInt64(luaState, -1);
                     if (beanMetas.TryGetValue(typeId, out var meta))
@@ -1363,33 +1480,33 @@ namespace Zeze.Services.ToLuaService2
                             meta.cacheRefPool = pool = new List<int>();
                         if (pool.Count < 1000)
                         {
-                            Lua.PushValue(luaState, -3); // [table, metatable, type_id, table]
-                            pool.Add(Lua.LuaL_ref(luaState, Lua.LuaRegistryIndex)); // [table, metatable, type_id]
+                            Lua.lua_pushvalue(luaState, -3); // [table, metatable, type_id, table]
+                            pool.Add(Lua.luaL_ref(luaState, Lua.LUA_REGISTRYINDEX)); // [table, metatable, type_id]
                             removeTable = true;
                         }
                     }
                 }
-                Lua.Pop(luaState, 2); // [table]
+                Lua.lua_pop(luaState, 2); // [table]
             }
             else
             {
-                Lua.PushNil(luaState); // [table, nil]
-                Lua.SetMetatable(luaState, -2); // [table]
+                Lua.lua_pushnil(luaState); // [table, nil]
+                Lua.lua_setmetatable(luaState, -2); // [table]
             }
             return removeTable;
         }
 
         long LuaStringToInt64(IntPtr luaState, int index)
         {
-            switch (Lua.GetType(luaState, index))
+            switch (Lua.lua_type(luaState, index))
             {
                 case LuaType.String:
-                    var ptr = Lua.ToLString(luaState, index, out var len);
-                    return ToInt64(ptr, len.ToInt32());
+                    var ptr = Lua.lua_tolstring(luaState, index, out var len);
+                    return ToInt64(ptr, len);
                 case LuaType.Number:
-                    return Lua.ToInteger(luaState, index);
+                    return Lua.lua_tointeger(luaState, index);
                 default:
-                    return Convert.ToInt64(Lua.ToString(luaState, index));
+                    return Convert.ToInt64(Lua.lua_tostring(luaState, index));
             }
         }
 
@@ -1413,5 +1530,323 @@ namespace Zeze.Services.ToLuaService2
             }
             return v;
         }
+
+        // 这里保持 delegate 引用，防止gc，这样改动比较小，还是static function 性能会更好，看看怎么改成static 的
+        private List<ILua.lua_CFunction> _luaCFunctions = new List<ILua.lua_CFunction>();
+
+        public void ExportFunction(lua_State l, string name, ILua.lua_CFunction func)
+        {
+            // 这里保持 delegate 引用，防止gc, 如果是static 方法就不需要了
+            // _luaCFunctions.Add(func);
+            
+            Lua.lua_pushstring(l, name);
+            Lua.lua_pushcfunction(l, func);
+            Lua.lua_settable(l, -3);
+        }
+        
+        public void ExportToLua(lua_State l, ToLuaServiceClient2 service)
+        {
+            _serviceClient = service;
+            Lua.lua_createtable(l, 0, 0);
+            Lua.lua_pushvalue(l, -1);
+            Lua.lua_setglobal(l, "zeze");
+            Lua.lua_pushstring(l, "LuaClient");
+            Lua.lua_createtable(l, 0, 0);
+            ExportFunction(l, "LoadMeta", LoadMeta0);
+            ExportFunction(l, "Update", Update);
+            ExportFunction(l, "Close", Close);
+            ExportFunction(l, "Connect", Connect);
+            ExportFunction(l, "SendProtocol", SendProtocol);
+            ExportFunction(l, "SetOnSocketConnected", SetOnSocketConnected);
+            ExportFunction(l, "SetOnSocketClosed", SetOnSocketClosed);
+            ExportFunction(l, "SetOnReceiveProtocol", SetOnReceiveProtocol);
+            
+            Lua.lua_settable(l, -3);
+            Lua.lua_pop(l, 1);
+        }
+        
+        public static readonly ToLua Instance = new ToLua();
+        public static ToLuaServiceClient2 _serviceClient;
+        
+        public static int SendProtocol(IntPtr luaState)
+        {
+            Instance.SendProtocol(luaState, _serviceClient.Service.GetSocket());
+            return 0;
+        }
+
+        public static int Update(IntPtr luaState)
+        {
+            Instance.Update(luaState, _serviceClient);
+            return 0;
+        }
+
+        public static int Connect(IntPtr luaState)
+        {
+            string host = Instance.Lua.lua_tostring(luaState, -3);
+            int port = (int)Instance.Lua.lua_tointeger(luaState, -2);
+            bool autoReconnect = Instance.Lua.lua_toboolean(luaState, -1);
+            _serviceClient.Connect(host, port, autoReconnect);
+            return 0;
+        }
+
+        public static int Close(IntPtr luaState)
+        {
+            _serviceClient.Stop();
+            return 0;
+        }
+
+        public static int LoadMeta0(IntPtr luaState)
+        {
+            Instance.LoadMeta(luaState);
+            return 0;
+        }
+
+        public static int SetOnSocketConnected(IntPtr luaState)
+        {
+            int reference = Instance.Lua.luaL_ref(luaState, Instance.Lua.LUA_REGISTRYINDEX);
+            Instance.OnSocketConnected = reference;
+            return 0;
+        }
+
+        public static int SetOnSocketClosed(IntPtr luaState)
+        {
+            int reference = Instance.Lua.luaL_ref(luaState, Instance.Lua.LUA_REGISTRYINDEX);
+            Instance.OnSocketClosed = reference;
+            return 0;
+        }
+
+        public static int SetOnReceiveProtocol(IntPtr luaState)
+        {
+            int reference = Instance.Lua.luaL_ref(luaState, Instance.Lua.LUA_REGISTRYINDEX);
+            Instance.OnReceiveProtocol = reference;
+            return 0;
+        }
+
+        private struct LuaTable : IEnumerable<KeyValuePair<string, LuaTable>> 
+        {
+            private lua_State _l;
+            private ILua _lua;
+            private int _tableIndex;
+
+            public LuaTable(lua_State l)
+            {
+                _l = l;
+                _lua = null;
+                _tableIndex = _lua.lua_gettop(l);
+            }
+            
+            // public LuaTable()
+            // {
+            //     _lua = null;
+            //     _tableIndex = 0;
+            // }
+
+            public lua_Integer GetInt(string fieldName)
+            {
+                _lua.lua_getfield(_l, -1, fieldName);
+                var v = _lua.lua_tointeger(_l, -1);
+                _lua.lua_pop(_l, 1);
+                return v;
+            }
+
+            public string GetString(string fieldName)
+            {
+                _lua.lua_getfield(_l, -1, fieldName);
+                var v = _lua.lua_tointeger(_l, -1);
+                _lua.lua_pop(_l, 1);
+                return "";
+            }
+
+            
+            public lua_Integer GetStringInt(string fieldName)
+            {
+                _lua.lua_getfield(_l, -1, fieldName);
+                var v = _lua.lua_tointeger(_l, -1);
+                _lua.lua_pop(_l, 1);
+                return v;
+            }
+
+
+            public IEnumerator<KeyValuePair<string, LuaTable>> GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
     }
+
+#if USE_ToLua_LUA
+    public class ToLuaApi : ILua
+    {
+        
+        public int LUA_REGISTRYINDEX => LuaInterface.LuaIndexes.LUA_REGISTRYINDEX;
+        public void lua_pushnil(lua_State luaState)
+        {
+            LuaInterface.LuaDLL.lua_pushnil(luaState);
+        }
+
+        public void lua_pushboolean(lua_State luaState, bool b)
+        {
+            LuaInterface.LuaDLL.lua_pushboolean(luaState, b);
+        }
+
+        public void lua_pushinteger(lua_State luaState, lua_Integer n)
+        {
+            LuaInterface.LuaDLL.lua_pushnumber(luaState, n);
+        }
+
+        public void lua_pushnumber(lua_State luaState, lua_Number n)
+        {
+            LuaInterface.LuaDLL.lua_pushnumber(luaState, n);
+        }
+
+        public void lua_pushvalue(lua_State luaState, int index)
+        {
+            LuaInterface.LuaDLL.lua_pushvalue(luaState, index);
+        }
+
+        public void lua_pushcfunction(lua_State L, ILua.lua_CFunction f)
+        {
+            LuaInterface.LuaCSFunction converted = (LuaInterface.LuaCSFunction)Delegate.CreateDelegate(
+                typeof(LuaInterface.LuaCSFunction), 
+                f.Target,
+                f.Method
+            );
+            LuaInterface.LuaDLL.lua_pushcfunction(L, converted);
+        }
+
+        public void lua_pushstring(lua_State L, string s)
+        {
+            LuaInterface.LuaDLL.lua_pushstring(L, s);
+        }
+
+        public void lua_pushlstring(lua_State L, byte[] s, int len)
+        {
+            LuaInterface.LuaDLL.lua_pushlstring(L, s, len);
+        }
+
+        public void lua_pop(lua_State luaState, int n)
+        {
+            LuaInterface.LuaDLL.lua_pop(luaState, n);
+        }
+
+        public int lua_gettop(lua_State luaState)
+        {
+            return LuaInterface.LuaDLL.lua_gettop(luaState);
+        }
+
+        public bool lua_checkstack(lua_State luaState, int n)
+        {
+            return LuaInterface.LuaDLL.lua_checkstack(luaState, n) > 0;
+        }
+
+        public bool lua_isnil(lua_State luaState, int index)
+        {
+            return LuaInterface.LuaDLL.lua_isnil(luaState, index);
+        }
+
+        public bool lua_istable(lua_State luaState, int index)
+        {
+            return LuaInterface.LuaDLL.lua_istable(luaState, index);
+        }
+
+        public void lua_setglobal(lua_State L, string name)
+        {
+            LuaInterface.LuaDLL.lua_setglobal(L, name);
+        }
+
+        public lua_Number lua_tonumber(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_tonumber(L, index);
+        }
+
+        public lua_Integer lua_tointeger(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_tointeger(L, index);
+        }
+
+        public bool lua_toboolean(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_toboolean(L, index);
+        }
+
+        public void lua_createtable(lua_State L, int narr, int nrec)
+        {
+            LuaInterface.LuaDLL.lua_createtable(L, narr, nrec);
+        }
+
+        public void lua_settable(lua_State L, int index)
+        {
+            LuaInterface.LuaDLL.lua_settable(L, index);
+        }
+
+        public int lua_getmetatable(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_getmetatable(L, index);
+        }
+
+        public void lua_setmetatable(lua_State L, int index)
+        {
+            LuaInterface.LuaDLL.lua_setmetatable(L, index);
+        }
+
+        public int lua_getfield(lua_State L, int index, string k)
+        {
+            LuaInterface.LuaDLL.lua_getfield(L, index, k);
+            return (int)LuaInterface.LuaDLL.lua_type(L, -1);
+        }
+
+        public int lua_rawget(lua_State L, int index)
+        {
+            LuaInterface.LuaDLL.lua_rawget(L, index);
+            return (int)LuaInterface.LuaDLL.lua_type(L, -1);
+        }
+
+        public int lua_rawgeti(lua_State L, int index, lua_Integer n)
+        {
+            LuaInterface.LuaDLL.lua_rawgeti(L, index, (int)n);
+            return (int)LuaInterface.LuaDLL.lua_type(L, -1);
+        }
+
+        public bool lua_next(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_next(L, index) > 0;
+        }
+
+        public int lua_getglobal(lua_State L, string name)
+        {
+            LuaInterface.LuaDLL.lua_getglobal(L, name);
+            return (int)LuaInterface.LuaDLL.lua_type(L, -1);
+        }
+
+        public LuaType lua_type(lua_State L, int index)
+        {
+            return (LuaType)LuaInterface.LuaDLL.lua_type(L, index);
+        }
+
+        public int luaL_ref(lua_State L, int t)
+        {
+            return LuaInterface.LuaDLL.luaL_ref(L, t);
+        }
+
+        public void luaL_unref(lua_State L, int t, int @ref)
+        {
+            LuaInterface.LuaDLL.luaL_unref(L, t, @ref);
+        }
+
+        public int lua_pcall(lua_State L, int nargs, int nresults, int msgh)
+        {
+            return LuaInterface.LuaDLL.lua_pcall(L, nargs, nresults, msgh);
+        }
+
+        public lua_State lua_tolstring(lua_State L, int index, out int len)
+        {
+            return LuaInterface.LuaDLL.lua_tolstring(L, index, out len);
+        }
+    }
+#endif
 }
