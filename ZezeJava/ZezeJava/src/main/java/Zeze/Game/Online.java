@@ -36,6 +36,7 @@ import Zeze.Builtin.Game.Online.tOnline;
 import Zeze.Builtin.Game.Online.tOnlineShared;
 import Zeze.Builtin.Game.Online.tRoleOfflineTimers;
 import Zeze.Builtin.Game.Online.tRoleTimers;
+import Zeze.Builtin.Game.Online.tlocal;
 import Zeze.Builtin.Provider.BBroadcast;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BModule;
@@ -462,6 +463,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		UnRegisterZezeTables(providerApp.zeze);
 	}
 
+	public @NotNull tlocal getTLocal() {
+		return _tlocal;
+	}
 	public @NotNull tOnline getTOnline() {
 		return _tOnline;
 	}
@@ -487,6 +491,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (t != null && t.isRunning())
 			return _tOnline.get(roleId);
 		return _tOnline.selectDirty(roleId);
+	}
+
+	public boolean isOnline(long roleId) {
+		var onlineShared = getOnlineShared(roleId);
+		return null != onlineShared && onlineShared.getLink().getState() == eLogined;
 	}
 
 	public @Nullable BOnlineShared getOnlineShared(long roleId) {

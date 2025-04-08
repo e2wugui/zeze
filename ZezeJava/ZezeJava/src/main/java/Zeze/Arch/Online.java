@@ -238,6 +238,27 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		UnRegisterProtocols(providerApp.providerService);
 	}
 
+	public boolean isOnline(String account) {
+		var online = getOnline(account);
+		if (null == online)
+			return false;
+		for (var login : online.getLogins().values()) {
+			if (login.getLink().getState() == eLogined)
+				return true;
+		}
+		return false;
+	}
+
+	public boolean isOnline(String account, String clientId) {
+		var online = getOnline(account);
+		if (null == online)
+			return false;
+		var login = online.getLogins().get(clientId);
+		if (null == login)
+			return false;
+		return login.getLink().getState() == eLogined;
+	}
+
 	public @Nullable BOnlines getOnline(@NotNull String account) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
