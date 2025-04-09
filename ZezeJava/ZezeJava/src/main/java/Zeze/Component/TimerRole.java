@@ -177,13 +177,13 @@ public class TimerRole {
 								@NotNull TimerHandle handle, @Nullable Bean customData, boolean fromTransmit) {
 		// 去掉下面两行，允许在非登录状态注册timer。现在不允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (loginVersion == null) {
+		var loginOnlineShared = online.getLoginOnlineShared(roleId);
+		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
 				logger.warn("schedule simple from transmit, but not login. roleId={}, handle={}",
 						roleId, handle.getClass().getName());
 				return;
 			}
-			var loginOnlineShared = online.getLoginOnlineShared(roleId);
 			if (loginOnlineShared != null) {
 				var p = new BTransmitSimpleTimer();
 				p.setTimerId(timerId);
@@ -225,13 +225,13 @@ public class TimerRole {
 								   boolean fromTransmit) {
 		// 去掉下面两行，允许在非登录状态注册timer。现在不允许。
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (loginVersion == null) {
+		var loginOnlineShared = online.getLoginOnlineShared(roleId);
+		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
 				logger.warn("schedule hot simple from transmit, but not login. roleId={}, handle={}",
 						roleId, handleClass.getName());
 				return;
 			}
-			var loginOnlineShared = online.getLoginOnlineShared(roleId);
 			if (loginOnlineShared != null) {
 				var p = new BTransmitSimpleTimer();
 				p.setTimerId(timerId);
@@ -359,13 +359,13 @@ public class TimerRole {
 	private void scheduleOnline(long roleId, @NotNull String timerId, @NotNull BCronTimer cronTimer,
 								@NotNull TimerHandle handle, @Nullable Bean customData, boolean fromTransmit) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (loginVersion == null) {
+		var loginOnlineShared = online.getLoginOnlineShared(roleId);
+		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
 				logger.warn("schedule cron from transmit, but not login. roleId={}, handle={}",
 						roleId, handle.getClass().getName());
 				return;
 			}
-			var loginOnlineShared = online.getLoginOnlineShared(roleId);
 			if (loginOnlineShared != null) {
 				var p = new BTransmitCronTimer();
 				p.setTimerId(timerId);
@@ -405,13 +405,13 @@ public class TimerRole {
 								   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 								   boolean fromTransmit) {
 		var loginVersion = online.getLocalLoginVersion(roleId);
-		if (loginVersion == null) {
+		var loginOnlineShared = online.getLoginOnlineShared(roleId);
+		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
 				logger.warn("schedule hot cron from transmit, but not login. roleId={}, handle={}",
 						roleId, handleClass.getName());
 				return;
 			}
-			var loginOnlineShared = online.getLoginOnlineShared(roleId);
 			if (loginOnlineShared != null) {
 				var p = new BTransmitCronTimer();
 				p.setTimerId(timerId);
@@ -672,7 +672,7 @@ public class TimerRole {
 		return scheduleOffline(roleId, cron, times, endTime, Timer.eMissfirePolicyNothing, handleClass, customData);
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////
+	/// ///////////////////////////////////////////////////////////////////////////////////////
 	// 内部实现
 	public static class OfflineHandle implements TimerHandle {
 		@Override
