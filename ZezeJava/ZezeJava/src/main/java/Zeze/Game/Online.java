@@ -466,6 +466,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	public @NotNull tlocal getTLocal() {
 		return _tlocal;
 	}
+
 	public @NotNull tOnline getTOnline() {
 		return _tOnline;
 	}
