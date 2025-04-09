@@ -64,6 +64,12 @@ public final class TestJson extends TestCase {
 		assertEquals(B.class, c.a.getClass());
 		assertEquals(7, c.a.a);
 		assertEquals(8, ((B)c.a).b);
+
+		B b = JsonReader.local().buf("{a:5 \n b:6}").parse(B.class);
+		assertNotNull(b);
+		assertEquals(B.class, b.getClass());
+		assertEquals(5, b.a);
+		assertEquals(6, b.b);
 	}
 
 	public void test3() {

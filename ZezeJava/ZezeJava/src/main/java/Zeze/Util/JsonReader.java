@@ -242,7 +242,7 @@ public final class JsonReader {
 
 	public int skipVar(int e) { // ']' or '}'
 		for (int b, c; ; ) {
-			if ((b = buf[pos]) == ',')
+			if ((b = buf[pos]) == ',' || b == '\n')
 				for (; ; )
 					if (((((b = buf[++pos]) & 0xff) - ' ' - 1) ^ (',' - ' ' - 1)) > 0) { // (b & 0xff) > ' ' && b != ','
 						if (b != '/') // check comment
