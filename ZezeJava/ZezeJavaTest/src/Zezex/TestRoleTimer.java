@@ -116,7 +116,7 @@ public class TestRoleTimer {
 
 			var timerRole0 = timer0.getRoleTimer();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, new NullCustomDataHandle(), null);
+				timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, NullCustomDataHandle.class, null);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			timerFuture.get();
@@ -124,7 +124,7 @@ public class TestRoleTimer {
 			TestBean bean = new TestBean();
 			bean.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, 1, 1, 5, -1, new TestOnlineTimerHandle(), bean);
+				timerRole0.scheduleOnline(roleId, 1, 1, 5, -1, TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			bean.getFuture().await();
@@ -139,14 +139,14 @@ public class TestRoleTimer {
 			TestBean namedBean = new TestBean();
 			namedBean.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, new TestOnlineTimerHandle(), namedBean);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, namedBean);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
 			newNamedBean1.resetFuture(5);
 			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, new TestOnlineTimerHandle(), newNamedBean1);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			namedBean.getFuture().await();
@@ -156,7 +156,7 @@ public class TestRoleTimer {
 			TestBean newNamedBean2 = new TestBean();
 			newNamedBean2.resetFuture(5);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, new TestOnlineTimerHandle(), newNamedBean2);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			newNamedBean2.getFuture().await();
@@ -196,7 +196,7 @@ public class TestRoleTimer {
 			TestBean bean = new TestBean();
 			bean.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, "*/1 * * * * ?", 2, -1, new TestOnlineTimerHandle(), bean);
+				timerRole0.scheduleOnline(roleId, "*/1 * * * * ?", 2, -1, TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			bean.getFuture().await();
@@ -212,14 +212,14 @@ public class TestRoleTimer {
 			TestBean namedBean = new TestBean();
 			namedBean.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, -1, new TestOnlineTimerHandle(), namedBean);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, -1, TestOnlineTimerHandle.class, namedBean);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
 			newNamedBean1.resetFuture(2);
 			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, -1, new TestOnlineTimerHandle(), newNamedBean1);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", "*/1 * * * * ?", 2, -1, TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			namedBean.getFuture().await();
@@ -228,7 +228,7 @@ public class TestRoleTimer {
 			TestBean newNamedBean2 = new TestBean();
 			newNamedBean2.resetFuture(2);
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, new TestOnlineTimerHandle(), newNamedBean2);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 1, 1, 5, -1, TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			newNamedBean2.getFuture().await();
