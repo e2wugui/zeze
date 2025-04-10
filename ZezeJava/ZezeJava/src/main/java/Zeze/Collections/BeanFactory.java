@@ -2,9 +2,9 @@ package Zeze.Collections;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.jar.JarFile;
@@ -51,6 +51,7 @@ public final class BeanFactory {
 	private final FastLock writingDataFactoryLock = new FastLock();
 	private volatile @Nullable LongHashMap<MethodHandle> readingDataFactory;
 	private final ConcurrentHashSet<Consumer<Class<?>>> globalToLocalWatchers = new ConcurrentHashSet<>();
+	private final ConcurrentHashMap<Class<?>, MethodHandle> registeredClasses = new ConcurrentHashMap<>();
 
 	public void registerWatch(@NotNull Consumer<Class<?>> consumer) {
 		globalToLocalWatchers.add(consumer);
@@ -96,11 +97,17 @@ public final class BeanFactory {
 			var classes = e.getValue();
 			bf.writingBeanFactoryLock.lock();
 			try {
-				bf.writingBeanFactory.foreachUpdate((typeId, beanCtor) -> {
+				bf.writingBeanFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var beanNewClass = hotRedirect.loadClass(((Bean)beanCtor.invoke()).getClass().getName());
-						classes.add(beanNewClass);
-						return Reflect.getDefaultConstructor(beanNewClass);
+						var oldCls = oldCtor.type().returnType();
+						var newCls = hotRedirect.loadClass(oldCls.getName());
+						classes.add(newCls);
+						var ctor = Reflect.getDefaultConstructor(newCls);
+						if (oldCls != newCls) {
+							bf.registeredClasses.put(newCls, ctor);
+							bf.registeredClasses.remove(oldCls);
+						}
+						return ctor;
 					} catch (Throwable ex) { // MethodHandle.invoke
 						throw Task.forceThrow(ex);
 					}
@@ -111,11 +118,17 @@ public final class BeanFactory {
 			}
 			bf.writingDataFactoryLock.lock();
 			try {
-				bf.writingDataFactory.foreachUpdate((typeId, dataCtor) -> {
+				bf.writingDataFactory.foreachUpdate((typeId, oldCtor) -> {
 					try {
-						var beanNewClass = hotRedirect.loadClass(((Data)dataCtor.invoke()).getClass().getName());
-						classes.add(beanNewClass);
-						return Reflect.getDefaultConstructor(beanNewClass);
+						var oldCls = oldCtor.type().returnType();
+						var newCls = hotRedirect.loadClass(oldCls.getName());
+						classes.add(newCls);
+						var ctor = Reflect.getDefaultConstructor(newCls);
+						if (oldCls != newCls) {
+							bf.registeredClasses.put(newCls, ctor);
+							bf.registeredClasses.remove(oldCls);
+						}
+						return ctor;
 					} catch (Throwable ex) { // MethodHandle.invoke
 						throw Task.forceThrow(ex);
 					}
@@ -386,72 +399,94 @@ public final class BeanFactory {
 	}
 
 	public @NotNull MethodHandle register(@NotNull Class<? extends Serializable> cls) {
-		MethodHandle ctor = Reflect.getDefaultConstructor(cls);
+		var ctor = registeredClasses.get(cls);
+		if (ctor != null)
+			return ctor;
+		ctor = Reflect.getDefaultConstructor(cls);
 		Serializable s;
 		try {
 			s = (Serializable)ctor.invoke();
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
-		if (s instanceof Bean) {
-			writingBeanFactoryLock.lock();
-			try {
-				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
-					readingBeanFactory = null;
-			} finally {
-				writingBeanFactoryLock.unlock();
-			}
-		} else if (s instanceof Data) {
-			writingDataFactoryLock.lock();
-			try {
-				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
-					readingDataFactory = null;
-			} finally {
-				writingDataFactoryLock.unlock();
-			}
-		} else
-			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
-		return ctor;
+		return register(cls, s, ctor);
 	}
 
 	public @NotNull MethodHandle register(@NotNull Serializable s) {
-		var ctor = Reflect.getDefaultConstructor(s.getClass());
+		var cls = s.getClass();
+		var ctor = registeredClasses.get(cls);
+		if (ctor != null)
+			return ctor;
+		ctor = Reflect.getDefaultConstructor(cls);
+		return register(cls, s, ctor);
+	}
+
+	private @NotNull MethodHandle register(@NotNull Class<? extends Serializable> cls, @NotNull Serializable s,
+										   @NotNull MethodHandle ctor) {
 		if (s instanceof Bean) {
 			writingBeanFactoryLock.lock();
 			try {
-				if (writingBeanFactory.put(s.typeId(), ctor) != ctor)
+				var oldCtor = writingBeanFactory.put(s.typeId(), ctor);
+				if (oldCtor != ctor) {
+					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+						logger.warn("overwrite bean factory for typeId={},class={}=>{}",
+								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
+					}
 					readingBeanFactory = null;
+					registeredClasses.put(cls, ctor);
+				}
 			} finally {
 				writingBeanFactoryLock.unlock();
 			}
 		} else if (s instanceof Data) {
 			writingDataFactoryLock.lock();
 			try {
-				if (writingDataFactory.put(s.typeId(), ctor) != ctor)
+				var oldCtor = writingDataFactory.put(s.typeId(), ctor);
+				if (oldCtor != ctor) {
+					if (oldCtor != null && oldCtor.type().returnType() != cls) {
+						logger.warn("overwrite data factory for typeId={},class={}=>{}",
+								s.typeId(), oldCtor.type().returnType().getName(), cls.getName());
+					}
 					readingDataFactory = null;
+					registeredClasses.put(cls, ctor);
+				}
 			} finally {
 				writingDataFactoryLock.unlock();
 			}
 		} else
-			throw new IllegalArgumentException("not Bean or Data: " + s.getClass().getName());
+			throw new IllegalArgumentException("not Bean or Data: " + cls.getName());
 		return ctor;
 	}
 
-	private void register(long typeId, @NotNull MethodHandle beanCtor) {
+	private void registerBean(@NotNull Class<? extends Bean> cls, long typeId, @NotNull MethodHandle ctor) {
 		writingBeanFactoryLock.lock();
 		try {
-			if (writingBeanFactory.put(typeId, beanCtor) != beanCtor)
+			var oldCtor = writingBeanFactory.put(typeId, ctor);
+			if (oldCtor != ctor) {
+				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					logger.warn("overwrite bean factory for typeId={}, class={}=>{}",
+							typeId, oldCtor.type().returnType().getName(), cls.getName());
+				}
 				readingBeanFactory = null;
+				registeredClasses.put(cls, ctor);
+			}
 		} finally {
 			writingBeanFactoryLock.unlock();
 		}
 	}
 
-	private void registerData(long typeId, @NotNull MethodHandle dataCtor) {
+	private void registerData(@NotNull Class<? extends Data> cls, long typeId, @NotNull MethodHandle ctor) {
 		writingDataFactoryLock.lock();
 		try {
-			if (writingDataFactory.put(typeId, dataCtor) != dataCtor)
+			var oldCtor = writingDataFactory.put(typeId, ctor);
+			if (oldCtor != ctor) {
+				if (oldCtor != null && oldCtor.type().returnType() != cls) {
+					logger.warn("overwrite data factory for typeId={}, class={}=>{}",
+							typeId, oldCtor.type().returnType().getName(), cls.getName());
+				}
 				readingDataFactory = null;
+				registeredClasses.put(cls, ctor);
+			}
 		} finally {
 			writingDataFactoryLock.unlock();
 		}
@@ -474,22 +509,22 @@ public final class BeanFactory {
 					writingBeanFactoryLock.unlock();
 				}
 			}
-			var beanCtor = factory.get(typeId);
-			if (beanCtor != null)
-				return (Bean)beanCtor.invoke();
+			var ctor = factory.get(typeId);
+			if (ctor != null)
+				return (Bean)ctor.invoke();
 			var cls = findClass(typeId);
 			if (cls == null) {
 				if (typeId != EmptyBean.TYPEID)
 					throw new UnsupportedOperationException("unknown bean typeId=" + typeId);
 				cls = EmptyBean.class;
 			}
-			beanCtor = Reflect.getDefaultConstructor(cls);
-			var bean = (Bean)beanCtor.invoke();
+			ctor = Reflect.getDefaultConstructor(cls);
+			var bean = (Bean)ctor.invoke();
 			var beanTypeId = bean.typeId();
 			if (beanTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched bean typeId: " + beanTypeId + " != " + typeId);
 			notifyAllWatcher(cls);
-			register(beanTypeId, beanCtor);
+			registerBean(cls, beanTypeId, ctor);
 			return bean;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
@@ -509,23 +544,23 @@ public final class BeanFactory {
 					writingDataFactoryLock.unlock();
 				}
 			}
-			var dataCtor = factory.get(typeId);
-			if (dataCtor != null)
-				return (Data)dataCtor.invoke();
+			var ctor = factory.get(typeId);
+			if (ctor != null)
+				return (Data)ctor.invoke();
 			var cls = findDataClass(typeId);
 			if (cls == null) {
 				if (typeId != EmptyBean.Data.TYPEID)
 					throw new UnsupportedOperationException("unknown data typeId=" + typeId);
 				cls = EmptyBean.Data.class;
 			}
-			dataCtor = cls == EmptyBean.Data.class ? MethodHandles.lookup().findStaticGetter(cls, "instance", cls)
+			ctor = cls == EmptyBean.Data.class ? Reflect.lookup.findStaticGetter(cls, "instance", cls)
 					: Reflect.getDefaultConstructor(cls);
-			var data = (Data)dataCtor.invoke();
+			var data = (Data)ctor.invoke();
 			var dataTypeId = data.typeId();
 			if (dataTypeId != typeId)
 				throw new UnsupportedOperationException("unmatched data typeId: " + dataTypeId + " != " + typeId);
 			notifyAllWatcher(cls);
-			registerData(dataTypeId, dataCtor);
+			registerData(cls, dataTypeId, ctor);
 			return data;
 		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);

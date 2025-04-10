@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
 public class HotHandle<THandle> extends ReentrantLock {
@@ -27,8 +28,7 @@ public class HotHandle<THandle> extends ReentrantLock {
 	}
 
 	@SuppressWarnings("unchecked")
-	public @NotNull THandle findHandle(@NotNull Application zeze, @NotNull String handleClassName)
-			throws ReflectiveOperationException {
+	public @NotNull THandle findHandle(@NotNull Application zeze, @NotNull String handleClassName) {
 		var handle = handleCache.get(handleClassName);
 		if (handle != null)
 			return handle;
@@ -51,6 +51,8 @@ public class HotHandle<THandle> extends ReentrantLock {
 			handle = (THandle)handleClass.getConstructor().newInstance();
 			handleCache.put(handleClassName, handle);
 			return handle;
+		} catch (ReflectiveOperationException e) {
+			throw Task.forceThrow(e);
 		} finally {
 			unlock();
 		}

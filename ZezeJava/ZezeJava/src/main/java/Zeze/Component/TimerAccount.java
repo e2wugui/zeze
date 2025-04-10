@@ -16,6 +16,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -180,7 +181,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handle);
@@ -203,7 +204,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
@@ -261,7 +262,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleCron(timerId, cronTimer, handle);
@@ -284,7 +285,7 @@ public class TimerAccount {
 		var timerIds = online.getOrAddLocalBean(account, clientId, eOnlineTimers, new BOnlineTimers());
 		var timerLocal = timerIds.getTimerIds().getOrAdd(timerId);
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
 		scheduleCronHot(timerId, cronTimer, handleClass);
@@ -364,6 +365,7 @@ public class TimerAccount {
 								 long delay, long period, long times, long endTime, int missfirePolicy,
 								 @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData, @NotNull String oneByOneKey) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
@@ -371,7 +373,7 @@ public class TimerAccount {
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
 			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
@@ -436,6 +438,7 @@ public class TimerAccount {
 								 @NotNull String cron, long times, long endTime, int missfirePolicy,
 								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 								 @NotNull String oneByOneKey, @Nullable BIndex index) throws ParseException {
+		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null)
 			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
@@ -443,7 +446,7 @@ public class TimerAccount {
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
 		if (customData != null) {
-			Timer.register(customData.getClass());
+			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
 		}
 		if (index != null) {

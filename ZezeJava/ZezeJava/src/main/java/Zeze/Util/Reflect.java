@@ -30,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 public class Reflect {
 	public static final boolean inDebugMode = !"true".equalsIgnoreCase(System.getProperty("noDebugMode")) &&
 			ManagementFactory.getRuntimeMXBean().getInputArguments().toString().indexOf("-agentlib:jdwp") > 0;
+	public static final @NotNull MethodHandles.Lookup lookup = MethodHandles.lookup();
 	public static final @NotNull StackWalker stackWalker = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 	public static final @NotNull MethodHandle supplierMH;
 	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
@@ -37,7 +38,7 @@ public class Reflect {
 
 	static {
 		try {
-			supplierMH = MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class));
+			supplierMH = lookup.findVirtual(Supplier.class, "get", MethodType.methodType(Object.class));
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -94,9 +95,19 @@ public class Reflect {
 		}
 	}
 
+	public static void checkDefaultConstructor(@NotNull Class<?> cls) {
+		try {
+			cls.getDeclaredConstructor().setAccessible(true);
+		} catch (NoSuchMethodException e) {
+			throw Task.forceThrow(e);
+		}
+	}
+
 	public static @NotNull MethodHandle getDefaultConstructor(@NotNull Class<?> cls) {
 		try {
-			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
+			var ctorMethod = cls.getDeclaredConstructor();
+			ctorMethod.setAccessible(true);
+			return lookup.unreflectConstructor(ctorMethod);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		}

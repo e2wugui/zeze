@@ -6,12 +6,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.invoke.LambdaMetafactory;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Reflect;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,7 +59,7 @@ public final class Http {
 					+ handleClass.getName());
 		}
 
-		var lookup = MethodHandles.lookup();
+		var lookup = Reflect.lookup;
 		for (var method : handleClass.getDeclaredMethods()) {
 			Annotation httpAnno = null;
 			for (var anno : method.getAnnotations()) {

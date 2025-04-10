@@ -83,9 +83,9 @@ public class TestRoleTimer {
 		}
 	}
 
-	final TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
+	static final TaskCompletionSource<Boolean> timerFuture = new TaskCompletionSource<>();
 
-	public class NullCustomDataHandle implements TimerHandle {
+	public static class NullCustomDataHandle implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) throws Exception {
 			timerFuture.setResult(true);

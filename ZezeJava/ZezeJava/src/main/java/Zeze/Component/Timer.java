@@ -99,8 +99,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			RegisterZezeTables(zeze);
 	}
 
-	static void register(@NotNull Class<? extends Serializable> cls) {
-		beanFactory.register(cls);
+	static void register(@NotNull Serializable s) {
+		beanFactory.register(s);
 	}
 
 	public void loadCustomClassAnd() {
@@ -167,7 +167,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}
 	}
 
-	@NotNull TimerHandle findTimerHandle(@NotNull String handleClassName) throws ReflectiveOperationException {
+	@NotNull TimerHandle findTimerHandle(@NotNull String handleClassName) {
 		return hotHandle.findHandle(zeze, handleClassName);
 	}
 
@@ -277,6 +277,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	void schedule(@NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
 				  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -318,7 +319,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				node.getTimers().put(timerId, timer);
 
 				if (customData != null) {
-					register(customData.getClass());
+					register(customData);
 					timer.getCustomData().setBean(customData);
 					tryRecordBeanHotModuleWhileCommit(customData);
 				}
@@ -466,6 +467,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	void schedule(@NotNull String timerId, BCronTimer cronTimer, @NotNull Class<? extends TimerHandle> handleClass,
 				  @Nullable Bean customData) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var serverId = zeze.getConfig().getServerId();
 		var appVer = zeze.getConfig().getAppVersion();
 		var root = _tNodeRoot.getOrAdd(serverId);
@@ -507,7 +509,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				node.getTimers().put(timerId, timer);
 
 				if (customData != null) {
-					register(customData.getClass());
+					register(customData);
 					timer.getCustomData().setBean(customData);
 					tryRecordBeanHotModuleWhileCommit(customData);
 				}
@@ -741,19 +743,15 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			int serverId = index.getServerId();
 			if (serverId != zeze.getConfig().getServerId())
 				Transaction.whileCommit(() -> tryRedirectCancel(serverId, timerId));
-			try {
-				TimerHandle handle = null;
-				var nodeId = index.getNodeId();
-				var node = _tNodes.get(nodeId);
-				if (node != null) {
-					var timer = node.getTimers().get(timerId);
-					if (timer != null)
-						handle = findTimerHandle(timer.getHandleName());
-				}
-				cancel(serverId, timerId, nodeId, node, handle);
-			} catch (Exception e) {
-				Task.forceThrow(e);
+			TimerHandle handle = null;
+			var nodeId = index.getNodeId();
+			var node = _tNodes.get(nodeId);
+			if (node != null) {
+				var timer = node.getTimers().get(timerId);
+				if (timer != null)
+					handle = findTimerHandle(timer.getHandleName());
 			}
+			cancel(serverId, timerId, nodeId, node, handle);
 		} else // 定时器数据已经不存在了,尝试移除future
 			Transaction.whileCommit(() -> cancelFuture(timerId));
 	}

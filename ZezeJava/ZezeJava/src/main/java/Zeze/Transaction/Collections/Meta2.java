@@ -1,7 +1,6 @@
 package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -60,8 +59,7 @@ public final class Meta2<K, V> {
 
 	private static MethodHandle toMethodHandle(@NotNull Supplier<?> ctor) {
 		try {
-			return MethodHandles.lookup().findVirtual(Supplier.class, "get", MethodType.methodType(Object.class))
-					.bindTo(ctor);
+			return Reflect.lookup.findVirtual(Supplier.class, "get", MethodType.methodType(Object.class)).bindTo(ctor);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		}

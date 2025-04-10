@@ -17,6 +17,7 @@ public interface TimerHandle {
 	 *
 	 * @param timer 刚从数据库中移除的记录, 不能再次复用到数据库中
 	 */
+	@SuppressWarnings("RedundantThrows")
 	default void onTimerCancel(@NotNull BTimer timer) throws Exception {
 	}
 }
