@@ -10,7 +10,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
 
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
-    private final Zeze.Transaction.Collections.PSet1<String> _TargetAccounts; // 查询目标角色。
+    private final Zeze.Transaction.Collections.PSet1<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets; // 查询目标角色。
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
@@ -75,13 +75,13 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 2, vh_Parameter, _v_));
     }
 
-    public Zeze.Transaction.Collections.PSet1<String> getTargetAccounts() {
-        return _TargetAccounts;
+    public Zeze.Transaction.Collections.PSet1<Zeze.Builtin.ProviderDirect.BLoginKey> getTargets() {
+        return _Targets;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PSet1ReadOnly<String> getTargetAccountsReadOnly() {
-        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_TargetAccounts);
+    public Zeze.Transaction.Collections.PSet1ReadOnly<Zeze.Builtin.ProviderDirect.BLoginKey> getTargetsReadOnly() {
+        return new Zeze.Transaction.Collections.PSet1ReadOnly<>(_Targets);
     }
 
     @Override
@@ -132,8 +132,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public BTransmitAccount() {
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _TargetAccounts.variableId(3);
+        _Targets = new Zeze.Transaction.Collections.PSet1<>(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+        _Targets.variableId(3);
         _SenderAccount = "";
         _SenderClientId = "";
     }
@@ -146,8 +146,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (_Parameter_ == null)
             _Parameter_ = Zeze.Net.Binary.Empty;
         _Parameter = _Parameter_;
-        _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
-        _TargetAccounts.variableId(3);
+        _Targets = new Zeze.Transaction.Collections.PSet1<>(Zeze.Builtin.ProviderDirect.BLoginKey.class);
+        _Targets.variableId(3);
         if (_SenderAccount_ == null)
             _SenderAccount_ = "";
         _SenderAccount = _SenderAccount_;
@@ -160,7 +160,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public void reset() {
         setActionName("");
         setParameter(Zeze.Net.Binary.Empty);
-        _TargetAccounts.clear();
+        _Targets.clear();
         setSenderAccount("");
         setSenderClientId("");
         _unknown_ = null;
@@ -181,8 +181,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public void assign(BTransmitAccount.Data _o_) {
         setActionName(_o_._ActionName);
         setParameter(_o_._Parameter);
-        _TargetAccounts.clear();
-        _TargetAccounts.addAll(_o_._TargetAccounts);
+        _Targets.clear();
+        _Targets.addAll(_o_._Targets);
         setSenderAccount(_o_._SenderAccount);
         setSenderClientId(_o_._SenderClientId);
         _unknown_ = null;
@@ -191,7 +191,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
     public void assign(BTransmitAccount _o_) {
         setActionName(_o_.getActionName());
         setParameter(_o_.getParameter());
-        _TargetAccounts.assign(_o_._TargetAccounts);
+        _Targets.assign(_o_._Targets);
         setSenderAccount(_o_.getSenderAccount());
         setSenderClientId(_o_.getSenderClientId());
         _unknown_ = _o_._unknown_;
@@ -233,11 +233,13 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         _s_.append("Zeze.Builtin.ProviderDirect.BTransmitAccount: {\n");
         _s_.append(_i1_).append("ActionName=").append(getActionName()).append(",\n");
         _s_.append(_i1_).append("Parameter=").append(getParameter()).append(",\n");
-        _s_.append(_i1_).append("TargetAccounts={");
-        if (!_TargetAccounts.isEmpty()) {
+        _s_.append(_i1_).append("Targets={");
+        if (!_Targets.isEmpty()) {
             _s_.append('\n');
-            for (var _v_ : _TargetAccounts) {
-                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
+            for (var _v_ : _Targets) {
+                _s_.append(_i2_).append("Item=");
+                _v_.buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
             _s_.append(_i1_);
         }
@@ -290,13 +292,13 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             }
         }
         {
-            var _x_ = _TargetAccounts;
+            var _x_ = _Targets;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -335,11 +337,11 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = _TargetAccounts;
+            var _x_ = _Targets;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.ProviderDirect.BLoginKey(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -368,7 +370,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             return false;
         if (!getParameter().equals(_b_.getParameter()))
             return false;
-        if (!_TargetAccounts.equals(_b_._TargetAccounts))
+        if (!_Targets.equals(_b_._Targets))
             return false;
         if (!getSenderAccount().equals(_b_.getSenderAccount()))
             return false;
@@ -379,12 +381,12 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-        _TargetAccounts.initRootInfo(_r_, this);
+        _Targets.initRootInfo(_r_, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-        _TargetAccounts.initRootInfoWithRedo(_r_, this);
+        _Targets.initRootInfoWithRedo(_r_, this);
     }
 
     @SuppressWarnings("unchecked")
@@ -398,7 +400,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
             switch (_v_.getVariableId()) {
                 case 1: _ActionName = _v_.stringValue(); break;
                 case 2: _Parameter = _v_.binaryValue(); break;
-                case 3: _TargetAccounts.followerApply(_v_); break;
+                case 3: _Targets.followerApply(_v_); break;
                 case 4: _SenderAccount = _v_.stringValue(); break;
                 case 5: _SenderClientId = _v_.stringValue(); break;
             }
@@ -412,7 +414,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         if (getActionName() == null)
             setActionName("");
         setParameter(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Parameter")));
-        Zeze.Serialize.Helper.decodeJsonSet(_TargetAccounts, String.class, _r_.getString(_pn_ + "TargetAccounts"));
+        Zeze.Serialize.Helper.decodeJsonSet(_Targets, Zeze.Builtin.ProviderDirect.BLoginKey.class, _r_.getString(_pn_ + "Targets"));
         setSenderAccount(_r_.getString(_pn_ + "SenderAccount"));
         if (getSenderAccount() == null)
             setSenderAccount("");
@@ -426,7 +428,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "ActionName", getActionName());
         _s_.appendBinary(_pn_ + "Parameter", getParameter());
-        _s_.appendString(_pn_ + "TargetAccounts", Zeze.Serialize.Helper.encodeJson(_TargetAccounts));
+        _s_.appendString(_pn_ + "Targets", Zeze.Serialize.Helper.encodeJson(_Targets));
         _s_.appendString(_pn_ + "SenderAccount", getSenderAccount());
         _s_.appendString(_pn_ + "SenderClientId", getSenderClientId());
     }
@@ -436,7 +438,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean implements BTr
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ActionName", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Parameter", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "TargetAccounts", "set", "", "string"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Targets", "set", "", "Zeze.Builtin.ProviderDirect.BLoginKey"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "SenderAccount", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SenderClientId", "string", "", ""));
         return _v_;
@@ -448,7 +450,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
-    private java.util.HashSet<String> _TargetAccounts; // 查询目标角色。
+    private java.util.HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets; // 查询目标角色。
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
@@ -472,14 +474,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _Parameter = _v_;
     }
 
-    public java.util.HashSet<String> getTargetAccounts() {
-        return _TargetAccounts;
+    public java.util.HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> getTargets() {
+        return _Targets;
     }
 
-    public void setTargetAccounts(java.util.HashSet<String> _v_) {
+    public void setTargets(java.util.HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> _v_) {
         if (_v_ == null)
             throw new IllegalArgumentException();
-        _TargetAccounts = _v_;
+        _Targets = _v_;
     }
 
     public String getSenderAccount() {
@@ -506,22 +508,22 @@ public static final class Data extends Zeze.Transaction.Data {
     public Data() {
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _TargetAccounts = new java.util.HashSet<>();
+        _Targets = new java.util.HashSet<>();
         _SenderAccount = "";
         _SenderClientId = "";
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _ActionName_, Zeze.Net.Binary _Parameter_, java.util.HashSet<String> _TargetAccounts_, String _SenderAccount_, String _SenderClientId_) {
+    public Data(String _ActionName_, Zeze.Net.Binary _Parameter_, java.util.HashSet<Zeze.Builtin.ProviderDirect.BLoginKey> _Targets_, String _SenderAccount_, String _SenderClientId_) {
         if (_ActionName_ == null)
             _ActionName_ = "";
         _ActionName = _ActionName_;
         if (_Parameter_ == null)
             _Parameter_ = Zeze.Net.Binary.Empty;
         _Parameter = _Parameter_;
-        if (_TargetAccounts_ == null)
-            _TargetAccounts_ = new java.util.HashSet<>();
-        _TargetAccounts = _TargetAccounts_;
+        if (_Targets_ == null)
+            _Targets_ = new java.util.HashSet<>();
+        _Targets = _Targets_;
         if (_SenderAccount_ == null)
             _SenderAccount_ = "";
         _SenderAccount = _SenderAccount_;
@@ -534,7 +536,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void reset() {
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _TargetAccounts.clear();
+        _Targets.clear();
         _SenderAccount = "";
         _SenderClientId = "";
     }
@@ -554,8 +556,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BTransmitAccount _o_) {
         _ActionName = _o_.getActionName();
         _Parameter = _o_.getParameter();
-        _TargetAccounts.clear();
-        _TargetAccounts.addAll(_o_._TargetAccounts);
+        _Targets.clear();
+        _Targets.addAll(_o_._Targets);
         _SenderAccount = _o_.getSenderAccount();
         _SenderClientId = _o_.getSenderClientId();
     }
@@ -563,8 +565,8 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BTransmitAccount.Data _o_) {
         _ActionName = _o_._ActionName;
         _Parameter = _o_._Parameter;
-        _TargetAccounts.clear();
-        _TargetAccounts.addAll(_o_._TargetAccounts);
+        _Targets.clear();
+        _Targets.addAll(_o_._Targets);
         _SenderAccount = _o_._SenderAccount;
         _SenderClientId = _o_._SenderClientId;
     }
@@ -606,11 +608,13 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append("Zeze.Builtin.ProviderDirect.BTransmitAccount: {\n");
         _s_.append(_i1_).append("ActionName=").append(_ActionName).append(",\n");
         _s_.append(_i1_).append("Parameter=").append(_Parameter).append(",\n");
-        _s_.append(_i1_).append("TargetAccounts={");
-        if (!_TargetAccounts.isEmpty()) {
+        _s_.append(_i1_).append("Targets={");
+        if (!_Targets.isEmpty()) {
             _s_.append('\n');
-            for (var _v_ : _TargetAccounts) {
-                _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
+            for (var _v_ : _Targets) {
+                _s_.append(_i2_).append("Item=");
+                _v_.buildString(_s_, _l_ + 12);
+                _s_.append(",\n");
             }
             _s_.append(_i1_);
         }
@@ -648,13 +652,13 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            var _x_ = _TargetAccounts;
+            var _x_ = _Targets;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                _o_.WriteListType(_n_, ByteBuffer.BEAN);
                 for (var _v_ : _x_) {
-                    _o_.WriteString(_v_);
+                    _v_.encode(_o_);
                     _n_--;
                 }
                 if (_n_ != 0)
@@ -691,11 +695,11 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = _TargetAccounts;
+            var _x_ = _Targets;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.ProviderDirect.BLoginKey(), _t_));
             } else
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -726,7 +730,7 @@ public static final class Data extends Zeze.Transaction.Data {
             return false;
         if (!_Parameter.equals(_b_._Parameter))
             return false;
-        if (!_TargetAccounts.equals(_b_._TargetAccounts))
+        if (!_Targets.equals(_b_._Targets))
             return false;
         if (!_SenderAccount.equals(_b_._SenderAccount))
             return false;

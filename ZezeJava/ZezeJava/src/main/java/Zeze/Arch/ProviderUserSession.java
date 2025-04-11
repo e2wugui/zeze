@@ -4,6 +4,7 @@ import java.util.Map;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Send;
+import Zeze.Builtin.ProviderDirect.BLoginKey;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -139,7 +140,7 @@ public class ProviderUserSession {
 		if (providerImpl instanceof Zeze.Arch.ProviderWithOnline) {
 			var online = ((Zeze.Arch.ProviderWithOnline)providerImpl).getOnline();
 			var context = getContext();
-			var loginKey = new Online.LoginKey(getAccount(), context);
+			var loginKey = new BLoginKey(getAccount(), context);
 			if (!context.isEmpty())
 				return online.send(link, Map.of(getLinkSid(), loginKey), send);
 			// 没有登录的会话不需要转给Online处理。转给Online是为了处理发送失败的结果。

@@ -229,6 +229,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}, "saveRetreats").call();
 	}
 
+	@FunctionalInterface
 	public interface TransmitAction {
 		/**
 		 * @param sender 查询发起者，结果发送给他

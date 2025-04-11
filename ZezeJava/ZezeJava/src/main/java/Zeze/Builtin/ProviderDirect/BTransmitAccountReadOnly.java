@@ -9,7 +9,7 @@ public interface BTransmitAccountReadOnly {
 
     String getActionName();
     Zeze.Net.Binary getParameter();
-    Zeze.Transaction.Collections.PSet1ReadOnly<String> getTargetAccountsReadOnly();
+    Zeze.Transaction.Collections.PSet1ReadOnly<Zeze.Builtin.ProviderDirect.BLoginKey> getTargetsReadOnly();
     String getSenderAccount();
     String getSenderClientId();
 }

@@ -576,13 +576,16 @@
 			</bean>
 
 			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
-
+			<beankey name="BLoginKey">
+				<variable name="Account"     id="1" type="string"/>
+				<variable name="ClientId"      id="2" type="string"/>
+			</beankey>
 			<bean name="BTransmitAccount">
 				<variable name="ActionName"     id="1" type="string"/>
-				<variable name="Parameter"      id="2" type="binary"/> encoded bean
-				<variable name="TargetAccounts" id="3" type="set" value="string"/> 查询目标角色。
+				<variable name="Parameter"         id="2" type="binary"/> encoded bean
+				<variable name="Targets"              id="3" type="set" value="BLoginKey"/> 查询目标角色。
 				<variable name="SenderAccount"  id="4" type="string"/> 结果发送给Sender。
-				<variable name="SenderClientId" id="5" type="string"/> 结果发送给Sender。
+				<variable name="SenderClientId"  id="5" type="string"/> 结果发送给Sender。
 			</bean>
 
 			<protocol name="TransmitAccount" argument="BTransmitAccount" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。

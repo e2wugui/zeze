@@ -35,6 +35,7 @@ import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.CheckLinkSession;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
+import Zeze.Builtin.ProviderDirect.BLoginKey;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Collections.BeanFactory;
 import Zeze.Component.TimerContext;
@@ -48,6 +49,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -142,14 +144,17 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}, "saveRetreats").call();
 	}
 
+	@FunctionalInterface
 	public interface TransmitAction {
 		/**
 		 * @param senderAccount 查询发起者，结果发送给他
-		 * @param target        查询目标
+		 * @param targetAccount 查询目标
+		 * @param targetClientId 查询目标
 		 * @return 按普通事务处理过程返回值处理
 		 */
-		long call(@NotNull String senderAccount, @NotNull String senderClientId, @NotNull String target,
-				  @Nullable Binary parameter);
+		long call(@NotNull String senderAccount, @NotNull String senderClientId,
+				  @NotNull String targetAccount, @NotNull String targetClientId,
+				  @Nullable Binary parameter) throws Exception;
 	}
 
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
@@ -757,18 +762,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //	}
 
 	private long triggerLinkBroken(@NotNull String linkName, @NotNull LongList errorSids,
-								   @NotNull Map<Long, LoginKey> contexts) {
+								   @NotNull Map<Long, BLoginKey> contexts) {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
-				return sendError(ctx.account, ctx.clientId, linkName, sid);
+				return sendError(ctx.getAccount(), ctx.getClientId(), linkName, sid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
 
-	public boolean send(@NotNull AsyncSocket to, @NotNull Map<Long, LoginKey> contexts, @NotNull Send send) {
+	public boolean send(@NotNull AsyncSocket to, @NotNull Map<Long, BLoginKey> contexts, @NotNull Send send) {
 		return send.Send(to, rpc -> triggerLinkBroken(ProviderService.getLinkName(to),
 				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(), contexts));
 	}
@@ -777,7 +782,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return send(null, linkName, linkSid, p);
 	}
 
-	public boolean send(@Nullable LoginKey loginKey, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+	public boolean send(@Nullable BLoginKey loginKey, @NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		var connector = providerApp.providerService.getLinks().get(linkName);
 		if (connector == null) {
 			logger.warn("send({}): link connector not found. name={}", p.getTypeId(), linkName);
@@ -789,7 +794,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			return false;
 		}
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(p.getTypeId()))
-			AsyncSocket.log("Send", loginKey != null ? loginKey.account + ',' + loginKey.clientId : linkName, p);
+			AsyncSocket.log("Send", loginKey != null ? loginKey.getAccount() + ',' + loginKey.getClientId() : linkName, p);
 		var send = new Send(new BSend(p.getTypeId(), new Binary(p.encode())));
 		send.Argument.getLinkSids().add(linkSid);
 		return send(link, loginKey != null ? Map.of(linkSid, loginKey) : Map.of(), send);
@@ -826,7 +831,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		final @NotNull String linkName;
 		final AsyncSocket linkSocket;
 		final @NotNull Send send;
-		final ArrayList<LoginKey> accounts = new ArrayList<>();
+		final ArrayList<BLoginKey> accounts = new ArrayList<>();
 
 		public LinkRoles(@NotNull String linkName, AsyncSocket linkSocket,
 						 long typeId, @NotNull Binary fullEncodedProtocol) {
@@ -862,7 +867,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			var loginKey = group.accounts.get(idx);
-			return idx >= 0 ? sendError(loginKey.account, loginKey.clientId, group.linkName, linkSid) : 0;
+			return idx >= 0 ? sendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken2")));
 	}
 
@@ -873,15 +878,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	// 可在事务外执行
-	public int sendDirect(@NotNull Set<LoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int sendDirect(@NotNull Set<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 						  boolean trySend) {
 		if (loginKeys.isEmpty())
 			return 0;
 		var groups = new HashMap<String, LinkRoles>();
 		var links = providerApp.providerService.getLinks();
 		for (var loginKey : loginKeys) {
-			var account = loginKey.account;
-			var clientId = loginKey.clientId;
+			var account = loginKey.getAccount();
+			var clientId = loginKey.getClientId();
 			var online = _tonline.selectDirty(account);
 			if (online == null) {
 				if (!trySend) {
@@ -1005,59 +1010,29 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		public @NotNull String linkName = ""; // empty when not online
 		public @Nullable AsyncSocket linkSocket; // null if not online
 		public long providerSessionId;
-		public final HashMap<LoginKey, Long> logins = new HashMap<>();
-		public final HashMap<Long, LoginKey> contexts = new HashMap<>();
-	}
-
-	public static class LoginKey {
-		public final @NotNull String account;
-		public final @NotNull String clientId;
-
-		public LoginKey(@NotNull String account, @NotNull String clientId) {
-			this.account = account;
-			this.clientId = clientId;
-		}
-
-		@Override
-		public int hashCode() {
-			final int _prime_ = 31;
-			int _h_ = 0;
-			_h_ = _h_ * _prime_ + account.hashCode();
-			_h_ = _h_ * _prime_ + clientId.hashCode();
-			return _h_;
-		}
-
-		@Override
-		public boolean equals(@Nullable Object obj) {
-			if (obj == this)
-				return true;
-			if (obj instanceof LoginKey) {
-				var login = (LoginKey)obj;
-				return account.equals(login.account) && clientId.equals(login.clientId);
-			}
-			return false;
-		}
+		public final HashMap<BLoginKey, Long> logins = new HashMap<>();
+		public final HashMap<Long, BLoginKey> contexts = new HashMap<>();
 	}
 
 //	public void send(String account, String clientId, long typeId, Binary fullEncodedProtocol) {
-//		var login = new LoginKey(account, clientId);
+//		var login = new BLoginKey(account, clientId);
 //		providerApp.zeze.runTaskOneByOneByKey(login, "Online.send", () -> {
 //			sendEmbed(List.of(login), typeId, fullEncodedProtocol);
 //			return Procedure.Success;
 //		});
 //	}
 
-	public int send(@NotNull Collection<LoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
+	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean trySend) {
 		int loginCount = loginKeys.size();
 		if (loginCount == 1) {
 			var it = loginKeys.iterator();
 			if (it.hasNext()) { // 不确定loginKeys是否稳定,所以还是判断一下保险
 				var loginKey = it.next();
-				return sendDirect(loginKey.account, loginKey.clientId, typeId, fullEncodedProtocol, trySend) ? 1 : 0;
+				return sendDirect(loginKey.getAccount(), loginKey.getClientId(), typeId, fullEncodedProtocol, trySend) ? 1 : 0;
 			}
 		} else if (loginCount > 1) {
-			return sendDirect(loginKeys instanceof Set ? (Set<LoginKey>)loginKeys : new HashSet<>(loginKeys),
+			return sendDirect(loginKeys instanceof Set ? (Set<BLoginKey>)loginKeys : new HashSet<>(loginKeys),
 					typeId, fullEncodedProtocol, trySend);
 //			var p = providerApp.zeze.newProcedure(() -> {
 //				sendEmbed(loginKeys, typeId, fullEncodedProtocol);
@@ -1083,14 +1058,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		send(account, clientId, r);
 	}
 
-	public void send(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
+	public void send(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		if (logins.size() <= 0)
 			return;
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId)) {
 			var sb = new StringBuilder();
 			for (var login : logins)
-				sb.append(login.account).append(',').append(login.clientId).append(';');
+				sb.append(login.getAccount()).append(',').append(login.getClientId()).append(';');
 			int n = sb.length();
 			if (n > 0)
 				sb.setLength(n - 1);
@@ -1104,7 +1079,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileCommit(() -> send(account, clientId, p));
 	}
 
-	public void sendWhileCommit(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
+	public void sendWhileCommit(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(logins, p));
 	}
 
@@ -1119,7 +1094,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileRollback(() -> send(account, clientId, p));
 	}
 
-	public void sendWhileRollback(@NotNull Collection<LoginKey> logins, @NotNull Protocol<?> p) {
+	public void sendWhileRollback(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
 
@@ -1207,7 +1182,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 				groups.put(linkName, group = new LinkRoles(linkName, linkSocket, typeId, fullEncodedProtocol));
 			}
 			group.send.Argument.getLinkSids().add(link.getLinkSid());
-			group.accounts.add(new LoginKey(account, e.getKey()));
+			group.accounts.add(new BLoginKey(account, e.getKey()));
 		}
 		int sendCount = 0;
 		for (var group : groups.values()) {
@@ -1256,7 +1231,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 					groups.put(linkName, group = new LinkRoles(linkName, linkSocket, typeId, fullEncodedProtocol));
 				}
 				group.send.Argument.getLinkSids().add(link.getLinkSid());
-				group.accounts.add(new LoginKey(account, e.getKey()));
+				group.accounts.add(new BLoginKey(account, e.getKey()));
 			}
 		}
 		int sendCount = 0;
@@ -1360,16 +1335,17 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 * @param target     目标角色
 	 */
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-						 @NotNull String target, @Nullable Serializable parameter) {
-		transmit(account, clientId, actionName, List.of(target), parameter);
+						 @NotNull String target, @NotNull String targetClientId, @Nullable Serializable parameter) {
+		transmit(account, clientId, actionName, List.of(new BLoginKey(target, targetClientId)), parameter);
 	}
 
 	public void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-								@NotNull Collection<String> accounts, @Nullable Binary parameter) {
+								@NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {
-				providerApp.zeze.newProcedure(() -> handle.call(account, clientId, target, parameter),
+				providerApp.zeze.newProcedure(() ->
+								handle.call(account, clientId, target.getAccount(), target.getClientId(), parameter),
 						"Online.processTransmit:" + actionName).call();
 			}
 		}
@@ -1377,7 +1353,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	public static class RoleOnServer {
 		public final int serverId; // empty when not online
-		public final HashSet<String> accounts = new HashSet<>();
+		public final HashSet<BLoginKey> accounts = new HashSet<>();
 
 		RoleOnServer() {
 			this(-1);
@@ -1387,26 +1363,30 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			this.serverId = serverId;
 		}
 
-		void addAll(@NotNull HashSet<String> accounts) {
+		void addAll(@NotNull HashSet<BLoginKey> accounts) {
 			this.accounts.addAll(accounts);
 		}
 	}
 
-	public @NotNull IntHashMap<RoleOnServer> groupByServer(@NotNull Collection<String> accounts) {
+	public @NotNull IntHashMap<RoleOnServer> groupByServer(@NotNull Collection<BLoginKey> accounts) {
 		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(groupNotOnline.serverId, groupNotOnline);
 
 		for (var account : accounts) {
-			var online = getOnline(account);
+			var online = getOnline(account.getAccount());
 			if (online == null || online.getLogins().isEmpty()) {
 				// null != online 意味着这里肯定不为0，不会到达这个分支。
 				// 下面要求Logins.Count必须大于0，判断一下吧。
 				groupNotOnline.accounts.add(account);
 				continue;
 			}
-			// 这里随便找第一个，什么逻辑？
-			var serverId = online.getLogins().iterator().next().getValue().getServerId();
+			var login = online.getLogins().get(account.getClientId());
+			if (null == login) {
+				groupNotOnline.accounts.add(account);
+				continue;
+			}
+			var serverId = login.getServerId();
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(serverId);
 			if (group == null) {
@@ -1426,7 +1406,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void transmitInProcedure(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-									 @NotNull Collection<String> accounts, @Nullable Binary parameter) {
+									 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		if (providerApp.zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(account, clientId, actionName, accounts, parameter);
@@ -1448,7 +1428,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			transmit.Argument.setActionName(actionName);
 			transmit.Argument.setSenderAccount(account);
 			transmit.Argument.setSenderClientId(clientId);
-			transmit.Argument.getTargetAccounts().addAll(group.accounts);
+			transmit.Argument.getTargets().addAll(group.accounts);
 			if (parameter != null)
 				transmit.Argument.setParameter(parameter);
 
@@ -1472,7 +1452,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-						 @NotNull Collection<String> targets, @Nullable Serializable parameter) {
+						 @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 
@@ -1485,28 +1465,28 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-									@NotNull String target, @Nullable Serializable parameter) {
+									@NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(account, clientId, actionName, target, parameter));
+		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
 	}
 
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-									@NotNull Collection<String> targets, @Nullable Serializable parameter) {
+									@NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-									  @NotNull String target, @Nullable Serializable parameter) {
+									  @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(account, clientId, actionName, target, parameter));
+		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
 	}
 
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-									  @NotNull Collection<String> targets, @Nullable Serializable parameter) {
+									  @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targets, parameter));
