@@ -1339,7 +1339,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		transmit(account, clientId, actionName, List.of(new BLoginKey(target, targetClientId)), parameter);
 	}
 
-	public void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
+	private void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 								@NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {

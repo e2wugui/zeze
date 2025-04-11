@@ -267,8 +267,8 @@ public class TimerAccount {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
-				online.processTransmit(account, clientId, eTransmitSimpleTimer, List.of(new BLoginKey(account, clientId)),
-						new Binary(ByteBuffer.encode(p)));
+				online.transmit(account, clientId, eTransmitSimpleTimer,
+						List.of(new BLoginKey(account, clientId)), p);
 
 				logger.info("scheduleOnline(Simple): not online but transmit {}:{}", account, clientId);
 				return timerId; // 警告这个结果返回是不正确的。
@@ -316,8 +316,8 @@ public class TimerAccount {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
-				online.processTransmit(account, clientId, eTransmitSimpleTimer, List.of(new BLoginKey(account, clientId)),
-						new Binary(ByteBuffer.encode(p)));
+				online.transmit(account, clientId, eTransmitSimpleTimer,
+						List.of(new BLoginKey(account, clientId)), p);
 
 				logger.info("scheduleOnline(Simple): not online but transmit {}:{}", account, clientId);
 				return timerId; // 警告这个结果返回是不正确的。
@@ -397,9 +397,8 @@ public class TimerAccount {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
-				online.processTransmit(account, clientId, eTransmitCronTimer,
-						List.of(new BLoginKey(account, clientId)),
-						new Binary(ByteBuffer.encode(p)));
+				online.transmit(account, clientId, eTransmitCronTimer,
+						List.of(new BLoginKey(account, clientId)), p);
 				logger.info("scheduleOnline(Cron): not online but transmit {}:{}", account, clientId);
 				return timerId; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
@@ -444,9 +443,8 @@ public class TimerAccount {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
 				}
-				online.processTransmit(account, clientId, eTransmitCronTimer,
-						List.of(new BLoginKey(account, clientId)),
-						new Binary(ByteBuffer.encode(p)));
+				online.transmit(account, clientId, eTransmitCronTimer,
+						List.of(new BLoginKey(account, clientId)), p);
 				logger.info("scheduleOnline(Cron): not online but transmit {}:{}", account, clientId);
 				return timerId; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
