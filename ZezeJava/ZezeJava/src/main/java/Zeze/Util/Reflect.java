@@ -97,7 +97,7 @@ public class Reflect {
 
 	public static void checkDefaultConstructor(@NotNull Class<?> cls) {
 		try {
-			cls.getDeclaredConstructor().setAccessible(true);
+			cls.getDeclaredConstructor((Class<?>[])null).setAccessible(true);
 		} catch (NoSuchMethodException e) {
 			throw Task.forceThrow(e);
 		}
@@ -105,7 +105,7 @@ public class Reflect {
 
 	public static @NotNull MethodHandle getDefaultConstructor(@NotNull Class<?> cls) {
 		try {
-			var ctorMethod = cls.getDeclaredConstructor();
+			var ctorMethod = cls.getDeclaredConstructor((Class<?>[])null);
 			ctorMethod.setAccessible(true);
 			return lookup.unreflectConstructor(ctorMethod);
 		} catch (ReflectiveOperationException e) {

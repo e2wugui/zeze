@@ -322,7 +322,7 @@ public class TimerRole {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
-				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom = (Bean)customClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
 			if (p.isHot()) {
@@ -351,7 +351,7 @@ public class TimerRole {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
-				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom = (Bean)customClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
 			if (p.isHot()) {

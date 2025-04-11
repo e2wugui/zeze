@@ -22,7 +22,7 @@ public interface ZezeCounter {
 		if (className.isBlank() || className.equalsIgnoreCase("null"))
 			return null;
 		try {
-			return (ZezeCounter)Class.forName(className).getConstructor().newInstance();
+			return (ZezeCounter)Class.forName(className).getConstructor((Class<?>[])null).newInstance((Object[])null);
 		} catch (ReflectiveOperationException e) {
 			throw Task.forceThrow(e);
 		}

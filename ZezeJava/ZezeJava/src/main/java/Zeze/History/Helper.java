@@ -104,7 +104,7 @@ public class Helper {
 	@SuppressWarnings("unchecked")
 	public static void dependsBean(@NotNull Class<?> beanClass, @NotNull DependsResult result) throws Exception {
 		if (result.allBeans.add(beanClass)) {
-			var obj = beanClass.getConstructor().newInstance();
+			var obj = beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 			if (obj instanceof BeanKey) {
 				result.beanKeys.add((Class<? extends Serializable>)beanClass);
 				var beanKey = (BeanKey)obj;
@@ -152,7 +152,7 @@ public class Helper {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
 							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1)).invoke(null);
+							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					result.list2Dynamic.add(KV.create(db.getGetBean(), db.getCreateBean()));
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
@@ -185,7 +185,7 @@ public class Helper {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
 							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1)).invoke(null);
+							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
@@ -228,7 +228,7 @@ public class Helper {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
 							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1)).invoke(null);
+							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);

@@ -99,7 +99,7 @@ public class LogDynamic extends LogBean {
 			try {
 				var parentType = Class.forName(parentTypeName);
 				var factory = parentType.getMethod("createBeanFromSpecialTypeId_" + varId, long.class);
-				var bean = (Bean)factory.invoke(null, new Object[]{specialTypeId});
+				var bean = (Bean)factory.invoke(null, specialTypeId);
 				if (bean instanceof DynamicBean)
 					bean = ((DynamicBean)bean).getBean();
 				if (bean instanceof Collection) {

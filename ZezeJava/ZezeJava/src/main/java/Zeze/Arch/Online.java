@@ -49,7 +49,6 @@ import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -147,8 +146,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	@FunctionalInterface
 	public interface TransmitAction {
 		/**
-		 * @param senderAccount 查询发起者，结果发送给他
-		 * @param targetAccount 查询目标
+		 * @param senderAccount  查询发起者，结果发送给他
+		 * @param targetAccount  查询目标
 		 * @param targetClientId 查询目标
 		 * @return 按普通事务处理过程返回值处理
 		 */
@@ -1340,7 +1339,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void processTransmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
-								@NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
+								 @NotNull Collection<BLoginKey> accounts, @Nullable Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : accounts) {

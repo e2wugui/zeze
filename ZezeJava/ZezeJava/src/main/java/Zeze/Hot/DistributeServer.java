@@ -119,7 +119,7 @@ public class DistributeServer {
 		if (className.startsWith(solution)) {
 			var cls = Class.forName(className);
 			if (Bean.class.isAssignableFrom(cls)) // is bean
-				beans.put(cls.getName(), (Bean)cls.getConstructor().newInstance());
+				beans.put(cls.getName(), (Bean)cls.getConstructor((Class<?>[])null).newInstance((Object[])null));
 		}
 	}
 
@@ -128,5 +128,4 @@ public class DistributeServer {
 			super("Zeze.Hot.DistributeServer.ServerService", (Config)null);
 		}
 	}
-
 }

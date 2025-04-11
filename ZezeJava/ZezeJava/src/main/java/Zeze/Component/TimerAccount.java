@@ -70,7 +70,7 @@ public class TimerAccount {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
-				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom = (Bean)customClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
 			if (p.isHot()) {
@@ -103,7 +103,7 @@ public class TimerAccount {
 			Bean custom = null;
 			if (!p.getCustomClass().isEmpty()) {
 				var customClass = Class.forName(p.getCustomClass());
-				custom = (Bean)customClass.getDeclaredConstructor().newInstance();
+				custom = (Bean)customClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				custom.decode(ByteBuffer.Wrap(p.getCustomBean()));
 			}
 			if (p.isHot()) {
@@ -120,7 +120,6 @@ public class TimerAccount {
 		}
 		return 0;
 	}
-
 
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,

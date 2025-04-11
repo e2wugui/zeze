@@ -22,7 +22,7 @@ public final class Encrypt2 implements Codec {
 	static {
 		try {
 			var clsAESCrypt = Class.forName("com.sun.crypto.provider.AESCrypt");
-			var cryptCtor = clsAESCrypt.getDeclaredConstructor();
+			var cryptCtor = clsAESCrypt.getDeclaredConstructor((Class<?>[])null);
 			var mCryptInit = clsAESCrypt.getDeclaredMethod("init", boolean.class, String.class, byte[].class);
 			var mCryptEncrypt = clsAESCrypt.getDeclaredMethod("encryptBlock",
 					byte[].class, int.class, byte[].class, int.class);

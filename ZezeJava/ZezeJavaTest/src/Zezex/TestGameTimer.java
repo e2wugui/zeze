@@ -88,7 +88,10 @@ public class TestGameTimer {
 				+ " Next: " + context.nextExpectedTimeMills);
 	}
 
-	public static class TestOnlineTimerHandle implements TimerHandle {
+	private static class TestOnlineTimerHandle implements TimerHandle {
+		private TestOnlineTimerHandle() {
+		}
+
 		@Override
 		public void onTimer(TimerContext context) {
 			testContent(context);
@@ -171,7 +174,10 @@ public class TestGameTimer {
 		}
 	}
 
-	public static class TestOfflineTimerHandle implements TimerHandle {
+	private static class TestOfflineTimerHandle implements TimerHandle {
+		private TestOfflineTimerHandle() {
+		}
+
 		@Override
 		public void onTimer(TimerContext context) {
 			testContent(context);

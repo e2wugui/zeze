@@ -127,7 +127,7 @@ final class MethodOverride {
 						resultClass.getConstructor((Class<?>[])null);
 				} catch (NoSuchMethodException e) {
 					throw new IllegalStateException("RedirectFuture<> Result Type Must Be 'Long','Binary','String'"
-							+ " or any type contains default constructor: "
+							+ " or any type contains public default constructor: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
 			} else {

@@ -90,7 +90,7 @@ public final class Task {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
 			try {
 				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-						(Class<?>[])null).invoke(null);
+						(Class<?>[])null).invoke(null, (Object[])null);
 				logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
 				return es;
 			} catch (ReflectiveOperationException ignored) {
@@ -105,7 +105,7 @@ public final class Task {
 		if (USE_VIRTUAL_THREAD) {
 			try {
 				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-						(Class<?>[])null).invoke(null);
+						(Class<?>[])null).invoke(null, (Object[])null);
 				logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
 				return es;
 			} catch (ReflectiveOperationException ignored) {

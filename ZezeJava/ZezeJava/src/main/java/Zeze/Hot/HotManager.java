@@ -203,7 +203,7 @@ public class HotManager extends ClassLoader {
 					var current = currents.get(indexHot);
 					if (null != current) {
 						var curClass = current.loadClass(bean.getClass().getName());
-						var curBean = (Bean)curClass.getConstructor().newInstance();
+						var curBean = (Bean)curClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 						var bb = ByteBuffer.Allocate();
 						bean.encode(bb);
 						curBean.decode(bb);
@@ -249,7 +249,7 @@ public class HotManager extends ClassLoader {
 
 		try (var schemasCl = new HotModule(schemasJarFile)) {
 			var schemasClass = Class.forName(solutionName + ".Schemas", true, schemasCl);
-			return (Schemas)schemasClass.getConstructor().newInstance();
+			return (Schemas)schemasClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
 		} finally {
 			schemasJarFile.delete();
 		}

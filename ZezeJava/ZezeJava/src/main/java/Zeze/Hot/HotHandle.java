@@ -48,7 +48,9 @@ public class HotHandle<THandle> extends ReentrantLock {
 				hotModule.stopEvents.add(this::onHotModuleStop);
 			}
 
-			handle = (THandle)handleClass.getConstructor().newInstance();
+			var ctorMethod = handleClass.getDeclaredConstructor((Class<?>[])null);
+			ctorMethod.setAccessible(true);
+			handle = (THandle)ctorMethod.newInstance((Object[])null);
 			handleCache.put(handleClassName, handle);
 			return handle;
 		} catch (ReflectiveOperationException e) {

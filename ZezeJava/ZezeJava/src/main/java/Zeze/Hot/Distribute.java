@@ -90,7 +90,8 @@ public class Distribute {
 		if (!providerModuleBinds.isEmpty() && !configXml.isEmpty()) {
 			var config = Config.load(configXml);
 			if (new File(config.getHotWorkingDir()).exists()) {
-				var appBase = (AppBase)Class.forName(solutionName + ".App").getConstructor().newInstance();
+				var appBase = (AppBase)Class.forName(solutionName + ".App")
+						.getConstructor((Class<?>[])null).newInstance((Object[])null);
 				appBase.createZeze(config);
 				appBase.createService();
 				var providerApp = new ProviderApp(appBase.getZeze());
