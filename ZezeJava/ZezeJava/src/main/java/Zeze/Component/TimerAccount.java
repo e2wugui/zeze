@@ -244,21 +244,23 @@ public class TimerAccount {
 	}
 
 	private @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										   @NotNull BSimpleTimer simpleTimer, @NotNull Class<? extends TimerHandle> handle,
+										   @NotNull BSimpleTimer simpleTimer,
+										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData, boolean fromTransmit) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
 				logger.warn("schedule simple from transmit, but not login. account={} clientId={} handle={}",
-						account, clientId, handle.getName());
+						account, clientId, handleClass.getName());
 				return timerId;
 			}
 
 			if (null != onlineVersion) {
 				var p = new BTransmitSimpleTimer();
 				p.setTimerId(timerId);
-				p.setHandleClass(handle.getName());
+				p.setHandleClass(handleClass.getName());
 				p.setSimpleTimer(simpleTimer);
 				p.setLoginVersion(onlineVersion);
 				p.setHot(false);
@@ -286,7 +288,7 @@ public class TimerAccount {
 			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
-		var iHandle = online.providerApp.zeze.getTimer().findTimerHandle(handle.getName());
+		var iHandle = online.providerApp.zeze.getTimer().findTimerHandle(handleClass.getName());
 		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), iHandle);
 		return timerId;
 	}
@@ -295,11 +297,12 @@ public class TimerAccount {
 											  @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
 											  @NotNull Class<? extends TimerHandle> handleClass,
 											  @Nullable Bean customData, boolean fromTransmit) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule simple from transmit, but not login. account={} clientId={} handle={}",
+				logger.warn("schedule hot simple from transmit, but not login. account={} clientId={} handle={}",
 						account, clientId, handleClass.getName());
 				return timerId;
 			}
@@ -318,7 +321,7 @@ public class TimerAccount {
 				online.transmit(account, clientId, eTransmitSimpleTimer,
 						List.of(new BLoginKey(account, clientId)), p);
 
-				logger.info("scheduleOnline(Simple): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnlineHot(Simple): not online but transmit {}:{}", account, clientId);
 				return timerId; // 警告这个结果返回是不正确的。
 			}
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
@@ -375,21 +378,23 @@ public class TimerAccount {
 	}
 
 	private @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										   @NotNull BCronTimer cronTimer, @NotNull Class<? extends TimerHandle> handle,
+										   @NotNull BCronTimer cronTimer,
+										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData, boolean fromTransmit) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
 				logger.warn("schedule cron from transmit, but not login. roleId={} clientId={}, handle={}",
-						account, clientId, handle.getName());
+						account, clientId, handleClass.getName());
 				return timerId;
 			}
 			if (onlineVersion != null) {
 				var p = new BTransmitCronTimer();
 				p.setTimerId(timerId);
 				p.setCronTimer(cronTimer);
-				p.setHandleClass(handle.getName());
+				p.setHandleClass(handleClass.getName());
 				p.setLoginVersion(onlineVersion);
 				p.setHot(false);
 				if (customData != null) {
@@ -414,7 +419,7 @@ public class TimerAccount {
 			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
-		var iHandle = online.providerApp.zeze.getTimer().findTimerHandle(handle.getName());
+		var iHandle = online.providerApp.zeze.getTimer().findTimerHandle(handleClass.getName());
 		scheduleCron(timerId, cronTimer, iHandle);
 		return timerId;
 	}
@@ -423,11 +428,12 @@ public class TimerAccount {
 											  @NotNull String timerId, @NotNull BCronTimer cronTimer,
 											  @NotNull Class<? extends TimerHandle> handleClass,
 											  @Nullable Bean customData, boolean fromTransmit) {
+		Reflect.checkDefaultConstructor(handleClass);
 		var loginVersion = online.getLocalLoginVersion(account, clientId);
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule cron from transmit, but not login. roleId={} clientId={}, handle={}",
+				logger.warn("schedule hot cron from transmit, but not login. roleId={} clientId={}, handle={}",
 						account, clientId, handleClass.getName());
 				return timerId;
 			}
@@ -444,7 +450,7 @@ public class TimerAccount {
 				}
 				online.transmit(account, clientId, eTransmitCronTimer,
 						List.of(new BLoginKey(account, clientId)), p);
-				logger.info("scheduleOnline(Cron): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnlineHot(Cron): not online but transmit {}:{}", account, clientId);
 				return timerId; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
 			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
