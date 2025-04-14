@@ -748,8 +748,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var node = _tNodes.get(nodeId);
 			if (node != null) {
 				var timer = node.getTimers().get(timerId);
-				if (timer != null)
-					handle = findTimerHandle(timer.getHandleName());
+				if (timer != null) {
+					try {
+						handle = findTimerHandle(timer.getHandleName());
+					} catch (Exception e) {
+						logger.error("cancel: findTimerHandle({}) exception:", timer.getHandleName(), e);
+					}
+				}
 			}
 			cancel(serverId, timerId, nodeId, node, handle);
 		} else // 定时器数据已经不存在了,尝试移除future
