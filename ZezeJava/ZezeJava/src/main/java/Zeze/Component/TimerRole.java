@@ -1,18 +1,19 @@
 package Zeze.Component;
 
 import java.text.ParseException;
+import java.util.List;
+import Zeze.Builtin.Timer.BCronTimer;
+import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
+import Zeze.Builtin.Timer.BOnlineTimers;
+import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Builtin.Timer.BTransmitCancelRoleTimer;
 import Zeze.Builtin.Timer.BTransmitCronTimer;
 import Zeze.Builtin.Timer.BTransmitSimpleTimer;
 import Zeze.Game.LocalRemoveEventArgument;
 import Zeze.Game.LoginArgument;
 import Zeze.Game.Online;
-import Zeze.Builtin.Timer.BCronTimer;
-import Zeze.Builtin.Timer.BGameOnlineTimer;
-import Zeze.Builtin.Timer.BOnlineTimers;
-import Zeze.Builtin.Timer.BSimpleTimer;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
@@ -28,8 +29,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import javax.validation.constraints.Null;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -189,8 +188,8 @@ public class TimerRole {
 		var loginOnlineShared = online.getLoginOnlineShared(roleId);
 		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
-				logger.warn("schedule simple from transmit, but not login. roleId={}, handle={}",
-						roleId, handleClass.getName());
+				logger.warn("schedule simple from transmit, but not login. roleId={}, timerId={}, handle={}",
+						roleId, timerId, handleClass.getName());
 				return;
 			}
 			if (loginOnlineShared != null) {
@@ -207,10 +206,10 @@ public class TimerRole {
 				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId),
 						new Binary(ByteBuffer.encode(p)), false);
 
-				logger.info("scheduleOnline(Simple): not online but transmit {}", roleId);
+				logger.info("scheduleOnline(Simple): not online but transmit {} {}", roleId, timerId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new IllegalStateException("not online " + roleId);
+			throw new IllegalStateException("not online " + roleId + ", " + timerId);
 		}
 
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
@@ -239,8 +238,8 @@ public class TimerRole {
 		var loginOnlineShared = online.getLoginOnlineShared(roleId);
 		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
-				logger.warn("schedule hot simple from transmit, but not login. roleId={}, handle={}",
-						roleId, handleClass.getName());
+				logger.warn("schedule hot simple from transmit, but not login. roleId={}, timerId={}, handle={}",
+						roleId, timerId, handleClass.getName());
 				return;
 			}
 			if (loginOnlineShared != null) {
@@ -257,7 +256,7 @@ public class TimerRole {
 				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)),
 						false);
 			}
-			logger.info("scheduleOnlineHot(Simple): not online {}", roleId);
+			logger.info("scheduleOnlineHot(Simple): not online {} {}", roleId, timerId);
 		} else {
 			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
 					online.providerApp.zeze.getTimer().timerSerialId.nextId());
@@ -313,8 +312,8 @@ public class TimerRole {
 		return timerId;
 	}
 
-	private long transmitOnlineCronTimer(long sender, long target, @Nullable Binary parameter)
-			throws Exception {
+	private long transmitOnlineCronTimer(long sender, long target,
+										 @Nullable Binary parameter) throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
 
@@ -354,8 +353,8 @@ public class TimerRole {
 		return 0;
 	}
 
-	private long transmitOnlineSimpleTimer(long sender, long target, @Nullable Binary parameter)
-			throws Exception {
+	private long transmitOnlineSimpleTimer(long sender, long target,
+										   @Nullable Binary parameter) throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
 
@@ -391,8 +390,8 @@ public class TimerRole {
 		var loginOnlineShared = online.getLoginOnlineShared(roleId);
 		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
-				logger.warn("schedule cron from transmit, but not login. roleId={}, handle={}",
-						roleId, handleClass.getName());
+				logger.warn("schedule cron from transmit, but not login. roleId={}, timerId={}, handle={}",
+						roleId, timerId, handleClass.getName());
 				return;
 			}
 			if (loginOnlineShared != null) {
@@ -408,10 +407,10 @@ public class TimerRole {
 				}
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)),
 						false);
-				logger.info("scheduleOnline(Cron): not online but transmit {}", roleId);
+				logger.info("scheduleOnline(Cron): not online but transmit {} {}", roleId, timerId);
 				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new IllegalStateException("not online " + roleId);
+			throw new IllegalStateException("not online " + roleId + ", " + timerId);
 		}
 
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
@@ -439,8 +438,8 @@ public class TimerRole {
 		var loginOnlineShared = online.getLoginOnlineShared(roleId);
 		if (loginVersion == null || loginOnlineShared == null || loginVersion != loginOnlineShared.getLoginVersion()) {
 			if (fromTransmit) {
-				logger.warn("schedule hot cron from transmit, but not login. roleId={}, handle={}",
-						roleId, handleClass.getName());
+				logger.warn("schedule hot cron from transmit, but not login. roleId={}, timerId={}, handle={}",
+						roleId, timerId, handleClass.getName());
 				return;
 			}
 			if (loginOnlineShared != null) {
@@ -457,7 +456,7 @@ public class TimerRole {
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)),
 						false);
 			}
-			logger.info("scheduleOnlineHot(Cron): not online {}", roleId);
+			logger.info("scheduleOnlineHot(Cron): not online {} {}", roleId, timerId);
 			return;
 		}
 
@@ -497,15 +496,16 @@ public class TimerRole {
 			return false;
 
 		// remove online local
-		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getRoleId(), eOnlineTimers);
+		var roleId = bTimer.getRoleId();
+		var onlineTimers = (BOnlineTimers)online.getLocalBean(roleId, eOnlineTimers);
 		if (onlineTimers != null) {
 			onlineTimers.getTimerIds().remove(timerId);
 			if (onlineTimers.getTimerIds().isEmpty())
-				online.removeLocalBean(bTimer.getRoleId(), eOnlineTimers);
+				online.removeLocalBean(roleId, eOnlineTimers);
 		}
 		// always remove from table
 		online._tRoleTimers().remove(timerId);
-		logger.debug("cancel online timer: timerId={}, roleId={}", timerId, bTimer.getRoleId());
+		logger.debug("cancel online timer: timerId={}, roleId={}", timerId, roleId);
 		return true;
 	}
 
@@ -515,10 +515,11 @@ public class TimerRole {
 
 		var localVersion = online.getLocalLoginVersion(roleId);
 		var sharedVersion = online.getLoginOnlineShared(roleId);
-		if (sharedVersion != null && !((Long)sharedVersion.getLoginVersion()).equals(localVersion)) {
+		if (sharedVersion != null && (localVersion == null || localVersion != sharedVersion.getLoginVersion())) {
 			// 判断包括了localVersion是null的情况。
 			if (fromTransmit) {
-				logger.warn("cancelOnline from transmit, but not login at local server. roleId={}", roleId);
+				logger.warn("cancelOnline from transmit, but not login at local server. roleId={}, timerId={}",
+						roleId, timerId);
 				return true;
 			}
 			var p = new BTransmitCancelRoleTimer();
@@ -529,7 +530,7 @@ public class TimerRole {
 			online.transmitEmbed(roleId, eTransmitCancelRoleTimer, List.of(roleId),
 					new Binary(ByteBuffer.encode(p)), false);
 
-			logger.info("cancelOnline: transmit {}", roleId);
+			logger.info("cancelOnline: transmit {} {}", roleId, timerId);
 			return true; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 		}
 		return cancelOnlineLocal(timerId);
@@ -609,7 +610,7 @@ public class TimerRole {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (logoutVersion == null)
-			throw new IllegalStateException("not logout. roleId=" + roleId);
+			throw new IllegalStateException("not logout. roleId=" + roleId + ", timerId=" + timerId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineRoleCustom(timerId, roleId, logoutVersion, handleClass.getName(),
@@ -627,11 +628,12 @@ public class TimerRole {
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(simple): too many timers. roleId={}, handle={}, size={} > {}",
-					roleId, handleClass.getName(), offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(simple): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
+					roleId, timerId, handleClass.getName(), offline.getOfflineTimers().size(),
+					config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
-			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
+			throw new IllegalStateException("duplicate timerId. roleId=" + roleId + ", timerId=" + timerId);
 		logger.debug("add offline simple timer: timerId={}, roleId={}, handle={}",
 				timerId, roleId, handleClass.getName());
 	}
@@ -689,7 +691,7 @@ public class TimerRole {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(roleId);
 		if (logoutVersion == null)
-			throw new IllegalStateException("not logout. roleId=" + roleId);
+			throw new IllegalStateException("not logout. roleId=" + roleId + ", timerId=" + timerId);
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineRoleCustom(timerId, roleId, logoutVersion, handleClass.getName(),
@@ -712,11 +714,12 @@ public class TimerRole {
 		var offline = online._tRoleOfflineTimers().getOrAdd(roleId);
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. roleId=" + roleId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(cron): too many timers. roleId={}, handle={}, size={} > {}",
-					roleId, handleClass.getName(), offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
+			logger.error("scheduleOffline(cron): too many timers. roleId={}, timerId={}, handle={}, size={} > {}",
+					roleId, timerId, handleClass.getName(), offline.getOfflineTimers().size(),
+					config.getOfflineTimerLimit());
 		}
 		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
-			throw new IllegalStateException("duplicate timerId. roleId=" + roleId);
+			throw new IllegalStateException("duplicate timerId. roleId=" + roleId + ", timerId=" + timerId);
 		logger.debug("add offline cron timer: timerId={}, roleId={}, handle={}",
 				timerId, roleId, handleClass.getName());
 	}
@@ -815,7 +818,7 @@ public class TimerRole {
 		try {
 			scheduleOnlineCronNext(timerId, cron.getNextExpectedTime() - System.currentTimeMillis(), handle);
 		} catch (Exception ex) {
-			Timer.logger.error("", ex);
+			logger.error("scheduleOnlineCron exception:", ex);
 		}
 	}
 
@@ -824,7 +827,7 @@ public class TimerRole {
 		try {
 			scheduleOnlineCronNextHot(timerId, cron.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
 		} catch (Exception ex) {
-			Timer.logger.error("", ex);
+			logger.error("scheduleOnlineCronHot exception:", ex);
 		}
 	}
 

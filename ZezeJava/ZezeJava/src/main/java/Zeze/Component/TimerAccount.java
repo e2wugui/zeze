@@ -58,10 +58,9 @@ public class TimerAccount {
 		online.getLoginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
 	}
 
-	private long transmitOnlineCronTimer(String senderAccount, String senderClientId,
-										 String targetAccount, String targetClientId,
-										 @Nullable Binary parameter)
-			throws Exception {
+	private long transmitOnlineCronTimer(@NotNull String senderAccount, @NotNull String senderClientId,
+										 @NotNull String targetAccount, @NotNull String targetClientId,
+										 @Nullable Binary parameter) throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
 
@@ -91,9 +90,9 @@ public class TimerAccount {
 		return 0;
 	}
 
-	private long transmitCancelAccountTimer(String senderAccount, String senderClientId,
-										   String targetAccount, String targetClientId,
-										   @Nullable Binary parameter) {
+	private long transmitCancelAccountTimer(@NotNull String senderAccount, @NotNull String senderClientId,
+											@NotNull String targetAccount, @NotNull String targetClientId,
+											@Nullable Binary parameter) {
 		if (parameter == null)
 			return 0;
 		var p = new BTransmitCancelAccountTimer();
@@ -105,10 +104,9 @@ public class TimerAccount {
 		return 0;
 	}
 
-	private long transmitOnlineSimpleTimer(String senderAccount, String senderClientId,
-										   String targetAccount, String targetClientId,
-										   @Nullable Binary parameter)
-			throws Exception {
+	private long transmitOnlineSimpleTimer(@NotNull String senderAccount, @NotNull String senderClientId,
+										   @NotNull String targetAccount, @NotNull String targetClientId,
+										   @Nullable Binary parameter) throws ReflectiveOperationException {
 		if (parameter == null)
 			return 0;
 
@@ -185,14 +183,15 @@ public class TimerAccount {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   @NotNull String cron, long times, long endTime,
-									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) throws Exception {
+									   @NotNull Class<? extends TimerHandle> handle,
+									   @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineNamed(account, clientId, timerId, cron, times, endTime, handle, customData, "");
 	}
 
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   @NotNull String cron, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
-									   @NotNull String oneByOneKey) throws Exception {
+									   @NotNull String oneByOneKey) throws ParseException {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
@@ -207,14 +206,14 @@ public class TimerAccount {
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws Exception {
+										  @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineNamedHot(account, clientId, timerId, cron, times, endTime, handleClass, customData, "");
 	}
 
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) throws Exception {
+										  @NotNull String oneByOneKey) throws ParseException {
 		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
 			return false;
 
@@ -269,8 +268,8 @@ public class TimerAccount {
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule simple from transmit, but not login. account={} clientId={} handle={}",
-						account, clientId, handleClass.getName());
+				logger.warn("schedule simple from transmit, but not login. account={} clientId={} timerId={} handle={}",
+						account, clientId, timerId, handleClass.getName());
 				return timerId;
 			}
 
@@ -288,10 +287,11 @@ public class TimerAccount {
 				online.transmit(account, clientId, eTransmitSimpleTimer,
 						List.of(new BLoginKey(account, clientId)), p);
 
-				logger.info("scheduleOnline(Simple): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnline(Simple): not online but transmit {}:{} {}", account, clientId, timerId);
 				return timerId; // 警告这个结果返回是不正确的。
 			}
-			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
+			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
 		}
 
 		var timer = online.providerApp.zeze.getTimer();
@@ -319,8 +319,8 @@ public class TimerAccount {
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule hot simple from transmit, but not login. account={} clientId={} handle={}",
-						account, clientId, handleClass.getName());
+				logger.warn("schedule hot simple from transmit, but not login. account={} clientId={} timerId={} handle={}",
+						account, clientId, timerId, handleClass.getName());
 				return timerId;
 			}
 
@@ -338,10 +338,11 @@ public class TimerAccount {
 				online.transmit(account, clientId, eTransmitSimpleTimer,
 						List.of(new BLoginKey(account, clientId)), p);
 
-				logger.info("scheduleOnlineHot(Simple): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnlineHot(Simple): not online but transmit {}:{} {}", account, clientId, timerId);
 				return timerId; // 警告这个结果返回是不正确的。
 			}
-			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
+			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
 		}
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, timer.timerSerialId.nextId());
@@ -360,13 +361,14 @@ public class TimerAccount {
 
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
-										  @Nullable Bean customData) throws Exception {
+										  @Nullable Bean customData) throws ParseException {
 		return scheduleOnline(account, clientId, cron, times, endTime, handle, customData, "");
 	}
 
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
-										  @Nullable Bean customData, @NotNull String oneByOneKey) throws Exception {
+										  @Nullable Bean customData,
+										  @NotNull String oneByOneKey) throws ParseException {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 
@@ -379,14 +381,15 @@ public class TimerAccount {
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 											 long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) throws Exception {
+											 @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineHot(account, clientId, cron, times, endTime, handleClass, customData, "");
 	}
 
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 											 long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData, @NotNull String oneByOneKey) throws Exception {
+											 @Nullable Bean customData,
+											 @NotNull String oneByOneKey) throws ParseException {
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
 		return scheduleOnlineHot(account, clientId,
@@ -403,8 +406,8 @@ public class TimerAccount {
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule cron from transmit, but not login. roleId={} clientId={}, handle={}",
-						account, clientId, handleClass.getName());
+				logger.warn("schedule cron from transmit, but not login. roleId={} clientId={} timerId={} handle={}",
+						account, clientId, timerId, handleClass.getName());
 				return timerId;
 			}
 			if (onlineVersion != null) {
@@ -420,10 +423,11 @@ public class TimerAccount {
 				}
 				online.transmit(account, clientId, eTransmitCronTimer,
 						List.of(new BLoginKey(account, clientId)), p);
-				logger.info("scheduleOnline(Cron): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnline(Cron): not online but transmit {}:{} {}", account, clientId, timerId);
 				return timerId; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
+			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
 		}
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, timer.timerSerialId.nextId());
@@ -450,8 +454,8 @@ public class TimerAccount {
 		var onlineVersion = online.getLoginVersion(account, clientId);
 		if (loginVersion == null || !loginVersion.equals(onlineVersion)) {
 			if (fromTransmit) {
-				logger.warn("schedule hot cron from transmit, but not login. roleId={} clientId={}, handle={}",
-						account, clientId, handleClass.getName());
+				logger.warn("schedule hot cron from transmit, but not login. roleId={} clientId={} timerId={} handle={}",
+						account, clientId, timerId, handleClass.getName());
 				return timerId;
 			}
 			if (onlineVersion != null) {
@@ -467,10 +471,11 @@ public class TimerAccount {
 				}
 				online.transmit(account, clientId, eTransmitCronTimer,
 						List.of(new BLoginKey(account, clientId)), p);
-				logger.info("scheduleOnlineHot(Cron): not online but transmit {}:{}", account, clientId);
+				logger.info("scheduleOnlineHot(Cron): not online but transmit {}:{} {}", account, clientId, timerId);
 				return timerId; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId);
+			throw new IllegalStateException("not login. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
 		}
 		var timer = online.providerApp.zeze.getTimer();
 		var onlineTimer = new BArchOnlineTimer(account, clientId, loginVersion, timer.timerSerialId.nextId());
@@ -543,8 +548,8 @@ public class TimerAccount {
 		if (sharedVersion != null && !sharedVersion.equals(localVersion)) {
 			// 判断包括了localVersion是null的情况。
 			if (fromTransmit) {
-				logger.warn("cancelOnline from transmit, but not login at local server. account={} clientId={}",
-						account, clientId);
+				logger.warn("cancelOnline from transmit, but not login at local server. account={} clientId={} timerId={}",
+						account, clientId, timerId);
 				return true;
 			}
 			// 判断包括了localVersion是null的情况。
@@ -557,7 +562,7 @@ public class TimerAccount {
 			online.transmit(account, clientId, eTransmitCancelAccountTimer,
 					List.of(new BLoginKey(account, clientId)), p);
 
-			logger.info("cancelOnline: transmit {} {}", account, clientId);
+			logger.info("cancelOnline: transmit {}:{} {}", account, clientId, timerId);
 			return true; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 		}
 		return cancelOnlineLocal(timerId);
@@ -615,8 +620,10 @@ public class TimerAccount {
 								 @Nullable Bean customData, @NotNull String oneByOneKey) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
-		if (logoutVersion == null)
-			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
+		if (logoutVersion == null) {
+			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
+		}
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
@@ -633,12 +640,14 @@ public class TimerAccount {
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(simple): too many timers. account={}, clientId={}, handle={}, size={} > {}",
-					account, clientId, handleClass.getName(),
+			logger.error("scheduleOffline(simple): too many timers. account={}, clientId={}, timerId={}, handle={}, size={} > {}",
+					account, clientId, timerId, handleClass.getName(),
 					offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
-		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
-			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
+		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null) {
+			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
+		}
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -688,8 +697,10 @@ public class TimerAccount {
 								 @NotNull String oneByOneKey, @Nullable BIndex index) throws ParseException {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
-		if (logoutVersion == null)
-			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId);
+		if (logoutVersion == null) {
+			throw new IllegalStateException("not logout. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
+		}
 
 		var timer = online.providerApp.zeze.getTimer();
 		var custom = new BOfflineAccountCustom(timerId, account, clientId, logoutVersion, handleClass.getName());
@@ -711,12 +722,14 @@ public class TimerAccount {
 		var offline = timer.tAccountOfflineTimers().getOrAdd(new BAccountClientId(account, clientId));
 		if (offline.getOfflineTimers().size() > config.getOfflineTimerLimit()) {
 			// throw new IllegalStateException("too many offline timers. account=" + account + " clientId=" + clientId + " size=" + offline.getOfflineTimers().size());
-			logger.error("scheduleOffline(cron): too many timers. account={}, clientId={}, handle={}, size={} > {}",
-					account, clientId, handleClass.getName(),
+			logger.error("scheduleOffline(cron): too many timers. account={}, clientId={}, timerId={}, handle={}, size={} > {}",
+					account, clientId, timerId, handleClass.getName(),
 					offline.getOfflineTimers().size(), config.getOfflineTimerLimit());
 		}
-		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null)
-			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId);
+		if (offline.getOfflineTimers().putIfAbsent(timerId, config.getServerId()) != null) {
+			throw new IllegalStateException("duplicate timerId. account=" + account + " clientId=" + clientId
+					+ " timerId=" + timerId);
+		}
 	}
 
 	/// ///////////////////////////////////////////////////////////////////////////////////////
@@ -781,7 +794,7 @@ public class TimerAccount {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNext(timerId, delay, handle);
 		} catch (Exception ex) {
-			Timer.logger.error("", ex);
+			logger.error("scheduleCron exception:", ex);
 		}
 	}
 
@@ -791,7 +804,7 @@ public class TimerAccount {
 			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
 			scheduleCronNextHot(timerId, delay, handleClass);
 		} catch (Exception ex) {
-			Timer.logger.error("", ex);
+			logger.error("scheduleCronHot exception:", ex);
 		}
 	}
 
