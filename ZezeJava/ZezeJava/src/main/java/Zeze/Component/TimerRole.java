@@ -487,7 +487,7 @@ public class TimerRole {
 
 	private boolean cancelOnlineLocal(@Nullable String timerId) {
 		if (null == timerId)
-			return false;
+			return true;
 		// always cancel future task，第一步就做这个。
 		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().cancelFuture(timerId));
 
