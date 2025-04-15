@@ -489,13 +489,13 @@ public class TimerAccount {
 
 	public boolean cancel(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
 		if (null == timerId)
-			return false;
+			return true;
 		return cancelOnline(timerId, account, clientId) || cancelOffline(timerId, account, clientId);
 	}
 
 	public boolean cancelOffline(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
 		if (null == timerId)
-			return false;
+			return true;
 		var timer = online.providerApp.zeze.getTimer();
 		timer.cancel(timerId);
 		var bTimers = timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
@@ -510,7 +510,7 @@ public class TimerAccount {
 
 	private boolean cancelOnlineLocal(@Nullable String timerId) {
 		if (null == timerId)
-			return false;
+			return true;
 
 		var timer = online.providerApp.zeze.getTimer();
 		// always cancel future task. 第一步就做这个。
@@ -536,7 +536,7 @@ public class TimerAccount {
 
 	private boolean cancelOnline(@Nullable String timerId, @NotNull String account, @NotNull String clientId, boolean fromTransmit) {
 		if (null == timerId)
-			return false;
+			return true;
 
 		var localVersion = online.getLocalLoginVersion(account, clientId);
 		var sharedVersion = online.getLoginVersion(account, clientId);
