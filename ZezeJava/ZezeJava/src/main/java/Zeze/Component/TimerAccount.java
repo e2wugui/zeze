@@ -13,6 +13,7 @@ import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineAccountCustom;
 import Zeze.Builtin.Timer.BOnlineTimers;
 import Zeze.Builtin.Timer.BSimpleTimer;
+import Zeze.Builtin.Timer.BTransmitCancelAccountTimer;
 import Zeze.Builtin.Timer.BTransmitCronTimer;
 import Zeze.Builtin.Timer.BTransmitSimpleTimer;
 import Zeze.Hot.HotHandle;
@@ -42,6 +43,7 @@ public class TimerAccount {
 	public static final String eOnlineTimers = "Zeze.Component.TimerArchOnline";
 	public static final String eTransmitCronTimer = "Zeze.TimerAccount.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerAccount.TransmitSimpleTimer";
+	public static final String eTransmitCancelAccountTimer = "Zeze.TimerAccount.TransmitCancelAccountTimer";
 
 	private final @NotNull Online online;
 
@@ -50,6 +52,7 @@ public class TimerAccount {
 
 		online.getTransmitActions().put(eTransmitCronTimer, this::transmitOnlineCronTimer);
 		online.getTransmitActions().put(eTransmitSimpleTimer, this::transmitOnlineSimpleTimer);
+		online.getTransmitActions().put(eTransmitCancelAccountTimer, this::transmitCancelAccountTimer);
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, this::onLocalRemoveEvent);
 		online.getLoginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
@@ -84,6 +87,20 @@ public class TimerAccount {
 				scheduleOnline(senderAccount, senderClientId,
 						p.getTimerId(), p.getCronTimer(), handleClass, custom, true);
 			}
+		}
+		return 0;
+	}
+
+	private long transmitCancelAccountTimer(String senderAccount, String senderClientId,
+										   String targetAccount, String targetClientId,
+										   @Nullable Binary parameter) {
+		if (parameter == null)
+			return 0;
+		var p = new BTransmitCancelAccountTimer();
+		p.decode(ByteBuffer.Wrap(parameter));
+		var loginOnlineShared = online.getLoginVersion(p.getAccount(), p.getClientId());
+		if (loginOnlineShared != null && p.getLoginVersion() == loginOnlineShared) {
+			cancelOnline(p.getTimerId(), p.getAccount(), p.getClientId(), true);
 		}
 		return 0;
 	}
@@ -470,7 +487,31 @@ public class TimerAccount {
 		return timerId;
 	}
 
-	public boolean cancel(@NotNull String timerId) {
+	public boolean cancel(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+		if (null == timerId)
+			return false;
+		return cancelOnline(timerId, account, clientId) || cancelOffline(timerId, account, clientId);
+	}
+
+	public boolean cancelOffline(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+		if (null == timerId)
+			return false;
+		var timer = online.providerApp.zeze.getTimer();
+		timer.cancel(timerId);
+		var bTimers = timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
+		if (bTimers != null)
+			bTimers.getOfflineTimers().remove(timerId);
+		return true;
+	}
+
+	public boolean cancelOnline(@Nullable String timerId, @NotNull String account, @NotNull String clientId) {
+		return cancelOnline(timerId, account, clientId, false);
+	}
+
+	private boolean cancelOnlineLocal(@Nullable String timerId) {
+		if (null == timerId)
+			return false;
+
 		var timer = online.providerApp.zeze.getTimer();
 		// always cancel future task. 第一步就做这个。
 		Transaction.whileCommit(() -> timer.cancelFuture(timerId));
@@ -493,6 +534,35 @@ public class TimerAccount {
 		return true;
 	}
 
+	private boolean cancelOnline(@Nullable String timerId, @NotNull String account, @NotNull String clientId, boolean fromTransmit) {
+		if (null == timerId)
+			return false;
+
+		var localVersion = online.getLocalLoginVersion(account, clientId);
+		var sharedVersion = online.getLoginVersion(account, clientId);
+		if (sharedVersion != null && !sharedVersion.equals(localVersion)) {
+			// 判断包括了localVersion是null的情况。
+			if (fromTransmit) {
+				logger.warn("cancelOnline from transmit, but not login at local server. account={} clientId={}",
+						account, clientId);
+				return true;
+			}
+			// 判断包括了localVersion是null的情况。
+			var p = new BTransmitCancelAccountTimer();
+			p.setTimerId(timerId);
+			p.setAccount(account);
+			p.setClientId(clientId);
+			p.setLoginVersion(sharedVersion);
+
+			online.transmit(account, clientId, eTransmitCancelAccountTimer,
+					List.of(new BLoginKey(account, clientId)), p);
+
+			logger.info("cancelOnline: transmit {} {}", account, clientId);
+			return true; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
+		}
+		return cancelOnlineLocal(timerId);
+	}
+
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										long delay, long period, long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
@@ -511,7 +581,7 @@ public class TimerAccount {
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
-			cancel(timerId); // 先取消,下面再重建
+			cancel(timerId, account, clientId); // 先取消,下面再重建
 		}
 
 		scheduleOffline(timerId, account, clientId, delay, period, times, endTime, missfirePolicy, handleClass,
@@ -631,7 +701,7 @@ public class TimerAccount {
 			if (timer.cronEquals(index, timerId, cron, times, endTime, missfirePolicy, OfflineHandle.class, custom,
 					oneByOneKey))
 				return;
-			cancel(timerId); // 先取消,下面再重建
+			cancel(timerId, account, clientId); // 先取消,下面再重建
 		}
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
@@ -700,7 +770,7 @@ public class TimerAccount {
 		if (bAny != null) {
 			var timers = (BOnlineTimers)bAny.getAny().getBean();
 			for (var timerId : timers.getTimerIds().keySet())
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 		}
 		return 0;
 	}
@@ -742,7 +812,7 @@ public class TimerAccount {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (handle == null) {
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}
 
@@ -785,7 +855,7 @@ public class TimerAccount {
 				return 0; // 已经取消或覆盖成新的timer
 
 			if (r == Procedure.Exception) {
-				cancel(timerId); // 异常错误不忽略。
+				cancelOnlineLocal(timerId); // 异常错误不忽略。
 				return 0;
 			}
 			// 其他错误忽略
@@ -797,13 +867,13 @@ public class TimerAccount {
 				else
 					scheduleCronNext(timerId, delay, handle);
 			} else
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 			return 0;
 		}, "TimerAccount.fireCron"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}, "TimerAccount finally cancel impossible!"));
 		}
@@ -827,7 +897,7 @@ public class TimerAccount {
 		var timer = online.providerApp.zeze.getTimer();
 		var ret = Task.call(online.providerApp.zeze.newProcedure(() -> {
 			if (handle == null) {
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}
 
@@ -870,7 +940,7 @@ public class TimerAccount {
 				return 0; // 已经取消或覆盖成新的timer
 
 			if (r == Procedure.Exception) {
-				cancel(timerId); // 异常错误不忽略。
+				cancelOnlineLocal(timerId); // 异常错误不忽略。
 				return 0;
 			}
 			// 其他错误忽略
@@ -882,13 +952,13 @@ public class TimerAccount {
 				else
 					scheduleSimple(timerId, delay, handle);
 			} else
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 			return 0;
 		}, "TimerAccount.fireSimple"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
-				cancel(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}, "TimerAccount finally cancel impossible!"));
 		}

@@ -1042,6 +1042,17 @@
 				<variable id="6" name="LoginVersion" type="long"/>
 				<variable id="7" name="Hot" type="bool"/>
 			</bean>
+			<bean name="BTransmitCancelRoleTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="RoleId" type="long"/>
+				<variable id="3" name="LoginVersion" type="long"/>
+			</bean>
+			<bean name="BTransmitCancelAccountTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="Account" type="string"/>
+				<variable id="3" name="ClientId" type="string"/>
+				<variable id="4" name="LoginVersion" type="long"/>
+			</bean>
 
 			<!-- Online Timer -->
 			<bean name="BArchOnlineTimer"> 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器

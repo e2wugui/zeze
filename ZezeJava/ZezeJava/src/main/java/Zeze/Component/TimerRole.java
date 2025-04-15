@@ -3,6 +3,7 @@ package Zeze.Component;
 import java.text.ParseException;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
+import Zeze.Builtin.Timer.BTransmitCancelRoleTimer;
 import Zeze.Builtin.Timer.BTransmitCronTimer;
 import Zeze.Builtin.Timer.BTransmitSimpleTimer;
 import Zeze.Game.LocalRemoveEventArgument;
@@ -28,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import java.util.List;
+import javax.validation.constraints.Null;
 
 /**
  * 1. schedule，scheduleNamed 完全重新实现一套基于内存表和内存的。
@@ -41,6 +43,7 @@ public class TimerRole {
 	// public static final String eTimerHandleName = "Zeze.Component.TimerGameOnline.Handle";
 	public static final String eTransmitCronTimer = "Zeze.TimerRole.TransmitCronTimer";
 	public static final String eTransmitSimpleTimer = "Zeze.TimerRole.TransmitSimpleTimer";
+	public static final String eTransmitCancelRoleTimer = "Zeze.TimerRole.TransmitCancelRoleTimer";
 
 	private final @NotNull Online online;
 
@@ -49,6 +52,7 @@ public class TimerRole {
 
 		online.getTransmitActions().put(eTransmitCronTimer, this::transmitOnlineCronTimer);
 		online.getTransmitActions().put(eTransmitSimpleTimer, this::transmitOnlineSimpleTimer);
+		online.getTransmitActions().put(eTransmitCancelRoleTimer, this::transmitCancelRoleTimer);
 		// online timer 生命期和 Online.Local 一致。
 		online.getLocalRemoveEvents().add(EventDispatcher.Mode.RunEmbed, this::onLocalRemoveEvent);
 		online.getLoginEvents().add(EventDispatcher.Mode.RunEmbed, this::onLoginEvent);
@@ -338,6 +342,18 @@ public class TimerRole {
 		return 0;
 	}
 
+	private long transmitCancelRoleTimer(long sender, long target, @Nullable Binary parameter) {
+		if (parameter == null)
+			return 0;
+		var p = new BTransmitCancelRoleTimer();
+		p.decode(ByteBuffer.Wrap(parameter));
+		var loginOnlineShared = online.getLoginOnlineShared(target);
+		if (loginOnlineShared != null && p.getLoginVersion() == loginOnlineShared.getLoginVersion()) {
+			cancelOnline(p.getTimerId(), p.getRoleId(), true);
+		}
+		return 0;
+	}
+
 	private long transmitOnlineSimpleTimer(long sender, long target, @Nullable Binary parameter)
 			throws Exception {
 		if (parameter == null)
@@ -461,14 +477,17 @@ public class TimerRole {
 		scheduleOnlineCronHot(timerId, cronTimer, handleClass);
 	}
 
-	public boolean cancel(@Nullable String timerId) {
-		return cancelOnline(timerId) || cancelOffline(timerId);
+	public boolean cancel(@Nullable String timerId, long roleId) {
+		return cancelOnline(timerId, roleId) || cancelOffline(timerId); // offline 使用旧的参数调用。
 	}
 
-	public boolean cancelOnline(@Nullable String timerId) {
-		if (timerId == null)
-			return true; // 取消不存在的timer，认为成功。
+	public boolean cancelOnline(@Nullable String timerId, long roleId) {
+		return cancelOnline(timerId, roleId, false);
+	}
 
+	private boolean cancelOnlineLocal(@Nullable String timerId) {
+		if (null == timerId)
+			return false;
 		// always cancel future task，第一步就做这个。
 		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().cancelFuture(timerId));
 
@@ -478,17 +497,52 @@ public class TimerRole {
 			return false;
 
 		// remove online local
-		var roleId = bTimer.getRoleId();
-		var onlineTimers = (BOnlineTimers)online.getLocalBean(roleId, eOnlineTimers);
+		var onlineTimers = (BOnlineTimers)online.getLocalBean(bTimer.getRoleId(), eOnlineTimers);
 		if (onlineTimers != null) {
 			onlineTimers.getTimerIds().remove(timerId);
 			if (onlineTimers.getTimerIds().isEmpty())
-				online.removeLocalBean(roleId, eOnlineTimers);
+				online.removeLocalBean(bTimer.getRoleId(), eOnlineTimers);
 		}
 		// always remove from table
 		online._tRoleTimers().remove(timerId);
-		logger.debug("cancel online timer: timerId={}, roleId={}", timerId, roleId);
+		logger.debug("cancel online timer: timerId={}, roleId={}", timerId, bTimer.getRoleId());
 		return true;
+	}
+
+	private boolean cancelOnline(@Nullable String timerId, long roleId, boolean fromTransmit) {
+		if (timerId == null)
+			return true; // 取消不存在的timer，认为成功。
+
+		var localVersion = online.getLocalLoginVersion(roleId);
+		var sharedVersion = online.getLoginOnlineShared(roleId);
+		if (sharedVersion != null && !((Long)sharedVersion.getLoginVersion()).equals(localVersion)) {
+			// 判断包括了localVersion是null的情况。
+			if (fromTransmit) {
+				logger.warn("cancelOnline from transmit, but not login at local server. roleId={}", roleId);
+				return true;
+			}
+			var p = new BTransmitCancelRoleTimer();
+			p.setTimerId(timerId);
+			p.setRoleId(roleId);
+			p.setLoginVersion(sharedVersion.getLoginVersion());
+
+			online.transmitEmbed(roleId, eTransmitCancelRoleTimer, List.of(roleId),
+					new Binary(ByteBuffer.encode(p)), false);
+
+			logger.info("cancelOnline: transmit {}", roleId);
+			return true; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
+		}
+		return cancelOnlineLocal(timerId);
+	}
+
+	@Deprecated
+	public boolean cancel(@Nullable String timerId) {
+		return cancelOnline(timerId) || cancelOffline(timerId);
+	}
+
+	@Deprecated
+	public boolean cancelOnline(@Nullable String timerId) {
+		return cancelOnlineLocal(timerId);
 	}
 
 	public boolean cancelOffline(@Nullable String timerId) {
@@ -833,7 +887,7 @@ public class TimerRole {
 
 			if (r == Procedure.Exception) {
 				logger.info("cancel online cron timer for exception: timerId={}, roleId={}", timerId, roleId);
-				cancelOnline(timerId); // 异常错误不忽略
+				cancelOnlineLocal(timerId); // 异常错误不忽略
 				return 0;
 			}
 			// 其他错误忽略
@@ -845,14 +899,14 @@ public class TimerRole {
 				else
 					scheduleOnlineCronNext(timerId, delay, handle);
 			} else
-				cancelOnline(timerId);
+				cancelOnlineLocal(timerId);
 			return 0;
 		}, "TimerRole.fireOnlineCron"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
 				logger.info("cancel online cron timer for ret={}: {}", ret, timerId);
-				cancelOnline(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}, "TimerRole finally cancel impossible!"));
 		}
@@ -917,7 +971,7 @@ public class TimerRole {
 
 			if (r == Procedure.Exception) {
 				logger.info("cancel online simple timer for exception: timerId={}, roleId={}", timerId, roleId);
-				cancelOnline(timerId); // 异常错误不忽略
+				cancelOnlineLocal(timerId); // 异常错误不忽略
 				return 0;
 			}
 			// 其他错误忽略
@@ -929,14 +983,14 @@ public class TimerRole {
 				else
 					scheduleOnlineSimple(timerId, delay, handle);
 			} else
-				cancelOnline(timerId);
+				cancelOnlineLocal(timerId);
 			return 0;
 		}, "TimerRole.fireOnlineSimple"));
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
 			Task.call(online.providerApp.zeze.newProcedure(() -> {
 				logger.info("cancel online simple timer for ret={}: {}", ret, timerId);
-				cancelOnline(timerId);
+				cancelOnlineLocal(timerId);
 				return 0;
 			}, "TimerRole finally cancel impossible!"));
 		}

@@ -102,7 +102,7 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 				timer.cancel(timerNamed);
 				timer.cancel(timerHot);
 			}
-			timer.getRoleTimer().cancel(timerOnline);
+			timer.getRoleTimer().cancel(timerOnline, roleId);
 			return 0;
 		}, "cancel timers").call();
 	}
