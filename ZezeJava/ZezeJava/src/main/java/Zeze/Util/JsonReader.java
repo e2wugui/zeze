@@ -310,7 +310,7 @@ public final class JsonReader {
 		switch (b) { //@formatter:off
 		case '{': return parseMap0(obj instanceof Map ? (Map<String, Object>) obj : null);
 		case '[': return parseArray0(obj instanceof Collection ? (Collection<Object>) obj : null);
-		case '"': case '\'': return parseString(false);
+		case '"': case '\'': return parseString(b, false);
 		case '0': case '1': case '2': case '3': case '4': case '5': case '6':
 		case '7': case '8': case '9': case '-': case '+': case '.':
 		case 'I': case 'i': case 'N': case 'n': return parseNumber();
@@ -816,8 +816,7 @@ public final class JsonReader {
 	}
 
 	public static @NotNull String parseStringKey(@NotNull JsonReader jr, int b) {
-		String key = b == '"' || b == '\'' ? jr.parseString(true) : jr.parseStringNoQuot();
-		return key != null ? key : "";
+		return b == '"' || b == '\'' ? jr.parseString(b, true) : jr.parseStringNoQuot();
 	}
 
 	public static @NotNull Boolean parseBooleanKey(@NotNull JsonReader jr, int b) {
@@ -983,15 +982,29 @@ public final class JsonReader {
 		}
 	}
 
-	public @Nullable String parseString() {
+	public @NotNull String parseString() {
 		return parseString(false);
 	}
 
-	public @Nullable String parseString(boolean intern) {
+	public @NotNull String parseString(boolean intern) {
 		final byte[] buffer = buf;
-		int p = pos, b, e = buffer[p];
-		if (e != '"' && e != '\'')
-			return null;
+		int p = pos, b = buffer[p];
+		if (b != '"' && b != '\'') {
+			for (final int begin = p; ; b = buffer[++p]) {
+				if (b == ',' || b == '\n' || (b | 0x20) == '}') { // ]:0x5D | 0x20 = }:0x7D
+					pos = p;
+					if (begin < p && buffer[p - 1] == '\r')
+						p--;
+					return intern ? intern(buffer, begin, p) : newByteString(buffer, begin, p);
+				}
+			}
+		}
+		return parseString(b, intern);
+	}
+
+	public @NotNull String parseString(int e, boolean intern) {
+		final byte[] buffer = buf;
+		int p = pos, b;
 		final int begin = ++p;
 		for (; ; p++) {
 			if ((b = buffer[p]) == e) {
