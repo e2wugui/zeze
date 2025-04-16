@@ -139,7 +139,7 @@ public class RedirectBase {
 
 	private static void addMiss(@NotNull ModuleRedirectAllResult miss, int i,
 								@SuppressWarnings("SameParameterValue") long rc) {
-		miss.Argument.getHashs().put(i, new BModuleRedirectAllHash.Data(rc, null));
+		miss.Argument.getHashes().put(i, new BModuleRedirectAllHash.Data(rc, null));
 	}
 
 	private static void addTransmits(@NotNull LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index,
@@ -213,7 +213,7 @@ public class RedirectBase {
 					}
 				} else {
 					for (var hashIndex : request.Argument.getHashCodes()) {
-						miss.Argument.getHashs().put(hashIndex,
+						miss.Argument.getHashes().put(hashIndex,
 								new BModuleRedirectAllHash.Data(Procedure.ErrorSendFail, null));
 					}
 				}
@@ -221,7 +221,7 @@ public class RedirectBase {
 		}
 
 		// 没有转发成功的provider的hash分组，马上报告结果。
-		if (!miss.Argument.getHashs().isEmpty()) {
+		if (!miss.Argument.getHashes().isEmpty()) {
 			miss.Argument.setModuleId(arg.getModuleId());
 			miss.Argument.setMethodFullName(arg.getMethodFullName());
 			miss.Argument.setSourceProvider(arg.getSourceProvider()); // not used

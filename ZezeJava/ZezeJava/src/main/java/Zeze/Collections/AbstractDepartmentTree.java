@@ -19,9 +19,9 @@ public abstract class AbstractDepartmentTree implements Zeze.IModule {
     public static final int ErrorChangeRootNotOwner = 1;
     public static final int ErrorDepartmentDuplicate = 2;
     public static final int ErrorDepartmentNotExist = 3;
-    public static final int ErrorDeleteDepartmentRemainChilds = 4;
+    public static final int ErrorDeleteDepartmentRemainChildren = 4;
     public static final int ErrorDepartmentSameParent = 5;
-    public static final int ErrorCanNotMoveToChilds = 6;
+    public static final int ErrorCanNotMoveToChildren = 6;
     public static final int ErrorDepartmentParentNotExist = 7;
     public static final int ErrorManagePermission = 8;
     public static final int ErrorTooManyChildren = 9;

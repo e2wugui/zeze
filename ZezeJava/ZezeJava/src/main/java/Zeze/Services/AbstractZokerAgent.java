@@ -49,11 +49,11 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
             service.AddFactoryHandle(47406581820129L, factoryHandle); // 11037, -1267193119
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.ListSerivce.class, Zeze.Builtin.Zoker.ListSerivce.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Zoker.ListSerivce::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessListSerivceResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessListSerivceResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47404082048889L, factoryHandle); // 11037, 528002937
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.ListService.class, Zeze.Builtin.Zoker.ListService.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Zoker.ListService::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessListServiceResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessListServiceResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47404015843425L, factoryHandle); // 11037, 461797473
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.OpenFile.class, Zeze.Builtin.Zoker.OpenFile.TypeId_);
@@ -90,7 +90,7 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
         service.getFactorys().remove(47406035711083L);
         service.getFactorys().remove(47406729836341L);
         service.getFactorys().remove(47406581820129L);
-        service.getFactorys().remove(47404082048889L);
+        service.getFactorys().remove(47404015843425L);
         service.getFactorys().remove(47405642508207L);
         service.getFactorys().remove(47407341877675L);
         service.getFactorys().remove(47406220967437L);

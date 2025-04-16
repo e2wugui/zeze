@@ -58,13 +58,13 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final boolean addAll(Collection<? extends V> items) {
-		var addindex = getValue().size();
+		int addIndex = getValue().size();
 		var list = getValue().plusAll(items);
 		if (list == getValue())
 			return false;
 		setValue(list);
 		for (var item : items) {
-			opLogs.add(new OpLog<>(OpLog.OP_ADD, addindex++, item));
+			opLogs.add(new OpLog<>(OpLog.OP_ADD, addIndex++, item));
 		}
 		return true;
 	}

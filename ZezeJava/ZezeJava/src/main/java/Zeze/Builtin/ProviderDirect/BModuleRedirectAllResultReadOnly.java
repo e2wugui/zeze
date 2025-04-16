@@ -12,5 +12,5 @@ public interface BModuleRedirectAllResultReadOnly {
     long getSourceProvider();
     String getMethodFullName();
     long getSessionId();
-    Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> getHashsReadOnly();
+    Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> getHashesReadOnly();
 }

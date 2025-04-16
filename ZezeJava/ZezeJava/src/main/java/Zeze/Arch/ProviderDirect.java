@@ -28,7 +28,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	protected ProviderApp providerApp;
 
 	@Override
-	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Exception {
+	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) {
 		var zeze = providerApp.zeze;
 		var rpcArg = rpc.Argument;
 		rpc.Result.setModuleId(rpcArg.getModuleId());
@@ -106,11 +106,11 @@ public class ProviderDirect extends AbstractProviderDirect {
 	private void sendResultIfSizeExceed(@Nullable AsyncSocket sender, @NotNull ModuleRedirectAllResult result)
 			throws Exception {
 		int size = 0;
-		for (var hashResult : result.Argument.getHashs().values())
+		for (var hashResult : result.Argument.getHashes().values())
 			size += hashResult.getParams().size();
 		if (size > 0x10_0000) { // 1MB
 			sendResult(sender, result);
-			result.Argument.getHashs().clear();
+			result.Argument.getHashes().clear();
 		}
 	}
 
@@ -129,7 +129,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		var re = handle.resultEncoder;
 		if (re != null)
 			hashResult.setParams(re.apply(result));
-		resArg.getHashs().put(hash, hashResult);
+		resArg.getHashes().put(hash, hashResult);
 		res.setResultCode(ModuleRedirect.ResultCodeSuccess);
 		sendResult(p.getSender(), res);
 	}
@@ -153,7 +153,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 		if (rc != ModuleRedirect.ResultCodeSuccess) {
 			// 失败了，需要把hash返回。此时是没有处理结果的。
 			for (var hash : pa.getHashCodes())
-				resArg.getHashs().put(hash, new BModuleRedirectAllHash.Data(Procedure.NotImplement, null));
+				resArg.getHashes().put(hash, new BModuleRedirectAllHash.Data(Procedure.NotImplement, null));
 			sendResult(p.getSender(), res);
 			return Procedure.LogicError;
 		}
@@ -185,26 +185,25 @@ public class ProviderDirect extends AbstractProviderDirect {
 			}
 			// 单个分组处理失败继续执行。XXX
 			if (future == null)
-				resArg.getHashs().put(hash, hashResult);
+				resArg.getHashes().put(hash, hashResult);
 			else if (future.getClass() == RedirectAllFutureFinished.class) {
 				var re = handle.resultEncoder;
 				if (re != null)
 					hashResult.setParams(re.apply(((RedirectAllFutureFinished<?>)future).getResult()));
-				resArg.getHashs().put(hash, hashResult);
+				resArg.getHashes().put(hash, hashResult);
 				sendResultIfSizeExceed(p.getSender(), res);
 			} else
 				((RedirectAllFutureAsync<?>)future).onResult(r -> sendResultForAsync(p, hash, r, handle));
 		}
 
 		// send remain
-		if (!resArg.getHashs().isEmpty())
+		if (!resArg.getHashes().isEmpty())
 			sendResult(p.getSender(), res);
 		return Procedure.Success;
 	}
 
-	@SuppressWarnings("RedundantThrows")
 	@Override
-	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Exception {
+	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) {
 		var ctx = providerApp.providerDirectService.
 				<RedirectAllContext<?>>tryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null)

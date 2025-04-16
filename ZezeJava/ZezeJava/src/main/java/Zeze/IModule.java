@@ -34,6 +34,7 @@ public interface IModule {
 	/**
 	 * 整个程序完全准备好，然后可以非常安全的在这里执行任意的启动代码，比如Timer。
 	 */
+	@SuppressWarnings("RedundantThrows")
 	default void StartLast() throws Exception {
 	}
 

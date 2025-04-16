@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBrokenReadOnly {
     public static final long TYPEID = 1424702393060691138L;
 
-    public static final int REASON_PEERCLOSE = 0;
+    public static final int REASON_PEER_CLOSED = 0;
 
     private String _account;
     private long _linkSid;
@@ -385,7 +385,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = 1424702393060691138L;
 
-    public static final int REASON_PEERCLOSE = 0;
+    public static final int REASON_PEER_CLOSED = 0;
 
     private String _account;
     private long _linkSid;

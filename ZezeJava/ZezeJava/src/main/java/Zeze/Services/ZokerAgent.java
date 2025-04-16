@@ -12,7 +12,7 @@ import Zeze.Builtin.Zoker.BListServiceResult;
 import Zeze.Builtin.Zoker.BService;
 import Zeze.Builtin.Zoker.CloseFile;
 import Zeze.Builtin.Zoker.CommitService;
-import Zeze.Builtin.Zoker.ListSerivce;
+import Zeze.Builtin.Zoker.ListService;
 import Zeze.Builtin.Zoker.OpenFile;
 import Zeze.Builtin.Zoker.StartService;
 import Zeze.Builtin.Zoker.StopService;
@@ -162,7 +162,7 @@ public class ZokerAgent extends AbstractZokerAgent {
 
     public BListServiceResult.Data listService(String zokerName) {
         var zoker = getZoker(zokerName);
-        var r = new ListSerivce();
+        var r = new ListService();
         r.SendForWait(zoker).await();
         if (r.getResultCode() != 0)
             throw new RuntimeException("list service error. " + IModule.getErrorCode(r.getResultCode()));

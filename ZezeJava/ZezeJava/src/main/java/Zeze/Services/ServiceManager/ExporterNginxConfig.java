@@ -59,7 +59,7 @@ public class ExporterNginxConfig implements IExporter {
 		out.add(prefix + "upstream " + serviceName + " {");
 		var ver0 = all.getInfos(version);
 		if (null != ver0) {
-			for (var info : ver0.getSortedIdentities()){
+			for (var info : ver0.getSortedIdentities()) {
 				if (info.getPassiveIp().isBlank())
 					continue;
 				out.add(prefix + "    server " + info.getPassiveIp() + ":" + info.getPassivePort() + ";");
@@ -81,7 +81,7 @@ public class ExporterNginxConfig implements IExporter {
 	}
 
 	/**
-	 * 构造Ngnix配置文件输出器。
+	 * 构造Nginx配置文件输出器。
 	 * 当SM信息发生变化，会把服务列表输出到配置文件。
 	 */
 	public ExporterNginxConfig(@NotNull ExporterConfig config) {

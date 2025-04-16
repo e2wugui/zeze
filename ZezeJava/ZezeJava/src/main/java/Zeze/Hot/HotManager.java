@@ -610,7 +610,7 @@ public class HotManager extends ClassLoader {
 
 		var modulePath = Path.of(workingDir, "modules");
 		if (distributePath.startsWith(modulePath))
-			throw new RuntimeException("distributeDir is sub-dir of workingDir/modulebus/");
+			throw new RuntimeException("distributeDir is sub-dir of workingDir/modules/");
 
 		if (Path.of(workingDir).startsWith(distributePath))
 			throw new RuntimeException("workingDir is sub-dir of distributeDir");

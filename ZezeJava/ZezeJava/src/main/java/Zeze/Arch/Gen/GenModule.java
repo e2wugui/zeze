@@ -254,7 +254,7 @@ public final class GenModule extends ReentrantLock {
 				sb.appendLine("{}_a_.setModuleId({});", prefix, moduleId);
 				sb.appendLine("{}_a_.setRedirectType({});", prefix, m.getRedirectType());
 				sb.appendLine("{}_a_.setHashCode({});", prefix, m.hashOrServerIdParameter.getName());
-				if (m.oneByone)
+				if (m.oneByOne)
 					sb.appendLine("{}_a_.setKey({});", prefix, m.keyHashCode);
 				else
 					sb.appendLine("{}_a_.setNoOneByOne(true);", prefix);

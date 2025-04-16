@@ -52,12 +52,12 @@ public abstract class AbstractZoker implements Zeze.IModule {
             service.AddFactoryHandle(47406581820129L, factoryHandle); // 11037, -1267193119
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.ListSerivce.class, Zeze.Builtin.Zoker.ListSerivce.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Zoker.ListSerivce::new;
-            factoryHandle.Handle = this::ProcessListSerivceRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessListSerivceRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessListSerivceRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47404082048889L, factoryHandle); // 11037, 528002937
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.ListService.class, Zeze.Builtin.Zoker.ListService.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Zoker.ListService::new;
+            factoryHandle.Handle = this::ProcessListServiceRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessListServiceRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessListServiceRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47404015843425L, factoryHandle); // 11037, 461797473
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.OpenFile.class, Zeze.Builtin.Zoker.OpenFile.TypeId_);
@@ -96,7 +96,7 @@ public abstract class AbstractZoker implements Zeze.IModule {
         service.getFactorys().remove(47406035711083L);
         service.getFactorys().remove(47406729836341L);
         service.getFactorys().remove(47406581820129L);
-        service.getFactorys().remove(47404082048889L);
+        service.getFactorys().remove(47404015843425L);
         service.getFactorys().remove(47405642508207L);
         service.getFactorys().remove(47407341877675L);
         service.getFactorys().remove(47406220967437L);
@@ -115,7 +115,7 @@ public abstract class AbstractZoker implements Zeze.IModule {
     protected abstract long ProcessAppendFileRequest(Zeze.Builtin.Zoker.AppendFile r) throws Exception;
     protected abstract long ProcessCloseFileRequest(Zeze.Builtin.Zoker.CloseFile r) throws Exception;
     protected abstract long ProcessCommitServiceRequest(Zeze.Builtin.Zoker.CommitService r) throws Exception;
-    protected abstract long ProcessListSerivceRequest(Zeze.Builtin.Zoker.ListSerivce r) throws Exception;
+    protected abstract long ProcessListServiceRequest(Zeze.Builtin.Zoker.ListService r) throws Exception;
     protected abstract long ProcessOpenFileRequest(Zeze.Builtin.Zoker.OpenFile r) throws Exception;
     protected abstract long ProcessStartServiceRequest(Zeze.Builtin.Zoker.StartService r) throws Exception;
     protected abstract long ProcessStopServiceRequest(Zeze.Builtin.Zoker.StopService r) throws Exception;

@@ -10,6 +10,6 @@ public interface BDepartmentRootReadOnly {
     String getRoot();
     Zeze.Transaction.Collections.PMap2ReadOnly<String, Zeze.Transaction.DynamicBean, Zeze.Transaction.DynamicBeanReadOnly> getManagersReadOnly();
     long getNextDepartmentId();
-    Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildsReadOnly();
+    Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildrenReadOnly();
     Zeze.Transaction.DynamicBeanReadOnly getDataReadOnly();
 }

@@ -13,7 +13,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
     private long _SourceProvider; // 从BModuleRedirectAllRequest里面得到。
     private String _MethodFullName; // format="ModuleFullName:MethodName"
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
-    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 
     private static final java.lang.invoke.VarHandle vh_ModuleId;
     private static final java.lang.invoke.VarHandle vh_ServerId;
@@ -136,20 +136,20 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 5, vh_SessionId, _v_));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashs() {
-        return _Hashs;
+    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashes() {
+        return _Hashes;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> getHashsReadOnly() {
-        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Hashs);
+    public Zeze.Transaction.Collections.PMap2ReadOnly<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> getHashesReadOnly() {
+        return new Zeze.Transaction.Collections.PMap2ReadOnly<>(_Hashes);
     }
 
     @SuppressWarnings("deprecation")
     public BModuleRedirectAllResult() {
         _MethodFullName = "";
-        _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
-        _Hashs.variableId(6);
+        _Hashes = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
+        _Hashes.variableId(6);
     }
 
     @SuppressWarnings("deprecation")
@@ -161,8 +161,8 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             _MethodFullName_ = "";
         _MethodFullName = _MethodFullName_;
         _SessionId = _SessionId_;
-        _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
-        _Hashs.variableId(6);
+        _Hashes = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
+        _Hashes.variableId(6);
     }
 
     @Override
@@ -172,7 +172,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setSourceProvider(0);
         setMethodFullName("");
         setSessionId(0);
-        _Hashs.clear();
+        _Hashes.clear();
         _unknown_ = null;
     }
 
@@ -194,11 +194,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setSourceProvider(_o_._SourceProvider);
         setMethodFullName(_o_._MethodFullName);
         setSessionId(_o_._SessionId);
-        _Hashs.clear();
-        for (var _e_ : _o_._Hashs.entrySet()) {
+        _Hashes.clear();
+        for (var _e_ : _o_._Hashes.entrySet()) {
             var _v_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash();
             _v_.assign(_e_.getValue());
-            _Hashs.put(_e_.getKey(), _v_);
+            _Hashes.put(_e_.getKey(), _v_);
         }
         _unknown_ = null;
     }
@@ -209,9 +209,9 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         setSourceProvider(_o_.getSourceProvider());
         setMethodFullName(_o_.getMethodFullName());
         setSessionId(_o_.getSessionId());
-        _Hashs.clear();
-        for (var _e_ : _o_._Hashs.entrySet())
-            _Hashs.put(_e_.getKey(), _e_.getValue().copy());
+        _Hashes.clear();
+        for (var _e_ : _o_._Hashes.entrySet())
+            _Hashes.put(_e_.getKey(), _e_.getValue().copy());
         _unknown_ = _o_._unknown_;
     }
 
@@ -254,10 +254,10 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _s_.append(_i1_).append("SourceProvider=").append(getSourceProvider()).append(",\n");
         _s_.append(_i1_).append("MethodFullName=").append(getMethodFullName()).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(getSessionId()).append(",\n");
-        _s_.append(_i1_).append("Hashs={");
-        if (!_Hashs.isEmpty()) {
+        _s_.append(_i1_).append("Hashes={");
+        if (!_Hashes.isEmpty()) {
             _s_.append('\n');
-            for (var _e_ : _Hashs.entrySet()) {
+            for (var _e_ : _Hashes.entrySet()) {
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);
@@ -333,7 +333,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             }
         }
         {
-            var _x_ = _Hashs;
+            var _x_ = _Hashes;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
@@ -377,7 +377,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            var _x_ = _Hashs;
+            var _x_ = _Hashes;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -412,19 +412,19 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return false;
         if (getSessionId() != _b_.getSessionId())
             return false;
-        if (!_Hashs.equals(_b_._Hashs))
+        if (!_Hashes.equals(_b_._Hashes))
             return false;
         return true;
     }
 
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
-        _Hashs.initRootInfo(_r_, this);
+        _Hashes.initRootInfo(_r_, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
-        _Hashs.initRootInfoWithRedo(_r_, this);
+        _Hashes.initRootInfoWithRedo(_r_, this);
     }
 
     @Override
@@ -437,7 +437,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
             return true;
         if (getSessionId() < 0)
             return true;
-        for (var _v_ : _Hashs.values()) {
+        for (var _v_ : _Hashes.values()) {
             if (_v_.negativeCheck())
                 return true;
         }
@@ -458,7 +458,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
                 case 3: _SourceProvider = _v_.longValue(); break;
                 case 4: _MethodFullName = _v_.stringValue(); break;
                 case 5: _SessionId = _v_.longValue(); break;
-                case 6: _Hashs.followerApply(_v_); break;
+                case 6: _Hashes.followerApply(_v_); break;
             }
         }
     }
@@ -473,7 +473,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         if (getMethodFullName() == null)
             setMethodFullName("");
         setSessionId(_r_.getLong(_pn_ + "SessionId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Hashs", _Hashs, _r_.getString(_pn_ + "Hashs"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Hashes", _Hashes, _r_.getString(_pn_ + "Hashes"));
     }
 
     @Override
@@ -484,7 +484,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _s_.appendLong(_pn_ + "SourceProvider", getSourceProvider());
         _s_.appendString(_pn_ + "MethodFullName", getMethodFullName());
         _s_.appendLong(_pn_ + "SessionId", getSessionId());
-        _s_.appendString(_pn_ + "Hashs", Zeze.Serialize.Helper.encodeJson(_Hashs));
+        _s_.appendString(_pn_ + "Hashes", Zeze.Serialize.Helper.encodeJson(_Hashes));
     }
 
     @Override
@@ -495,7 +495,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SourceProvider", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "MethodFullName", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "SessionId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Hashs", "map", "int", "Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "Hashes", "map", "int", "Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash"));
         return _v_;
     }
 
@@ -508,7 +508,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private long _SourceProvider; // 从BModuleRedirectAllRequest里面得到。
     private String _MethodFullName; // format="ModuleFullName:MethodName"
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
-    private java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 
     public int getModuleId() {
         return _ModuleId;
@@ -552,24 +552,24 @@ public static final class Data extends Zeze.Transaction.Data {
         _SessionId = _v_;
     }
 
-    public java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> getHashs() {
-        return _Hashs;
+    public java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> getHashes() {
+        return _Hashes;
     }
 
-    public void setHashs(java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _v_) {
+    public void setHashes(java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _v_) {
         if (_v_ == null)
             throw new IllegalArgumentException();
-        _Hashs = _v_;
+        _Hashes = _v_;
     }
 
     @SuppressWarnings("deprecation")
     public Data() {
         _MethodFullName = "";
-        _Hashs = new java.util.HashMap<>();
+        _Hashes = new java.util.HashMap<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_, java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashs_) {
+    public Data(int _ModuleId_, int _ServerId_, long _SourceProvider_, String _MethodFullName_, long _SessionId_, java.util.HashMap<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data> _Hashes_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
         _SourceProvider = _SourceProvider_;
@@ -577,9 +577,9 @@ public static final class Data extends Zeze.Transaction.Data {
             _MethodFullName_ = "";
         _MethodFullName = _MethodFullName_;
         _SessionId = _SessionId_;
-        if (_Hashs_ == null)
-            _Hashs_ = new java.util.HashMap<>();
-        _Hashs = _Hashs_;
+        if (_Hashes_ == null)
+            _Hashes_ = new java.util.HashMap<>();
+        _Hashes = _Hashes_;
     }
 
     @Override
@@ -589,7 +589,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _SourceProvider = 0;
         _MethodFullName = "";
         _SessionId = 0;
-        _Hashs.clear();
+        _Hashes.clear();
     }
 
     @Override
@@ -610,11 +610,11 @@ public static final class Data extends Zeze.Transaction.Data {
         _SourceProvider = _o_.getSourceProvider();
         _MethodFullName = _o_.getMethodFullName();
         _SessionId = _o_.getSessionId();
-        _Hashs.clear();
-        for (var _e_ : _o_._Hashs.entrySet()) {
+        _Hashes.clear();
+        for (var _e_ : _o_._Hashes.entrySet()) {
             var _v_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.Data();
             _v_.assign(_e_.getValue());
-            _Hashs.put(_e_.getKey(), _v_);
+            _Hashes.put(_e_.getKey(), _v_);
         }
     }
 
@@ -624,9 +624,9 @@ public static final class Data extends Zeze.Transaction.Data {
         _SourceProvider = _o_._SourceProvider;
         _MethodFullName = _o_._MethodFullName;
         _SessionId = _o_._SessionId;
-        _Hashs.clear();
-        for (var _e_ : _o_._Hashs.entrySet())
-            _Hashs.put(_e_.getKey(), _e_.getValue().copy());
+        _Hashes.clear();
+        for (var _e_ : _o_._Hashes.entrySet())
+            _Hashes.put(_e_.getKey(), _e_.getValue().copy());
     }
 
     @Override
@@ -669,10 +669,10 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("SourceProvider=").append(_SourceProvider).append(",\n");
         _s_.append(_i1_).append("MethodFullName=").append(_MethodFullName).append(",\n");
         _s_.append(_i1_).append("SessionId=").append(_SessionId).append(",\n");
-        _s_.append(_i1_).append("Hashs={");
-        if (!_Hashs.isEmpty()) {
+        _s_.append(_i1_).append("Hashes={");
+        if (!_Hashes.isEmpty()) {
             _s_.append('\n');
-            for (var _e_ : _Hashs.entrySet()) {
+            for (var _e_ : _Hashes.entrySet()) {
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);
@@ -733,7 +733,7 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            var _x_ = _Hashs;
+            var _x_ = _Hashes;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.MAP);
@@ -775,7 +775,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            var _x_ = _Hashs;
+            var _x_ = _Hashes;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -812,7 +812,7 @@ public static final class Data extends Zeze.Transaction.Data {
             return false;
         if (_SessionId != _b_._SessionId)
             return false;
-        if (!_Hashs.equals(_b_._Hashs))
+        if (!_Hashes.equals(_b_._Hashes))
             return false;
         return true;
     }

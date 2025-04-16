@@ -348,15 +348,15 @@ public class DepartmentTree<
 		var dId = dRoot.getNextDepartmentId() + 1;
 
 		if (departmentParent == 0) {
-			if (dRoot.getChilds().size() > childrenLimit)
+			if (dRoot.getChildren().size() > childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
-			if (null != dRoot.getChilds().putIfAbsent(dName, dId))
+			if (null != dRoot.getChildren().putIfAbsent(dName, dId))
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
-			if (parent.getChilds().size() > childrenLimit)
+			if (parent.getChildren().size() > childrenLimit)
 				return module.errorCode(Module.ErrorTooManyChildren);
-			if (null != parent.getChilds().putIfAbsent(dName, dId))
+			if (null != parent.getChildren().putIfAbsent(dName, dId))
 				return module.errorCode(Module.ErrorDepartmentDuplicate);
 		}
 		var child = new BDepartmentTreeNode();
@@ -374,18 +374,18 @@ public class DepartmentTree<
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
 			return module.errorCode(Module.ErrorDepartmentNotExist);
-		if (!recursive && !department.getChilds().isEmpty())
-			return module.errorCode(Module.ErrorDeleteDepartmentRemainChilds);
-		for (var child : department.getChilds().values()) {
+		if (!recursive && !department.getChildren().isEmpty())
+			return module.errorCode(Module.ErrorDeleteDepartmentRemainChildren);
+		for (var child : department.getChildren().values()) {
 			deleteDepartment(child, true);
 		}
 		if (department.getParentDepartment() == 0) {
 			var root = module._tDepartment.get(name);
 			if (root != null)
-				root.getChilds().remove(department.getName());
+				root.getChildren().remove(department.getName());
 		} else {
 			var parent = getDepartmentTreeNode(department.getParentDepartment());
-			parent.getChilds().remove(department.getName());
+			parent.getChildren().remove(department.getName());
 		}
 		getDepartmentMembers(departmentId).clear();
 		module._tDepartmentTree.remove(new BDepartmentKey(name, departmentId));
@@ -399,7 +399,7 @@ public class DepartmentTree<
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
 			return false;
-		for (var c : department.getChilds().values()) {
+		for (var c : department.getChildren().values()) {
 			if (isRecursiveChild(c, child))
 				return true;
 		}
@@ -414,8 +414,8 @@ public class DepartmentTree<
 		if (department.getParentDepartment() == 0)
 			return module.errorCode(Module.ErrorDepartmentSameParent);
 		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
-		oldParent.getChilds().remove(department.getName());
-		if (null != newParent.getChilds().putIfAbsent(department.getName(), departmentId))
+		oldParent.getChildren().remove(department.getName());
+		if (null != newParent.getChildren().putIfAbsent(department.getName(), departmentId))
 			return module.errorCode(Module.ErrorDepartmentDuplicate);
 		department.setParentDepartment(0);
 		return 0;
@@ -426,7 +426,7 @@ public class DepartmentTree<
 			return moveDepartment(departmentId);
 
 		if (isRecursiveChild(departmentId, parent))
-			return module.errorCode(Module.ErrorCanNotMoveToChilds);
+			return module.errorCode(Module.ErrorCanNotMoveToChildren);
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
 			return module.errorCode(Module.ErrorDepartmentNotExist);
@@ -436,8 +436,8 @@ public class DepartmentTree<
 		if (null == newParent)
 			return module.errorCode(Module.ErrorDepartmentParentNotExist);
 		var oldParent = getDepartmentTreeNode(department.getParentDepartment());
-		oldParent.getChilds().remove(department.getName());
-		if (null != newParent.getChilds().putIfAbsent(department.getName(), departmentId))
+		oldParent.getChildren().remove(department.getName());
+		if (null != newParent.getChildren().putIfAbsent(department.getName(), departmentId))
 			return module.errorCode(Module.ErrorDepartmentDuplicate);
 		department.setParentDepartment(parent);
 		return 0;

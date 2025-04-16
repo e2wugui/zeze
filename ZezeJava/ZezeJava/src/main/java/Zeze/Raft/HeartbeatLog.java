@@ -30,7 +30,7 @@ final class HeartbeatLog extends Log {
 		switch (operate) {
 		case SetLeaderReadyEvent:
 			// 由于这个log会被存储到日志队列中，所以在leader选出来，apply历史日志时，就会触发这个调用。
-			// 但是这个调用真正产生效果，需要是最后一个 HearbeatLog。
+			// 但是这个调用真正产生效果，需要是最后一个 HeartbeatLog。
 			// 这个条件在setLeaderReady内部检测 leaderWaitReadyTerm，leaderWaitReadyIndex。
 			stateMachine.getRaft().setLeaderReady(holder);
 			break;

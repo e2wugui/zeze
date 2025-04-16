@@ -45,6 +45,7 @@ public abstract class AppBase extends ReentrantLock {
 		throw new UnsupportedOperationException();
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	public void createService() throws Exception {
 		throw new UnsupportedOperationException();
 	}

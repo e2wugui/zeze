@@ -65,7 +65,7 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 		try {
 			if (isCompleted())
 				return; // 如果已经超时,那就只能忽略后续的结果了
-			for (var e : res.Argument.getHashs().entrySet()) {
+			for (var e : res.Argument.getHashes().entrySet()) {
 				int hash = e.getKey();
 				var resultData = e.getValue();
 				var resultCode = resultData.getReturnCode();

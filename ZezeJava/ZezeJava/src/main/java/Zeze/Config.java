@@ -59,7 +59,7 @@ public final class Config {
 	private boolean noDatabase = false;
 	private @NotNull String globalCacheManagerHostNameOrAddress = "";
 
-	private @NotNull String serviceManager = ""; // ”“|”raft"|"disable", default: enable service manager
+	private @NotNull String serviceManager = ""; // ""|"raft"|"disable", default: enable service manager
 	// raft：本来可以直接在这里配置raftXmlFile。但是，
 	// 1. 文件名名字空间属于自定义的，不污染这里了，
 	// 2. 这里定义服务类型，raft配置可以留在文件中，

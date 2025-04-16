@@ -325,7 +325,7 @@ public final class TestJson extends TestCase {
 		int v;
 	}
 
-	public static void testH() throws ReflectiveOperationException {
+	public void testH() throws ReflectiveOperationException {
 		H a = JsonReader.local().buf("{s:true,v:123}").parse(H.class);
 		assertNotNull(a);
 		assertEquals("true", a.s);

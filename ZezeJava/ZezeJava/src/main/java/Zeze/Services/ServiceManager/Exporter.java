@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
  * 【独立后台进程】
  * <p>
  * 订阅sm，并输出结果到其他系统。
- * 当前需求是：ngnix-config-file, ngnix-config-http
+ * 当前需求是：nginx-config-file, nginx-config-http
  */
 public class Exporter {
 	private final AbstractAgent agent;
@@ -62,11 +62,17 @@ public class Exporter {
 		agent.close();
 	}
 
-	public void addExporter(@NotNull String name, @NotNull Properties shared, @Nullable String param) throws Exception {
+	public void addExporter(@NotNull String name, @NotNull Properties shared, @Nullable String param) {
 		switch (name) {
-		case "NginxConfig": exports.add(new ExporterNginxConfig(new ExporterConfig(shared, param))); break;
-		case "NginxHttp": exports.add(new ExporterNginxHttp(new ExporterConfig(shared, param))); break;
-		case "Print": exports.add(new ExporterPrint(null)); break;
+		case "NginxConfig":
+			exports.add(new ExporterNginxConfig(new ExporterConfig(shared, param)));
+			break;
+		case "NginxHttp":
+			exports.add(new ExporterNginxHttp(new ExporterConfig(shared, param)));
+			break;
+		case "Print":
+			exports.add(new ExporterPrint(null));
+			break;
 		}
 	}
 
@@ -89,7 +95,7 @@ public class Exporter {
 				// 如果还有参数，看看是不是跟随的-private，如果是，读取私有参数。
 				String privateParam = null;
 				if (i < args.length - 1 && args[i + 1].equals("-private") /* peek */) {
-					privateParam = args[i+=2]; // move i to next 2
+					privateParam = args[i += 2]; // move i to next 2
 				}
 				exporters.add(KV.create(className, privateParam));
 			} else if (args[i].equals("-s")) {

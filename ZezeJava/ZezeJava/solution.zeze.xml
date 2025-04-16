@@ -233,9 +233,9 @@
 				<enum name="ErrorChangeRootNotOwner" value="1"/>
 				<enum name="ErrorDepartmentDuplicate" value="2"/>
 				<enum name="ErrorDepartmentNotExist" value="3"/>
-				<enum name="ErrorDeleteDepartmentRemainChilds" value="4"/>
+				<enum name="ErrorDeleteDepartmentRemainChildren" value="4"/>
 				<enum name="ErrorDepartmentSameParent" value="5"/>
-				<enum name="ErrorCanNotMoveToChilds" value="6"/>
+				<enum name="ErrorCanNotMoveToChildren" value="6"/>
 				<enum name="ErrorDepartmentParentNotExist" value="7"/>
 				<enum name="ErrorManagePermission" value="8"/>
 				<enum name="ErrorTooManyChildren" value="9"/>
@@ -247,7 +247,7 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
 					</variable>
 					<variable id="3" name="NextDepartmentId" type="long" /> 部门Id种子
-					<variable id="4" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="4" name="Children" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="5" name="Data" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
@@ -258,7 +258,7 @@
 
 				<bean name="BDepartmentTreeNode">
 					<variable id="1" name="ParentDepartment" type="long" /> 0表示第一级部门
-					<variable id="2" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="2" name="Children" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="3" name="Name" type="string" />
 					<variable id="4" name="Managers" type="map[string,dynamic]">
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
@@ -456,7 +456,7 @@
 			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
 
 			<bean name="BLinkBroken">
-				<enum name="REASON_PEERCLOSE" value="0"/>
+				<enum name="REASON_PEER_CLOSED" value="0"/>
 
 				<variable name="account"   id="1" type="string"/>
 				<variable name="linkSid"   id="2" type="long"/>
@@ -560,7 +560,7 @@
 				ResultCode == ResultCodeSuccess 时，才使用下面变量的Value，此时表示调用流程正确了。
 				处理结果是否正确，还需要进一步查看Value.ReturnCode。
 				-->
-				<variable name="Hashs"          id="6" type="map" key="int" value="BModuleRedirectAllHash"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+				<variable name="Hashes"         id="6" type="map" key="int" value="BModuleRedirectAllHash"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 			</bean>
 
 			<!-- 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果 -->
@@ -1257,7 +1257,7 @@
 				<!--
 				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
 				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
-				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFrist），但感觉不好。
+				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFirst），但感觉不好。
 				所以LocateBucket先不用，仅使用GetBuckets。
 				-->
 				<bean name="BLocateBucket">
@@ -1805,7 +1805,7 @@
 				<variable id="1" name="ServiceName" type="string"/>
 				<variable id="2" name="Force" type="bool"/> like kill -9
 			</bean>
-			<rpc name="ListSerivce" result="BListServiceResult"  handle="server"/> <!-- 工作目录的第一级子目录既是 -->
+			<rpc name="ListService" result="BListServiceResult"  handle="server"/> <!-- 工作目录的第一级子目录既是 -->
 			<rpc name="StartService" argument="BStartService" result="BService"  handle="server"/>
 			<rpc name="StopService" argument="BStopService" result="BService"  handle="server"/>
 

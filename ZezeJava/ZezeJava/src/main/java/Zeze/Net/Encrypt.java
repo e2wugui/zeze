@@ -74,14 +74,14 @@ public class Encrypt implements Codec {
 			sink.update(iv, 0, 16);
 			count = 0;
 		}
-		int nblocks = (len - i) >> 4;
-		for (int j = 0; j < nblocks; j++) {
+		int nBlocks = (len - i) >> 4;
+		for (int j = 0; j < nBlocks; j++) {
 			succeed();
 			for (int k = 0; k < 16; k++)
 				iv[k] ^= data[i + j * 16 + k];
 			sink.update(iv, 0, 16);
 		}
-		for (i += nblocks << 4; i < len; i++)
+		for (i += nBlocks << 4; i < len; i++)
 			in[count++] = data[i];
 	}
 

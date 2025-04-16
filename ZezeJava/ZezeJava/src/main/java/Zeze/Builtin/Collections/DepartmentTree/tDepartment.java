@@ -30,7 +30,7 @@ public final class tDepartment extends TableX<String, Zeze.Builtin.Collections.D
     public static final int VAR_Root = 1;
     public static final int VAR_Managers = 2;
     public static final int VAR_NextDepartmentId = 3;
-    public static final int VAR_Childs = 4;
+    public static final int VAR_Children = 4;
     public static final int VAR_Data = 5;
 
     @Override

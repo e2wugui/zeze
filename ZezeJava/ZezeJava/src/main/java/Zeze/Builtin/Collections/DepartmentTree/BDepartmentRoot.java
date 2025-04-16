@@ -27,7 +27,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     }
 
     private long _NextDepartmentId; // 部门Id种子
-    private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+    private final Zeze.Transaction.Collections.PMap1<String, Long> _Children; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
     private final Zeze.Transaction.DynamicBean _Data;
 
     public static Zeze.Transaction.DynamicBean newDynamicBean_Data() {
@@ -106,13 +106,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_NextDepartmentId, _v_));
     }
 
-    public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
-        return _Childs;
+    public Zeze.Transaction.Collections.PMap1<String, Long> getChildren() {
+        return _Children;
     }
 
     @Override
-    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildsReadOnly() {
-        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Childs);
+    public Zeze.Transaction.Collections.PMap1ReadOnly<String, Long> getChildrenReadOnly() {
+        return new Zeze.Transaction.Collections.PMap1ReadOnly<>(_Children);
     }
 
     public Zeze.Transaction.DynamicBean getData() {
@@ -129,8 +129,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Root = "";
         _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
-        _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
-        _Childs.variableId(4);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children.variableId(4);
         _Data = newDynamicBean_Data();
     }
 
@@ -142,8 +142,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _Managers = new Zeze.Transaction.Collections.PMap2<>(meta2_Managers);
         _Managers.variableId(2);
         _NextDepartmentId = _NextDepartmentId_;
-        _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
-        _Childs.variableId(4);
+        _Children = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Children.variableId(4);
         _Data = newDynamicBean_Data();
     }
 
@@ -152,7 +152,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         setRoot("");
         _Managers.clear();
         setNextDepartmentId(0);
-        _Childs.clear();
+        _Children.clear();
         _Data.reset();
         _unknown_ = null;
     }
@@ -163,7 +163,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         for (var _e_ : _o_._Managers.entrySet())
             _Managers.put(_e_.getKey(), _e_.getValue().copy());
         setNextDepartmentId(_o_.getNextDepartmentId());
-        _Childs.assign(_o_._Childs);
+        _Children.assign(_o_._Children);
         _Data.assign(_o_._Data);
         _unknown_ = _o_._unknown_;
     }
@@ -216,10 +216,10 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         }
         _s_.append("},\n");
         _s_.append(_i1_).append("NextDepartmentId=").append(getNextDepartmentId()).append(",\n");
-        _s_.append(_i1_).append("Childs={");
-        if (!_Childs.isEmpty()) {
+        _s_.append(_i1_).append("Children={");
+        if (!_Children.isEmpty()) {
             _s_.append('\n');
-            for (var _e_ : _Childs.entrySet()) {
+            for (var _e_ : _Children.entrySet()) {
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
@@ -290,7 +290,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             }
         }
         {
-            var _x_ = _Childs;
+            var _x_ = _Children;
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.MAP);
@@ -344,7 +344,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
-            var _x_ = _Childs;
+            var _x_ = _Children;
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -379,7 +379,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             return false;
         if (getNextDepartmentId() != _b_.getNextDepartmentId())
             return false;
-        if (!_Childs.equals(_b_._Childs))
+        if (!_Children.equals(_b_._Children))
             return false;
         if (!_Data.equals(_b_._Data))
             return false;
@@ -389,14 +389,14 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     @Override
     protected void initChildrenRootInfo(Zeze.Transaction.Record.RootInfo _r_) {
         _Managers.initRootInfo(_r_, this);
-        _Childs.initRootInfo(_r_, this);
+        _Children.initRootInfo(_r_, this);
         _Data.initRootInfo(_r_, this);
     }
 
     @Override
     protected void initChildrenRootInfoWithRedo(Zeze.Transaction.Record.RootInfo _r_) {
         _Managers.initRootInfoWithRedo(_r_, this);
-        _Childs.initRootInfoWithRedo(_r_, this);
+        _Children.initRootInfoWithRedo(_r_, this);
         _Data.initRootInfoWithRedo(_r_, this);
     }
 
@@ -404,7 +404,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
     public boolean negativeCheck() {
         if (getNextDepartmentId() < 0)
             return true;
-        for (var _v_ : _Childs.values()) {
+        for (var _v_ : _Children.values()) {
             if (_v_ < 0)
                 return true;
         }
@@ -423,7 +423,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
                 case 1: _Root = _v_.stringValue(); break;
                 case 2: _Managers.followerApply(_v_); break;
                 case 3: _NextDepartmentId = _v_.longValue(); break;
-                case 4: _Childs.followerApply(_v_); break;
+                case 4: _Children.followerApply(_v_); break;
                 case 5: _Data.followerApply(_v_); break;
             }
         }
@@ -437,7 +437,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
             setRoot("");
         Zeze.Serialize.Helper.decodeJsonMap(this, "Managers", _Managers, _r_.getString(_pn_ + "Managers"));
         setNextDepartmentId(_r_.getLong(_pn_ + "NextDepartmentId"));
-        Zeze.Serialize.Helper.decodeJsonMap(this, "Childs", _Childs, _r_.getString(_pn_ + "Childs"));
+        Zeze.Serialize.Helper.decodeJsonMap(this, "Children", _Children, _r_.getString(_pn_ + "Children"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_Data, _r_.getString(_pn_ + "Data"));
     }
 
@@ -447,7 +447,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _s_.appendString(_pn_ + "Root", getRoot());
         _s_.appendString(_pn_ + "Managers", Zeze.Serialize.Helper.encodeJson(_Managers));
         _s_.appendLong(_pn_ + "NextDepartmentId", getNextDepartmentId());
-        _s_.appendString(_pn_ + "Childs", Zeze.Serialize.Helper.encodeJson(_Childs));
+        _s_.appendString(_pn_ + "Children", Zeze.Serialize.Helper.encodeJson(_Children));
         _s_.appendString(_pn_ + "Data", Zeze.Serialize.Helper.encodeJson(_Data));
     }
 
@@ -457,7 +457,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "Root", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Managers", "map", "string", "dynamic"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "NextDepartmentId", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Childs", "map", "string", "long"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "Children", "map", "string", "long"));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "Data", "dynamic", "", ""));
         return _v_;
     }
