@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class HttpHandler {
-	public final int MaxContentLength; // HTTP请求的body长度限制(只限GET请求时可以限制0长度), 只用于非流非WebSocket模式
+	public final int MaxContentLength; // HTTP请求的body长度限制(只限GET请求时可以限制0长度)以及WebSocket的上传帧长度限制, 只用于非流模式
 	public final @NotNull TransactionLevel Level; // 事务级别
 	public final @NotNull DispatchMode Mode; // 线程派发模式
 	public final @Nullable HttpBeginStreamHandle BeginStreamHandle; // 上行流处理函数。
@@ -46,12 +46,12 @@ public class HttpHandler {
 		WebSocketHandle = null;
 	}
 
-	public HttpHandler(@Nullable TransactionLevel level, @Nullable DispatchMode mode,
+	public HttpHandler(int maxFrameLength, @Nullable TransactionLevel level, @Nullable DispatchMode mode,
 					   @NotNull HttpWebSocketHandle webSocketHandle) {
 		//noinspection ConstantValue
 		if (webSocketHandle == null)
 			throw new IllegalArgumentException("webSocketHandle is null");
-		MaxContentLength = Integer.MAX_VALUE;
+		MaxContentLength = maxFrameLength >= 0 ? maxFrameLength : Integer.MAX_VALUE;
 		Level = level != null ? level : TransactionLevel.Serializable;
 		Mode = mode != null ? mode : DispatchMode.Normal;
 		BeginStreamHandle = null;

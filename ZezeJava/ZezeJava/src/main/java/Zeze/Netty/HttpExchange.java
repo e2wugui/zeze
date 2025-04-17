@@ -358,7 +358,7 @@ public class HttpExchange {
 			if (handler.isWebSocketMode() && context.pipeline().get(WebSocketServerProtocolHandler.class) == null) {
 				context.pipeline().addLast(new WebSocketServerProtocolHandler(WebSocketServerProtocolConfig.newBuilder()
 						.websocketPath(path).decoderConfig(WebSocketDecoderConfig.newBuilder().withUTF8Validator(false)
-								.build()).build()));
+								.maxFramePayloadLength(handler.MaxContentLength).build()).build()));
 				context.pipeline().addFirst(new ChannelOutboundHandlerAdapter() {
 					@Override
 					public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
