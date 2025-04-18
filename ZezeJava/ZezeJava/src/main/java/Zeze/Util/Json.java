@@ -171,11 +171,21 @@ public final class Json implements Cloneable {
 
 		@SuppressWarnings("unchecked")
 		public static <T> @NotNull Creator<T> getDefCtor(@NotNull Class<T> klass) {
-			for (Constructor<?> c : klass.getDeclaredConstructors()) {
-				if (c.getParameterCount() == 0) {
-					setAccessible(c);
-					return () -> (T)c.newInstance((Object[])null);
+			try {
+				for (Constructor<?> c : klass.getDeclaredConstructors()) {
+					if (c.getParameterCount() == 0) {
+						setAccessible(c);
+						MethodHandle ctorMH = lookup.unreflectConstructor(c);
+						return () -> {
+							try {
+								return (T)ctorMH.invoke();
+							} catch (Throwable e) { // MethodHandle.invoke
+								throw new RuntimeException(e);
+							}
+						};
+					}
 				}
+			} catch (IllegalAccessException ignored) {
 			}
 			return () -> (T)unsafe.allocateInstance(klass);
 		}
@@ -400,6 +410,7 @@ public final class Json implements Cloneable {
 		}
 	}
 
+	private static final @NotNull MethodHandles.Lookup lookup = MethodHandles.lookup();
 	public static final int javaVersion;
 	static final @NotNull Unsafe unsafe;
 	private static final @NotNull MethodHandle getDeclaredFields0MH;
@@ -441,7 +452,6 @@ public final class Json implements Cloneable {
 				if (i == 32) // should be enough
 					throw new UnsupportedOperationException(System.getProperty("java.version"));
 			}
-			MethodHandles.Lookup lookup = MethodHandles.lookup();
 			getDeclaredFields0MH = ensureNotNull(lookup.unreflect(setAccessible(
 					Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class))));
 			if (javaVersion < 9) {
@@ -474,7 +484,7 @@ public final class Json implements Cloneable {
 	public static long objectFieldOffset(@NotNull Field field) {
 		try {
 			return (long)objectFieldOffsetMH.invoke(field);
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw new RuntimeException(e);
 		}
 	}

@@ -109,7 +109,7 @@ public final class SerializeHelper {
 	private static <T> @NotNull T newObject(@NotNull MethodHandle ctor) {
 		try {
 			return (T)ctor.invoke();
-		} catch (Throwable e) {
+		} catch (Throwable e) { // MethodHandle.invoke
 			throw Task.forceThrow(e);
 		}
 	}

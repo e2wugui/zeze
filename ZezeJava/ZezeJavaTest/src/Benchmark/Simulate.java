@@ -182,7 +182,7 @@ public class Simulate {
 						var proc0 = proc;
 						app.getZeze().newProcedure(() -> {
 							try {
-								return (long)proc0.mh.invoke();
+								return (long)proc0.mh.invokeExact();
 							} catch (RuntimeException | Error e) {
 								throw e;
 							} catch (Throwable e) {

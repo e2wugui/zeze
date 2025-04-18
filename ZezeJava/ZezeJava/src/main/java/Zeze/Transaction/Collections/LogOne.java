@@ -90,7 +90,7 @@ public class LogOne<V extends Bean> extends LogBean {
 		if (hasValue) {
 			try {
 				value = (V)meta.valueFactory.invoke();
-			} catch (Throwable e) {
+			} catch (Throwable e) { // MethodHandle.invoke
 				Task.forceThrow(e);
 			}
 			value.decode(bb);
