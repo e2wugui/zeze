@@ -242,7 +242,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 								// Immediately 需要特别在此单独处理。
 								if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
 									var lct = getZeze().getLocalRocksCacheDb().beginTransaction();
-									//noinspection DataFlowIssue
 									var t = oldTable.getDatabase().beginTransaction();
 									try {
 										oldTable.replace(t, key, old);

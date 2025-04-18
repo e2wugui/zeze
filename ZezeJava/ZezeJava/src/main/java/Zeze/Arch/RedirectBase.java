@@ -90,6 +90,7 @@ public class RedirectBase {
 	}
 
 	public @Nullable AsyncSocket choiceHash(@NotNull IModule module, int hash, int dataConcurrentLevel) {
+		//noinspection DataFlowIssue
 		var subscribes = providerApp.zeze.getServiceManager().getSubscribeStates();
 		var serviceName = ProviderDistribute.makeServiceName(providerApp.serverServiceNamePrefix, module.getId());
 
@@ -173,6 +174,7 @@ public class RedirectBase {
 		var miss = new ModuleRedirectAllResult();
 		var serviceName = ProviderDistribute.makeServiceName(arg.getServiceNamePrefix(), arg.getModuleId());
 		var consistent = providerApp.distribute.getConsistentHash(serviceName);
+		//noinspection DataFlowIssue
 		var providers = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(providerApp.zeze.getConfig().getServerId());
 		for (int i = 0; i < arg.getHashCodeConcurrentLevel(); ++i) {

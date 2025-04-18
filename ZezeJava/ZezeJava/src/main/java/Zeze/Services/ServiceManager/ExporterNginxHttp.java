@@ -37,6 +37,7 @@ public class ExporterNginxHttp implements IExporter {
 		return Type.eAll;
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	public void exportAll(@NotNull String serviceName, @NotNull BServiceInfosVersion all) throws Exception {
 		var ver0 = all.getInfos(version);

@@ -490,6 +490,7 @@ public final class Transaction {
 
 			var zeze = proc.getZeze();
 			if (zeze.getConfig().isHistory() && !cc.getRecords().isEmpty()) {
+				//noinspection DataFlowIssue
 				var future = zeze.getServiceManager().getLastTid128CacheFuture();
 				assert future != null;
 				if (proc instanceof ProtocolProcedure) {

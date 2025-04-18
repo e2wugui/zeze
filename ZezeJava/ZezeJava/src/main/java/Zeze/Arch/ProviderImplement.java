@@ -73,6 +73,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			edit.getAdd().add(new BServiceInfo(providerApp.serverServiceNamePrefix + it.key(), identity, appMainVersion,
 					providerApp.directIp, providerApp.directPort));
 		}
+		//noinspection DataFlowIssue
 		sm.editService(edit);
 
 		// 订阅服务

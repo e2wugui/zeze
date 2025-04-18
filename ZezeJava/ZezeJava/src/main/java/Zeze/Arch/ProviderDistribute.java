@@ -314,6 +314,7 @@ public class ProviderDistribute extends ReentrantLock {
 											@NotNull OutLong provider) {
 		provider.value = 0L;
 		var serviceName = makeServiceName(serviceNamePrefix, moduleId);
+		//noinspection DataFlowIssue
 		var providers = zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		if (providers == null)
 			return false;

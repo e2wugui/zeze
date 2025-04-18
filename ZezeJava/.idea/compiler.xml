@@ -4,10 +4,27 @@
     <bytecodeTargetLevel target="21" />
   </component>
   <component name="JavacSettings">
-    <option name="ADDITIONAL_OPTIONS_STRING" value="-parameters" />
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="zeze-java.ZezeJava.main" options="-parameters --add-exports java.base/sun.security.x509=ALL-UNNAMED --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/jdk.internal.reflect=ALL-UNNAMED" />
-      <module name="zeze-java.ZezeJavaTest.main" options="-parameters --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJava" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJava.main" options="-parameters -parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJava.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJavaTest" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJavaTest.main" options="-parameters -parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezeJavaTest.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.client" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.client.main" options="-parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.client.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.linkd" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.linkd.main" options="-parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.linkd.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.main" options="-parameters" />
+      <module name="zeze-java.ZezexJava.server" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.server.main" options="-parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZezexJava.server.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZokerManager" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZokerManager.main" options="-parameters -parameters --add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.ZokerManager.test" options="--add-exports java.base/sun.security.rsa=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED --add-exports java.base/sun.security.x509=ALL-UNNAMED" />
+      <module name="zeze-java.main" options="-parameters" />
     </option>
   </component>
 </project>

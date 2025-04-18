@@ -180,14 +180,14 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	@Override
 	public void setDirty() {
-		if (table.getStorage() == null)
+		var storage = table.getStorage();
+		if (storage == null)
 			return; // 内存表永远不设置脏，让SoftReference能工作。
 
 		switch (table.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
-			if (table.getStorage() != null)
-				table.getStorage().onRecordChanged(this);
+			storage.onRecordChanged(this);
 			break;
 		case Table:
 			setDirty(true);

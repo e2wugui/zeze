@@ -105,6 +105,7 @@ public abstract class ProviderLoadBase {
 		loadServer.port = getProviderPort();
 		loadServer.param = new Binary(bb);
 
+		//noinspection DataFlowIssue
 		this.zeze.getServiceManager().setServerLoad(loadServer);
 	}
 }

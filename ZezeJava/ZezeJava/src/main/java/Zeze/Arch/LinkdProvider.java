@@ -91,6 +91,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		if (distribute == null)
 			return false;
 		var serviceName = ProviderDistribute.makeServiceName(serverServiceNamePrefix, moduleId);
+		//noinspection DataFlowIssue
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		return providers != null && distribute.choiceHash(providers, hash, provider);
 	}
@@ -100,6 +101,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	public @Nullable ProviderModuleState getProviderModuleState(int moduleId) {
+		//noinspection DataFlowIssue
 		var providers = distributes.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		return providers != null ? (ProviderModuleState)providers.getSubscribeInfo().getLocalState() : null;
 	}
@@ -110,6 +112,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
 			return false;
+		//noinspection DataFlowIssue
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
 			return false;
@@ -270,6 +273,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						moduleId, module.getChoiceType(), module.getConfigType());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
+				//noinspection DataFlowIssue
 				var subState = distributes.zeze.getServiceManager().subscribeService(
 						new BSubscribeInfo(serviceName, 0, providerModuleState));
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -303,6 +307,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 					moduleId, module.getChoiceType(), module.getConfigType());
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
+			//noinspection DataFlowIssue
 			var subState = distributes.zeze.getServiceManager().subscribeService(
 					new BSubscribeInfo(serviceName, 0, providerModuleState));
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -326,6 +331,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (!isOnProviderClose)
 				providerSession.getStaticBinds().remove(moduleId);
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
+			//noinspection DataFlowIssue
 			var volatileProviders = distributes.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 			if (volatileProviders != null) {
 				// UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。
@@ -455,6 +461,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	protected long ProcessCheckLinkSession(@NotNull CheckLinkSession p) throws Exception {
 		// see ProcessSend，这里不需要处理。
@@ -510,6 +517,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Procedure.Success;
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	protected long ProcessSetDisableChoiceRequest(@NotNull Zeze.Builtin.Provider.SetDisableChoice r) throws Exception {
 		var session = (LinkdProviderSession)r.getSender().getUserState();

@@ -124,6 +124,7 @@ public class Rank extends AbstractRank {
 	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {
 		var name = ProviderDistribute.makeServiceName(serviceNamePrefix, getId());
 		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
+		//noinspection DataFlowIssue
 		app.getZeze().getServiceManager().registerService(new BServiceInfo(
 				name, identity, app.getZeze().getConfig().getAppMainVersion(), providerDirectIp, providerDirectPort));
 	}
@@ -432,13 +433,14 @@ public class Rank extends AbstractRank {
 
 	/**
 	 * 直接合并hash分组，不适用缓存。
+	 *
 	 * @param keyHintFrom from
-	 * @param keyHintTo to
+	 * @param keyHintTo   to
 	 */
 	public void mergeRank(BConcurrentKey keyHintFrom, BConcurrentKey keyHintTo) {
 		if (keyHintFrom.getRankType() != keyHintTo.getRankType()
-			|| keyHintFrom.getTimeType() != keyHintTo.getTimeType()
-			|| keyHintFrom.getYear() != keyHintTo.getYear())
+				|| keyHintFrom.getTimeType() != keyHintTo.getTimeType()
+				|| keyHintFrom.getYear() != keyHintTo.getYear())
 			throw new RuntimeException("rank type mismatch.");
 
 		if (keyHintFrom.getOffset() == keyHintTo.getOffset())// same hint

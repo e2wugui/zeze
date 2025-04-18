@@ -287,8 +287,9 @@ public final class Checkpoint {
 		try {
 			// prepare: 编码并且为每一个数据库创建一个数据库事务。
 			for (var r : rs) {
-				if (r.getTable().getStorage() != null) {
-					var database = r.getTable().getStorage().getDatabaseTable().getDatabase();
+				var storage = r.getTable().getStorage();
+				if (storage != null) {
+					var database = storage.getDatabaseTable().getDatabase();
 					r.setDatabaseTransactionTmp(dts.computeIfAbsent(database, Database::beginTransaction));
 					if (r.getTable().getOldTable() != null) {
 						database = r.getTable().getOldTable().getDatabase();

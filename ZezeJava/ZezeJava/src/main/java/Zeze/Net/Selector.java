@@ -169,7 +169,6 @@ public class Selector extends Thread implements ByteBufferAllocator {
 				@Override
 				public void run() {
 					try {
-						//noinspection InfiniteLoopStatement
 						for (; ; )
 							wakeupQueue.take().wakeup();
 					} catch (InterruptedException e) {

@@ -125,7 +125,6 @@ public class Test {
 		client.start();
 
 		Task.run(() -> {
-			//noinspection InfiniteLoopStatement
 			for (byte[] tmp = new byte[100]; ; ) {
 				try {
 					//noinspection ResultOfMethodCallIgnored
