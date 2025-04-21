@@ -170,43 +170,9 @@ namespace Zeze.Services.ToLuaService2
         void luaL_unref (lua_State L, int t, int @ref);
         int lua_pcall (lua_State L, int nargs, int nresults, int msgh);
 
-        string lua_tostring(lua_State L, int index)
-        {
-            IntPtr str = lua_tolstring(L, index, out var len); // fix il2cpp 64 bit
-            string s = null;
-            if (len > 0 && str != default)
-            {
-#if (UNITY_WSA && !UNITY_EDITOR)
-                byte[] b = new byte[len];
-                Marshal.Copy(str, b, 0, len);
-                s = System.Text.Encoding.Default.GetString(b);
-#else
-                s = Marshal.PtrToStringAnsi(str);
-                // fallback method
-                if(s == null)
-                {
-                    byte[] b = new byte[len];
-                    Marshal.Copy(str, b, 0, len);
-                    s = Encoding.Default.GetString(b);
-                }
-#endif
-            }
-            return s ?? string.Empty;
-        }
+        string lua_tostring(lua_State L, int index);
         IntPtr lua_tolstring (lua_State L, int index, out int len);
         
-        byte[] lua_tobytes(lua_State luaState, int index)
-        {
-            IntPtr str = lua_tolstring(luaState, index, out var len); // fix il2cpp 64 bit
-            if (str != IntPtr.Zero)
-            {
-                byte[] bytes = new byte[len];
-                Marshal.Copy(str, bytes,0,len);
-                return bytes;
-            }
-            return null;
-        }
-               
         // int PCallPrepare(IntPtr luaState, int funcRef);
         // void PCall(IntPtr luaState, int arguments, int results, int errFunc);
     } 
@@ -763,6 +729,42 @@ namespace Zeze.Services.ToLuaService2
             bb.WriteByte(0);
         }
 
+        private int CheckListOffset(IntPtr luaState) // [table]
+        {
+            Lua.lua_rawgeti(luaState, -1, 0xf);
+            if (Lua.lua_isnil(luaState, -1))
+            {
+                Lua.lua_pop(luaState, 1);
+                return 1;
+            }
+            Lua.lua_pop(luaState, 1);
+            
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x80);
+            if (Lua.lua_isnil(luaState, -1))
+            {
+                Lua.lua_pop(luaState, 1);
+                return 2;
+            }
+            Lua.lua_pop(luaState, 1);
+            
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x20_0000 );
+            if (Lua.lua_isnil(luaState, -1))
+            {
+                Lua.lua_pop(luaState, 1);
+                return 3;
+            }
+            Lua.lua_pop(luaState, 1);
+            
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x1000_0000);
+            if (Lua.lua_isnil(luaState, -1))
+            {
+                Lua.lua_pop(luaState, 1);
+                return 4;
+            }
+            Lua.lua_pop(luaState, 1);
+            return 5;
+        }
+        
         int EncodeGetTableLength(IntPtr luaState) // [table]
         {
             if (!Lua.lua_istable(luaState, -1))
@@ -793,7 +795,18 @@ namespace Zeze.Services.ToLuaService2
                         bb.WriteDouble(Lua.lua_tonumber(luaState, index));
                         break;
                     case ByteBuffer.BYTES:
-                        bb.WriteBytes(Lua.lua_tobytes(luaState, index));
+                        IntPtr str = Lua.lua_tolstring(luaState, index, out var len); // fix il2cpp 64 bit
+                        if (str != IntPtr.Zero)
+                        {
+                            unsafe
+                            {
+                                bb.WriteBytes((byte*)str.ToPointer(), len);
+                            }
+                        }
+                        else
+                        {
+                            Lua.lua_pushnil(luaState);
+                        }
                         break;
                     case ByteBuffer.LIST:
                     {
@@ -803,6 +816,10 @@ namespace Zeze.Services.ToLuaService2
                             throw new Exception("list cannot define in collection");
                         if (!Lua.lua_checkstack(luaState, 2))
                             throw new Exception("Lua stack overflow!");
+                        int length = 0;
+                        var writeIndex = bb.WriteIndex;
+                        int offset = CheckListOffset(luaState);
+                        bb.WriteIndex = writeIndex + offset;
                         int n = EncodeGetTableLength(luaState);
                         bb.WriteListType(n, v.ValueType & ByteBuffer.TAG_MASK);
                         var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
@@ -812,6 +829,7 @@ namespace Zeze.Services.ToLuaService2
                             // 这里应该进行修改还没想好该怎么改~~~，先保留
                             try
                             {
+                                length++;
                                 EncodeVariable(luaState, bb, meta);
                             }
                             catch (Exception e)
@@ -819,6 +837,10 @@ namespace Zeze.Services.ToLuaService2
                                 throw new Exception($"encode list value failed: key={Lua.lua_tostring(luaState, topIdx + 1)}", e);
                             }
                         }
+                        var nextWriteIndex = bb.WriteIndex;
+                        bb.WriteIndex = writeIndex;
+                        bb.WriteListType(length, v.ValueType & ByteBuffer.TAG_MASK);
+                        bb.WriteIndex = nextWriteIndex;
                         break;
                     }
                     case ByteBuffer.MAP:
@@ -829,13 +851,18 @@ namespace Zeze.Services.ToLuaService2
                             throw new Exception("map cannot define in collection");
                         if (!Lua.lua_checkstack(luaState, 2))
                             throw new Exception("Lua stack overflow!");
-                        int n = EncodeGetTableLength(luaState);
-                        bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
+                        int length = 0;
+                        var writeIndex = bb.WriteIndex;
+                        bb.WriteIndex = writeIndex + 2;
+                        
+                        // int n = EncodeGetTableLength(luaState);
+                        // bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
                         var keyMeta = new VariableMeta { Type = v.KeyType, TypeBeanTypeId = v.KeyBeanTypeId };
                         var valueMeta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
                         int topIdx = Lua.lua_gettop(luaState);
                         for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, index - 1); Lua.lua_pop(luaState, 1)) // [table, key, value]
                         {
+                            length++;
                             EncodeVariable(luaState, bb, keyMeta, -2);
                             try
                             {
@@ -846,6 +873,18 @@ namespace Zeze.Services.ToLuaService2
                                 throw new Exception($"encode map value failed: key={Lua.lua_tostring(luaState, topIdx + 1)}", e);
                             }
                         }
+                        var offset = ByteBuffer.WriteUIntSize(length) + 1 - 2; 
+                        if (offset > 0)
+                        {
+                            bb.EnsureWrite(offset);
+                            Buffer.BlockCopy(bb.Bytes, writeIndex + 2, bb.Bytes, writeIndex + offset + 2, bb.WriteIndex - writeIndex - 2);
+                        }
+                        
+                        var nextWriteIndex = bb.WriteIndex + offset;
+                        bb.WriteIndex = writeIndex;
+                        bb.WriteMapType(length, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
+                        bb.WriteIndex = nextWriteIndex;
+                        
                         break;
                     }
                     case ByteBuffer.BEAN:
@@ -1531,10 +1570,7 @@ namespace Zeze.Services.ToLuaService2
             return v;
         }
 
-        // 这里保持 delegate 引用，防止gc，这样改动比较小，还是static function 性能会更好，看看怎么改成static 的
-        private List<ILua.lua_CFunction> _luaCFunctions = new List<ILua.lua_CFunction>();
-
-        public void ExportFunction(lua_State l, string name, ILua.lua_CFunction func)
+        private void ExportFunction(lua_State l, string name, ILua.lua_CFunction func)
         {
             // 这里保持 delegate 引用，防止gc, 如果是static 方法就不需要了
             // _luaCFunctions.Add(func);
@@ -1841,6 +1877,11 @@ namespace Zeze.Services.ToLuaService2
         public int lua_pcall(lua_State L, int nargs, int nresults, int msgh)
         {
             return LuaInterface.LuaDLL.lua_pcall(L, nargs, nresults, msgh);
+        }
+
+        public string lua_tostring(lua_State L, int index)
+        {
+            return LuaInterface.LuaDLL.lua_tostring(L, index);
         }
 
         public lua_State lua_tolstring(lua_State L, int index, out int len)
