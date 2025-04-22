@@ -1055,6 +1055,17 @@ namespace Zeze.Serialize
             Buffer.BlockCopy(x, offset, Bytes, WriteIndex, length);
             WriteIndex += length;
         }
+        
+        public unsafe void WriteBytes(byte* srcPtr, int length)
+        {
+            WriteUInt(length);
+            EnsureWrite(length);
+            fixed (byte* destPtr = &Bytes[WriteIndex])
+            {
+                Buffer.MemoryCopy(srcPtr, destPtr, Bytes.Length - WriteIndex, length);
+            }
+            WriteIndex += length;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBinary(Binary binary)
