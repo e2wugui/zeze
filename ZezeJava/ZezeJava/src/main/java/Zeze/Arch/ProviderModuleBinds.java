@@ -113,6 +113,7 @@ public final class ProviderModuleBinds {
 		}
 	}
 
+	private Module defaultModule;
 	private final HashMap<String, Module> modules = new HashMap<>();
 	private final IntHashSet providerNoDefaultModule = new IntHashSet();
 
@@ -138,6 +139,10 @@ public final class ProviderModuleBinds {
 
 			case "ProviderNoDefaultModule":
 				splitIntoSet(e.getAttribute("providers"), providerNoDefaultModule);
+				break;
+
+			case "defaultModule":
+				this.defaultModule = new Module(e);
 				break;
 
 			default:
@@ -180,7 +185,12 @@ public final class ProviderModuleBinds {
 					continue;
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
-			out.put(m.getId(), cm != null ? new BModule.Data(cm.choiceType, cm.configType)
+
+			if (cm == null) // 模块没有配置
+				cm = defaultModule; // 先看默认配置，仍然可能为null。
+
+			out.put(m.getId(),
+					cm != null ? new BModule.Data(cm.choiceType, cm.configType)
 					: new BModule.Data(
 							BModule.ChoiceTypeDefault,
 							BModule.ConfigTypeDefault));
