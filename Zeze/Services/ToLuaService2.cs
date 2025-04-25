@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Services.ToLuaService2;
@@ -460,7 +457,7 @@ namespace Zeze.Services.ToLuaService2
             Lua.lua_getfield(luaState, -2, "beans"); // [table, refTable, table.beans]
             var beanName2BeanId = new Dictionary<string, long>();
             var dynamicMetas = new List<DynamicMeta>();
-            LuaTable beans = new LuaTable();
+            // LuaTable beans = new LuaTable();
             // foreach (var (beanName, bean) in beans)
             // {
             //     var beanTypeId = bean.GetStringInt("type_id");
@@ -988,7 +985,7 @@ namespace Zeze.Services.ToLuaService2
                     Lua.lua_createtable(luaState, 0, 8);
             }
 
-            if (service is IFromLua2 fromLua) // 必须是，不报错了。
+            // if (service is IFromLua2 fromLua) // 必须是，不报错了。
             {
                 // 先把这里的逻辑屏蔽了，如果lua 需要的的话，通过 id 转递的方式，基于基础的lua 接口，就不做对象的传递了
                 // Lua.lua_pushstring(luaState, "Service");
@@ -1658,6 +1655,7 @@ namespace Zeze.Services.ToLuaService2
             return 0;
         }
 
+        /*
         private struct LuaTable : IEnumerable<KeyValuePair<string, LuaTable>> 
         {
             private lua_State _l;
@@ -1713,6 +1711,7 @@ namespace Zeze.Services.ToLuaService2
                 return GetEnumerator();
             }
         }
+        */
     }
 
 #if USE_ToLua_LUA
