@@ -40,6 +40,7 @@ namespace Zeze.Gen
         public bool NoRecursiveModule { get; private set; } = false;
         public bool RelationalMapping { get; private set; } = false;
         public bool Hot { get; private set; } = false;
+        public string LuaUtilDir { get; set; }
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -97,7 +98,9 @@ namespace Zeze.Gen
             //Program.AddNamedObject(FullName, this);
             ClientScript = self.GetAttribute("ClientScript").Equals("true");
             RelationalMapping = self.GetAttribute("RelationalMapping").Equals("true");
-
+            LuaUtilDir = self.GetAttribute("LuaUtilDir").Trim();
+            if (LuaUtilDir.Length == 0)
+                LuaUtilDir = "common";
             Self = self; // 保存，在编译的时候使用。
 
             if (Solution.Projects.ContainsKey(Name))

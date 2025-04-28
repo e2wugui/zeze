@@ -137,7 +137,8 @@ namespace Zeze.Gen.luaClient
                         beankeys = beanKeys,
                         protocols,
                         messageNamespace = messageNamespace,
-                        schemaNamespace = schemaNamespace
+                        schemaNamespace = schemaNamespace,
+                        luaUtilDir = Project.LuaUtilDir
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -210,7 +211,8 @@ namespace Zeze.Gen.luaClient
                 {
                     solutionNames,
                     messageNamespace = messageNamespace,
-                    schemaNamespace = schemaNamespace
+                    schemaNamespace = schemaNamespace,
+                    luaUtilDir = Project.LuaUtilDir
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));

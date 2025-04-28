@@ -79,7 +79,7 @@ end}}
 end}}
 
 {{- l = array.add_range beankeys beans }}
-local message_core = require 'common.message_core'
+local message_core = require '{{lua_util_dir}}.message_core'
 local message_init = require '{{message_namespace}}.message_init'
 
 local {{module.name}} = {}

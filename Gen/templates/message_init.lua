@@ -1,4 +1,4 @@
-local message_core = require('common.message_core')
+local message_core = require('{{lua_util_dir}}.message_core')
 
 local message_init = {}
 
