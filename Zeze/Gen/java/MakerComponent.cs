@@ -77,7 +77,7 @@ namespace Zeze.Gen.java
             foreach (Module mod in Project.AllOrderDefineModules)
                 mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
             {
-                using var sw = Program.OpenStreamWriter(Path.Combine(srcDir, Project.PackagePath, "Abstract" + Project.Name + ".java"));
+                using var sw = Program.OpenStreamWriter(Path.Combine(srcDir, Project.PackagePath, "Abstract" + Project.Name + ".java"), true);
                 sw.WriteLine("// auto-generated @formatter:off");
                 sw.WriteLine($"package {ns};");
                 sw.WriteLine();
