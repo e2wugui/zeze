@@ -2032,318 +2032,489 @@
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
-	<component name="AccountOnline" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="AccountOnline"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		>
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.AccountOnline"/>
 		</service>
 	</component>
 
-	<component name="AccountOnlineAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+	<component name="AccountOnlineAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="client"
+		>
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.AccountOnline"/>
 		</service>
 	</component>
 
-	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/MQ/Master" platform="zeze+java">
+	<component name="Master"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ/Master"
+		platform="zeze+java"
+		>
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.MQ.Master"/>
 		</service>
 	</component>
 
-	<component name="MasterAgent" gendir="src/main/java" genrelativedir="Zeze/MQ/Master" platform="zeze+java" GenTables="client">
+	<component name="MasterAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ/Master"
+		platform="zeze+java"
+		GenTables="client"
+		>
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.MQ.Master"/>
 		</service>
 	</component>
 
-	<component name="MQManager" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
+	<component name="MQManager" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ"
+		NoRecursiveModule="true"
+		platform="zeze+java"
+		>
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.MQ"/>
 		</service>
 	</component>
-	<component name="MQAgent" gendir="src/main/java" genrelativedir="Zeze/MQ" NoRecursiveModule="true" platform="zeze+java">
+	<component name="MQAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ"
+		NoRecursiveModule="true"
+		platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.MQ"/>
 		</service>
 	</component>
 
-	<component name="LinksInfo" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="LinksInfo" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.LinksInfo"/>
 		</service>
 	</component>
 
-	<component name="HistoryModule" gendir="src/main/java" genrelativedir="Zeze/History" platform="zeze+java">
+	<component name="HistoryModule" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/History" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.HistoryModule"/>
 		</service>
 	</component>
 
-	<component name="HttpSession" gendir="src/main/java" genrelativedir="Zeze/Netty" platform="zeze+java">
+	<component name="HttpSession" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Netty" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.HttpSession"/>
 		</service>
 	</component>
 
-	<component name="Onz" gendir="src/main/java" genrelativedir="Zeze/Onz" platform="zeze+java">
+	<component name="Onz" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Onz" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Onz"/>
 		</service>
 	</component>
 
-	<component name="OnzAgent" gendir="src/main/java" genrelativedir="Zeze/Onz" platform="zeze+java">
+	<component name="OnzAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Onz" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Onz"/>
 		</service>
 	</component>
 
-	<component name="Zoker" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="Zoker" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Zoker"/>
 		</service>
 	</component>
 
-	<component name="ZokerAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="ZokerAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Zoker"/>
 		</service>
 	</component>
 
-	<component name="Auth" gendir="src/main/java" platform="zeze+java">
+	<component name="Auth" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Auth"/>
 		</service>
 	</component>
 
-	<component name="LogService" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="LogService" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.LogService"/>
 		</service>
 	</component>
 
-	<component name="LogAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="LogAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.LogService"/>
 		</service>
 	</component>
 
-	<component name="HotDistribute" gendir="src/main/java" genrelativedir="Zeze/Hot" platform="zeze+java">
+	<component name="HotDistribute" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Hot" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.HotDistribute"/>
 		</service>
 	</component>
 
-	<component name="HotAgent" gendir="src/main/java" genrelativedir="Zeze/Hot" platform="zeze+java">
+	<component name="HotAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Hot" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.HotDistribute"/>
 		</service>
 	</component>
 
-	<component name="Threading" gendir="src/main/java" platform="zeze+java">
+	<component name="Threading" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Threading"/>
 		</service>
 	</component>
 
-	<component name="ThreadingServer" gendir="src/main/java" platform="zeze+java">
+	<component name="ThreadingServer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Threading"/>
 		</service>
 	</component>
 
-	<component name="Commit" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+	<component name="Commit" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2.Commit"/>
 		</service>
 	</component>
 
-	<component name="CommitAgent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" platform="zeze+java">
+	<component name="CommitAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Dbh2.Commit"/>
 		</service>
 	</component>
 
-	<component name="Master" gendir="src/main/java" genrelativedir="Zeze/Dbh2/Master" platform="zeze+java">
+	<component name="Master" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2/Master" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2.Master"/>
 		</service>
 	</component>
 
-	<component name="MasterAgent" gendir="src/main/java" genrelativedir="Zeze/Dbh2/Master" platform="zeze+java" GenTables="client">
+	<component name="MasterAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2/Master" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Dbh2.Master"/>
 		</service>
 	</component>
 
-	<component name="Dbh2" gendir="src/main/java" genrelativedir="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java">
+	<component name="Dbh2" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>
 	</component>
 
-	<component name="Dbh2Agent" gendir="src/main/java" genrelativedir="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java" GenTables="client">
+	<component name="Dbh2Agent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Dbh2"/>
 		</service>
 	</component>
 
-	<component name="AutoKey" gendir="src/main/java" platform="zeze+java">
+	<component name="AutoKey" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.AutoKey"/>
 		</service>
 	</component>
 
-	<component name="Producer" gendir="src/main/java" genrelativedir="Zeze/Services/RocketMQ" platform="zeze+java">
+	<component name="Producer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services/RocketMQ" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.RocketMQ.Producer"/>
 		</service>
 	</component>
 
-	<component name="ServiceManagerWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="ServiceManagerWithRaft" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="ServiceManagerAgentWithRaft" EnableBase="true" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+	<component name="ServiceManagerAgentWithRaft" EnableBase="true" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="Timer" gendir="src/main/java" platform="zeze+java">
+	<component name="Timer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Timer"/>
 		</service>
 	</component>
 
-	<component name="Statistics" gendir="src/main/java" platform="zeze+java">
+	<component name="Statistics" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.Statistics"/>
 		</service>
 	</component>
 
-	<component name="DbWeb" gendir="src/main/java" platform="zeze+java">
+	<component name="DbWeb" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server,servlet">
 			<module ref="Zeze.Builtin.DbWeb"/>
 		</service>
 	</component>
 
 	<!-- account online -->
-	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="Online" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Online"/>
 		</service>
 	</component>
 
 	<!-- role online -->
-	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+	<component name="Online" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Online"/>
 		</service>
 	</component>
 
-	<component name="Rank" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+	<component name="Rank" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Rank"/>
 		</service>
 	</component>
 
-	<component name="Bag" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+	<component name="Bag" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Bag"/>
 		</service>
 	</component>
 
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
-	<component name="LinkdBase" gendir="src/main/java" platform="zeze+java">
+	<component name="LinkdBase" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.LinkdBase"/>
 		</service>
 	</component>
 
-	<component name="RedoQueueServer" gendir="src/main/java" platform="zeze+java">
+	<component name="RedoQueueServer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.RedoQueue"/>
 		</service>
 	</component>
 
 	<!-- Provider之间直连服务 -->
-	<component name="ProviderDirect" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderDirect" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.ProviderDirect"/>
 		</service>
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
+	<component name="LinkdProvider" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
-	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderImplement" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
-	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
+	<component name="DelayRemove" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.DelayRemove"/>
 		</service>
 	</component>
 
-	<component name="BoolList" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="BoolList" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.BoolList"/>
 		</service>
 	</component>
 
-	<component name="Queue" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="Queue" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.Queue"/>
 		</service>
 	</component>
 
-	<component name="LinkedMap" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="LinkedMap" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.LinkedMap"/>
 		</service>
 	</component>
 
-	<component name="DAG" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="DAG" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.DAG"/>
 		</service>
 	</component>
 
-	<component name="DepartmentTree" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="DepartmentTree" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.DepartmentTree"/>
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="GlobalCacheManagerWithRaft" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaftAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+	<component name="GlobalCacheManagerWithRaftAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="TestRocks" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="TestRocks" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.TestRocks"/>
 		</service>
 	</component>
 
-	<component name="Token" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+	<component name="Token" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Token"/>
 		</service>
