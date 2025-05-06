@@ -214,7 +214,7 @@
 	gendir 代码生成输出目录，默认是当前目录
 	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
 	-->
-	<project name="ZezeJavaTest" gendir=".." scriptdir="src" platform="java" GenTables="" MappingClass="true">
+	<project name="ZezeJavaTest" GenDir="Gen" SrcDir="src" platform="java" GenTables="" MappingClass="true">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="Module2"/>
@@ -230,7 +230,7 @@
 		</service>
 	</project>
 
-	<project name="CxxTest" gendir="../../" platform="cxx" GenTables="" ClientScript="true">
+	<project name="CxxTest" GenDir="../../CxxTest/Gen" SrcDir="../../CxxTest" platform="cxx" GenTables="" ClientScript="true">
 		<service name="TestClient" handle="client,clientscript">
 			<module ref="Module1"/>
 			<module ref="M6"/>
