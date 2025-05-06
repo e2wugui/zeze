@@ -15,7 +15,7 @@
 		</rpc>
 	</module>
 
-	<project name="linkd" gendir="." scriptdir="src" platform="java">
+	<project name="linkd" GenDir="linkd/Gen" SrcDir="linkd/src" platform="java">
 		<service name="LinkdService" handle="server" base="Zeze.Arch.LinkdService">
 			<module ref="Linkd"/>
 		</service>
