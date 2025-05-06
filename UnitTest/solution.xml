@@ -140,7 +140,7 @@
 		</ModuleStartOrder>
 	</project>
 
-	<project name="csharp" GenDir="../lua/csharp/msg" SrcDir="../lus/csharp/module" platform="luaclient" GenTables="client">
+	<project name="csharp" GenDir="../lua/csharp/msg" SrcDir="../lua/csharp/module" platform="luaclient" GenTables="client">
 		<service name="Client" handle="clientscript" base="Zeze.Services.ToLuaServiceClient2">
 			<module ref="Module1" />
 		</service>
