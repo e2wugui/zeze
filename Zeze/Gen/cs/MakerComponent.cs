@@ -32,21 +32,9 @@ namespace Zeze.Gen.cs
 
         public void Make()
         {
-            string projectBasedir = Project._GenDir;
-            string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-
-            var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
-            string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。
-
-            if (Project.IsNewVersionDir())
-            {
-                genDir = Project.GenDir;
-                srcDir = Project.SrcDir;
-                if (!Project.DisableDeleteGen)
-                    Program.AddGenDir(genDir);
-            }
-            else if (!Project.DisableDeleteGen)
-                Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
+            var genDir = Project.GenDir;
+            var srcDir = Project.SrcDir;
+            Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
 
             Directory.CreateDirectory(srcDir);
             Directory.CreateDirectory(genDir);
@@ -78,7 +66,7 @@ namespace Zeze.Gen.cs
             }
 
             var ns = "";
-            foreach (var dir in relativeSrcDir.Split(new char[] { '/', '\\' }))
+            foreach (var dir in Project.PackagePath.Split(new char[] { '/', '\\' }))
             {
                 if (!string.IsNullOrEmpty(ns))
                     ns += ".";
@@ -88,20 +76,19 @@ namespace Zeze.Gen.cs
             var mfs = new List<ModuleFormatter>();
             foreach (Module mod in Project.AllOrderDefineModules)
                 mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
-            var baseFileName = Path.Combine(srcDir, "Abstract" + Project.Name + ".cs");
             {
-                using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
+                using var sw = Program.OpenStreamWriter(Path.Combine(srcDir, Project.PackagePath, "Abstract" + Project.Name + ".java"));
                 if (sw != null)
                 {
                     sw.WriteLine("// auto generate");
                     sw.WriteLine();
                     sw.WriteLine("// ReSharper disable RedundantNameQualifier UnusedParameter.Global UnusedVariable");
                     sw.WriteLine("// ReSharper disable once CheckNamespace");
+                    var presentModule = GetPresentModule(mfs);
                     sw.WriteLine($"namespace {ns}");
                     sw.WriteLine("{");
                     sw.WriteLine($"    public abstract class Abstract{Project.Name} : Zeze.IModule ");
                     sw.WriteLine("    {");
-                    var presentModule = GetPresentModule(mfs);
                     sw.WriteLine($"        public const int ModuleId = {presentModule.Id};");
                     sw.WriteLine($"        public override string FullName => \"{ns + "." + Project.Name}\";");
                     sw.WriteLine($"        public override string Name => \"{Project.Name}\";");
@@ -151,20 +138,22 @@ namespace Zeze.Gen.cs
                     sw.WriteLine("}");
                 }
             }
-            var srcFileName = Path.Combine(srcDir, Project.Name + ".cs");
-            if (!File.Exists(srcFileName))
             {
-                using StreamWriter sw = Program.OpenStreamWriter(srcFileName);
-                if (sw != null)
+                var fileName = Path.Combine(srcDir, Project.PackagePath, Project.Name + ".cs");
+                if (!File.Exists(fileName))
                 {
-                    sw.WriteLine();
-                    sw.WriteLine($"namespace {ns}");
-                    sw.WriteLine($"{{");
-                    sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
-                    sw.WriteLine($"    {{");
-                    foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, false);
-                    sw.WriteLine($"    }}");
-                    sw.WriteLine($"}}");
+                    using var sw = Program.OpenStreamWriter(fileName, false);
+                    if (sw != null)
+                    {
+                        sw.WriteLine();
+                        sw.WriteLine($"namespace {ns}");
+                        sw.WriteLine($"{{");
+                        sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
+                        sw.WriteLine($"    {{");
+                        foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, false);
+                        sw.WriteLine($"    }}");
+                        sw.WriteLine($"}}");
+                    }
                 }
             }
         }

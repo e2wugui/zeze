@@ -26,7 +26,7 @@ namespace Zeze.Gen.python
 
             sw.WriteLine("# auto-generated @formatter:off");
             sw.WriteLine("# noinspection PyUnresolvedReferences");
-            sw.WriteLine($"import {project.ScriptDir}.{project.Solution.Name} as {project.Solution.Name}");
+            sw.WriteLine($"import {project.Solution.Name} as {project.Solution.Name}");
             sw.WriteLine();
             sw.WriteLine();
             sw.WriteLine($"class {appClassName}:");

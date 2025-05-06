@@ -13,21 +13,10 @@ namespace Zeze.Gen.confcs
 
         public void Make()
         {
-            string projectBasedir = Project._GenDir;
-            string projectDir = Path.Combine(projectBasedir, Project.Name);
-            string genDir = Path.Combine(projectDir, Project.GenRelativeDir);
-            string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
-                ? genDir : Path.Combine(projectDir, Project.GenCommonRelativeDir);
+            var genCommonDir = Project.GenDir;
+            var genDir = Project.GenDir;
+            var srcDir = Project.SrcDir;
 
-            string srcDir = Project.ScriptDir.Length > 0
-                ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
-
-            if (Project.IsNewVersionDir())
-            {
-                genCommonDir = Project.GenDir;
-                genDir = Project.GenDir;
-                srcDir = Project.SrcDir;
-            }
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 

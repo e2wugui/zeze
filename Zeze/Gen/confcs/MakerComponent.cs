@@ -32,21 +32,10 @@ namespace Zeze.Gen.confcs
 
         public void Make()
         {
-            string projectBasedir = Project._GenDir;
-            string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-
-            var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
-            string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。
-
-            if (Project.IsNewVersionDir())
-            {
-                genDir = Project.GenDir;
-                srcDir = Project.SrcDir;
-                if (!Project.DisableDeleteGen)
-                    Program.AddGenDir(genDir);
-            }
-            else if (!Project.DisableDeleteGen)
-                Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
+            var genDir = Project.GenDir;
+            var srcDir = Project.SrcDir;
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
 
             Directory.CreateDirectory(srcDir);
             Directory.CreateDirectory(genDir);
@@ -78,7 +67,7 @@ namespace Zeze.Gen.confcs
             }
 
             var ns = "";
-            foreach (var dir in relativeSrcDir.Split(new char[] { '/', '\\' }))
+            foreach (var dir in Project.PackagePath.Split(new char[] { '/', '\\' }))
             {
                 if (!string.IsNullOrEmpty(ns))
                     ns += ".";

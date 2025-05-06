@@ -25,12 +25,10 @@ namespace Zeze.Gen.lua
 
         public void Make()
         {
-            string projectBasedir = Project._GenDir;
-            string projectDir = Path.Combine(projectBasedir, Project.Name);
-            string genDir = Path.Combine(projectDir, "LuaGen");
-            string srcDir = Path.Combine(projectDir, "LuaSrc");
-
-            Program.AddGenDir(genDir);
+            string genDir = Project.GenDir; // LuaGen
+            string srcDir = Project.GenDir; // LuaSrc
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
 
             HashSet<ModuleSpace> allRefModules = new HashSet<ModuleSpace>();
             foreach (Module mod in Project.AllOrderDefineModules)

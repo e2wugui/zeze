@@ -71,26 +71,12 @@ namespace Zeze.Gen.luaClient
                 allRefModulesList.Add(m);
             }
 
-            string projectBasedir = Project._GenDir;
-            string projectDir = Path.Combine(projectBasedir, Project.Name);
-
-            string rootNameSpace;
-            if (Project.ScriptDir.Length > 0)
-            {
-                var scriptDir = Path.GetRelativePath(projectDir, Path.Combine(projectDir, Project.ScriptDir));
-                rootNameSpace = scriptDir.Replace('/', '.').Replace('\\', '.');
-            }
-            else
-            {
-                rootNameSpace = "";
-            }
-            
-           
+            string rootNameSpace = "";
             var schemaNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.msg.__msgmeta__" : "msg.__msgmeta__";
             var messageNamespace = rootNameSpace.Length > 0 ? $"{rootNameSpace}.msg" : "msg";
-            string metaDir = Path.Combine(projectDir, Project.ScriptDir, "msg", "__msgmeta__");
-            string genDir = Path.Combine(projectDir, Project.ScriptDir, "msg");
-            string srcDir = Path.Combine(projectDir, "module");
+            string genDir = Project.GenDir; // "msg"
+            string metaDir = Path.Combine(genDir, "__msgmeta__");
+            string srcDir = Project.SrcDir; // "module"
             Program.AddGenDir(genDir);
             {
                 string luaMetaTemplateString = GetTemplate("LuaMeta.scriban-txt");

@@ -120,7 +120,7 @@ namespace Zeze.Gen.python
             {
                 // 转发给全局静态（static）函数。
                 sw.WriteLine($"{prefix}    # noinspection PyShadowingNames");
-                sw.WriteLine($"{prefix}    import {project.ScriptDir}.{project.Solution.Name} as {project.Solution.Name}");
+                sw.WriteLine($"{prefix}    import {project.Solution.Name} as {project.Solution.Name}");
                 sw.WriteLine($"{prefix}    return {type.DynamicParams.GetSpecialTypeIdFromBean.Replace("::", ".")}(_b_)");
             }
             sw.WriteLine();
@@ -142,7 +142,7 @@ namespace Zeze.Gen.python
             {
                 // 转发给全局静态（static）函数。
                 sw.WriteLine($"{prefix}    # noinspection PyShadowingNames");
-                sw.WriteLine($"{prefix}    import {project.ScriptDir}.{project.Solution.Name} as {project.Solution.Name}");
+                sw.WriteLine($"{prefix}    import {project.Solution.Name} as {project.Solution.Name}");
                 sw.WriteLine($"{prefix}    return {type.DynamicParams.CreateBeanFromSpecialTypeId.Replace("::", ".")}(_i_)");
             }
         }
