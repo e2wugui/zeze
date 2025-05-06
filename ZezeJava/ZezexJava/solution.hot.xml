@@ -206,61 +206,9 @@
 	</module>
 
 	<module name="Rank" id="9">
-		<beankey name="BConcurrentKey">
-			<enum name="RankTypeGold" value="1"/>
-
-			<enum name="TimeTypeTotal"     value="0"/> 所有时间
-			<enum name="TimeTypeDay"       value="1"/> 每天：Year为当前时间的年份，Offset为天
-			<enum name="TimeTypeWeek"      value="2"/> 每周：Year为当前时间的年份，Offset为周
-			<enum name="TimeTypeSeason"    value="3"/> 每季：Year为当前时间的年份，Offset为季
-			<enum name="TimeTypeYear"      value="4"/> 每年：Year为当前时间的年份，Offset为0
-			<enum name="TimeTypeCustomize" value="5"/> 自定义：此时Offset是自定义Id，Year为0
-
-			<variable id="1" name="RankType"     type="int"/>
-			<variable id="2" name="ConcurrentId" type="int"/> = hash % ConcurrentLevel
-			<variable id="3" name="TimeType"     type="int"/>
-			<variable id="4" name="Year"         type="int"/>
-			<variable id="5" name="Offset"       type="long"/> 根据TimeType，含义不同
-		</beankey>
-
-		<bean name="BRankValue">
-			<variable id="1" name="RoleId"     type="long"/>
-			<variable id="2" name="Value"      type="long"/> 含义由 BConcurrentKey.RankType 决定
-			<variable id="3" name="ValueEx"    type="binary"/> 排名更多自定义数据。
-			<variable id="4" name="AwardTaken" type="bool"/> 奖励已经获取。当开始领奖时，榜单不能再更新。这个变量可用于有时效的排行榜。
-		</bean>
-
-		<bean name="BRankList">
-			<variable id="1" name="RankList"  type="list" value="BRankValue"/>
-		</bean>
-
-		<table name="trank" key="BConcurrentKey" value="BRankList"/>
-
-		<bean name="BRankCounter">
-			<variable id="1" name="Value" type="long"/>
-		</bean>
-
-		<bean name="BRankCounters">
-			<variable id="1" name="Counters" type="map" key="BConcurrentKey" value="BRankCounter"/>
-		</bean>
-
-		<table name="trankcounters" key="long" value="BRankCounters"/> roleId to counters
-
-		<bean name="BGetRankList">
-			<variable id="1" name="RankType" type="int"/> BConcurrentKey.RankTypeXXX
-			<variable id="2" name="TimeType" type="int"/> BConcurrentKey.TimeTypeXXX
-		</bean>
-
-		<bean name="BRankListResult">
-			<variable id="1" name="RankType"  type="int"/>
-			<variable id="2" name="RankList"  type="list" value="BRankValue"/>
-		</bean>
-
-		<protocol name="CGetRankList" argument="BGetRankList" handle="server"/>
-		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
-
-		<bean name="RRankList" RedirectResult="true"> 生成继承RedirectResult的全public字段的类(不是标准Bean),用于RedirectAll的结果类型
-			<variable id="1" name="rankList"  type="BRankList"/> 构造时都会初始化,不能为null
+		<!-- 这个Rank代码全部删除，see Zeze.Game.Rank，这里只剩下redirect的一些测试。-->
+		<bean name="BBeanResult">
+			<variable id="1" name="inti"  type="int"/>
 		</bean>
 		<bean name="TestToServerResult">
 			<variable id="1" name="resultCode"  type="long"/> 类型是long,名字是resultCode是特殊字段,表示远程执行的结果,0表示正常,如果是超时或异常则可能得不到正确的其它字段值. 此字段是可选的

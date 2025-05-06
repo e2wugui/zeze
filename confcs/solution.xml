@@ -127,6 +127,6 @@
 	</module>
 
 
-	<project name="confcs" gendir="." platform="conf+cs" IncludeAllModules="true" MacroEditor="UNITY_EDITOR">
+	<project name="confcs" GenDir="confcs/Gen" SrcDir="confcs" platform="conf+cs" IncludeAllModules="true" MacroEditor="UNITY_EDITOR">
 	</project>
 </solution>

@@ -164,7 +164,7 @@
 		</service>
 	</project>
 
-	<project name="ZezeUnreal" gendir="../.." scriptdir="ts" GenTables="client" platform="ts">
+	<project name="ZezeUnreal" GenDir="../../ZezeUnreal/ts" SrcDir="../../ZezeUnreal/ts" GenTables="client" platform="ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>

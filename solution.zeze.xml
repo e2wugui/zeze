@@ -785,7 +785,7 @@
 		-->
 	</module> Builtin
 
-	<component name="HotDistribute" genrelativedir="Zeze/Gen/java" GenTables="client" platform="zeze+cs" NoRecursiveModule="true" AutoDelete="false">
+	<component name="HotDistribute" GenDir="." SrcDir="." PackagePath="Zeze/Gen/java" GenTables="client" platform="zeze+cs" NoRecursiveModule="true" AutoDelete="false">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.HotDistribute"/>
 		</service>
@@ -794,101 +794,101 @@
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
 
 	<!-- account online -->
-	<component name="Online" genrelativedir="Zeze/Arch" platform="zeze+cs">
+	<component name="Online" GenDir="." SrcDir="." PackagePath="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Online"/>
 		</service>
 	</component>
 
 	<!-- role online -->
-	<component name="Online" genrelativedir="Zeze/Game" platform="zeze+cs">
+	<component name="Online" GenDir="." SrcDir="." PackagePath="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Online"/>
 		</service>
 	</component>
 
-	<component name="Rank" genrelativedir="Zeze/Game" platform="zeze+cs">
+	<component name="Rank" GenDir="." SrcDir="." PackagePath="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Rank"/>
 		</service>
 	</component>
 
-	<component name="Bag" genrelativedir="Zeze/Game" platform="zeze+cs">
+	<component name="Bag" GenDir="." SrcDir="." PackagePath="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Game.Bag"/>
 		</service>
 	</component>
 
-	<component name="LinkdBase" platform="zeze+cs">
+	<component name="LinkdBase" GenDir="." SrcDir="." PackagePath="Zeze/Component" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.LinkdBase"/>
 		</service>
 	</component>
 
-	<component name="RedoQueueServer" platform="zeze+cs">
+	<component name="RedoQueueServer" GenDir="." SrcDir="." PackagePath="Zeze/Component" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.RedoQueue"/>
 		</service>
 	</component>
 
 	<!-- Provider之间直连服务 -->
-	<component name="ProviderDirect" genrelativedir="Zeze/Arch" platform="zeze+cs">
+	<component name="ProviderDirect" GenDir="." SrcDir="." PackagePath="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.ProviderDirect"/>
 		</service>
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" genrelativedir="Zeze/Arch" platform="zeze+cs">
+	<component name="LinkdProvider" GenDir="." SrcDir="." PackagePath="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
-	<component name="ProviderImplement" genrelativedir="Zeze/Arch" platform="zeze+cs">
+	<component name="ProviderImplement" GenDir="." SrcDir="." PackagePath="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
-	<component name="DelayRemove" platform="zeze+cs">
+	<component name="DelayRemove" GenDir="." SrcDir="." PackagePath="Zeze/Component" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.DelayRemove"/>
 		</service>
 	</component>
 
-	<component name="Queue" genrelativedir="Zeze/Collections" platform="zeze+cs">
+	<component name="Queue" GenDir="." SrcDir="." PackagePath="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.Queue"/>
 		</service>
 	</component>
 
-	<component name="LinkedMap" genrelativedir="Zeze/Collections" platform="zeze+cs">
+	<component name="LinkedMap" GenDir="." SrcDir="." PackagePath="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.LinkedMap"/>
 		</service>
 	</component>
 
-	<component name="DepartmentTree" genrelativedir="Zeze/Collections" platform="zeze+cs">
+	<component name="DepartmentTree" GenDir="." SrcDir="." PackagePath="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Collections.DepartmentTree"/>
 		</service>
 	</component>
 
-	<component name="AutoKey" platform="zeze+cs">
+	<component name="AutoKey" GenDir="." SrcDir="." PackagePath="Zeze/Component" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.AutoKey"/>
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaftAgent" genrelativedir="Zeze/Services" platform="zeze+cs" GenTables="client">
+	<component name="GlobalCacheManagerWithRaftAgent" GenDir="." SrcDir="." PackagePath="Zeze/Services" platform="zeze+cs" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="TestRocks" genrelativedir="Zeze/Services" platform="zeze+cs">
+	<component name="TestRocks" GenDir="." SrcDir="." PackagePath="Zeze/Services" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.TestRocks"/>
 		</service>

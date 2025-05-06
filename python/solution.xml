@@ -139,7 +139,7 @@
 		</bean>
 	</module>
 
-	<project name="test" gendir="." scriptdir="src" platform="python">
+	<project name="test" GenDir="gen" SrcDir="src" platform="python">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="Module2"/>
