@@ -183,7 +183,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@RedirectToServer(oneByOne = false)
 	public void TestBeanList(int serverId, List<InnerBean> inner, List<Long> longList, Map<Long, InnerBean> map) {
 	}
-	
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleRank(Game.App app) {
         super(app);

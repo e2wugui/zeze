@@ -23,10 +23,10 @@ namespace Zeze.Gen.lua
             return ((Types.Bean)type).TypeId.ToString();
         }
 
-        public void Make()
+        private void Make()
         {
             string genDir = Project.GenDir; // LuaGen
-            string srcDir = Project.GenDir; // LuaSrc
+            string srcDir = Project.SrcDir; // LuaSrc
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
