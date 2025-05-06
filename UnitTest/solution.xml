@@ -126,7 +126,7 @@
 	gendir 代码生成输出目录，默认是当前目录
 	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
 	-->
-	<project name="gsd" gendir="." platform="cs" GenTables="" MappingClass="true">
+	<project name="gsd" GenDir="gsd/Gen" SrcDir="gsd" platform="cs" GenTables="" MappingClass="true">
 		<!--
 		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
 		<module ref="Module2"/>
@@ -140,25 +140,25 @@
 		</ModuleStartOrder>
 	</project>
 
-	<project name="csharp" gendir="../lua" platform="luaclient" GenTables="client">
+	<project name="csharp" GenDir="../lua/csharp/msg" SrcDir="../lus/csharp/module" platform="luaclient" GenTables="client">
 		<service name="Client" handle="clientscript" base="Zeze.Services.ToLuaServiceClient2">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="cxx" gendir="../lua" GenTables="None" platform="cxx+lua">
+	<project name="cxx" GenDir="../lua/cxx/Gen" SrcDir="../lua/cxx" GenTables="None" platform="cxx+lua">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="TypeScript" gendir=".." scriptdir="" GenTables="client" platform="ts">
+	<project name="TypeScript" GenDir="../TypeScript" SrcDir="../TypeScript" GenTables="client" platform="ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
 	</project>
 
-	<project name="ZezeUnity" gendir="../.." scriptdir="ts" GenTables="client" platform="cs+ts">
+	<project name="ZezeUnity" GenDir="../../ZezeUnity/ts" SrcDir="../../ZezeUnity/ts" GenTables="client" platform="cs+ts">
 		<service name="Client" handle="clientscript">
 			<module ref="Module1" />
 		</service>
