@@ -15,9 +15,9 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
+            var genCommonDir = string.IsNullOrEmpty(Project.CommonDir) ? Project.GenDir : Project.CommonDir;
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
-            var genCommonDir = Project.GenDir;
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 

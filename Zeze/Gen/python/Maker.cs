@@ -25,7 +25,7 @@ namespace Zeze.Gen.python
 
         public void Make()
         {
-            var genCommonDir = Project.GenDir;
+            var genCommonDir = string.IsNullOrEmpty(Project.CommonDir) ? Project.GenDir : Project.CommonDir;
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
             if (!Project.DisableDeleteGen)

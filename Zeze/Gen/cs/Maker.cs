@@ -17,7 +17,7 @@ namespace Zeze.Gen.cs
 
         public void Make()
         {
-            var genCommonDir = Project.GenDir;
+            var genCommonDir = string.IsNullOrEmpty(Project.CommonDir) ? Project.GenDir : Project.CommonDir;
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
             if (!Project.DisableDeleteGen)
@@ -64,7 +64,7 @@ namespace Zeze.Gen.cs
 
         public void MakeConfCsNet(HashSet<Types.Type> dependsFollowerApplyTables)
         {
-            var genCommonDir = Project.GenDir;
+            var genCommonDir = string.IsNullOrEmpty(Project.CommonDir) ? Project.GenDir : Project.CommonDir;
             var genDir = Project.GenDir;
             var srcDir = Project.SrcDir;
             if (!Project.DisableDeleteGen)

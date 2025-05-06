@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Xml;
 using Zeze.Gen.Types;
@@ -15,6 +16,7 @@ namespace Zeze.Gen
         public string GenDir { get; private set; }
         public string SrcDir { get; private set; }
         public bool DisableDeleteGen { get; private set; }
+        public string CommonDir { get; private set; }
         public string PackagePath { get; private set; }
         // 新增路径配置参数 >>
 
@@ -86,6 +88,7 @@ namespace Zeze.Gen
             GenDir = self.GetAttribute("GenDir").Trim();
             SrcDir = self.GetAttribute("SrcDir").Trim();
             DisableDeleteGen = self.GetAttribute("DisableDeleteGen").Trim().Equals("true");
+            CommonDir = self.GetAttribute("CommonDir").Trim();
             PackagePath = self.GetAttribute("PackagePath").Trim();
             if (string.IsNullOrEmpty(GenDir) || string.IsNullOrEmpty(SrcDir))
                 throw new Exception("Config Need: GenDir & SrcDir.");
