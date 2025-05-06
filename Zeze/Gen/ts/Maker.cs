@@ -11,7 +11,7 @@
 
         public void Make()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
             string genDir = Project.ScriptDir.Length > 0
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;

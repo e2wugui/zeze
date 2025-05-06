@@ -71,7 +71,7 @@ namespace Zeze.Gen.luaClient
                 allRefModulesList.Add(m);
             }
 
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
 
             string rootNameSpace;

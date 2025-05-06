@@ -15,7 +15,7 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
             string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
@@ -24,7 +24,14 @@ namespace Zeze.Gen.java
             string srcDir = Project.ScriptDir.Length > 0
                 ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
-            Program.AddGenDir(genDir);
+            if (Project.IsNewVersionDir())
+            {
+                genCommonDir = Project.GenDir;
+                genDir = Project.GenDir;
+                srcDir = Project.SrcDir;
+            }
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
 
             var host = "127.0.0.1";
             var port = 4545;

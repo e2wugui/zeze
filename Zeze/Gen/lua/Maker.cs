@@ -25,7 +25,7 @@ namespace Zeze.Gen.lua
 
         public void Make()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = Path.Combine(projectDir, "LuaGen");
             string srcDir = Path.Combine(projectDir, "LuaSrc");

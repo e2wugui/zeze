@@ -25,15 +25,22 @@ namespace Zeze.Gen.python
 
         public void Make()
         {
-            string genDir = Path.Combine(Project.GenDir, Project.GenRelativeDir, "gen");
+            string genDir = Path.Combine(Project._GenDir, Project.GenRelativeDir, "gen");
             string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
                 ? genDir
-                : Path.Combine(Project.GenDir, Project.GenCommonRelativeDir, "gen");
+                : Path.Combine(Project._GenDir, Project.GenCommonRelativeDir, "gen");
             string srcDir = string.IsNullOrEmpty(Project.ScriptDir)
-                ? Project.GenDir
-                : Path.Combine(Project.GenDir, Project.ScriptDir);
+                ? Project._GenDir
+                : Path.Combine(Project._GenDir, Project.ScriptDir);
 
-            Program.AddGenDir(genDir);
+            if (Project.IsNewVersionDir())
+            {
+                genCommonDir = Project.GenDir;
+                genDir = Project.GenDir;
+                srcDir = Project.SrcDir;
+            }
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
 
             // gen common
             foreach (Bean bean in Project.AllBeans.Values)

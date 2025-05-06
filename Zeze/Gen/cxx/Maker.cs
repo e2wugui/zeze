@@ -18,12 +18,20 @@ namespace Zeze.Gen.cxx
 
         public void MakeCxx()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
             string srcDir = Project.ScriptDir.Length > 0
                 ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
-            Program.AddGenDir(genDir);
+
+            if (Project.IsNewVersionDir())
+            {
+                genDir = Project.GenDir;
+                srcDir = Project.SrcDir;
+            }
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
+
             foreach (var bean in Project.AllBeans.Values)
             {
                 new BeanFormatter(bean).Make(genDir);
@@ -52,12 +60,20 @@ namespace Zeze.Gen.cxx
 
         public void Make()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
             string srcDir = Project.ScriptDir.Length > 0
                 ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
-            Program.AddGenDir(genDir);
+
+            if (Project.IsNewVersionDir())
+            {
+                genDir = Project.GenDir;
+                srcDir = Project.SrcDir;
+            }
+            if (!Project.DisableDeleteGen)
+                Program.AddGenDir(genDir);
+
             {
                 using StreamWriter sw = Project.Solution.OpenWriter(genDir, "App.h");
                 if (sw != null)

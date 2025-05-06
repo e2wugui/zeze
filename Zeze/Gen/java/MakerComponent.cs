@@ -32,21 +32,32 @@ namespace Zeze.Gen.java
 
         public void Make()
         {
-            string projectBasedir = Project.GenDir;
+            string projectBasedir = Project._GenDir;
             string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-            if (Project.Solution.Name.Equals("Zeze"))
-            {
-                Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
-            }
-            else
-            {
-                if (string.IsNullOrEmpty(Project.GenRelativeDir))
-                    throw new System.Exception("genrelativedir can not empty for component 3others.");
-                Program.AddGenDir(Path.Combine(genDir, Project.Solution.Name, "builtin"));
-            }
-
             var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
             string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。
+
+            if (Project.IsNewVersionDir())
+            {
+                genDir = Project.GenDir;
+                srcDir = Project.SrcDir;
+                if (!Project.DisableDeleteGen)
+                    Program.AddGenDir(genDir);
+            }
+            else if (!Project.DisableDeleteGen)
+            {
+                if (Project.Solution.Name.Equals("Zeze"))
+                {
+                    Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(Project.GenRelativeDir))
+                        throw new System.Exception("genrelativedir can not empty for component 3others.");
+                    Program.AddGenDir(Path.Combine(genDir, Project.Solution.Name, "builtin"));
+                }
+
+            }
             Directory.CreateDirectory(srcDir);
             Directory.CreateDirectory(genDir);
             foreach (Types.Bean bean in Project.AllBeans.Values)

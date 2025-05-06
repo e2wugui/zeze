@@ -11,10 +11,19 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
-        public string GenDir { get; private set; }
+        // << 将要废弃的参数
+        public string _GenDir { get; private set; }
         public string ScriptDir { get; private set; }
         public string GenRelativeDir { get; private set; }
         public string GenCommonRelativeDir { get; private set; }
+        // 将要废弃的参数 >>
+
+        // << 新增路径配置参数
+        public string GenDir { get; private set; }
+        public string SrcDir { get; private set; }
+        public bool DisableDeleteGen { get; private set; }
+        // 新增路径配置参数 >>
+
         public HashSet<string> GenTables { get; set; } = new HashSet<string>();
         public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
         public bool EnableBase { get; private set; } = false;
@@ -71,6 +80,20 @@ namespace Zeze.Gen
             return modules;
         }
         
+        public bool IsNewVersionDir() {
+            var noGenDir = string.IsNullOrEmpty(GenDir);
+            var noSrcDir = string.IsNullOrEmpty(SrcDir);
+
+            if (noGenDir && noSrcDir)
+                return false; // 旧版路径配置
+
+            if (!noGenDir && !noSrcDir)
+                return true; // 新版路径配置
+
+            // 报告错误，路径配置不完善。
+            throw new Exception("GenDir and SrcDir must setup both.");
+        }
+
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;
@@ -78,13 +101,34 @@ namespace Zeze.Gen
             Name = self.GetAttribute("name").Trim();
             Program.CheckReserveName(Name, solution.Name);
             Platform = self.GetAttribute("platform").Trim();
-            GenDir = self.GetAttribute("gendir").Trim();
-            if (GenDir.Length == 0)
-                GenDir = ".";
+
+            var warningDir = 0;
+
+            _GenDir = self.GetAttribute("gendir").Trim();
+            if (!string.IsNullOrEmpty(_GenDir))
+                warningDir++;
+
+            if (_GenDir.Length == 0)
+                _GenDir = ".";
             GenRelativeDir = self.GetAttribute("genrelativedir").Trim();
+            if (!string.IsNullOrEmpty(GenRelativeDir))
+                warningDir++;
             GenCommonRelativeDir = self.GetAttribute("GenCommonRelativeDir").Trim();
+            if (!string.IsNullOrEmpty(GenCommonRelativeDir))
+                warningDir++;
             ScriptDir = self.GetAttribute("scriptdir").Trim();
+            if (!string.IsNullOrEmpty(ScriptDir))
+                warningDir++;
+
+            if (warningDir > 0)
+                Console.WriteLine("WARNING please use new style config: setup GenDir and SrcDir.");
+
             ComponentPresentModuleFullName = self.GetAttribute("PresentModuleFullName");
+
+            GenDir = self.GetAttribute("GenDir").Trim();
+            SrcDir = self.GetAttribute("SrcDir").Trim();
+            DisableDeleteGen = self.GetAttribute("DisableDeleteGen").Trim().Equals("true");
+
             BuiltinNG = self.GetAttribute("BuiltinNG");
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);
