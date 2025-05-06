@@ -77,9 +77,9 @@ namespace Zeze.Gen.confcs
             var mfs = new List<ModuleFormatter>();
             foreach (Module mod in Project.AllOrderDefineModules)
                 mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
-            var baseFileName = Path.Combine(srcDir, "Abstract" + Project.Name + ".cs");
+            var baseFileName = Path.Combine(srcDir, Project.PackagePath, "Abstract" + Project.Name + ".cs");
             {
-                using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
+                using StreamWriter sw = Program.OpenStreamWriter(baseFileName, true);
                 if (sw != null)
                 {
                     sw.WriteLine("// auto generate");
@@ -142,10 +142,10 @@ namespace Zeze.Gen.confcs
                     sw.WriteLine("}");
                 }
             }
-            var srcFileName = Path.Combine(srcDir, Project.Name + ".cs");
+            var srcFileName = Path.Combine(srcDir, Project.PackagePath, Project.Name + ".cs");
             if (!File.Exists(srcFileName))
             {
-                using StreamWriter sw = Program.OpenStreamWriter(srcFileName);
+                using StreamWriter sw = Program.OpenStreamWriter(srcFileName, false);
                 if (sw != null)
                 {
                     sw.WriteLine();
