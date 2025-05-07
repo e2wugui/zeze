@@ -30,6 +30,11 @@ namespace Zeze.Services
         public Service Service => this;
         public ToLua ToLua => ToLua.Instance;
 
+        public ToLuaServiceClient2(string name, Zeze.Application zeze)
+            : base(name, zeze.Config)
+        {
+        }
+
         public ToLuaServiceClient2(string name, Config config) : base(name, config)
         {
         }
