@@ -216,12 +216,12 @@ namespace Zeze.Gen.luaClient
                     "--- [[ AUTO GENERATE END ]] ---");
                 foreach (ModuleSpace module in allRefModulesList)
                 {
-                    var protocols = Project.AllProtocols.Values.Intersect(module.Protocols.Values)
-                        .Where(p => 0 != (p.HandleFlags & ((Module)module).ReferenceService.HandleFlags)).ToList();
-                    if (!protocols.Any())
+                    if (!Project.AllProtocols.Values.Intersect(module.Protocols.Values).Any())
                     {
                         continue;
                     }
+                    var protocols = Project.AllProtocols.Values.Intersect(module.Protocols.Values)
+                        .Where(p => 0 != (p.HandleFlags & ((Module)module).ReferenceService.HandleFlags)).ToList();
 
                     string fullDir = module.GetFullPath(srcDir);
                     string fullFileName = Path.Combine(fullDir, $"Module{FirstLetterToUpper(module.Name)}.lua");
