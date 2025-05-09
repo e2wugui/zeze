@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Services.ToLuaService2;
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+using System.Runtime.InteropServices;
+#endif
 using lua_State=System.IntPtr;
 using lua_Number=System.Double;
 using lua_Integer=System.Int64;
@@ -807,7 +810,7 @@ namespace Zeze.Services.ToLuaService2
                         }
                         else
                         {
-                            Lua.lua_pushnil(luaState);
+                            bb.WriteUInt(0);
                         }
                         break;
                     case ByteBuffer.LIST:
