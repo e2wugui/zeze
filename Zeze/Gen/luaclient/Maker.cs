@@ -287,6 +287,45 @@ namespace Zeze.Gen.luaClient
                     );
                 }
             }
+            
+            {
+                string luaInitTemplateText = GetTemplate("ModuleRoot.scriban-txt");
+                Template luaInitTemplate = Template.Parse(luaInitTemplateText);
+                var modules = allRefModulesList.Where(module => Project.AllProtocols.Values.Intersect(module.Protocols.Values).Any())
+                    .ToList();
+                
+                string luaRoot = luaInitTemplate.Render(new
+                {
+                    modules = modules,
+                });
+
+                var fullFileName = Path.Combine(srcDir, "module.lua");
+                
+                FileChunkGen fileChunkGen = new FileChunkGen("--- [[ AUTO GENERATE START ]] ---",
+                    "--- [[ AUTO GENERATE END ]] ---");
+                if (!fileChunkGen.LoadFile(fullFileName))
+                {
+                    using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(srcDir, "module.lua"));
+                    if (sw != null)
+                    {
+                        sw.WriteLine("local module = {}");
+                        sw.WriteLine("");
+                        sw.WriteLine(fileChunkGen.ChunkStartTag);
+                        sw.Write(luaRoot);
+                        sw.WriteLine(fileChunkGen.ChunkEndTag);
+                        sw.WriteLine("");
+                        sw.WriteLine("function module.Init()");
+                        sw.WriteLine("    module.InternalInit()");
+                        sw.WriteLine("end");
+                        sw.WriteLine("");
+                        sw.WriteLine("return module");
+                    }
+                }
+                else
+                {
+                    fileChunkGen.SaveFile(fullFileName, (writer, chunk) => writer.Write(luaRoot));
+                }
+            }
         }
     }
 }

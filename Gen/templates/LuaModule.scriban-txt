@@ -92,7 +92,7 @@ local {{module.name}} = {}
 ---@field {{variable.name}} {{ typestr(variable.variable_type) }}
 {{- end }}
 ---@field new fun(t: table):{{toname bean.full_name}}
-local {{bean.name}} = {
+{{module.name}}.{{bean.name}} = {
     __type_name__ = '{{bean.full_name}}',
     __type_id__ = '{{bean.type_id}}',
     new = message_core.bean_new,
@@ -112,7 +112,6 @@ for variable in bean.variables
         bean_variables = array.add(bean_variables, variable)
     end
 end -}}
-{{module.name}}.{{bean.name}} = {{bean.name}}
 {{- if bean_variables.size > 0 }}
 {{module.name}}.{{bean.name}}.__index = message_core.build_index({{module.name}}.{{bean.name}})
 {{module.name}}.{{bean.name}}.__newindex = message_core.build_newindex({{module.name}}.{{bean.name}})
@@ -135,7 +134,7 @@ end -}}
 {{- for e in  protocol.enums}}
 ---@field {{e.name}} integer
 {{- end }}
-local {{protocol.name}} = {
+{{module.name}}.{{protocol.name}} = {
     __type_name__ = '{{protocol.full_name}}',
     __type_id__ = '{{protocol.type_id}}',
     protocolId = {{protocol.id}},
@@ -155,7 +154,6 @@ local {{protocol.name}} = {
     {{- end }}
 }
 
-{{module.name}}.{{protocol.name}} = {{protocol.name}}
 {{module.name}}.{{protocol.name}}.__index = message_core.build_index({{module.name}}.{{protocol.name}})
 {{module.name}}.{{protocol.name}}.__newindex = message_core.build_newindex({{module.name}}.{{protocol.name}})
 
