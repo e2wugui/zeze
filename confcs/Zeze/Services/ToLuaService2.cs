@@ -609,7 +609,7 @@ namespace Zeze.Services.ToLuaService2
             int protocolId = (int)Lua.lua_tointeger(luaState, -1);
             Lua.lua_pop(luaState, 1);
             Lua.lua_getfield(luaState, -1, "resultCode");
-            int resultCode = (int)Lua.lua_tointeger(luaState, -1);
+            long resultCode = Lua.lua_tointeger(luaState, -1);
             Lua.lua_pop(luaState, 1);
 
             long type = Protocol.MakeTypeId(moduleId, protocolId);
