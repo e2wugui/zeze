@@ -1,0 +1,33 @@
+{{-
+_set = []
+modules_list = []
+for module in modules
+    modules_list = array.add modules_list module
+end
+-}}
+{{-module_names = modules_list | array.map 'full_name'| array.sort -}}
+function module.InternalInit()
+    {{-for module_name in module_names}}
+    {{- name_space_array = string.split(module_name, '.')
+        module_base_name = name_space_array[-1]
+        name_space_array =  array.remove_at(name_space_array, -1)
+        name_space_s = []
+    }}
+    {{-for name_space_p in name_space_array
+        name_space_s = array.add(name_space_s, name_space_p)
+        name_space = array.join(name_space_s, '.')
+        if array.contains _set name_space
+            continue
+        else}}
+    module.{{name_space}} = {}
+    {{-_set = array.add _set name_space }}
+        {{-end}}
+    {{-end}}
+    module.{{module_name}} = require "module.{{module_name}}.Module{{module_base_name}}"
+    {{-_set = array.add _set module_name }}
+    {{-end}}
+    
+    {{- for module_name in module_names }}
+    module.{{module_name}}.Init()
+    {{- end }}
+end
