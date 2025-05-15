@@ -29,7 +29,7 @@ public final class BArchOnlineTimer extends Zeze.Transaction.Bean implements BAr
             return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
         if (_t_ == 1832177636612857692L)
             return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
-        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BArchOnlineTimer:TimerObj");
+        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BArchOnlineTimer:TimerObj:" + _t_);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_3(long _t_) {

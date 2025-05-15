@@ -28,7 +28,7 @@ public final class BGameOnlineTimer extends Zeze.Transaction.Bean implements BGa
             return -6995089347718168392L; // Zeze.Builtin.Timer.BCronTimer
         if (_t_ == 1832177636612857692L)
             return 1832177636612857692L; // Zeze.Builtin.Timer.BSimpleTimer
-        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj");
+        throw new UnsupportedOperationException("Unknown Bean! dynamic@Zeze.Builtin.Timer.BGameOnlineTimer:TimerObj:" + _t_);
     }
 
     public static Zeze.Transaction.Bean createBeanFromSpecialTypeId_2(long _t_) {

@@ -73,7 +73,7 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        if (subBeanTypeId == {subBean.FullName}.TYPEID)");
                     sw.WriteLine($"            return create({BuildInherits(inherits, false)}, ({subBean.FullName})subBean);");
                 }
-                sw.WriteLine($"        throw new UnsupportedOperationException(\"Unknown Dynamic Bean.\");");
+                sw.WriteLine($"        throw new UnsupportedOperationException(\"Unknown Dynamic Bean: \" + subBeanTypeId);");
             }
             sw.WriteLine($"    }}");
 
