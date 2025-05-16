@@ -72,10 +72,6 @@ public final class Config {
 	public GlobalCacheManagersConf globalCacheManagers;
 	public ServiceManagerConf serviceManagerConf;
 
-	public @NotNull String getServiceManager() {
-		return serviceManager;
-	}
-
 	private int globalCacheManagerPort;
 	private final ConcurrentHashMap<String, TableConf> tableConfMap = new ConcurrentHashMap<>();
 	private TableConf defaultTableConf;
@@ -322,6 +318,14 @@ public final class Config {
 
 	public void setGlobalCacheManagerHostNameOrAddress(@Nullable String value) {
 		globalCacheManagerHostNameOrAddress = value != null ? value : "";
+	}
+
+	public @NotNull String getServiceManager() {
+		return serviceManager;
+	}
+
+	public void setServiceManager(@Nullable String serviceManager) {
+		this.serviceManager = serviceManager != null ? serviceManager : "";
 	}
 
 	public GlobalCacheManagersConf getGlobalCacheManagers() {
