@@ -14,7 +14,7 @@ public class HandshakeClient extends HandshakeBase {
 		addHandshakeClientFactoryHandle();
 	}
 
-	public HandshakeClient(@NotNull String name, @NotNull Application app) {
+	public HandshakeClient(@NotNull String name, @Nullable Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 	}

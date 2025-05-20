@@ -125,5 +125,5 @@ Service: 服务名.stat: select=SN/ST, recv=RS/RC, send=SS/SC, sendRaw=SR, socke
 * -Dlogpath=log 这是日志文件的路径，相对当前目录，默认是log。
 * -Dlogname=gs 这是日志文件的名字，默认是zeze。
 * -Dloglevel=INFO 设置日志过滤的根级别，小于此级别的日志不会输出，默认是DEBUG。
-* -Dlogconsole=Null 不输出日志到stdout，一般用于正式部署服务器时，默认是输出。
+* -Dlogconsole=Null 不输出日志到stdout，一般用于正式部署服务器时，默认是Console(输出到控制台)。
 * -Dlog4j.configurationFile=path/log4j2.xml 使用自定义的log4j2配置(以上参数可能不再有效)。

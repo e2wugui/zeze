@@ -60,14 +60,14 @@ public class HandshakeBase extends Service {
 	protected final void addHandshakeServerFactoryHandle() {
 		handshakeProtocols.add(CHandshake.TypeId_);
 		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshake::new, this::processCHandshake, TransactionLevel.None, DispatchMode.Normal));
+				CHandshake::new, this::processCHandshake, TransactionLevel.None, DispatchMode.Direct));
 		handshakeProtocols.add(CHandshakeDone.TypeId_);
 		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
+				CHandshakeDone::new, this::processCHandshakeDone, TransactionLevel.None, DispatchMode.Direct));
 		handshakeProtocols.add(KeepAlive.TypeId_);
 		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
 			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
-					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 		}
 	}
 
@@ -165,16 +165,16 @@ public class HandshakeBase extends Service {
 	}
 
 	protected final void addHandshakeClientFactoryHandle() {
-		handshakeProtocols.add(SHandshake.TypeId_);
-		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake::new, this::processSHandshake, TransactionLevel.None, DispatchMode.Normal));
 		handshakeProtocols.add(SHandshake0.TypeId_);
 		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
-				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Normal));
+				SHandshake0::new, this::processSHandshake0, TransactionLevel.None, DispatchMode.Direct));
+		handshakeProtocols.add(SHandshake.TypeId_);
+		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SHandshake::new, this::processSHandshake, TransactionLevel.None, DispatchMode.Direct));
 		handshakeProtocols.add(KeepAlive.TypeId_);
 		if (!getFactorys().containsKey(KeepAlive.TypeId_)) {
 			AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(KeepAlive::new,
-					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Normal));
+					HandshakeBase::processKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 		}
 	}
 
@@ -185,7 +185,7 @@ public class HandshakeBase extends Service {
 					|| p.Argument.compressC2s != Constant.eCompressTypeDisable) {
 				startHandshake(p.Argument, p.getSender());
 			} else {
-				new CHandshakeDone().Send(p.getSender());
+				CHandshakeDone.instance.Send(p.getSender());
 				OnHandshakeDone(p.getSender());
 			}
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
@@ -215,7 +215,7 @@ public class HandshakeBase extends Service {
 				}
 				p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
-				(new CHandshakeDone()).Send(p.getSender());
+				CHandshakeDone.instance.Send(p.getSender());
 				p.getSender().submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}

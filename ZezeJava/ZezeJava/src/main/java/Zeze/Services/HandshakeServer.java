@@ -13,7 +13,7 @@ public class HandshakeServer extends HandshakeBase {
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeServer(@NotNull String name, @NotNull Application app) {
+	public HandshakeServer(@NotNull String name, @Nullable Application app) {
 		super(name, app);
 		addHandshakeServerFactoryHandle();
 	}

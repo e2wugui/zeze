@@ -629,13 +629,13 @@ public class Service extends ReentrantLock {
 		return factorys;
 	}
 
-	public final void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
+	public void AddFactoryHandle(long type, @NotNull ProtocolFactoryHandle<? extends Protocol<?>> factory) {
 		if (factorys.putIfAbsent(type, factory) != null)
 			throw new IllegalStateException(String.format("duplicate factory type=%d moduleId=%d id=%d",
 					type, type >>> 32, type & 0xffff_ffffL));
 	}
 
-	public final @Nullable ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
+	public @Nullable ProtocolFactoryHandle<? extends Protocol<?>> findProtocolFactoryHandle(long type) {
 		return factorys.get(type);
 	}
 

@@ -14,7 +14,7 @@ public class HandshakeBoth extends HandshakeBase {
 		addHandshakeServerFactoryHandle();
 	}
 
-	public HandshakeBoth(@NotNull String name, @NotNull Application app) {
+	public HandshakeBoth(@NotNull String name, @Nullable Application app) {
 		super(name, app);
 		addHandshakeClientFactoryHandle();
 		addHandshakeServerFactoryHandle();
