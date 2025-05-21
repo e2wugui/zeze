@@ -825,8 +825,6 @@ namespace Zeze.Services.ToLuaService2
                         var writeIndex = bb.WriteIndex;
                         int offset = CheckListOffset(luaState);
                         bb.WriteIndex = writeIndex + offset;
-                        int n = EncodeGetTableLength(luaState);
-                        bb.WriteListType(n, v.ValueType & ByteBuffer.TAG_MASK);
                         var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
                         int topIdx = Lua.lua_gettop(luaState);
                         for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, index - 1); Lua.lua_pop(luaState, 1)) // [table, key, value]
