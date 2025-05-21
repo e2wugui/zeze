@@ -18,6 +18,7 @@ import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
@@ -618,7 +619,8 @@ public final class Raft {
 				// 全部发送。
 				// 另外Raft之间有两个连接，会收到多次，Raft不处理这个通告。
 				// 由于Raft数量不多，不会造成大的浪费，不做处理了。
-				if (allSocket.isHandshakeDone()) {
+				var tcp = (TcpSocket)allSocket;
+				if (tcp.isHandshakeDone()) {
 					var r = new LeaderIs();
 					r.Argument.setTerm(logSequence.getTerm());
 					r.Argument.setLeaderId(leaderId);

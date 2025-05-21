@@ -13,6 +13,7 @@ import Zeze.Net.Encrypt2;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
@@ -164,11 +165,11 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 			}
 			byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 			byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-			r.getSender().setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
+			((TcpSocket)r.getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, serverKey, serverIv));
 
 			byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
 			byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-			r.getSender().setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
+			((TcpSocket)r.getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, clientKey, clientIv));
 			return 0;
 		});
 	}
@@ -192,7 +193,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		byte[] serverIvKey = genIvKey();
 		byte[] serverIv = Arrays.copyOfRange(serverIvKey, 0, 16);
 		byte[] serverKey = Arrays.copyOfRange(serverIvKey, 16, 32);
-		getSender().setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
+		((TcpSocket)getSender()).setInputSecurityCodec((__, inBuf) -> new Decrypt2(inBuf, serverKey, serverIv));
 
 		if (Argument.clientPubKey.length > 0) {
 			//NOTE: 这里可以先认证一下客户端公钥是否合法,不合法就回复Res.ErrorUnknownClientPubKey
@@ -206,7 +207,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 		byte[] clientIv = Arrays.copyOfRange(clientIvKey, 0, 16);
 		byte[] clientKey = Arrays.copyOfRange(clientIvKey, 16, 32);
-		getSender().setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
+		((TcpSocket)getSender()).setOutputSecurityCodec((__, outBuf) -> new Encrypt2(outBuf, clientKey, clientIv));
 		return 0;
 	}
 

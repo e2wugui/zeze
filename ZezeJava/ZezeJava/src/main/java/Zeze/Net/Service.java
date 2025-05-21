@@ -312,12 +312,12 @@ public class Service extends ReentrantLock {
 	}
 
 	public final @NotNull AsyncSocket newServerSocket(@Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
-		return new AsyncSocket(this, localEP, acceptor);
+		return new TcpSocket(this, localEP, acceptor);
 	}
 
 	public final @NotNull AsyncSocket newClientSocket(@Nullable String hostNameOrAddress, int port,
 													  @Nullable Object userState, @Nullable Connector connector) {
-		return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
+		return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
 	/**
@@ -377,7 +377,7 @@ public class Service extends ReentrantLock {
 		if (socketMap.size() > config.getMaxConnections())
 			throw new IllegalStateException("too many connections");
 		if (config.getHaProxyKey() != null)
-			so.setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
+			((TcpSocket)so).setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));
 		addSocket(so);
 		OnHandshakeDone(so);
 	}
@@ -394,7 +394,7 @@ public class Service extends ReentrantLock {
 	 * 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
 	 */
 	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
-		so.setHandshakeDone(true);
+		((TcpSocket)so).setHandshakeDone(true);
 		if (so.getConnector() != null)
 			so.getConnector().OnSocketHandshakeDone(so);
 	}
@@ -430,7 +430,8 @@ public class Service extends ReentrantLock {
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
 	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
-		var haProxyHeader = so.getHaProxyHeader();
+		var tcp = (TcpSocket)so;
+		var haProxyHeader = tcp.getHaProxyHeader();
 		if (haProxyHeader != null && !haProxyHeader.decodeHeader(input))
 			return true; // 没有解析完header，看作成功。
 

@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Transaction.TableKey;
 import com.sun.management.OperatingSystemMXBean;
 import org.jetbrains.annotations.NotNull;
@@ -274,8 +275,11 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var operates = new OutLong();
 				var outBufSize = new OutLong();
 				service.foreach(socket -> {
-					operates.value += socket.getOperateSize();
-					outBufSize.value += socket.getOutputBufferSize();
+					if (socket instanceof TcpSocket) {
+						var tcp = (TcpSocket)socket;
+						operates.value += tcp.getOperateSize();
+						outBufSize.value += tcp.getOutputBufferSize();
+					}
 				});
 				operates.value /= periodSec;
 				outBufSize.value /= periodSec;

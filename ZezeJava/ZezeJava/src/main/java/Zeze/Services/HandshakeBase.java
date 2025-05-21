@@ -8,6 +8,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.BSHandshake0Argument;
 import Zeze.Services.Handshake.CHandshake;
@@ -77,7 +78,7 @@ public class HandshakeBase extends Service {
 	}
 
 	private long processCHandshakeDone(@NotNull CHandshakeDone p) throws Exception {
-		p.getSender().verifySecurity();
+		((TcpSocket)p.getSender()).verifySecurity();
 		OnHandshakeDone(p.getSender());
 		return 0L;
 	}
@@ -128,7 +129,7 @@ public class HandshakeBase extends Service {
 				BigInteger data = new BigInteger(p.Argument.encryptParam);
 				BigInteger rand = Helper.makeDHRandom();
 				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
-				var localInet = p.getSender().getLocalInet();
+				var localInet = ((TcpSocket)p.getSender()).getLocalInet();
 				byte[] key = getConfig().getHandshakeOptions().getSecureIp() != null
 						? getConfig().getHandshakeOptions().getSecureIp()
 						: (localInet != null ? localInet.getAddress().getAddress() : ByteBuffer.Empty);
@@ -141,7 +142,7 @@ public class HandshakeBase extends Service {
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
-			p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
+			((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, c2s);
 
 			var sHandshake = new SHandshake();
 			sHandshake.Argument.encryptParam = response;
@@ -149,7 +150,7 @@ public class HandshakeBase extends Service {
 			sHandshake.Argument.compressC2s = c2s;
 			sHandshake.Argument.encryptType = p.Argument.encryptType;
 			sHandshake.Send(p.getSender());
-			p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, s2c);
+			((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, s2c);
 
 			// 为了防止服务器在Handshake以后马上发送数据，
 			// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -204,7 +205,7 @@ public class HandshakeBase extends Service {
 				if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
 					byte[] material = Helper.computeDHKey(1,
 							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
-					var remoteInet = p.getSender().getRemoteInet();
+					var remoteInet = ((TcpSocket)p.getSender()).getRemoteInet();
 
 					byte[] key = remoteInet != null ? remoteInet.getAddress().getAddress() : ByteBuffer.Empty;
 					logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));
@@ -213,10 +214,10 @@ public class HandshakeBase extends Service {
 					outputKey = Digest.hmacMd5(key, material, 0, half);
 					inputKey = Digest.hmacMd5(key, material, half, material.length - half);
 				}
-				p.getSender().setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
-				p.getSender().setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
+				((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
+				((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
 				CHandshakeDone.instance.Send(p.getSender());
-				p.getSender().submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
+				((TcpSocket)p.getSender()).submitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
 			p.getSender().close(new IllegalStateException("handshake lost context."));

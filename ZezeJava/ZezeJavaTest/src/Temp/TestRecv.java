@@ -5,6 +5,7 @@ import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Selectors;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,7 +25,7 @@ public class TestRecv extends Service {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		var so = new AsyncSocket(new TestRecv("server"), new InetSocketAddress(9999), new Acceptor(9999, null));
+		var so = new TcpSocket(new TestRecv("server"), new InetSocketAddress(9999), new Acceptor(9999, null));
 
 		Thread.sleep(Integer.MAX_VALUE);
 	}
@@ -32,7 +33,7 @@ public class TestRecv extends Service {
 	@Override
 	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		System.out.println("accept");
-		so.setInputSecurityCodec(1, new byte[]{1}, 1);
+		((TcpSocket)so).setInputSecurityCodec(1, new byte[]{1}, 1);
 
 	}
 

@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Net.TcpSocket;
 import Zeze.Netty.HttpEndStreamHandle;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpResponseWithBodyStream;
@@ -320,7 +321,10 @@ public class PrometheusCounter implements ZezeCounter {
 		@Override
 		public void run() throws Exception {
 			service.updateRecvSendSize(); // 为 service counter with callback的相关metric服务
-			service.foreach(socket -> outputObserve.observe(socket.getOutputBufferSize()));
+			service.foreach(socket -> {
+				if (socket instanceof TcpSocket)
+					outputObserve.observe(((TcpSocket)socket).getOutputBufferSize());
+			});
 		}
 	}
 
