@@ -28,8 +28,8 @@ public abstract class AsyncSocket implements Closeable {
 
 	protected Object userState;
 
-	protected static final AtomicLong sessionIdGen = new AtomicLong(1);
-	protected static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
+	private static final AtomicLong sessionIdGen = new AtomicLong(1);
+	private static @NotNull LongSupplier sessionIdGenFunc = sessionIdGen::getAndIncrement;
 
 	static {
 		var str = System.getProperty("protocolLogExcept");
@@ -119,6 +119,7 @@ public abstract class AsyncSocket implements Closeable {
 		return close(ex, false);
 	}
 
+	@Override
 	public void close() {
 		close(null);
 	}
