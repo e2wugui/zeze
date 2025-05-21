@@ -44,8 +44,14 @@ public abstract class AsyncSocket implements Closeable {
 		ShutdownHook.init();
 	}
 
-	public @Nullable Service getService() {
-		return null;
+	private final @NotNull Service service;
+
+	protected AsyncSocket(@NotNull Service service) {
+		this.service = service;
+	}
+
+	public @NotNull Service getService() {
+		return service;
 	}
 
 	public static boolean canLogProtocol(long protocolTypeId) {

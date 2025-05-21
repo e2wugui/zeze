@@ -43,7 +43,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 		}
 	}
 
-	private final @NotNull Service service;
 	private final @Nullable Object acceptorOrConnector;
 	private final @NotNull Selector selector;
 	private final @NotNull SelectionKey selectionKey;
@@ -70,11 +69,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 
 	public void setHaProxyHeader(@NotNull HaProxyHeader haProxyHeader) {
 		this.haProxyHeader = haProxyHeader;
-	}
-
-	@Override
-	public @NotNull Service getService() {
-		return service;
 	}
 
 	public @Nullable Acceptor getAcceptor() {
@@ -137,7 +131,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	 * for server socket
 	 */
 	public TcpSocket(@NotNull Service service, @Nullable InetSocketAddress localEP, @Nullable Acceptor acceptor) {
-		this.service = service;
+		super(service);
+
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServerSocket;
 		service.tryStartKeepAliveCheckTimer();
@@ -185,11 +180,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
 				if (sc != null)
-					new TcpSocket(service, sc, (Acceptor)acceptorOrConnector);
+					new TcpSocket(getService(), sc, (Acceptor)acceptorOrConnector);
 			} catch (Exception e) {
 				if (sc != null)
 					sc.close();
-				service.OnSocketAcceptError(this, e);
+				getService().OnSocketAcceptError(this, e);
 				return;
 			}
 		} else if ((ops & SelectionKey.OP_CONNECT) != 0) {
@@ -203,7 +198,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				doConnectSuccess(sc);
 			} catch (Exception e) {
 				close(e); // if OnSocketConnectError throw Exception, this will close in doException
-				service.OnSocketConnectError(this, e);
+				getService().OnSocketConnectError(this, e);
 				return;
 			}
 		}
@@ -224,7 +219,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	 */
 	private TcpSocket(@NotNull Service service, @NotNull SocketChannel sc, @Nullable Acceptor acceptor)
 			throws Exception {
-		this.service = service;
+		super(service);
+
 		this.acceptorOrConnector = acceptor;
 		this.type = Type.eServer;
 		resetActiveSendRecvTime();
@@ -233,17 +229,17 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 		sc.configureBlocking(false);
 		Socket so = sc.socket();
 		remoteAddress = so.getRemoteSocketAddress();
-		Integer recvBufSize = this.service.getSocketOptions().getReceiveBuffer();
+		Integer recvBufSize = getService().getSocketOptions().getReceiveBuffer();
 		if (recvBufSize != null)
 			so.setReceiveBufferSize(recvBufSize);
-		Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
+		Integer sendBufSize = getService().getSocketOptions().getSendBuffer();
 		if (sendBufSize != null)
 			so.setSendBufferSize(sendBufSize);
-		Boolean noDelay = this.service.getSocketOptions().getNoDelay();
+		Boolean noDelay = getService().getSocketOptions().getNoDelay();
 		if (noDelay != null)
 			so.setTcpNoDelay(noDelay);
 
-		timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
+		timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 		selector = service.getSelectors().choice();
 		operates = new ConcurrentLinkedQueue<>();
 		inputBuffer = new BufferCodec();
@@ -262,17 +258,18 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	private void doConnectSuccess(@NotNull SocketChannel sc) throws Exception {
 		var socket = sc.socket();
 		remoteAddress = socket.getRemoteSocketAddress();
-		logger.info("Connected: {} for {}:{} recvBuf={}, sendBuf={}", this, service.getClass().getName(),
-				service.getName(), socket.getReceiveBufferSize(), socket.getSendBufferSize());
+		logger.info("Connected: {} for {}:{} recvBuf={}, sendBuf={}", this, getService().getClass().getName(),
+				getService().getName(), socket.getReceiveBufferSize(), socket.getSendBufferSize());
 		if (acceptorOrConnector instanceof Connector)
 			((Connector)acceptorOrConnector).OnSocketConnected(this);
-		service.OnSocketConnected(this);
+		getService().OnSocketConnected(this);
 		addInterestOps(SelectionKey.OP_READ);
 	}
 
 	public TcpSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
 					   @Nullable Object userState, @Nullable Connector connector) {
-		this.service = service;
+		super(service);
+
 		this.acceptorOrConnector = connector;
 		this.userState = userState;
 		this.type = Type.eClient;
@@ -284,19 +281,19 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			sc = SocketChannel.open();
 			sc.configureBlocking(false);
 			Socket so = sc.socket();
-			Integer recvBufSize = this.service.getSocketOptions().getReceiveBuffer();
+			Integer recvBufSize = getService().getSocketOptions().getReceiveBuffer();
 			if (recvBufSize != null)
 				so.setReceiveBufferSize(recvBufSize);
-			Integer sendBufSize = this.service.getSocketOptions().getSendBuffer();
+			Integer sendBufSize = getService().getSocketOptions().getSendBuffer();
 			if (sendBufSize != null)
 				so.setSendBufferSize(sendBufSize);
-			Boolean noDelay = this.service.getSocketOptions().getNoDelay();
+			Boolean noDelay = getService().getSocketOptions().getNoDelay();
 			if (noDelay != null)
 				so.setTcpNoDelay(noDelay);
 			logger.info("Connect: [{}] {}:{} for {}:{}", getSessionId(),
 					hostNameOrAddress, port, service.getClass().getName(), service.getName());
 
-			timeThrottle = TimeThrottle.create(this.service.getSocketOptions());
+			timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 			selector = service.getSelectors().choice();
 			operates = new ConcurrentLinkedQueue<>();
 			inputBuffer = new BufferCodec();
@@ -334,8 +331,8 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	}
 
 	public void verifySecurity() {
-		if (service.getConfig().getHandshakeOptions().getEncryptType() != 0 && !isSecurity())
-			throw new IllegalStateException(service.getName() + " !isSecurity");
+		if (getService().getConfig().getHandshakeOptions().getEncryptType() != 0 && !isSecurity())
+			throw new IllegalStateException(getService().getName() + " !isSecurity");
 	}
 
 	public void setInputSecurityCodec(int encryptType, byte @Nullable [] encryptParam, int compressType) {
@@ -471,7 +468,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 
 		var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
 		try {
-			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
+			if (!getService().checkOverflow(this, newSize, bytes, offset, length)) {
 				outputBufferSizeHandle.getAndAdd(this, (long)-length);
 				return false;
 			}
@@ -511,7 +508,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			var length = bb.size();
 
 			var newSize = (long)outputBufferSizeHandle.getAndAdd(this, (long)length) + length;
-			if (!service.checkOverflow(this, newSize, bytes, offset, length)) {
+			if (!getService().checkOverflow(this, newSize, bytes, offset, length)) {
 				outputBufferSizeHandle.getAndAdd(this, (long)-length);
 				return;
 			}
@@ -552,14 +549,14 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 					codecBuf.EnsureWrite(bytesTransferred);
 					codec.update(buffer.array(), 0, bytesTransferred);
 					codec.flush();
-					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
+					readAgain &= getService().OnSocketProcessInputBuffer(this, codecBuf);
 				} else if (!codecBuf.isEmpty()) {
 					// 上次解析有剩余数据（不完整的协议），把新数据加入。
 					codecBuf.Append(buffer.array(), 0, bytesTransferred);
-					readAgain &= service.OnSocketProcessInputBuffer(this, codecBuf);
+					readAgain &= getService().OnSocketProcessInputBuffer(this, codecBuf);
 				} else {
 					ByteBuffer avoidCopy = ByteBuffer.Wrap(buffer.array(), bytesTransferred);
-					readAgain &= service.OnSocketProcessInputBuffer(this, avoidCopy);
+					readAgain &= getService().OnSocketProcessInputBuffer(this, avoidCopy);
 					if (!avoidCopy.isEmpty()) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
 						codecBuf.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.size());
 				}
@@ -572,13 +569,13 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 					else
 						codecBuf.FreeInternalBuffer(); // 只在过大的缓冲区时释放内部bytes[], 避免频繁分配
 				} else {
-					int max = service.getSocketOptions().getInputBufferMaxProtocolSize();
+					int max = getService().getSocketOptions().getInputBufferMaxProtocolSize();
 					if (remain >= max)
 						throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
 					codecBuf.Compact();
 				}
 			} else if (!readAgain)
-				service.OnSocketInputClosed(this);
+				getService().OnSocketInputClosed(this);
 			else
 				readAgain = false;
 		} while (readAgain);
@@ -686,7 +683,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			if (outputBuffer != null)
 				outputBuffer.close();
 			try {
-				service.OnSocketDisposed(this);
+				getService().OnSocketDisposed(this);
 			} catch (Exception e) {
 				logger.error("service.OnSocketDisposed exception:", e);
 			}
@@ -717,7 +714,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			}
 		}
 		try {
-			service.OnSocketClose(this, ex);
+			getService().OnSocketClose(this, ex);
 		} catch (Exception e) {
 			logger.error("Service.OnSocketClose exception:", e);
 		}
