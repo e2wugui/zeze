@@ -328,4 +328,15 @@ public abstract class AsyncSocket implements Closeable {
 	}
 
 	public abstract boolean isClosed();
+
+	private volatile boolean isHandshakeDone;
+
+	public boolean isHandshakeDone() {
+		return isHandshakeDone;
+	}
+
+	public void setHandshakeDone(boolean value) {
+		isHandshakeDone = value;
+	}
+
 }

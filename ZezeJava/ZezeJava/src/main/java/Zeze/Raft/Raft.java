@@ -619,8 +619,7 @@ public final class Raft {
 				// 全部发送。
 				// 另外Raft之间有两个连接，会收到多次，Raft不处理这个通告。
 				// 由于Raft数量不多，不会造成大的浪费，不做处理了。
-				var tcp = (TcpSocket)allSocket;
-				if (tcp.isHandshakeDone()) {
+				if (allSocket.isHandshakeDone()) {
 					var r = new LeaderIs();
 					r.Argument.setTerm(logSequence.getTerm());
 					r.Argument.setLeaderId(leaderId);

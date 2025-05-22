@@ -57,7 +57,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	private @Nullable Codec outputCodecChain; // 只在selector线程访问
 	private volatile byte security; // 1:Input; 2:Output; 1|2:Input+Output
 
-	private volatile boolean isHandshakeDone;
 	@SuppressWarnings("unused")
 	private volatile byte closed;
 	private volatile boolean closePending;
@@ -104,14 +103,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	public @Nullable InetSocketAddress getLocalInet() { // 已经close的情况下返回null
 		SocketAddress sa = getLocalAddress();
 		return sa instanceof InetSocketAddress ? (InetSocketAddress)sa : null;
-	}
-
-	public boolean isHandshakeDone() {
-		return isHandshakeDone;
-	}
-
-	public void setHandshakeDone(boolean value) {
-		isHandshakeDone = value;
 	}
 
 	@Override
