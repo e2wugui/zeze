@@ -752,7 +752,7 @@ namespace Zeze.Services.ToLuaService2
             }
             Lua.lua_pop(luaState, 1);
             
-            Lua.lua_rawgeti(luaState, -1, 0xf + 0x20_0000 );
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x4000);
             if (Lua.lua_isnil(luaState, -1))
             {
                 Lua.lua_pop(luaState, 1);
@@ -760,14 +760,22 @@ namespace Zeze.Services.ToLuaService2
             }
             Lua.lua_pop(luaState, 1);
             
-            Lua.lua_rawgeti(luaState, -1, 0xf + 0x1000_0000);
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x20_0000 );
             if (Lua.lua_isnil(luaState, -1))
             {
                 Lua.lua_pop(luaState, 1);
                 return 4;
             }
             Lua.lua_pop(luaState, 1);
-            return 5;
+            
+            Lua.lua_rawgeti(luaState, -1, 0xf + 0x1000_0000);
+            if (Lua.lua_isnil(luaState, -1))
+            {
+                Lua.lua_pop(luaState, 1);
+                return 5;
+            }
+            Lua.lua_pop(luaState, 1);
+            return 6;
         }
         
         int EncodeGetTableLength(IntPtr luaState) // [table]
@@ -824,6 +832,7 @@ namespace Zeze.Services.ToLuaService2
                         int length = 0;
                         var writeIndex = bb.WriteIndex;
                         int offset = CheckListOffset(luaState);
+                        bb.EnsureWrite(offset);
                         bb.WriteIndex = writeIndex + offset;
                         var meta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
                         int topIdx = Lua.lua_gettop(luaState);
@@ -856,10 +865,9 @@ namespace Zeze.Services.ToLuaService2
                             throw new Exception("Lua stack overflow!");
                         int length = 0;
                         var writeIndex = bb.WriteIndex;
+                        bb.EnsureWrite(2);
                         bb.WriteIndex = writeIndex + 2;
                         
-                        // int n = EncodeGetTableLength(luaState);
-                        // bb.WriteMapType(n, v.KeyType & ByteBuffer.TAG_MASK, v.ValueType & ByteBuffer.TAG_MASK);
                         var keyMeta = new VariableMeta { Type = v.KeyType, TypeBeanTypeId = v.KeyBeanTypeId };
                         var valueMeta = new VariableMeta { Type = v.ValueType, TypeBeanTypeId = v.ValueBeanTypeId };
                         int topIdx = Lua.lua_gettop(luaState);
