@@ -51,7 +51,6 @@ public final class Config {
 	private int completionPortThreads;
 	private int checkpointPeriod = 60000;
 	private @NotNull CheckpointFlushMode checkpointFlushMode = CheckpointFlushMode.MultiThreadMerge;
-	private int checkpointModeTableFlushConcurrent = 2;
 	private int checkpointModeTableFlushSetCount = 50;
 	private @NotNull CheckpointMode checkpointMode = CheckpointMode.Table;
 	private @NotNull Level processReturnErrorLogLevel = Level.INFO;
@@ -252,16 +251,6 @@ public final class Config {
 
 	public void setCheckpointFlushMode(@Nullable CheckpointFlushMode value) {
 		checkpointFlushMode = value != null ? value : CheckpointFlushMode.MultiThreadMerge;
-	}
-
-	@Deprecated
-	public int getCheckpointModeTableFlushConcurrent() {
-		return checkpointModeTableFlushConcurrent;
-	}
-
-	@Deprecated
-	public void setCheckpointModeTableFlushConcurrent(int value) {
-		checkpointModeTableFlushConcurrent = value;
 	}
 
 	public int getCheckpointModeTableFlushSetCount() {
@@ -558,10 +547,6 @@ public final class Config {
 		attr = self.getAttribute("OnlineLogoutDelay");
 		if (!attr.isBlank())
 			onlineLogoutDelay = Integer.parseInt(attr);
-
-		attr = self.getAttribute("CheckpointModeTableFlushConcurrent");
-		if (!attr.isBlank())
-			checkpointModeTableFlushConcurrent = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushSetCount");
 		if (!attr.isBlank())

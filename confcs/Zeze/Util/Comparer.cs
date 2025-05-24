@@ -28,8 +28,7 @@ namespace Zeze.Util
 
         public int Compare(string x, string y)
         {
-            // ReSharper disable once StringCompareToIsCultureSpecific
-            return x.CompareTo(y);
+            return string.CompareOrdinal(x, y);
         }
     }
 }

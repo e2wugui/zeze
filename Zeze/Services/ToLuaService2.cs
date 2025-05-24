@@ -33,7 +33,7 @@ namespace Zeze.Services
         public Service Service => this;
         public ToLua ToLua => ToLua.Instance;
 
-        public ToLuaServiceClient2(string name, Zeze.Application zeze)
+        public ToLuaServiceClient2(string name, Application zeze)
             : base(name, zeze.Config)
         {
         }
@@ -778,6 +778,7 @@ namespace Zeze.Services.ToLuaService2
             return 6;
         }
         
+        // ReSharper disable once UnusedMember.Local
         int EncodeGetTableLength(IntPtr luaState) // [table]
         {
             if (!Lua.lua_istable(luaState, -1))

@@ -118,11 +118,6 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return onSuccess(onResult).onFail(__ -> onResult.run(null));
 	}
 
-	@Deprecated // use then
-	public @NotNull RedirectFuture<R> Then(@NotNull Action1<R> onResult) {
-		return then(onResult);
-	}
-
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
 		throw new UnsupportedOperationException();

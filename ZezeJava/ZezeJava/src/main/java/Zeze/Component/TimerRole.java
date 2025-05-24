@@ -536,16 +536,6 @@ public class TimerRole {
 		return cancelOnlineLocal(timerId);
 	}
 
-	@Deprecated
-	public boolean cancel(@Nullable String timerId) {
-		return cancelOnline(timerId) || cancelOffline(timerId);
-	}
-
-	@Deprecated
-	public boolean cancelOnline(@Nullable String timerId) {
-		return cancelOnlineLocal(timerId);
-	}
-
 	public boolean cancelOffline(@Nullable String timerId) {
 		if (timerId == null)
 			return true; // 取消不存在的timer，认为成功。
@@ -596,7 +586,7 @@ public class TimerRole {
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
-			cancel(timerId); // 先取消,下面再重建
+			cancel(timerId, roleId); // 先取消,下面再重建
 		}
 
 		scheduleOffline(timerId, roleId, delay, period, times, endTime, missfirePolicy, handleClass, customData,
@@ -704,7 +694,7 @@ public class TimerRole {
 			if (timer.cronEquals(index, timerId, cron, times, endTime, missfirePolicy, OfflineHandle.class, custom,
 					oneByOneKey))
 				return;
-			cancel(timerId); // 先取消,下面再重建
+			cancel(timerId, roleId); // 先取消,下面再重建
 		}
 		var cronTimer = new BCronTimer();
 		Timer.initCronTimer(cronTimer, cron, times, endTime, oneByOneKey);
@@ -808,7 +798,7 @@ public class TimerRole {
 			if (bAny != null) {
 				var timers = (BOnlineTimers)bAny.getAny().getBean();
 				for (var timerId : timers.getTimerIds().keySet())
-					cancelOnline(timerId);
+					cancelOnlineLocal(timerId);
 			}
 		}
 		return 0;

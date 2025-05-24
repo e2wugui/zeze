@@ -205,7 +205,7 @@ public class HandshakeBase extends Service {
 				if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
 					byte[] material = Helper.computeDHKey(1,
 							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
-					var remoteInet = ((TcpSocket)p.getSender()).getRemoteInet();
+					var remoteInet = p.getSender().getRemoteInet();
 
 					byte[] key = remoteInet != null ? remoteInet.getAddress().getAddress() : ByteBuffer.Empty;
 					logger.debug("{} remoteIp={}", p.getSender().getSessionId(), Arrays.toString(key));

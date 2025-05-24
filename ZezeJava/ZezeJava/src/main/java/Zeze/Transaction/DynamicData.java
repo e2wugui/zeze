@@ -23,16 +23,6 @@ public abstract class DynamicData extends Data {
 		setDataWithSpecialTypeId(toTypeId(data), data);
 	}
 
-	@Deprecated // use getData
-	public @NotNull Data getBean() {
-		return data;
-	}
-
-	@Deprecated // use setData
-	public void setBean(@Nullable Data data) {
-		setData(data);
-	}
-
 	private void setDataWithSpecialTypeId(long specialTypeId, @NotNull Data data) {
 		if (data instanceof DynamicData) // 不允许嵌套放入DynamicData,否则序列化会输出错误的数据流
 			data = ((DynamicData)data).data;

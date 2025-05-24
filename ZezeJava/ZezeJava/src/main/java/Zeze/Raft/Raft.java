@@ -18,7 +18,6 @@ import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
-import Zeze.Net.TcpSocket;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
@@ -565,7 +564,7 @@ public final class Raft {
 	 * true，IsLeader && LeaderReady;
 	 * false, !IsLeader
 	 */
-	boolean waitLeaderReady() throws Exception {
+	boolean waitLeaderReady() {
 		lock();
 		try {
 			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
@@ -580,7 +579,7 @@ public final class Raft {
 		return false;
 	}
 
-	public boolean isReadyLeader() throws Exception {
+	public boolean isReadyLeader() {
 		lock();
 		try {
 			var volatileTmp = leaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。

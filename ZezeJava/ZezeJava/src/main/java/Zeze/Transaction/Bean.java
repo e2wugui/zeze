@@ -18,12 +18,7 @@ public abstract class Bean implements Serializable {
 	public static final int MAX_VARIABLE_ID = OBJECT_ID_STEP - 1;
 	private static final AtomicLong objectIdGen = new AtomicLong();
 
-	@Deprecated // 这个方法应该仅用于内部。
-	public static long nextObjectId() {
-		return objectIdGen.addAndGet(OBJECT_ID_STEP);
-	}
-
-	private transient final long objectId = nextObjectId();
+	private transient final long objectId = objectIdGen.addAndGet(OBJECT_ID_STEP);
 
 	protected transient @Nullable Record.RootInfo rootInfo;
 
