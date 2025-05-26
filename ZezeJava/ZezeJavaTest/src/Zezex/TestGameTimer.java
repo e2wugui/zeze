@@ -83,6 +83,7 @@ public class TestGameTimer {
 				URI.create("ws://127.0.0.1:" + 22000 + "/websocket"), new WebSocket.Listener() {
 					@Override
 					public void onOpen(WebSocket webSocket) {
+						webSocket.request(1);
 						var cs = new Cs();
 						cs.Argument.setAccount("RequestWeb");
 						var bb = cs.encode();
@@ -94,12 +95,15 @@ public class TestGameTimer {
 					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
 					@Override
 					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+						webSocket.request(1);
 						var n = data.remaining();
 						input.EnsureWrite(n);
 						data.get(input.Bytes, input.WriteIndex, n);
 						input.WriteIndex += n;
-						var sc = Protocol.decode(clients.get(0).ClientService, input);
-						logger.info("Sc Web " + sc.Argument);
+						if (last) {
+							var sc = Protocol.decode(clients.get(0).ClientService, input);
+							logger.info("Sc Web " + sc.Argument);
+						}
 						return null;
 					}
 				});
