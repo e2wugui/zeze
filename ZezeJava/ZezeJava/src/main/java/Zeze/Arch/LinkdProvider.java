@@ -508,6 +508,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		// 下面再记录一份到其他需要的地方。这里有冗余。
 		serverServiceNamePrefix = arg.getServiceNamePrefix();
+		session.serverId = Integer.parseInt(arg.getServiceIdentity());
 		session.serverLoadIp = arg.getProviderDirectIp();
 		session.serverLoadPort = arg.getProviderDirectPort();
 		session.appVersion = arg.getAppVersion();
