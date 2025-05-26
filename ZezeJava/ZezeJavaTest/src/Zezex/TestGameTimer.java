@@ -14,6 +14,7 @@ import ClientZezex.Linkd.Sc;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
@@ -93,12 +94,12 @@ public class TestGameTimer {
 					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
 					@Override
 					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
-						input.Append(data.array(), data.arrayOffset(), data.remaining());
-						if (last) {
-							var sc = new Sc();
-							sc.decode(input);
-							logger.info("Sc Web " + sc.Argument);
-						}
+						var n = data.remaining();
+						input.EnsureWrite(n);
+						data.get(input.Bytes, input.WriteIndex, n);
+						input.WriteIndex += n;
+						var sc = Protocol.decode(clients.get(0).ClientService, input);
+						logger.info("Sc Web " + sc.Argument);
 						return null;
 					}
 				});
