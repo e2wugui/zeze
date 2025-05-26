@@ -76,13 +76,10 @@ public abstract class AsyncSocket implements Closeable {
 		eServerSocket,
 	}
 
-	protected Type type;
 	private int activeRecvTime; // 上次接收的时间戳(秒)
 	private int activeSendTime; // 上次发送的时间戳(秒)
 
-	public Type getType() {
-		return type;
-	}
+	public abstract Type getType();
 
 	public int getActiveRecvTime() {
 		return activeRecvTime;
@@ -282,11 +279,7 @@ public abstract class AsyncSocket implements Closeable {
 		}
 	}
 
-	protected @Nullable TimeThrottle timeThrottle;
-
-	public @Nullable TimeThrottle getTimeThrottle() {
-		return timeThrottle;
-	}
+	public abstract @Nullable TimeThrottle getTimeThrottle();
 
 	public @Nullable Connector getConnector() {
 		return null; // 只有tcp需要重载

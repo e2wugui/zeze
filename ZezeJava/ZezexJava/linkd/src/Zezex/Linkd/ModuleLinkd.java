@@ -1,7 +1,10 @@
 package Zezex.Linkd;
 
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Arch.*;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,6 +17,10 @@ public final class ModuleLinkd extends AbstractModule {
 
 	@SuppressWarnings("RedundantThrows")
 	public void Stop(@SuppressWarnings("unused") Zezex.App app) throws Exception {
+		if (null != timer) {
+			timer.cancel(true);
+			timer = null;
+		}
 	}
 
 	@Override
@@ -36,6 +43,35 @@ public final class ModuleLinkd extends AbstractModule {
 		rpc.SendResultCode(Auth.Success);
 		logger.info("Auth account:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());
 		return Zeze.Transaction.Procedure.Success;
+	}
+
+    @Override
+    protected long ProcessCs(Zezex.Linkd.Cs p) {
+		logger.info("Cs " + p.Argument);
+		var res = new Sc();
+		res.Argument.setAccount("Response");
+		res.Send(p.getSender());
+		if (null == timer) {
+			timer = Task.scheduleUnsafe(1000, 1000, this::sendSc);
+			clientId = p.getSender().getSessionId();
+		}
+        return 0;
+    }
+
+	AtomicInteger sendScCount = new AtomicInteger();
+	long clientId;
+	Future<?> timer;
+	void sendSc() {
+		var count = sendScCount.incrementAndGet();
+		if (count > 3) {
+			sendScCount.set(0);
+			timer.cancel(true);
+			timer = null;
+			return;
+		}
+		var res = new Sc();
+		res.Argument.setAccount("Response" + count);
+		res.Send(App.LinkdService.GetSocket(clientId));
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

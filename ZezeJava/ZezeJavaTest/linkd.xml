@@ -10,6 +10,7 @@
 
 	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2M">
 		<Acceptor Port="10000"/>
+		<Websocket Path="/websocket"/>
 	</ServiceConf>
 
 	<ServiceConf Name="ProviderService" InputBufferMaxProtocolSize="2M">

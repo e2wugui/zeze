@@ -13,6 +13,8 @@
 			<enum name="Success" value="0"/>
 			<enum name="Error"   value="1"/>
 		</rpc>
+		<protocol name="Cs" argument="BAuth" handle="server"/>
+		<protocol name="Sc" argument="BAuth" handle="client"/>
 	</module>
 
 	<project name="linkd" GenDir="linkd/Gen" SrcDir="linkd/src" platform="java">

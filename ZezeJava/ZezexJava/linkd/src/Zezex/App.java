@@ -7,6 +7,8 @@ import Zeze.Arch.LinkdProvider;
 import Zeze.Arch.LoadConfig;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Netty.HttpServer;
+import Zeze.Netty.Netty;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 
@@ -18,6 +20,13 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public LinkdProvider LinkdProvider;
+	private final Netty netty = new Netty();
+	private HttpServer httpServer;
+
+	@Override
+	public HttpServer getHttpServer() {
+		return httpServer;
+	}
 
 	private static LoadConfig LoadConfig() {
 		try {
@@ -68,12 +77,15 @@ public final class App extends Zeze.AppBase {
 		Zeze.start(); // 启动数据库
 		startModules(); // 启动模块，装载配置什么的。
 		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
+		httpServer = new HttpServer(Zeze);
+		httpServer.start(netty, linkPort + 10000);
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
 	}
 
 	public void Stop() throws Exception {
 		stopService(); // 关闭网络
+		httpServer.close();
 		if (Zeze != null)
 			Zeze.stop(); // 关闭数据库
 		stopModules(); // 关闭模块，卸载配置什么的。

@@ -62,6 +62,13 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	private volatile boolean closePending;
 	private @Nullable HaProxyHeader haProxyHeader;
 	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
+	private final @Nullable TimeThrottle timeThrottle;
+	private final Type type;
+
+	@Override
+	public Type getType() {
+		return type;
+	}
 
 	@Override
 	public @Nullable SocketAddress getRemoteAddress() {
@@ -122,6 +129,11 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 
 	public long getOutputBufferSize() {
 		return outputBufferSize;
+	}
+
+	@Override
+	public @Nullable TimeThrottle getTimeThrottle() {
+		return this.timeThrottle;
 	}
 
 	/**

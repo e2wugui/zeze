@@ -76,6 +76,7 @@ public final class ServiceConf extends ReentrantLock {
 			this.service = service;
 			forEachAcceptor(a -> a.SetService(service));
 			forEachConnector(c -> c.SetService(service));
+			forEachWebsocket(c -> c.setService(service));
 		} finally {
 			unlock();
 		}

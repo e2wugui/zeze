@@ -1,15 +1,25 @@
 package Zezex;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.concurrent.CompletionStage;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
+import ClientZezex.Linkd.Cs;
+import ClientZezex.Linkd.Sc;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -18,6 +28,7 @@ import org.junit.runners.MethodSorters;
 @SuppressWarnings("CallToPrintStackTrace")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestGameTimer {
+	private static final @NotNull Logger logger = LogManager.getLogger();
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
@@ -62,6 +73,35 @@ public class TestGameTimer {
 			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
 			clients.get(i).Connector.WaitReady();
 		}
+		/*
+		var req = new Cs();
+		req.Argument.setAccount("Request");
+		req.Send(clients.get(0).ClientService.GetSocket());
+		*/
+		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
+				URI.create("ws://127.0.0.1:" + 22000 + "/websocket"), new WebSocket.Listener() {
+					@Override
+					public void onOpen(WebSocket webSocket) {
+						var cs = new Cs();
+						cs.Argument.setAccount("RequestWeb");
+						var bb = cs.encode();
+						var buf = ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size());
+						webSocket.sendBinary(buf, true);
+						logger.info("Cs Web " + cs.Argument);
+					}
+
+					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
+					@Override
+					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+						input.Append(data.array(), data.arrayOffset(), data.remaining());
+						if (last) {
+							var sc = new Sc();
+							sc.decode(input);
+							logger.info("Sc Web " + sc.Argument);
+						}
+						return null;
+					}
+				});
 	}
 
 	private void stopAll() throws Exception {
