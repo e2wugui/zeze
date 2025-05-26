@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Netty.HttpExchange;
+import Zeze.Netty.HttpServer;
 import Zeze.Netty.HttpWebSocketHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
@@ -15,16 +16,20 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	private Service service;
 	private final ConcurrentHashMap<HttpExchange, Websocket> websockets = new ConcurrentHashMap<>();
 
-	public WebsocketHandle(@NotNull String path) {
+	public WebsocketHandle(@NotNull String path, @NotNull HttpServer httpServer) {
 		this.path = path;
+		this.httpServer = httpServer;
 	}
 
 	public WebsocketHandle(Element e) {
 		this.path = e.getAttribute("Path");
-		//this.httpServer = e.getAttribute("HttpServer");
 	}
 
 	public void start() {
+		if (null == httpServer)
+			httpServer = service.getZeze().getAppBase().getHttpServer();
+		if (null == httpServer)
+			throw new IllegalStateException("httpServer not found.");
 		httpServer.addHandler(path, TransactionLevel.None, DispatchMode.Direct,this);
 	}
 

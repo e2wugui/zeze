@@ -10,11 +10,13 @@ import org.jetbrains.annotations.Nullable;
 public class Websocket extends AsyncSocket {
 	private final HttpExchange x;
 	private boolean closed = false;
-	private final ByteBuffer input = ByteBuffer.Allocate();
+	private ByteBuffer input = ByteBuffer.Allocate();
+	private final SocketAddress remote;
 
 	public Websocket(HttpExchange x, Service service) {
 		super(service);
 		this.x = x;
+		this.remote = x.channel().remoteAddress();
 	}
 
 	@Override
@@ -25,7 +27,10 @@ public class Websocket extends AsyncSocket {
 	}
 
 	void processInput(ByteBuf buf) throws Exception {
-		input.Append(buf.array(), buf.arrayOffset(), buf.readableBytes());
+		if (input.isEmpty())
+			input = ByteBuffer.Wrap(buf.array(), buf.arrayOffset(), buf.readableBytes()); // 避免拷贝
+		else
+			input.Append(buf.array(), buf.arrayOffset(), buf.readableBytes());
 		getService().OnSocketProcessInputBuffer(this, input);
 		input.Compact();
 	}
@@ -38,8 +43,7 @@ public class Websocket extends AsyncSocket {
 
 	@Override
 	public @Nullable SocketAddress getRemoteAddress() {
-		// todo 怎么拿到http连接的remoteAddress。
-		return null;
+		return remote;
 	}
 
 	@Override
