@@ -61,6 +61,12 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	private volatile byte closed;
 	private volatile boolean closePending;
 	private @Nullable HaProxyHeader haProxyHeader;
+	private volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
+
+	@Override
+	public @Nullable SocketAddress getRemoteAddress() {
+		return remoteAddress;
+	}
 
 	public @Nullable HaProxyHeader getHaProxyHeader() {
 		return haProxyHeader;

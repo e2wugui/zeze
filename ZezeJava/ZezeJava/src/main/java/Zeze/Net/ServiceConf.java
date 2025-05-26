@@ -27,6 +27,7 @@ public final class ServiceConf extends ReentrantLock {
 	private @NotNull HandshakeOptions handshakeOptions = new HandshakeOptions();
 	private final ConcurrentHashMap<String, Acceptor> acceptors = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, Connector> connectors = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, WebsocketHandle> websockets = new ConcurrentHashMap<>();
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
 	private @Nullable String haProxyKey;
 
@@ -78,6 +79,13 @@ public final class ServiceConf extends ReentrantLock {
 		} finally {
 			unlock();
 		}
+	}
+
+	public void addWebsocket(@NotNull WebsocketHandle websocket) {
+		if (null != websockets.putIfAbsent(websocket.getName(), websocket)) {
+			throw new IllegalStateException("Duplicate Connector=" + websocket.getName());
+		}
+		websocket.setService(service);
 	}
 
 	public void addConnector(@NotNull Connector connector) {
@@ -184,6 +192,11 @@ public final class ServiceConf extends ReentrantLock {
 				return false;
 		}
 		return true;
+	}
+
+	public void forEachWebsocket(@NotNull Consumer<WebsocketHandle> action) {
+		for (var w : websockets.values())
+			action.accept(w);
 	}
 
 	public int acceptorCount() {
@@ -326,6 +339,9 @@ public final class ServiceConf extends ReentrantLock {
 			case "Connector":
 				addConnector(Connector.Create(e));
 				break;
+			case "Websocket":
+				addWebsocket(new WebsocketHandle(e));
+				break;
 			default:
 				throw new IllegalStateException("unknown node name: " + e.getNodeName());
 			}
@@ -335,11 +351,13 @@ public final class ServiceConf extends ReentrantLock {
 	public void start() {
 		forEachAcceptor(Acceptor::Start);
 		forEachConnector(Connector::start);
+		forEachWebsocket(WebsocketHandle::start);
 	}
 
 	public void stop() {
 		forEachAcceptor(Acceptor::Stop);
 		forEachConnector(Connector::stop);
+		forEachWebsocket(WebsocketHandle::stop);
 	}
 
 	public void stopListen() {

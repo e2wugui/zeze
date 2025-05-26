@@ -292,11 +292,8 @@ public abstract class AsyncSocket implements Closeable {
 		return null; // 只有tcp需要重载
 	}
 
-	protected volatile @Nullable SocketAddress remoteAddress; // 连接成功时设置
-
-	public @Nullable SocketAddress getRemoteAddress() { // 连接成功前返回null, 成功后即使close也不会返回null
-		return remoteAddress;
-	}
+	// 连接成功前返回null, 成功后即使close也不会返回null
+	public abstract @Nullable SocketAddress getRemoteAddress();
 
 	public @Nullable InetSocketAddress getRemoteInet() {
 		SocketAddress sa = getRemoteAddress();
