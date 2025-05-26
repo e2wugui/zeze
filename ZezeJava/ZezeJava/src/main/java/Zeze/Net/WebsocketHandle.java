@@ -55,7 +55,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	}
 
 	@Override
-	public void onBinary(@NotNull HttpExchange x, @NotNull ByteBuf content) throws Exception {
+	public void onContent(@NotNull HttpExchange x, @NotNull ByteBuf content, boolean isText, boolean isFinal) throws Exception {
 		var websocket = websockets.get(x);
 		if (null != websocket)
 			websocket.processInput(content);

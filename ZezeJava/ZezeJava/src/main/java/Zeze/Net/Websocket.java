@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 public class Websocket extends AsyncSocket {
 	private final HttpExchange x;
 	private boolean closed = false;
-	private ByteBuffer input = ByteBuffer.Allocate();
+	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
 
 	public Websocket(HttpExchange x, Service service) {
@@ -27,10 +27,10 @@ public class Websocket extends AsyncSocket {
 	}
 
 	void processInput(ByteBuf buf) throws Exception {
-		if (input.isEmpty())
-			input = ByteBuffer.Wrap(buf.array(), buf.arrayOffset(), buf.readableBytes()); // 避免拷贝
-		else
-			input.Append(buf.array(), buf.arrayOffset(), buf.readableBytes());
+		int n = buf.readableBytes();
+		input.EnsureWrite(n);
+		buf.readBytes(input.Bytes, input.WriteIndex, n);
+		input.WriteIndex += n;
 		getService().OnSocketProcessInputBuffer(this, input);
 		input.Compact();
 	}
