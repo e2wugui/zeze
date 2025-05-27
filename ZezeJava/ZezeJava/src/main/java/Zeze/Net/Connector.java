@@ -23,6 +23,7 @@ public class Connector extends ReentrantLock {
 
 	private final @NotNull String hostNameOrAddress;
 	private final int port;
+	private final @Nullable String url;
 	private final @NotNull String name;
 	private Service service;
 	private AsyncSocket socket;
@@ -52,6 +53,7 @@ public class Connector extends ReentrantLock {
 		var ipp = hostAndPort.split("_");
 		this.hostNameOrAddress = ipp[0];
 		this.port = Integer.parseInt(ipp[1]);
+		this.url = null;
 		this.name = this.hostNameOrAddress + "_" + this.port;
 		this.isAutoReconnect = autoReconnect;
 	}
@@ -60,9 +62,20 @@ public class Connector extends ReentrantLock {
 		this(host, port, true);
 	}
 
+	public Connector(boolean autoReconnect, @NotNull String url) {
+		if (url.isBlank())
+			throw new RuntimeException("url is blank.");
+		this.hostNameOrAddress = "";
+		this.port = 0;
+		this.url = url;
+		this.name = url;
+		this.isAutoReconnect = autoReconnect;
+	}
+
 	public Connector(@NotNull String host, int port, boolean autoReconnect) {
 		this.hostNameOrAddress = host;
 		this.port = port;
+		this.url = null;
 		this.name = host + '_' + port;
 		this.isAutoReconnect = autoReconnect;
 	}
@@ -70,6 +83,7 @@ public class Connector extends ReentrantLock {
 	public Connector(@NotNull Element self) {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		port = Integer.parseInt(self.getAttribute("Port"));
+		this.url = self.getAttribute("Url");
 		name = hostNameOrAddress + '_' + port;
 		String attr = self.getAttribute("IsAutoReconnect");
 		isAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
@@ -221,8 +235,12 @@ public class Connector extends ReentrantLock {
 				reconnectTask.cancel(false);
 				reconnectTask = null;
 			}
-			if (socket == null)
-				socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
+			if (socket == null) {
+				if (null == url || url.isBlank())
+					socket = service.newClientSocket(hostNameOrAddress, port, userState, this);
+				else
+					socket = service.newWebsocketClient(url, userState, this);
+			}
 		} finally {
 			unlock();
 		}

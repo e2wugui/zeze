@@ -320,6 +320,11 @@ public class Service extends ReentrantLock {
 		return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
 	}
 
+	public @NotNull AsyncSocket newWebsocketClient(@NotNull String url,
+												   @Nullable Object userState, @Nullable Connector connector) {
+		return new WebsocketClient(this, url, userState, connector);
+	}
+
 	/**
 	 * ASocket 关闭的时候总是回调。
 	 *

@@ -14,7 +14,6 @@ public class Websocket extends AsyncSocket {
 	private boolean closed = false;
 	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
-	private final Type type;
 	private final TimeThrottle timeThrottle;
 
 	private final FastLock lock = new FastLock();
@@ -23,13 +22,12 @@ public class Websocket extends AsyncSocket {
 		super(service);
 		this.x = x;
 		this.remote = x.channel().remoteAddress();
-		this.type = Type.eServer;
 		this.timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 	}
 
 	@Override
 	public Type getType() {
-		return type;
+		return Type.eServer;
 	}
 
 	@Override
@@ -39,7 +37,15 @@ public class Websocket extends AsyncSocket {
 
 	@Override
 	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
-		x.closeConnectionOnFlush(null); // 总是gracefully
+		try {
+			getService().OnSocketClose(this, ex);
+		} catch (Exception e) {
+			logger.error("Service.OnSocketClose exception:", e);
+		}
+		if (null == ex)
+			x.closeConnectionOnFlush(null); // 总是gracefully
+		else
+			x.closeConnectionNow();
 		this.closed = true;
 		if (timeThrottle != null)
 			timeThrottle.close();

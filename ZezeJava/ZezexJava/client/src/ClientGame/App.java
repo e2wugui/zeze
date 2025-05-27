@@ -25,6 +25,20 @@ public class App extends Zeze.AppBase {
         Connector.GetReadySocket();
     }
 
+    public void Start2(String wsUrl) throws Exception {
+        var config = Config.load("client.xml");
+        createZeze(config);
+        createService();
+        Connector = new Connector(true, wsUrl);
+        System.out.println("wsUrl =========== " + wsUrl);
+        ClientService.getConfig().addConnector(Connector);
+        createModules();
+        Zeze.start(); // 启动数据库
+        startModules(); // 启动模块，装载配置什么的。
+        startService(); // 启动网络
+        Connector.GetReadySocket();
+    }
+
     public void Stop() throws Exception {
         stopService(); // 关闭网络
         stopModules(); // 关闭模块，卸载配置什么的。

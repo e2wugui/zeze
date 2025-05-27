@@ -103,10 +103,41 @@ public class TestGameTimer {
 						if (last) {
 							var sc = Protocol.decode(clients.get(0).ClientService, input);
 							logger.info("Sc Web " + sc.Argument);
+							input.Compact();
 						}
 						return null;
 					}
 				});
+	}
+
+	private void prepareNewEnvironment2(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
+		clients.clear();
+		links.clear();
+		servers.clear();
+
+		for (int i = 0; i < clientCount; ++i)
+			clients.add(new ClientGame.App());
+		for (int i = 0; i < linkCount; ++i)
+			links.add(new Zezex.App());
+		for (int i = 0; i < serverCount; ++i)
+			servers.add(new Game.App());
+
+		for (int i = 0; i < linkCount; ++i)
+			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
+		for (int i = 40; i < serverCount + 40; ++i) {
+			servers.get(i - 40).Start(i, 20000 + i - 40);
+			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
+			//servers.get(i - 40).getZeze().getTimer().start();
+		}
+		for (var link : links) {
+			waitLinkdProvider(link);
+		}
+		for (int i = 0; i < clientCount; ++i) {
+			var link = links.get(i % linkCount);
+			var ipPort = link.LinkdService.getOnePassiveAddress();
+			clients.get(i).Start2("ws://" + ipPort.getKey() + ":" + (ipPort.getValue() + 10000) + "/websocket");
+			clients.get(i).Connector.WaitReady();
+		}
 	}
 
 	private void stopAll() throws Exception {
