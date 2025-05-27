@@ -49,6 +49,7 @@ public class WebsocketClient extends AsyncSocket {
 						input.WriteIndex += n;
 						try {
 							service.OnSocketProcessInputBuffer(WebsocketClient.this, input);
+							input.Compact();
 						} catch (Exception e) {
 							throw new RuntimeException(e);
 						}

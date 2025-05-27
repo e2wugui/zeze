@@ -268,7 +268,7 @@ public class TestGameTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			prepareNewEnvironment(2, 2, 2, 2);
+			prepareNewEnvironment2(2, 2, 2, 2);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);

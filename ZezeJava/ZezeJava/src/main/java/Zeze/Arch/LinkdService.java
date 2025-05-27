@@ -251,9 +251,9 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NotNull AsyncSocket so) throws Exception {
 		so.setUserState(newSession(so));
-		super.OnSocketAccept(so);
+		super.OnHandshakeDone(so);
 	}
 
 	@Override
