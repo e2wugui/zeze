@@ -1,5 +1,8 @@
 package Zeze.Net;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.SocketAddress;
 import Zeze.Netty.HttpExchange;
 import Zeze.Serialize.ByteBuffer;
@@ -10,13 +13,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Websocket extends AsyncSocket {
+	private static final @NotNull VarHandle closedHandle;
+
 	private final HttpExchange x;
-	private boolean closed = false;
+	private byte closed;
 	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
 	private final TimeThrottle timeThrottle;
 
 	private final FastLock lock = new FastLock();
+
+	static {
+		try {
+			var lookup = MethodHandles.lookup();
+			closedHandle = lookup.findVarHandle(Websocket.class, "closed", byte.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 
 	public Websocket(HttpExchange x, Service service) {
 		super(service);
@@ -37,6 +51,17 @@ public class Websocket extends AsyncSocket {
 
 	@Override
 	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
+		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
+			return false;
+
+		if (ex != null) {
+			if (ex instanceof IOException)
+				logger.info("close: {} {}", this, ex);
+			else
+				logger.warn("close: {} exception:", this, ex);
+		} else
+			logger.info("close: {}{}", this, gracefully ? " gracefully" : "");
+
 		try {
 			getService().OnSocketClose(this, ex);
 		} catch (Exception e) {
@@ -46,7 +71,7 @@ public class Websocket extends AsyncSocket {
 			x.closeConnectionOnFlush(null); // 总是gracefully
 		else
 			x.closeConnectionNow();
-		this.closed = true;
+
 		if (timeThrottle != null)
 			timeThrottle.close();
 		return true;
@@ -85,6 +110,6 @@ public class Websocket extends AsyncSocket {
 
 	@Override
 	public boolean isClosed() {
-		return closed;
+		return closed != 0;
 	}
 }

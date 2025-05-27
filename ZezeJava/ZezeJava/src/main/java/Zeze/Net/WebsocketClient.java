@@ -1,5 +1,8 @@
 package Zeze.Net;
 
+import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,12 +16,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class WebsocketClient extends AsyncSocket {
+	private static final @NotNull VarHandle closedHandle;
+
 	private static final @NotNull Logger logger = LogManager.getLogger();
 	private WebSocket webSocket;
-	private volatile boolean closed = false;
+	private byte closed;
 	private final TimeThrottle timeThrottle;
 	private SocketAddress remote;
 	private final Connector connector;
+
+	static {
+		try {
+			var lookup = MethodHandles.lookup();
+			closedHandle = lookup.findVarHandle(Websocket.class, "closed", byte.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 
 	public WebsocketClient(Service service, String wsUrl, Object userState, Connector connector) {
 		super(service);
@@ -77,12 +91,23 @@ public class WebsocketClient extends AsyncSocket {
 
 	@Override
 	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
+		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
+			return false;
+
+		if (ex != null) {
+			if (ex instanceof IOException)
+				logger.info("close: {} {}", this, ex);
+			else
+				logger.warn("close: {} exception:", this, ex);
+		} else
+			logger.info("close: {}{}", this, gracefully ? " gracefully" : "");
+
 		try {
 			getService().OnSocketClose(this, ex);
 		} catch (Exception e) {
 			logger.error("OnSocketClose", e);
 		}
-		closed = true;
+
 		if (timeThrottle != null)
 			timeThrottle.close();
 		if (null != webSocket)
@@ -108,6 +133,6 @@ public class WebsocketClient extends AsyncSocket {
 
 	@Override
 	public boolean isClosed() {
-		return closed;
+		return closed != 0;
 	}
 }
