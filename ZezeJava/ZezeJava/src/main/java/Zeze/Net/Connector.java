@@ -84,7 +84,10 @@ public class Connector extends ReentrantLock {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
 		port = Integer.parseInt(self.getAttribute("Port"));
 		this.url = self.getAttribute("Url");
-		name = hostNameOrAddress + '_' + port;
+		if (url.isBlank())
+			name = hostNameOrAddress + '_' + port;
+		else
+			name = url;
 		String attr = self.getAttribute("IsAutoReconnect");
 		isAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		attr = self.getAttribute("MaxReconnectDelay");
@@ -106,6 +109,10 @@ public class Connector extends ReentrantLock {
 
 	public final int getPort() {
 		return port;
+	}
+
+	public final @Nullable String getUrl() {
+		return url;
 	}
 
 	public @NotNull String getName() {
