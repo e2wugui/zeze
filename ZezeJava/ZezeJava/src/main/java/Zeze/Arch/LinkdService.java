@@ -225,11 +225,12 @@ public class LinkdService extends HandshakeServer {
 	@Override
 	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
+		var isRequestSaved = p.isRequest();
 		try {
-			var isRequestSaved = p.isRequest();
 			var result = p.handle(this, factoryHandle); // 不启用新的Task，直接在io-thread里面执行。
 			Task.logAndStatistics(null, result, p, isRequestSaved);
 		} catch (Exception ex) {
+			Task.logAndStatistics(ex, 0, p, isRequestSaved);
 			p.getSender().close(ex); // link 在异常时关闭连接。
 		}
 	}
