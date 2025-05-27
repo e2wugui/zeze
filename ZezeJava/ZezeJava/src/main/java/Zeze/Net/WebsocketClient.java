@@ -28,7 +28,7 @@ public class WebsocketClient extends AsyncSocket {
 	static {
 		try {
 			var lookup = MethodHandles.lookup();
-			closedHandle = lookup.findVarHandle(Websocket.class, "closed", byte.class);
+			closedHandle = lookup.findVarHandle(WebsocketClient.class, "closed", byte.class);
 		} catch (ReflectiveOperationException e) {
 			throw new ExceptionInInitializerError(e);
 		}
