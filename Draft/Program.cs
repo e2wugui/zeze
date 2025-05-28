@@ -32,7 +32,7 @@ namespace Draft
     {
         public static void Test2()
         {
-            var so = new AsyncSocket(new Service("connector"), "127.0.0.1", 9999);
+            var so = new TcpSocket(new Service("connector"), "127.0.0.1", 9999);
             so.SetOutputSecurityCodec(new byte[]{1}, 1);
             var r = new Random(1234);
             var s = new byte[1024 * 1024 * 2];

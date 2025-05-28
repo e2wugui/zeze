@@ -49,7 +49,7 @@ namespace Zeze.Arch
                     {
                         var oldSocket = linkdProviderService.GetSocket(exist);
                         logger.Warn("LinkSession.Bind replace provider {0} {1} {2}", moduleId,
-                            oldSocket.Socket.RemoteEndPoint, provider.Socket.RemoteEndPoint);
+                            oldSocket.RemoteAddress, provider.RemoteAddress);
                     }
                     Binds[moduleId] = provider.SessionId;
                     (provider.UserState as LinkdProviderSession).AddLinkSession(moduleId, link.SessionId);
@@ -82,7 +82,7 @@ namespace Zeze.Arch
                         {
                             var oldSocket = linkdProviderService.GetSocket(exist);
                             logger.Warn("LinkSession.UnBind not owner {0} {1} {2}", moduleId,
-                                oldSocket.Socket.RemoteEndPoint, provider.Socket.RemoteEndPoint);
+                                oldSocket.RemoteAddress, provider.RemoteAddress);
                         }
                     }
                 }

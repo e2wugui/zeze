@@ -236,7 +236,7 @@ namespace Zeze.Net
 
         public override string ToString()
         {
-            return $"{Name}-{Socket}-{Socket?.Socket}";
+            return $"{Name}-{Socket}-{Socket?.LocalAddress}-{Socket?.RemoteAddress}";
         }
     }
 }

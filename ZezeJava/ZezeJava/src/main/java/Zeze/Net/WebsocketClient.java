@@ -3,6 +3,7 @@ package Zeze.Net;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -38,9 +39,11 @@ public class WebsocketClient extends AsyncSocket {
 		super(service);
 		super.userState = userState;
 		this.connector = connector;
+		var uri = URI.create(wsUrl);
+		remote = new InetSocketAddress(uri.getHost(), uri.getPort());
 		this.timeThrottle = TimeThrottle.create(getService().getSocketOptions());
 		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
-				URI.create(wsUrl), new WebSocket.Listener() {
+				uri, new WebSocket.Listener() {
 					@Override
 					public void onOpen(WebSocket webSocket) {
 						webSocket.request(1);

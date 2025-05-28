@@ -107,22 +107,22 @@ namespace Zeze.Net
 
         public AsyncSocket NewServerSocket(string ipaddress, int port, Acceptor acceptor)
         {
-            return new AsyncSocket(this, new IPEndPoint(IPAddress.Parse(ipaddress), port), acceptor);
+            return new TcpSocket(this, new IPEndPoint(IPAddress.Parse(ipaddress), port), acceptor);
         }
 
         public AsyncSocket NewServerSocket(IPAddress ipaddress, int port, Acceptor acceptor)
         {
-            return new AsyncSocket(this, new IPEndPoint(ipaddress, port), acceptor);
+            return new TcpSocket(this, new IPEndPoint(ipaddress, port), acceptor);
         }
 
         public AsyncSocket NewServerSocket(EndPoint localEP, Acceptor acceptor)
         {
-            return new AsyncSocket(this, localEP, acceptor);
+            return new TcpSocket(this, localEP, acceptor);
         }
 
         public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState, Connector connector)
         {
-            return new AsyncSocket(this, hostNameOrAddress, port, userState, connector);
+            return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
         }
 
         /// <summary>

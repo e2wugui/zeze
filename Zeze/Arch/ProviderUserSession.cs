@@ -68,7 +68,7 @@ namespace Zeze.Arch
             send.Argument.ProtocolType = typeId;
             send.Argument.ProtocolWholeData = fullEncodedProtocol;
 
-            if (null != Link && null != Link.Socket)
+            if (null != Link && !Link.Closed)
             {
                 SendOnline(Link, send);
                 return;
