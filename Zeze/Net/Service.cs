@@ -63,6 +63,7 @@ namespace Zeze.Net
         public Service(string name)
         {
             Name = name;
+            InitConfig(null);
         }
 
         /// <summary>
