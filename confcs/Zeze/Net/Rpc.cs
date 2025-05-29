@@ -180,7 +180,7 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
-                logger.Error($"Rpc.SendResult Already Done {Sender.Socket} {this}");
+                logger.Error($"Rpc.SendResult Already Done {Sender.LocalAddress}-{Sender.RemoteAddress} {this}");
                 return;
             }
             SendResultDone = true;
@@ -189,7 +189,7 @@ namespace Zeze.Net
             IsRequest = false;
             if (!base.Send(Sender))
             {
-                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
+                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.LocalAddress}-{Sender.RemoteAddress} {this}");
             }
         }
 

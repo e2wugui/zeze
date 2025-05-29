@@ -158,7 +158,7 @@ namespace Zeze.Services
 
         private Task<long> ProcessCHandshakeDone(Protocol p)
         {
-            p.Sender.VerifySecurity();
+            ((TcpSocket)p.Sender).VerifySecurity();
             OnHandshakeDone(p.Sender);
             return Task.FromResult(0L);
         }
@@ -220,7 +220,7 @@ namespace Zeze.Services
                     var rand = Handshake.Helper.MakeDHRandom();
                     byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
                     Array.Reverse(material);
-                    IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
+                    IPAddress ipaddress = p.Sender.LocalAddress;
                     // logger.Debug(ipaddress);
                     if (ipaddress.IsIPv4MappedToIPv6)
                         ipaddress = ipaddress.MapToIPv4();
@@ -234,7 +234,7 @@ namespace Zeze.Services
                 }
                 var s2c = ServerCompressS2c(p.Argument.CompressS2c);
                 var c2s = ServerCompressC2s(p.Argument.CompressC2s);
-                p.Sender.SetInputSecurityCodec(inputKey, c2s);
+                ((TcpSocket)p.Sender).SetInputSecurityCodec(inputKey, c2s);
 
                 var sHandshake = new Handshake.SHandshake();
                 sHandshake.Argument.EncryptParam = response;
@@ -242,7 +242,7 @@ namespace Zeze.Services
                 sHandshake.Argument.CompressC2s = c2s;
                 sHandshake.Argument.EncryptType = p.Argument.EncryptType;
                 sHandshake.Send(p.Sender);
-                p.Sender.SetOutputSecurityCodec(outputKey, s2c);
+                ((TcpSocket)p.Sender).SetOutputSecurityCodec(outputKey, s2c);
 
                 // 为了防止服务器在Handshake以后马上发送数据，
                 // 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
@@ -343,7 +343,7 @@ namespace Zeze.Services
                                 new BigInteger(p.Argument.EncryptParam),
                                 ctx.DhRandom).ToByteArray();
                             Array.Reverse(material);
-                            IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.RemoteEndPoint).Address;
+                            IPAddress ipaddress = p.Sender.RemoteAddress;
                             if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                             byte[] key = ipaddress.GetAddressBytes();
                             logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
@@ -352,8 +352,8 @@ namespace Zeze.Services
                             inputKey = Digest.HmacMd5(key, material, half, material.Length - half);
                         }
 
-                        p.Sender.SetOutputSecurityCodec(outputKey, p.Argument.CompressC2s);
-                        p.Sender.SetInputSecurityCodec(inputKey, p.Argument.CompressS2c);
+                        ((TcpSocket)p.Sender).SetOutputSecurityCodec(outputKey, p.Argument.CompressC2s);
+                        ((TcpSocket)p.Sender).SetInputSecurityCodec(inputKey, p.Argument.CompressS2c);
 
                         new Handshake.CHandshakeDone().Send(p.Sender);
                         OnHandshakeDone(p.Sender);
