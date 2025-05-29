@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
-                foreach (Protocol p in module.Protocols.Values)
+                foreach (Protocol p in module.ProtocolList)
                 {
                     if (p is Rpc rpc)
                     {
@@ -270,7 +270,7 @@ namespace Zeze.Gen.java
             {
                 var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
-                foreach (Protocol p in module.Protocols.Values)
+                foreach (Protocol p in module.ProtocolList)
                 {
                     if (p is Rpc rpc)
                     {
@@ -389,7 +389,7 @@ namespace Zeze.Gen.java
             {
                 var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
-                foreach (Protocol p in module.Protocols.Values)
+                foreach (Protocol p in module.ProtocolList)
                 {
                     if (p is Rpc rpc)
                     {
@@ -842,7 +842,7 @@ namespace Zeze.Gen.java
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
-                foreach (Protocol p in module.Protocols.Values)
+                foreach (Protocol p in module.ProtocolList)
                 {
                     if (p is Rpc rpc)
                     {

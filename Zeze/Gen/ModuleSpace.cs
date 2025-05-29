@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-using Zeze.Util;
 
 namespace Zeze.Gen
 {
@@ -95,6 +94,7 @@ namespace Zeze.Gen
         public HashSet<Types.Bean> MappingClassBeans { get; } = new();
         // 从其他项目引入的协议，这个协议仅仅生成相关代码，但不会注册到Service也不会在Module中生成Handle。
         public SortedDictionary<string, Protocol> ProtocolsImport { get; private set; } = new();
+        public List<Protocol> ProtocolList { get; private set; } = new();
 
         public void AddMappingClassBean(Types.Bean bean)
         {
@@ -131,6 +131,7 @@ namespace Zeze.Gen
         {
             Program.AddNamedObject(Path(".", protocol.Name), protocol);
             Protocols.Add(protocol.Name, protocol);
+            ProtocolList.Add(protocol);
         }
 
         public void Add(Table table)
@@ -205,6 +206,7 @@ namespace Zeze.Gen
             {
                 ProtocolIdRanges.CheckAdd(p.Id);
                 Protocols.Add(p.Name, p);
+                ProtocolList.Add(p);
             }
             foreach (var p in Program.CompileProtocolRef(Program.Refs(Self, "protocolref", "import")))
             {
