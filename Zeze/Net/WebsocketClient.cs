@@ -47,14 +47,14 @@ namespace Zeze.Net
                 while (_clientWebSocket.State == WebSocketState.Open && !_cts.IsCancellationRequested)
                 {
                     buffer.EnsureWrite(4096);
-                    var result = await _clientWebSocket.ReceiveAsync(
-                        new ArraySegment<byte>(buffer.Bytes, buffer.WriteIndex, buffer.Capacity - buffer.WriteIndex), _cts.Token);
-
+                    var segment = new ArraySegment<byte>(buffer.Bytes, buffer.WriteIndex, buffer.Capacity - buffer.WriteIndex);
+                    var result = await _clientWebSocket.ReceiveAsync(segment, _cts.Token);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         Dispose();
                         break;
                     }
+                    buffer.WriteIndex += result.Count;
                     if (result.EndOfMessage)
                     {
                         Service.OnSocketProcessInputBuffer(this, buffer);
