@@ -29,6 +29,12 @@ namespace Zeze.Net
 
         internal ConcurrentDictionary<long, AsyncSocket> SocketMapInternal => SocketMap;
 
+        public void AddSocket(AsyncSocket socket)
+        {
+            if (!SocketMap.TryAdd(socket.SessionId, socket))
+                throw new Exception($"duplicate socket {socket}");
+        }
+
         private void InitConfig(Config config)
         {
             Config = config?.GetServiceConf(Name);

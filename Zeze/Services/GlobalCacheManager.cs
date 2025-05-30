@@ -65,7 +65,7 @@ namespace Zeze.Services.GlobalCacheManager
     {
         public Binary GlobalKey { get; set; }
         public int State { get; set; }
-        public Id128 ReduceTid { get; set; }
+        public Id128 ReduceTid { get; set; } = new Id128();
 
         public override void Decode(ByteBuffer bb)
         {

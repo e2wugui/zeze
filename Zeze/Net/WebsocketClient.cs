@@ -21,23 +21,27 @@ namespace Zeze.Net
         {
             base.Connector = connector;
             base.Type = AsyncSocketType.eClient;
+
+            _uri = new Uri(wsUrl);
             base.RemoteAddress = new IPEndPoint(IPAddress.Parse(_uri.Host), _uri.Port);
             base.UserState = userState;
             // LocalAddress = null; // 得不到。
-            _uri = new Uri(wsUrl);
-            // 接收循环，发送循环都放到后台。
-            _ = ConnectReceive(wsUrl);
-            _ = SendLoop();
+
+            // 接收循环放到后台。
+            Task.Run(ConnectReceive);
         }
 
-        private async Task ConnectReceive(string wsUrl)
+        private async Task ConnectReceive()
         {
             try
             {
                 _clientWebSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
                 using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 await _clientWebSocket.ConnectAsync(_uri, connectCts.Token);
+                Service.AddSocket(this);
                 Service.OnHandshakeDone(this);
+                // 连接成功，发送循环放到后台。
+                _ = Task.Run(SendLoop);
 
                 var buffer = ByteBuffer.Allocate(4096);
                 while (_clientWebSocket.State == WebSocketState.Open && !_cts.IsCancellationRequested)
@@ -45,9 +49,13 @@ namespace Zeze.Net
                     buffer.EnsureWrite(4096);
                     var result = await _clientWebSocket.ReceiveAsync(
                         new ArraySegment<byte>(buffer.Bytes, buffer.WriteIndex, buffer.Capacity - buffer.WriteIndex), _cts.Token);
+
                     if (result.MessageType == WebSocketMessageType.Close)
+                    {
                         Dispose();
-                    else if (result.EndOfMessage)
+                        break;
+                    }
+                    if (result.EndOfMessage)
                     {
                         Service.OnSocketProcessInputBuffer(this, buffer);
                         buffer.Campact();

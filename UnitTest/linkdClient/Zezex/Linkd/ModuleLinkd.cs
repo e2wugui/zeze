@@ -1,4 +1,6 @@
 
+using System;
+
 namespace Zezex.Linkd
 {
     public partial class ModuleLinkd : AbstractModule
@@ -11,10 +13,18 @@ namespace Zezex.Linkd
         {
         }
 
-        protected override async System.Threading.Tasks.Task<long> ProcessSc(Zeze.Net.Protocol _p)
+        public void sendCs()
+        {
+            var p = new Cs();
+            p.Argument.Account = "sendCs";
+            p.Send(App.ClientService.GetSocket());
+        }
+
+        protected override System.Threading.Tasks.Task<long> ProcessSc(Zeze.Net.Protocol _p)
         {
             var p = _p as Sc;
-            return Zeze.Util.ResultCode.NotImplement;
+            Console.WriteLine("ProcessSc: " + p.Argument.Account);
+            return System.Threading.Tasks.Task.FromResult<long>(0);
         }
 
     }

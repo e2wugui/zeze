@@ -15,8 +15,6 @@ namespace Zeze.Net
     /// </summary>
     public class TcpSocket : AsyncSocket
     {
-        private static readonly ILogger logger = LogManager.GetLogger(typeof(TcpSocket));
-
         private byte[] _inputBuffer;
         private List<ArraySegment<byte>> _outputBufferList;
         private int _outputBufferListCountSum;
