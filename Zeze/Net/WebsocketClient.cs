@@ -17,14 +17,14 @@ namespace Zeze.Net
         private readonly BlockingCollection<ArraySegment<byte>> _sendQueue = new BlockingCollection<ArraySegment<byte>>();
         private readonly Uri _uri;
 
-        public WebsocketClient(Service service, string wsUrl, Connector connector) : base(service) 
+        public WebsocketClient(Service service, string wsUrl, object userState, Connector connector) : base(service) 
         {
             base.Connector = connector;
-            Type = AsyncSocketType.eClient;
-            _uri = new Uri(wsUrl);
-            RemoteAddress = new IPEndPoint(IPAddress.Parse(_uri.Host), _uri.Port);
+            base.Type = AsyncSocketType.eClient;
+            base.RemoteAddress = new IPEndPoint(IPAddress.Parse(_uri.Host), _uri.Port);
+            base.UserState = userState;
             // LocalAddress = null; // 得不到。
-
+            _uri = new Uri(wsUrl);
             // 接收循环，发送循环都放到后台。
             _ = ConnectReceive(wsUrl);
             _ = SendLoop();

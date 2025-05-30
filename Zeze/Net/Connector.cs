@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -18,6 +19,7 @@ namespace Zeze.Net
 
         public readonly string HostNameOrAddress;
         public readonly int Port;
+        public readonly string Url;
         private volatile bool autoReconnect = true;
 
         public bool AutoReconnect
@@ -49,7 +51,7 @@ namespace Zeze.Net
         private volatile TaskCompletionSource<AsyncSocket> FutureSocket
             = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public string Name => $"{HostNameOrAddress}:{Port}";
+        public string Name => string.IsNullOrEmpty(Url) ? $"{HostNameOrAddress}:{Port}" : Url;
 
         public AsyncSocket Socket { get; private set; }
 
@@ -80,6 +82,12 @@ namespace Zeze.Net
             AutoReconnect = autoReconnect;
         }
 
+        public Connector(bool autoReconnect, string wsUrl)
+        {
+            Url = wsUrl;
+            AutoReconnect = autoReconnect;
+        }
+
         public static Connector Create(XmlElement e)
         {
             var className = e.GetAttribute("Class");
@@ -96,6 +104,7 @@ namespace Zeze.Net
                 Port = int.Parse(attr);
             HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
             attr = self.GetAttribute("IsAutoReconnect");
+            Url = self.GetAttribute("Url");
             if (attr.Length > 0)
                 AutoReconnect = bool.Parse(attr);
             attr = self.GetAttribute("MaxReconnectDelay");
@@ -209,7 +218,12 @@ namespace Zeze.Net
                 ReconnectTask = null;
 
                 if (Socket == null)
-                    Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
+                {
+                    if (string.IsNullOrEmpty(Url))
+                        Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
+                    else
+                        Socket = Service.NewWebsocketClient(Url, UserState, this);
+                }
             }
         }
 

@@ -126,6 +126,11 @@ namespace Zeze.Net
             return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
         }
 
+        public AsyncSocket NewWebsocketClient(string wsUrl, object userState, Connector connector)
+        {
+            return new WebsocketClient(this, wsUrl, userState, connector);
+        }
+
         /// <summary>
         /// ASocket 关闭的时候总是回调。
         /// </summary>

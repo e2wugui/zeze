@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection.PortableExecutable;
+﻿
+using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Net;
 using Zeze.Serialize;
-using Zeze.Util;
 
 namespace UnitTest.Zeze.Net
 {
@@ -46,6 +44,7 @@ namespace UnitTest.Zeze.Net
             using AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null);
             client.Future.Task.Wait();
         }
+
         /*
         [TestMethod]
         public void TestAsync()
