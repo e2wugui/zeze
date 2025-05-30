@@ -1,5 +1,6 @@
 package Zeze.Net;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpServer;
@@ -51,7 +52,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	public void onClose(@NotNull HttpExchange x, int status, @NotNull String reason) throws Exception {
 		var websocket = websockets.remove(x);
 		if (null != websocket)
-			websocket.close();
+			websocket.close(new IOException("peer closed. status=" + status + " reason=" + reason));
 	}
 
 	@Override
