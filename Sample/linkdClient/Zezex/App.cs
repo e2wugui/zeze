@@ -1,6 +1,7 @@
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Threading;
 using Zeze.Net;
 
 namespace Zezex
@@ -28,7 +29,7 @@ namespace Zezex
             connector.GetReadySocket();
             Zezex_Linkd.sendCs();
             Console.WriteLine("Press Enter To Exit.");
-            Console.In.ReadLine();
+            Thread.Sleep(10000);
         }
 
         public void Stop()
