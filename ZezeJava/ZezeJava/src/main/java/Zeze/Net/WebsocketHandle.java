@@ -51,7 +51,7 @@ public class WebsocketHandle implements HttpWebSocketHandle {
 	public void onClose(@NotNull HttpExchange x, int status, @NotNull String reason) throws Exception {
 		var websocket = websockets.remove(x);
 		if (null != websocket)
-			websocket.close(new Exception("peer closed. status=" + status + " reason=" + reason));
+			websocket.close();
 	}
 
 	@Override
