@@ -95,8 +95,8 @@ namespace Zeze.Net
 #endif
             _inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
-            LocalAddress = ((IPEndPoint)Socket.LocalEndPoint).Address;
-            RemoteAddress = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+            LocalAddress = ((IPEndPoint)Socket.LocalEndPoint);
+            RemoteAddress = ((IPEndPoint)Socket.RemoteEndPoint);
 
             BeginReceiveAsync();
         }
@@ -333,8 +333,8 @@ namespace Zeze.Net
             {
                 Socket.EndConnect(ar);
                 Connector?.OnSocketConnected(this);
-                LocalAddress = ((IPEndPoint)Socket.LocalEndPoint).Address;
-                RemoteAddress = ((IPEndPoint)Socket.RemoteEndPoint).Address;
+                LocalAddress = ((IPEndPoint)Socket.LocalEndPoint);
+                RemoteAddress = ((IPEndPoint)Socket.RemoteEndPoint);
                 Service.OnSocketConnected(this);
                 _inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
                 BeginReceiveAsync();

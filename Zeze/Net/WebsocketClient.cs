@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+using System.Net;
+using NLog;
 
 namespace Zeze.Net
 {
@@ -13,10 +15,17 @@ namespace Zeze.Net
         private readonly ClientWebSocket _clientWebSocket = new ClientWebSocket();
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly BlockingCollection<ArraySegment<byte>> _sendQueue = new BlockingCollection<ArraySegment<byte>>();
+        private readonly Uri _uri;
 
         public WebsocketClient(Service service, string wsUrl, Connector connector) : base(service) 
         {
             base.Connector = connector;
+            Type = AsyncSocketType.eClient;
+            _uri = new Uri(wsUrl);
+            RemoteAddress = new IPEndPoint(IPAddress.Parse(_uri.Host), _uri.Port);
+            // LocalAddress = null; // 得不到。
+
+            // 接收循环，发送循环都放到后台。
             _ = ConnectReceive(wsUrl);
             _ = SendLoop();
         }
@@ -25,10 +34,9 @@ namespace Zeze.Net
         {
             try
             {
-                var uri = new Uri(wsUrl);
                 _clientWebSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
                 using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                await _clientWebSocket.ConnectAsync(uri, connectCts.Token);
+                await _clientWebSocket.ConnectAsync(_uri, connectCts.Token);
                 Service.OnHandshakeDone(this);
 
                 var buffer = ByteBuffer.Allocate(4096);
@@ -61,9 +69,16 @@ namespace Zeze.Net
         {
             if (base.ClosedState(1) != 0)
                 return;
-            _cts.Cancel();
-            await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-            Service.OnSocketClose(this, LastException);
+            try
+            {
+                Service.OnSocketClose(this, LastException);
+                _cts.Cancel();
+                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
         }
 
         public override bool Send(byte[] bytes, int offset, int length)

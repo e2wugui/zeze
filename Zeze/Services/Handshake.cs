@@ -220,7 +220,7 @@ namespace Zeze.Services
                     var rand = Handshake.Helper.MakeDHRandom();
                     byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
                     Array.Reverse(material);
-                    IPAddress ipaddress = p.Sender.LocalAddress;
+                    IPAddress ipaddress = p.Sender.LocalAddress.Address;
                     // logger.Debug(ipaddress);
                     if (ipaddress.IsIPv4MappedToIPv6)
                         ipaddress = ipaddress.MapToIPv4();
@@ -343,7 +343,7 @@ namespace Zeze.Services
                                 new BigInteger(p.Argument.EncryptParam),
                                 ctx.DhRandom).ToByteArray();
                             Array.Reverse(material);
-                            IPAddress ipaddress = p.Sender.RemoteAddress;
+                            IPAddress ipaddress = p.Sender.RemoteAddress.Address;
                             if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
                             byte[] key = ipaddress.GetAddressBytes();
                             logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));

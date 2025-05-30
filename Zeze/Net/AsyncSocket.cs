@@ -10,7 +10,7 @@ namespace Zeze.Net
 {
     public abstract class AsyncSocket : IDisposable
     {
-        private static readonly ILogger logger = LogManager.GetLogger(typeof(AsyncSocket));
+        protected static readonly ILogger logger = LogManager.GetLogger(typeof(AsyncSocket));
 
         protected int _closedState;
 
@@ -36,8 +36,8 @@ namespace Zeze.Net
         public static Func<long> SessionIdGenFunc { get; set; }
 
         public Exception LastException { get; protected set; }
-        public IPAddress RemoteAddress { get; protected set; }
-        public IPAddress LocalAddress { get; protected set; }
+        public IPEndPoint RemoteAddress { get; protected set; }
+        public IPEndPoint LocalAddress { get; protected set; }
         public AsyncSocketType Type { get; protected set; }
         public long ActiveRecvTime { get; private set; } // 上次接收的时间戳(毫秒)
         public long ActiveSendTime { get; private set; } // 上次发送的时间戳(毫秒)
