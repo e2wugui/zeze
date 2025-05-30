@@ -1604,6 +1604,7 @@ namespace Zeze.Services.ToLuaService2
             ExportFunction(l, "Update", Update);
             ExportFunction(l, "Close", Close);
             ExportFunction(l, "Connect", Connect);
+            ExportFunction(l, "ConnectWebsocket", ConnectWebsocket);
             ExportFunction(l, "SendProtocol", SendProtocol);
             ExportFunction(l, "SetOnSocketConnected", SetOnSocketConnected);
             ExportFunction(l, "SetOnSocketClosed", SetOnSocketClosed);
@@ -1634,6 +1635,14 @@ namespace Zeze.Services.ToLuaService2
             int port = (int)Instance.Lua.lua_tointeger(luaState, -2);
             bool autoReconnect = Instance.Lua.lua_toboolean(luaState, -1);
             _serviceClient.Connect(host, port, autoReconnect);
+            return 0;
+        }
+
+        public static int ConnectWebsocket(IntPtr luaState)
+        {
+            string url = Instance.Lua.lua_tostring(luaState, -2);
+            bool autoReconnect = Instance.Lua.lua_toboolean(luaState, -1);
+            _serviceClient.ConnectWebsocket(url, autoReconnect);
             return 0;
         }
 

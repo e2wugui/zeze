@@ -465,6 +465,14 @@ namespace Zeze.Services
             c.Start();
         }
 
+        public void ConnectWebsocket(string url, bool autoReconnect)
+        {
+            var find = Config.FindConnector(url);
+            if (null == find)
+                Config.AddConnector(find = new Connector(autoReconnect, url));
+            find.Start();
+        }
+
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
