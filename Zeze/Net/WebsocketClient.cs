@@ -28,7 +28,7 @@ namespace Zeze.Net
             // LocalAddress = null; // 得不到。
 
             // 接收循环放到后台。
-            _ = ConnectReceive();
+            Task.Run(ConnectReceive);
         }
 
         private async Task ConnectReceive()
@@ -41,7 +41,7 @@ namespace Zeze.Net
                 Service.AddSocket(this);
                 Service.OnHandshakeDone(this);
                 // 连接成功，发送循环放到后台。
-                _ = SendLoop();
+                _ = Task.Run(SendLoop);
 
                 var buffer = ByteBuffer.Allocate(4096);
                 while (_clientWebSocket.State == WebSocketState.Open && !_cts.IsCancellationRequested)

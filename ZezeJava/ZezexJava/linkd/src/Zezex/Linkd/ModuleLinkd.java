@@ -71,6 +71,7 @@ public final class ModuleLinkd extends AbstractModule {
 		}
 		var res = new Sc();
 		res.Argument.setAccount("Response" + count);
+		logger.info("sendSc: " + res.Argument.getAccount());
 		res.Send(App.LinkdService.GetSocket(clientId));
 	}
 

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze
+	GlobalCacheManagerPort="5002"
+	CheckpointPeriod="0"
+	ServerId="0"
+	NoDatabase="true"
+	>
+</zeze>

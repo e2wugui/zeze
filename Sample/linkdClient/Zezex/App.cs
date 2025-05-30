@@ -1,21 +1,12 @@
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Threading;
 using Zeze.Net;
 
 namespace Zezex
 {
-    [TestClass]
     public sealed partial class App
     {
-        [TestMethod]
-        public void MainTest()
-        {
-            App.Instance.Start();
-            App.Instance.Stop();
-        }
-
         public void Start()
         {
             CreateZeze();
@@ -28,8 +19,6 @@ namespace Zezex
             StartService(); // 启动网络
             connector.GetReadySocket();
             Zezex_Linkd.sendCs();
-            Console.WriteLine("Press Enter To Exit.");
-            Thread.Sleep(10000);
         }
 
         public void Stop()
