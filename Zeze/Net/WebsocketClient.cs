@@ -98,15 +98,10 @@ namespace Zeze.Net
 
         public override bool Send(byte[] bytes, int offset, int length)
         {
-            Monitor.Enter(this);
-            try
+            lock(this)
             {
                 _sendQueue.Add(new ArraySegment<byte>(bytes, offset, length));
                 return true;
-            }
-            finally
-            {
-                Monitor.Exit(this);
             }
         }
 
