@@ -29,6 +29,12 @@ namespace Zeze.Net
 
         internal ConcurrentDictionary<long, AsyncSocket> SocketMapInternal => SocketMap;
 
+        public void AddSocket(AsyncSocket socket)
+        {
+            if (!SocketMap.TryAdd(socket.SessionId, socket))
+                throw new Exception($"duplicate socket {socket}");
+        }
+
         private void InitConfig(Config config)
         {
             Config = config?.GetServiceConf(Name);
@@ -124,6 +130,11 @@ namespace Zeze.Net
         public AsyncSocket NewClientSocket(string hostNameOrAddress, int port, object userState, Connector connector)
         {
             return new TcpSocket(this, hostNameOrAddress, port, userState, connector);
+        }
+
+        public AsyncSocket NewWebsocketClient(string wsUrl, object userState, Connector connector)
+        {
+            return new WebsocketClient(this, wsUrl, userState, connector);
         }
 
         /// <summary>
