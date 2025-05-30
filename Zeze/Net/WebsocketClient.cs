@@ -28,7 +28,7 @@ namespace Zeze.Net
             // LocalAddress = null; // 得不到。
 
             // 接收循环放到后台。
-            Task.Run(ConnectReceive);
+            _ = ConnectReceive();
         }
 
         private async Task ConnectReceive()
