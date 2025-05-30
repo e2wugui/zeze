@@ -71,9 +71,16 @@ namespace Zeze.Net
                 return;
             try
             {
-                Service.OnSocketClose(this, LastException);
                 _cts.Cancel();
                 await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
+            try
+            {
+                Service.OnSocketClose(this, LastException);
             }
             catch (Exception ex)
             {
