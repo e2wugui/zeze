@@ -19,21 +19,6 @@ public abstract class AbstractMQManager implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.PushMessage.class, Zeze.Builtin.MQ.PushMessage.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.MQ.PushMessage::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPushMessageResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPushMessageResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47415515233719L, factoryHandle); // 11039, -923714121
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.SendMessage.class, Zeze.Builtin.MQ.SendMessage.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.MQ.SendMessage::new;
-            factoryHandle.Handle = this::ProcessSendMessageRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendMessageRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendMessageRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47415494784777L, factoryHandle); // 11039, -944163063
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Subscribe.class, Zeze.Builtin.MQ.Subscribe.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.Subscribe::new;
             factoryHandle.Handle = this::ProcessSubscribeRequest;
@@ -49,13 +34,28 @@ public abstract class AbstractMQManager implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessUnsubscribeRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47412373828139L, factoryHandle); // 11039, 229847595
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.SendMessage.class, Zeze.Builtin.MQ.SendMessage.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.SendMessage::new;
+            factoryHandle.Handle = this::ProcessSendMessageRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendMessageRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendMessageRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47415494784777L, factoryHandle); // 11039, -944163063
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.PushMessage.class, Zeze.Builtin.MQ.PushMessage.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.PushMessage::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessPushMessageResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessPushMessageResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47415515233719L, factoryHandle); // 11039, -923714121
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47415515233719L);
-        service.getFactorys().remove(47415494784777L);
         service.getFactorys().remove(47413017472729L);
         service.getFactorys().remove(47412373828139L);
+        service.getFactorys().remove(47415494784777L);
+        service.getFactorys().remove(47415515233719L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -67,7 +67,7 @@ public abstract class AbstractMQManager implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) throws Exception;
     protected abstract long ProcessSubscribeRequest(Zeze.Builtin.MQ.Subscribe r) throws Exception;
     protected abstract long ProcessUnsubscribeRequest(Zeze.Builtin.MQ.Unsubscribe r) throws Exception;
+    protected abstract long ProcessSendMessageRequest(Zeze.Builtin.MQ.SendMessage r) throws Exception;
 }

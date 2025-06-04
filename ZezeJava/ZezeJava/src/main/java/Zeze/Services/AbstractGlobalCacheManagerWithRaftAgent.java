@@ -26,6 +26,35 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent implements Zeze.IM
             service.AddFactoryHandle(47251404755902L, factoryHandle); // 11001, -1825434690
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce.class, Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce::new;
+            factoryHandle.Handle = this::ProcessReduceRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReduceRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47250386526035L, factoryHandle); // 11001, 1451302739
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.Login.class, Zeze.Builtin.GlobalCacheManagerWithRaft.Login.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Login::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLoginResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47251261574418L, factoryHandle); // 11001, -1968616174
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin.class, Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47251807618150L, factoryHandle); // 11001, -1422572442
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose.class, Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNormalCloseResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNormalCloseResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47249192987366L, factoryHandle); // 11001, 257764070
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup.class, Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCleanupResponse", Zeze.Transaction.TransactionLevel.None);
@@ -39,45 +68,16 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent implements Zeze.IM
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessKeepAliveResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47249886857671L, factoryHandle); // 11001, 951634375
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.Login.class, Zeze.Builtin.GlobalCacheManagerWithRaft.Login.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Login::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLoginResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47251261574418L, factoryHandle); // 11001, -1968616174
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose.class, Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNormalCloseResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNormalCloseResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47249192987366L, factoryHandle); // 11001, 257764070
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce.class, Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce::new;
-            factoryHandle.Handle = this::ProcessReduceRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReduceRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47250386526035L, factoryHandle); // 11001, 1451302739
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin.class, Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47251807618150L, factoryHandle); // 11001, -1422572442
-        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47251404755902L);
+        service.getFactorys().remove(47250386526035L);
+        service.getFactorys().remove(47251261574418L);
+        service.getFactorys().remove(47251807618150L);
+        service.getFactorys().remove(47249192987366L);
         service.getFactorys().remove(47253156226169L);
         service.getFactorys().remove(47249886857671L);
-        service.getFactorys().remove(47251261574418L);
-        service.getFactorys().remove(47249192987366L);
-        service.getFactorys().remove(47250386526035L);
-        service.getFactorys().remove(47251807618150L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

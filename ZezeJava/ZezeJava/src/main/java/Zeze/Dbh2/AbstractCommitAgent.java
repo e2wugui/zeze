@@ -23,24 +23,24 @@ public abstract class AbstractCommitAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Commit.class, Zeze.Builtin.Dbh2.Commit.Commit.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Commit::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47365570898711L, factoryHandle); // 11028, 671558423
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Query.class, Zeze.Builtin.Dbh2.Commit.Query.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Query::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47365186843239L, factoryHandle); // 11028, 287502951
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Commit.class, Zeze.Builtin.Dbh2.Commit.Commit.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Commit::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47365570898711L, factoryHandle); // 11028, 671558423
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47365570898711L);
         service.getFactorys().remove(47365186843239L);
+        service.getFactorys().remove(47365570898711L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

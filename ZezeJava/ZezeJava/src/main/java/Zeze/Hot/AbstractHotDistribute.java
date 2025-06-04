@@ -34,38 +34,6 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.AppendFile.class, Zeze.Builtin.HotDistribute.AppendFile.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.HotDistribute.AppendFile::new;
-            factoryHandle.Handle = this::ProcessAppendFileRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAppendFileRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAppendFileRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47389309196186L, factoryHandle); // 11033, -1359947878
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.CloseFile.class, Zeze.Builtin.HotDistribute.CloseFile.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.HotDistribute.CloseFile::new;
-            factoryHandle.Handle = this::ProcessCloseFileRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCloseFileRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCloseFileRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47390444626489L, factoryHandle); // 11033, -224517575
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit.class, Zeze.Builtin.HotDistribute.Commit.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit::new;
-            factoryHandle.Handle = this::ProcessCommitRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47390636330467L, factoryHandle); // 11033, -32813597
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit2.class, Zeze.Builtin.HotDistribute.Commit2.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit2::new;
-            factoryHandle.Handle = this::ProcessCommit2Request;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommit2Request", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommit2Request", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47387265579966L, factoryHandle); // 11033, 891403198
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.class, Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo::new;
             factoryHandle.Handle = this::ProcessGetLastVersionBeanInfoRequest;
@@ -80,6 +48,22 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenFileRequest", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47390201795475L, factoryHandle); // 11033, -467348589
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.AppendFile.class, Zeze.Builtin.HotDistribute.AppendFile.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.AppendFile::new;
+            factoryHandle.Handle = this::ProcessAppendFileRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAppendFileRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAppendFileRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47389309196186L, factoryHandle); // 11033, -1359947878
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.CloseFile.class, Zeze.Builtin.HotDistribute.CloseFile.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.CloseFile::new;
+            factoryHandle.Handle = this::ProcessCloseFileRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCloseFileRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCloseFileRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47390444626489L, factoryHandle); // 11033, -224517575
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.PrepareDistribute.class, Zeze.Builtin.HotDistribute.PrepareDistribute.TypeId_);
@@ -98,6 +82,22 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
             service.AddFactoryHandle(47388449680241L, factoryHandle); // 11033, 2075503473
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit.class, Zeze.Builtin.HotDistribute.Commit.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit::new;
+            factoryHandle.Handle = this::ProcessCommitRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommitRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommitRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47390636330467L, factoryHandle); // 11033, -32813597
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.Commit2.class, Zeze.Builtin.HotDistribute.Commit2.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.HotDistribute.Commit2::new;
+            factoryHandle.Handle = this::ProcessCommit2Request;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessCommit2Request", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCommit2Request", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47387265579966L, factoryHandle); // 11033, 891403198
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.HotDistribute.TryRollback.class, Zeze.Builtin.HotDistribute.TryRollback.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.HotDistribute.TryRollback::new;
             factoryHandle.Handle = this::ProcessTryRollbackRequest;
@@ -108,14 +108,14 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47389309196186L);
-        service.getFactorys().remove(47390444626489L);
-        service.getFactorys().remove(47390636330467L);
-        service.getFactorys().remove(47387265579966L);
         service.getFactorys().remove(47389512970537L);
         service.getFactorys().remove(47390201795475L);
+        service.getFactorys().remove(47389309196186L);
+        service.getFactorys().remove(47390444626489L);
         service.getFactorys().remove(47389258998777L);
         service.getFactorys().remove(47388449680241L);
+        service.getFactorys().remove(47390636330467L);
+        service.getFactorys().remove(47387265579966L);
         service.getFactorys().remove(47386455650973L);
     }
 
@@ -128,13 +128,13 @@ public abstract class AbstractHotDistribute implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessAppendFileRequest(Zeze.Builtin.HotDistribute.AppendFile r) throws Exception;
-    protected abstract long ProcessCloseFileRequest(Zeze.Builtin.HotDistribute.CloseFile r) throws Exception;
-    protected abstract long ProcessCommitRequest(Zeze.Builtin.HotDistribute.Commit r) throws Exception;
-    protected abstract long ProcessCommit2Request(Zeze.Builtin.HotDistribute.Commit2 r) throws Exception;
     protected abstract long ProcessGetLastVersionBeanInfoRequest(Zeze.Builtin.HotDistribute.GetLastVersionBeanInfo r) throws Exception;
     protected abstract long ProcessOpenFileRequest(Zeze.Builtin.HotDistribute.OpenFile r) throws Exception;
+    protected abstract long ProcessAppendFileRequest(Zeze.Builtin.HotDistribute.AppendFile r) throws Exception;
+    protected abstract long ProcessCloseFileRequest(Zeze.Builtin.HotDistribute.CloseFile r) throws Exception;
     protected abstract long ProcessPrepareDistributeRequest(Zeze.Builtin.HotDistribute.PrepareDistribute r) throws Exception;
     protected abstract long ProcessTryDistributeRequest(Zeze.Builtin.HotDistribute.TryDistribute r) throws Exception;
+    protected abstract long ProcessCommitRequest(Zeze.Builtin.HotDistribute.Commit r) throws Exception;
+    protected abstract long ProcessCommit2Request(Zeze.Builtin.HotDistribute.Commit2 r) throws Exception;
     protected abstract long ProcessTryRollbackRequest(Zeze.Builtin.HotDistribute.TryRollback r) throws Exception;
 }

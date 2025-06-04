@@ -28,6 +28,21 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.Register.class, Zeze.Builtin.Zoker.Register.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Zoker.Register::new;
+            factoryHandle.Handle = this::ProcessRegisterRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRegisterRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRegisterRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47407341877675L, factoryHandle); // 11037, -507135573
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.OpenFile.class, Zeze.Builtin.Zoker.OpenFile.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Zoker.OpenFile::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenFileResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47405642508207L, factoryHandle); // 11037, 2088462255
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.AppendFile.class, Zeze.Builtin.Zoker.AppendFile.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Zoker.AppendFile::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAppendFileResponse", Zeze.Transaction.TransactionLevel.None);
@@ -56,21 +71,6 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
             service.AddFactoryHandle(47404015843425L, factoryHandle); // 11037, 461797473
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.OpenFile.class, Zeze.Builtin.Zoker.OpenFile.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Zoker.OpenFile::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenFileResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenFileResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47405642508207L, factoryHandle); // 11037, 2088462255
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.Register.class, Zeze.Builtin.Zoker.Register.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Zoker.Register::new;
-            factoryHandle.Handle = this::ProcessRegisterRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRegisterRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRegisterRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47407341877675L, factoryHandle); // 11037, -507135573
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Zoker.StartService.class, Zeze.Builtin.Zoker.StartService.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Zoker.StartService::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessStartServiceResponse", Zeze.Transaction.TransactionLevel.None);
@@ -87,12 +87,12 @@ public abstract class AbstractZokerAgent implements Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47407341877675L);
+        service.getFactorys().remove(47405642508207L);
         service.getFactorys().remove(47406035711083L);
         service.getFactorys().remove(47406729836341L);
         service.getFactorys().remove(47406581820129L);
         service.getFactorys().remove(47404015843425L);
-        service.getFactorys().remove(47405642508207L);
-        service.getFactorys().remove(47407341877675L);
         service.getFactorys().remove(47406220967437L);
         service.getFactorys().remove(47406262654700L);
     }

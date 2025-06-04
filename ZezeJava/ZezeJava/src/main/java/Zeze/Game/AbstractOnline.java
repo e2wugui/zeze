@@ -60,6 +60,14 @@ public abstract class AbstractOnline implements Zeze.IModule {
             service.AddFactoryHandle(47303980222879L, factoryHandle); // 11013, -789575265
         }
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Online.ReLogin.class, Zeze.Builtin.Game.Online.ReLogin.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.Online.ReLogin::new;
+            factoryHandle.Handle = this::ProcessReLoginRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47304551116333L, factoryHandle); // 11013, -218681811
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Online.Logout.class, Zeze.Builtin.Game.Online.Logout.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Game.Online.Logout::new;
             factoryHandle.Handle = this::ProcessLogoutRequest;
@@ -75,21 +83,13 @@ public abstract class AbstractOnline implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47304349755660L, factoryHandle); // 11013, -420042484
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Online.ReLogin.class, Zeze.Builtin.Game.Online.ReLogin.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Game.Online.ReLogin::new;
-            factoryHandle.Handle = this::ProcessReLoginRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47304551116333L, factoryHandle); // 11013, -218681811
-        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47303980222879L);
+        service.getFactorys().remove(47304551116333L);
         service.getFactorys().remove(47304205955457L);
         service.getFactorys().remove(47304349755660L);
-        service.getFactorys().remove(47304551116333L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -112,7 +112,7 @@ public abstract class AbstractOnline implements Zeze.IModule {
     }
 
     protected abstract long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login r) throws Exception;
+    protected abstract long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin r) throws Exception;
     protected abstract long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout r) throws Exception;
     protected abstract long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm r) throws Exception;
-    protected abstract long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin r) throws Exception;
 }

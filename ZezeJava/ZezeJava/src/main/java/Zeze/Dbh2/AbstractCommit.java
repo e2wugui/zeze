@@ -23,6 +23,14 @@ public abstract class AbstractCommit implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Query.class, Zeze.Builtin.Dbh2.Commit.Query.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Query::new;
+            factoryHandle.Handle = this::ProcessQueryRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47365186843239L, factoryHandle); // 11028, 287502951
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Commit.class, Zeze.Builtin.Dbh2.Commit.Commit.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Commit::new;
             factoryHandle.Handle = this::ProcessCommitRequest;
@@ -38,20 +46,12 @@ public abstract class AbstractCommit implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessDummyImportBean", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47368749528429L, factoryHandle); // 11028, -444779155
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Dbh2.Commit.Query.class, Zeze.Builtin.Dbh2.Commit.Query.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Dbh2.Commit.Query::new;
-            factoryHandle.Handle = this::ProcessQueryRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryRequest", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47365186843239L, factoryHandle); // 11028, 287502951
-        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47365186843239L);
         service.getFactorys().remove(47365570898711L);
         service.getFactorys().remove(47368749528429L);
-        service.getFactorys().remove(47365186843239L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -63,7 +63,7 @@ public abstract class AbstractCommit implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    protected abstract long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception;
     protected abstract long ProcessCommitRequest(Zeze.Builtin.Dbh2.Commit.Commit r) throws Exception;
     protected abstract long ProcessDummyImportBean(Zeze.Builtin.Dbh2.Commit.DummyImportBean p) throws Exception;
-    protected abstract long ProcessQueryRequest(Zeze.Builtin.Dbh2.Commit.Query r) throws Exception;
 }

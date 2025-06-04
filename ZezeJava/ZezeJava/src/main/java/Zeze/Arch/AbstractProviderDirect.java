@@ -21,14 +21,6 @@ public abstract class AbstractProviderDirect implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo.class, Zeze.Builtin.ProviderDirect.AnnounceProviderInfo.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.ProviderDirect.AnnounceProviderInfo::new;
-            factoryHandle.Handle = this::ProcessAnnounceProviderInfoRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47286041114986L, factoryHandle); // 11009, -1548813974
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ProviderDirect.ModuleRedirect.class, Zeze.Builtin.ProviderDirect.ModuleRedirect.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.ModuleRedirect::new;
             factoryHandle.Handle = this::ProcessModuleRedirectRequest;
@@ -68,15 +60,23 @@ public abstract class AbstractProviderDirect implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessTransmitAccount", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47284247217006L, factoryHandle); // 11009, 952255342
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo.class, Zeze.Builtin.ProviderDirect.AnnounceProviderInfo.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.ProviderDirect.AnnounceProviderInfo::new;
+            factoryHandle.Handle = this::ProcessAnnounceProviderInfoRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47286041114986L, factoryHandle); // 11009, -1548813974
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47286041114986L);
         service.getFactorys().remove(47284402955566L);
         service.getFactorys().remove(47286816262188L);
         service.getFactorys().remove(47283400371444L);
         service.getFactorys().remove(47284197108752L);
         service.getFactorys().remove(47284247217006L);
+        service.getFactorys().remove(47286041114986L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -88,10 +88,10 @@ public abstract class AbstractProviderDirect implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Exception;
     protected abstract long ProcessModuleRedirectRequest(Zeze.Builtin.ProviderDirect.ModuleRedirect r) throws Exception;
     protected abstract long ProcessModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest p) throws Exception;
     protected abstract long ProcessModuleRedirectAllResult(Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult p) throws Exception;
     protected abstract long ProcessTransmit(Zeze.Builtin.ProviderDirect.Transmit p) throws Exception;
     protected abstract long ProcessTransmitAccount(Zeze.Builtin.ProviderDirect.TransmitAccount p) throws Exception;
+    protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Exception;
 }

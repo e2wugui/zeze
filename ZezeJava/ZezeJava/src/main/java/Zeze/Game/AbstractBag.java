@@ -26,14 +26,6 @@ public abstract class AbstractBag implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Bag.Destroy.class, Zeze.Builtin.Game.Bag.Destroy.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Game.Bag.Destroy::new;
-            factoryHandle.Handle = this::ProcessDestroyRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDestroyRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47307869964755L, factoryHandle); // 11014, -1194800685
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Bag.Move.class, Zeze.Builtin.Game.Bag.Move.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Move::new;
             factoryHandle.Handle = this::ProcessMoveRequest;
@@ -41,11 +33,19 @@ public abstract class AbstractBag implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessMoveRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47308274693689L, factoryHandle); // 11014, -790071751
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Game.Bag.Destroy.class, Zeze.Builtin.Game.Bag.Destroy.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Game.Bag.Destroy::new;
+            factoryHandle.Handle = this::ProcessDestroyRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDestroyRequest", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47307869964755L, factoryHandle); // 11014, -1194800685
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47307869964755L);
         service.getFactorys().remove(47308274693689L);
+        service.getFactorys().remove(47307869964755L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -59,6 +59,6 @@ public abstract class AbstractBag implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Exception;
     protected abstract long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) throws Exception;
+    protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Exception;
 }

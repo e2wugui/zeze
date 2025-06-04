@@ -19,11 +19,11 @@ public abstract class AbstractLogAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Browse.class, Zeze.Builtin.LogService.Browse.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.LogService.Browse::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessBrowseResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessBrowseResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47397693120348L, factoryHandle); // 11035, -1565958308
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.NewSession.class, Zeze.Builtin.LogService.NewSession.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.LogService.NewSession::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNewSessionResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNewSessionResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47398709984234L, factoryHandle); // 11035, -549094422
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.CloseSession.class, Zeze.Builtin.LogService.CloseSession.TypeId_);
@@ -33,18 +33,11 @@ public abstract class AbstractLogAgent implements Zeze.IModule {
             service.AddFactoryHandle(47398269404133L, factoryHandle); // 11035, -989674523
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.NewSession.class, Zeze.Builtin.LogService.NewSession.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.LogService.NewSession::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessNewSessionResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNewSessionResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47398709984234L, factoryHandle); // 11035, -549094422
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Query.class, Zeze.Builtin.LogService.Query.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.LogService.Query::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47396357146077L, factoryHandle); // 11035, 1393034717
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Browse.class, Zeze.Builtin.LogService.Browse.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.LogService.Browse::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessBrowseResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessBrowseResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47397693120348L, factoryHandle); // 11035, -1565958308
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Search.class, Zeze.Builtin.LogService.Search.TypeId_);
@@ -53,14 +46,21 @@ public abstract class AbstractLogAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSearchResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47395054867890L, factoryHandle); // 11035, 90756530
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LogService.Query.class, Zeze.Builtin.LogService.Query.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.LogService.Query::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessQueryResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessQueryResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47396357146077L, factoryHandle); // 11035, 1393034717
+        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47397693120348L);
-        service.getFactorys().remove(47398269404133L);
         service.getFactorys().remove(47398709984234L);
-        service.getFactorys().remove(47396357146077L);
+        service.getFactorys().remove(47398269404133L);
+        service.getFactorys().remove(47397693120348L);
         service.getFactorys().remove(47395054867890L);
+        service.getFactorys().remove(47396357146077L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

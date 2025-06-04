@@ -38,18 +38,18 @@ public abstract class AbstractThreading implements Zeze.IModule {
             service.AddFactoryHandle(47374259242978L, factoryHandle); // 11030, 769968098
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Threading.ReadWriteLockOperate::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadWriteLockOperateResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadWriteLockOperateResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47376860983435L, factoryHandle); // 11030, -923258741
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreCreate.class, Zeze.Builtin.Threading.SemaphoreCreate.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreCreate::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreCreateResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreCreateResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47377757945276L, factoryHandle); // 11030, -26296900
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreTryAcquire.class, Zeze.Builtin.Threading.SemaphoreTryAcquire.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreTryAcquire::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreTryAcquireResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreTryAcquireResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47376407442804L, factoryHandle); // 11030, -1376799372
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreRelease.class, Zeze.Builtin.Threading.SemaphoreRelease.TypeId_);
@@ -59,21 +59,21 @@ public abstract class AbstractThreading implements Zeze.IModule {
             service.AddFactoryHandle(47374374546810L, factoryHandle); // 11030, 885271930
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.SemaphoreTryAcquire.class, Zeze.Builtin.Threading.SemaphoreTryAcquire.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.Threading.SemaphoreTryAcquire::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSemaphoreTryAcquireResponse", Zeze.Transaction.TransactionLevel.None);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSemaphoreTryAcquireResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47376407442804L, factoryHandle); // 11030, -1376799372
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Threading.ReadWriteLockOperate.class, Zeze.Builtin.Threading.ReadWriteLockOperate.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.Threading.ReadWriteLockOperate::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReadWriteLockOperateResponse", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReadWriteLockOperateResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47376860983435L, factoryHandle); // 11030, -923258741
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47375642163702L);
         service.getFactorys().remove(47374259242978L);
-        service.getFactorys().remove(47376860983435L);
         service.getFactorys().remove(47377757945276L);
-        service.getFactorys().remove(47374374546810L);
         service.getFactorys().remove(47376407442804L);
+        service.getFactorys().remove(47374374546810L);
+        service.getFactorys().remove(47376860983435L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

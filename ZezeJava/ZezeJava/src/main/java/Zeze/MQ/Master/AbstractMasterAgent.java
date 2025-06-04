@@ -27,6 +27,13 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.OpenMQ.class, Zeze.Builtin.MQ.Master.OpenMQ.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.OpenMQ::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenMQResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenMQResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47419582250441L, factoryHandle); // 11040, -1151664695
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.CreateMQ.class, Zeze.Builtin.MQ.Master.CreateMQ.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.MQ.Master.CreateMQ::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCreateMQResponse", Zeze.Transaction.TransactionLevel.Serializable);
@@ -42,11 +49,11 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             service.AddFactoryHandle(47418254762936L, factoryHandle); // 11040, 1815815096
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.OpenMQ.class, Zeze.Builtin.MQ.Master.OpenMQ.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.MQ.Master.OpenMQ::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessOpenMQResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessOpenMQResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47419582250441L, factoryHandle); // 11040, -1151664695
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.Subscribe.class, Zeze.Builtin.MQ.Master.Subscribe.TypeId_);
+            factoryHandle.Factory = Zeze.Builtin.MQ.Master.Subscribe::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeResponse", Zeze.Transaction.DispatchMode.Normal);
+            service.AddFactoryHandle(47418979135861L, factoryHandle); // 11040, -1754779275
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.Register.class, Zeze.Builtin.MQ.Master.Register.TypeId_);
@@ -62,22 +69,15 @@ public abstract class AbstractMasterAgent implements Zeze.IModule {
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLoadResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47416592360823L, factoryHandle); // 11040, 153412983
         }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.MQ.Master.Subscribe.class, Zeze.Builtin.MQ.Master.Subscribe.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.MQ.Master.Subscribe::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSubscribeResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47418979135861L, factoryHandle); // 11040, -1754779275
-        }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47419582250441L);
         service.getFactorys().remove(47420243782922L);
         service.getFactorys().remove(47418254762936L);
-        service.getFactorys().remove(47419582250441L);
+        service.getFactorys().remove(47418979135861L);
         service.getFactorys().remove(47417719098028L);
         service.getFactorys().remove(47416592360823L);
-        service.getFactorys().remove(47418979135861L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
