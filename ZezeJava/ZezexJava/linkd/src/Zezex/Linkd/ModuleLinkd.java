@@ -47,7 +47,7 @@ public final class ModuleLinkd extends AbstractModule {
 
     @Override
     protected long ProcessCs(Zezex.Linkd.Cs p) {
-		logger.info("Cs " + p.Argument);
+		logger.info("Cs {}", p.Argument);
 		var res = new Sc();
 		res.Argument.setAccount("Response");
 		res.Send(p.getSender());
@@ -71,7 +71,7 @@ public final class ModuleLinkd extends AbstractModule {
 		}
 		var res = new Sc();
 		res.Argument.setAccount("Response" + count);
-		logger.info("sendSc: " + res.Argument.getAccount());
+		logger.info("sendSc: {}", res.Argument.getAccount());
 		res.Send(App.LinkdService.GetSocket(clientId));
 	}
 

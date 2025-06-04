@@ -17,14 +17,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class WebsocketClient extends AsyncSocket {
+	private static final @NotNull Logger logger = LogManager.getLogger(WebsocketClient.class);
 	private static final @NotNull VarHandle closedHandle;
 
-	private static final @NotNull Logger logger = LogManager.getLogger();
 	private WebSocket webSocket;
+	private final @Nullable TimeThrottle timeThrottle;
+	private final @NotNull SocketAddress remote;
+	private final @Nullable Connector connector;
+	@SuppressWarnings("unused")
 	private byte closed;
-	private final TimeThrottle timeThrottle;
-	private SocketAddress remote;
-	private final Connector connector;
 
 	static {
 		try {
@@ -35,51 +36,52 @@ public class WebsocketClient extends AsyncSocket {
 		}
 	}
 
-	public WebsocketClient(Service service, String wsUrl, Object userState, Connector connector) {
+	public WebsocketClient(@NotNull Service service, @NotNull String wsUrl, @Nullable Object userState,
+						   @Nullable Connector connector) {
 		super(service);
 		super.userState = userState;
 		this.connector = connector;
 		var uri = URI.create(wsUrl);
 		remote = new InetSocketAddress(uri.getHost(), uri.getPort());
-		this.timeThrottle = TimeThrottle.create(getService().getSocketOptions());
-		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
-				uri, new WebSocket.Listener() {
-					@Override
-					public void onOpen(WebSocket webSocket) {
-						webSocket.request(1);
-						WebsocketClient.this.webSocket = webSocket;
-						service.addSocket(WebsocketClient.this);
-						try {
-							service.OnHandshakeDone(WebsocketClient.this);
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
-					}
+		timeThrottle = TimeThrottle.create(getService().getSocketOptions());
+		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(uri, new WebSocket.Listener() {
+			final @NotNull Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
 
-					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
-					@Override
-					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
-						webSocket.request(1);
-						var n = data.remaining();
-						input.EnsureWrite(n);
-						data.get(input.Bytes, input.WriteIndex, n);
-						input.WriteIndex += n;
-						try {
-							service.OnSocketProcessInputBuffer(WebsocketClient.this, input);
-							input.Compact();
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
-						return null;
-					}
+			@Override
+			public void onOpen(WebSocket webSocket) {
+				webSocket.request(1);
+				WebsocketClient.this.webSocket = webSocket;
+				service.addSocket(WebsocketClient.this);
+				try {
+					service.OnHandshakeDone(WebsocketClient.this);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
 
-					@Override
-					public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-						var ex = new Exception("peer closed. status=" + statusCode + " reason=" + reason);
-						WebsocketClient.this.close(ex);
-						return null;
-					}
-				});
+			@Override
+			public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
+				webSocket.request(1);
+				var n = data.remaining();
+				input.EnsureWrite(n);
+				data.get(input.Bytes, input.WriteIndex, n);
+				input.WriteIndex += n;
+				try {
+					service.OnSocketProcessInputBuffer(WebsocketClient.this, input);
+					input.Compact();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+				return null;
+			}
+
+			@Override
+			public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+				var ex = new Exception("peer closed. status=" + statusCode + " reason=" + reason);
+				WebsocketClient.this.close(ex);
+				return null;
+			}
+		});
 	}
 
 	@Override
@@ -88,7 +90,7 @@ public class WebsocketClient extends AsyncSocket {
 	}
 
 	@Override
-	public Connector getConnector() {
+	public @Nullable Connector getConnector() {
 		return connector;
 	}
 

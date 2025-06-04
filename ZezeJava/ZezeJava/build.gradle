@@ -26,7 +26,7 @@ dependencies {
     compileOnly 'org.tikv:tikv-client-java:3.3.5'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.24'
+    compileOnly 'com.alibaba:druid:1.2.25'
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
 
     // for redis(kvrocks,pika,tendis)
@@ -44,7 +44,7 @@ dependencies {
 
     // for task component
     compileOnly 'org.jgrapht:jgrapht-core:1.5.2'
-    compileOnly 'com.opencsv:opencsv:5.11'
+    compileOnly 'com.opencsv:opencsv:5.11.1'
 
     // for new Compress/Decompress Codec in Zeze.Net
     compileOnly 'com.github.luben:zstd-jni:1.5.7-3'
@@ -59,9 +59,9 @@ dependencies {
     compileOnly 'org.thymeleaf:thymeleaf:3.1.3.RELEASE'
 
     // for metric
-    compileOnly 'io.prometheus:prometheus-metrics-core:1.3.7'
-    compileOnly 'io.prometheus:prometheus-metrics-instrumentation-jvm:1.3.7'
-    compileOnly 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.7'
+    compileOnly 'io.prometheus:prometheus-metrics-core:1.3.8'
+    compileOnly 'io.prometheus:prometheus-metrics-instrumentation-jvm:1.3.8'
+    compileOnly 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.8'
 }
 
 tasks.withType(JavaCompile) {
