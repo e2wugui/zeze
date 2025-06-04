@@ -6,7 +6,6 @@ using System.Threading;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Net;
-using NLog;
 
 namespace Zeze.Net
 {
@@ -28,7 +27,7 @@ namespace Zeze.Net
             // LocalAddress = null; // 得不到。
 
             // 接收循环放到后台。
-            Task.Run(ConnectReceive);
+            _ = ConnectReceive();
         }
 
         private async Task ConnectReceive()

@@ -6,7 +6,6 @@ using System.Threading;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using System.Net;
-using NLog;
 
 namespace Zeze.Net
 {
