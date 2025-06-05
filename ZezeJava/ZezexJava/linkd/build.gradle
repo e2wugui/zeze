@@ -2,6 +2,12 @@ apply from: '../../ZezeJava/build.gradle'
 
 dependencies {
     implementation project(":ZezeJava")
+
+    // for netty
+    implementation 'io.netty:netty-codec-http:4.1.121.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.121.Final:linux-x86_64'
+    implementation 'org.slf4j:slf4j-api:2.0.17'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.3'
 }
 
 sourceSets {
