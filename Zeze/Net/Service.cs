@@ -666,5 +666,14 @@ namespace Zeze.Net
         {
             Services.Handshake.KeepAlive.Instance.Send(socket); // skip result.
         }
+
+        public void ConnectWebsocket(string url, bool autoReconnect)
+        {
+            var find = Config.FindConnector(url);
+            if (null == find)
+                Config.AddConnector(find = new Connector(autoReconnect, url));
+            find.Start();
+        }
+
     }
 }
