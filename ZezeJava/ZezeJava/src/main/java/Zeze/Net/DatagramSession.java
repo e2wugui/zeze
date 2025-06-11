@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
@@ -9,11 +10,14 @@ import Zeze.Util.ReplayAttack;
 import Zeze.Util.ReplayAttackGrowRange;
 import Zeze.Util.ReplayAttackMax;
 import Zeze.Util.ReplayAttackPolicy;
+import Zeze.Util.TimeThrottle;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class DatagramSession {
+public class DatagramSession extends AsyncSocket {
 	private final DatagramSocket socket;
 	private InetSocketAddress remote;
-	private final long sessionId;
+	private final long tokenId;
 	private final AtomicLong serialIdGen = new AtomicLong();
 	private final Encrypt2 encrypt;
 	private final Decrypt2 decrypt;
@@ -23,23 +27,25 @@ public class DatagramSession {
 		return socket;
 	}
 
-	public InetSocketAddress getRemote() {
+	@Override
+	public SocketAddress getRemoteAddress() {
 		return remote;
 	}
 
-	public InetSocketAddress getLocal() {
+	public SocketAddress getLocalAddress() {
 		return socket.getLocal();
 	}
 
-	public long getSessionId() {
-		return sessionId;
+	public long getTokenId() {
+		return tokenId;
 	}
 
-	public DatagramSession(DatagramSocket socket, InetSocketAddress remote, long sessionId, byte[] securityKey,
+	public DatagramSession(DatagramSocket socket, InetSocketAddress remote, long tokenId, byte[] securityKey,
 						   ReplayAttackPolicy policy) {
+		super(socket.getService());
 		this.socket = socket;
 		this.remote = remote;
-		this.sessionId = sessionId;
+		this.tokenId = tokenId;
 		if (securityKey != null) {
 			var key = Digest.md5(securityKey);
 			encrypt = new Encrypt2(null, key, null);
@@ -62,16 +68,17 @@ public class DatagramSession {
 
 	// [8]sessionId | [8]serialId | packet
 	// [8]sessionId | [8]serialId | encrypt{ packet | [8]sessionId | [8]serialId }
-	public void send(byte[] packet, int offset, int size) throws IOException {
+	@Override
+	public boolean Send(byte[] packet, int offset, int size) {
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
 		if (encrypt == null) {
 			bb = ByteBuffer.Allocate(8 + 8 + size);
-			bb.WriteLong8s(sessionId, serialId);
+			bb.WriteLong8s(tokenId, serialId);
 			bb.Append(packet, offset, size);
 		} else {
 			var bc = new BufferCodec(8 + 8 + 8 + size);
-			bc.WriteLong8s(sessionId, serialId);
+			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
 			encrypt.update(packet, offset, size);
@@ -80,22 +87,29 @@ public class DatagramSession {
 			bb = bc;
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
-		socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+		try {
+			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return true;
 	}
+
 
 	// [8]sessionId | [8]serialId | [4]moduleId | [4]protocolId | [4]size | protocolData
 	// [8]sessionId | [8]serialId | encrypt{ [4]moduleId | [4]protocolId | [4]size | protocolData | [8]sessionId | [8]serialId }
-	public void send(Protocol<?> p) throws IOException {
+	@Override
+	public boolean Send(@NotNull Protocol<?> p) {
 		int preAllocSize = p.preAllocSize();
 		var serialId = serialIdGen.incrementAndGet();
 		ByteBuffer bb;
 		if (encrypt == null) {
 			bb = ByteBuffer.Allocate(Math.min(8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
-			bb.WriteLong8s(sessionId, serialId);
+			bb.WriteLong8s(tokenId, serialId);
 			p.encodeWithHead(bb);
 		} else {
 			var bc = new BufferCodec(Math.min(8 + 8 + 8 + Protocol.HEADER_SIZE + preAllocSize, 65536));
-			bc.WriteLong8s(sessionId, serialId);
+			bc.WriteLong8s(tokenId, serialId);
 			// 下面的数据需要加密
 			encrypt.reset(bc, bc.Bytes);
 			var tmp = ByteBuffer.Allocate(Math.min(Protocol.HEADER_SIZE + preAllocSize, 65536));
@@ -106,7 +120,12 @@ public class DatagramSession {
 			bb = bc;
 		}
 		// serialId 和 sendTo 之间有窗口，可能大的 serialId 后发送。这是udp，不解决这个问题了。
-		socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+		try {
+			socket.sendTo(remote, bb.Bytes, 0, bb.WriteIndex);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return true;
 	}
 
 	/**
@@ -137,15 +156,32 @@ public class DatagramSession {
 			replayAttack.unlock();
 		}
 		this.remote = remote;
-		socket.getService().onProcessDatagram(this, bb, serialId);
+		socket.getService().OnSocketProcessInputBuffer(this, bb);
 	}
 
-	public void close() {
+	@Override
+	public Type getType() {
+		return Type.eClient;
+	}
+
+	@Override
+	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
 		socket.removeSession(this);
+		return true;
+	}
+
+	@Override
+	public @Nullable TimeThrottle getTimeThrottle() {
+		return null;
+	}
+
+	@Override
+	public boolean isClosed() {
+		return socket.containsSession(this);
 	}
 
 	@Override
 	public String toString() {
-		return socket.toString() + '-' + (remote != null ? remote : "") + '[' + sessionId + ']';
+		return socket.toString() + '-' + (remote != null ? remote : "") + '[' + tokenId + ']';
 	}
 }

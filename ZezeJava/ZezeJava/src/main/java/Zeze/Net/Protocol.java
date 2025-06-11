@@ -28,7 +28,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	public static final int eNormal = 2;
 	public static final int eSheddable = 3;
 
-	private transient Object sender; // AsyncSocket or DatagramSession
+	private transient AsyncSocket sender; // AsyncSocket
 	@SuppressWarnings("unused")
 	private transient @Nullable Object userState;
 	public TArgument Argument;
@@ -61,7 +61,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public AsyncSocket getSender() {
-		return (AsyncSocket)sender;
+		return sender;
 	}
 
 	public void setSender(AsyncSocket sender) {
@@ -69,15 +69,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public @Nullable Service getService() {
-		return sender instanceof AsyncSocket ? ((AsyncSocket)sender).getService() : null;
-	}
-
-	public DatagramSession getDatagramSession() {
-		return (DatagramSession)sender;
-	}
-
-	public void setDatagramSession(DatagramSession datagramSession) {
-		sender = datagramSession;
+		return sender.getService();
 	}
 
 	public @Nullable Object getUserState() {
@@ -264,23 +256,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 
 		logger.warn("handle({}): Protocol Handle Not Found: {}", service.getName(), this);
 		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
-			((AsyncSocket)sender).close(noHandlerException);
-			return 0;
-		}
-
-		return Procedure.NotImplement;
-	}
-
-	@SuppressWarnings("unchecked")
-	public long handle(@NotNull DatagramService service,
-					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		var handle = factoryHandle.Handle;
-		if (handle != null)
-			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
-
-		logger.warn("handleDatagram({}): Protocol Handle Not Found: {}", service.getName(), this);
-		if (service.getSocketOptions().isCloseWhenMissHandle() && sender != null) {
-			((DatagramSession)sender).close();
+			sender.close(noHandlerException);
 			return 0;
 		}
 
@@ -319,11 +295,6 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public static @Nullable Protocol<?> decode(@NotNull Service service,
-											   @NotNull ByteBuffer singleEncodedProtocol) {
-		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
-	}
-
-	public static @Nullable Protocol<?> decode(@NotNull DatagramService service,
 											   @NotNull ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}

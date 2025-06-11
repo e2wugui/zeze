@@ -32,6 +32,7 @@ import Zeze.Util.LongHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -914,5 +915,9 @@ public class Service extends ReentrantLock {
 	@SuppressWarnings("MethodMayBeStatic")
 	protected void onSendKeepAlive(@NotNull AsyncSocket socket) {
 		KeepAlive.instance.Send(socket); // skip result
+	}
+
+	public DatagramSocket bindUdp(InetSocketAddress local) throws IOException {
+		return new DatagramSocket(this, local);
 	}
 }

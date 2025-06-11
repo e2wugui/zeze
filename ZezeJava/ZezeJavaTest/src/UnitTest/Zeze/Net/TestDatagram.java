@@ -1,9 +1,7 @@
 package UnitTest.Zeze.Net;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Net.DatagramService;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Transaction.Bean;
@@ -19,39 +17,40 @@ import org.junit.Test;
 
 public class TestDatagram {
 	@Test
-	public void testSendDispatch() throws IOException, InterruptedException {
+	public void testSendDispatch() throws Exception {
 		Task.tryInitThreadPool();
 
 		var service = new TestDatagramService();
-		service.addFactoryHandle(ProtoValue.TypeId_, new Service.ProtocolFactoryHandle<>(
+		service.AddFactoryHandle(ProtoValue.TypeId_, new Service.ProtocolFactoryHandle<>(
 				ProtoValue::new, this::processServerPValue, TransactionLevel.None, DispatchMode.Normal
 		));
 
 		byte[] securityKey = new byte[]{1, 2, 3, 4};
 		// server
-		var server = service.bind(new InetSocketAddress(0));
-		int port = server.getLocal().getPort();
-		server.createSession(null, 1, securityKey, ReplayAttackPolicy.AllowDisorder);
+		var server = service.bindUdp(new InetSocketAddress(0));
+		var client = service.bindUdp(new InetSocketAddress(0));
+		var sessionServer = server.createSessionServer(
+				new InetSocketAddress("127.0.0.1", client.getLocal().getPort()),
+				securityKey, ReplayAttackPolicy.AllowDisorder);
 		// client
-		var session = service.createSession(
-				new InetSocketAddress(0),
-				new InetSocketAddress("127.0.0.1", port),
-				1, securityKey, ReplayAttackPolicy.AllowDisorder);
+		var session = client.createSession(
+				new InetSocketAddress("127.0.0.1", server.getLocal().getPort()),
+				sessionServer.getTokenId(), securityKey, ReplayAttackPolicy.AllowDisorder);
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
-		session.send(p);
+		session.Send(p);
 		while (helloNumber.get() < 3) {
 			//noinspection BusyWait
 			Thread.sleep(1);
 		}
-		service.stop();
+		service.Stop();
 	}
 
 	private final AtomicLong helloNumber = new AtomicLong();
 
 	private long processServerPValue(ProtoValue p) throws Exception {
 		if (helloNumber.incrementAndGet() < 3)
-			p.getDatagramSession().send(p);
+			p.getSender().Send(p);
 		System.out.println(p.Argument.getString3());
 		return 0;
 	}
@@ -146,7 +145,7 @@ public class TestDatagram {
 	}
 }
 
-class TestDatagramService extends DatagramService {
+class TestDatagramService extends Service {
 	public TestDatagramService() {
 		super("test.datagram.service");
 	}

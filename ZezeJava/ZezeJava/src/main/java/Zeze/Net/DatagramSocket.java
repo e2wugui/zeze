@@ -6,27 +6,24 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Random;
 import Zeze.Util.ReplayAttackPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class DatagramSocket extends ReentrantLock implements SelectorHandle, Closeable {
 	private static final Logger logger = LogManager.getLogger(DatagramSocket.class);
-	private static final AtomicLong sessionIdGen = new AtomicLong(); // 只用于分配DatagramSocket的sessionId
-
 	private final DatagramChannel datagramChannel;
 	private final Selector selector;
 	private SelectionKey selectionKey;
-	private final DatagramService service;
-	private final long sessionId = sessionIdGen.incrementAndGet(); // 注意这是DatagramSocket的sessionId, 跟DatagramSession的sessionId的意义不同
-	private final LongConcurrentHashMap<DatagramSession> sessions = new LongConcurrentHashMap<>(); // key: DatagramSession的sessionId
+	private final Service service;
+	private final LongConcurrentHashMap<DatagramSession> tokens = new LongConcurrentHashMap<>(); // key: DatagramSession的sessionId
 
-	DatagramSocket(DatagramService service, InetSocketAddress local) throws IOException {
+	DatagramSocket(Service service, InetSocketAddress local) throws IOException {
 		this.service = service;
 		datagramChannel = DatagramChannel.open();
 		try {
@@ -41,7 +38,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			datagramChannel.bind(local);
 			selector = service.getSelectors().choice();
 			selectionKey = selector.register(datagramChannel, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和addSocket更先执行
-			service.addSocket(this);
+
 			selectionKey.interestOps(SelectionKey.OP_READ);
 			selector.wakeup();
 		} catch (Throwable e) { // rethrow
@@ -57,12 +54,8 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		}
 	}
 
-	public DatagramService getService() {
+	public Service getService() {
 		return service;
-	}
-
-	public long getSessionId() {
-		return sessionId;
 	}
 
 	public InetSocketAddress getLocal() { // 已经close的情况下返回null
@@ -91,16 +84,30 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
-	public DatagramSession createSession(InetSocketAddress remote, long sessionId, byte[] securityKey,
+	public DatagramSession createSession(InetSocketAddress remote, long tokenId, byte[] securityKey,
 										 ReplayAttackPolicy policy) {
-		var session = new DatagramSession(this, remote, sessionId, securityKey, policy);
-		if (null == sessions.putIfAbsent(sessionId, session))
+		var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
+		if (null == tokens.putIfAbsent(tokenId, session))
 			return session;
 		return null;
 	}
 
+	public DatagramSession createSessionServer(InetSocketAddress remote, byte[] securityKey,
+										 ReplayAttackPolicy policy) {
+		while (true) {
+			var tokenId = Random.getInstance().nextLong();
+			var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
+			if (null == tokens.putIfAbsent(tokenId, session))
+				return session;
+		}
+	}
+
 	public void removeSession(DatagramSession session) {
-		sessions.remove(session.getSessionId());
+		tokens.remove(session.getTokenId());
+	}
+
+	public boolean containsSession(DatagramSession session) {
+		return tokens.containsKey(session.getTokenId());
 	}
 
 	@Override
@@ -112,7 +119,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			if (source != null) {
 				var bb = ByteBuffer.Wrap(buffer.array(), buffer.position());
 				var ssid = ByteBuffer.ToLong(bb.Bytes, 0);
-				var ss = sessions.get(ssid);
+				var ss = tokens.get(ssid);
 				if (null != ss)
 					ss.onProcessDatagram((InetSocketAddress)source, bb);
 			}
@@ -122,7 +129,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 
 	@Override
 	public void doException(SelectionKey key, Throwable e) {
-		service.onSocketException(this, e);
+		logger.error("", e);
 	}
 
 	@Override
@@ -138,11 +145,6 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			unlock();
 		}
 		try {
-			service.onSocketClose(this);
-		} catch (Exception e) {
-			logger.error("onSocketClose({}) exception:", this, e);
-		}
-		try {
 			key.channel().close();
 		} catch (IOException e) {
 			logger.error("close channel({}) exception:", this, e);
@@ -152,6 +154,6 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 	@Override
 	public String toString() {
 		var localAddress = getLocal();
-		return "[" + sessionId + ']' + (localAddress != null ? localAddress : ""); // 如果有localAddress则表示还没close
+		return (localAddress != null ? localAddress.toString() : ""); // 如果有localAddress则表示还没close
 	}
 }

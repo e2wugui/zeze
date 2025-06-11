@@ -237,13 +237,6 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	}
 
 	@Override
-	public long handle(@NotNull DatagramService service,
-					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
-		// udp 不支持rpc。
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public void dispatch(@NotNull Service service,
 						 @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest) {
