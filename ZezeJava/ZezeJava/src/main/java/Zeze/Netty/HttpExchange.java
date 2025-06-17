@@ -51,6 +51,7 @@ import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.handler.codec.http.multipart.DefaultHttpDataFactory;
+import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpDataFactory;
 import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
 import io.netty.handler.codec.http.multipart.MemoryAttribute;
@@ -280,6 +281,12 @@ public class HttpExchange {
 													@NotNull String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryFileUpload ? ((MemoryFileUpload)httpData).get() : ByteBuffer.Empty;
+	}
+
+	public static FileUpload getMultipartFileUpload(@NotNull HttpPostMultipartRequestDecoder multipart,
+													@NotNull String key) {
+		var httpData = multipart.getBodyHttpData(key);
+		return httpData instanceof MemoryFileUpload ? (MemoryFileUpload)httpData : null;
 	}
 
 	public static @NotNull String urlDecode(@NotNull String s) {
