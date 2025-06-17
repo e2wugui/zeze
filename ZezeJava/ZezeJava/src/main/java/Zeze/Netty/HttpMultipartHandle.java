@@ -68,7 +68,6 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 
 	@Override
 	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) {
-		assert x.request != null;
 		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
 		if (oldDecoder != null) // 以防万一
 			oldDecoder.destroy();
@@ -81,17 +80,15 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 			throw new IllegalStateException("no decoder");
 		decoder.offer(content);
 		for (InterfaceHttpData data; (data = decoder.next()) != null; ) {
-			try {
-				var httpDataType = data.getHttpDataType();
-				if (httpDataType == InterfaceHttpData.HttpDataType.Attribute)
-					onAttribute(x, (Attribute)data);
-				else if (httpDataType == InterfaceHttpData.HttpDataType.FileUpload) {
-					var fileUpload = (FileUpload)data;
-					if (fileUpload.isCompleted())
-						onFileCompleted(x, fileUpload);
-				}
-			} finally {
-				data.release(); // 释放资源
+			switch (data.getHttpDataType()) {
+			case Attribute:
+				onAttribute(x, (Attribute)data);
+				break;
+			case FileUpload:
+				var fileUpload = (FileUpload)data;
+				if (fileUpload.isCompleted())
+					onFileCompleted(x, fileUpload);
+				break;
 			}
 		}
 	}
