@@ -1,6 +1,5 @@
 package Zeze.Netty;
 
-import java.util.concurrent.atomic.AtomicReference;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -18,7 +17,6 @@ import org.jetbrains.annotations.Nullable;
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
 	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartDecoder");
 	HttpDataFactory defaultHttpDataFactory = new DefaultHttpDataFactory();
-	AtomicReference<HttpDataFactory> curHttpDataFactory = new AtomicReference<>(defaultHttpDataFactory); // 可自定义factory
 
 	/**
 	 * 请求过程中上传完一个属性字段时回调
@@ -50,6 +48,15 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 		x.close(x.sendPlainText(HttpResponseStatus.OK, (String)null));
 	}
 
+	default @NotNull HttpDataFactory getHttpDataFactory(@NotNull HttpExchange x) {
+		return defaultHttpDataFactory;
+	}
+
+	default @NotNull InterfaceHttpPostRequestDecoder newDecoder(@NotNull HttpExchange x) {
+		assert x.request != null;
+		return new HttpPostMultipartRequestDecoder(getHttpDataFactory(x), x.request);
+	}
+
 	default @Nullable InterfaceHttpPostRequestDecoder getDecoder(@NotNull HttpExchange x) {
 		return x.channel().attr(decoderKey).get();
 	}
@@ -62,7 +69,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	@Override
 	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) {
 		assert x.request != null;
-		var oldDecoder = getAndSetDecoder(x, new HttpPostMultipartRequestDecoder(curHttpDataFactory.get(), x.request));
+		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
 		if (oldDecoder != null) // 以防万一
 			oldDecoder.destroy();
 	}
