@@ -14,16 +14,18 @@ import Zeze.Util.Random;
 import Zeze.Util.ReplayAttackPolicy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class DatagramSocket extends ReentrantLock implements SelectorHandle, Closeable {
-	private static final Logger logger = LogManager.getLogger(DatagramSocket.class);
-	private final DatagramChannel datagramChannel;
-	private final Selector selector;
-	private SelectionKey selectionKey;
-	private final Service service;
-	private final LongConcurrentHashMap<DatagramSession> tokens = new LongConcurrentHashMap<>(); // key: DatagramSession的sessionId
+	private static final @NotNull Logger logger = LogManager.getLogger(DatagramSocket.class);
+	private final @NotNull Service service;
+	private final @NotNull DatagramChannel datagramChannel;
+	private final @NotNull Selector selector;
+	private @Nullable SelectionKey selectionKey;
+	private final LongConcurrentHashMap<DatagramSession> tokens = new LongConcurrentHashMap<>(); // key: DatagramSession的tokenId
 
-	DatagramSocket(Service service, InetSocketAddress local) throws IOException {
+	DatagramSocket(@NotNull Service service, @NotNull InetSocketAddress local) throws IOException {
 		this.service = service;
 		datagramChannel = DatagramChannel.open();
 		try {
@@ -38,7 +40,6 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 			datagramChannel.bind(local);
 			selector = service.getSelectors().choice();
 			selectionKey = selector.register(datagramChannel, 0, this); // 先获取key,因为有小概率出现事件处理比赋值selectionKey和addSocket更先执行
-
 			selectionKey.interestOps(SelectionKey.OP_READ);
 			selector.wakeup();
 		} catch (Throwable e) { // rethrow
@@ -54,27 +55,28 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		}
 	}
 
-	public Service getService() {
+	public @NotNull Service getService() {
 		return service;
 	}
 
 	public InetSocketAddress getLocal() { // 已经close的情况下返回null
 		try {
-			return (InetSocketAddress)datagramChannel.getLocalAddress();
+			if (datagramChannel.isOpen())
+				return (InetSocketAddress)datagramChannel.getLocalAddress();
 		} catch (IOException ignored) {
-			return null;
 		}
+		return null;
 	}
 
-	public void sendTo(SocketAddress peer, java.nio.ByteBuffer bb) throws IOException {
+	public void sendTo(@NotNull SocketAddress peer, @NotNull java.nio.ByteBuffer bb) throws IOException {
 		datagramChannel.send(bb, peer);
 	}
 
-	public void sendTo(SocketAddress peer, byte[] packet, int offset, int size) throws IOException {
+	public void sendTo(@NotNull SocketAddress peer, byte @NotNull [] packet, int offset, int size) throws IOException {
 		datagramChannel.send(java.nio.ByteBuffer.wrap(packet, offset, size), peer);
 	}
 
-	public void sendTo(SocketAddress peer, Serializable p) throws IOException {
+	public void sendTo(@NotNull SocketAddress peer, @NotNull Serializable p) throws IOException {
 		int preAllocSize = p.preAllocSize();
 		var bb = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
 		p.encode(bb);
@@ -84,16 +86,17 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		datagramChannel.send(java.nio.ByteBuffer.wrap(bb.Bytes, 0, size), peer);
 	}
 
-	public DatagramSession createSession(InetSocketAddress remote, long tokenId, byte[] securityKey,
-										 ReplayAttackPolicy policy) {
+	public @Nullable DatagramSession createSession(@NotNull InetSocketAddress remote, long tokenId,
+												   byte @Nullable [] securityKey, @NotNull ReplayAttackPolicy policy) {
 		var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
 		if (null == tokens.putIfAbsent(tokenId, session))
 			return session;
 		return null;
 	}
 
-	public DatagramSession createSessionServer(InetSocketAddress remote, byte[] securityKey,
-										 ReplayAttackPolicy policy) {
+	public @NotNull DatagramSession createSessionServer(@NotNull InetSocketAddress remote,
+														byte @Nullable [] securityKey,
+														@NotNull ReplayAttackPolicy policy) {
 		while (true) {
 			var tokenId = Random.getInstance().nextLong();
 			var session = new DatagramSession(this, remote, tokenId, securityKey, policy);
@@ -102,16 +105,16 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 		}
 	}
 
-	public void removeSession(DatagramSession session) {
+	public void removeSession(@NotNull DatagramSession session) {
 		tokens.remove(session.getTokenId());
 	}
 
-	public boolean containsSession(DatagramSession session) {
+	public boolean containsSession(@NotNull DatagramSession session) {
 		return tokens.containsKey(session.getTokenId());
 	}
 
 	@Override
-	public void doHandle(SelectionKey key) throws Exception {
+	public void doHandle(@NotNull SelectionKey key) throws Exception {
 		if (key.isReadable()) {
 			var buffer = selector.getReadBuffer(); // 线程共享的buffer,只能本方法内临时使用
 			buffer.clear();
@@ -128,7 +131,7 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 	}
 
 	@Override
-	public void doException(SelectionKey key, Throwable e) {
+	public void doException(@NotNull SelectionKey key, @NotNull Throwable e) {
 		logger.error("", e);
 	}
 
@@ -152,8 +155,8 @@ public class DatagramSocket extends ReentrantLock implements SelectorHandle, Clo
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var localAddress = getLocal();
-		return (localAddress != null ? localAddress.toString() : ""); // 如果有localAddress则表示还没close
+		return (localAddress != null ? localAddress.toString() : "closed"); // 如果有localAddress则表示还没close
 	}
 }

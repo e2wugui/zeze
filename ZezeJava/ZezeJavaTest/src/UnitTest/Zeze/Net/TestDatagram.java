@@ -36,6 +36,7 @@ public class TestDatagram {
 		var session = client.createSession(
 				new InetSocketAddress("127.0.0.1", server.getLocal().getPort()),
 				sessionServer.getTokenId(), securityKey, ReplayAttackPolicy.AllowDisorder);
+		assert session != null;
 		var p = new ProtoValue();
 		p.Argument.setString3("hello");
 		session.Send(p);
@@ -48,7 +49,7 @@ public class TestDatagram {
 
 	private final AtomicLong helloNumber = new AtomicLong();
 
-	private long processServerPValue(ProtoValue p) throws Exception {
+	private long processServerPValue(ProtoValue p) {
 		if (helloNumber.incrementAndGet() < 3)
 			p.getSender().Send(p);
 		System.out.println(p.Argument.getString3());

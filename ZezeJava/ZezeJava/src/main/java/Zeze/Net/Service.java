@@ -32,7 +32,6 @@ import Zeze.Util.LongHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
-import Zeze.Util.ReplayAttackPolicy;
 import Zeze.Util.Task;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -917,7 +916,7 @@ public class Service extends ReentrantLock {
 		KeepAlive.instance.Send(socket); // skip result
 	}
 
-	public DatagramSocket bindUdp(InetSocketAddress local) throws IOException {
+	public @NotNull DatagramSocket bindUdp(@NotNull InetSocketAddress local) throws IOException {
 		return new DatagramSocket(this, local);
 	}
 }
