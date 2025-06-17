@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RedirectAll {
-	int timeout() default 10000;
+	int timeout() default 30_000;
 
 	int version() default 0;
 }
