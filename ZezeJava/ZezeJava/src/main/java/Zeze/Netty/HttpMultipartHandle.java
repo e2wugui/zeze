@@ -1,5 +1,9 @@
 package Zeze.Netty;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -23,6 +27,27 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	 */
 	default void onAttribute(@NotNull HttpExchange x, @NotNull Attribute attr) throws Exception {
 //		System.out.println("onAttribute: " + attr.getName() + " = " + attr.getValue());
+	}
+
+	default void fileComplete(@NotNull FileUpload fileUpload, File target) throws IOException {
+		if (fileUpload.isInMemory()) {
+			try (var os = new FileOutputStream(target)) {
+				var buf = fileUpload.getByteBuf();
+				if (buf instanceof CompositeByteBuf) {
+					var composite = (CompositeByteBuf)buf;
+					for (var i = 0; i < composite.numComponents(); ++i) {
+						var buf2 = composite.component(i);
+						os.write(buf2.array(), buf2.arrayOffset(), buf2.readableBytes());
+					}
+				} else {
+					os.write(buf.array(), buf.arrayOffset(), buf.readableBytes());
+				}
+			}
+		} else {
+			var r = fileUpload.getFile().renameTo(target); // 可把临时文件移动到指定位置
+			if (!r)
+				throw new IOException("remain fail: " + target);
+		}
 	}
 
 	/**
