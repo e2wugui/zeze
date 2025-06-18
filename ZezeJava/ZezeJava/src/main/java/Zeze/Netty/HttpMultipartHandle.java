@@ -1,12 +1,5 @@
 package Zeze.Netty;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import com.google.protobuf.ByteString;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.CompositeByteBuf;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.Attribute;
@@ -22,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 @SuppressWarnings("RedundantThrows")
 public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamContentHandle, HttpEndStreamHandle {
-	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartDecoder");
+	@NotNull AttributeKey<InterfaceHttpPostRequestDecoder> decoderKey = AttributeKey.valueOf("HttpMultipartHandleContext");
 	HttpDataFactory defaultHttpDataFactory = new DefaultHttpDataFactory();
 
 	/**
@@ -32,42 +25,12 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 //		System.out.println("onAttribute: " + attr.getName() + " = " + attr.getValue());
 	}
 
-	default void fileWrite(OutputStream os, ByteBuf buf) throws IOException {
-		if (buf instanceof CompositeByteBuf) {
-			var composite = (CompositeByteBuf)buf;
-			for (var i = 0; i < composite.numComponents(); ++i) {
-				fileWrite(os, composite.component(i));
-			}
-		} else {
-			os.write(buf.array(), buf.arrayOffset(), buf.readableBytes());
-		}
-	}
-
-	default void fileComplete(@NotNull FileUpload fileUpload, File target) throws IOException {
-		if (fileUpload.isInMemory()) {
-			try (var os = new FileOutputStream(target)) {
-				var buf = fileUpload.getByteBuf();
-				fileWrite(os, buf);
-			}
-		} else {
-			var r = fileUpload.getFile().renameTo(target); // 可把临时文件移动到指定位置
-			if (!r)
-				throw new IOException("remain fail: " + target);
-		}
-	}
-
 	/**
 	 * 请求过程中上传完一个文件字段时回调
 	 */
 	default void onFileCompleted(@NotNull HttpExchange x, @NotNull FileUpload fileUpload) throws Exception {
 //		System.out.println("onFileCompleted: " + fileUpload.getName() + " = " + fileUpload.getFilename());
-//		if (fileUpload.isInMemory())
-//			fileUpload.getByteBuf(); // 可写入到指定文件
-//		else {
-//			var r = fileUpload.getFile().renameTo(new File("目标目录", "目标文件")); // 可把临时文件移动到指定位置
-//			if (!r)
-//				System.err.println("rename failed");
-//		}
+//		fileUpload.renameTo(new File("目标目录", "目标文件")); // 可把临时文件/数据移动到指定位置的文件
 	}
 
 	/**

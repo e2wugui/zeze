@@ -283,8 +283,8 @@ public class HttpExchange {
 		return httpData instanceof MemoryFileUpload ? ((MemoryFileUpload)httpData).get() : ByteBuffer.Empty;
 	}
 
-	public static FileUpload getMultipartFileUpload(@NotNull HttpPostMultipartRequestDecoder multipart,
-													@NotNull String key) {
+	public static @Nullable FileUpload getMultipartFileUpload(@NotNull HttpPostMultipartRequestDecoder multipart,
+															  @NotNull String key) {
 		var httpData = multipart.getBodyHttpData(key);
 		return httpData instanceof MemoryFileUpload ? (MemoryFileUpload)httpData : null;
 	}
