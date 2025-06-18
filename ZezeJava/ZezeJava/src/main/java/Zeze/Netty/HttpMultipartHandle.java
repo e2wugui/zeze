@@ -67,7 +67,7 @@ public interface HttpMultipartHandle extends HttpBeginStreamHandle, HttpStreamCo
 	}
 
 	@Override
-	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) {
+	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
 		var oldDecoder = getAndSetDecoder(x, newDecoder(x));
 		if (oldDecoder != null) // 以防万一
 			oldDecoder.destroy();
