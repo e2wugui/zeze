@@ -20,8 +20,10 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 			HttpMultipartHandle.super.onBeginStream(x, from, to, size);
 		else {
 			var filename = x.queryMap().getOrDefault("filename", "upload");
-			x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload("filename", filename,
+			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload("filename", filename,
 					"application/octet-stream", "binary", StandardCharsets.UTF_8, Math.max(size, 0), MemoryBufSize));
+			if (oldFileUpload != null) // 以防万一
+				oldFileUpload.release();
 		}
 	}
 
