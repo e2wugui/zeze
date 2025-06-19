@@ -672,7 +672,7 @@ public final class Token extends AbstractToken {
 		}
 		var remoteAddr = r.getSender().getRemoteAddress();
 		String token;
-		var created = new OutObject<Boolean>();
+		var created = new OutObject<>(false);
 		do {
 			token = genToken();
 			// 这里严格来说应该再检查一下数据库里有没有这个token,但考虑到token含有秒时间戳,在tokenMap的软引用存活期不应该小于1秒
