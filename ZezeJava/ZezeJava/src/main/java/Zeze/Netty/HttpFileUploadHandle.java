@@ -13,14 +13,25 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 	@NotNull AttributeKey<MixedFileUpload> fileUploadKey = AttributeKey.valueOf("HttpFileUploadHandleContext");
 	int MemoryBufSize = 16 * 1024;
 
+	default @NotNull String getFileNameQueryKey() {
+		return "filename";
+	}
+
+	default @NotNull String getDefaultFileName() {
+		return "upload";
+	}
+
 	@Override
 	default void onBeginStream(@NotNull HttpExchange x, long from, long to, long size) throws Exception {
 		assert x.request != null;
 		if (HttpPostRequestDecoder.isMultipart(x.request))
 			HttpMultipartHandle.super.onBeginStream(x, from, to, size);
 		else {
-			var filename = x.queryMap().getOrDefault("filename", "upload");
-			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload("filename", filename,
+			var fileNameKey = getFileNameQueryKey();
+			var fileName = x.queryMap().get(fileNameKey);
+			if (fileName == null)
+				fileName = getDefaultFileName();
+			var oldFileUpload = x.channel().attr(fileUploadKey).getAndSet(new MixedFileUpload(fileNameKey, fileName,
 					"application/octet-stream", "binary", StandardCharsets.UTF_8, Math.max(size, 0), MemoryBufSize));
 			if (oldFileUpload != null) // 以防万一
 				oldFileUpload.release();
@@ -42,8 +53,8 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 		if (fileUpload == null)
 			HttpMultipartHandle.super.onEndStream(x);
 		else {
-			fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 			try {
+				fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				onFileCompleted(x, fileUpload);
 				assert x.request != null;
 				var decoder = new HttpPostMultipartRequestDecoder(getHttpDataFactory(x), x.request) {
