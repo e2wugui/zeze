@@ -56,6 +56,7 @@ import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.ZezeCounter;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -622,8 +623,9 @@ public final class Application extends ReentrantLock {
 			try (var is = urls.nextElement().openStream()) {
 				var p = new Properties();
 				p.load(is);
-				logger.info("Zeze Version={}, BuildTime={}, Rev={}", p.getProperty("git.build.version"),
-						p.getProperty("git.build.time"), p.getProperty("git.commit.id.full"));
+				logger.log(logged ? Level.WARN : Level.INFO, "Zeze Version={}, BuildTime={}, Rev={}",
+						p.getProperty("git.build.version"), p.getProperty("git.build.time"),
+						p.getProperty("git.commit.id.full"));
 				logged = true;
 			}
 		}
