@@ -9,8 +9,10 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
+import Zeze.Services.ReloadClassServer;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.Task;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -22,6 +24,7 @@ public final class App extends Zeze.AppBase {
 	public LinkdProvider LinkdProvider;
 	private final Netty netty = new Netty();
 	private HttpServer httpServer;
+	private ReloadClassServer reloadClassServer;
 
 	@Override
 	public HttpServer getHttpServer() {
@@ -78,9 +81,13 @@ public final class App extends Zeze.AppBase {
 		startModules(); // 启动模块，装载配置什么的。
 		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.getName())::next);
 		httpServer = new HttpServer(Zeze);
+		reloadClassServer = new ReloadClassServer(this, "/reloadClass", "upload", "filename");
+		reloadClassServer.start();
 		httpServer.start(netty, linkPort + 10000);
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
+
+		Task.schedule(2000, 2000, HotReloadTest::print);
 	}
 
 	public void Stop() throws Exception {
