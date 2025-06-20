@@ -33,6 +33,7 @@ test.ks
 /ZezeJavaTest/mqmanager*
 /ZezeJavaTest/mqmaster
 /ZezeJavaTest/testMmapFile*
+/ZezexJava/linkd/upload
 /ZezexJava/server/hot
 /ZezexJava/server/hotrun
 /log4j2.xml

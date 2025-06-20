@@ -64,6 +64,15 @@ dependencies {
     compileOnly 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.8'
 }
 
+jar {
+    manifest {
+        attributes(
+                'Premain-Class': 'Zeze.Util.ClassReloader',
+                'Can-Redefine-Classes': 'true',
+        )
+    }
+}
+
 tasks.withType(JavaCompile) {
     options.compilerArgs += ["--add-exports", "java.base/sun.security.rsa=ALL-UNNAMED",
                              "--add-exports", "java.base/sun.security.util=ALL-UNNAMED",

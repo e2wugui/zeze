@@ -77,6 +77,14 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>3.4.2</version>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<Premain-Class>Zeze.Util.ClassReloader</Premain-Class>
+							<Can-Redefine-Classes>true</Can-Redefine-Classes>
+						</manifestEntries>
+					</archive>
+				</configuration>
 				<executions>
 					<execution>
 						<!--
