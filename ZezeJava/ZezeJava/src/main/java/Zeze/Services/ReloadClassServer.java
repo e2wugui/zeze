@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.zip.ZipFile;
 import Zeze.AppBase;
 import Zeze.Netty.HttpExchange;
@@ -20,9 +19,10 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 
 	/**
 	 * 构造ReloadClassServer
-	 * @param app 应用App实例
-	 * @param urlPath 上传文件的urlPath
-	 * @param uploadDir 上传文件的目录
+	 *
+	 * @param app         应用App实例
+	 * @param urlPath     上传文件的urlPath
+	 * @param uploadDir   上传文件的目录
 	 * @param fileVarName 上传文件名查询Key，
 	 *                    比如直接上传的url:/upload?fileVarName=xxx
 	 *                    或者表单中<input type="file" name="fileVarName" multiple>
@@ -57,6 +57,7 @@ public class ReloadClassServer implements HttpFileUploadHandle {
 							 @NotNull InterfaceHttpPostRequestDecoder decoder) throws Exception {
 		var fileUpload = (FileUpload)decoder.getBodyHttpData(getFileNameQueryKey());
 		var patchFileName = fileUpload.getFilename();
+		new File(uploadDir).mkdirs();
 		var destFile = new File(uploadDir, patchFileName);
 		destFile.delete(); // 只保存一份path_all; skip result.
 		if (fileUpload.renameTo(destFile)) {

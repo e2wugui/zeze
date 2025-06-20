@@ -1,10 +1,13 @@
 package Zeze.Netty;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.multipart.HttpPostMultipartRequestDecoder;
+import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
+import io.netty.handler.codec.http.multipart.InterfaceHttpData;
+import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.MixedFileUpload;
 import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
@@ -57,9 +60,74 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 				fileUpload.addContent(Unpooled.EMPTY_BUFFER, true);
 				onFileCompleted(x, fileUpload);
 				assert x.request != null;
-				var decoder = new HttpPostMultipartRequestDecoder(getHttpDataFactory(x), x.request) {
-					{
-						addHttpData(fileUpload.retain());
+				var decoder = new InterfaceHttpPostRequestDecoder() {
+					private final @NotNull FileUpload fileUploadInDecoder = fileUpload.retain();
+					private boolean nextCalled;
+
+					@Override
+					public boolean isMultipart() {
+						return true;
+					}
+
+					@Override
+					public void setDiscardThreshold(int discardThreshold) {
+						throw new UnsupportedOperationException();
+					}
+
+					@Override
+					public int getDiscardThreshold() {
+						return 0;
+					}
+
+					@Override
+					public List<InterfaceHttpData> getBodyHttpDatas() {
+						return List.of(fileUploadInDecoder);
+					}
+
+					@Override
+					public List<InterfaceHttpData> getBodyHttpDatas(String name) {
+						return List.of();
+					}
+
+					@Override
+					public InterfaceHttpData getBodyHttpData(String name) {
+						return fileUploadInDecoder.getName().equals(name) ? fileUploadInDecoder : null;
+					}
+
+					@Override
+					public InterfaceHttpPostRequestDecoder offer(HttpContent content) {
+						throw new UnsupportedOperationException();
+					}
+
+					@Override
+					public boolean hasNext() {
+						return !nextCalled;
+					}
+
+					@Override
+					public InterfaceHttpData next() {
+						if (nextCalled)
+							return null;
+						nextCalled = true;
+						return fileUpload;
+					}
+
+					@Override
+					public InterfaceHttpData currentPartialHttpData() {
+						return null;
+					}
+
+					@Override
+					public void destroy() {
+						fileUpload.release();
+					}
+
+					@Override
+					public void cleanFiles() {
+					}
+
+					@Override
+					public void removeHttpDataFromClean(InterfaceHttpData data) {
 					}
 				};
 				try {
