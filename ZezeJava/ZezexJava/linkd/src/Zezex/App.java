@@ -10,6 +10,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Netty.HttpServer;
 import Zeze.Netty.Netty;
 import Zeze.Services.ReloadClassServer;
+import Zeze.Services.RunClassServer;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
@@ -25,6 +26,7 @@ public final class App extends Zeze.AppBase {
 	private final Netty netty = new Netty();
 	private HttpServer httpServer;
 	private ReloadClassServer reloadClassServer;
+	private RunClassServer runClassServer;
 
 	@Override
 	public HttpServer getHttpServer() {
@@ -83,6 +85,7 @@ public final class App extends Zeze.AppBase {
 		httpServer = new HttpServer(Zeze);
 		reloadClassServer = new ReloadClassServer(this, "/reloadClass", "upload", "filename");
 		reloadClassServer.start();
+		runClassServer = new RunClassServer(this, "/runClass", "clazz", "filename");
 		httpServer.start(netty, linkPort + 10000);
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
