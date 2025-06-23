@@ -54,12 +54,10 @@ public class RunClassServer implements HttpFileUploadHandle {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
 			var loadClass = classLoader.defineClass(classBytes);
-			var instance = loadClass.getDeclaredConstructor().newInstance();
-			if (instance instanceof Runnable) {
-				((Runnable)instance).run();
-				x.close(x.sendPlainText(HttpResponseStatus.OK, ""));
-				return;
-			}
+			var mainMethod = loadClass.getMethod("main", String[].class);
+			mainMethod.invoke(null, (Object) new String[]{});
+			x.close(x.sendPlainText(HttpResponseStatus.OK, ""));
+			return;
 		}
 		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, ""));
 	}
