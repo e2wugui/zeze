@@ -7,10 +7,10 @@ dependencies {
     implementation project(":ZezexJava:server")
 
     // for netty
-    implementation 'io.netty:netty-codec-http:4.1.121.Final'
-    implementation 'io.netty:netty-transport-native-epoll:4.1.121.Final:linux-x86_64'
+    implementation 'io.netty:netty-codec-http:4.1.122.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.122.Final:linux-x86_64'
     implementation 'org.slf4j:slf4j-api:2.0.17'
-    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.24.3'
+    implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.0'
 
     // for test
     implementation 'junit:junit:4.13.2'
@@ -42,8 +42,6 @@ dependencies {
 
     // for task component
     implementation 'org.jgrapht:jgrapht-core:1.5.2'
-    implementation 'com.opencsv:opencsv:5.11.1'
-    implementation 'org.glassfish:javax.json:1.1.4'
 
     // for new Compress/Decompress Codec in Zeze.Net
     implementation 'com.github.luben:zstd-jni:1.5.7-3'

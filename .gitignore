@@ -31,6 +31,7 @@ x64/
 /publish/autokeys
 /Sample/client/Gen
 /Sample/linkd/Gen
+/Sample/linkdClient/Gen
 /Sample/server/Gen
 /Sample/server/Properties
 /TestMain/Properties
@@ -43,8 +44,6 @@ x64/
 /TypeScript/tsconfig.tsbuildinfo
 /TypeScript/webpack/node_modules
 /UnitTest/gsd/Gen
+/UnitTest/linkdClient/Gen
 /UnitTest/Properties
 /Zeze/Arch/linkd
-/UnitTest/linkdClient/Gen
-/Sample/linkdClient/Gen
-/ZezeJava/ZezexJava/linkd/clazz
