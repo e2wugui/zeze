@@ -66,7 +66,7 @@ public interface HttpFileUploadHandle extends HttpMultipartHandle {
 
 					@Override
 					public boolean isMultipart() {
-						return true;
+						return false;
 					}
 
 					@Override

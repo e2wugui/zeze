@@ -67,12 +67,24 @@ public class RunClassServer implements HttpFileUploadHandle {
 				result = String.valueOf(((Callable<?>)instance).call());
 			} else {
 				var mainMethod = loadClass.getMethod("main", String[].class);
-				result = String.valueOf(mainMethod.invoke(null, (Object)getArgs(decoder)));
+				var args = decoder.isMultipart() ? getArgs(decoder) : getArgs(x);
+				result = String.valueOf(mainMethod.invoke(null, (Object)args));
 			}
 			x.close(x.sendPlainText(HttpResponseStatus.OK, result));
 			return;
 		}
 		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "Bad Request"));
+	}
+
+	private static @NotNull String @NotNull [] getArgs(@NotNull HttpExchange x) {
+		var args = new ArrayList<String>();
+		var queryMap = x.queryMap();
+		for (int i = 0; ; i++) {
+			var value = queryMap.get("arg" + i);
+			if (value == null)
+				return args.toArray(new String[args.size()]);
+			args.add(value);
+		}
 	}
 
 	private static @NotNull String @NotNull [] getArgs(@NotNull InterfaceHttpPostRequestDecoder decoder) throws IOException {
