@@ -1,13 +1,17 @@
 package Zeze.Services;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
 import Zeze.AppBase;
 import Zeze.Netty.HttpExchange;
 import Zeze.Netty.HttpFileUploadHandle;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.InterfaceHttpPostRequestDecoder;
 import org.jetbrains.annotations.NotNull;
@@ -54,12 +58,31 @@ public class RunClassServer implements HttpFileUploadHandle {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
 			var loadClass = classLoader.defineClass(classBytes);
-			var mainMethod = loadClass.getMethod("main", String[].class);
-			mainMethod.invoke(null, (Object) new String[]{});
-			x.close(x.sendPlainText(HttpResponseStatus.OK, ""));
+			var result = "";
+			if (Runnable.class.isAssignableFrom(loadClass)) {
+				var instance = loadClass.getConstructor().newInstance();
+				((Runnable)instance).run();
+			} else if (Callable.class.isAssignableFrom(loadClass)) {
+				var instance = loadClass.getConstructor().newInstance();
+				result = String.valueOf(((Callable<?>)instance).call());
+			} else {
+				var mainMethod = loadClass.getMethod("main", String[].class);
+				result = String.valueOf(mainMethod.invoke(null, (Object)getArgs(decoder)));
+			}
+			x.close(x.sendPlainText(HttpResponseStatus.OK, result));
 			return;
 		}
-		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, ""));
+		x.close(x.sendPlainText(HttpResponseStatus.BAD_REQUEST, "Bad Request"));
+	}
+
+	private static @NotNull String @NotNull [] getArgs(@NotNull InterfaceHttpPostRequestDecoder decoder) throws IOException {
+		var args = new ArrayList<String>();
+		for (int i = 0; ; i++) {
+			var httpData = decoder.getBodyHttpData("arg" + i);
+			if (!(httpData instanceof Attribute))
+				return args.toArray(new String[args.size()]);
+			args.add(((Attribute)httpData).getValue());
+		}
 	}
 
 	static class BytecodeClassLoader extends ClassLoader {
