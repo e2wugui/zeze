@@ -1060,9 +1060,9 @@ namespace Zeze.Serialize
         {
             WriteUInt(length);
             EnsureWrite(length);
-            fixed (byte* destPtr = &Bytes[WriteIndex])
+            fixed (byte* destPtr = Bytes)
             {
-                Buffer.MemoryCopy(srcPtr, destPtr, Bytes.Length - WriteIndex, length);
+                Buffer.MemoryCopy(srcPtr, destPtr + WriteIndex, Bytes.Length - WriteIndex, length);
             }
             WriteIndex += length;
         }
