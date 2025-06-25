@@ -144,7 +144,7 @@ public class ProviderService extends HandshakeClient {
 		}
 	}
 
-	void trySetLinkChoice() {
+	protected void trySetLinkChoice() {
 		for (var link : links.values())
 			trySetLinkChoice(link);
 	}
