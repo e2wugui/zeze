@@ -45,15 +45,6 @@ public class PrometheusCounter implements ZezeCounter {
 	 */
 	private static final int ServiceOutputObserveInterval = PropertiesHelper.getInt("ServiceOutputObserveInterval", 60);
 
-	public static void startHttpServer(int port) {
-		try {
-			HTTPServer server = HTTPServer.builder().port(port).buildAndStart();
-			logger.info("httpserver listening on port http://localhost:{}/metrics", server.getPort());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static void addHttpHandler(HttpServer httpServer) {
 		httpServer.addHandler("/metrics", 0,
 				TransactionLevel.None, DispatchMode.Normal,
