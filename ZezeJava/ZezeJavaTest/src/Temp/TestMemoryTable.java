@@ -5,6 +5,7 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import demo.App;
 import demo.Bean1;
+import demo.Module2.BValue;
 
 public class TestMemoryTable {
 	public static void main(String[] args) throws Exception {
@@ -14,8 +15,11 @@ public class TestMemoryTable {
 
 		Task.call(App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.tMemorySize().put(123L, new Bean1(1));
+			App.Instance.demo_Module1.getTable5().put(123L, new BValue(1));
 			return 0L;
 		}, "put"));
+
+		//App.Instance.Zeze.checkpointRun();
 
 		try {
 			var obj = new long[2_000_000_000];
@@ -27,6 +31,7 @@ public class TestMemoryTable {
 
 		Task.call(App.Instance.Zeze.newProcedure(() -> {
 			System.out.println(App.Instance.demo_Module1.tMemorySize().get(123L));
+			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
 		}, "get"));
 	}
