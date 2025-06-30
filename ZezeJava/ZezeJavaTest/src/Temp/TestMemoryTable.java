@@ -25,6 +25,13 @@ public class TestMemoryTable {
 		var ref = new SoftReference<>(new OutInt(1234));
 
 		Task.call(App.Instance.Zeze.newProcedure(() -> {
+			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(123L));
+			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(456L));
+//			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
+			return 0L;
+		}, "get0"));
+
+		Task.call(App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.tMemorySize().put(123L, new Bean1(1));
 			App.Instance.demo_Module1.tMemorySize().put(456L, new Bean1(2));
 //			App.Instance.demo_Module1.getTable5().put(123L, new BValue(1));
