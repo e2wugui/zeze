@@ -165,7 +165,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 每次执行完重新调度。
 		var capacity = table.getTableConf().getRealCacheCapacity();
 		// 内存表关闭clean。
-		if (capacity > 0 && !table.isMemory()) {
+		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
 			while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
