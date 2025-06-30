@@ -125,15 +125,6 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return dataMap.get(key);
 	}
 
-	// 不再提供删除，由 Cleaner 集中清理。
-	// under lockey.writeLock
-	/*
-	internal void Remove(K key)
-	{
-	    map.Remove(key, out var _);
-	}
-	*/
-
 	private void tryPollLruQueue() {
 		if (lruQueue.size() <= MAX_NODE_COUNT)
 			return;
@@ -229,6 +220,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	// under lockey.writeLock and record.fairLock
 	void remove(@NotNull K k, @NotNull Record1<K, V> r) {
+		remove(k, r, true);
+	}
+
+	void remove(@NotNull K k, @NotNull Record1<K, V> r, boolean removeLocalRocks) {
 		if (dataMap.remove(k, r)) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
@@ -238,13 +233,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			var oldNode = r.getLruNode();
 			if (oldNode != null)
 				oldNode.remove(k, r);
-			table.rocksCacheRemove(k);
+			if (removeLocalRocks)
+				table.rocksCacheRemove(k);
 		} else
 			r.setState(StateRemoved); // 也确保已删除状态
-	}
-
-	private void remove(@NotNull Map.Entry<K, Record1<K, V>> p) {
-		remove(p.getKey(), p.getValue());
 	}
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
@@ -254,7 +246,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			// 内存表不执行clean，代码不会执行到这里，这里是以后需要执行clean时才会到达的。
 			if (p.getValue().getDirty())
 				return false;
-			remove(p);
+			remove(p.getKey(), p.getValue(), false);
 			return true;
 		}
 
@@ -288,7 +280,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			}
 		}
 
-		remove(p);
+		remove(p.getKey(), p.getValue(), false);
 		return true;
 	}
 
