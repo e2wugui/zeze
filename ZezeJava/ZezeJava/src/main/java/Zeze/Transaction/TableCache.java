@@ -219,10 +219,6 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// under lockey.writeLock and record.fairLock
-	void remove(@NotNull K k, @NotNull Record1<K, V> r) {
-		remove(k, r, true);
-	}
-
 	void remove(@NotNull K k, @NotNull Record1<K, V> r, boolean removeLocalRocks) {
 		if (dataMap.remove(k, r)) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
@@ -280,7 +276,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			}
 		}
 
-		remove(p.getKey(), p.getValue());
+		remove(p.getKey(), p.getValue(), true);
 		return true;
 	}
 

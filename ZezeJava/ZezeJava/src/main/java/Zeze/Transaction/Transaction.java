@@ -456,11 +456,14 @@ public final class Transaction {
 							var oldVersion = oldValue != null ? oldValue.version() : 0;
 							newValue.version(oldVersion + 1);
 						}
-					} else if (v.atomicTupleRecord.strongRef == null) {
+					}
+					/*
+					else if (v.atomicTupleRecord.strongRef == null) {
 						var r = v.atomicTupleRecord.record;
 						if (r.getTable().isMemory())
 							r.removeFromTableCache();
 					}
+					*/
 				}
 			} catch (Throwable e) { // halt
 				logger.fatal("finalCommit({}) exception:", proc, e);
@@ -543,7 +546,7 @@ public final class Transaction {
 		verifyRunning();
 		ra.initRootInfo(root, null);
 		accessedRecords.put(root.getTableKey(), ra);
-
+		/*
 		if (removeWhileRollback) {
 			runWhileRollback(() -> {
 				// 1. 目前这是memory表专用的。
@@ -569,6 +572,7 @@ public final class Transaction {
 				}
 			});
 		}
+		*/
 	}
 
 	public @Nullable RecordAccessed getRecordAccessed(@NotNull TableKey key) {
