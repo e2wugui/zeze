@@ -174,9 +174,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				*/
 				// 计算内存表的大小。
 				if (table.isMemory()) {
-					if (strongDirtyValue == null && committedPutLog.getValue() != null) // add
+					if (accessed.atomicTupleRecord.strongRef == null && committedPutLog.getValue() != null) // add
 						table.getCache().getSizeCounter().incrementAndGet();
-					else if (strongDirtyValue != null && committedPutLog.getValue() == null) // remove
+					else if (accessed.atomicTupleRecord.strongRef != null && committedPutLog.getValue() == null) // remove
 						table.getCache().getSizeCounter().decrementAndGet();
 				}
 			}
