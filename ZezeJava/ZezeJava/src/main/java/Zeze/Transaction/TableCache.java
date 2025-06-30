@@ -280,7 +280,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			}
 		}
 
-		remove(p.getKey(), p.getValue(), false);
+		remove(p.getKey(), p.getValue());
 		return true;
 	}
 
