@@ -236,7 +236,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
-		if (table.getStorage() == null) {
+		if (table.isMemory()) {
 			// 不支持内存表cache同步。
 			// 内存表删除cache，只需要判断是否dirty。
 			// 内存表不执行clean，代码不会执行到这里，这里是以后需要执行clean时才会到达的。

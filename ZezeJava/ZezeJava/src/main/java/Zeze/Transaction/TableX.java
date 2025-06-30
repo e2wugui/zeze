@@ -1171,7 +1171,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (isMemory()) {
 					var r = cache.get(key);
 					if (r == null)
-						return null;
+						return localRocksCacheTable.find(this, key);
 					r.enterFairLock();
 					try {
 						return r.copyValue();
@@ -1233,7 +1233,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isMemory()) {
 			var r = cache.get(key);
 			if (r == null)
-				return null;
+				return localRocksCacheTable.find(this, key);
 			r.enterFairLock();
 			try {
 				return r.loadValue();

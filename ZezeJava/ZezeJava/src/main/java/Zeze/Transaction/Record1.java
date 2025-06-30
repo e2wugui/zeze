@@ -137,7 +137,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	@Override
 	public @Nullable IGlobalAgent.AcquireResult acquire(int state, boolean fresh, boolean noWait) {
 		IGlobalAgent agent;
-		if (table.getStorage() == null || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
+		if (table.isMemory() || (agent = table.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
 
 		if (isTraceEnabled)
