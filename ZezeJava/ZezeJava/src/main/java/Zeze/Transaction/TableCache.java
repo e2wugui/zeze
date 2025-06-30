@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Application;
 import Zeze.Util.Factory;
 import Zeze.Util.Task;
@@ -37,6 +38,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
 	private @Nullable Future<?> timerNewHot;
 	private @Nullable Future<?> timerClean;
+	private final AtomicInteger sizeCounter = new AtomicInteger();
+
+	AtomicInteger getSizeCounter() {
+		return sizeCounter;
+	}
+
+	public int size() {
+		return sizeCounter.get();
+	}
 
 	TableCache(Application ignoredApp, @NotNull TableX<K, V> table) {
 		this.table = table;
@@ -163,7 +173,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
 		var capacity = table.getTableConf().getRealCacheCapacity();
-		if (capacity > 0) {
+		// 内存表关闭clean。
+		if (capacity > 0 && !table.isMemory()) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
 			while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
@@ -238,13 +249,15 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	private boolean tryRemoveRecordUnderLock(@NotNull Map.Entry<K, Record1<K, V>> p) {
 		if (table.getStorage() == null) {
-			/* 不支持内存表cache同步。
-			if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+			// 不支持内存表cache同步。
+			// 内存表删除cache，只需要判断是否dirty。
+			// 内存表不执行clean，代码不会执行到这里，这里是以后需要执行clean时才会到达的。
+			if (p.getValue().getDirty())
 				return false;
-			*/
 			remove(p);
 			return true;
 		}
+
 		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
 		// case CheckpointMode.Immediately
 		// 永远不会为false。记录Commit的时候就Flush到数据库。

@@ -128,7 +128,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final int getCacheSize() {
-		return cache != null ? cache.getDataMap().size() : 0;
+		return cache != null ? cache.size() : 0;
+		// return cache != null ? cache.getDataMap().size() : 0;
 	}
 
 	final void rocksCachePut(@NotNull K key, @NotNull V value) {
@@ -270,6 +271,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						}
 						if (strongRef != null)
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+					} else {
+						// 内存表如果限制了内存（capaticy）大小，执行了clean，才会执行这里的逻辑。
+						// 从本地硬盘缓存装载数据。
+						var find = localRocksCacheTable.find(this, key);
+						if (find != null) {
+							strongRef = find;
+							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+							r.setSoftValue(strongRef);
+						}
 					}
 					if (isTraceEnabled)
 						logger.trace("Load {}", r);
@@ -1082,6 +1092,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//if (storage != null)
 		//	throw new IllegalStateException("this is not a memory table.");
 
+		// 内存表并且限制了容量，使用本地缓存的walk。
+		if (isMemory() && getTableConf().getRealCacheCapacity() > 0)
+			return localRocksCacheTable.walk(this, callback);
+
+		// 内存表不限制容量或者非内存表walk内存里面的缓存，直接访问内存的map。
 		int count = 0;
 		for (var entry : cache.getDataMap().entrySet()) {
 			var r = entry.getValue();

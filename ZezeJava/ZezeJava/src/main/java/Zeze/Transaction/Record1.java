@@ -164,10 +164,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			var committedPutLog = accessed.committedPutLog;
 			if (committedPutLog != null) {
 				setSoftValue(committedPutLog.getValue());
+				/*
+				 * 内存表启用了soft，不能马上删除，按征程逻辑执行。
 				if (table.isMemory() && committedPutLog.getValue() == null) {
 					// 记录删除并且是内存表，马上删除。
 					table.getCache().remove(key, this);
 					return; // 内存表已经删除，done
+				}
+				*/
+				// 计算内存表的大小。
+				if (table.isMemory()) {
+					if (strongDirtyValue == null && committedPutLog.getValue() != null) // add
+						table.getCache().getSizeCounter().incrementAndGet();
+					else if (strongDirtyValue != null && committedPutLog.getValue() == null) // remove
+						table.getCache().getSizeCounter().decrementAndGet();
 				}
 			}
 			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
