@@ -1,19 +1,16 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Application;
 import Zeze.History.History;
 import Zeze.Onz.OnzProcedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +23,7 @@ public final class Checkpoint {
 	private final @NotNull CheckpointMode mode;
 	private final @NotNull Thread checkpointThread;
 	private final ArrayList<Database> databases = new ArrayList<>();
-	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
+//	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
