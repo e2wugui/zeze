@@ -192,7 +192,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	@Override
 	public void setDirty() {
-		var storage = table.getStorage();
+		//var storage = table.getStorage();
 
 		switch (table.getZeze().getConfig().getCheckpointMode()) {
 //		case Period:
