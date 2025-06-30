@@ -34,9 +34,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private Object snapshotValue;
 	private Object snapshotKeyLocal;
 	private Object snapshotValueLocal;
-	private long savedTimestampForCheckpointPeriod;
-	private boolean existInBackDatabase;
-	private boolean existInBackDatabaseSavedForFlushRemove;
+//	private long savedTimestampForCheckpointPeriod;
+//	private boolean existInBackDatabase;
+//	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 	private @Nullable Id128 tid;
 
@@ -101,9 +101,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return key;
 	}
 
-	void setExistInBackDatabase(boolean value) {
-		existInBackDatabase = value;
-	}
+//	void setExistInBackDatabase(boolean value) {
+//		existInBackDatabase = value;
+//	}
 
 	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
@@ -235,7 +235,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		// 从 Storage.Snapshot 里面修改移到这里，避免Snapshot遍历，减少FlushWriteLock时间。
-		savedTimestampForCheckpointPeriod = getTimestamp();
+//		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		var v = strongDirtyValue;
@@ -280,8 +280,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		//【ExistInBackDatabaseSavedForFlushRemove】
 		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
 		//    see this.Flush
-		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
-		existInBackDatabase = snapshotValue != null;
+//		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
+//		existInBackDatabase = snapshotValue != null;
 	}
 
 	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
@@ -307,13 +307,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
 		} else {
 			// removed
-			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
+//			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
 				var storage = table.getStorage();
 				if (storage != null)
 					storage.getDatabaseTable().remove(t, snapshotKey);
 				if (lct != null)
 					table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
-			}
+//			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。

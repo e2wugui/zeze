@@ -228,7 +228,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							rocksCacheRemove(key);
 						r.setSoftValue(strongRef); // r.Value still maybe null
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-						r.setExistInBackDatabase(strongRef != null);
+//						r.setExistInBackDatabase(strongRef != null);
 
 						// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
 						// see Record1.Flush
@@ -1258,7 +1258,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						V strongRef = storage.getDatabaseTable().find(this, key);
 						r.setSoftValue(strongRef); // r.Value still maybe null
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-						r.setExistInBackDatabase(strongRef != null);
+//						r.setExistInBackDatabase(strongRef != null);
 						if (strongRef != null) {
 							rocksCachePut(key, strongRef);
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
