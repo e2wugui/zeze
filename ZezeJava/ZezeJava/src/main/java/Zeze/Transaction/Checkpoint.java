@@ -28,7 +28,7 @@ public final class Checkpoint {
 	private final Condition cond = lock.newCondition();
 	private int period;
 	private volatile boolean isRunning;
-	private ArrayList<Runnable> actionCurrent;
+	//private ArrayList<Runnable> actionCurrent;
 	//private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
