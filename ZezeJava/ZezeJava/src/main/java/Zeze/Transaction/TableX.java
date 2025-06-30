@@ -286,7 +286,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				} catch (Throwable e) { // rethrow
 					if (!r.getDirty())
-						cache.remove(key, r, false); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
+						cache.remove(key, r, storage != null); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
 					throw e;
 				}
 			} finally {
@@ -385,8 +385,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	private void flushWhenReduce(@NotNull Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
-		case Period:
-			throw new IllegalStateException("Global Can Not Work With CheckpointMode.Period.");
+//		case Period:
+//			throw new IllegalStateException("Global Can Not Work With CheckpointMode.Period.");
 
 		case Immediately:
 			break;

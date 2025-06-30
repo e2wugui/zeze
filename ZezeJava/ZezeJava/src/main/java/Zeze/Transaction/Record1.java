@@ -195,11 +195,11 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		var storage = table.getStorage();
 
 		switch (table.getZeze().getConfig().getCheckpointMode()) {
-		case Period:
-			setDirty(true);
-			if (storage != null)
-				storage.onRecordChanged(this);
-			break;
+//		case Period:
+//			setDirty(true);
+//			if (storage != null)
+//				storage.onRecordChanged(this);
+//			break;
 		case Table:
 			setDirty(true);
 			break;
@@ -330,21 +330,21 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);
 
-		if (table.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
-			TableKey tkey = new TableKey(table.getId(), key);
-			Lockey lockey = table.getZeze().getLocks().get(tkey);
-			lockey.enterWriteLock();
-			try {
-				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
-					setDirty(false);
-				}
-				snapshotKey = null;
-				snapshotValue = null;
-				return;
-			} finally {
-				lockey.exitWriteLock();
-			}
-		}
+//		if (table.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
+//			TableKey tkey = new TableKey(table.getId(), key);
+//			Lockey lockey = table.getZeze().getLocks().get(tkey);
+//			lockey.enterWriteLock();
+//			try {
+//				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
+//					setDirty(false);
+//				}
+//				snapshotKey = null;
+//				snapshotValue = null;
+//				return;
+//			} finally {
+//				lockey.exitWriteLock();
+//			}
+//		}
 		// CheckpointMode.Table
 		snapshotKey = null;
 		snapshotValue = null;

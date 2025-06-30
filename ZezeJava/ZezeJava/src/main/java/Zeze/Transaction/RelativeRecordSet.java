@@ -134,12 +134,12 @@ public final class RelativeRecordSet extends ReentrantLock {
 			// 这种模式下 RelativeRecordSet 都是空的。
 			return; // done
 
-		case Period:
-			if (onzProcedure != null)
-				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
-			commit.run();
-			collectChanges.call(); // skip result, 这个模式不支持History.
-			return; // done
+//		case Period:
+//			if (onzProcedure != null)
+//				throw new RuntimeException("Onz Procedure Not Supported On Period Mode.");
+//			commit.run();
+//			collectChanges.call(); // skip result, 这个模式不支持History.
+//			return; // done
 
 		default:
 			break;

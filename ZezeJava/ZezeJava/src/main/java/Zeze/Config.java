@@ -585,10 +585,10 @@ public final class Config {
 		if (!attr.isBlank())
 			setCheckpointFlushMode(CheckpointFlushMode.valueOf(attr));
 
-		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isBlank()) {
-			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
-			checkpointMode = CheckpointMode.Table;
-		}
+//		if (checkpointMode == CheckpointMode.Period && !globalCacheManagerHostNameOrAddress.isBlank()) {
+//			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
+//			checkpointMode = CheckpointMode.Table;
+//		}
 		if (checkpointMode == CheckpointMode.Immediately)
 			throw new UnsupportedOperationException();
 

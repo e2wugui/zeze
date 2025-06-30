@@ -32,7 +32,7 @@ public final class Checkpoint {
 	private int period;
 	private volatile boolean isRunning;
 	private ArrayList<Runnable> actionCurrent;
-	private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
+	//private volatile @NotNull ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ConcurrentHashSet<RelativeRecordSet> relativeRecordSetMap = new ConcurrentHashSet<>();
 
 	public Checkpoint(@NotNull Application zeze, @NotNull CheckpointMode mode, int serverId) {
@@ -59,6 +59,7 @@ public final class Checkpoint {
 		return mode;
 	}
 
+	/*
 	public void enterFlushReadLock() {
 		if (mode == CheckpointMode.Period)
 			flushReadWriteLock.readLock().lock();
@@ -68,6 +69,7 @@ public final class Checkpoint {
 		if (mode == CheckpointMode.Period)
 			flushReadWriteLock.readLock().unlock();
 	}
+	*/
 
 	public @NotNull Checkpoint add(@NotNull Iterable<Database> databases) {
 		for (var db : databases) {
@@ -111,11 +113,11 @@ public final class Checkpoint {
 		case Immediately:
 			break;
 
-		case Period:
-			final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
-			addActionAndPulse(() -> source.setResult(0));
-			source.await();
-			break;
+//		case Period:
+//			final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
+//			addActionAndPulse(() -> source.setResult(0));
+//			source.await();
+//			break;
 
 		case Table:
 			RelativeRecordSet.flushWhenCheckpoint(this);
@@ -127,18 +129,18 @@ public final class Checkpoint {
 		while (isRunning) {
 			try {
 				switch (mode) {
-				case Period:
-					checkpointPeriod();
-					for (var action : actionCurrent)
-						action.run();
-					lock.lock();
-					try {
-						if (!actionPending.isEmpty())
-							continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
-					} finally {
-						lock.unlock();
-					}
-					break;
+//				case Period:
+//					checkpointPeriod();
+//					for (var action : actionCurrent)
+//						action.run();
+//					lock.lock();
+//					try {
+//						if (!actionPending.isEmpty())
+//							continue; // 如果有未决的任务，马上开始下一次 DoCheckpoint。
+//					} finally {
+//						lock.unlock();
+//					}
+//					break;
 
 				case Table:
 					RelativeRecordSet.flushWhenCheckpoint(this);
@@ -161,9 +163,9 @@ public final class Checkpoint {
 		}
 		logger.info("final checkpoint start.");
 		switch (mode) {
-		case Period:
-			checkpointPeriod();
-			break;
+//		case Period:
+//			checkpointPeriod();
+//			break;
 
 		case Table:
 			RelativeRecordSet.flushWhenCheckpoint(this);
@@ -176,22 +178,23 @@ public final class Checkpoint {
 	 * 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()
 	 * 之前的动作在本次checkpoint完成时执行，之后的动作在下一次DoCheckpoint后执行。
 	 */
-	public void addActionAndPulse(@NotNull Runnable action) {
-		final var r = flushReadWriteLock.readLock();
-		r.lock();
-		try {
-			lock.lock();
-			try {
-				actionPending.add(action);
-				cond.signal();
-			} finally {
-				lock.unlock();
-			}
-		} finally {
-			r.unlock();
-		}
-	}
+//	public void addActionAndPulse(@NotNull Runnable action) {
+//		final var r = flushReadWriteLock.readLock();
+//		r.lock();
+//		try {
+//			lock.lock();
+//			try {
+//				actionPending.add(action);
+//				cond.signal();
+//			} finally {
+//				lock.unlock();
+//			}
+//		} finally {
+//			r.unlock();
+//		}
+//	}
 
+	/*
 	private void checkpointPeriod() {
 		logger.info("CheckpointPeriod({}) begin", zeze.getConfig().getServerId());
 		long time0 = System.nanoTime();
@@ -268,6 +271,7 @@ public final class Checkpoint {
 					(System.nanoTime() - time0) / 1_000_000);
 		}
 	}
+	*/
 
 	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable History history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());

@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
@@ -150,40 +149,40 @@ public abstract class Database extends ReentrantLock {
 		storages.clear();
 	}
 
-	public final void encodeN() {
-		// try encode. 可以多趟。
-		for (int i = 1; i <= 1; ++i) {
-			int countEncodeN = 0;
-			for (var storage : storages)
-				countEncodeN += storage.encodeN();
-			if (isDebugEnabled)
-				logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
-		}
-	}
+//	public final void encodeN() {
+//		// try encode. 可以多趟。
+//		for (int i = 1; i <= 1; ++i) {
+//			int countEncodeN = 0;
+//			for (var storage : storages)
+//				countEncodeN += storage.encodeN();
+//			if (isDebugEnabled)
+//				logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
+//		}
+//	}
 
-	public final void snapshot() {
-		int countEncode0 = 0;
-		int countSnapshot = 0;
-		for (var storage : storages)
-			countEncode0 += storage.encode0();
-		for (var storage : storages)
-			countSnapshot += storage.snapshot();
+//	public final void snapshot() {
+//		int countEncode0 = 0;
+//		int countSnapshot = 0;
+//		for (var storage : storages)
+//			countEncode0 += storage.encode0();
+//		for (var storage : storages)
+//			countSnapshot += storage.snapshot();
+//
+//		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
+//	}
 
-		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
-	}
+//	public final void flush(@NotNull Transaction t, @NotNull HashMap<Database, Transaction> tss,
+//							@Nullable Transaction lct) {
+//		int countFlush = 0;
+//		for (var storage : storages)
+//			countFlush += storage.flush(t, tss, lct);
+//		logger.info("Checkpoint Flush count={}", countFlush);
+//	}
 
-	public final void flush(@NotNull Transaction t, @NotNull HashMap<Database, Transaction> tss,
-							@Nullable Transaction lct) {
-		int countFlush = 0;
-		for (var storage : storages)
-			countFlush += storage.flush(t, tss, lct);
-		logger.info("Checkpoint Flush count={}", countFlush);
-	}
-
-	public final void cleanup() {
-		for (var storage : storages)
-			storage.cleanup();
-	}
+//	public final void cleanup() {
+//		for (var storage : storages)
+//			storage.cleanup();
+//	}
 
 	public abstract @NotNull Table openTable(@NotNull String name, int id);
 

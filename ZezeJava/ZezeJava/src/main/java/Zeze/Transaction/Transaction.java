@@ -247,8 +247,8 @@ public final class Transaction {
 				return Procedure.Closed;
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-				checkpoint.enterFlushReadLock();
-				try {
+				//checkpoint.enterFlushReadLock();
+				//try {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
@@ -368,9 +368,10 @@ public final class Transaction {
 						if (transactionRedoCounter != null)
 							transactionRedoCounter.increment();
 					}
-				} finally {
-					checkpoint.exitFlushReadLock();
-				}
+				//}
+				//finally {
+				//	checkpoint.exitFlushReadLock();
+				//}
 				//logger.debug("checkpoint.WaitRun({})", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
