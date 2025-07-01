@@ -91,7 +91,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		super(id, name, suffix);
 	}
 
-	TableCache<K, V> getCache() {
+	public TableCache<K, V> getCache() {
 		return cache;
 	}
 
@@ -128,7 +128,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final int getCacheSize() {
-		return cache != null ? cache.getDataMap().size() : 0;
+		return cache != null ? (int)cache.size() : 0;
+		// return cache != null ? cache.getDataMap().size() : 0;
 	}
 
 	final void rocksCachePut(@NotNull K key, @NotNull V value) {
@@ -227,7 +228,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							rocksCacheRemove(key);
 						r.setSoftValue(strongRef); // r.Value still maybe null
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-						r.setExistInBackDatabase(strongRef != null);
+//						r.setExistInBackDatabase(strongRef != null);
 
 						// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
 						// see Record1.Flush
@@ -270,13 +271,22 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						}
 						if (strongRef != null)
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+					} else {
+						// 内存表如果限制了内存（capacity）大小，执行了clean，才会执行这里的逻辑。
+						// 从本地硬盘缓存装载数据。
+						var find = localRocksCacheTable.find(this, key);
+						if (find != null) {
+							strongRef = find;
+							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+							r.setSoftValue(strongRef);
+						}
 					}
 					if (isTraceEnabled)
 						logger.trace("Load {}", r);
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				} catch (Throwable e) { // rethrow
 					if (!r.getDirty())
-						cache.remove(key, r); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
+						cache.remove(key, r, storage != null); // 异常情况就从缓存中移除非dirty的记录,避免下次访问得到不正常的记录
 					throw e;
 				}
 			} finally {
@@ -1082,6 +1092,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//if (storage != null)
 		//	throw new IllegalStateException("this is not a memory table.");
 
+		// 内存表并且限制了容量，使用本地缓存的walk。
+		if (isMemory() && getTableConf().getRealCacheCapacity() > 0)
+			return localRocksCacheTable.walk(this, callback);
+
+		// 内存表不限制容量或者非内存表walk内存里面的缓存，直接访问内存的map。
 		int count = 0;
 		for (var entry : cache.getDataMap().entrySet()) {
 			var r = entry.getValue();
@@ -1156,7 +1171,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (isMemory()) {
 					var r = cache.get(key);
 					if (r == null)
-						return null;
+						return localRocksCacheTable.find(this, key);
 					r.enterFairLock();
 					try {
 						return r.copyValue();
@@ -1218,7 +1233,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (isMemory()) {
 			var r = cache.get(key);
 			if (r == null)
-				return null;
+				return localRocksCacheTable.find(this, key);
 			r.enterFairLock();
 			try {
 				return r.loadValue();
@@ -1243,7 +1258,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						V strongRef = storage.getDatabaseTable().find(this, key);
 						r.setSoftValue(strongRef); // r.Value still maybe null
 						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-						r.setExistInBackDatabase(strongRef != null);
+//						r.setExistInBackDatabase(strongRef != null);
 						if (strongRef != null) {
 							rocksCachePut(key, strongRef);
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);

@@ -34,9 +34,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private Object snapshotValue;
 	private Object snapshotKeyLocal;
 	private Object snapshotValueLocal;
-	private long savedTimestampForCheckpointPeriod;
-	private boolean existInBackDatabase;
-	private boolean existInBackDatabaseSavedForFlushRemove;
+	// private long savedTimestampForCheckpointPeriod;
+	// private boolean existInBackDatabase;
+	// private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
 	private @Nullable Id128 tid;
 
@@ -101,9 +101,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return key;
 	}
 
-	void setExistInBackDatabase(boolean value) {
-		existInBackDatabase = value;
-	}
+//	void setExistInBackDatabase(boolean value) {
+//		existInBackDatabase = value;
+//	}
 
 	@Nullable ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return lruNode;
@@ -122,9 +122,11 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
+	/*
 	void removeFromTableCache() {
 		table.getCache().remove(key, this);
 	}
+	*/
 
 	@Override
 	public @NotNull String toString() {
@@ -164,10 +166,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			var committedPutLog = accessed.committedPutLog;
 			if (committedPutLog != null) {
 				setSoftValue(committedPutLog.getValue());
+				/*
+				 * 内存表启用了soft，不能马上删除，按征程逻辑执行。
 				if (table.isMemory() && committedPutLog.getValue() == null) {
 					// 记录删除并且是内存表，马上删除。
 					table.getCache().remove(key, this);
 					return; // 内存表已经删除，done
+				}
+				*/
+				// 计算内存表的大小。
+				if (table.isMemory()) {
+					if (accessed.atomicTupleRecord.strongRef == null && committedPutLog.getValue() != null) // add
+						table.getCache().getSizeCounter().increment();
+					else if (accessed.atomicTupleRecord.strongRef != null && committedPutLog.getValue() == null) // remove
+						table.getCache().getSizeCounter().decrement();
 				}
 			}
 			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
@@ -223,7 +235,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		// 【注意】可能保存多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		// 从 Storage.Snapshot 里面修改移到这里，避免Snapshot遍历，减少FlushWriteLock时间。
-		savedTimestampForCheckpointPeriod = getTimestamp();
+//		savedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		var v = strongDirtyValue;
@@ -268,8 +280,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		//【ExistInBackDatabaseSavedForFlushRemove】
 		//    由于这里提前修改，所以需要保存一个副本后面写Database时用。
 		//    see this.Flush
-		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
-		existInBackDatabase = snapshotValue != null;
+//		existInBackDatabaseSavedForFlushRemove = existInBackDatabase;
+//		existInBackDatabase = snapshotValue != null;
 	}
 
 	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
@@ -295,13 +307,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
 		} else {
 			// removed
-			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-				var storage = table.getStorage();
-				if (storage != null)
-					storage.getDatabaseTable().remove(t, snapshotKey);
-				if (lct != null)
-					table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
-			}
+//			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
+			var storage = table.getStorage();
+			if (storage != null)
+				storage.getDatabaseTable().remove(t, snapshotKey);
+			if (lct != null)
+				table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
+//			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。
@@ -323,9 +335,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			Lockey lockey = table.getZeze().getLocks().get(tkey);
 			lockey.enterWriteLock();
 			try {
-				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
-					setDirty(false);
-				}
+//				if (savedTimestampForCheckpointPeriod == getTimestamp()) {
+//					setDirty(false);
+//				}
 				snapshotKey = null;
 				snapshotValue = null;
 				return;
