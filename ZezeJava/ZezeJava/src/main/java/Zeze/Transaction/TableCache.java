@@ -159,7 +159,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				(System.nanoTime() - timeBegin) / 1_000_000, lruQueue.size(), MAX_NODE_COUNT);
 	}
 
-	private void cleanNow() throws Exception {
+	public synchronized void cleanNow() throws Exception {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。

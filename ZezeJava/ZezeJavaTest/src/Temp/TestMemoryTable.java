@@ -57,7 +57,8 @@ public class TestMemoryTable {
 			return 0L;
 		}, "get2"));
 
-		Thread.sleep(12000); // wait cache clean
+		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
+		//Thread.sleep(12000); // wait cache clean
 
 		Task.call(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(123L));
@@ -107,7 +108,8 @@ public class TestMemoryTable {
 			return 0L;
 		}, "get6"));
 
-		Thread.sleep(12000); // wait cache clean
+		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
+		//Thread.sleep(12000); // wait cache clean
 
 		Assert.assertEquals(0, App.Instance.demo_Module1.tMemorySize().getCacheSize());
 

@@ -91,7 +91,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		super(id, name, suffix);
 	}
 
-	TableCache<K, V> getCache() {
+	public TableCache<K, V> getCache() {
 		return cache;
 	}
 
