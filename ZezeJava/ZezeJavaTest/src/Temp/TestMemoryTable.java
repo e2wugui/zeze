@@ -1,6 +1,7 @@
 package Temp;
 
 import java.lang.ref.SoftReference;
+import Zeze.Transaction.TableX;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import demo.App;
@@ -19,6 +20,13 @@ public class TestMemoryTable {
 		test(false, true);
 		test(true, false);
 		test(true, true);
+	}
+
+	private static void callNewLruHot(TableX<?, ?> table) throws ReflectiveOperationException {
+		var tableCache = table.getCache();
+		var method = tableCache.getClass().getDeclaredMethod("newLruHot");
+		method.setAccessible(true);
+		method.invoke(tableCache);
 	}
 
 	public static void test(boolean checkpoint1, boolean checkpoint2) throws Exception {
@@ -57,6 +65,7 @@ public class TestMemoryTable {
 			return 0L;
 		}, "get2"));
 
+		callNewLruHot(App.Instance.demo_Module1.tMemorySize());
 		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
 		//Thread.sleep(12000); // wait cache clean
 
@@ -108,6 +117,7 @@ public class TestMemoryTable {
 			return 0L;
 		}, "get6"));
 
+		callNewLruHot(App.Instance.demo_Module1.tMemorySize());
 		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
 		//Thread.sleep(12000); // wait cache clean
 
