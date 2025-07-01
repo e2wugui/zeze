@@ -77,6 +77,7 @@ public class TestMemoryTable {
 		}, "get3"));
 
 		try {
+			//noinspection unused
 			var obj = new long[2_000_000_000];
 		} catch (OutOfMemoryError err) {
 			System.out.println("OutOfMemoryError");

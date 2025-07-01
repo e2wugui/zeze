@@ -1,11 +1,8 @@
 package Zeze.Transaction;
 
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class Storage<K extends Comparable<K>, V extends Bean> {
 	private static final @NotNull Logger logger = LogManager.getLogger(Storage.class);
@@ -51,12 +48,12 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	}
 	*/
 
-	/**
-	 * 仅在 Checkpoint 中调用，同时只有一个线程执行。
-	 * 没有得到任何锁。
-	 *
-	 * @return encoded record count
-	 */
+//	/**
+//	 * 仅在 Checkpoint 中调用，同时只有一个线程执行。
+//	 * 没有得到任何锁。
+//	 *
+//	 * @return encoded record count
+//	 */
 //	public int encodeN() {
 //		int c = 0;
 //		for (var v : changed.values()) {
@@ -66,11 +63,11 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 //		return c;
 //	}
 
-	/**
-	 * 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
-	 *
-	 * @return encoded record count
-	 */
+//	/**
+//	 * 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
+//	 *
+//	 * @return encoded record count
+//	 */
 //	public int encode0() {
 //		for (var e : changed.entrySet()) {
 //			e.getValue().encode0();
@@ -81,23 +78,23 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 //		return cc;
 //	}
 
-	/**
-	 * 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
-	 *
-	 * @return snapshot record count
-	 */
+//	/**
+//	 * 仅在 Checkpoint 中调用，在 flushWriteLock 下执行。
+//	 *
+//	 * @return snapshot record count
+//	 */
 //	public int snapshot() {
 //		snapshot.putAll(encoded);
 //		encoded.clear();
 //		return snapshot.size();
 //	}
 
-	/**
-	 * 仅在 Checkpoint 中调用。
-	 * 没有拥有任何锁。
-	 *
-	 * @return flush record count
-	 */
+//	/**
+//	 * 仅在 Checkpoint 中调用。
+//	 * 没有拥有任何锁。
+//	 *
+//	 * @return flush record count
+//	 */
 //	public int flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
 //					 @Nullable Database.Transaction lct) {
 //		for (var v : snapshot.values())
@@ -105,10 +102,10 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 //		return snapshot.size();
 //	}
 
-	/**
-	 * 仅在 Checkpoint 中调用。
-	 * 没有拥有任何锁。
-	 */
+//	/**
+//	 * 仅在 Checkpoint 中调用。
+//	 * 没有拥有任何锁。
+//	 */
 //	public void cleanup() {
 //		for (var v : snapshot.values())
 //			v.cleanup();

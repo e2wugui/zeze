@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Application;
 import Zeze.Util.Factory;
 import Zeze.Util.Task;
@@ -38,14 +38,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private volatile ConcurrentHashMap<K, Record1<K, V>> lruHot;
 	private @Nullable Future<?> timerNewHot;
 	private @Nullable Future<?> timerClean;
-	private final AtomicInteger sizeCounter = new AtomicInteger();
+	private final LongAdder sizeCounter = new LongAdder();
 
-	AtomicInteger getSizeCounter() {
+	LongAdder getSizeCounter() {
 		return sizeCounter;
 	}
 
-	public int size() {
-		return sizeCounter.get();
+	public long size() {
+		return table.isMemory() ? sizeCounter.sum() : dataMap.size();
 	}
 
 	TableCache(Application ignoredApp, @NotNull TableX<K, V> table) {

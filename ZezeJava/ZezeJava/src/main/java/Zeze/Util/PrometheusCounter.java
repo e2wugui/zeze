@@ -22,7 +22,6 @@ import io.prometheus.metrics.exporter.common.PrometheusHttpRequest;
 import io.prometheus.metrics.exporter.common.PrometheusHttpResponse;
 import io.prometheus.metrics.exporter.common.PrometheusScrapeHandler;
 import io.prometheus.metrics.model.snapshots.Unit;
-import io.prometheus.metrics.exporter.httpserver.HTTPServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;

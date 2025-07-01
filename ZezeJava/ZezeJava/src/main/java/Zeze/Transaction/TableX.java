@@ -128,7 +128,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final int getCacheSize() {
-		return cache != null ? cache.size() : 0;
+		return cache != null ? (int)cache.size() : 0;
 		// return cache != null ? cache.getDataMap().size() : 0;
 	}
 
@@ -272,7 +272,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						if (strongRef != null)
 							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
 					} else {
-						// 内存表如果限制了内存（capaticy）大小，执行了clean，才会执行这里的逻辑。
+						// 内存表如果限制了内存（capacity）大小，执行了clean，才会执行这里的逻辑。
 						// 从本地硬盘缓存装载数据。
 						var find = localRocksCacheTable.find(this, key);
 						if (find != null) {

@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
@@ -34,7 +33,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	private Object snapshotValue;
 	private Object snapshotKeyLocal;
 	private Object snapshotValueLocal;
-//	private long savedTimestampForCheckpointPeriod;
+	//	private long savedTimestampForCheckpointPeriod;
 //	private boolean existInBackDatabase;
 //	private boolean existInBackDatabaseSavedForFlushRemove;
 	private volatile @Nullable ConcurrentHashMap<K, Record1<K, V>> lruNode;
@@ -177,9 +176,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				// 计算内存表的大小。
 				if (table.isMemory()) {
 					if (accessed.atomicTupleRecord.strongRef == null && committedPutLog.getValue() != null) // add
-						table.getCache().getSizeCounter().incrementAndGet();
+						table.getCache().getSizeCounter().increment();
 					else if (accessed.atomicTupleRecord.strongRef != null && committedPutLog.getValue() == null) // remove
-						table.getCache().getSizeCounter().decrementAndGet();
+						table.getCache().getSizeCounter().decrement();
 				}
 			}
 			setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
@@ -211,6 +210,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
+/*
 	boolean tryEncodeN(@NotNull ConcurrentHashMap<K, Record1<K, V>> changed,
 					   @NotNull ConcurrentHashMap<K, Record1<K, V>> encoded) {
 		Lockey lockey = table.getZeze().getLocks().get(new TableKey(table.getId(), key));
@@ -226,6 +226,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			lockey.exitReadLock();
 		}
 	}
+*/
 
 	@Override
 	public void encode0() {
@@ -284,6 +285,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 //		existInBackDatabase = snapshotValue != null;
 	}
 
+/*
 	void flush(@NotNull Database.Transaction t, @NotNull HashMap<Database, Database.Transaction> tss,
 			   @Nullable Database.Transaction lct) {
 		if (table.getOldTable() != null) {
@@ -292,6 +294,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 		flush(t, lct);
 	}
+*/
 
 	@Override
 	public void flush(@NotNull Database.Transaction t, @Nullable Database.Transaction lct) {
@@ -308,11 +311,11 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		} else {
 			// removed
 //			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-				var storage = table.getStorage();
-				if (storage != null)
-					storage.getDatabaseTable().remove(t, snapshotKey);
-				if (lct != null)
-					table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
+			var storage = table.getStorage();
+			if (storage != null)
+				storage.getDatabaseTable().remove(t, snapshotKey);
+			if (lct != null)
+				table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
 //			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。

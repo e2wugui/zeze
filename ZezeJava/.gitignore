@@ -32,6 +32,7 @@ test.ks
 /ZezeJavaTest/master
 /ZezeJavaTest/mqmanager*
 /ZezeJavaTest/mqmaster
+/ZezeJavaTest/testFileWithIndexed
 /ZezeJavaTest/testMmapFile*
 /ZezexJava/linkd/clazz
 /ZezexJava/linkd/upload
