@@ -10,6 +10,7 @@ import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerRole;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
@@ -19,6 +20,8 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zezex.Linkd.Auth;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -27,6 +30,7 @@ import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestRoleTimer {
+	private static final @NotNull Logger logger = LogManager.getLogger(TestRoleTimer.class);
 
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
@@ -426,7 +430,7 @@ public class TestRoleTimer {
 	}
 
 	private static void log(String msg) {
-		System.out.println("======================================== " + msg + " ========================================");
+		logger.info("======================================== " + msg + " ========================================");
 	}
 
 	@Test
@@ -435,6 +439,7 @@ public class TestRoleTimer {
 
 		try {
 			var clientCount = 1000;
+			log("batch start.");
 			prepareNewEnvironment(clientCount, 1, 1);
 			log("batch prepareNewEnvironment done.");
 
