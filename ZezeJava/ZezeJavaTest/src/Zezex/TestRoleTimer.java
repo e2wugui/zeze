@@ -1,19 +1,23 @@
 package Zezex;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import javax.validation.constraints.AssertTrue;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
+import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerRole;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
@@ -488,9 +492,15 @@ public class TestRoleTimer {
 			log("batch future done.");
 
 			// 这里应该对成功login才logout，或者忽略logout结果，目前把这个错误暴露出来不忽略。
-			for (var client : clients)
-				logout(client, 0);
-
+			var logoutFutures = new HashMap<Logout, TaskCompletionSource<EmptyBean>>();
+			for (var client : clients) {
+				var logout = new Logout();
+				logoutFutures.put(logout, logout.SendForWait(client.ClientService.GetSocket(), 30_000));
+			}
+			for (var future : logoutFutures.entrySet()) {
+				future.getValue().await();
+				Assert.assertEquals(0, future.getKey().getResultCode());
+			}
 			log("batch logout done.");
 		} finally {
 			stopAll();
