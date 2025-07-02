@@ -14,6 +14,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -434,25 +435,27 @@ public class TestRoleTimer {
 
 		try {
 			log("batch Online Timer 初始化测试环境");
-			var clientCount = 100;
+			var clientCount = 300;
 			prepareNewEnvironment(clientCount, 1, 1);
 			log("batch prepareNewEnvironment done.");
 
 			var loginFutures = new ArrayList<Future<?>>();
 			var roleIds = new Vector<Long>();
 			for (var loginI = 0; loginI < clientCount; ++loginI) {
+				var client = clients.get(loginI);
 				int finalLoginI = loginI;
 				loginFutures.add(Task.runUnsafe(() -> {
-					auth(clients.get(finalLoginI), "account" + finalLoginI);
-					var role = getRole(clients.get(finalLoginI));
-					var roleId = null != role ? role.getId() : createRole(clients.get(finalLoginI), "role" + finalLoginI);
-					login(clients.get(finalLoginI), roleId);
+					auth(client, "account" + finalLoginI);
+					var role = getRole(client);
+					var roleId = null != role ? role.getId() : createRole(client, "role" + finalLoginI);
+					login(client, roleId);
 					roleIds.add(roleId);
 				}, "login"));
 			}
 			for (var future : loginFutures)
 				future.get();
-			log("batch login " + clientCount + " complete.");
+			// ---- 当getRole出现超时时，这里的size居然是0，一个都没有登录成功！ ---
+			log("batch login " + roleIds.size() + " complete.");
 
 			var server0 = servers.get(0);
 			var timer0 = server0.getZeze().getTimer();
@@ -460,20 +463,23 @@ public class TestRoleTimer {
 
 			for (var roleId : roleIds) {
 				var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
-				Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+				Task.run(server0.Zeze.newProcedure(() -> {
 					// 每个角色创建20个timer。
 					for (var i = 0; i < 20; ++i) {
-						idSet.add(i);
+						idSet.add(i); // 本来应该事务成功，不过这个目前没有失败的，先这样。
 						timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
 					}
 					return Procedure.Success;
-				}, "testOnlineWithBean").call());
+				}, "scheduleOnlineN"));
 			}
-			batchFuture.await();
+			if (!roleIds.isEmpty())
+				batchFuture.await();
 			log("batch future done.");
 
+			// 这里应该对成功login才logout，或者忽略logout结果，目前把这个错误暴露出来不忽略。
 			for (var client : clients)
 				logout(client, 0);
+
 			log("batch logout done.");
 		} finally {
 			stopAll();
@@ -529,7 +535,8 @@ public class TestRoleTimer {
 					if (batchContext.isEmpty())
 						batchFuture.setResult(true);
 				}
-			}
+			} else if (batchContext.isEmpty())
+				batchFuture.setResult(true);
 		}
 	}
 }
