@@ -2,6 +2,7 @@ package Zezex;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
@@ -438,7 +439,7 @@ public class TestRoleTimer {
 			log("batch prepareNewEnvironment done.");
 
 			var loginFutures = new ArrayList<Future<?>>();
-			var roleIds = new ArrayList<Long>();
+			var roleIds = new ConcurrentLinkedQueue<Long>();
 			for (var loginI = 0; loginI < clientCount; ++loginI) {
 				int finalLoginI = loginI;
 				loginFutures.add(Task.runUnsafe(() -> {
