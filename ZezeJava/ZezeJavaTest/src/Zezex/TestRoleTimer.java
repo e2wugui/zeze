@@ -434,13 +434,12 @@ public class TestRoleTimer {
 		Task.tryInitThreadPool();
 
 		try {
-			log("batch Online Timer 初始化测试环境");
-			var clientCount = 300;
+			var clientCount = 1000;
 			prepareNewEnvironment(clientCount, 1, 1);
 			log("batch prepareNewEnvironment done.");
 
 			var loginFutures = new ArrayList<Future<?>>();
-			var roleIds = new Vector<Long>();
+			var loginRoleIds = new Vector<Long>();
 			for (var loginI = 0; loginI < clientCount; ++loginI) {
 				var client = clients.get(loginI);
 				int finalLoginI = loginI;
@@ -449,19 +448,26 @@ public class TestRoleTimer {
 					var role = getRole(client);
 					var roleId = null != role ? role.getId() : createRole(client, "role" + finalLoginI);
 					login(client, roleId);
-					roleIds.add(roleId);
+					loginRoleIds.add(roleId);
 				}, "login"));
+
+				// 为了防止Task把线程全部占完，造成线程饥饿，这里每150个任务就等待完成一次。
+				if ((loginI + 1) % 150 == 0) {
+					for (var future : loginFutures)
+						future.get();
+					loginFutures.clear();
+				}
 			}
 			for (var future : loginFutures)
 				future.get();
 			// ---- 当getRole出现超时时，这里的size居然是0，一个都没有登录成功！ ---
-			log("batch login " + roleIds.size() + " complete.");
+			log("batch login " + loginRoleIds.size() + " complete.");
 
 			var server0 = servers.get(0);
 			var timer0 = server0.getZeze().getTimer();
 			var timerRole0 = timer0.getRoleTimer();
 
-			for (var roleId : roleIds) {
+			for (var roleId : loginRoleIds) {
 				var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
 				Task.run(server0.Zeze.newProcedure(() -> {
 					// 每个角色创建20个timer。
@@ -472,7 +478,7 @@ public class TestRoleTimer {
 					return Procedure.Success;
 				}, "scheduleOnlineN"));
 			}
-			if (!roleIds.isEmpty())
+			if (!loginRoleIds.isEmpty())
 				batchFuture.await();
 			log("batch future done.");
 
