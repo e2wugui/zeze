@@ -1,16 +1,23 @@
 package Zezex;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.IByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zezex.Linkd.Auth;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -23,7 +30,7 @@ public class TestRoleTimer {
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
 
-	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
+	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -47,8 +54,9 @@ public class TestRoleTimer {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
 			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
-			clients.get(i).Connector.WaitReady();
 		}
+		for (int i = 0; i < clientCount; ++i)
+			clients.get(i).Connector.WaitReady();
 	}
 
 	private void stopAll() throws Exception {
@@ -98,7 +106,7 @@ public class TestRoleTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			prepareNewEnvironment(2, 2, 1, 2);
+			prepareNewEnvironment(2, 2, 1);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
@@ -175,7 +183,7 @@ public class TestRoleTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			prepareNewEnvironment(2, 2, 1, 2);
+			prepareNewEnvironment(2, 2, 1);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
@@ -256,7 +264,7 @@ public class TestRoleTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			prepareNewEnvironment(2, 2, 2, 2);
+			prepareNewEnvironment(2, 2, 2);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
@@ -312,7 +320,7 @@ public class TestRoleTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			prepareNewEnvironment(2, 2, 2, 2);
+			prepareNewEnvironment(2, 2, 2);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
@@ -417,5 +425,110 @@ public class TestRoleTimer {
 
 	private static void log(String msg) {
 		System.out.println("======================================== " + msg + " ========================================");
+	}
+
+	@Test
+	public void benchRoleTimer() throws Exception {
+		Task.tryInitThreadPool();
+
+		try {
+			log("batch Online Timer 初始化测试环境");
+			var clientCount = 100;
+			prepareNewEnvironment(clientCount, 1, 1);
+			log("batch prepareNewEnvironment done.");
+
+			var loginFutures = new ArrayList<Future<?>>();
+			var roleIds = new ArrayList<Long>();
+			for (var loginI = 0; loginI < clientCount; ++loginI) {
+				int finalLoginI = loginI;
+				loginFutures.add(Task.runUnsafe(() -> {
+					auth(clients.get(finalLoginI), "account" + finalLoginI);
+					var role = getRole(clients.get(finalLoginI));
+					var roleId = null != role ? role.getId() : createRole(clients.get(finalLoginI), "role" + finalLoginI);
+					login(clients.get(finalLoginI), roleId);
+					roleIds.add(roleId);
+				}, "login"));
+			}
+			for (var future : loginFutures)
+				future.get();
+			log("batch login " + clientCount + " complete.");
+
+			var server0 = servers.get(0);
+			var timer0 = server0.getZeze().getTimer();
+			var timerRole0 = timer0.getRoleTimer();
+
+			for (var roleId : roleIds) {
+				var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
+				Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+					// 每个角色创建20个timer。
+					for (var i = 0; i < 20; ++i) {
+						idSet.add(i);
+						timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
+					}
+					return Procedure.Success;
+				}, "testOnlineWithBean").call());
+			}
+			batchFuture.await();
+			log("batch future done.");
+
+			for (var client : clients)
+				logout(client, 0);
+			log("batch logout done.");
+		} finally {
+			stopAll();
+		}
+	}
+
+	private static final ConcurrentHashMap<Long, ConcurrentHashSet<Integer>> batchContext = new ConcurrentHashMap<>();
+	private static final TaskCompletionSource<Boolean> batchFuture = new TaskCompletionSource<>();
+
+	public static class ContextBatch extends Bean {
+		private long roleId;
+		private int id;
+
+		public ContextBatch() {
+
+		}
+
+		public ContextBatch(long roleId, int id) {
+			this.roleId = roleId;
+			this.id = id;
+		}
+
+		public int getId() {
+			return id;
+		}
+
+		public long getRoleId() {
+			return roleId;
+		}
+
+		@Override
+		public void encode(@NotNull ByteBuffer bb) {
+			bb.WriteLong(roleId);
+			bb.WriteInt(id);
+		}
+
+		@Override
+		public void decode(@NotNull IByteBuffer bb) {
+			roleId = bb.ReadLong();
+			id = bb.ReadInt();
+		}
+	}
+	public static class TimerBatch implements TimerHandle {
+		@Override
+		public void onTimer(TimerContext context) {
+			var ctxBean = (ContextBatch)context.customData;
+			assert ctxBean != null;
+			var idSet = batchContext.get(ctxBean.getRoleId());
+			if (null != idSet) {
+				idSet.remove(ctxBean.getId());
+				if (idSet.isEmpty()) {
+					batchContext.remove(ctxBean.getRoleId());
+					if (batchContext.isEmpty())
+						batchFuture.setResult(true);
+				}
+			}
+		}
 	}
 }
