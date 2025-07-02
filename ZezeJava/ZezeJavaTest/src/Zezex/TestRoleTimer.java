@@ -1,8 +1,8 @@
 package Zezex;
 
 import java.util.ArrayList;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
@@ -385,7 +385,7 @@ public class TestRoleTimer {
 		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket(), 30_000).await();
-		System.out.println("login result: " + login.getResultCode());
+		//System.out.println("login result: " + login.getResultCode());
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
@@ -439,7 +439,7 @@ public class TestRoleTimer {
 			log("batch prepareNewEnvironment done.");
 
 			var loginFutures = new ArrayList<Future<?>>();
-			var roleIds = new ConcurrentLinkedQueue<Long>();
+			var roleIds = new Vector<Long>();
 			for (var loginI = 0; loginI < clientCount; ++loginI) {
 				int finalLoginI = loginI;
 				loginFutures.add(Task.runUnsafe(() -> {
