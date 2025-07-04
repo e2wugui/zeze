@@ -21,9 +21,9 @@ public class HandshakeOptions {
 	private final ArrayList<Integer> supportedCompress = new ArrayList<>(); // empty 表示支持所有内建的。
 	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>(); // empty 表示支持所有内建的。
 
-	private int keepCheckPeriod; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
-	private int keepRecvTimeout; // 检查距上次接收的超时时间(秒). 0表示禁用
-	private int keepSendTimeout; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
+	private int keepCheckPeriod; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用(下面两个超时都不会生效)
+	private int keepRecvTimeout; // 检查距上次接收的超时时间(秒). 0表示禁用, 超时会触发onKeepAliveTimeout, 通常会认为对方无响应而关闭连接
+	private int keepSendTimeout; // 检查距上次发送的超时时间(秒). 0表示禁用, 可以只让连接的某一方启用, 超时会触发onSendKeepAlive, 通常是发KeepAlive的RPC, 需要对方回复
 
 	public HandshakeOptions() {
 		addDhGroup(1);
