@@ -625,6 +625,9 @@ namespace Zeze.Net
             var now = Time.NowUnixMillis; // 使用毫秒，System.nanoTime c# 不知道怎么对应，查了一下说 StopWatch？
             foreach (var socket in SocketMap.Values)
             {
+                if (!(socket is TcpSocket))
+                    continue;
+
                 var recvTime = now - socket.ActiveRecvTime;
                 if (recvTime > keepRecvTimeout)
                 {

@@ -880,20 +880,22 @@ public class Service extends ReentrantLock {
 		var keepSendTimeout = conf.getKeepSendTimeout() > 0 ? conf.getKeepSendTimeout() : Integer.MAX_VALUE;
 		int now = (int)GlobalTimer.getCurrentSeconds();
 		foreach(socket -> {
-			int recvTime = now - socket.getActiveRecvTime();
-			if (recvTime > keepRecvTimeout) {
-				try {
-					onKeepAliveTimeout(socket);
-				} catch (Exception e) {
-					logger.error("onKeepAliveTimeout exception:", e);
+			if (socket instanceof TcpSocket) {
+				int recvTime = now - socket.getActiveRecvTime();
+				if (recvTime > keepRecvTimeout) {
+					try {
+						onKeepAliveTimeout(socket);
+					} catch (Exception e) {
+						logger.error("onKeepAliveTimeout exception:", e);
+					}
 				}
-			}
-			if (socket.getType() == AsyncSocket.Type.eClient && (now - socket.getActiveSendTime() > keepSendTimeout ||
-					recvTime > keepSendTimeout)) { // 上次接收时间超过SendTimeout也要发起KeepAlive,通过RPC回复更新上次接收时间
-				try {
-					onSendKeepAlive(socket);
-				} catch (Exception e) {
-					logger.error("onSendKeepAlive exception:", e);
+				if (socket.getType() == AsyncSocket.Type.eClient && (now - socket.getActiveSendTime() > keepSendTimeout ||
+						recvTime > keepSendTimeout)) { // 上次接收时间超过SendTimeout也要发起KeepAlive,通过RPC回复更新上次接收时间
+					try {
+						onSendKeepAlive(socket);
+					} catch (Exception e) {
+						logger.error("onSendKeepAlive exception:", e);
+					}
 				}
 			}
 		});

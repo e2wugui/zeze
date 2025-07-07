@@ -43,9 +43,9 @@ namespace Zeze.Services
         public readonly List<int> SupportedEncrypt = new List<int>();
         public readonly List<int> SupportedCompress = new List<int>();
 
-        public int KeepCheckPeriod { get; set; } // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
-        public int KeepRecvTimeout { get; set; } // 检查距上次接收的超时时间(秒). 0表示禁用
-        public int KeepSendTimeout { get; set; } // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
+        public int KeepCheckPeriod { get; set; } = 5; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用
+        public int KeepRecvTimeout { get; set; } = 60; // 检查距上次接收的超时时间(秒). 0表示禁用
+        public int KeepSendTimeout { get; set; } = 25; // 检查距上次发送的超时时间(秒). 0表示禁用, 只有主动连接方会使用
 
         public HandshakeOptions()
         {
