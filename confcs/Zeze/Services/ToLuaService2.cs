@@ -53,6 +53,12 @@ namespace Zeze.Services
             ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
+        protected override void OnKeepAliveTimeout(AsyncSocket socket)
+        {
+            //base.OnKeepAliveTimeout(socket);
+            ToLua.OnKeepAliveTimeout(socket.SessionId, this);
+        }
+
         public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
@@ -232,12 +238,14 @@ namespace Zeze.Services.ToLuaService2
             public readonly Dictionary<long, ByteBuffer> toLuaBuffer = new Dictionary<long, ByteBuffer>();
             public readonly Dictionary<long, IFromLua2> toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
             public readonly Dictionary<long, IFromLua2> toLuaSocketClose = new Dictionary<long, IFromLua2>();
+            public readonly Dictionary<long, IFromLua2> toLuaOnKeepAliveTimeout = new Dictionary<long, IFromLua2>();
 
             public void Clear()
             {
                 toLuaBuffer.Clear();
                 toLuaHandshakeDone.Clear();
                 toLuaSocketClose.Clear();
+                toLuaOnKeepAliveTimeout.Clear();
             }
         }
 
@@ -255,6 +263,7 @@ namespace Zeze.Services.ToLuaService2
         public int OnSocketConnected;
         public int OnSocketClosed;
         public int OnReceiveProtocol;
+        public int OnKeepAliveTimeoutLua;
         // ReSharper restore UnassignedField.Global
 
         int tableRefId = (int)LuaDefine.NoRef;
@@ -592,6 +601,22 @@ namespace Zeze.Services.ToLuaService2
             // int errFunc = Lua.PCallPrepare(luaState, OnSocketConnected);
             int errFunc = 0;
             Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, OnSocketConnected);
+            // Lua.PushObject(luaState, service);
+            Lua.lua_pushinteger(luaState, socketSessionId);
+            Lua.lua_pcall(luaState, 1, 0, errFunc);
+        }
+
+        internal void CallOnKeepAliveTimeout(IntPtr luaState, IFromLua2 service, long socketSessionId)
+        {
+            if (OnKeepAliveTimeoutLua == 0)
+            {
+                Lua.lua_pop(luaState, 1);
+                return;
+            }
+
+            // int errFunc = Lua.PCallPrepare(luaState, OnKeepAliveTimeoutLua);
+            int errFunc = 0;
+            Lua.lua_rawgeti(luaState, Lua.LUA_REGISTRYINDEX, OnKeepAliveTimeoutLua);
             // Lua.PushObject(luaState, service);
             Lua.lua_pushinteger(luaState, socketSessionId);
             Lua.lua_pcall(luaState, 1, 0, errFunc);
@@ -1365,6 +1390,14 @@ namespace Zeze.Services.ToLuaService2
             }
         }
 
+        internal void OnKeepAliveTimeout(long sessionId, IFromLua2 service)
+        {
+            lock (this)
+            {
+                toLuaVariable.toLuaOnKeepAliveTimeout[sessionId] = service;
+            }
+        }
+
         internal void SetSocketClose(long socketSessionId, IFromLua2 service)
         {
             lock (this)
@@ -1400,6 +1433,11 @@ namespace Zeze.Services.ToLuaService2
             foreach (var e in toLuaVariableUpdating.toLuaHandshakeDone)
             {
                 CallHandshakeDone(luaState, e.Value, e.Key);
+            }
+
+            foreach (var e in toLuaVariableUpdating.toLuaOnKeepAliveTimeout)
+            {
+                CallOnKeepAliveTimeout(luaState, e.Value, e.Key);
             }
 
             UpdateLuaState = luaState;
@@ -1609,7 +1647,8 @@ namespace Zeze.Services.ToLuaService2
             ExportFunction(l, "SetOnSocketConnected", SetOnSocketConnected);
             ExportFunction(l, "SetOnSocketClosed", SetOnSocketClosed);
             ExportFunction(l, "SetOnReceiveProtocol", SetOnReceiveProtocol);
-            
+            ExportFunction(l, "SetKeepAliveTimeout", SetKeepAliveTimeout);
+
             Lua.lua_settable(l, -3);
             Lua.lua_pop(l, 1);
         }
@@ -1662,6 +1701,13 @@ namespace Zeze.Services.ToLuaService2
         {
             int reference = Instance.Lua.luaL_ref(luaState, Instance.Lua.LUA_REGISTRYINDEX);
             Instance.OnSocketConnected = reference;
+            return 0;
+        }
+
+        public static int SetKeepAliveTimeout(IntPtr luaState)
+        {
+            int reference = Instance.Lua.luaL_ref(luaState, Instance.Lua.LUA_REGISTRYINDEX);
+            Instance.OnKeepAliveTimeoutLua = reference;
             return 0;
         }
 
