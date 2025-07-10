@@ -48,6 +48,11 @@ public class CheckpointFlush {
 					App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(key);
 					return 0;
 				}, "modify")));
+				if ((i+1) % 100 == 0) {
+					for (var task : futures)
+						task.get();
+					futures.clear();
+				}
 			}
 			for (var future : futures)
 				future.get();

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Transaction.DispatchMode;
 import demo.Module1.BValue;
@@ -26,20 +27,22 @@ public class TestConflict {
 	@Test
 	public final void testConflictAdd() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
-		Future<?>[] tasks = new Future[2000];
+		var tasks = new ArrayList<Future<?>>();
 		for (int i = 0; i < 2000; ++i) {
-			tasks[i]=Zeze.Util.Task.runUnsafe(
+			tasks.add(Zeze.Util.Task.runUnsafe(
 					demo.App.getInstance().Zeze.newProcedure(this::ProcAdd, "ProcAdd"),
-					DispatchMode.Normal);
-		}
-		for (Future<?> task : tasks) {
-			try {
-				task.get();
-			} catch (Exception e) {
-				e.printStackTrace();
+					DispatchMode.Normal));
+			if ((i+1) % 200 == 0) {
+				for (Future<?> task : tasks)
+					task.get();
+				sum += tasks.size();
+				tasks.clear();
 			}
 		}
-		sum = tasks.length;
+		for (Future<?> task : tasks) {
+			task.get();
+		}
+		sum += tasks.size();
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(this::ProcVerify, "ProcVerify").call());
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
 	}
@@ -52,7 +55,6 @@ public class TestConflict {
 	private long ProcAdd() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		v.setInt_1(v.getInt_1() + 1);
-		sum++;
 		return Procedure.Success;
 	}
 

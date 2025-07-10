@@ -57,7 +57,7 @@ public class TestOnz {
 		Thread.sleep(2000);
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
-		Assert.assertEquals(0, onzServer.perform(txn));
+		Assert.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
 		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
 		Assert.assertEquals(0, txn.m1 + txn.m2);
 	}

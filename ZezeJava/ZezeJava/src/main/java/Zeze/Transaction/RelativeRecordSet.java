@@ -414,15 +414,21 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static class FlushSet {
 		private final @NotNull Checkpoint checkpoint;
 		private final TreeMap<Long, RelativeRecordSet> sortedRrs = new TreeMap<>();
+		private int sumHint;
 
 		public FlushSet(@NotNull Checkpoint cp) {
 			checkpoint = cp;
 		}
 
-		private int add(@NotNull RelativeRecordSet rrs) {
+		private boolean add(@NotNull RelativeRecordSet rrs) {
 			if (sortedRrs.putIfAbsent(rrs.id, rrs) != null)
 				throw new IllegalStateException("duplicate rrs");
-			return sortedRrs.size();
+			if (null != rrs.recordSet) {
+				// 这里没有加锁，得到的recordSet.size可能会变，但这里仅作为一个控制一次提交的量，不加锁是可以的。
+				sumHint += rrs.recordSet.size();
+			}
+			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
+			return sortedRrs.size() >= flushLimit || sumHint >= 10000;
 		}
 
 		private int size() {
@@ -476,6 +482,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 					checkpoint.relativeRecordSetMap.remove(rrs);
 				}
 				sortedRrs.clear();
+				sumHint = 0;
 
 				// verify
 				var verifyAction = DatabaseRocksDb.verifyAction;
@@ -525,9 +532,8 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 		case SingleThreadMerge: {
 			var flushSet = new FlushSet(checkpoint);
-			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			for (var rrs : checkpoint.relativeRecordSetMap) {
-				if (flushSet.add(rrs) >= flushLimit)
+				if (flushSet.add(rrs))
 					flushSet.flush();
 			}
 			if (flushSet.size() > 0)
@@ -538,10 +544,9 @@ public final class RelativeRecordSet extends ReentrantLock {
 		case MultiThreadMerge: {
 			//Checkpoint.logger.info("Global.Releaser rrs={}", checkpoint.relativeRecordSetMap.size());
 			var flushSetMap = new ConcurrentHashMap<Thread, FlushSet>();
-			var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
 			checkpoint.relativeRecordSetMap.keySet().parallelStream().forEach(rrs -> {
 				var fs = parallelFlushSet(checkpoint, flushSetMap);
-				if (fs.add(rrs) >= flushLimit)
+				if (fs.add(rrs))
 					fs.flush();
 			});
 			for (var fs : flushSetMap.values()) {

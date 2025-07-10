@@ -32,8 +32,14 @@ public class TestLostRedo {
 	public void test() throws ExecutionException, InterruptedException {
 		App.Instance.Zeze.newProcedure(TestLostRedo::clear, "clear").call();
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 1_0000; ++i)
+		for (int i = 0; i < 1_0000; ++i) {
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::write, "write")));
+			if ((i+1) % 200 == 0) {
+				for (var future : futures)
+					future.get();
+				futures.clear();
+			}
+		}
 		for (var future : futures)
 			future.get();
 		for (var key : keys)
@@ -66,8 +72,14 @@ public class TestLostRedo {
 	public void testAutoKeyConflict() throws ExecutionException, InterruptedException {
 		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < 1_0000; ++i)
+		for (int i = 0; i < 1_0000; ++i) {
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")));
+			if ((i+1) % 200 == 0) {
+				for (var future : futures)
+					future.get();
+				futures.clear();
+			}
+		}
 		for (var future : futures)
 			future.get();
 		System.out.println("runTimes=" + runTimes.get());
@@ -98,8 +110,14 @@ public class TestLostRedo {
 
 		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
-		for (int i = 0; i < count; ++i)
+		for (int i = 0; i < count; ++i) {
 			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
+			if ((i+1) % 200 == 0) {
+				for (var future : futures)
+					future.get();
+				futures.clear();
+			}
+		}
 		for (var future : futures)
 			future.get();
 

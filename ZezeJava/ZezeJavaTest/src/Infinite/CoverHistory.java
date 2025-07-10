@@ -24,11 +24,10 @@ import org.jetbrains.annotations.Nullable;
 public class CoverHistory {
 	private static final Logger logger = LogManager.getLogger(CoverHistory.class);
 	private static final int eKeyRange = 1024; // 修改的记录范围
-	private static final int eTaskCont = 10000; // 总的修改任务
+	//private static final int eTaskCont = 10000; // 总的修改任务
 	private static final int eJobsPerTask = 3; // 每个任务执行多少个修改工作。
 	private final demo.App app;
 	private final ArrayList<Job> jobs = new ArrayList<>();
-	private final ArrayList<Future<?>> taskFutures = new ArrayList<>();
 
 	public CoverHistory(demo.App app) {
 		this.app = app;
@@ -80,20 +79,12 @@ public class CoverHistory {
 
 	private static long seed = System.currentTimeMillis();
 
-	public void submitTasks() {
+	public Future<?> submitTasks(int i) throws ExecutionException, InterruptedException {
 		var s = seed++;
 		logger.info("submitTasks: seed={}", s);
-		for (var i = 0; i < eTaskCont; ++i) {
-			var seed = s ^ i;
-			taskFutures.add(Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")));
-			// Task.call(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
-		}
-	}
-
-	public void join() throws ExecutionException, InterruptedException {
-		for (var future : taskFutures)
-			future.get();
-		taskFutures.clear();
+		var seed = s ^ i;
+		return Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
+		// Task.call(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
 	}
 
 	public static StableRandom getRandom() {

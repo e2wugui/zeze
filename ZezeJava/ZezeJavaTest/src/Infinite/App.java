@@ -17,9 +17,9 @@ import org.apache.logging.log4j.Logger;
 public class App {
 	private static final Logger logger = LogManager.getLogger(App.class);
 	final demo.App app = new demo.App();
-	private final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
+	final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
 	private final Config config;
-	private final CoverHistory coverHistory;
+	final CoverHistory coverHistory;
 
 	public App(int serverId) {
 		config = Config.load("zeze.xml");
@@ -71,7 +71,7 @@ public class App {
 		app.Stop();
 	}
 
-	void Run(Tasks.Task task) {
+	void Run(Tasks.Task task) throws ExecutionException, InterruptedException {
 		task.App = app;
 		String name = task.getClass().getName();
 		int keyBound = task.getKeyBound();
@@ -86,7 +86,7 @@ public class App {
 		RunningTasks.add(task.IsProcedure()
 				? Task.runUnsafe(app.Zeze.newProcedure(task, name), DispatchMode.Normal)
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
-	}
+		}
 
 	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {
 		var t = System.nanoTime();
@@ -147,13 +147,8 @@ public class App {
 		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
 	}
 
-	public void startTest() {
-		coverHistory.submitTasks();
-	}
-
 	public void WaitAllRunningTasksAndClear() throws ExecutionException, InterruptedException {
 		Task.waitAll(RunningTasks);
 		RunningTasks.clear();
-		coverHistory.join();
 	}
 }

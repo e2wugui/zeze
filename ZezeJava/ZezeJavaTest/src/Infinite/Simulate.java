@@ -97,11 +97,17 @@ public final class Simulate {
 			for (var app : Apps) {
 				if (!app.app.Zeze.getConfig().isHistory())
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
-				app.startTest();
 			}
 			PerfCounter.instance().resetCounter();
-			for (int i = 0; i < BatchTaskCount; i++)
-				Tasks.randCreateTask().Run();
+			for (int i = 0; i < BatchTaskCount; i++) {
+				var app = Tasks.randCreateTask().Run();
+				if (((i + 1) % 3) == 0)
+					app.RunningTasks.add(app.coverHistory.submitTasks(i));
+				if (((i + 1) % 100) == 0) {
+					Task.waitAll(app.RunningTasks);
+					app.RunningTasks.clear();
+				}
+			}
 			logger.fatal("Wait {}", BatchNumber);
 			for (var app : Apps) {
 				app.WaitAllRunningTasksAndClear();

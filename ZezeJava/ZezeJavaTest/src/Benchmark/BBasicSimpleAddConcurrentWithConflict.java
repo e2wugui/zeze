@@ -22,6 +22,11 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
 				tasks.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")));
+				if ((i+1) % 200 == 0) {
+					for (var task : tasks)
+						task.get();
+					tasks.clear();
+				}
 			}
 			//b.Report(this.getClass().getName(), AddCount);
 			for (var task : tasks) {

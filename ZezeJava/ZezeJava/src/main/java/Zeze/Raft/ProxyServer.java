@@ -21,14 +21,16 @@ public class ProxyServer extends Service {
 	public ProxyServer(Config config, int rpcTimeout) {
 		super(eProxyServerName, config);
 		this.rpcTimeout = rpcTimeout;
-
+		getSocketOptions().setOutputBufferMaxSize(50 * 1024 * 1024);
+		getSocketOptions().setInputBufferMaxProtocolSize(50 * 1024 * 1024);
 		RegisterProtocols();
 	}
 
 	public ProxyServer(Application zeze, int rpcTimeout) {
 		super(eProxyServerName, zeze);
 		this.rpcTimeout = rpcTimeout;
-
+		getSocketOptions().setOutputBufferMaxSize(50 * 1024 * 1024);
+		getSocketOptions().setInputBufferMaxProtocolSize(50 * 1024 * 1024);
 		RegisterProtocols();
 	}
 

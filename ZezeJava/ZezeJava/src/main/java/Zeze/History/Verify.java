@@ -29,7 +29,7 @@ public class Verify {
 		zeze.getHistoryModule().getHistoryTable().walkDatabase((key, value) -> {
 			if (lastK.value.compareTo(key) >= 0) {
 				logger.error("out of Id128 order: {}, {}", lastK.value, key);
-				assert false;
+				assert false; // XXX 这里会出现断言失败。
 			}
 			lastK.value = key;
 

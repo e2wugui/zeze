@@ -266,8 +266,15 @@ public final class Transaction {
 								checkResult = lockAndCheck(procedure);
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
+										// onz patch: onz事务执行阶段的2段式同步等待。
+										OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
+										if (onzProcedure != null) {
+											onzProcedure.sendReadyAndWait();
+											if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
+												flushMode = onzProcedure;
+										}
 										try {
-											finalCommit(procedure);
+											finalCommit(procedure, flushMode);
 										} catch (Throwable ex) { // logger.fatal & halt
 											logger.fatal("finalCommit exception:", ex);
 											// final Commit 不能抛出异常。否则就halt。
@@ -386,6 +393,7 @@ public final class Transaction {
 		} finally {
 			holdLocks.forEach(Lockey::exitLock);
 			holdLocks.clear();
+			state = TransactionState.Completed; // 执行到这里，state应该就是Completed，但不知道为什么，后面执行的代码又发现isRunning=true.
 			// 锁之后计数并尝试checkpoint。
 			var totalCount = totalTransaction.incrementAndGet();
 			var config = procedure.getZeze().getConfig().getCheckpointTransactionPeriod();
@@ -427,14 +435,7 @@ public final class Transaction {
 		this.onzProcedure = onzProcedure;
 	}
 
-	private void finalCommit(@NotNull Procedure proc) throws Exception {
-		// onz patch: onz事务执行阶段的2段式同步等待。
-		OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
-		if (onzProcedure != null) {
-			onzProcedure.sendReadyAndWait();
-			if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
-				flushMode = onzProcedure;
-		}
+	private void finalCommit(@NotNull Procedure proc, @Nullable OnzProcedure flushMode) throws Exception {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
 		proc.getZeze().getProcedureLockWatcher().doWatch(proc, accessedRecords);

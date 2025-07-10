@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
@@ -68,8 +69,10 @@ public final class Tasks {
 			return true;
 		}
 
-		void Run() {
-			Simulate.getInstance().randApp().Run(this);
+		App Run() throws ExecutionException, InterruptedException {
+			var app = Simulate.getInstance().randApp();
+			app.Run(this);
+			return app;
 		}
 
 		void prepare() throws Exception {
@@ -282,8 +285,10 @@ public final class Tasks {
 		}
 
 		@Override
-		void Run() {
-			Simulate.getInstance().randApp(2).Run(this);
+		App Run() throws ExecutionException, InterruptedException {
+			var app = Simulate.getInstance().randApp(2);
+			app.Run(this);
+			return app;
 		}
 
 		@Override
