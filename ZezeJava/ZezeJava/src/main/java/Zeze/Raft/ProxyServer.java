@@ -48,45 +48,39 @@ public class ProxyServer extends Service {
 	 * @param r ProxyRequest
 	 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
-		try {
-			var raft = rafts.get(r.Argument.getRaftName());
-			if (null == raft) {
-				logger.warn("ProxyRequest: not found raftName={}, available={}", r.Argument.getRaftName(), rafts.keySet());
-				return Procedure.ProviderNotExist;
-			}
-			var server = raft.getServer();
-			var outFactoryHandle = new OutObject<ProtocolFactoryHandle<?>>();
-			var p = Protocol.decode(server::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
-			if (null == p)
-				return Procedure.NotImplement;
-			var raftRpc = (RaftRpc<?, ?>)p;
-			raftRpc.setProxyRequest(r);
+		var raft = rafts.get(r.Argument.getRaftName());
+		if (null == raft) {
+			logger.warn("ProxyRequest: not found raftName={}, available={}", r.Argument.getRaftName(), rafts.keySet());
+			return Procedure.ProviderNotExist;
+		}
+		var server = raft.getServer();
+		var outFactoryHandle = new OutObject<ProtocolFactoryHandle<?>>();
+		var p = Protocol.decode(server::findProtocolFactoryHandle, ByteBuffer.Wrap(r.Argument.getRpcBinary()), outFactoryHandle);
+		if (null == p)
+			return Procedure.NotImplement;
+		var raftRpc = (RaftRpc<?, ?>)p;
+		raftRpc.setProxyRequest(r);
 
-			// 下面的流程从Raft.Server.dispatchProtocol的部分代码拷贝出，请参考原来的地方，进行比较。。
-			if (raft.isWorkingLeader()) {
-				if (raftRpc.getUnique().getRequestId() <= 0) {
-					p.SendResultCode(Procedure.ErrorRequestId);
-					return 0;
-				}
-
-				server.dispatchRaftRequest(p,
-						() -> server.processRequest(p, outFactoryHandle.value),
-						p.getClass().getName(),
-						() -> p.SendResultCode(Procedure.RaftRetry),
-						outFactoryHandle.value.Mode);
+		// 下面的流程从Raft.Server.dispatchProtocol的部分代码拷贝出，请参考原来的地方，进行比较。。
+		if (raft.isWorkingLeader()) {
+			if (raftRpc.getUnique().getRequestId() <= 0) {
+				p.SendResultCode(Procedure.ErrorRequestId);
 				return 0;
 			}
 
-			// else 如果不是leader，不处理请求，也不发送rpc的正常结果，以后Raft.Agent会resend。
-			// 但是会尝试报告一次真正的leader。
-			server.trySendLeaderIs(r.getSender());
-
+			server.dispatchRaftRequest(p,
+					() -> server.processRequest(p, outFactoryHandle.value),
+					p.getClass().getName(),
+					() -> p.SendResultCode(Procedure.RaftRetry),
+					outFactoryHandle.value.Mode);
 			return 0;
-		} catch (Exception ex) {
-			logger.error(" exception: ", ex);
-			Task.forceThrow(ex);
-			return 0; // never got here.
 		}
+
+		// else 如果不是leader，不处理请求，也不发送rpc的正常结果，以后Raft.Agent会resend。
+		// 但是会尝试报告一次真正的leader。
+		server.trySendLeaderIs(r.getSender());
+
+		return 0;
 	}
 
 	private final ConcurrentHashMap<String, Raft> rafts = new ConcurrentHashMap<>();
