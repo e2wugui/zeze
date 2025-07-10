@@ -170,7 +170,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		// apply changed
 		for (var e : log.getChangedWithKey().entrySet()) {
 			Bean value = tmp.get(e.getKey());
-			value.followerApply(e.getValue()); // value NullPointerException if not exist.
+			if (null != value) // value 可能是编辑了，但是又被删了。所以需要判断null.
+				value.followerApply(e.getValue());
 		}
 		map = tmp;
 	}

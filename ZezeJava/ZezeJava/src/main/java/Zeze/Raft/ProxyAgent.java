@@ -148,9 +148,11 @@ public class ProxyAgent extends Service {
 							logger.error("Agent ProxyRequest({}) resultRpc not found.", proxyArgument.getRaftName());
 						}
 					} else {
-						// todo error handle
-						logger.error("Agent ProxyRequest({}) error={}",
-								proxyArgument.getRaftName(), IModule.getErrorCode(proxyRpc.getResultCode()));
+						if (Procedure.Timeout != proxyRpc.getResultCode())
+							logger.error("Agent ProxyRequest({}) error={}",
+									proxyArgument.getRaftName(), IModule.getErrorCode(proxyRpc.getResultCode()));
+						else
+							logger.info("Agent ProxyRequest({}) timeout.", proxyArgument.getRaftName());
 					}
 					return 0;
 				}, proxyAgent.rpcTimeout);

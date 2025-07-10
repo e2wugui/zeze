@@ -83,7 +83,7 @@ public class ProxyServer extends Service {
 
 			return 0;
 		} catch (Exception ex) {
-			logger.error("", ex);
+			logger.error(" exception: ", ex);
 			Task.forceThrow(ex);
 			return 0; // never got here.
 		}
