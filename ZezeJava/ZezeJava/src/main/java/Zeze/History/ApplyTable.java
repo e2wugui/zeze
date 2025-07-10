@@ -65,7 +65,7 @@ public class ApplyTable<K extends Comparable<K>, V extends Bean> {
 		case Changes.Record.Edit:
 			var value = get(key);
 			if (value == null)
-				value = originTable.newValue();
+				break; // 忽略不存在的编辑记录。旧代码：value = originTable.newValue();
 			var log = logRecord.getLogBean();
 			if (log != null)
 				value.followerApply(log);

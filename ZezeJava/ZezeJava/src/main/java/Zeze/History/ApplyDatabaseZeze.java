@@ -6,6 +6,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.TableWalkHandleRaw;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,7 +89,12 @@ public class ApplyDatabaseZeze implements IApplyDatabase {
 		 */
 		@Override
 		public boolean isEmpty() throws Exception {
-			return storage.walkKey((rawKey) -> true) == 0;
+			var empty = new OutObject<>(true);
+			storage.walkKey(null, 1, (rawKey) -> {
+				empty.value = false;
+				return false;
+			});
+			return empty.value;
 		}
 
 		@Override
