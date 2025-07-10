@@ -81,7 +81,7 @@ public class CoverHistory {
 
 	public Future<?> submitTasks(int i) throws ExecutionException, InterruptedException {
 		var s = seed++;
-		logger.info("submitTasks: seed={}", s);
+		//logger.info("submitTasks: seed={}", s);
 		var seed = s ^ i;
 		return Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
 		// Task.call(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));

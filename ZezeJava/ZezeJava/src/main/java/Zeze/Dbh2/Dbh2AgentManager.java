@@ -271,7 +271,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 		lock();
 		try {
 			var masterTable = masterAgent.getBuckets(databaseName, tableName);
-			logger.info("reload ... {}", masterTable);
+			logger.info("reload ... {}", masterTable, new RuntimeException());
 			putBuckets(masterTable, masterName, databaseName, tableName);
 		} finally {
 			unlock();

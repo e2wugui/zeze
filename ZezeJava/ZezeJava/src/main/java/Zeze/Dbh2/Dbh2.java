@@ -388,7 +388,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessWalkRequest(Walk r) throws Exception {
-		if (!stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+		if (r.Argument.getExclusiveStartKey().size() > 0
+				&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;
@@ -406,7 +407,8 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 
 	@Override
 	protected long ProcessWalkKeyRequest(WalkKey r) throws Exception {
-		if (!stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
+		if (r.Argument.getExclusiveStartKey().size() > 0
+			&& !stateMachine.getBucket().inBucket(r.Argument.getExclusiveStartKey())) {
 			r.Result.setBucketRefuse(true);
 			r.SendResult();
 			return 0;
