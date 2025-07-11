@@ -4,8 +4,9 @@ import Zeze.Config;
 import org.w3c.dom.Element;
 
 public class Dbh2Config implements Config.ICustomize {
-	private long prepareMaxTime = 22_000;
-	private long bucketMaxTime = 24_000; // 必须大于prepareMaxTime
+	private int rpcTimeout = 60_000;
+	private long prepareMaxTime = 80_000; // 一般大于rpcTimeout
+	private long bucketMaxTime = 100_000; // 必须大于prepareMaxTime
 	private int serverFastErrorPeriod = 5000;
 	private int splitPutCount = 100;
 	private double splitLoad = 5000 * 0.8;
@@ -13,7 +14,6 @@ public class Dbh2Config implements Config.ICustomize {
 	private int raftClusterCount = 3;
 	private boolean serialize = true;
 	private int splitCleanCount = 200;
-	private int rpcTimeout = 60_000;
 
 	public int getRpcTimeout() {
 		return rpcTimeout;
@@ -74,9 +74,17 @@ public class Dbh2Config implements Config.ICustomize {
 
 	@Override
 	public void parse(Element self) {
-		var attr = self.getAttribute("PrepareMaxTime");
+
+		var attr = self.getAttribute("RpcTimeout");
+		if (!attr.isBlank())
+			rpcTimeout = Integer.parseInt(attr);
+
+		attr = self.getAttribute("PrepareMaxTime");
 		if (!attr.isBlank())
 			prepareMaxTime = Long.parseLong(attr);
+
+		if (prepareMaxTime - rpcTimeout < 2000)
+			prepareMaxTime = rpcTimeout + 2000;
 
 		attr = self.getAttribute("BucketMaxTime");
 		if (!attr.isBlank())
@@ -112,9 +120,5 @@ public class Dbh2Config implements Config.ICustomize {
 		attr = self.getAttribute("SplitCleanCount");
 		if (!attr.isBlank())
 			splitCleanCount = Integer.parseInt(attr);
-
-		attr = self.getAttribute("RpcTimeout");
-		if (!attr.isBlank())
-			rpcTimeout = Integer.parseInt(attr);
 	}
 }

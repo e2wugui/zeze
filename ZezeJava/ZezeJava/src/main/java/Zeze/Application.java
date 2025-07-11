@@ -842,7 +842,7 @@ public final class Application extends ReentrantLock {
 	public void checkpointRunThread() {
 		lock();
 		try {
-			if (checkpointFuture == null)
+			if (startState == StartState.eStarted && checkpointFuture == null)
 				checkpointFuture = Task.runUnsafe(() -> {
 					checkpoint.runOnce();
 					checkpointFuture = null;
