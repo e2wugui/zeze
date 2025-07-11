@@ -117,7 +117,12 @@ public final class BBag extends Zeze.Transaction.Bean implements BBagReadOnly {
         _s_.append(_i1_).append("Items={");
         if (!_Items.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Items.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Items.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);

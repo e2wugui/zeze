@@ -76,7 +76,12 @@ public final class BOnlineTimers extends Zeze.Transaction.Bean implements BOnlin
         _s_.append(_i1_).append("TimerIds={");
         if (!_TimerIds.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _TimerIds.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_TimerIds.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);

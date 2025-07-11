@@ -97,7 +97,12 @@ public final class BRegisterResult extends Zeze.Transaction.Bean implements BReg
         _s_.append(_i1_).append("Dbh2Configs=[");
         if (!_Dbh2Configs.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Dbh2Configs) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Dbh2Configs.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=");
                 _v_.buildString(_s_, _l_ + 12);
                 _s_.append(",\n");
@@ -327,7 +332,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Dbh2Configs=[");
         if (!_Dbh2Configs.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Dbh2Configs) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Dbh2Configs.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=");
                 _v_.buildString(_s_, _l_ + 12);
                 _s_.append(",\n");

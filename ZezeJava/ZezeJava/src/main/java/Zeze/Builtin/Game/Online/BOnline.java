@@ -193,7 +193,12 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
         _s_.append(_i1_).append("ReliableNotifyMark={");
         if (!_ReliableNotifyMark.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _ReliableNotifyMark) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_ReliableNotifyMark.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);

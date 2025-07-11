@@ -222,7 +222,12 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _s_.append(_i1_).append("Puts={");
         if (!_Puts.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Puts.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Puts.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
@@ -232,7 +237,12 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _s_.append(_i1_).append("Deletes={");
         if (!_Deletes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Deletes) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Deletes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);
@@ -621,7 +631,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Puts={");
         if (!_Puts.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Puts.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Puts.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }
@@ -631,7 +646,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Deletes={");
         if (!_Deletes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Deletes) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Deletes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);

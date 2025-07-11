@@ -134,7 +134,12 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         _s_.append(_i1_).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Buckets) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Buckets.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);
@@ -395,7 +400,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Buckets=[");
         if (!_Buckets.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Buckets) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Buckets.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);

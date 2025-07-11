@@ -114,7 +114,12 @@ public final class BReliableNotify extends Zeze.Transaction.Bean implements BRel
         _s_.append(_i1_).append("Notifies=[");
         if (!_Notifies.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _Notifies) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Notifies.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);

@@ -257,7 +257,12 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean implem
         _s_.append(_i1_).append("Hashes={");
         if (!_Hashes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Hashes.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Hashes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);
@@ -672,7 +677,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Hashes={");
         if (!_Hashes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Hashes.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Hashes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().buildString(_s_, _l_ + 12);

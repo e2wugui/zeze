@@ -73,7 +73,12 @@ public final class BRoleAuth extends Zeze.Transaction.Bean implements BRoleAuthR
         _s_.append(_i1_).append("Auths={");
         if (!_Auths.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Auths.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Auths.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }

@@ -139,7 +139,12 @@ public final class BCreatePartition extends Zeze.Transaction.Bean implements BCr
         _s_.append(_i1_).append("PartitionIndexes={");
         if (!_PartitionIndexes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _PartitionIndexes) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_PartitionIndexes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);
@@ -409,7 +414,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("PartitionIndexes={");
         if (!_PartitionIndexes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _PartitionIndexes) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_PartitionIndexes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=").append(_v_).append(",\n");
             }
             _s_.append(_i1_);

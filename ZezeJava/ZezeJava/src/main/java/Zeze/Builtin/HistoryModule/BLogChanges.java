@@ -235,7 +235,12 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
         _s_.append(_i1_).append("Changes={");
         if (!_Changes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Changes.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Changes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=");
                 _e_.getKey().buildString(_s_, _l_ + 12);
                 _s_.append(",\n");
@@ -623,7 +628,12 @@ public static class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("Changes={");
         if (!_Changes.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Changes.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Changes.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=");
                 _e_.getKey().buildString(_s_, _l_ + 12);
                 _s_.append(",\n");

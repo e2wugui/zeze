@@ -206,7 +206,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _s_.append(_i1_).append("Managers={");
         if (!_Managers.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Managers.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Managers.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=");
                 _e_.getValue().getBean().buildString(_s_, _l_ + 12);
@@ -219,7 +224,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean implements BDep
         _s_.append(_i1_).append("Children={");
         if (!_Children.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _e_ : _Children.entrySet()) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_Children.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Key=").append(_e_.getKey()).append(",\n");
                 _s_.append(_i2_).append("Value=").append(_e_.getValue()).append(",\n");
             }

@@ -75,7 +75,12 @@ public final class BRankList extends Zeze.Transaction.Bean implements BRankListR
         _s_.append(_i1_).append("RankList=[");
         if (!_RankList.isEmpty()) {
             _s_.append('\n');
+            int _n_ = 0;
             for (var _v_ : _RankList) {
+                if (++_n_ > 1000) {
+                    _s_.append(_i2_).append("...[").append(_RankList.size()).append("]\n");
+                    break;
+                }
                 _s_.append(_i2_).append("Item=");
                 _v_.buildString(_s_, _l_ + 12);
                 _s_.append(",\n");

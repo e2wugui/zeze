@@ -168,10 +168,21 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    _s_.append('\\n');");
             if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                sw.WriteLine(prefix + "    int _n_ = 0;");
                 sw.WriteLine(prefix + $"    for (var _v_ : {NamePrivate}) {{");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
+            }
             else
             {
                 sw.WriteLine(prefix + $"    for (int _i_ = 0, _n_ = {NamePrivate}.size(); _i_ < _n_; _i_++) {{");
+                sw.WriteLine(prefix + "        if (_i_ == 1000) {");
+                sw.WriteLine(prefix + "            _s_.append(_i2_).append(\"...[\").append(_n_).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
                 sw.WriteLine(prefix + $"        var _v_ = {NamePrivate}.get(_i_);");
             }
             type.ValueType.Accept(new Tostring(sw, null, "Item", "_v_", prefix + "        ", ',', isData));
@@ -186,11 +197,22 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}={{\");");
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    _s_.append('\\n');");
+            sw.WriteLine(prefix + "    int _n_ = 0;");
             if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+            {
                 sw.WriteLine(prefix + $"    for (var _v_ : {NamePrivate}) {{");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
+            }
             else
             {
                 sw.WriteLine(prefix + $"    for (var _i_ = {NamePrivate}.iterator(); _i_.moveToNext(); ) {{");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
                 sw.WriteLine(prefix + "        var _v_ = _i_.value();");
             }
             type.ValueType.Accept(new Tostring(sw, null, "Item", "_v_", prefix + "        ", ',', isData));
@@ -205,10 +227,15 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}={{\");");
             sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
             sw.WriteLine(prefix + "    _s_.append('\\n');");
+            sw.WriteLine(prefix + "    int _n_ = 0;");
             if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
             {
                 sw.WriteLine(prefix + $"    for (var _e_ : {NamePrivate}.entrySet()) {{");
                 // sw.WriteLine(prefix + "        _s_.append(_i2_).append("(\\n");");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
                 type.KeyType.Accept(new Tostring(sw, null, "Key", "_e_.getKey()", prefix + "        ", ',', isData));
                 type.ValueType.Accept(new Tostring(sw, null, "Value", "_e_.getValue()", prefix + "        ", ',', isData));
                 // sw.WriteLine(prefix + "        _s_.append(_i2_).append(")\\n");");
@@ -217,6 +244,10 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine(prefix + $"    for (var _i_ = {NamePrivate}.iterator(); _i_.moveToNext(); ) {{");
                 // sw.WriteLine(prefix + "        _s_.append(_i2_).append("(\\n");");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
                 type.KeyType.Accept(new Tostring(sw, null, "Key", "_i_.key()", prefix + "        ", ',', isData));
                 type.ValueType.Accept(new Tostring(sw, null, "Value", "_i_.value()", prefix + "        ", ',', isData));
                 // sw.WriteLine(prefix + "        _s_.append(_i2_).append(")\\n");");
