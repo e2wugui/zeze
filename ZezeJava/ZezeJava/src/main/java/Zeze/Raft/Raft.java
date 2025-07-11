@@ -72,8 +72,6 @@ public final class Raft {
 	private volatile TaskCompletionSource<Boolean> leaderReadyFuture = new TaskCompletionSource<>();
 
 	// Follower
-	private long leaderLostTimeout;
-
 	private final Lock mutex = new ReentrantLock();
 	private final Condition condition = mutex.newCondition();
 
@@ -528,8 +526,8 @@ public final class Raft {
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
-				if (now - logSequence.getLeaderActiveTime() > leaderLostTimeout) {
-					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), leaderLostTimeout);
+				if (now - logSequence.getLeaderActiveTime() > raftConfig.getElectionTimeout()) {
+					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), raftConfig.getElectionTimeout());
 					convertStateTo(RaftState.Candidate);
 				}
 				break;
@@ -768,7 +766,6 @@ public final class Raft {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Follower->Follower", getName());
-			leaderLostTimeout = raftConfig.getElectionTimeout();
 			return;
 		case Candidate:
 			logger.info("RaftState {}: Follower->Candidate", getName());
@@ -786,7 +783,6 @@ public final class Raft {
 		switch (newState) {
 		case Follower:
 			logger.info("RaftState {}: Candidate->Follower", getName());
-			leaderLostTimeout = raftConfig.getElectionTimeout();
 			state = RaftState.Follower;
 			requestVotes.clear();
 			return;
@@ -832,7 +828,6 @@ public final class Raft {
 		case Follower:
 			logger.info("RaftState {}: Leader->Follower", getName());
 			state = RaftState.Follower;
-			leaderLostTimeout = raftConfig.getElectionTimeout();
 			return;
 		case Candidate:
 			logger.error("RaftState {} Impossible! Leader->Candidate", getName());

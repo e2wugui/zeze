@@ -768,9 +768,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		public void allocate(@NotNull AllocateId rpc) {
 			var count = rpc.Argument.getCount();
 			if (count < 0)
-				count = 0;
-			else if (count > 10000) //TODO: 随便修正一下分配数量
-				count = 10000;
+				count = 1;
+
 			for (; ; ) {
 				var c = current.get();
 				if (c + count <= max) {
@@ -784,7 +783,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 					try {
 						var m = max; // 只有这里的锁范围才能修改max,所以这里缓存max也是稳定的
 						if (c + count > m) { // 重试,也许刚刚提升了max,不够再真正去提升
-							m += 10000; //TODO: 先随便用一个增量
+							m += count * 10L;
 							var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(m));
 							bb.WriteLong(m);
 							try {
