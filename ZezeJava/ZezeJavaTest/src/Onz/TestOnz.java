@@ -26,6 +26,7 @@ public class TestOnz {
 		zeze2.Start(config2);
 
 		Infinite.App.clearDbTable(zeze2.demo_Module1.getKuafu());
+		Infinite.App.clearDbTable(App.Instance.demo_Module1.getKuafu());
 
 		// 写到App启动里面，不用写两次，这里专门用于这个测试。
 		App.Instance.Zeze.getOnz().register("kuafu", TestOnz::kuaFu, BKuafu.class, BKuafuResult.class);

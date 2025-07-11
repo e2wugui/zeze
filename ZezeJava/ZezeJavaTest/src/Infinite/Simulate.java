@@ -22,7 +22,7 @@ public final class Simulate {
 	static final Logger logger = LogManager.getLogger(Simulate.class);
 
 	public final static int AppCount = 10;
-	public final static int BatchTaskCount = 30000;
+	public final static int BatchTaskCount = 60000;
 	public final static int CacheCapacity = 1000;
 	public final static int AccessKeyBound = (int)(CacheCapacity * 1.2f);
 	private static Simulate instance;
