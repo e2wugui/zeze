@@ -132,8 +132,8 @@ public class Dbh2Agent extends AbstractDbh2Agent {
 		this.raftConfigString = raftConfigString;
 		var raftConf = RaftConfig.loadFromString(raftConfigString);
 		raftClient = new Agent("dbh2.raft", raftConf, null, proxyAgent);
-		raftClient.getClient().getConfig().getSocketOptions().setInputBufferMaxProtocolSize(50 * 1024 * 1024);
-		raftClient.getClient().getConfig().getSocketOptions().setOutputBufferMaxSize(50 * 1024 * 1024);
+		raftClient.getClient().getConfig().getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
+		raftClient.getClient().getConfig().getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
 		raftClient.setOnSetLeader(this::raftOnSetLeader);
 		RegisterProtocols(raftClient.getClient());
 		raftClient.getClient().start();

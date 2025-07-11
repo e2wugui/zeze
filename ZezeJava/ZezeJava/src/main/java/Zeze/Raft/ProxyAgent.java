@@ -26,8 +26,8 @@ public class ProxyAgent extends Service {
 	public ProxyAgent(int rpcTimeout) {
 		super(eProxyAgentName, (Config)null);
 		this.rpcTimeout = rpcTimeout;
-		getSocketOptions().setOutputBufferMaxSize(50 * 1024 * 1024);
-		getSocketOptions().setInputBufferMaxProtocolSize(50 * 1024 * 1024);
+		getSocketOptions().setOutputBufferMaxSize(100 * 1024 * 1024);
+		getSocketOptions().setInputBufferMaxProtocolSize(100 * 1024 * 1024);
 
 		AddFactoryHandle(ProxyRequest.TypeId_, new Service.ProtocolFactoryHandle<>(
 				ProxyRequest::new,

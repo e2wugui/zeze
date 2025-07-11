@@ -27,6 +27,7 @@ public class App {
 		config.setFastRedoWhenConflict(false);
 		config.setCheckpointPeriod(1000);
 		config.getServiceConfMap().remove("Zeze.Onz.Server");
+		config.setHistory("ZezeTest");
 
 		var tdef = config.getDefaultTableConf();
 		// 提高并发
