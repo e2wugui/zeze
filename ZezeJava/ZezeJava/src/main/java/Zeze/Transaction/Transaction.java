@@ -391,14 +391,15 @@ public final class Transaction {
 			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {
+			state = TransactionState.Completed; // 异常到这里时，可能state没有设置。
 			holdLocks.forEach(Lockey::exitLock);
 			holdLocks.clear();
-			state = TransactionState.Completed; // 执行到这里，state应该就是Completed，但不知道为什么，后面执行的代码又发现isRunning=true.
 			// 锁之后计数并尝试checkpoint。
 			var totalCount = totalTransaction.incrementAndGet();
 			var config = procedure.getZeze().getConfig().getCheckpointTransactionPeriod();
-			if (config > 0 && (totalCount % config == 0))
-				procedure.getZeze().checkpointRun();
+			if (config > 0 && (totalCount % config == 0)) {
+				procedure.getZeze().checkpointRunThread();
+			}
 		}
 	}
 

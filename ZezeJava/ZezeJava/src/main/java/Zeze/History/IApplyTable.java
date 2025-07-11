@@ -16,8 +16,6 @@ public interface IApplyTable {
 	void remove(byte @NotNull [] key, int offset, int length) throws Exception;
 
 	/**
-	 * 注意这个操作可能很慢，谨慎使用。
-	 *
 	 * @return true if empty.
 	 */
 	boolean isEmpty() throws Exception;

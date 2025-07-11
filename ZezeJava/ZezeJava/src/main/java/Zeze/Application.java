@@ -119,6 +119,8 @@ public final class Application extends ReentrantLock {
 	private final ArrayList<Table> replaceTableRecent = new ArrayList<>();
 	private final ArrayList<HotUpgradeMemoryTable> hotUpgradeMemoryTables = new ArrayList<>();
 
+	private Future<?> checkpointFuture;
+
 	public @NotNull ProcedureLockWatcher getProcedureLockWatcher() {
 		return procedureLockWatcher;
 	}
@@ -740,6 +742,10 @@ public final class Application extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
+			if (null != checkpointFuture) {
+				checkpointFuture.get();
+				checkpointFuture = null;
+			}
 			if (onz != null) {
 				onz.stop();
 				onz = null;
@@ -831,6 +837,19 @@ public final class Application extends ReentrantLock {
 
 	public void checkpointRun() {
 		checkpoint.runOnce();
+	}
+
+	public void checkpointRunThread() {
+		lock();
+		try {
+			if (checkpointFuture == null)
+				checkpointFuture = Task.runUnsafe(() -> {
+					checkpoint.runOnce();
+					checkpointFuture = null;
+				}, "CheckpointRunThread");
+		} finally {
+			unlock();
+		}
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")
