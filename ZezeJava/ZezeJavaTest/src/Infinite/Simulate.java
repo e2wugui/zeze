@@ -1,6 +1,7 @@
 package Infinite;
 
 import java.util.ArrayList;
+import java.util.concurrent.Future;
 import Zeze.Transaction.DatabaseMemory;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
@@ -82,6 +83,12 @@ public final class Simulate {
 		Apps.clear();
 	}
 
+	final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
+	public void WaitAllRunningTasksAndClear() {
+		Task.waitAll(RunningTasks);
+		RunningTasks.clear();
+	}
+
 	@Test
 	public void testMain() throws Exception {
 		var perfScheduled = PerfCounter.instance().cancelScheduledLog();
@@ -102,15 +109,14 @@ public final class Simulate {
 			for (int i = 0; i < BatchTaskCount; i++) {
 				var app = Tasks.randCreateTask().Run();
 				if (((i + 1) % 3) == 0)
-					app.RunningTasks.add(app.coverHistory.submitTasks(i));
+					RunningTasks.add(app.coverHistory.submitTasks(i));
 				if (((i + 1) % 100) == 0) {
-					Task.waitAll(app.RunningTasks);
-					app.RunningTasks.clear();
+					WaitAllRunningTasksAndClear();
 				}
 			}
 			logger.fatal("Wait {}", BatchNumber);
+			WaitAllRunningTasksAndClear();
 			for (var app : Apps) {
-				app.WaitAllRunningTasksAndClear();
 				logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
 			}
 			logger.fatal("Verify {}", BatchNumber);

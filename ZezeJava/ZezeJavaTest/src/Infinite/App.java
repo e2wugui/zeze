@@ -1,8 +1,5 @@
 package Infinite;
 
-import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
@@ -17,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 public class App {
 	private static final Logger logger = LogManager.getLogger(App.class);
 	final demo.App app = new demo.App();
-	final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
 	private final Config config;
 	final CoverHistory coverHistory;
 
@@ -66,13 +62,10 @@ public class App {
 	}
 
 	public void Stop() throws Exception {
-		for (var task : RunningTasks) {
-			task.cancel(false);
-		}
 		app.Stop();
 	}
 
-	void Run(Tasks.Task task) throws ExecutionException, InterruptedException {
+	void Run(Tasks.Task task) {
 		task.App = app;
 		String name = task.getClass().getName();
 		int keyBound = task.getKeyBound();
@@ -84,7 +77,7 @@ public class App {
 			Tasks.getKeyCounter(name, key).increment();
 		}
 		Tasks.getRunCounter(name).increment();
-		RunningTasks.add(task.IsProcedure()
+		Simulate.getInstance().RunningTasks.add(task.IsProcedure()
 				? Task.runUnsafe(app.Zeze.newProcedure(task, name), DispatchMode.Normal)
 				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
 		}
@@ -146,10 +139,5 @@ public class App {
 		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_DelayRemove_tJobs"));
 		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
-	}
-
-	public void WaitAllRunningTasksAndClear() throws ExecutionException, InterruptedException {
-		Task.waitAll(RunningTasks);
-		RunningTasks.clear();
 	}
 }
