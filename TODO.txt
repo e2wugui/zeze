@@ -3,9 +3,10 @@ DatabaseDynamoDb 还需测试。
 
 History 全部开启，test all 的 Simulate.testMain 会失败（indexoutofbound等错误），
 	这是怎么关联影响到的？现在仅Simulate.testMain开启了history。
-Dbh2下Simulate.testMain出现两个不大正常的现象：Acquire Failed很多；RedoAndReleaseLock很多；需要关注。
+Simulate.testMain出现两个不大正常的现象(在memorydb,dbh2都这样)：Acquire Failed很多；RedoAndReleaseLock很多；需要关注。
 Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
+Dbh2 simulate.bat 启动比较慢，log断断续续的输出。
 
 ------------------------------------------------------------------------------------------------------------------------------
 2024/10/22 v1.4.8 History Compatible & Test; NewSolution; FreeMarker; Thymeleaf; 
