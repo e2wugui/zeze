@@ -17,10 +17,23 @@
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/mysql?user=root&amp;password=123"/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="10.12.7.140:5389"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
+
+	<ServiceConf Name="Zeze.Dbh2.Master">
+		<Acceptor Ip="127.0.0.1" Port="11000"/>
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Dbh2.Master.Agent">
+		<Connector HostNameOrAddress="127.0.0.1" Port="11000"/>
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Raft.ProxyServer">
+		<Acceptor Ip="127.0.0.1" Port="0"/>
+	</ServiceConf>
+	<ServiceConf Name="Zeze.Dbh2.Commit">
+		<Acceptor Ip="127.0.0.1" Port="7788"/>
+	</ServiceConf>
 
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
