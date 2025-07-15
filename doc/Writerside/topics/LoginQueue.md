@@ -7,15 +7,15 @@
 
 ## 系统各部分介绍
 * Gs
-		游戏服务器，通过LoginQueueAgent连接LoginQueueServer，并通过这个连接向LoginQueueServer报告自己的用户在线量。
+游戏服务器，通过LoginQueueAgent连接LoginQueueServer，并通过这个连接向LoginQueueServer报告自己的用户在线量。
 * LoginQueueServer
-		独立的Tcp服务，维护用户登录队列。
+独立的Tcp服务，维护用户登录队列。
 * LoginQueueAgent
-		登录排队服务内部客户端接口，由Gs使用。
+登录排队服务内部客户端接口，由Gs使用。
 * LoginQueueClient
-		登录排队服务客户端接口服务，由客户端使用。
+登录排队服务客户端接口服务，由客户端使用。
 * Linkd
-		游戏连接服务，用户登录游戏需要通过这个服务连接，并由他转发请求给Gs。Linkd和LoginQueueServer之间不需要连接。
+游戏连接服务，用户登录游戏需要通过这个服务连接，并由他转发请求给Gs。Linkd和LoginQueueServer之间不需要连接。
 
 ## 开启登录排队配置和步骤
 1. Gs的zezexml增加到LoginQueueServer连接的LoginQueueAgent的配置。
