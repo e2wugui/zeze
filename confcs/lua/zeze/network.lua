@@ -15,7 +15,7 @@ function network.Init()
     lua_client.SetOnSocketConnected(network.on_connected)
     lua_client.SetOnReceiveProtocol(network.on_receiveProtocol)
     lua_client.SetOnSocketClosed(network.on_net_close)
-    lua_client.SetOnSocketClosed(network.on_keepalive_timeout)
+    lua_client.SetKeepAliveTimeout(network.on_keepalive_timeout)
 
     network._isConnected = false
     network._isConnecting = false

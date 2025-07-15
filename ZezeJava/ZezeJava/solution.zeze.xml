@@ -2025,13 +2025,83 @@
 			<rpc name="Logout" argument="BAccountLink" handle="server"/> 断线时自动登出。
 			<rpc name="Kick" argument="BAccountLink" handle="client"/> 重复登录并且需要踢掉旧的登录。
 		</module>
+		<module name="LoginQueueServer" id="11042" UseData="true">
+			<bean name="BProviderLoad">
+				<var id="1" name="ServerId" type="int"/>
+				<var id="2" name="ServiceIp" type="string"/> LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
+				<var id="3" name="ServicePort" type="int"/>
+				<var id="4" name="Load" type="Zeze.Builtin.Provider.BLoad"/>
+			</bean>
+			<rpc name="ReportProviderLoad" argument="BProviderLoad" handle="server"/>
+			<rpc name="ReportLinkLoad" argument="BProviderLoad" handle="server"/>
+			<bean name="BSecret">
+				<var id="1" name="SecretKey" type="binary"/>
+			</bean>
+			<rpc name="AnnounceSecret" argument="BSecret" handle="client"/>
+		</module>
+		<module name="LoginQueue" id="11043" UseData="true">
+			<bean name="BQueueSize">
+				<var id="1" name="QueueSize" type="int"/>
+			</bean>
+			<bean name="BLoginToken">
+				<var id="1" name="Token" type="binary"/>
+				<var id="2" name="LinkIp" type="string"/>
+				<var id="3" name="LinkPort" type="int"/>
+			</bean>
+			<!--
+			客户端收到这条协议之前，显示排队中，数量显示大于10000
+			LoginQueue服务器最多只会广播通知前10000个客户端。
+			客户端收到这条协议，就更新显示的排队数量。排队时，每N秒更新一次。
+			-->
+			<protocol name="PutQueueSize" argument="BQueueSize" handle="client"/>
+			<!--
+			客户端收到这条协议表示排队成功。此后可以连接link继续登录。
+			-->
+			<protocol name="PutLoginToken" argument="BLoginToken" handle="client"/>
+		</module>
 		<!--
-		可用id范围 [11042, 11100) [11102, 11999]
+		可用id范围 [11044, 11100) [11102, 11999]
 		-->
 
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="LoginQueue"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
+
+	<component name="LoginQueueServer"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LoginQueueServer"/>
+		</service>
+	</component>
+
+	<component name="LoginQueueAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueueServer"/>
+		</service>
+	</component>
+
 	<component name="AccountOnline"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"

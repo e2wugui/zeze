@@ -8,6 +8,9 @@ Dbh2的error.log出现频繁的LeaderLostTimeout，感觉不大正常！
 Dbh2 & test all 出现了：tid重复；prepare timeout等提交失败。
 Dbh2 simulate.bat 启动比较慢，log断断续续的输出。
 
+LoginQueue 启用，不再reportLoad？
+ProviderOverload // todo 虚拟线程需要想其他办法检测。比如还是回到任务数量上：同时执行的任务超过多少。
+
 ------------------------------------------------------------------------------------------------------------------------------
 2024/10/22 v1.4.8 History Compatible & Test; NewSolution; FreeMarker; Thymeleaf; 
 ------------------------------------------------------------------------------------------------------------------------------
