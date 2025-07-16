@@ -21,32 +21,24 @@ public abstract class AbstractLoginQueueServer implements Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LoginQueueServer.ReportProviderLoad.class, Zeze.Builtin.LoginQueueServer.ReportProviderLoad.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.LoginQueueServer.ReportProviderLoad::new;
-            factoryHandle.Handle = this::ProcessReportProviderLoadRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportProviderLoadRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportProviderLoadRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Handle = this::ProcessReportProviderLoad;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportProviderLoad", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportProviderLoad", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47426009765783L, factoryHandle); // 11042, 980883351
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LoginQueueServer.ReportLinkLoad.class, Zeze.Builtin.LoginQueueServer.ReportLinkLoad.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.LoginQueueServer.ReportLinkLoad::new;
-            factoryHandle.Handle = this::ProcessReportLinkLoadRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportLinkLoadRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLinkLoadRequest", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Handle = this::ProcessReportLinkLoad;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportLinkLoad", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReportLinkLoad", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47427598889391L, factoryHandle); // 11042, -1724960337
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.LoginQueueServer.AnnounceSecret.class, Zeze.Builtin.LoginQueueServer.AnnounceSecret.TypeId_);
-            factoryHandle.Factory = Zeze.Builtin.LoginQueueServer.AnnounceSecret::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceSecretResponse", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAnnounceSecretResponse", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47425858531401L, factoryHandle); // 11042, 829648969
         }
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47426009765783L);
         service.getFactorys().remove(47427598889391L);
-        service.getFactorys().remove(47425858531401L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -58,6 +50,6 @@ public abstract class AbstractLoginQueueServer implements Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessReportProviderLoadRequest(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) throws Exception;
-    protected abstract long ProcessReportLinkLoadRequest(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) throws Exception;
+    protected abstract long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad p) throws Exception;
+    protected abstract long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad p) throws Exception;
 }

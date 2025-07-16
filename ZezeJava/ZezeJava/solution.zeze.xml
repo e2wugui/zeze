@@ -2032,12 +2032,12 @@
 				<var id="3" name="ServicePort" type="int"/>
 				<var id="4" name="Load" type="Zeze.Builtin.Provider.BLoad"/>
 			</bean>
-			<rpc name="ReportProviderLoad" argument="BProviderLoad" handle="server"/>
-			<rpc name="ReportLinkLoad" argument="BProviderLoad" handle="server"/>
+			<protocol name="ReportProviderLoad" argument="BProviderLoad" handle="server"/>
+			<protocol name="ReportLinkLoad" argument="BProviderLoad" handle="server"/>
 			<bean name="BSecret">
 				<var id="1" name="SecretKey" type="binary"/>
 			</bean>
-			<rpc name="AnnounceSecret" argument="BSecret" handle="client"/>
+			<protocol name="AnnounceSecret" argument="BSecret" handle="client"/>
 		</module>
 		<module name="LoginQueue" id="11043" UseData="true">
 			<bean name="BQueueSize">
