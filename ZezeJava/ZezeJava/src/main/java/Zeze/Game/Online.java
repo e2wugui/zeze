@@ -1872,6 +1872,19 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
+	/**
+	 * 踢掉某个玩家，
+	 * 其中code参考BKick里面的常量定义，自定义的使用不同的值，不在预定义范围即可。
+	 * @param roleId roleId
+	 * @param code error-code
+	 * @param desc description
+	 */
+	public void kick(long roleId, int code, String desc) {
+		var online = _tOnlineShared.selectDirty(roleId);
+		if (online != null)
+			providerApp.providerService.kick(online.getLink().getLinkName(), online.getLink().getLinkSid(), code, desc);
+	}
+
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessLoginRequest(@NotNull Login rpc) {
