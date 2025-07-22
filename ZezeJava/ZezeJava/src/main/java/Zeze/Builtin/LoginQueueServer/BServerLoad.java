@@ -5,8 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
 @SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
-public final class BProviderLoad extends Zeze.Transaction.Bean implements BProviderLoadReadOnly {
-    public static final long TYPEID = -4725395130921506944L;
+public final class BServerLoad extends Zeze.Transaction.Bean implements BServerLoadReadOnly {
+    public static final long TYPEID = 721066858319381566L;
 
     private int _ServerId;
     private String _ServiceIp; // LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
@@ -20,9 +20,9 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
-            vh_ServerId = _l_.findVarHandle(BProviderLoad.class, "_ServerId", int.class);
-            vh_ServiceIp = _l_.findVarHandle(BProviderLoad.class, "_ServiceIp", String.class);
-            vh_ServicePort = _l_.findVarHandle(BProviderLoad.class, "_ServicePort", int.class);
+            vh_ServerId = _l_.findVarHandle(BServerLoad.class, "_ServerId", int.class);
+            vh_ServiceIp = _l_.findVarHandle(BServerLoad.class, "_ServiceIp", String.class);
+            vh_ServicePort = _l_.findVarHandle(BServerLoad.class, "_ServicePort", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -104,14 +104,14 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
     }
 
     @SuppressWarnings("deprecation")
-    public BProviderLoad() {
+    public BServerLoad() {
         _ServiceIp = "";
         _Load = new Zeze.Transaction.Collections.CollOne<>(new Zeze.Builtin.Provider.BLoad(), Zeze.Builtin.Provider.BLoad.class);
         _Load.variableId(4);
     }
 
     @SuppressWarnings("deprecation")
-    public BProviderLoad(int _ServerId_, String _ServiceIp_, int _ServicePort_) {
+    public BServerLoad(int _ServerId_, String _ServiceIp_, int _ServicePort_) {
         _ServerId = _ServerId_;
         if (_ServiceIp_ == null)
             _ServiceIp_ = "";
@@ -131,18 +131,18 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
     }
 
     @Override
-    public Zeze.Builtin.LoginQueueServer.BProviderLoad.Data toData() {
-        var _d_ = new Zeze.Builtin.LoginQueueServer.BProviderLoad.Data();
+    public Zeze.Builtin.LoginQueueServer.BServerLoad.Data toData() {
+        var _d_ = new Zeze.Builtin.LoginQueueServer.BServerLoad.Data();
         _d_.assign(this);
         return _d_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Data _o_) {
-        assign((Zeze.Builtin.LoginQueueServer.BProviderLoad.Data)_o_);
+        assign((Zeze.Builtin.LoginQueueServer.BServerLoad.Data)_o_);
     }
 
-    public void assign(BProviderLoad.Data _o_) {
+    public void assign(BServerLoad.Data _o_) {
         setServerId(_o_._ServerId);
         setServiceIp(_o_._ServiceIp);
         setServicePort(_o_._ServicePort);
@@ -152,7 +152,7 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
         _unknown_ = null;
     }
 
-    public void assign(BProviderLoad _o_) {
+    public void assign(BServerLoad _o_) {
         setServerId(_o_.getServerId());
         setServiceIp(_o_.getServiceIp());
         setServicePort(_o_.getServicePort());
@@ -160,18 +160,18 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
         _unknown_ = _o_._unknown_;
     }
 
-    public BProviderLoad copyIfManaged() {
+    public BServerLoad copyIfManaged() {
         return isManaged() ? copy() : this;
     }
 
     @Override
-    public BProviderLoad copy() {
-        var _c_ = new BProviderLoad();
+    public BServerLoad copy() {
+        var _c_ = new BServerLoad();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BProviderLoad _a_, BProviderLoad _b_) {
+    public static void swap(BServerLoad _a_, BServerLoad _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -192,7 +192,7 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.LoginQueueServer.BProviderLoad: {\n");
+        _s_.append("Zeze.Builtin.LoginQueueServer.BServerLoad: {\n");
         _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
         _s_.append(_i1_).append("ServiceIp=").append(getServiceIp()).append(",\n");
         _s_.append(_i1_).append("ServicePort=").append(getServicePort()).append(",\n");
@@ -294,10 +294,10 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BProviderLoad))
+        if (!(_o_ instanceof BServerLoad))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BProviderLoad)_o_;
+        var _b_ = (BServerLoad)_o_;
         if (getServerId() != _b_.getServerId())
             return false;
         if (!getServiceIp().equals(_b_.getServiceIp()))
@@ -383,7 +383,7 @@ public final class BProviderLoad extends Zeze.Transaction.Bean implements BProvi
 
 @SuppressWarnings("ForLoopReplaceableByForEach")
 public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = -4725395130921506944L;
+    public static final long TYPEID = 721066858319381566L;
 
     private int _ServerId;
     private String _ServiceIp; // LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
@@ -453,25 +453,25 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public Zeze.Builtin.LoginQueueServer.BProviderLoad toBean() {
-        var _b_ = new Zeze.Builtin.LoginQueueServer.BProviderLoad();
+    public Zeze.Builtin.LoginQueueServer.BServerLoad toBean() {
+        var _b_ = new Zeze.Builtin.LoginQueueServer.BServerLoad();
         _b_.assign(this);
         return _b_;
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean _o_) {
-        assign((BProviderLoad)_o_);
+        assign((BServerLoad)_o_);
     }
 
-    public void assign(BProviderLoad _o_) {
+    public void assign(BServerLoad _o_) {
         _ServerId = _o_.getServerId();
         _ServiceIp = _o_.getServiceIp();
         _ServicePort = _o_.getServicePort();
         _Load.assign(_o_._Load.getValue());
     }
 
-    public void assign(BProviderLoad.Data _o_) {
+    public void assign(BServerLoad.Data _o_) {
         _ServerId = _o_._ServerId;
         _ServiceIp = _o_._ServiceIp;
         _ServicePort = _o_._ServicePort;
@@ -479,13 +479,13 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BProviderLoad.Data copy() {
-        var _c_ = new BProviderLoad.Data();
+    public BServerLoad.Data copy() {
+        var _c_ = new BServerLoad.Data();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BProviderLoad.Data _a_, BProviderLoad.Data _b_) {
+    public static void swap(BServerLoad.Data _a_, BServerLoad.Data _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -497,8 +497,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BProviderLoad.Data clone() {
-        return (BProviderLoad.Data)super.clone();
+    public BServerLoad.Data clone() {
+        return (BServerLoad.Data)super.clone();
     }
 
     @Override
@@ -511,7 +511,7 @@ public static final class Data extends Zeze.Transaction.Data {
     @Override
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.LoginQueueServer.BProviderLoad: {\n");
+        _s_.append("Zeze.Builtin.LoginQueueServer.BServerLoad: {\n");
         _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
         _s_.append(_i1_).append("ServiceIp=").append(_ServiceIp).append(",\n");
         _s_.append(_i1_).append("ServicePort=").append(_ServicePort).append(",\n");
@@ -598,10 +598,10 @@ public static final class Data extends Zeze.Transaction.Data {
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BProviderLoad.Data))
+        if (!(_o_ instanceof BServerLoad.Data))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BProviderLoad.Data)_o_;
+        var _b_ = (BServerLoad.Data)_o_;
         if (_ServerId != _b_._ServerId)
             return false;
         if (!_ServiceIp.equals(_b_._ServiceIp))

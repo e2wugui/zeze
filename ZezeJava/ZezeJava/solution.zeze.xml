@@ -2026,14 +2026,14 @@
 			<rpc name="Kick" argument="BAccountLink" handle="client"/> 重复登录并且需要踢掉旧的登录。
 		</module>
 		<module name="LoginQueueServer" id="11042" UseData="true">
-			<bean name="BProviderLoad">
+			<bean name="BServerLoad">
 				<var id="1" name="ServerId" type="int"/>
 				<var id="2" name="ServiceIp" type="string"/> LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
 				<var id="3" name="ServicePort" type="int"/>
 				<var id="4" name="Load" type="Zeze.Builtin.Provider.BLoad"/>
 			</bean>
-			<protocol name="ReportProviderLoad" argument="BProviderLoad" handle="server"/>
-			<protocol name="ReportLinkLoad" argument="BProviderLoad" handle="server"/>
+			<protocol name="ReportProviderLoad" argument="BServerLoad" handle="server"/>
+			<protocol name="ReportLinkLoad" argument="BServerLoad" handle="server"/>
 			<bean name="BSecret">
 				<var id="1" name="SecretKey" type="binary"/>
 			</bean>

@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LoginQueueServer;
 
-public interface BProviderLoadReadOnly {
+public interface BServerLoadReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BProviderLoad copy();
+    BServerLoad copy();
 
     int getServerId();
     String getServiceIp();

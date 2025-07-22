@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LoginQueueServer;
 
-public class ReportLinkLoad extends Zeze.Net.Protocol<Zeze.Builtin.LoginQueueServer.BProviderLoad.Data> {
+public class ReportLinkLoad extends Zeze.Net.Protocol<Zeze.Builtin.LoginQueueServer.BServerLoad.Data> {
     public static final int ModuleId_ = 11042;
     public static final int ProtocolId_ = -1724960337; // 2570006959
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47427598889391
@@ -23,10 +23,10 @@ public class ReportLinkLoad extends Zeze.Net.Protocol<Zeze.Builtin.LoginQueueSer
     }
 
     public ReportLinkLoad() {
-        Argument = new Zeze.Builtin.LoginQueueServer.BProviderLoad.Data();
+        Argument = new Zeze.Builtin.LoginQueueServer.BServerLoad.Data();
     }
 
-    public ReportLinkLoad(Zeze.Builtin.LoginQueueServer.BProviderLoad.Data arg) {
+    public ReportLinkLoad(Zeze.Builtin.LoginQueueServer.BServerLoad.Data arg) {
         Argument = arg;
     }
 }
