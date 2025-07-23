@@ -3,7 +3,6 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Arch.LoadConfig;
 import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Builtin.Provider.BLoad;

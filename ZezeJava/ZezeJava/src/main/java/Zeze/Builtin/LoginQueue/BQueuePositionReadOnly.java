@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.LoginQueue;
 
-public interface BQueueSizeReadOnly {
+public interface BQueuePositionReadOnly {
     long typeId();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     boolean negativeCheck();
-    BQueueSize copy();
+    BQueuePosition copy();
 
-    int getQueueSize();
+    int getQueuePosition();
 }

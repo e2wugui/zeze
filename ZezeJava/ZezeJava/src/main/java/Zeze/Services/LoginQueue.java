@@ -1,18 +1,13 @@
 package Zeze.Services;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
-import Zeze.Arch.LoadConfig;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
-import Zeze.Builtin.LoginQueue.PutQueueSize;
+import Zeze.Builtin.LoginQueue.PutQueuePosition;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
-import Zeze.Util.JsonReader;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -75,13 +70,12 @@ public class LoginQueue extends AbstractLoginQueue {
 		if (++broadcastCount >= 5) {
 			broadcastCount = 0;
 			// 给前10000个客户端广播队列长度。
-			var size = queue.size();
-			var p = new PutQueueSize();
-			p.Argument.setQueueSize(size);
 			var i = 0;
 			for (var e : queue) {
 				if (++i > 10000) // 最多广播10000个，客户端如果没有收到PutQueueSize，就显示>10000。
 					break;
+				var p = new PutQueuePosition();
+				p.Argument.setQueuePosition(i);
 				p.Send(e);
 			}
 		}

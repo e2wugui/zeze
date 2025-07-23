@@ -975,7 +975,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				var ret = Task.call(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
-				}, "Timer.fireSimpleUser"));
+				}, "Timer.fireSimpleUser." + timer.getHandleName()));
 
 				var indexNew = _tIndexs.get(timerId);
 				if (indexNew == null || indexNew.getSerialId() != serialSaved)
@@ -1116,7 +1116,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				var ret = Task.call(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
-				}, "Timer.fireCronUser"));
+				}, "Timer.fireCronUser." + timer.getHandleName()));
 
 				var indexNew = _tIndexs.get(timerId);
 				if (indexNew == null || indexNew.getSerialId() != serialSaved)
