@@ -110,10 +110,6 @@ public class LoginQueue extends AbstractLoginQueue {
 			so.closeGracefully();
 			return;
 		}
-		if (queue.isEmpty()) {
-			if (tryAllocateServer(so))
-				return; // 新连接，直接分配成功，done
-		}
 		queue.add(so);
 	}
 
@@ -123,6 +119,6 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void onClose(AsyncSocket so) {
-		queue.remove(so);
+		// queue.remove(so); // 遍历时处理isClosed的。
 	}
 }
