@@ -47,10 +47,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         @Override
         public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
             super.OnSocketClose(so, e);
-            if (null != so.getUserState()) {
-                @SuppressWarnings("unchecked") var loads = (Map<AsyncSocket, BServerLoad.Data>)so.getUserState();
-                loads.remove(so);
-            }
+            LoginQueueServer.this.onClose(so);
         }
     }
 
@@ -58,6 +55,15 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         this.loginQueue = loginQueue;
         this.service = new LoginQueueService();
         RegisterProtocols(this.service);
+    }
+
+    void onClose(AsyncSocket so) {
+        if (null != so.getUserState()) {
+            @SuppressWarnings("unchecked") var loads = (Map<AsyncSocket, BServerLoad.Data>)so.getUserState();
+            loads.remove(so);
+            if (loads == providers)
+                loginQueue.tryResetTimeThrottle(providers.size());
+        }
     }
 
     public Binary getSecretKey() {
