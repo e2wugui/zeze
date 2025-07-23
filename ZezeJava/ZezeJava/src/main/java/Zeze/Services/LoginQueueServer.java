@@ -12,10 +12,11 @@ import Zeze.Net.Service;
 import Zeze.Util.KV;
 import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class LoginQueueServer extends AbstractLoginQueueServer {
-    private final ConcurrentHashMap<String, BServerLoad.Data> providers = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, BServerLoad.Data> links = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> providers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<AsyncSocket, BServerLoad.Data> links = new ConcurrentHashMap<>();
     private final LoginQueueService service;
     private final LoginQueue loginQueue;
 
@@ -23,7 +24,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
      * 网络服务类 Acceptor
      * 接受provider和link连接。
      */
-    public static class LoginQueueService extends Service {
+    public class LoginQueueService extends Service {
         private final Binary secretKey;
 
         public LoginQueueService() {
@@ -42,6 +43,15 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             p.Argument.setSecretKey(secretKey);
             p.Send(so);
         }
+
+        @Override
+        public void OnSocketClose(@NotNull AsyncSocket so, @Nullable Throwable e) throws Exception {
+            super.OnSocketClose(so, e);
+            if (null != so.getUserState()) {
+                @SuppressWarnings("unchecked") var loads = (Map<AsyncSocket, BServerLoad.Data>)so.getUserState();
+                loads.remove(so);
+            }
+        }
     }
 
     public LoginQueueServer(LoginQueue loginQueue) {
@@ -56,16 +66,16 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
 
     @Override
     protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) {
-        var key = r.Argument.getServiceIp() + "_" + r.Argument.getServicePort();
-        providers.put(key, r.Argument);
+        r.getSender().setUserState(providers);
+        providers.put(r.getSender(), r.Argument);
         loginQueue.tryResetTimeThrottle(providers.size());
         return 0;
     }
 
     @Override
     protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) {
-        var key = r.Argument.getServiceIp() + "_" + r.Argument.getServicePort();
-        links.put(key, r.Argument);
+        r.getSender().setUserState(links);
+        links.put(r.getSender(), r.Argument);
         return 0;
     }
 
@@ -87,7 +97,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
      * @param servers 服务器
      * @return 返回分配的服务，null表示选择失败。
      */
-    private BServerLoad.Data choiceServer(Map<String, BServerLoad.Data> servers) {
+    private static BServerLoad.Data choiceServer(Map<AsyncSocket, BServerLoad.Data> servers) {
         var totalWeight = 0L;
         var frees = new ArrayList<KV<BServerLoad.Data, Long>>(servers.size());
         for (var e : servers.entrySet()) {
