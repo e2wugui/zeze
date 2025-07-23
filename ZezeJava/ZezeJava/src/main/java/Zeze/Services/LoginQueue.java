@@ -3,6 +3,7 @@ package Zeze.Services;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
+import Zeze.Builtin.LoginQueue.PutQueueFull;
 import Zeze.Builtin.LoginQueue.PutQueuePosition;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Net.AsyncSocket;
@@ -40,9 +41,11 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final Future<?> allocateTimer;
 	private int broadcastCount;
 	private final int maxOnlineNew;
+	private final int maxQueueSize;
 
-	public LoginQueue(int maxOnlineNew) {
+	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
 		this.maxOnlineNew = maxOnlineNew;
+		this.maxQueueSize = maxQueueSize;
 		this.server = new LoginQueueServer();
 		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
 	}
@@ -102,6 +105,11 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void onAccept(AsyncSocket so) {
+		if (queue.size() >= maxQueueSize) {
+			new PutQueueFull().Send(so);
+			so.closeGracefully();
+			return;
+		}
 		if (queue.isEmpty()) {
 			if (tryAllocateServer(so))
 				return; // 新连接，直接分配成功，done

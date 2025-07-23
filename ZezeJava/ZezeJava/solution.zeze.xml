@@ -2059,6 +2059,7 @@
 			客户端收到这条协议表示排队成功。此后可以连接link继续登录。
 			-->
 			<protocol name="PutLoginToken" argument="BLoginToken" handle="client"/>
+			<protocol name="PutQueueFull" handle="client"/>
 		</module>
 		<!--
 		可用id范围 [11044, 11100) [11102, 11999]
