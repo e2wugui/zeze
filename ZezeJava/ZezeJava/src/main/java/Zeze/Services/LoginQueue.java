@@ -44,36 +44,22 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final ConcurrentLinkedQueue<AsyncSocket> queue = new ConcurrentLinkedQueue<>();
 	private final Future<?> allocateTimer;
 	private int broadcastCount;
-	private final LoadConfig loadConfig;
+	private final int maxOnlineNew;
 
-	public LoginQueue() {
-		loadConfig = loadConfig();
+	public LoginQueue(int maxOnlineNew) {
+		this.maxOnlineNew = maxOnlineNew;
 		this.server = new LoginQueueServer();
-		this.allocateTimer = Task.scheduleUnsafe(
-				loadConfig.getDigestionDelayExSeconds() * 1000L,
-				loadConfig.getDigestionDelayExSeconds() * 1000L,
-				this::allocateTimer);
+		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
 	}
 
 	public void stop() {
 		allocateTimer.cancel(true);
 	}
 
-	private static LoadConfig loadConfig() {
-		try {
-			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-			return new JsonReader().buf(bytes).parse(LoadConfig.class);
-			// return new ObjectMapper().readValue(bytes, LoadConfig.class);
-		} catch (Exception e) {
-			// e.printStackTrace();
-		}
-		return new LoadConfig();
-	}
-
 	private void allocateTimer() {
 		// 每个server分配OnlineNew，随机一半以上的分配量。
-		var max = server.providerSize() * loadConfig.getMaxOnlineNew();
-		var half = max >> 1;
+		var max = server.providerSize() * maxOnlineNew;
+		var half = max / 2;
 		if (half > 0)
 			max = half + Zeze.Util.Random.getInstance().nextInt(half);
 		var allocate = 0;
@@ -81,14 +67,14 @@ public class LoginQueue extends AbstractLoginQueue {
 			if (++allocate > max)
 				break;
 			if (!tryAllocateServer(e))
-				break;
+				break; // 分配失败
 			queue.poll();
 		}
 
-		// 比分配更长的间隔。每3次timer触发广播一次。
-		if (++broadcastCount >= 3) {
+		// 比分配更长的间隔。每N次timer触发广播一次。
+		if (++broadcastCount >= 5) {
 			broadcastCount = 0;
-			// 一旦碰到分配失败，并且达到广播时间，就给剩余队列中的客户端广播队列长度。
+			// 给前10000个客户端广播队列长度。
 			var size = queue.size();
 			var p = new PutQueueSize();
 			p.Argument.setQueueSize(size);
