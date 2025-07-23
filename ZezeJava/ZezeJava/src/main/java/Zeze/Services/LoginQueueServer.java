@@ -104,6 +104,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             for (var ps : frees) {
                 var weight = ps.getValue();
                 if (randWeight < weight) {
+                    ps.getKey().getLoad().setOnline(ps.getKey().getLoad().getOnline() + 1);
                     return ps.getKey();
                 }
                 randWeight -= weight;

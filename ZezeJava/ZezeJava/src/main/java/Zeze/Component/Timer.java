@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Timer extends AbstractTimer implements HotBeanFactory {
 	static final Logger logger = LogManager.getLogger(Timer.class);
-	private static int CountPerNode = Reflect.inDebugMode ? 1 : 10; // 调试状态下减少timer之间的影响,以免频繁redo
+	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static void setCountPerNode(int countPerNode) {
