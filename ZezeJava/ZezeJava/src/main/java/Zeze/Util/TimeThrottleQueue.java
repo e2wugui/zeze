@@ -28,7 +28,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 	 * @param limit   限制数量
 	 */
 	public TimeThrottleQueue(int seconds, int limit, int bandwidthLimit) {
-		if (seconds < 1 || limit < 1 || bandwidthLimit < 1)
+		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
 			throw new IllegalArgumentException();
 		this.expire = seconds * 1000;
 		this.limit = limit * seconds;
