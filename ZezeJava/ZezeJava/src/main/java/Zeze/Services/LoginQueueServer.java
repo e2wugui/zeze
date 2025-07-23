@@ -17,7 +17,6 @@ import org.jetbrains.annotations.NotNull;
 public class LoginQueueServer extends AbstractLoginQueueServer {
     private final ConcurrentHashMap<String, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BServerLoad.Data> links = new ConcurrentHashMap<>();
-    private final LoadConfig loadConfig;
     private final LoginQueueService service;
 
     /**
@@ -45,8 +44,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    public LoginQueueServer(LoadConfig loadConfig) {
-        this.loadConfig = loadConfig;
+    public LoginQueueServer() {
         this.service = new LoginQueueService();
         RegisterProtocols(this.service);
     }
@@ -67,6 +65,10 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         var key = r.Argument.getServiceIp() + "_" + r.Argument.getServicePort();
         links.put(key, r.Argument);
         return 0;
+    }
+
+    public int providerSize() {
+        return providers.size();
     }
 
     public BServerLoad.Data choiceLink() {
@@ -90,7 +92,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
             var load = e.getValue().getLoad();
             if (load.getOverload() == BLoad.eOverload)
                 continue;
-            if (load.getOnlineNew() > loadConfig.getMaxOnlineNew())
+            if (load.getOnlineNew() > load.getMaxOnlineNew())
                 continue;
             long weight = load.getProposeMaxOnline() - load.getOnline();
             if (weight <= 0)

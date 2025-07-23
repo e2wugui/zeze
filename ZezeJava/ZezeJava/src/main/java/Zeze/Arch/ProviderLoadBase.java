@@ -81,6 +81,14 @@ public abstract class ProviderLoadBase {
 			reportDelaySeconds = config.getReportDelaySeconds();
 			return;
 		}
+		if (online > config.getProposeMaxOnline()) {
+			// 在线数量超过建议最大在线，马上报告。
+			report(overload, online, onlineNew);
+			start(2);
+			// 超过最大建议值，强迫报告。
+			reportDelaySeconds = config.getReportDelaySeconds();
+			return;
+		}
 		// slow report
 		reportDelaySeconds += timeoutDelaySeconds;
 		if (reportDelaySeconds >= config.getReportDelaySeconds()) {
@@ -97,6 +105,7 @@ public abstract class ProviderLoadBase {
 		load.setOnline(online);
 		load.setProposeMaxOnline(getLoadConfig().getProposeMaxOnline());
 		load.setOnlineNew(onlineNew);
+		load.setMaxOnlineNew(getLoadConfig().getMaxOnlineNew());
 		var bb = ByteBuffer.Allocate(256);
 		load.encode(bb);
 

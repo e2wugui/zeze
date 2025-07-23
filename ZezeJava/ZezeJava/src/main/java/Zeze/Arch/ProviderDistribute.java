@@ -168,7 +168,7 @@ public class ProviderDistribute extends ReentrantLock {
 
 			all.add(ps);
 
-			if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
+			if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
 				continue;
 
 			int weight = ps.load.getProposeMaxOnline() - ps.load.getOnline();
@@ -293,7 +293,7 @@ public class ProviderDistribute extends ReentrantLock {
 					continue; // 忽略过载服务器。
 
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-				if (ps.load.getOnlineNew() > loadConfig.getMaxOnlineNew())
+				if (ps.load.getOnlineNew() > ps.load.getMaxOnlineNew())
 					continue;
 
 				if (!checkAppVersion(ps.appVersion, appVersion))

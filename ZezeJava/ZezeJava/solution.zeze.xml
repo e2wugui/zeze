@@ -426,10 +426,11 @@
 				<enum name="eThreshold" value="1"/>
 				<enum name="eOverload"  value="2"/>
 
-				<variable name="Online"           id="1" type="int"/> 用户数量
+				<variable name="Online"                     id="1" type="int"/> 用户数量
 				<variable name="ProposeMaxOnline" id="2" type="int"/> 建议最大用户数量
-				<variable name="OnlineNew"        id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
-				<variable name="Overload"         id="4" type="int"/> 过载保护类型。参见上面的枚举定义。
+				<variable name="OnlineNew"              id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+				<variable name="Overload"                 id="4" type="int"/> 过载保护类型。参见上面的枚举定义。
+				<variable name="MaxOnlineNew"       id="5" type="int"/> 最大最近上线数量。
 			</bean>
 
 			<bean name="BSetDisableChoice">
