@@ -68,13 +68,13 @@ public abstract class ProviderLoadBase {
 		var config = getLoadConfig();
 		if (overload != BLoad.eWorkFine) {
 			// fast report
-			report(overload, online, onlineNew);
+			report(overload, online, onlineNewPerSecond);
 			start(2);
 			return;
 		}
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			report(overload, online, onlineNew);
+			report(overload, online, onlineNewPerSecond);
 			// new delay for digestion
 			start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
@@ -83,7 +83,7 @@ public abstract class ProviderLoadBase {
 		}
 		if (online > config.getProposeMaxOnline()) {
 			// 在线数量超过建议最大在线，马上报告。
-			report(overload, online, onlineNew);
+			report(overload, online, onlineNewPerSecond);
 			start(2);
 			// 超过最大建议值，强迫报告。
 			reportDelaySeconds = config.getReportDelaySeconds();
@@ -93,7 +93,7 @@ public abstract class ProviderLoadBase {
 		reportDelaySeconds += timeoutDelaySeconds;
 		if (reportDelaySeconds >= config.getReportDelaySeconds()) {
 			reportDelaySeconds = 0;
-			report(overload, online, onlineNew);
+			report(overload, online, onlineNewPerSecond);
 		}
 		start();
 	}
