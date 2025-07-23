@@ -17,6 +17,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     private final ConcurrentHashMap<String, BServerLoad.Data> providers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, BServerLoad.Data> links = new ConcurrentHashMap<>();
     private final LoginQueueService service;
+    private final LoginQueue loginQueue;
 
     /**
      * 网络服务类 Acceptor
@@ -43,7 +44,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    public LoginQueueServer() {
+    public LoginQueueServer(LoginQueue loginQueue) {
+        this.loginQueue = loginQueue;
         this.service = new LoginQueueService();
         RegisterProtocols(this.service);
     }
@@ -56,6 +58,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) {
         var key = r.Argument.getServiceIp() + "_" + r.Argument.getServicePort();
         providers.put(key, r.Argument);
+        loginQueue.tryResetTimeThrottle(providers.size());
         return 0;
     }
 

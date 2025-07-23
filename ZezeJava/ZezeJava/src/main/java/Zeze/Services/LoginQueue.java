@@ -44,14 +44,22 @@ public class LoginQueue extends AbstractLoginQueue {
 	private int broadcastCount;
 	private final int maxOnlineNew;
 	private final int maxQueueSize;
-	private final TimeThrottle timeThrottle;
+	private volatile TimeThrottle timeThrottle;
+	private int providerSize;
 
 	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
 		this.maxOnlineNew = maxOnlineNew;
 		this.maxQueueSize = maxQueueSize;
-		this.server = new LoginQueueServer();
+		this.server = new LoginQueueServer(this);
 		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
+	}
+
+	synchronized void tryResetTimeThrottle(int providerSize) {
+		if (this.providerSize != providerSize) {
+			this.providerSize = providerSize;
+			timeThrottle = new TimeThrottleCounter(1, maxOnlineNew * providerSize, maxOnlineNew * providerSize);
+		}
 	}
 
 	public void stop() {
@@ -114,7 +122,6 @@ public class LoginQueue extends AbstractLoginQueue {
 			so.closeGracefully();
 			return;
 		}
-		// timeThrottle 仅使用一个provider的maxOnlineNew。低速限制，因为此时很难动态根据providerSize调整。
 		if (queue.isEmpty() && timeThrottle.checkNow(1)) {
 			if (tryAllocateServer(so))
 				return; // 新连接，直接分配成功，done
