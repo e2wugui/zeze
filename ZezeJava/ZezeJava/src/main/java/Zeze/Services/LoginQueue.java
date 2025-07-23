@@ -10,6 +10,8 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
+import Zeze.Util.TimeThrottle;
+import Zeze.Util.TimeThrottleCounter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,12 +44,14 @@ public class LoginQueue extends AbstractLoginQueue {
 	private int broadcastCount;
 	private final int maxOnlineNew;
 	private final int maxQueueSize;
+	private final TimeThrottle timeThrottle;
 
 	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
 		this.maxOnlineNew = maxOnlineNew;
 		this.maxQueueSize = maxQueueSize;
 		this.server = new LoginQueueServer();
 		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
+		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 
 	public void stop() {
@@ -109,6 +113,11 @@ public class LoginQueue extends AbstractLoginQueue {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
 			return;
+		}
+		// timeThrottle 仅使用一个provider的maxOnlineNew。低速限制，因为此时很难动态根据providerSize调整。
+		if (queue.isEmpty() && timeThrottle.checkNow(1)) {
+			if (tryAllocateServer(so))
+				return; // 新连接，直接分配成功，done
 		}
 		queue.add(so);
 	}
