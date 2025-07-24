@@ -776,6 +776,27 @@
 			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
 		</module>
 
+		<module name="LoginQueue" id="11043" UseData="true">
+			<bean name="BQueuePosition">
+				<var id="1" name="QueuePosition" type="int"/>
+			</bean>
+			<bean name="BLoginToken">
+				<var id="1" name="Token" type="binary"/>
+				<var id="2" name="LinkIp" type="string"/>
+				<var id="3" name="LinkPort" type="int"/>
+			</bean>
+			<!--
+			客户端收到这条协议之前，显示排队中，数量显示大于10000
+			LoginQueue服务器最多只会广播通知前10000个客户端。
+			客户端收到这条协议，就更新显示的排队数量。排队时，每N秒更新一次。
+			-->
+			<protocol name="PutQueuePosition" argument="BQueuePosition" handle="client"/>
+			<!--
+			客户端收到这条协议表示排队成功。此后可以连接link继续登录。
+			-->
+			<protocol name="PutLoginToken" argument="BLoginToken" handle="client"/>
+			<protocol name="PutQueueFull" handle="client"/>
+		</module>
 		<!--
 		可用id范围 [11034, 11100) [11103, 12000]
 		<module name="" id="11016">
@@ -784,6 +805,16 @@
 		</module>
 		-->
 	</module> Builtin
+
+	<component name="LoginQueueClient" GenDir="." SrcDir="."
+		PackagePath="Zeze/Services" platform="zeze+cs" GenTables="client"
+		DisableDeleteGen="true"
+		>
+		
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
 
 	<component name="HotDistribute" GenDir="." SrcDir="." PackagePath="Zeze/Gen/java" GenTables="client" platform="zeze+cs" NoRecursiveModule="true" AutoDelete="false">
 		<service name="" handle="client">
