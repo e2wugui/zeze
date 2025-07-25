@@ -32,6 +32,7 @@ namespace Zeze.Services
     {
         public Service Service => this;
         public ToLua ToLua => ToLua.Instance;
+        public LoginQueueClient LoginQueueClient { get; } = new LoginQueueClient();
 
         public ToLuaServiceClient2(string name, Application zeze)
             : base(name, zeze.Config)
@@ -239,6 +240,7 @@ namespace Zeze.Services.ToLuaService2
             public readonly Dictionary<long, IFromLua2> toLuaHandshakeDone = new Dictionary<long, IFromLua2>();
             public readonly Dictionary<long, IFromLua2> toLuaSocketClose = new Dictionary<long, IFromLua2>();
             public readonly Dictionary<long, IFromLua2> toLuaOnKeepAliveTimeout = new Dictionary<long, IFromLua2>();
+            public readonly List<Action> toLuaAction = new List<Action>(); // Action里面call各种lua函数，不需要注册。
 
             public void Clear()
             {
@@ -246,6 +248,7 @@ namespace Zeze.Services.ToLuaService2
                 toLuaHandshakeDone.Clear();
                 toLuaSocketClose.Clear();
                 toLuaOnKeepAliveTimeout.Clear();
+                toLuaAction.Clear();
             }
         }
 
@@ -1440,6 +1443,10 @@ namespace Zeze.Services.ToLuaService2
                 CallOnKeepAliveTimeout(luaState, e.Value, e.Key);
             }
 
+            foreach (var  e in toLuaVariableUpdating.toLuaAction)
+            {
+                e.Invoke();
+            }
             UpdateLuaState = luaState;
             foreach (var e in toLuaVariableUpdating.toLuaBuffer)
             {
@@ -1643,6 +1650,7 @@ namespace Zeze.Services.ToLuaService2
             ExportFunction(l, "Close", Close);
             ExportFunction(l, "Connect", Connect);
             ExportFunction(l, "ConnectWebsocket", ConnectWebsocket);
+            ExportFunction(l, "ConnectLoginQueue", ConnectLoginQueue);
             ExportFunction(l, "SendProtocol", SendProtocol);
             ExportFunction(l, "SetOnSocketConnected", SetOnSocketConnected);
             ExportFunction(l, "SetOnSocketClosed", SetOnSocketClosed);
@@ -1674,6 +1682,35 @@ namespace Zeze.Services.ToLuaService2
             int port = (int)Instance.Lua.lua_tointeger(luaState, -2);
             bool autoReconnect = Instance.Lua.lua_toboolean(luaState, -1);
             _serviceClient.Connect(host, port, autoReconnect);
+            return 0;
+        }
+
+        public static int ConnectLoginQueue(IntPtr luaState)
+        {
+            string url = Instance.Lua.lua_tostring(luaState, -2);
+            int port = (int)Instance.Lua.lua_tointeger(luaState, -1);
+            _serviceClient.LoginQueueClient.QueueFull = () =>
+            {
+                _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
+                {
+                    // todo call lua OnQueueFull()
+                });
+            };
+            _serviceClient.LoginQueueClient.QueuePosition = (queuePosition) =>
+            {
+                _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
+                {
+                    // todo call lua OnQueuePosition(queuePosition.QueuePosition)
+                });
+            };
+            _serviceClient.LoginQueueClient.LoginToken = (loginToken) =>
+            {
+                _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
+                {
+                    // todo call lua OnLoginToken(loginToken.LinkIp, loginToken.LinkPort, loginToken.Token)
+                });
+            };
+            _serviceClient.LoginQueueClient.Connect(url, port);
             return 0;
         }
 
