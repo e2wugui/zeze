@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="Zeze" ModuleIdAllowRanges="1-1000">
+<solution name="Zeze" ModuleIdAllowRanges="">
 	<import file="ZezeJava/ZezeJava/solution.zeze.xml"/>
 
 	<component name="LoginQueueClient" GenDir="confcs" SrcDir="confcs"
