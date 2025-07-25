@@ -483,7 +483,7 @@ public class TestRoleTimer {
 					// 每个角色创建20个timer。
 					for (var i = 0; i < 20; ++i) {
 						idSet.add(i); // 本来应该事务成功，不过这个目前没有失败的，先这样。
-						timerRole0.scheduleOnline(roleId, Random.getInstance().nextInt(1000), -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
+						timerRole0.scheduleOnline(roleId, Random.getInstance().nextInt(3000), -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
 					}
 					return Procedure.Success;
 				}, "scheduleOnlineN"));
