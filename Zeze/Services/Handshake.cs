@@ -459,12 +459,6 @@ namespace Zeze.Services
             AddHandshakeClientFactoryHandle();
         }
 
-        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
-        {
-            Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
-            c.Start();
-        }
-
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
