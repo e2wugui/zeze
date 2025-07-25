@@ -678,5 +678,11 @@ namespace Zeze.Net
             find.Start();
         }
 
+        public void Connect(string hostNameOrAddress, int port, bool autoReconnect = true)
+        {
+            Config.TryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out var c);
+            c.Start();
+        }
+
     }
 }
