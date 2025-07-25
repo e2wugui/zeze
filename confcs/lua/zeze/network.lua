@@ -16,6 +16,7 @@ function network.Init()
     lua_client.SetOnReceiveProtocol(network.on_receiveProtocol)
     lua_client.SetOnSocketClosed(network.on_net_close)
     lua_client.SetKeepAliveTimeout(network.on_keepalive_timeout)
+    lua_client.Set
 
     network._isConnected = false
     network._isConnecting = false
@@ -128,5 +129,21 @@ function network.on_receiveRPC(rpc)
         context.responseHandle(context)
     end
 end
+
+local function OnQueueFull()
+end
+
+local function OnQueuePosition(queuePosition)
+end
+
+local function OnQueuePosition(LinkIp, LinkPort, Token)
+end
+
+-- 约定注册给 c# 使用
+_G.zezeActions = {
+    OnQueueFull = OnQueueFull
+    OnQueuePosition = OnQueuePosition
+    OnLoginToken = OnLoginToken
+}
 
 return network

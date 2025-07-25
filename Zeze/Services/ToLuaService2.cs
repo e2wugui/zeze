@@ -156,6 +156,7 @@ namespace Zeze.Services.ToLuaService2
         void lua_pushlstring (lua_State L, byte[] s, int len);
         void lua_pop(lua_State luaState, int n);
         int lua_gettop(lua_State luaState);
+        void lua_settop(lua_State L, int index);
         bool lua_checkstack (lua_State luaState, int n);
         
         // int lua_isboolean (lua_State luaState, int index);
@@ -332,67 +333,6 @@ namespace Zeze.Services.ToLuaService2
             ICollection<DynamicMeta> dynamicMetas, List<VariableMeta> variables)
         {
             Lua.lua_getfield(luaState, -1, "variables"); // variables
-            // LuaTable variablesLuaTable;
-            // foreach (var (variableName, variableLuaTable) in variablesLuaTable)
-            // {
-            //     var variableId = variableLuaTable.GetInt("Id");
-            //     var variableTypeName = variableLuaTable.GetString("type");
-            //     int variableType = ToVariableTypeId(variableTypeName, beanName2BeanId, out long variableBeanTypeId);
-            //     var variableMeta = new VariableMeta
-            //     {
-            //         Id = (int)variableId,
-            //         Name = variableName,
-            //         Type = variableType,
-            //         TypeBeanTypeId = variableBeanTypeId
-            //     };
-            //     switch (variableType)
-            //     {
-            //         case ByteBuffer.LIST:
-            //         {
-            //             var variableValueStr = variableLuaTable.GetString("type");
-            //             int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
-            //                 out long variableValueTypeId);
-            //             variableMeta.ValueType = variableValueType;
-            //             variableMeta.ValueBeanTypeId = variableValueTypeId;
-            //             break;
-            //         }
-            //         case ByteBuffer.MAP:
-            //         {
-            //             var variableKeyStr = variableLuaTable.GetString("key");
-            //             var variableValueStr = variableLuaTable.GetString("value");
-            //             
-            //             int variableValueType = ToVariableTypeId(variableValueStr, beanName2BeanId,
-            //                 out long variableValueTypeId);
-            //             variableMeta.ValueType = variableValueType;
-            //             variableMeta.ValueBeanTypeId = variableValueTypeId;
-            //             int variableKeyType = ToVariableTypeId(variableKeyStr, beanName2BeanId, out long variableKeyTypeId);
-            //             variableMeta.KeyType = variableKeyType;
-            //             variableMeta.KeyBeanTypeId = variableKeyTypeId;
-            //             break;
-            //         }
-            //         case ByteBuffer.DYNAMIC:
-            //         {
-            //             var dynamicMeta = new DynamicMeta();
-            //             Lua.lua_getfield(luaState, -1, "dynamcic_meta");
-            //             for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1))
-            //             {
-            //                 long dynamicId = Convert.ToInt64(Lua.lua_tostring(luaState, -2));
-            //                 string dynamicType = Lua.lua_tostring(luaState, -1);
-            //                 if (!beanName2BeanId.TryGetValue(dynamicType, out var dynamicTypeId))
-            //                     throw new Exception($"error dynamic bean type not define {dynamicType}");
-            //                 dynamicMeta.BeanToSpecialTypeId[dynamicTypeId] = dynamicId;
-            //                 variableMeta.DynamicMeta = dynamicMeta;
-            //                 dynamicMetas.Add(dynamicMeta);
-            //             }
-            //             Lua.lua_pop(luaState, 1);
-            //             break;
-            //         }
-            //     }
-            //     int index = variables.BinarySearch(variableMeta, varComparer);
-            //     if (index < 0)
-            //         variables.Insert(~index, variableMeta);
-            //     
-            // }
             for (Lua.lua_pushnil(luaState); Lua.lua_next(luaState, -2); Lua.lua_pop(luaState, 1)) // -1 value of varMeta(table) -2 key of varId
             {
                 string variableName = Lua.lua_tostring(luaState, -2);
@@ -1687,6 +1627,23 @@ namespace Zeze.Services.ToLuaService2
             _serviceClient.Connect(host, port, autoReconnect);
             return 0;
         }
+        
+        public static bool GetLuaAction(IntPtr luaState, string actionName)
+        {
+            Instance.Lua.lua_getglobal(luaState, "zezeActions");
+            if (!Instance.Lua.lua_istable(luaState, -1))
+            {
+                return false;
+            }
+
+            Instance.Lua.lua_getfield(luaState, -1, actionName);
+            if (Instance.Lua.lua_type(luaState, -1) != LuaType.Function)
+            {
+                Instance.Lua.lua_pop(luaState, 2);
+                return false;
+            }
+            return true;
+        }
 
 #if USE_CONFCS
         public static int ConnectLoginQueue(IntPtr luaState)
@@ -1697,6 +1654,12 @@ namespace Zeze.Services.ToLuaService2
             {
                 _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
                 {
+                    var top = Instance.Lua.lua_gettop(luaState);
+                    if (GetLuaAction(luaState, "OnQueueFull"))
+                    {
+                        Instance.Lua.lua_pcall(luaState, 0, 0, 0);
+                    }
+                    Instance.Lua.lua_settop(luaState, top);
                     // todo call lua OnQueueFull()
                 });
             };
@@ -1704,6 +1667,13 @@ namespace Zeze.Services.ToLuaService2
             {
                 _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
                 {
+                    var top = Instance.Lua.lua_gettop(luaState);
+                    if (GetLuaAction(luaState, "OnQueueFull"))
+                    {
+                        Instance.Lua.lua_pushinteger(luaState, queuePosition.QueuePosition);
+                        Instance.Lua.lua_pcall(luaState, 1, 0, 0);
+                    }
+                    Instance.Lua.lua_settop(luaState, top);
                     // todo call lua OnQueuePosition(queuePosition.QueuePosition)
                 });
             };
@@ -1711,6 +1681,16 @@ namespace Zeze.Services.ToLuaService2
             {
                 _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
                 {
+                    var top = Instance.Lua.lua_gettop(luaState);
+                    if (GetLuaAction(luaState, "OnQueueFull"))
+                    {
+                        Instance.Lua.lua_pushstring(luaState, loginToken.LinkIp);
+                        Instance.Lua.lua_pushinteger(luaState, loginToken.LinkPort);
+                        var bytes = loginToken.Token.GetBytes();
+                        Instance.Lua.lua_pushlstring(luaState, bytes, bytes.Length);
+                        Instance.Lua.lua_pcall(luaState, 3, 0, 0);
+                    }
+                    Instance.Lua.lua_settop(luaState, top);
                     // todo call lua OnLoginToken(loginToken.LinkIp, loginToken.LinkPort, loginToken.Token)
                 });
             };
@@ -1766,63 +1746,6 @@ namespace Zeze.Services.ToLuaService2
             return 0;
         }
 
-        /*
-        private struct LuaTable : IEnumerable<KeyValuePair<string, LuaTable>> 
-        {
-            private lua_State _l;
-            private ILua _lua;
-            private int _tableIndex;
-
-            public LuaTable(lua_State l)
-            {
-                _l = l;
-                _lua = null;
-                _tableIndex = _lua.lua_gettop(l);
-            }
-            
-            // public LuaTable()
-            // {
-            //     _lua = null;
-            //     _tableIndex = 0;
-            // }
-
-            public lua_Integer GetInt(string fieldName)
-            {
-                _lua.lua_getfield(_l, -1, fieldName);
-                var v = _lua.lua_tointeger(_l, -1);
-                _lua.lua_pop(_l, 1);
-                return v;
-            }
-
-            public string GetString(string fieldName)
-            {
-                _lua.lua_getfield(_l, -1, fieldName);
-                var v = _lua.lua_tointeger(_l, -1);
-                _lua.lua_pop(_l, 1);
-                return "";
-            }
-
-            
-            public lua_Integer GetStringInt(string fieldName)
-            {
-                _lua.lua_getfield(_l, -1, fieldName);
-                var v = _lua.lua_tointeger(_l, -1);
-                _lua.lua_pop(_l, 1);
-                return v;
-            }
-
-
-            public IEnumerator<KeyValuePair<string, LuaTable>> GetEnumerator()
-            {
-                throw new NotImplementedException();
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-        }
-        */
     }
 
 #if USE_ToLua_LUA
@@ -1883,6 +1806,11 @@ namespace Zeze.Services.ToLuaService2
         public int lua_gettop(lua_State luaState)
         {
             return LuaInterface.LuaDLL.lua_gettop(luaState);
+        }
+
+        public int lua_settop(lua_State L, int index)
+        {
+            LuaInterface.LuaDLL.lua_settop(luaState, index);
         }
 
         public bool lua_checkstack(lua_State luaState, int n)
