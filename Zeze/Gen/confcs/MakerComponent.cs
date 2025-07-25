@@ -51,9 +51,9 @@ namespace Zeze.Gen.confcs
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
-                    new cs.RpcFormatter(rpc).Make(genDir);
+                    new cs.RpcFormatter(rpc).Make(genDir, true);
                 else
-                    new cs.ProtocolFormatter(protocol).Make(genDir);
+                    new cs.ProtocolFormatter(protocol).Make(genDir, true);
             }
             foreach (Table table in Project.AllTables.Values)
             {

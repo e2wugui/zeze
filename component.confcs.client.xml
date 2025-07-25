@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Zeze" ModuleIdAllowRanges="1-1000">
+	<import file="ZezeJava/ZezeJava/solution.zeze.xml"/>
+
+	<component name="LoginQueueClient" GenDir="confcs" SrcDir="confcs"
+		PackagePath="Zeze/Services" platform="conf+cs+net" GenTables="client"
+		DisableDeleteGen="true"
+		>
+		
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
+
+</solution>

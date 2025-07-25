@@ -4,6 +4,9 @@ pushd %~dp0
 
 set PATH=%~dp0\Gen\bin\Debug\net8.0;%PATH%
 
+echo -------- Gen component.confcs.client.xml ...
+Gen.exe component.confcs.client.xml
+
 echo -------- Gen solution.zeze.xml ...
 Gen.exe solution.zeze.xml
 echo -------- GenRedirect Zeze\RedirectOverride ...
