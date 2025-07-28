@@ -203,7 +203,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				//noinspection DataFlowIssue
 				r.setState(acquire.resultState);
 				if (r.getState() == StateInvalid) {
-					var msg = "Acquire Failed: " + tkey + ':' + r;
+					var msg = "Acquire Failed (Redo): " + r;
 					var txn = Transaction.getCurrent();
 					if (txn == null || txn.isCompleted())
 						throw new GoBackZeze(msg);
