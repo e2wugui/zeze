@@ -105,6 +105,19 @@ public class AutoKey extends ReentrantLock {
 		return bb;
 	}
 
+	// 从AutoKey.next|nextId()得到的ID中提取出serverId. 暂不支持serverId=0的情况
+	public static int getServerIdFromId(long id) {
+		var bb = ByteBuffer.Allocate(8);
+		bb.WriteLong8BE(id);
+		while (bb.Bytes[bb.ReadIndex] == 0) // 跳过前面的0值字节
+			bb.ReadIndex++;
+		int serverId = bb.ReadUInt();
+		bb.SkipULong();
+		if (bb.ReadIndex != bb.WriteIndex) // 检查是否合法生成的ID
+			throw new IllegalArgumentException();
+		return serverId;
+	}
+
 	/**
 	 * 设置最小的ID值, 使下次nextId()的结果不小于此值
 	 */

@@ -5,12 +5,15 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import Zeze.Component.AutoKey;
+import Zeze.Serialize.ByteBuffer;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class DemoMain {
 	private static final Logger logger = LogManager.getLogger();
+
 	public interface Ia {
 		void helloA();
 	}
@@ -27,12 +30,12 @@ public class DemoMain {
 						public void helloA() {
 							System.out.println("helloA");
 						}
-
+					
 						@Override
 						public void helloB() {
 							System.out.println("helloB");
 						}
-
+					
 					}
 					""";
 
@@ -51,6 +54,9 @@ public class DemoMain {
 	}
 
 	public static void main(String[] args) throws IOException {
+		System.out.println(AutoKey.getServerIdFromId(2167583089L));
+		System.out.println(AutoKey.getServerIdFromId(6195073));
+
 		/*
 		var lq = new ConcurrentLinkedQueue<Integer>();
 		lq.add(1);
