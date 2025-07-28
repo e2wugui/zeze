@@ -382,7 +382,7 @@ public final class Transaction {
 				//logger.debug("checkpoint.WaitRun({})", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
-					Thread.sleep(Random.getInstance().nextInt(80) + 50);
+					Thread.sleep(Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
 					logger.error("perform({}): interrupted", procedure, e);
 				}
