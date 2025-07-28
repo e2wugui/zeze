@@ -141,7 +141,7 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final void setFreshAcquire() {
-		acquireTime = System.currentTimeMillis() + 200 + Random.getInstance().nextInt(800); // acquireTime 改成过期时间
+		acquireTime = System.currentTimeMillis() + 300 + Random.getInstance().nextInt(300); // acquireTime 改成过期时间
 		fresh = true;
 	}
 

@@ -25,7 +25,7 @@ public class CoverHistory {
 	private static final Logger logger = LogManager.getLogger(CoverHistory.class);
 	private static final int eKeyRange = 40960; // 修改的记录范围
 	//private static final int eTaskCont = 10000; // 总的修改任务
-	private static final int eJobsPerTask = 2; // 每个任务执行多少个修改工作。
+	private static final int eJobsPerTask = 1; // 每个任务执行多少个修改工作。
 	private final demo.App app;
 	private final ArrayList<Job> jobs = new ArrayList<>();
 
