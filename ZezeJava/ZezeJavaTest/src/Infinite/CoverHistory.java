@@ -23,9 +23,9 @@ import org.jetbrains.annotations.Nullable;
 
 public class CoverHistory {
 	private static final Logger logger = LogManager.getLogger(CoverHistory.class);
-	private static final int eKeyRange = 40960; // 修改的记录范围
+	private static final int eKeyRange = 4096; // 修改的记录范围
 	//private static final int eTaskCont = 10000; // 总的修改任务
-	private static final int eJobsPerTask = 1; // 每个任务执行多少个修改工作。
+	private static final int eJobsPerTask = 2; // 每个任务执行多少个修改工作。
 	private final demo.App app;
 	private final ArrayList<Job> jobs = new ArrayList<>();
 
@@ -77,14 +77,12 @@ public class CoverHistory {
 		jobs.add(new Combo());
 	}
 
-	private static long seed = System.currentTimeMillis();
-
-	public Future<?> submitTasks(int i) throws ExecutionException, InterruptedException {
-		var s = seed++;
+	public static final long timeNow = System.currentTimeMillis();
+	public static final StableRandom randSeed = new StableRandom(timeNow);
+	public Future<?> submitTasks(int i) {
+		var seed = randSeed.nextLong();
 		//logger.info("submitTasks: seed={}", s);
-		var seed = s ^ i;
 		return Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
-		// Task.call(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
 	}
 
 	public static StableRandom getRandom() {

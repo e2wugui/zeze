@@ -4,9 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import Zeze.Component.AutoKey;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.StableRandom;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,11 +57,28 @@ public class DemoMain {
 		ib.helloB();
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		System.out.println(AutoKey.getServerIdFromId(2167583089L));
 		System.out.println(AutoKey.getServerIdFromId(6195073));
 
+		Task.tryInitThreadPool();
+		var futures = new ArrayList<Future<?>>(100);
+		var seed = System.currentTimeMillis();
+		for (int i = 0; i < 100; i += 3) {
+			var s = seed ++;
+			var seed2 = s ^ i;
+			futures.add(Task.runUnsafe(() -> {
+				var r = StableRandom.local();
+				r.setSeed(seed2);
+				System.out.println(r.nextLong(65536));
+			}, "runUnsafe"));
+		}
+		for (var future : futures)
+			future.get();
+		if (args.length == 0)
+			return;
 		/*
+
 		var lq = new ConcurrentLinkedQueue<Integer>();
 		lq.add(1);
 		lq.add(2);
