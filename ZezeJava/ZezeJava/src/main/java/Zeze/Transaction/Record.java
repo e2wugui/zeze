@@ -4,6 +4,7 @@ import java.lang.ref.SoftReference;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerConst;
+import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,7 +55,7 @@ public abstract class Record extends ReentrantLock {
 
 	// too many try
 	private boolean fresh;
-	private long acquireTime;
+	private long acquireTime; // acquireTime 改成过期时间
 
 	private @Nullable Database.Transaction databaseTransactionTmp;
 	private @Nullable Database.Transaction databaseTransactionOldTmp;
@@ -132,7 +133,7 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final boolean isFreshAcquire() {
-		return fresh && System.currentTimeMillis() - acquireTime < 1000;
+		return fresh && System.currentTimeMillis() < acquireTime; // acquireTime 改成过期时间
 	}
 
 	final void setNotFresh() {
@@ -140,7 +141,7 @@ public abstract class Record extends ReentrantLock {
 	}
 
 	final void setFreshAcquire() {
-		acquireTime = System.currentTimeMillis();
+		acquireTime = System.currentTimeMillis() + 200 + Random.getInstance().nextInt(800); // acquireTime 改成过期时间
 		fresh = true;
 	}
 
