@@ -5,9 +5,7 @@ import java.util.concurrent.Future;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
 import Zeze.Builtin.LoginQueue.PutQueuePosition;
-import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
 import Zeze.Util.TimeThrottle;
@@ -66,7 +64,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		allocateTimer.cancel(true);
 	}
 
-	private void allocateTimer() {
+	private void allocateTimer() throws Exception {
 		// 每个server分配OnlineNew，随机一半以上的分配量。
 		var max = server.providerSize() * maxOnlineNew;
 		var half = max / 2;
@@ -96,7 +94,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 	}
 
-	private boolean tryAllocateServer(AsyncSocket so) {
+	private boolean tryAllocateServer(AsyncSocket so) throws Exception {
 		if (so.isClosed())
 			return true; // 对于关闭的目标连接，总是认为分配成功。
 
@@ -107,7 +105,7 @@ public class LoginQueue extends AbstractLoginQueue {
 				var p = new PutLoginToken();
 				p.Argument.setLinkIp(link.getServiceIp());
 				p.Argument.setLinkPort(link.getServicePort());
-				p.Argument.setToken(encodeToken(provider));
+				p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), provider));
 				p.Send(so);
 				so.closeGracefully();
 				return true;
@@ -116,7 +114,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		return false;
 	}
 
-	void onAccept(AsyncSocket so) {
+	void onAccept(AsyncSocket so) throws Exception {
 		if (queue.size() >= maxQueueSize) {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
@@ -127,11 +125,6 @@ public class LoginQueue extends AbstractLoginQueue {
 				return; // 新连接，直接分配成功，done
 		}
 		queue.add(so);
-	}
-
-	private Binary encodeToken(BServerLoad.Data provider) {
-		// provider 信息编码加密发送给客户端，再转给linkd使用。
-		return new Binary(new byte[1024]);
 	}
 
 	void onClose(AsyncSocket so) {

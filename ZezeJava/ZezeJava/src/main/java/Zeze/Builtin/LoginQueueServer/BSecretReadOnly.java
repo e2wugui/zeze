@@ -8,4 +8,5 @@ public interface BSecretReadOnly {
     BSecret copy();
 
     Zeze.Net.Binary getSecretKey();
+    Zeze.Net.Binary getSecretIv();
 }

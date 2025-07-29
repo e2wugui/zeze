@@ -3,12 +3,17 @@ package Zeze.Services;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
+import Zeze.Builtin.LoginQueueServer.BSecret;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Random;
 import org.jetbrains.annotations.NotNull;
@@ -25,22 +30,23 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
      * 接受provider和link连接。
      */
     public class LoginQueueService extends Service {
-        private final Binary secretKey;
+        private final BSecret.Data secret;
 
         public LoginQueueService() {
             super("LoginQueueServer");
-            this.secretKey = Random.nextBinary(32);
+            this.secret = new BSecret.Data();
+            this.secret.setSecretKey(Random.nextBinary(16));
+            this.secret.setSecretIv(Random.nextBinary(16));
         }
 
-        public Binary getSecretKey() {
-            return secretKey;
+        public BSecret.Data getSecret() {
+            return secret;
         }
 
         @Override
         public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
             super.OnSocketAccept(so);
-            var p = new AnnounceSecret();
-            p.Argument.setSecretKey(secretKey);
+            var p = new AnnounceSecret(secret);
             p.Send(so);
         }
 
@@ -66,8 +72,46 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    public Binary getSecretKey() {
-        return service.getSecretKey();
+    public BSecret.Data getSecret() {
+        return service.getSecret();
+    }
+
+    public static Binary encodeToken(BSecret.Data secret, BServerLoad.Data provider) throws Exception {
+        // provider 信息编码加密发送给客户端，再转给linkd使用。
+        var bb = ByteBuffer.Allocate();
+        provider.encode(bb);
+        return new Binary(encrypt(secret, bb.Bytes, bb.ReadIndex, bb.size()));
+    }
+
+
+    public static BServerLoad.Data decodeToken(BSecret.Data secret, Binary token) throws Exception {
+        var bytes = decrypt(secret, token.bytesUnsafe(), token.getOffset(), token.size());
+        var bb = ByteBuffer.Wrap(bytes);
+        var provider = new BServerLoad.Data();
+        provider.decode(bb);
+        return provider;
+    }
+
+    private static final String AES_CBC_PKCS5 = "AES/CBC/PKCS5Padding";
+
+    public static byte[] encrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
+        var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
+        var ivSpec = new IvParameterSpec(secret.getSecretIv().bytesUnsafe());
+
+        var cipher = Cipher.getInstance(AES_CBC_PKCS5);
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+
+        return cipher.doFinal(bytes, offset, size);
+    }
+
+    public static byte[] decrypt(BSecret.Data secret, byte[] bytes, int offset, int size) throws Exception {
+        var keySpec = new SecretKeySpec(secret.getSecretKey().bytesUnsafe(), "AES");
+        var ivSpec = new IvParameterSpec(secret.getSecretIv().bytesUnsafe());
+
+        Cipher cipher = Cipher.getInstance(AES_CBC_PKCS5);
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+
+        return cipher.doFinal(bytes, offset, size);
     }
 
     @Override

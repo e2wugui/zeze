@@ -1,6 +1,7 @@
 package Zeze.Services;
 
 import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
+import Zeze.Builtin.LoginQueueServer.BSecret;
 import Zeze.Builtin.LoginQueueServer.ReportLinkLoad;
 import Zeze.Builtin.LoginQueueServer.ReportProviderLoad;
 import Zeze.Builtin.Provider.BLoad;
@@ -20,7 +21,7 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	}
 
 	private final LoginQueueAgentService service;
-	private Binary secretKey;
+	private BSecret.Data secret;
 	private final int serverId;
 	private final String serviceIp;
 	private final int servicePort;
@@ -42,13 +43,13 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 		service.stop();
 	}
 
-	public Binary getSecretKey() {
-		return secretKey;
+	public BSecret.Data getSecret() {
+		return secret;
 	}
 
 	@Override
 	protected long ProcessAnnounceSecret(AnnounceSecret r) {
-		secretKey = r.Argument.getSecretKey();
+		secret = r.Argument;
 		return 0;
 	}
 

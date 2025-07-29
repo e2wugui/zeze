@@ -129,4 +129,8 @@ public class LinkdApp {
 			linkdLoad.start();
 		}
 	}
+
+	public LinkdLoad getLinkdLoad() {
+		return linkdLoad;
+	}
 }

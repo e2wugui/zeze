@@ -2036,7 +2036,8 @@
 			<protocol name="ReportProviderLoad" argument="BServerLoad" handle="server"/>
 			<protocol name="ReportLinkLoad" argument="BServerLoad" handle="server"/>
 			<bean name="BSecret">
-				<var id="1" name="SecretKey" type="binary"/>
+				<var id="1" name="SecretKey" type="binary"/> 16bytes
+				<var id="2" name="SecretIv" type="binary"/> 16bytes
 			</bean>
 			<protocol name="AnnounceSecret" argument="BSecret" handle="client"/>
 		</module>

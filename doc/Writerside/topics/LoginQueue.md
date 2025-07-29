@@ -33,3 +33,39 @@
     当客户端进行auth认证时，判断已经得到正确有效的token。
     当客户端开始login流程时，选择Gs进行登录。
     需要新增根据serverId选择Gs的算法。
+
+## 启动和配置LoginQueue
+* 启动LoginQueue服务
+
+* 配置两个地方：linkd.xml和gs.xml
+增加LoginQueueAgentService配置。
+	<ServiceConf Name="LoginQueueAgentService">
+		<Connector HostNameOrAddress="127.0.0.1" Port="9999"/> LoginQueue服务器内部地址
+	</ServiceConf>
+
+* 客户端（lua）
+'''
+ConnectLoginQueue(outIp, outPort)
+实现network.lua里面的三个回调。
+local function OnQueueFull()
+	-- 报告错误
+end
+
+local function OnQueuePosition(queuePosition)
+	-- 报告队列位置
+end
+
+local function OnQueuePosition(LinkIp, LinkPort, Token)
+	-- 排队成功
+	loginToken = Token;  -- 保存token
+	Connect(LinkIp, LinkPort)
+end
+
+function network.on_connected()
+	local p = Auth::new()
+	p.LoginToken = loginToken;
+	... 其他参数
+	p.send();
+end
+
+'''

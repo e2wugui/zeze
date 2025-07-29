@@ -22,6 +22,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.LoginQueueServer;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
@@ -82,6 +83,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// else
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
+		return false;
+	}
+
+	public boolean choiceProvider(@NotNull AsyncSocket link, Binary token) throws Exception {
+		var provider = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), token);
+		// todo 写一个根据serverId查找provider的过程，并且bind所有静态模块。
 		return false;
 	}
 
