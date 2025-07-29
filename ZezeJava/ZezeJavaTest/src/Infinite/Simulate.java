@@ -111,9 +111,12 @@ public final class Simulate {
 				var app = Tasks.randCreateTask().Run();
 				if (((i + 1) % 3) == 0)
 					RunningTasks.add(app.coverHistory.submitTasks(i));
+
+				//*
 				if (((i + 1) % 100) == 0) {
 					WaitAllRunningTasksAndClear();
 				}
+				// */
 			}
 			logger.fatal("Wait {}", BatchNumber);
 			WaitAllRunningTasksAndClear();

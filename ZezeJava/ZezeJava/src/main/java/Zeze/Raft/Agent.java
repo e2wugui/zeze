@@ -368,7 +368,7 @@ public final class Agent {
 		}
 
 		this.client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
-				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
+				LeaderIs::new, this::processLeaderIs, TransactionLevel.Serializable, DispatchMode.Critical));
 
 		this.client.AddFactoryHandle(GetLeader.TypeId_, new Service.ProtocolFactoryHandle<>(
 				GetLeader::new, null, TransactionLevel.None, DispatchMode.Normal));
