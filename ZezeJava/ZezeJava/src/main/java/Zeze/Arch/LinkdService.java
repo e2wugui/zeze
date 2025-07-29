@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.net.ServerSocket;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -28,6 +29,7 @@ public class LinkdService extends HandshakeServer {
 	private static final @NotNull Logger logger = LogManager.getLogger(LinkdService.class);
 	protected LinkdApp linkdApp;
 	protected long curSendSpeed; // bytes/sec
+	private final AtomicLong loginTimes = new AtomicLong();
 
 	public LinkdService(@NotNull String name, Application zeze) {
 		super(name, zeze);
@@ -42,6 +44,15 @@ public class LinkdService extends HandshakeServer {
 				lastSendSize.value = sendSize;
 			});
 		}
+	}
+
+	public long getLoginTimes() {
+		return loginTimes.get();
+	}
+	@Override
+	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+		super.OnSocketAccept(so);
+		loginTimes.incrementAndGet();
 	}
 
 	private void reportError(@NotNull Dispatch dispatch) {

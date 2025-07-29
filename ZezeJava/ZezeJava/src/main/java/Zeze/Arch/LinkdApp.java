@@ -24,6 +24,7 @@ public class LinkdApp {
 	public final @NotNull String providerIp;
 	public int providerPort;
 	public @Nullable Action1<ServerSocket> onServerSocketBindAction;
+	private LinkdLoad linkdLoad;
 
 	public interface DiscardAction {
 		boolean call(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size, double rate);
@@ -81,6 +82,11 @@ public class LinkdApp {
 		providerPort = kv.getValue();
 
 		commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
+
+		var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgentService");
+		if (null != agentConf) {
+			linkdLoad = new LinkdLoad(this);
+		}
 	}
 
 	void applyOnChanged(@NotNull BEditService edit) {
@@ -115,5 +121,12 @@ public class LinkdApp {
 		// linkService 总是使用版本0，不开启AppVersion.
 		edit.getAdd().add(new BServiceInfo(linkdServiceName, identity, 0, providerIp, providerPort, new Binary(bb)));
 		zeze.getServiceManager().editService(edit);
+
+		// 启动load服务和LoginQueueAgent网络服务。
+		// LinkdApp没有stop，不停止这两个服务。
+		if (null != linkdLoad) {
+			linkdLoad.getLoginQueueAgent().start();
+			linkdLoad.start();
+		}
 	}
 }
