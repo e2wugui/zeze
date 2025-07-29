@@ -5,6 +5,7 @@ import Zeze.Application;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.LoginQueueAgent;
 import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +17,7 @@ public abstract class ProviderLoadBase {
 	private Future<?> timerTask;
 	private final Application zeze;
 	private final ProviderOverload overload = new ProviderOverload();
+	private LoginQueueAgent loginQueueAgent;
 
 	public Application getZeze() {
 		return zeze;
@@ -23,6 +25,14 @@ public abstract class ProviderLoadBase {
 
 	public ProviderLoadBase(Application zeze) {
 		this.zeze = zeze;
+	}
+
+	public void setLoginQueueAgent(LoginQueueAgent loginQueueAgent) {
+		this.loginQueueAgent = loginQueueAgent;
+	}
+
+	public LoginQueueAgent getLoginQueueAgent() {
+		return loginQueueAgent;
 	}
 
 	public @NotNull ProviderOverload getOverload() {
@@ -99,7 +109,7 @@ public abstract class ProviderLoadBase {
 	}
 
 	public void report(int overload, int online, int onlineNew) {
-		var load = new BLoad();
+		var load = new BLoad.Data();
 
 		load.setOverload(overload);
 		load.setOnline(online);
@@ -109,6 +119,11 @@ public abstract class ProviderLoadBase {
 		var bb = ByteBuffer.Allocate(256);
 		load.encode(bb);
 
+		// 下面两个报告原则上可以只报告一个。
+		// 当启用LoginQueue，原来的load报告可以去掉了。
+		// 为了兼容，先保留。
+
+		// 向ServiceManager报告load
 		var loadServer = new BServerLoad();
 		loadServer.ip = getProviderIp();
 		loadServer.port = getProviderPort();
@@ -116,5 +131,9 @@ public abstract class ProviderLoadBase {
 
 		//noinspection DataFlowIssue
 		this.zeze.getServiceManager().setServerLoad(loadServer);
+
+		// 向LoginQueueServer报告load。
+		if (loginQueueAgent != null)
+			loginQueueAgent.reportProviderLoad(load);
 	}
 }

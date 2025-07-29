@@ -4,6 +4,7 @@ import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
 import Zeze.Builtin.LoginQueueServer.ReportLinkLoad;
 import Zeze.Builtin.LoginQueueServer.ReportProviderLoad;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Config;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
 
@@ -13,8 +14,8 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	 * Connector service. 连接LoginQueueServer.
 	 */
 	public static class LoginQueueAgentService extends Service {
-		public LoginQueueAgentService() {
-			super("LoginQueueAgentService");
+		public LoginQueueAgentService(Config config) {
+			super("LoginQueueAgentService", config);
 		}
 	}
 
@@ -24,13 +25,17 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	private final String serviceIp;
 	private final int servicePort;
 
-	public LoginQueueAgent(int serverId, String serviceIp, int servicePort) {
+	public LoginQueueAgent(Config config, int serverId, String serviceIp, int servicePort) {
 		this.serverId = serverId;
 		this.serviceIp = serviceIp;
 		this.servicePort = servicePort;
 
-		this.service = new LoginQueueAgentService();
+		this.service = new LoginQueueAgentService(config);
 		RegisterProtocols(this.service);
+	}
+
+	public LoginQueueAgentService getService() {
+		return service;
 	}
 
 	public Binary getSecretKey() {

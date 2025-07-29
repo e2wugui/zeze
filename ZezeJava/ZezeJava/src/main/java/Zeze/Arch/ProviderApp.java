@@ -8,6 +8,7 @@ import Zeze.Builtin.Provider.BLoad;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Game.ProviderWithOnline;
 import Zeze.IModule;
+import Zeze.Services.LoginQueueAgent;
 import Zeze.Services.ServiceManager.BEditService;
 import Zeze.Util.IntHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -72,6 +73,18 @@ public class ProviderApp extends ReentrantLock {
 		this.providerService = toLinkdService;
 		this.providerService.providerApp = this;
 		this.serverServiceNamePrefix = providerModulePrefixNameOnServiceManager;
+
+		// 如果启用了LoginQueue配置，创建LoginQueueAgent并初始化相关代码。
+		var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgentService");
+		if (null != agentConf) {
+			var load = this.providerImplement.getLoad();
+			if (null != load) {
+				var agent = new LoginQueueAgent(
+						zeze.getConfig(), zeze.getConfig().getServerId(),
+						load.getProviderIp(), load.getProviderPort());
+				load.setLoginQueueAgent(agent);
+			}
+		}
 
 		this.providerDirect = direct;
 		this.providerDirect.providerApp = this;
@@ -191,6 +204,10 @@ public class ProviderApp extends ReentrantLock {
 			// 开启link，默认开启。
 			setUserDisableChoice(false);
 			providerService.trySetLinkChoice();
+
+			// 启动LoginQueueAgent网络服务
+			if (providerImplement.getLoad() != null && providerImplement.getLoad().getLoginQueueAgent() != null)
+				providerImplement.getLoad().getLoginQueueAgent().getService().start();
 		} finally {
 			unlock();
 		}
