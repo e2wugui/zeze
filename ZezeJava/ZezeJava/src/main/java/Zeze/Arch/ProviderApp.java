@@ -81,7 +81,7 @@ public class ProviderApp extends ReentrantLock {
 			if (null != load) {
 				var agent = new LoginQueueAgent(
 						zeze.getConfig(), zeze.getConfig().getServerId(),
-						load.getProviderIp(), load.getProviderPort());
+						load.getServiceIp(), load.getServicePort());
 				load.setLoginQueueAgent(agent);
 			}
 		}

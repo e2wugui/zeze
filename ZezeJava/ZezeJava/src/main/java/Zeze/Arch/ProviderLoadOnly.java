@@ -24,12 +24,12 @@ public class ProviderLoadOnly extends ProviderLoadBase {
 	}
 
 	@Override
-	public String getProviderIp() {
+	public String getServiceIp() {
 		return getZeze().getProviderApp().directIp;
 	}
 
 	@Override
-	public int getProviderPort() {
+	public int getServicePort() {
 		return getZeze().getProviderApp().directPort;
 	}
 }

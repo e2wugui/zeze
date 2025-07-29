@@ -24,12 +24,12 @@ public class ProviderLoadWithOnline extends ProviderLoadBase {
 	}
 
 	@Override
-	public String getProviderIp() {
+	public String getServiceIp() {
 		return online.providerApp.directIp;
 	}
 
 	@Override
-	public int getProviderPort() {
+	public int getServicePort() {
 		return online.providerApp.directPort;
 	}
 }

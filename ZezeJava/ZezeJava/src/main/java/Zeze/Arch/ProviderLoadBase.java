@@ -64,9 +64,9 @@ public abstract class ProviderLoadBase {
 
 	public abstract LoadConfig getLoadConfig();
 
-	public abstract String getProviderIp();
+	public abstract String getServiceIp();
 
-	public abstract int getProviderPort();
+	public abstract int getServicePort();
 
 	private void onTimerTask() {
 		var overload = this.overload.getOverload();
@@ -125,8 +125,8 @@ public abstract class ProviderLoadBase {
 
 		// 向ServiceManager报告load
 		var loadServer = new BServerLoad();
-		loadServer.ip = getProviderIp();
-		loadServer.port = getProviderPort();
+		loadServer.ip = getServiceIp();
+		loadServer.port = getServicePort();
 		loadServer.param = new Binary(bb);
 
 		//noinspection DataFlowIssue
