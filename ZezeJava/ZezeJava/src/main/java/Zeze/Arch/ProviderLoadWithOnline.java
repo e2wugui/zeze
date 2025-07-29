@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-public class ProviderLoadWithOnline extends ProviderLoadBase {
+public class ProviderLoadWithOnline extends LoadBase {
 	public final Online online;
 
 	public ProviderLoadWithOnline(Online online) {

@@ -1,9 +1,9 @@
 package Zeze.Game;
 
 import Zeze.Arch.LoadConfig;
-import Zeze.Arch.ProviderLoadBase;
+import Zeze.Arch.LoadBase;
 
-public class ProviderLoadWithOnline extends ProviderLoadBase {
+public class ProviderLoadWithOnline extends LoadBase {
 
 	public final Online online;
 

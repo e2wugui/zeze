@@ -42,7 +42,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		controlKick = control;
 	}
 
-	public abstract @Nullable ProviderLoadBase getLoad();
+	public abstract @Nullable LoadBase getLoad();
 
 	public abstract void stop() throws Exception;
 

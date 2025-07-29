@@ -10,7 +10,7 @@ import Zeze.Services.ServiceManager.BServerLoad;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class ProviderLoadBase {
+public abstract class LoadBase {
 	private long lastLoginTime;
 	private int reportDelaySeconds;
 	private int timeoutDelaySeconds;
@@ -23,7 +23,7 @@ public abstract class ProviderLoadBase {
 		return zeze;
 	}
 
-	public ProviderLoadBase(Application zeze) {
+	public LoadBase(Application zeze) {
 		this.zeze = zeze;
 	}
 

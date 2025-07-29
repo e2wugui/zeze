@@ -2,7 +2,7 @@ package Zeze.Arch;
 
 import Zeze.Application;
 
-public class ProviderLoadOnly extends ProviderLoadBase {
+public class ProviderLoadOnly extends LoadBase {
 
 	public ProviderLoadOnly(Application zeze) {
 		super(zeze);
