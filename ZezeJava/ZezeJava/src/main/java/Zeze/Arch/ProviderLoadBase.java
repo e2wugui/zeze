@@ -50,12 +50,14 @@ public abstract class ProviderLoadBase {
 		timerTask = Task.scheduleUnsafe(timeoutDelaySeconds * 1000L, this::onTimerTask);
 	}
 
-	public final void stop() {
+	public final void stop() throws Exception {
 		if (timerTask != null) {
 			timerTask.cancel(true);
 			timerTask = null;
 		}
 		overload.close();
+		if (null != loginQueueAgent)
+			loginQueueAgent.stop();
 	}
 
 	public abstract int getOnlineLocalCount();

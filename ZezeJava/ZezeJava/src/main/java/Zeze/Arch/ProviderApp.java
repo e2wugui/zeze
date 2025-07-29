@@ -207,7 +207,7 @@ public class ProviderApp extends ReentrantLock {
 
 			// 启动LoginQueueAgent网络服务
 			if (providerImplement.getLoad() != null && providerImplement.getLoad().getLoginQueueAgent() != null)
-				providerImplement.getLoad().getLoginQueueAgent().getService().start();
+				providerImplement.getLoad().getLoginQueueAgent().start();
 		} finally {
 			unlock();
 		}

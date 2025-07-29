@@ -34,8 +34,12 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 		RegisterProtocols(this.service);
 	}
 
-	public LoginQueueAgentService getService() {
-		return service;
+	public void start() throws Exception {
+		service.start();
+	}
+
+	public void stop() throws Exception {
+		service.stop();
 	}
 
 	public Binary getSecretKey() {

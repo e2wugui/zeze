@@ -29,7 +29,7 @@ public class ProviderOnly extends ProviderImplement {
 	}
 
 	@Override
-	public void stop() {
+	public void stop() throws Exception {
 		if (load != null)
 			load.stop();
 	}
