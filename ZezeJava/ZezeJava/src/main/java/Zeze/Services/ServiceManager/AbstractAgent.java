@@ -265,12 +265,9 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 		public @Nullable BServiceInfo onRegister(@NotNull BServiceInfo info) {
 			lock();
 			try {
-				var versions = serviceInfos.getInfos(info.getVersion());
-				if (null != versions) {
-					var exist = versions.insert(info);
-					return null != exist && !exist.fullEquals(info) ? exist : null;
-				}
-				return null;
+				var versions = serviceInfos.getOrAddInfos(info.getVersion());
+				var exist = versions.insert(info);
+				return null != exist && !exist.fullEquals(info) ? exist : null;
 			} finally {
 				unlock();
 			}

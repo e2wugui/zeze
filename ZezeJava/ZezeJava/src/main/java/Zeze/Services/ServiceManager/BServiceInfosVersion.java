@@ -85,6 +85,10 @@ public class BServiceInfosVersion implements Serializable {
 		return infosVersion.get(version);
 	}
 
+	public @NotNull BServiceInfos getOrAddInfos(long version) {
+		return infosVersion.computeIfAbsent(version, (key) -> new BServiceInfos());
+	}
+
 	public @NotNull LongHashMap<BServiceInfos>.Iterator getInfosIterator() {
 		return infosVersion.iterator();
 	}
