@@ -2,6 +2,8 @@ package Zeze.Services;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
 import Zeze.Builtin.LoginQueue.PutQueuePosition;
@@ -44,6 +46,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final int maxQueueSize;
 	private volatile TimeThrottle timeThrottle;
 	private int providerSize;
+	private final AtomicLong serialIdSeed = new AtomicLong();
 
 	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
 		this.maxOnlineNew = maxOnlineNew;
@@ -105,7 +108,12 @@ public class LoginQueue extends AbstractLoginQueue {
 				var p = new PutLoginToken();
 				p.Argument.setLinkIp(link.getServiceIp());
 				p.Argument.setLinkPort(link.getServicePort());
-				p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), provider));
+				var token = new BToken.Data();
+				token.setServerId(provider.getServerId());
+				token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
+				token.setSerialId(serialIdSeed.incrementAndGet());
+				token.setLinkServerId(link.getServerId());
+				p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
 				p.Send(so);
 				so.closeGracefully();
 				return true;

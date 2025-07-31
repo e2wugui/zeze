@@ -8,7 +8,7 @@ import Zeze.Serialize.IByteBuffer;
 public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadOnly {
     public static final long TYPEID = -1086547097778874201L;
 
-    private Zeze.Net.Binary _SecretKey; // 20bytes
+    private Zeze.Net.Binary _SecretKey; // 16bytes
     private Zeze.Net.Binary _SecretIv; // 16bytes
 
     private static final java.lang.invoke.VarHandle vh_SecretKey;
@@ -272,7 +272,7 @@ public final class BSecret extends Zeze.Transaction.Bean implements BSecretReadO
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -1086547097778874201L;
 
-    private Zeze.Net.Binary _SecretKey; // 20bytes
+    private Zeze.Net.Binary _SecretKey; // 16bytes
     private Zeze.Net.Binary _SecretIv; // 16bytes
 
     public Zeze.Net.Binary getSecretKey() {

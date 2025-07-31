@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
 import Zeze.Builtin.LoginQueueServer.BSecret;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
@@ -76,7 +77,7 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         return service.getSecret();
     }
 
-    public static Binary encodeToken(BSecret.Data secret, BServerLoad.Data provider) throws Exception {
+    public static Binary encodeToken(BSecret.Data secret, BToken.Data provider) throws Exception {
         // provider 信息编码加密发送给客户端，再转给linkd使用。
         var bb = ByteBuffer.Allocate();
         provider.encode(bb);
@@ -84,10 +85,10 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     }
 
 
-    public static BServerLoad.Data decodeToken(BSecret.Data secret, Binary token) throws Exception {
+    public static BToken.Data decodeToken(BSecret.Data secret, Binary token) throws Exception {
         var bytes = decrypt(secret, token.bytesUnsafe(), token.getOffset(), token.size());
         var bb = ByteBuffer.Wrap(bytes);
-        var provider = new BServerLoad.Data();
+        var provider = new BToken.Data();
         provider.decode(bb);
         return provider;
     }

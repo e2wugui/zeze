@@ -2050,6 +2050,12 @@
 				<var id="2" name="LinkIp" type="string"/>
 				<var id="3" name="LinkPort" type="int"/>
 			</bean>
+			<bean name="BToken">
+				<var id="1" name="ServerId" type="int"/>
+				<var id="2" name="ExpireTime" type="long"/>
+				<var id="3" name="SerialId" type="long"/>
+				<var id="4" name="LinkServerId" type="int"/> 一般是负数，从-1往后分配，避免和gs的serverId重复。
+			</bean>
 			<!--
 			客户端收到这条协议之前，显示排队中，数量显示大于10000
 			LoginQueue服务器最多只会广播通知前10000个客户端。

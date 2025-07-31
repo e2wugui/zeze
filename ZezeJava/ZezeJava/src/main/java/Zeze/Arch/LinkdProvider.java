@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
@@ -54,6 +55,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	protected @Nullable FileOutputStream dumpFile;
 	protected @Nullable AsyncSocket dumpSocket;
+	private final ConcurrentHashMap<Integer, AsyncSocket> serverId2ProviderSocket = new ConcurrentHashMap<>();
 
 	public ProviderDistributeVersion getDistributes() {
 		return distributes;
@@ -86,10 +88,24 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
-	public boolean choiceProvider(@NotNull AsyncSocket link, Binary token) throws Exception {
-		var provider = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), token);
-		// todo 写一个根据serverId查找provider的过程，并且bind所有静态模块。
-		return false;
+	public boolean choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
+		var token = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), tokenBin);
+		if (token.getExpireTime() < System.currentTimeMillis())
+			return false;
+		if (token.getLinkServerId() != linkdApp.zeze.getConfig().getServerId())
+			return false;
+		// token.getSerialId() 用于严格重放。
+		// 根据provider.getServerId()查找provider，并且bind所有静态模块到session。
+		var providerSocket = serverId2ProviderSocket.get(token.getServerId());
+		if (null == providerSocket)
+			return false;
+		var providerSession = (LinkdProviderSession)providerSocket.getUserState();
+		var linkSession = (LinkdUserSession)link.getUserState();
+		var staticBinds = providerSession.getStaticBinds();
+		linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
+		logger.info("static bind: account={}, moduleIds.size={}, provider={}",
+				linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress());
+		return true;
 	}
 
 	public boolean choiceHashWithoutBind(int moduleId, long clientVersion, int hash, @NotNull OutLong provider) {
@@ -232,6 +248,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var providerSession = (LinkdProviderSession)provider.getUserState();
 		if (providerSession == null)
 			return;
+
+		serverId2ProviderSocket.remove(providerSession.serverId);
 
 		// unbind module
 		unBindModules(provider, providerSession.getStaticBinds().keySet(), true);
@@ -522,6 +540,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		session.disableChoice = arg.isDisableChoice();
 		linkdApp.linkdProviderService.providerSessions.put(session.getServerLoadName(), session);
 
+		serverId2ProviderSocket.put(session.serverId, sender);
 		return Procedure.Success;
 	}
 
