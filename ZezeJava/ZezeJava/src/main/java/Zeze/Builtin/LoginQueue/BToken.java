@@ -8,66 +8,26 @@ import Zeze.Serialize.IByteBuffer;
 public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnly {
     public static final long TYPEID = -3906186370562466947L;
 
+    private long _SerialId;
     private int _ServerId;
     private long _ExpireTime;
-    private long _SerialId;
     private int _LinkServerId; // 一般是负数，从-1往后分配，避免和gs的serverId重复。
 
+    private static final java.lang.invoke.VarHandle vh_SerialId;
     private static final java.lang.invoke.VarHandle vh_ServerId;
     private static final java.lang.invoke.VarHandle vh_ExpireTime;
-    private static final java.lang.invoke.VarHandle vh_SerialId;
     private static final java.lang.invoke.VarHandle vh_LinkServerId;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
+            vh_SerialId = _l_.findVarHandle(BToken.class, "_SerialId", long.class);
             vh_ServerId = _l_.findVarHandle(BToken.class, "_ServerId", int.class);
             vh_ExpireTime = _l_.findVarHandle(BToken.class, "_ExpireTime", long.class);
-            vh_SerialId = _l_.findVarHandle(BToken.class, "_SerialId", long.class);
             vh_LinkServerId = _l_.findVarHandle(BToken.class, "_LinkServerId", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
-    }
-
-    @Override
-    public int getServerId() {
-        if (!isManaged())
-            return _ServerId;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _ServerId;
-        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ServerId;
-    }
-
-    public void setServerId(int _v_) {
-        if (!isManaged()) {
-            _ServerId = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ServerId, _v_));
-    }
-
-    @Override
-    public long getExpireTime() {
-        if (!isManaged())
-            return _ExpireTime;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _ExpireTime;
-        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _ExpireTime;
-    }
-
-    public void setExpireTime(long _v_) {
-        if (!isManaged()) {
-            _ExpireTime = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 2, vh_ExpireTime, _v_));
     }
 
     @Override
@@ -77,7 +37,7 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
             return _SerialId;
-        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 1);
         return log != null ? log.value : _SerialId;
     }
 
@@ -87,7 +47,47 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_SerialId, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 1, vh_SerialId, _v_));
+    }
+
+    @Override
+    public int getServerId() {
+        if (!isManaged())
+            return _ServerId;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ServerId;
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
+        return log != null ? log.value : _ServerId;
+    }
+
+    public void setServerId(int _v_) {
+        if (!isManaged()) {
+            _ServerId = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ServerId, _v_));
+    }
+
+    @Override
+    public long getExpireTime() {
+        if (!isManaged())
+            return _ExpireTime;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ExpireTime;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
+        return log != null ? log.value : _ExpireTime;
+    }
+
+    public void setExpireTime(long _v_) {
+        if (!isManaged()) {
+            _ExpireTime = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_ExpireTime, _v_));
     }
 
     @Override
@@ -115,18 +115,18 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BToken(int _ServerId_, long _ExpireTime_, long _SerialId_, int _LinkServerId_) {
+    public BToken(long _SerialId_, int _ServerId_, long _ExpireTime_, int _LinkServerId_) {
+        _SerialId = _SerialId_;
         _ServerId = _ServerId_;
         _ExpireTime = _ExpireTime_;
-        _SerialId = _SerialId_;
         _LinkServerId = _LinkServerId_;
     }
 
     @Override
     public void reset() {
+        setSerialId(0);
         setServerId(0);
         setExpireTime(0);
-        setSerialId(0);
         setLinkServerId(0);
         _unknown_ = null;
     }
@@ -144,17 +144,17 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
     }
 
     public void assign(BToken.Data _o_) {
+        setSerialId(_o_._SerialId);
         setServerId(_o_._ServerId);
         setExpireTime(_o_._ExpireTime);
-        setSerialId(_o_._SerialId);
         setLinkServerId(_o_._LinkServerId);
         _unknown_ = null;
     }
 
     public void assign(BToken _o_) {
+        setSerialId(_o_.getSerialId());
         setServerId(_o_.getServerId());
         setExpireTime(_o_.getExpireTime());
-        setSerialId(_o_.getSerialId());
         setLinkServerId(_o_.getLinkServerId());
         _unknown_ = _o_._unknown_;
     }
@@ -192,9 +192,9 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.LoginQueue.BToken: {\n");
+        _s_.append(_i1_).append("SerialId=").append(getSerialId()).append(",\n");
         _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
         _s_.append(_i1_).append("ExpireTime=").append(getExpireTime()).append(",\n");
-        _s_.append(_i1_).append("SerialId=").append(getSerialId()).append(",\n");
         _s_.append(_i1_).append("LinkServerId=").append(getLinkServerId()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
@@ -228,21 +228,21 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
         var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
         int _i_ = 0;
         {
-            int _x_ = getServerId();
+            long _x_ = getSerialId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            int _x_ = getServerId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
             long _x_ = getExpireTime();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
-            long _x_ = getSerialId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -265,15 +265,15 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setServerId(_o_.ReadInt(_t_));
+            setSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setExpireTime(_o_.ReadLong(_t_));
+            setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setSerialId(_o_.ReadLong(_t_));
+            setExpireTime(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -292,11 +292,11 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BToken)_o_;
+        if (getSerialId() != _b_.getSerialId())
+            return false;
         if (getServerId() != _b_.getServerId())
             return false;
         if (getExpireTime() != _b_.getExpireTime())
-            return false;
-        if (getSerialId() != _b_.getSerialId())
             return false;
         if (getLinkServerId() != _b_.getLinkServerId())
             return false;
@@ -305,11 +305,11 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
 
     @Override
     public boolean negativeCheck() {
+        if (getSerialId() < 0)
+            return true;
         if (getServerId() < 0)
             return true;
         if (getExpireTime() < 0)
-            return true;
-        if (getSerialId() < 0)
             return true;
         if (getLinkServerId() < 0)
             return true;
@@ -325,9 +325,9 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
         for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
             var _v_ = _i_.value();
             switch (_v_.getVariableId()) {
-                case 1: _ServerId = _v_.intValue(); break;
-                case 2: _ExpireTime = _v_.longValue(); break;
-                case 3: _SerialId = _v_.longValue(); break;
+                case 1: _SerialId = _v_.longValue(); break;
+                case 2: _ServerId = _v_.intValue(); break;
+                case 3: _ExpireTime = _v_.longValue(); break;
                 case 4: _LinkServerId = _v_.intValue(); break;
             }
         }
@@ -336,27 +336,27 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
     @Override
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        setSerialId(_r_.getLong(_pn_ + "SerialId"));
         setServerId(_r_.getInt(_pn_ + "ServerId"));
         setExpireTime(_r_.getLong(_pn_ + "ExpireTime"));
-        setSerialId(_r_.getLong(_pn_ + "SerialId"));
         setLinkServerId(_r_.getInt(_pn_ + "LinkServerId"));
     }
 
     @Override
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
+        _s_.appendLong(_pn_ + "SerialId", getSerialId());
         _s_.appendInt(_pn_ + "ServerId", getServerId());
         _s_.appendLong(_pn_ + "ExpireTime", getExpireTime());
-        _s_.appendLong(_pn_ + "SerialId", getSerialId());
         _s_.appendInt(_pn_ + "LinkServerId", getLinkServerId());
     }
 
     @Override
     public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
         var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ServerId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ExpireTime", "long", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "SerialId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "SerialId", "long", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServerId", "int", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "ExpireTime", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LinkServerId", "int", "", ""));
         return _v_;
     }
@@ -365,10 +365,18 @@ public final class BToken extends Zeze.Transaction.Bean implements BTokenReadOnl
 public static final class Data extends Zeze.Transaction.Data {
     public static final long TYPEID = -3906186370562466947L;
 
+    private long _SerialId;
     private int _ServerId;
     private long _ExpireTime;
-    private long _SerialId;
     private int _LinkServerId; // 一般是负数，从-1往后分配，避免和gs的serverId重复。
+
+    public long getSerialId() {
+        return _SerialId;
+    }
+
+    public void setSerialId(long _v_) {
+        _SerialId = _v_;
+    }
 
     public int getServerId() {
         return _ServerId;
@@ -386,14 +394,6 @@ public static final class Data extends Zeze.Transaction.Data {
         _ExpireTime = _v_;
     }
 
-    public long getSerialId() {
-        return _SerialId;
-    }
-
-    public void setSerialId(long _v_) {
-        _SerialId = _v_;
-    }
-
     public int getLinkServerId() {
         return _LinkServerId;
     }
@@ -407,18 +407,18 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ServerId_, long _ExpireTime_, long _SerialId_, int _LinkServerId_) {
+    public Data(long _SerialId_, int _ServerId_, long _ExpireTime_, int _LinkServerId_) {
+        _SerialId = _SerialId_;
         _ServerId = _ServerId_;
         _ExpireTime = _ExpireTime_;
-        _SerialId = _SerialId_;
         _LinkServerId = _LinkServerId_;
     }
 
     @Override
     public void reset() {
+        _SerialId = 0;
         _ServerId = 0;
         _ExpireTime = 0;
-        _SerialId = 0;
         _LinkServerId = 0;
     }
 
@@ -435,16 +435,16 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     public void assign(BToken _o_) {
+        _SerialId = _o_.getSerialId();
         _ServerId = _o_.getServerId();
         _ExpireTime = _o_.getExpireTime();
-        _SerialId = _o_.getSerialId();
         _LinkServerId = _o_.getLinkServerId();
     }
 
     public void assign(BToken.Data _o_) {
+        _SerialId = _o_._SerialId;
         _ServerId = _o_._ServerId;
         _ExpireTime = _o_._ExpireTime;
-        _SerialId = _o_._SerialId;
         _LinkServerId = _o_._LinkServerId;
     }
 
@@ -482,9 +482,9 @@ public static final class Data extends Zeze.Transaction.Data {
     public void buildString(StringBuilder _s_, int _l_) {
         var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
         _s_.append("Zeze.Builtin.LoginQueue.BToken: {\n");
+        _s_.append(_i1_).append("SerialId=").append(_SerialId).append(",\n");
         _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
         _s_.append(_i1_).append("ExpireTime=").append(_ExpireTime).append(",\n");
-        _s_.append(_i1_).append("SerialId=").append(_SerialId).append(",\n");
         _s_.append(_i1_).append("LinkServerId=").append(_LinkServerId).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
@@ -503,21 +503,21 @@ public static final class Data extends Zeze.Transaction.Data {
     public void encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = _ServerId;
+            long _x_ = _SerialId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
+            int _x_ = _ServerId;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
             long _x_ = _ExpireTime;
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
-            long _x_ = _SerialId;
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -538,15 +538,15 @@ public static final class Data extends Zeze.Transaction.Data {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _ServerId = _o_.ReadInt(_t_);
+            _SerialId = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            _ExpireTime = _o_.ReadLong(_t_);
+            _ServerId = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _SerialId = _o_.ReadLong(_t_);
+            _ExpireTime = _o_.ReadLong(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -567,11 +567,11 @@ public static final class Data extends Zeze.Transaction.Data {
             return false;
         //noinspection PatternVariableCanBeUsed
         var _b_ = (BToken.Data)_o_;
+        if (_SerialId != _b_._SerialId)
+            return false;
         if (_ServerId != _b_._ServerId)
             return false;
         if (_ExpireTime != _b_._ExpireTime)
-            return false;
-        if (_SerialId != _b_._SerialId)
             return false;
         if (_LinkServerId != _b_._LinkServerId)
             return false;

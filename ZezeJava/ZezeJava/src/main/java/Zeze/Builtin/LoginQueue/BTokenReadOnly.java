@@ -7,8 +7,8 @@ public interface BTokenReadOnly {
     boolean negativeCheck();
     BToken copy();
 
+    long getSerialId();
     int getServerId();
     long getExpireTime();
-    long getSerialId();
     int getLinkServerId();
 }
