@@ -7,7 +7,6 @@
 		PackagePath="Zeze/Services" platform="conf+cs+net" GenTables="client"
 		DisableDeleteGen="true"
 		>
-		
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.LoginQueue"/>
 		</service>

@@ -2075,6 +2075,14 @@
 	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="LoginQueueClient" GenDir="src/main/java" SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
+
 	<component name="LoginQueue"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
