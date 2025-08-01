@@ -36,11 +36,26 @@
 
 ## 启动和配置LoginQueue
 * 启动LoginQueue服务
+使用下面的配置启动 java -cp zeze.jar:... Zeze.Service.LoginQueue
+'''
+<?xml version="1.0" encoding="utf-8"?>
 
+<zeze>
+	<!-- LoginQueue 给登录用户开放的端口 -->
+	<ServiceConf Name="LoginQueue">
+		<Acceptor Ip="127.0.0.1" Port="5020"/> ip需要根据实际情况设置
+	</ServiceConf>
+
+	<!-- LoginQueue 给内部服务开放的端口 -->
+	<ServiceConf Name="LoginQueueServer">
+		<Acceptor Ip="127.0.0.1" Port="5021"/> ip需要根据实际情况设置
+	</ServiceConf>
+</zeze>
+‘’‘
 * 配置两个地方：linkd.xml和gs.xml
 增加LoginQueueAgentService配置。
 	<ServiceConf Name="LoginQueueAgentService">
-		<Connector HostNameOrAddress="127.0.0.1" Port="9999"/> LoginQueue服务器内部地址
+		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/> ip需要根据实际情况设置
 	</ServiceConf>
 
 * 客户端（lua）

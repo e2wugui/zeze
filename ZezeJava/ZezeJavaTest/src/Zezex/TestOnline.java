@@ -8,6 +8,8 @@ import Game.Fight.IModuleFight;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
+import Zeze.Builtin.LoginQueue.BLoginToken;
+import Zeze.Services.LoginQueue;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
@@ -27,6 +29,7 @@ public class TestOnline extends TestCase {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
+	LoginQueue loginQueue;
 
 	final static int ClientCount = 2;
 	final static int LinkCount = 2;
@@ -34,6 +37,9 @@ public class TestOnline extends TestCase {
 	final static int RoleCount = 2;
 
 	private void start() throws Exception {
+		loginQueue = new LoginQueue(100, 200 * 100000);
+		loginQueue.start();
+
 		for (int i = 0; i < LinkCount; ++i)
 			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
@@ -43,8 +49,6 @@ public class TestOnline extends TestCase {
 			var link = links.get(i % LinkCount); // 按顺序选择link
 			var ipPort = link.LinkdService.getOnePassiveAddress();
 			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
-			// wait client connected
-			clients.get(i).Connector.WaitReady();
 		}
 	}
 
@@ -58,6 +62,8 @@ public class TestOnline extends TestCase {
 			server.Stop();
 		for (var link : links)
 			link.Stop();
+		loginQueue.stop();
+		loginQueue = null;
 		logger.info("End Stop");
 	}
 
@@ -92,7 +98,7 @@ public class TestOnline extends TestCase {
 			// testcase first;
 			logger.info("=== test3 - 1");
 			var client0 = clients.get(0);
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
@@ -103,13 +109,13 @@ public class TestOnline extends TestCase {
 			client0.ClientService.stop();
 			client0.ClientService.start();
 			client0.Connector.WaitReady();
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			relogin(client0, roleId);
 
 			// testcase kick
 			logger.info("=== test3 - 3");
 			var client1 = clients.get(1);
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 
 			// logout client1: client0 被踢了
@@ -144,9 +150,10 @@ public class TestOnline extends TestCase {
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
-	private static void auth(ClientGame.App app, String account) {
+	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
+		// todo setup login queue token
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}

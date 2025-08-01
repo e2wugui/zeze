@@ -27,7 +27,7 @@ public class App extends Zeze.AppBase {
 
         loginQueueClient.setLoginToken((loginToken) -> {
             var c = new OutObject<Connector>();
-            ClientService.getConfig().tryGetOrAddConnector(ip, port, true, c);
+            ClientService.getConfig().tryGetOrAddConnector(loginToken.getLinkIp(), loginToken.getLinkPort(), true, c);
             Connector = c.value;
             Connector.start();
             Connector.GetReadySocket();
@@ -40,14 +40,22 @@ public class App extends Zeze.AppBase {
         var config = Config.load("client.xml");
         createZeze(config);
         createService();
-        Connector = new Connector(true, wsUrl);
-        System.out.println("wsUrl =========== " + wsUrl);
-        ClientService.getConfig().addConnector(Connector);
         createModules();
         Zeze.start(); // 启动数据库
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
-        Connector.GetReadySocket();
+
+        loginQueueClient.setLoginToken((loginToken) -> {
+            var url = "ws://" + loginToken.getLinkIp()
+                    + ":" + (loginToken.getLinkPort() + 10000) + "/websocket";
+            Connector = new Connector(true, url);
+            System.out.println("wsUrl =========== " + url);
+            ClientService.getConfig().addConnector(Connector);
+            Connector.start();
+            Connector.WaitReady();
+            onLinkConnectedFuture.setResult(loginToken);
+        });
+        loginQueueClient.connect("127.0.0.1", 5020);
     }
 
     public void Stop() throws Exception {

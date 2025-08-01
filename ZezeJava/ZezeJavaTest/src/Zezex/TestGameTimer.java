@@ -12,9 +12,11 @@ import ClientGame.Login.GetRoleList;
 import ClientZezex.Linkd.Cs;
 import ClientZezex.Linkd.Sc;
 import UnitTest.Zeze.Component.TestBean;
+import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Net.Protocol;
+import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
@@ -33,6 +35,7 @@ public class TestGameTimer {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
+	LoginQueue loginQueue;
 
 	private static void waitLinkdProvider(Zezex.App linkd) throws InterruptedException {
 		while (true) {
@@ -51,6 +54,8 @@ public class TestGameTimer {
 		links.clear();
 		servers.clear();
 
+		loginQueue = new LoginQueue(100, 200 * 100000);
+		loginQueue.start();
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
 		for (int i = 0; i < linkCount; ++i)
@@ -72,7 +77,6 @@ public class TestGameTimer {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
 			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
-			clients.get(i).Connector.WaitReady();
 		}
 		/*
 		var req = new Cs();
@@ -115,6 +119,8 @@ public class TestGameTimer {
 		links.clear();
 		servers.clear();
 
+		loginQueue = new LoginQueue(100, 200 * 100000);
+		loginQueue.start();
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
 		for (int i = 0; i < linkCount; ++i)
@@ -136,7 +142,6 @@ public class TestGameTimer {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
 			clients.get(i).Start2("ws://" + ipPort.getKey() + ":" + (ipPort.getValue() + 10000) + "/websocket");
-			clients.get(i).Connector.WaitReady();
 		}
 	}
 
@@ -150,6 +155,8 @@ public class TestGameTimer {
 			server.Stop();
 		for (var link : links)
 			link.Stop();
+		loginQueue.stop();
+		loginQueue = null;
 	}
 
 	private static void testContent(TimerContext context) {
@@ -193,7 +200,7 @@ public class TestGameTimer {
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
@@ -211,7 +218,7 @@ public class TestGameTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 			sleep(100, 6);
 			Assert.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
@@ -284,7 +291,7 @@ public class TestGameTimer {
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
@@ -304,7 +311,7 @@ public class TestGameTimer {
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 
 			sleep(100, 5);
@@ -339,9 +346,10 @@ public class TestGameTimer {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private static void auth(ClientGame.App app, String account) {
+	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
+		// todo setup login queue token
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}
