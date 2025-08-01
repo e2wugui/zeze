@@ -113,10 +113,10 @@ public class LoginQueue extends AbstractLoginQueue {
 		if (so.isClosed())
 			return true; // 对于关闭的目标连接，总是认为分配成功。
 
-		var link = server.choiceLink();
-		if (null != link) {
-			var provider = server.choiceProvider();
-			if (null != provider) {
+		var provider = server.choiceProvider();
+		if (null != provider) {
+			var link = server.choiceLink();
+			if (null != link) {
 				var p = new PutLoginToken();
 				p.Argument.setLinkIp(link.getServiceIp());
 				p.Argument.setLinkPort(link.getServicePort());
