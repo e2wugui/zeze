@@ -74,18 +74,6 @@ public class ProviderApp extends ReentrantLock {
 		this.providerService.providerApp = this;
 		this.serverServiceNamePrefix = providerModulePrefixNameOnServiceManager;
 
-		// 如果启用了LoginQueue配置，创建LoginQueueAgent并初始化相关代码。
-		var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgentService");
-		if (null != agentConf) {
-			var load = this.providerImplement.getLoad();
-			if (null != load) {
-				var agent = new LoginQueueAgent(
-						zeze.getConfig(), zeze.getConfig().getServerId(),
-						load.getServiceIp(), load.getServicePort());
-				load.setLoginQueueAgent(agent);
-			}
-		}
-
 		this.providerDirect = direct;
 		this.providerDirect.providerApp = this;
 		this.providerDirectService = toOtherProviderService;
@@ -208,6 +196,19 @@ public class ProviderApp extends ReentrantLock {
 			// 启动LoginQueueAgent网络服务
 			if (providerImplement.getLoad() != null && providerImplement.getLoad().getLoginQueueAgent() != null)
 				providerImplement.getLoad().getLoginQueueAgent().start();
+
+			// 如果启用了LoginQueue配置，创建LoginQueueAgent并初始化相关代码。
+			var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgent");
+			if (null != agentConf) {
+				var load = this.providerImplement.getLoad();
+				if (null != load) {
+					var agent = new LoginQueueAgent(
+							zeze.getConfig(), zeze.getConfig().getServerId(),
+							load.getServiceIp(), load.getServicePort());
+					load.setLoginQueueAgent(agent);
+					agent.start();
+				}
+			}
 		} finally {
 			unlock();
 		}

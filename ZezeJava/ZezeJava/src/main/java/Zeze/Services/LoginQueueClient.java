@@ -9,14 +9,12 @@ import Zeze.Util.Action1;
 public class LoginQueueClient extends AbstractLoginQueueClient {
     private final LoginQueueClientService service;
 
-    public LoginQueueClient()
-    {
+    public LoginQueueClient() {
         service = new LoginQueueClientService();
         RegisterProtocols(service);
     }
 
-    public void connect(String hostNameOrAddress, int port)
-    {
+    public void connect(String hostNameOrAddress, int port) {
         service.connect(hostNameOrAddress, port, false);
     }
 
@@ -24,8 +22,7 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
         service.stop();
     }
 
-    public static class LoginQueueClientService extends Service
-    {
+    public static class LoginQueueClientService extends Service {
         public LoginQueueClientService()
         {
             super("LoginQueueClient");

@@ -83,7 +83,7 @@ public class LinkdApp {
 
 		commandConsoleService = new CommandConsoleService("Zeze.Arch.CommandConsole", zeze.getConfig());
 
-		var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgentService");
+		var agentConf = zeze.getConfig().getServiceConf("LoginQueueAgent");
 		if (null != agentConf) {
 			linkdLoad = new LinkdLoad(this);
 		}

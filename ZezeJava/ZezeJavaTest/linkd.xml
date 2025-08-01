@@ -8,6 +8,10 @@
 	>
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> linkd现在不需要数据库，但是验证可能要，先占个坑。
 
+	<ServiceConf Name="LoginQueueAgent" InputBufferMaxProtocolSize="2M">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
+	</ServiceConf>
+
 	<ServiceConf Name="LinkdService" InputBufferMaxProtocolSize="2M">
 		<Acceptor Port="10000"/>
 		<Websocket Path="/websocket"/>

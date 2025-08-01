@@ -4,9 +4,9 @@ public class LoadConfig {
 	private int maxOnlineNew = 100;
 	private int approximatelyLinkdCount = 100; // 大致的Linkd数量。在Provider报告期间，用来估算负载均衡。
 
-	private int reportDelaySeconds = 10;
+	private int reportDelaySeconds = 2;
 	private int proposeMaxOnline = 30000;
-	private int digestionDelayExSeconds = 2;
+	private int digestionDelayExSeconds = 1;
 
 	public final int getMaxOnlineNew() {
 		return maxOnlineNew;

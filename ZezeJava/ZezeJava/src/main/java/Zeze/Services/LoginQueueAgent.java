@@ -16,7 +16,7 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	 */
 	public static class LoginQueueAgentService extends Service {
 		public LoginQueueAgentService(Config config) {
-			super("LoginQueueAgentService", config);
+			super("LoginQueueAgent", config);
 		}
 	}
 

@@ -40,7 +40,7 @@ public abstract class LoadBase {
 	}
 
 	public final void start() {
-		start(2);
+		start(getLoadConfig().getDigestionDelayExSeconds());
 	}
 
 	public final void start(int delaySeconds) {
@@ -81,7 +81,7 @@ public abstract class LoadBase {
 		if (overload != BLoad.eWorkFine) {
 			// fast report
 			report(overload, online, onlineNewPerSecond);
-			start(2);
+			start(config.getDigestionDelayExSeconds());
 			return;
 		}
 		if (onlineNewPerSecond > config.getMaxOnlineNew()) {
@@ -96,7 +96,7 @@ public abstract class LoadBase {
 		if (online > config.getProposeMaxOnline()) {
 			// 在线数量超过建议最大在线，马上报告。
 			report(overload, online, onlineNewPerSecond);
-			start(2);
+			start(config.getDigestionDelayExSeconds());
 			// 超过最大建议值，强迫报告。
 			reportDelaySeconds = config.getReportDelaySeconds();
 			return;
@@ -136,6 +136,11 @@ public abstract class LoadBase {
 
 		// 向LoginQueueServer报告load。
 		if (loginQueueAgent != null)
-			loginQueueAgent.reportProviderLoad(load);
+			reportLoginQueueLoad(loginQueueAgent, load);
+	}
+
+	// LinkdLoad 需要重载。
+	protected void reportLoginQueueLoad(LoginQueueAgent loginQueueAgent, BLoad.Data load) {
+		loginQueueAgent.reportProviderLoad(load);
 	}
 }

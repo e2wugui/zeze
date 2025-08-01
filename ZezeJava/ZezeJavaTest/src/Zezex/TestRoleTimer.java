@@ -11,11 +11,13 @@ import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Builtin.Game.Online.Logout;
+import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerRole;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
+import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -40,11 +42,15 @@ public class TestRoleTimer {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App> servers = new ArrayList<>();
+	LoginQueue loginQueue;
 
 	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
+
+		loginQueue = new LoginQueue(100, 200 * 100000);
+		loginQueue.start();
 
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
@@ -66,8 +72,8 @@ public class TestRoleTimer {
 			var ipPort = link.LinkdService.getOnePassiveAddress();
 			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
 		}
-		for (int i = 0; i < clientCount; ++i)
-			clients.get(i).Connector.WaitReady();
+		//for (int i = 0; i < clientCount; ++i)
+		//	clients.get(i).Connector.WaitReady();
 	}
 
 	private void stopAll() throws Exception {
@@ -79,6 +85,8 @@ public class TestRoleTimer {
 			server.Stop();
 		for (var link : links)
 			link.Stop();
+		loginQueue.stop();
+		loginQueue = null;
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -128,7 +136,7 @@ public class TestRoleTimer {
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
@@ -150,7 +158,7 @@ public class TestRoleTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
@@ -205,7 +213,7 @@ public class TestRoleTimer {
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = role != null ? role.getId() : createRole(client0, "new_role0");
 			login(client0, roleId);
@@ -222,7 +230,7 @@ public class TestRoleTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 			sleep(1000, 1);
 			Assert.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
@@ -291,7 +299,7 @@ public class TestRoleTimer {
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role1");
 			login(client0, roleId);
@@ -311,7 +319,7 @@ public class TestRoleTimer {
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 
 			sleep(200, 1);
@@ -347,7 +355,7 @@ public class TestRoleTimer {
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			auth(client0, "account0");
+			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = role != null ? role.getId() : createRole(client0, "new_role1");
 			login(client0, roleId);
@@ -367,7 +375,7 @@ public class TestRoleTimer {
 			bean.getFuture().await();
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			auth(client1, "account0");
+			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 
 			sleep(200, 1);
@@ -399,9 +407,10 @@ public class TestRoleTimer {
 		Assert.assertEquals(0, login.getResultCode());
 	}
 
-	private static void auth(ClientGame.App app, String account) {
+	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
+		// todo setup login token
 		auth.SendForWait(app.ClientService.GetSocket(), 30_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}
@@ -454,7 +463,7 @@ public class TestRoleTimer {
 				var client = clients.get(loginI);
 				int finalLoginI = loginI;
 				loginFutures.add(Task.runUnsafe(() -> {
-					auth(client, "account" + finalLoginI);
+					auth(client.onLinkConnectedFuture.get(), client, "account" + finalLoginI);
 					var role = getRole(client);
 					var roleId = null != role ? role.getId() : createRole(client, "role" + finalLoginI);
 					login(client, roleId);

@@ -1,8 +1,11 @@
 package ClientGame;
 
+import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Config;
 import Zeze.Net.Connector;
+import Zeze.Services.LoginQueueClient;
 import Zeze.Util.OutObject;
+import Zeze.Util.TaskCompletionSource;
 
 public class App extends Zeze.AppBase {
     public static final App Instance = new App();
@@ -10,19 +13,27 @@ public class App extends Zeze.AppBase {
         return Instance;
     }
     public Connector Connector;
+    public LoginQueueClient loginQueueClient = new LoginQueueClient();
+    public TaskCompletionSource<BLoginToken.Data> onLinkConnectedFuture = new TaskCompletionSource<>();
 
     public void Start(String ip, int port) throws Exception {
         var config = Config.load("client.xml");
         createZeze(config);
         createService();
-        var c = new OutObject<Connector>();
-        ClientService.getConfig().tryGetOrAddConnector(ip, port, true, c);
-        Connector = c.value;
         createModules();
         Zeze.start(); // 启动数据库
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
-        Connector.GetReadySocket();
+
+        loginQueueClient.setLoginToken((loginToken) -> {
+            var c = new OutObject<Connector>();
+            ClientService.getConfig().tryGetOrAddConnector(ip, port, true, c);
+            Connector = c.value;
+            Connector.start();
+            Connector.GetReadySocket();
+            onLinkConnectedFuture.setResult(loginToken);
+        });
+        loginQueueClient.connect("127.0.0.1", 5020);
     }
 
     public void Start2(String wsUrl) throws Exception {

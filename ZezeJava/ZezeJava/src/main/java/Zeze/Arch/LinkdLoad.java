@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Services.LoginQueueAgent;
 
 public class LinkdLoad extends LoadBase {
@@ -49,5 +50,10 @@ public class LinkdLoad extends LoadBase {
 	@Override
 	public int getServicePort() {
 		return linkdPort;
+	}
+
+	@Override
+	protected void reportLoginQueueLoad(LoginQueueAgent loginQueueAgent, BLoad.Data load) {
+		loginQueueAgent.reportLinkLoad(load);
 	}
 }

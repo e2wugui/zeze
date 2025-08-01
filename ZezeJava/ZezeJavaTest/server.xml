@@ -24,6 +24,10 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2M">
 	</ServiceConf>
 
+	<ServiceConf Name="LoginQueueAgent" InputBufferMaxProtocolSize="2M">
+		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
+	</ServiceConf>
+
 	<ServiceConf Name="Zeze.Services.ServiceManager.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5001"/>
 	</ServiceConf>

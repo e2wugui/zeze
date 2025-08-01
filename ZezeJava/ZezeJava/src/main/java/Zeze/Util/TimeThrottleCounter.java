@@ -10,7 +10,7 @@ public class TimeThrottleCounter implements TimeThrottle {
 	private final Future<?> timer;
 
 	public TimeThrottleCounter(int seconds, int limit, int bandwidthLimit) {
-		if (seconds < 1 || limit < 0 || bandwidthLimit < 9)
+		if (seconds < 1 || limit < 0 || bandwidthLimit < 0)
 			throw new IllegalArgumentException();
 
 		this.limit = limit * seconds;
