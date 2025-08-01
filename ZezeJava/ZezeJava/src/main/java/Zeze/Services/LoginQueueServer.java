@@ -11,6 +11,7 @@ import Zeze.Builtin.LoginQueueServer.AnnounceSecret;
 import Zeze.Builtin.LoginQueueServer.BSecret;
 import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Builtin.Provider.BLoad;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
@@ -33,8 +34,8 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
     public class LoginQueueService extends Service {
         private final BSecret.Data secret;
 
-        public LoginQueueService() {
-            super("LoginQueueServer");
+        public LoginQueueService(Config config) {
+            super("LoginQueueServer", config);
             this.secret = new BSecret.Data();
             this.secret.setSecretKey(Random.nextBinary(16));
             this.secret.setSecretIv(Random.nextBinary(16));
@@ -58,9 +59,13 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         }
     }
 
-    public LoginQueueServer(LoginQueue loginQueue) {
+    public LoginQueueService getService() {
+        return service;
+    }
+
+    public LoginQueueServer(LoginQueue loginQueue, Config config) {
         this.loginQueue = loginQueue;
-        this.service = new LoginQueueService();
+        this.service = new LoginQueueService(config);
         RegisterProtocols(this.service);
     }
 

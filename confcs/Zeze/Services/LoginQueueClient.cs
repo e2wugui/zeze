@@ -13,6 +13,7 @@ namespace Zeze.Services
         public LoginQueueClient()
         {
             service = new LoginQueueClientService();
+            RegisterProtocols(service);
         }
 
         public void Connect(string hostNameOrAddress, int port)

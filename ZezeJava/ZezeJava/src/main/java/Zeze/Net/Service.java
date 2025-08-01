@@ -921,4 +921,14 @@ public class Service extends ReentrantLock {
 	public @NotNull DatagramSocket bindUdp(@NotNull InetSocketAddress local) throws IOException {
 		return new DatagramSocket(this, local);
 	}
+
+	public final void connect(@NotNull String hostNameOrAddress, int port) {
+		connect(hostNameOrAddress, port, true);
+	}
+
+	public void connect(String hostNameOrAddress, int port, boolean autoReconnect) {
+		var out = new OutObject<Connector>();
+		config.tryGetOrAddConnector(hostNameOrAddress, port, autoReconnect, out);
+		out.value.start();
+	}
 }

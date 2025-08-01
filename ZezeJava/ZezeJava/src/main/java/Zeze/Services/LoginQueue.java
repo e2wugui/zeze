@@ -7,6 +7,7 @@ import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
 import Zeze.Builtin.LoginQueue.PutQueuePosition;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
@@ -21,8 +22,8 @@ public class LoginQueue extends AbstractLoginQueue {
 	 * 接受客户端连接。
 	 */
 	public class LoginQueueService extends Service {
-		public LoginQueueService() {
-			super("LoginQueue");
+		public LoginQueueService(Config config) {
+			super("LoginQueue", config);
 		}
 
 		@Override
@@ -47,11 +48,15 @@ public class LoginQueue extends AbstractLoginQueue {
 	private volatile TimeThrottle timeThrottle;
 	private int providerSize;
 	private final AtomicLong serialIdSeed = new AtomicLong();
+	private final LoginQueueService service;
 
 	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
+		var config = Config.load("loginQueue.xml");
 		this.maxOnlineNew = maxOnlineNew;
 		this.maxQueueSize = maxQueueSize;
-		this.server = new LoginQueueServer(this);
+		this.server = new LoginQueueServer(this, config);
+		this.service = new LoginQueueService(config);
+		RegisterProtocols(service);
 		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
@@ -63,8 +68,15 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 	}
 
-	public void stop() {
+	public void start() throws Exception {
+		server.getService().start();
+		service.start();
+	}
+
+	public void stop() throws Exception {
 		allocateTimer.cancel(true);
+		server.getService().stop();
+		service.stop();
 	}
 
 	private void allocateTimer() throws Exception {
@@ -137,5 +149,27 @@ public class LoginQueue extends AbstractLoginQueue {
 
 	void onClose(AsyncSocket so) {
 		// queue.remove(so); // 遍历时处理isClosed的。
+	}
+
+	public static void main(String [] args) throws Exception {
+		int maxOnlineNew = 100;
+		int maxQueueSize = 200 * 10000;
+		for (var i = 0; i < args.length; ++i) {
+			switch (args[i])
+			{
+			case "-maxOnlineNew":
+				maxOnlineNew = Integer.parseInt(args[++i]);
+				break;
+			case "-maxQueueSize":
+				maxQueueSize = Integer.parseInt(args[++i]);
+				break;
+			}
+		}
+		Task.tryInitThreadPool();
+		var lq = new LoginQueue(maxOnlineNew, maxQueueSize);
+		lq.start();
+		synchronized (Thread.currentThread()) {
+			Thread.currentThread().wait();
+		}
 	}
 }
