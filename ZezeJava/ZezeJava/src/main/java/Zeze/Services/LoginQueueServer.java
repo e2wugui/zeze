@@ -182,4 +182,19 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         // 选择失败
         return null;
     }
+
+    public static void main(String [] args) throws Exception {
+        var secret = new BSecret.Data();
+        secret.setSecretKey(Random.nextBinary(16));
+        secret.setSecretIv(Random.nextBinary(16));
+
+        var provider = new BToken.Data();
+        provider.setLinkServerId(-1);
+        provider.setServerId(0);
+        provider.setSerialId(1);
+        provider.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000);
+        var encoded = encodeToken(secret, provider);
+        var decoded = decodeToken(secret, encoded);
+        System.out.println(decoded);
+    }
 }

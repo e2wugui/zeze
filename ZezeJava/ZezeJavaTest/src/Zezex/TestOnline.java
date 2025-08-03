@@ -153,7 +153,7 @@ public class TestOnline extends TestCase {
 	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
-		// todo setup login queue token
+		auth.Argument.setLoginQueueToken(token.getToken());
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}

@@ -10,7 +10,6 @@ import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import ClientZezex.Linkd.Cs;
-import ClientZezex.Linkd.Sc;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
@@ -349,7 +348,7 @@ public class TestGameTimer {
 	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
-		// todo setup login queue token
+		auth.Argument.setLoginQueueToken(token.getToken());
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}

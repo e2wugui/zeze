@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import javax.validation.constraints.AssertTrue;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
@@ -14,14 +13,12 @@ import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
-import Zeze.Component.TimerRole;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
@@ -410,7 +407,7 @@ public class TestRoleTimer {
 	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
-		// todo setup login token
+		auth.Argument.setLoginQueueToken(token.getToken());
 		auth.SendForWait(app.ClientService.GetSocket(), 30_000).await();
 		Assert.assertEquals(0, auth.getResultCode());
 	}
