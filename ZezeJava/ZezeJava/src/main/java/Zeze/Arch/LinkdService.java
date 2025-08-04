@@ -239,6 +239,8 @@ public class LinkdService extends HandshakeServer {
 		try {
 			var isRequestSaved = p.isRequest();
 			var result = p.handle(this, factoryHandle); // 不启用新的Task，直接在io-thread里面执行。
+			if (result != 0)
+				p.trySendResultCode(result);
 			Task.logAndStatistics(null, result, p, isRequestSaved);
 		} catch (Exception ex) {
 			p.trySendResultCode(Procedure.Exception);
