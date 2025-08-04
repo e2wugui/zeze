@@ -6,11 +6,9 @@ import Zeze.Builtin.LoginQueueServer.ReportLinkLoad;
 import Zeze.Builtin.LoginQueueServer.ReportProviderLoad;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Config;
-import Zeze.Net.Binary;
 import Zeze.Net.Service;
 
 public class LoginQueueAgent extends AbstractLoginQueueAgent {
-
 	/**
 	 * Connector service. 连接LoginQueueServer.
 	 */

@@ -211,22 +211,16 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
-		if (rpc.getResultCode() < 0) {
-			Transaction trans = Transaction.getCurrent();
-			if (trans == null)
-				throw new IllegalStateException("GlobalAgent.Acquire Failed");
-			trans.throwAbort("GlobalAgent.Acquire Failed", null);
-			// never run here
-		}
-		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
-				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
-			Transaction trans = Transaction.getCurrent();
-			if (trans == null)
-				throw new IllegalStateException("GlobalAgent.Acquire Failed");
-			trans.throwAbort("GlobalAgent.Acquire Failed", null);
-			// never run here
-		}
 		var rc = rpc.getResultCode();
+		if (rc < 0 || rc == GlobalCacheManagerConst.AcquireModifyFailed
+				|| rc == GlobalCacheManagerConst.AcquireShareFailed) {
+			Transaction trans = Transaction.getCurrent();
+			var msg = "GlobalAgent.Acquire Failed: " + rc;
+			if (trans == null)
+				throw new IllegalStateException(msg);
+			trans.throwAbort(msg, null);
+			// never run here
+		}
 		state = rpc.Result.getState();
 		return //rc == 0 ? AcquireResult.getSuccessResult(state) :
 				new AcquireResult(rc, state, rpc.Result.getReduceTid());

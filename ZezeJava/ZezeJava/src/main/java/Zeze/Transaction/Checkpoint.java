@@ -23,7 +23,7 @@ public final class Checkpoint {
 	private final @NotNull CheckpointMode mode;
 	private final @NotNull Thread checkpointThread;
 	private final ArrayList<Database> databases = new ArrayList<>();
-//	private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
+	//private final ReentrantReadWriteLock flushReadWriteLock = new ReentrantReadWriteLock();
 	private final FastLock lock = new FastLock();
 	private final Condition cond = lock.newCondition();
 	private int period;
@@ -125,6 +125,7 @@ public final class Checkpoint {
 	private void run() {
 		while (isRunning) {
 			try {
+				//noinspection SwitchStatementWithTooFewBranches
 				switch (mode) {
 //				case Period:
 //					checkpointPeriod();
@@ -159,6 +160,7 @@ public final class Checkpoint {
 			}
 		}
 		logger.info("final checkpoint start.");
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (mode) {
 //		case Period:
 //			checkpointPeriod();
@@ -269,7 +271,6 @@ public final class Checkpoint {
 		}
 	}
 	*/
-
 	public void flush(@NotNull Transaction trans, @Nullable OnzProcedure onzProcedure, @Nullable History history) {
 		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
 		for (var ar : trans.getAccessedRecords().values()) {

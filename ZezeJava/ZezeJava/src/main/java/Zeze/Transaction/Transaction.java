@@ -249,132 +249,132 @@ public final class Transaction {
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
 				//checkpoint.enterFlushReadLock();
 				//try {
-					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
-						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
-						try {
-							var result = procedure.call();
-							switch (state) {
-							case Running:
-								var saveSize = savepoints.size();
-								if ((result == Procedure.Success && saveSize != 1)
-										|| (result != Procedure.Success && saveSize > 0)) {
-									// 这个错误不应该重做
-									logger.error("perform({}): savepoints.size != 1", procedure);
-									finalRollback(procedure);
-									return Procedure.ErrorSavepoint;
-								}
-								checkResult = lockAndCheck(procedure);
-								if (checkResult == CheckResult.Success) {
-									if (result == Procedure.Success) {
-										// onz patch: onz事务执行阶段的2段式同步等待。
-										OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
-										if (onzProcedure != null) {
-											onzProcedure.sendReadyAndWait();
-											if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
-												flushMode = onzProcedure;
-										}
-										try {
-											finalCommit(procedure, flushMode);
-										} catch (Throwable ex) { // logger.fatal & halt
-											logger.fatal("finalCommit exception:", ex);
-											// final Commit 不能抛出异常。否则就halt。
-
-											// 首先释放锁
-											holdLocks.forEach(Lockey::exitLock);
-											holdLocks.clear();
-
-											// halt process.
-											procedure.getZeze().checkpointRun();
-											LogManager.shutdown();
-											Runtime.getRuntime().halt(543543);
-											return 0;
-										}
-										return Procedure.Success;
+				for (; tryCount < 256; ++tryCount) { // 最多尝试次数
+					CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
+					try {
+						var result = procedure.call();
+						switch (state) {
+						case Running:
+							var saveSize = savepoints.size();
+							if ((result == Procedure.Success && saveSize != 1)
+									|| (result != Procedure.Success && saveSize > 0)) {
+								// 这个错误不应该重做
+								logger.error("perform({}): savepoints.size != 1", procedure);
+								finalRollback(procedure);
+								return Procedure.ErrorSavepoint;
+							}
+							checkResult = lockAndCheck(procedure);
+							if (checkResult == CheckResult.Success) {
+								if (result == Procedure.Success) {
+									// onz patch: onz事务执行阶段的2段式同步等待。
+									OnzProcedure flushMode = null; // 即使当前是Onz事务，也要根据flushMode决定是否继续传递参数给flush过程。
+									if (onzProcedure != null) {
+										onzProcedure.sendReadyAndWait();
+										if (onzProcedure.getFlushMode() != Onz.eFlushAsync)
+											flushMode = onzProcedure;
 									}
-									finalRollback(procedure, true);
-									return result;
+									try {
+										finalCommit(procedure, flushMode);
+									} catch (Throwable ex) { // logger.fatal & halt
+										logger.fatal("finalCommit exception:", ex);
+										// final Commit 不能抛出异常。否则就halt。
+
+										// 首先释放锁
+										holdLocks.forEach(Lockey::exitLock);
+										holdLocks.clear();
+
+										// halt process.
+										procedure.getZeze().checkpointRun();
+										LogManager.shutdown();
+										Runtime.getRuntime().halt(543543);
+										return 0;
+									}
+									return Procedure.Success;
 								}
-								break; // retry
-
-							case Abort:
-								logger.warn("perform({}): Abort", procedure);
-								finalRollback(procedure);
-								return Procedure.AbortException;
-
-							case Redo:
-								//checkResult = CheckResult.Redo;
-								break; // retry
-
-							case RedoAndReleaseLock:
-								checkResult = CheckResult.RedoAndReleaseLock;
-								break; // retry
+								finalRollback(procedure, true);
+								return result;
 							}
-							// retry clear in finally
-							if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
-								checkResult = CheckResult.RedoAndReleaseLock;
-							logger.info("perform({}): {}", procedure, checkResult);
-							triggerRedoActions();
-						} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
-							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
-							// 在 unit test 下，异常日志会被记录两次。
-							switch (state) {
-							case Running:
-								logger.error("perform({}) exception. run count:{}", procedure, tryCount, e);
-								if (!savepoints.isEmpty()) {
-									// 这个错误不应该重做
-									logger.error("perform({}) exception. !savepoints.isEmpty", procedure, e);
-									finalRollback(procedure);
-									return Procedure.ErrorSavepoint;
-								}
-								// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-								if (e instanceof AssertionError) {
-									finalRollback(procedure);
-									throw (AssertionError)e;
-								}
-								checkResult = lockAndCheck(procedure);
-								if (checkResult == CheckResult.Success) {
-									finalRollback(procedure, true);
-									return Procedure.Exception;
-								}
-								// retry
-								break;
+							break; // retry
 
-							case Abort:
-								// if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
-								// 		!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
-								//	logger.warn("perform({}): Abort", procedure, e);
-								logger.warn("perform({}): Abort", procedure, e);
+						case Abort:
+							logger.warn("perform({}): Abort", procedure);
+							finalRollback(procedure);
+							return Procedure.AbortException;
+
+						case Redo:
+							//checkResult = CheckResult.Redo;
+							break; // retry
+
+						case RedoAndReleaseLock:
+							checkResult = CheckResult.RedoAndReleaseLock;
+							break; // retry
+						}
+						// retry clear in finally
+						if (alwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
+							checkResult = CheckResult.RedoAndReleaseLock;
+						logger.info("perform({}): {}", procedure, checkResult);
+						triggerRedoActions();
+					} catch (Throwable e) { // logger.error, logger.warn, rethrow AssertionError, ignored
+						// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
+						// 在 unit test 下，异常日志会被记录两次。
+						switch (state) {
+						case Running:
+							logger.error("perform({}) exception. run count:{}", procedure, tryCount, e);
+							if (!savepoints.isEmpty()) {
+								// 这个错误不应该重做
+								logger.error("perform({}) exception. !savepoints.isEmpty", procedure, e);
 								finalRollback(procedure);
-								return Procedure.AbortException;
-
-							case Redo:
-								checkResult = CheckResult.Redo;
-								break;
-
-							case RedoAndReleaseLock:
-								checkResult = CheckResult.RedoAndReleaseLock;
-								break;
-
-							default: // case Completed:
-								if (e instanceof AssertionError)
-									throw (AssertionError)e;
-								logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
+								return Procedure.ErrorSavepoint;
 							}
-							triggerRedoActions();
+							// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+							if (e instanceof AssertionError) {
+								finalRollback(procedure);
+								throw (AssertionError)e;
+							}
+							checkResult = lockAndCheck(procedure);
+							if (checkResult == CheckResult.Success) {
+								finalRollback(procedure, true);
+								return Procedure.Exception;
+							}
 							// retry
-						} finally {
-							reuseTransactionForRedo(checkResult);
-						}
-
-						if (checkResult == CheckResult.RedoAndReleaseLock) {
-							// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
-							if (transactionRedoAndReleaseLockCounter != null)
-								transactionRedoAndReleaseLockCounter.increment();
 							break;
+
+						case Abort:
+							// if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()) &&
+							// 		!"GlobalAgent In FastErrorPeriod".equals(e.getMessage()))
+							//	logger.warn("perform({}): Abort", procedure, e);
+							logger.warn("perform({}): Abort", procedure, e);
+							finalRollback(procedure);
+							return Procedure.AbortException;
+
+						case Redo:
+							checkResult = CheckResult.Redo;
+							break;
+
+						case RedoAndReleaseLock:
+							checkResult = CheckResult.RedoAndReleaseLock;
+							break;
+
+						default: // case Completed:
+							if (e instanceof AssertionError)
+								throw (AssertionError)e;
+							logger.error("perform({}) {} exception. run count:{}", procedure, state, tryCount, e);
 						}
-						if (transactionRedoCounter != null)
-							transactionRedoCounter.increment();
+						triggerRedoActions();
+						// retry
+					} finally {
+						reuseTransactionForRedo(checkResult);
 					}
+
+					if (checkResult == CheckResult.RedoAndReleaseLock) {
+						// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
+						if (transactionRedoAndReleaseLockCounter != null)
+							transactionRedoAndReleaseLockCounter.increment();
+						break;
+					}
+					if (transactionRedoCounter != null)
+						transactionRedoCounter.increment();
+				}
 				//}
 				//finally {
 				//	checkpoint.exitFlushReadLock();
@@ -640,8 +640,8 @@ public final class Transaction {
 					//noinspection DataFlowIssue
 					if (acquire.resultState != GlobalCacheManagerConst.StateModify) {
 						e.atomicTupleRecord.record.setNotFresh(); // 抢失败不再新鲜。
-						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}",
-								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp);
+						logger.debug("Acquire Failed. Maybe DeadLock Found: record={}, time={}, resultCode={}",
+								e.atomicTupleRecord.record, e.atomicTupleRecord.timestamp, acquire.resultCode);
 						e.atomicTupleRecord.record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}

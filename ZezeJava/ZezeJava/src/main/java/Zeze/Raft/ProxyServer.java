@@ -13,7 +13,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
 
 public class ProxyServer extends Service {
 	public static final String eProxyServerName = "Zeze.Raft.ProxyServer";
@@ -45,6 +44,7 @@ public class ProxyServer extends Service {
 
 	/**
 	 * 把代理请求派发到指定的raft中执行。
+	 *
 	 * @param r ProxyRequest
 	 */
 	private long ProcessProxyRequest(ProxyRequest r) throws Exception {
@@ -95,10 +95,10 @@ public class ProxyServer extends Service {
 	 * 如果启用了代理，则把rpc包装成代理协议，发送出去；
 	 * 否则按原始raft请求发送出去。
 	 *
-	 * @see ProxyAgent send
 	 * @param proxyServer 启用代理的服务器
-	 * @param rpc 待发送rpc
-	 * @param sender 连接
+	 * @param rpc         待发送rpc
+	 * @param sender      连接
+	 * @see ProxyAgent send
 	 */
 	@SuppressWarnings("unchecked")
 	public static boolean send(Service localService, ProxyServer proxyServer, Rpc<?, ?> rpc, String raftName, AsyncSocket sender) {

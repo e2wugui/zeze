@@ -123,7 +123,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	static void tryUpdateAndCheckpoint(@NotNull Transaction trans, @NotNull Procedure procedure,
 									   @NotNull Runnable commit, @Nullable OnzProcedure onzProcedure,
 									   @NotNull Callable<BLogChanges.Data> collectChanges) throws Exception {
-
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (procedure.getZeze().getConfig().getCheckpointMode()) {
 		case Immediately:
 			commit.run();
