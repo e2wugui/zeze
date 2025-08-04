@@ -121,7 +121,7 @@ public abstract class AsyncSocket implements Closeable {
 		close(null);
 	}
 
-	protected abstract boolean close(@Nullable Throwable ex, boolean gracefully);
+	public abstract boolean close(@Nullable Throwable ex, boolean gracefully);
 
 	public abstract boolean Send(byte @NotNull [] bytes, int offset, int length);
 

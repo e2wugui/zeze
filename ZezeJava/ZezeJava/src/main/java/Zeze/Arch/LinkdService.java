@@ -243,7 +243,7 @@ public class LinkdService extends HandshakeServer {
 		} catch (Exception ex) {
 			p.trySendResultCode(Procedure.Exception);
 			logger.error("{} exception:", p.getClass().getName(), ex);
-			p.getSender().close(ex); // link 在异常时关闭连接。
+			p.getSender().close(ex, true); // link 在异常时关闭连接。
 		}
 	}
 
