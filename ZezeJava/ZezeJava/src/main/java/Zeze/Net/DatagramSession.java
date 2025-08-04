@@ -164,7 +164,7 @@ public class DatagramSession extends AsyncSocket {
 	}
 
 	@Override
-	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
+	public boolean close(@Nullable Throwable ex, boolean gracefully) {
 		socket.removeSession(this);
 		return true;
 	}

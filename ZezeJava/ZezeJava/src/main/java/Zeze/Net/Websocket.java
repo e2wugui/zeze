@@ -50,7 +50,7 @@ public class Websocket extends AsyncSocket {
 	}
 
 	@Override
-	protected boolean close(@Nullable Throwable ex, boolean gracefully) {
+	public boolean close(@Nullable Throwable ex, boolean gracefully) {
 		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
 			return false;
 
