@@ -30,9 +30,9 @@ public class TestConflict {
 		var tasks = new ArrayList<Future<?>>();
 		for (int i = 0; i < 2000; ++i) {
 			tasks.add(Zeze.Util.Task.runUnsafe(
-					demo.App.getInstance().Zeze.newProcedure(this::ProcAdd, "ProcAdd"),
+					demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcAdd, "ProcAdd"),
 					DispatchMode.Normal));
-			if ((i+1) % 200 == 0) {
+			if ((i + 1) % 200 == 0) {
 				for (Future<?> task : tasks)
 					task.get();
 				sum += tasks.size();
@@ -52,7 +52,7 @@ public class TestConflict {
 		return Procedure.Success;
 	}
 
-	private long ProcAdd() {
+	private static long ProcAdd() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(123123L);
 		v.setInt_1(v.getInt_1() + 1);
 		return Procedure.Success;

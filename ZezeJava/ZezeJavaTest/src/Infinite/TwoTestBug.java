@@ -6,7 +6,6 @@ public class TwoTestBug {
 	public static void main(String[] args) throws Exception {
 		int i = 0;
 		try {
-			//noinspection InfiniteLoopStatement
 			for (; ; i++) {
 				Simulate.logger.fatal("----------- CBasicSimpleAddConcurrent {} -----------", i);
 				var test1 = new CBasicSimpleAddConcurrent();

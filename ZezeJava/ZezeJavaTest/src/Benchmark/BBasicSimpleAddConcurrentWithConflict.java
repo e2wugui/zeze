@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Task;
-import Zeze.Util.ZezeCounter;
 import demo.App;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -22,7 +21,7 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
 				tasks.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")));
-				if ((i+1) % 200 == 0) {
+				if ((i + 1) % 200 == 0) {
 					for (var task : tasks)
 						task.get();
 					tasks.clear();

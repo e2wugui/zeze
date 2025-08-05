@@ -1,14 +1,10 @@
 package Temp;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import Zeze.Component.AutoKey;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.StableRandom;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -65,7 +61,7 @@ public class DemoMain {
 		var futures = new ArrayList<Future<?>>(100);
 		var seed = System.currentTimeMillis();
 		for (int i = 0; i < 100; i += 3) {
-			var s = seed ++;
+			var s = seed++;
 			var seed2 = s ^ i;
 			futures.add(Task.runUnsafe(() -> {
 				var r = StableRandom.local();
@@ -90,14 +86,13 @@ public class DemoMain {
 		if (args.length == 0)
 			return;
 		*/
+		//noinspection RedundantCast
 		logger.log(Level.WARN, "n={}, s={}, p={}", 123, "abc", args, (Exception)null);
 		System.out.println("中文");
 		System.out.println(System.getProperty("user.name"));
 		System.out.println(InetAddress.getLocalHost().getHostName());
 		logger.info("中文");
 		logger.info(System.getProperty("user.name"));
-		if (args.length == 0)
-			return;
 		var a = new File("a/b");
 		var b = new File("a/../a/b");
 		var c = new File("D:\\zeze\\ZezeJava\\a\\b");

@@ -2,7 +2,6 @@ package Infinite;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Collections.PMap2;
@@ -17,12 +16,10 @@ import demo.Module1.BRemoved2;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 public class CoverHistory {
-	private static final Logger logger = LogManager.getLogger(CoverHistory.class);
+	//private static final Logger logger = LogManager.getLogger(CoverHistory.class);
 	private static final int eKeyRange = 4096; // 修改的记录范围
 	//private static final int eTaskCont = 10000; // 总的修改任务
 	private static final int eJobsPerTask = 2; // 每个任务执行多少个修改工作。
@@ -79,6 +76,7 @@ public class CoverHistory {
 
 	public static final long timeNow = System.currentTimeMillis();
 	public static final StableRandom randSeed = new StableRandom(timeNow);
+
 	public Future<?> submitTasks(int i) {
 		var seed = randSeed.nextLong();
 		//logger.info("submitTasks: seed={}", s);
@@ -177,7 +175,7 @@ public class CoverHistory {
 	public static class List9 implements Job {
 		@Override
 		public void run(BValue value) {
-///			logger.info("List9: {}", value.objectId());
+///            logger.info("List9: {}", value.objectId());
 			var list = value.getList9();
 			var forceRemove = list.size() >= 3;
 			if (forceRemove) {
@@ -248,7 +246,7 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var map11 = value.getMap11(); // key is 0,1,2
-///			logger.info("Map11: {} {}", value.objectId(), map11.size());
+///            logger.info("Map11: {} {}", value.objectId(), map11.size());
 			var forceRemove = map11.size() >= 3;
 			if (forceRemove) {
 				map11.remove(getRandom().nextLong(3));
@@ -521,7 +519,7 @@ public class CoverHistory {
 	public static class Map25 implements Job {
 		@Override
 		public void run(BValue value) {
-///			logger.info("Map25: {}", value.objectId());
+///            logger.info("Map25: {}", value.objectId());
 			var map = value.getMap25(); // see randKey
 			Map16.testKey2BSimple(map);
 		}
@@ -530,7 +528,7 @@ public class CoverHistory {
 	public static class Map26 implements Job {
 		@Override
 		public void run(BValue value) {
-///			logger.info("Map26: {}", value.objectId());
+///            logger.info("Map26: {}", value.objectId());
 			var map = value.getMap26();
 			var forceRemove = map.size() >= 3;
 			if (forceRemove) {
@@ -923,7 +921,7 @@ public class CoverHistory {
 	public static class Map41 implements Job {
 		@Override
 		public void run(BValue value) {
-///			logger.info("Map41: {}", value.objectId());
+///            logger.info("Map41: {}", value.objectId());
 			var map41 = value.getMap41(); // key is 0,1,2
 			var forceRemove = map41.size() >= 3;
 			if (forceRemove) {
@@ -964,7 +962,7 @@ public class CoverHistory {
 	public class Map42Recursive implements Job {
 		@Override
 		public void run(BValue value) {
-///			logger.info("Map42Recursive: {}", value.objectId());
+///            logger.info("Map42Recursive: {}", value.objectId());
 			// map 基本测试足够了，这里只测试递归修改。
 			var map = value.getMap42Recursive();
 			var rValue = map.computeIfAbsent(0L, (key) -> new BValue());
@@ -978,7 +976,7 @@ public class CoverHistory {
 		@Override
 		public void run(BValue value) {
 			var k = getRandom().nextLong(eKeyRange);
-///			var v = app.demo_Module1.getTableCoverHistory().get(k);
+///            var v = app.demo_Module1.getTableCoverHistory().get(k);
 ///			logger.info("RemoveRecord: remove {} {}", k, v != null ? v.objectId() : null);
 			app.demo_Module1.getTableCoverHistory().remove(k);
 		}
@@ -990,7 +988,7 @@ public class CoverHistory {
 			var k = getRandom().nextLong(eKeyRange);
 			var v = app.demo_Module1.getTableCoverHistory().getOrAdd(k);
 			v.setLong2(12345);
-///			logger.info("Combo: remove {}", v.objectId());
+///            logger.info("Combo: remove {}", v.objectId());
 			app.demo_Module1.getTableCoverHistory().remove(k);
 			app.demo_Module1.getTableCoverHistory().getOrAdd(k).setLong2(54321);
 		}

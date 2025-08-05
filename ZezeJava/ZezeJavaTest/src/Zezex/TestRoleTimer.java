@@ -89,7 +89,7 @@ public class TestRoleTimer {
 		servers.clear();
 	}
 
-	private static void testContent(TimerContext context) throws Exception {
+	private static void testContent(TimerContext context) {
 		TestBean bean = (TestBean)context.customData;
 		if (bean.checkLiving())
 			bean.addValue();
@@ -102,7 +102,7 @@ public class TestRoleTimer {
 
 	public static class TestOnlineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -111,7 +111,7 @@ public class TestRoleTimer {
 
 	public static class NullCustomDataHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) {
 			timerFuture.setResult(true);
 		}
 	}
@@ -267,7 +267,7 @@ public class TestRoleTimer {
 
 	public static class TestOfflineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) throws Exception {
+		public void onTimer(TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -441,7 +441,7 @@ public class TestRoleTimer {
 	}
 
 	private static void log(String msg) {
-		logger.info("======================================== " + msg + " ========================================");
+		logger.info("======================================== {} ========================================", msg);
 	}
 
 	@Test
@@ -550,6 +550,7 @@ public class TestRoleTimer {
 			id = bb.ReadInt();
 		}
 	}
+
 	public static class TimerBatch implements TimerHandle {
 		@Override
 		public void onTimer(TimerContext context) {

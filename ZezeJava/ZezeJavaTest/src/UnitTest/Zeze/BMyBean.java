@@ -34,13 +34,13 @@ public class BMyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		BMyBean.MyLog log = (BMyBean.MyLog)txn.getLog(this.objectId());
+		MyLog log = (MyLog)txn.getLog(this.objectId());
 		return (null != log) ? log.value : _i;
 	}
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
 		Assert.assertNotNull(txn);
-		txn.putLog(new BMyBean.MyLog(this, value));
+		txn.putLog(new MyLog(this, value));
 	}
 }

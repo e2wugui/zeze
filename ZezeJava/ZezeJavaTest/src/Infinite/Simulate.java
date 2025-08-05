@@ -84,6 +84,7 @@ public final class Simulate {
 	}
 
 	final ArrayList<Future<?>> RunningTasks = new ArrayList<>(Simulate.BatchTaskCount);
+
 	public void WaitAllRunningTasksAndClear() {
 		Task.waitAll(RunningTasks);
 		RunningTasks.clear();
@@ -106,7 +107,7 @@ public final class Simulate {
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
 			}
 			PerfCounter.instance().resetCounter();
-			logger.info("timeNow=" + CoverHistory.timeNow);
+			logger.info("timeNow={}", CoverHistory.timeNow);
 			for (int i = 0; i < BatchTaskCount; i++) {
 				var app = Tasks.randCreateTask().Run();
 				if (((i + 1) % 3) == 0)

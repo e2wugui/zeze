@@ -54,7 +54,6 @@ public class TestGTable {
 		}, "GTableCheck").call();
 	}
 
-
 	@Test
 	public void testGTable2Basic() {
 		App.Instance.Zeze.newProcedure(() -> {
@@ -107,11 +106,11 @@ public class TestGTable {
 	}
 
 	static class C1 {
-		GTable1<Integer, Long, Float> g = new GTable1<>(Integer.class, Long.class, Float.class);
+		final GTable1<Integer, Long, Float> g = new GTable1<>(Integer.class, Long.class, Float.class);
 	}
 
 	static class C2 {
-		GTable2<Integer, Long, Bean1, Bean1ReadOnly> g = new GTable2<>(Integer.class, Long.class, Bean1.class);
+		final GTable2<Integer, Long, Bean1, Bean1ReadOnly> g = new GTable2<>(Integer.class, Long.class, Bean1.class);
 	}
 
 	@Test

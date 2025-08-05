@@ -13,7 +13,6 @@ public class TestLog4j {
 	private static final Logger logger = LogManager.getLogger(TestLog4j.class);
 
 	public static void main(String[] args) throws InterruptedException {
-		//noinspection InfiniteLoopStatement
 		for (int i = 0; ; i++) {
 			logger.info("{}", i);
 			//noinspection BusyWait

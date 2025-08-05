@@ -22,7 +22,6 @@ public class TestJdbcHalt {
 	private static void updateLoop(DatabaseMySql mysql, DatabaseMySql.TableMysql[] tables, long i) throws Exception {
 		var kb = ByteBuffer.Allocate();
 		var vb = ByteBuffer.Allocate();
-		//noinspection InfiniteLoopStatement
 		for (; ; curKey = ++i) {
 			try (var txn = mysql.beginTransaction()) {
 				kb.Reset();

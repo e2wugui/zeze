@@ -5,9 +5,7 @@ import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Game.Rank;
-import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.ConcurrentHashSet;
 import demo.SimpleApp;
 import junit.framework.TestCase;
 
@@ -66,7 +64,7 @@ public class TestRank extends TestCase {
 		System.out.println("------ tearDown end");
 	}
 
-	public void testRank() throws Exception {
+	public void testRank() {
 		if (disableTest)
 			return;
 

@@ -1,6 +1,5 @@
 package Dbh2;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.ThreadLocalRandom;
@@ -14,7 +13,7 @@ import org.rocksdb.RocksDBException;
 public class TestRocksDb {
 	// 测试RocksDb：key + commit_ts 方式编码，但是能快速定位到最后一个key的能力。
 	@Test
-	public void testKeyGet() throws IOException, RocksDBException {
+	public void testKeyGet() throws RocksDBException {
 		var path = Path.of("TestRocksDb");
 		LogSequence.deleteDirectory(path.toFile());
 		try (var rdb = new RocksDatabase(path.toString(), RocksDatabase.DbType.eOptimisticTransactionDb)) {

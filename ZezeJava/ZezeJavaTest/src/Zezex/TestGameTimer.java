@@ -92,10 +92,11 @@ public class TestGameTimer {
 						var bb = cs.encode();
 						var buf = ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size());
 						webSocket.sendBinary(buf, true);
-						logger.info("Cs Web " + cs.Argument);
+						logger.info("Cs Web {}", cs.Argument);
 					}
 
 					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
+
 					@Override
 					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
 						webSocket.request(1);
@@ -105,7 +106,7 @@ public class TestGameTimer {
 						input.WriteIndex += n;
 						if (last) {
 							var sc = Protocol.decode(clients.get(0).ClientService, input);
-							logger.info("Sc Web " + sc.Argument);
+							logger.info("Sc Web {}", sc != null ? sc.Argument : null);
 							input.Compact();
 						}
 						return null;
@@ -113,6 +114,7 @@ public class TestGameTimer {
 				});
 	}
 
+	@SuppressWarnings({"unused", "SameParameterValue"})
 	private void prepareNewEnvironment2(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
 		clients.clear();
 		links.clear();

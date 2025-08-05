@@ -2,15 +2,12 @@ package MQ;
 
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BOptions;
-import Zeze.Config;
 import Zeze.MQ.MQ;
-import Zeze.MQ.MQAgent;
 import Zeze.MQ.MQConsumer;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.MQProducer;
 import Zeze.Util.Task;
 import org.junit.Test;
-import org.rocksdb.RocksDBException;
 
 public class TestMQ {
 	@Test
@@ -37,10 +34,7 @@ public class TestMQ {
 			producer = new MQProducer(topic);
 			producer.sendMessage(new BMessage.Data());
 
-			consumer = new MQConsumer(topic, (pushMessage) -> {
-				System.out.println("consumer " + pushMessage.getTopic());
-			});
-
+			consumer = new MQConsumer(topic, pushMessage -> System.out.println("consumer " + pushMessage.getTopic()));
 		} finally {
 			if (producer != null)
 				producer.close();

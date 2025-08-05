@@ -238,6 +238,7 @@ public class TestGlobalCacheMgrWithRaft {
 		CheckCurrentCount("GlobalRaft Final Check!!!");
 	}
 
+	@SuppressWarnings("LoggingSimilarMessage")
 	private boolean Check(String testName) throws Exception {
 		int tryCount = 3;
 		for (int i = 0; i < tryCount; i++) {
@@ -269,26 +270,26 @@ public class TestGlobalCacheMgrWithRaft {
 		return sb.toString();
 	}
 
-	private void TestConcurrent(String testName, int count) throws Exception {
+	private void TestConcurrent(String testName, int count) {
 		ExpectCount.addAndGet(ConcurrentAddCount(testName, count));
 		CheckCurrentCount(testName);
 	}
 
-	private long ConcurrentAddCount(String testName, int count) throws Exception {
+	private long ConcurrentAddCount(String testName, int count) {
 		Future<?>[] task2 = new Future[2];
 
 		AtomicInteger finalCount1 = new AtomicInteger();
 		AtomicInteger finalCount2 = new AtomicInteger();
 
 		task2[0] = Zeze.Util.Task.runUnsafe(App1.Zeze.newProcedure(() -> {
-					finalCount1.set(TestConcurrency(App1, count, 1));
-					return Procedure.Success;
-				}, testName), DispatchMode.Normal);
+			finalCount1.set(TestConcurrency(App1, count, 1));
+			return Procedure.Success;
+		}, testName), DispatchMode.Normal);
 
 		task2[1] = Zeze.Util.Task.runUnsafe(App2.Zeze.newProcedure(() -> {
-				finalCount2.set(TestConcurrency(App2, count, 2));
-				return Procedure.Success;
-			}, testName), DispatchMode.Normal);
+			finalCount2.set(TestConcurrency(App2, count, 2));
+			return Procedure.Success;
+		}, testName), DispatchMode.Normal);
 
 		try {
 			task2[0].get();
@@ -341,7 +342,7 @@ public class TestGlobalCacheMgrWithRaft {
 		return finalCount;
 	}
 
-	private long GetCurrentCount() throws Exception {
+	private long GetCurrentCount() {
 		AtomicLong count = new AtomicLong();
 		int tryCount = 30;
 		for (int i = 0; i < tryCount; i++) {
@@ -371,11 +372,11 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	private boolean CheckCurrentCount(String testName) throws Exception {
+	private boolean CheckCurrentCount(String testName) {
 		return CheckCurrentCount(testName, true);
 	}
 
-	private boolean CheckCurrentCount(String testName, boolean resetFlag) throws Exception {
+	private boolean CheckCurrentCount(String testName, boolean resetFlag) {
 		var currentCount = GetCurrentCount();
 		var expectCount = this.ExpectCount.get();
 		if (currentCount != expectCount) {
@@ -485,7 +486,7 @@ public class TestGlobalCacheMgrWithRaft {
 //							getRaft().getServer().Start();
 							GlobalCacheManagerWithRaft.getRocks().getRaft().getServer().start();
 							break;
-						}  catch (BindException | RuntimeException be) {
+						} catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
 								throw be;
 							//noinspection BusyWait

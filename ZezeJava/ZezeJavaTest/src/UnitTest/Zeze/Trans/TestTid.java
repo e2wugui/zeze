@@ -2,7 +2,6 @@ package UnitTest.Zeze.Trans;
 
 import java.util.Objects;
 import Zeze.Transaction.Transaction;
-import jdk.jfr.Unsigned;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,7 +30,7 @@ public class TestTid {
 		System.out.println(obj);
 	}
 
-	public static void main(String [] args) {
+	public static void main(String[] args) {
 		x(1);
 		x(2L);
 		x("str");
