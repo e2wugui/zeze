@@ -52,11 +52,17 @@
 	</ServiceConf>
 </zeze>
 ‘’‘
-* 配置两个地方：linkd.xml和gs.xml
-增加LoginQueueAgentService配置。
-	<ServiceConf Name="LoginQueueAgentService">
+* 配置两个地方
+在linkd.xml和gs.xml里面分别增加LoginQueueAgent配置。
+’‘’
+	<ServiceConf Name="LoginQueueAgent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/> ip需要根据实际情况设置
 	</ServiceConf>
+‘’‘
+* linkd编写代码
+linkd收到客户端携带LoginQueueToken的Auth协议，在ProcessAuthRequest的处理最后调用
+App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken())
+如果choiceProvider成功则最终返回Auth成功，否则告知Auth失败。
 
 * 客户端（lua）
 '''
