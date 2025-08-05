@@ -2,17 +2,17 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.25.0'
-    implementation 'org.apache.logging.log4j:log4j-core:2.25.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.25.1'
+    implementation 'org.apache.logging.log4j:log4j-core:2.25.1'
     implementation 'org.jetbrains:annotations:26.0.2'
     implementation 'org.pcollections:pcollections:4.0.2'
-    implementation 'org.rocksdb:rocksdbjni:9.11.2'
+    implementation 'org.rocksdb:rocksdbjni:10.2.1'
 
     // for netty
-    compileOnly 'io.netty:netty-codec-http:4.1.122.Final'
-    compileOnly 'io.netty:netty-transport-native-epoll:4.1.122.Final:linux-x86_64'
+    compileOnly 'io.netty:netty-codec-http:4.1.123.Final'
+    compileOnly 'io.netty:netty-transport-native-epoll:4.1.123.Final:linux-x86_64'
     compileOnly 'org.slf4j:slf4j-api:2.0.17'
-    compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.0'
+    compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.1'
 
     // optional dependencies
 
@@ -20,23 +20,23 @@ dependencies {
     //compileOnly 'com.google.guava:guava:33.4.0-jre'
 
     // for Json field
-    compileOnly 'com.alibaba.fastjson2:fastjson2:2.0.57'
+    compileOnly 'com.alibaba.fastjson2:fastjson2:2.0.58'
 
     // for tikv
     compileOnly 'org.tikv:tikv-client-java:3.3.5'
 
     // for jdbc(mysql,sqlserver,tidb)
-    compileOnly 'com.alibaba:druid:1.2.25'
+    compileOnly 'com.alibaba:druid:1.2.27'
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
 
     // for redis(kvrocks,pika,tendis)
     compileOnly 'redis.clients:jedis:5.2.0'
 
     // dynamodb
-    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.783'
+    compileOnly 'com.amazonaws:aws-java-sdk-dynamodb:1.12.788'
 
     // foundationDB
-    compileOnly 'org.foundationdb:fdb-java:7.4.1'
+    compileOnly 'org.foundationdb:fdb-java:7.4.3'
 
     // for rocketmq
     compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.8'
@@ -46,7 +46,7 @@ dependencies {
     compileOnly 'org.jgrapht:jgrapht-core:1.5.2'
 
     // for new Compress/Decompress Codec in Zeze.Net
-    compileOnly 'com.github.luben:zstd-jni:1.5.7-3'
+    compileOnly 'com.github.luben:zstd-jni:1.5.7-4'
 
     // for Consul in Zeze.Netty
     compileOnly 'com.ecwid.consul:consul-api:1.4.5'
@@ -58,9 +58,9 @@ dependencies {
     compileOnly 'org.thymeleaf:thymeleaf:3.1.3.RELEASE'
 
     // for metric
-    compileOnly 'io.prometheus:prometheus-metrics-core:1.3.8'
-    compileOnly 'io.prometheus:prometheus-metrics-instrumentation-jvm:1.3.8'
-    compileOnly 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.8'
+    compileOnly 'io.prometheus:prometheus-metrics-core:1.3.10'
+    compileOnly 'io.prometheus:prometheus-metrics-instrumentation-jvm:1.3.10'
+    compileOnly 'io.prometheus:prometheus-metrics-exporter-httpserver:1.3.10'
 }
 
 jar {
