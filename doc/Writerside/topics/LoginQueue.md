@@ -36,7 +36,7 @@
 
 ## 启动和配置LoginQueue
 * 启动LoginQueue服务
-使用下面的配置启动 java -cp zeze.jar:... Zeze.Service.LoginQueue
+使用下面的配置，文件名为loginQueue.xml，启动 java -cp zeze.jar:... Zeze.Service.LoginQueue
 '''
 <?xml version="1.0" encoding="utf-8"?>
 
