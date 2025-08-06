@@ -40,12 +40,11 @@ public final class ModuleLinkd extends AbstractModule {
 		linkSession.setAccount(rpc.Argument.getAccount());
 		linkSession.setClientAppVersion(Str.parseVersion(rpc.Argument.getAppVersion()));
 		linkSession.setAuthed();
-		if (App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken()))
-			rpc.SendResultCode(0);
-		else
-			rpc.SendResultCode(errorCode(Auth.Error));
+		if (!App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken()))
+			return errorCode(Auth.Error);
 		logger.info("Auth account:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());
-		return Zeze.Transaction.Procedure.Success;
+		rpc.SendResult();
+		return 0;
 	}
 
     @Override
