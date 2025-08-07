@@ -27,12 +27,9 @@
     一个算法加密的token。token包含具体gs的信息和过期时间信息。
 3. LoginQueueClient连接LoginQueueServer，并得到当前队列的数量。当前队列数量定时更新。当到达队头时
     会收到token。
-4. 客户端从token中得到需要连接的Linkd，连接linkd发送auth，需要带上token，并且服务器的代码需要
-    手动调用一下verifyAndParseLoginToken(token)，这个方法需要第一个调用，由内部提供。
-5. Linkd收到token，并进行token校验，把token信息记录下来。
-    当客户端进行auth认证时，判断已经得到正确有效的token。
-    当客户端开始login流程时，选择Gs进行登录。
-    需要新增根据serverId选择Gs的算法。
+4. 客户端从token中得到需要连接的Linkd，连接linkd发送auth，需要带上loginqueuetoken，
+5. Linkd收到Auth和token，在Auth步骤的最后一步，手动调用一下choiceProvider(link, token)。
+    这个方法内部提供。
 
 ## 启动和配置LoginQueue
 * 启动LoginQueue服务
@@ -43,12 +40,12 @@
 <zeze>
 	<!-- LoginQueue 给登录用户开放的端口 -->
 	<ServiceConf Name="LoginQueue">
-		<Acceptor Ip="127.0.0.1" Port="5020"/> ip需要根据实际情况设置
+		<Acceptor Ip="127.0.0.1" Port="5020"/>
 	</ServiceConf>
 
 	<!-- LoginQueue 给内部服务开放的端口 -->
 	<ServiceConf Name="LoginQueueServer">
-		<Acceptor Ip="127.0.0.1" Port="5021"/> ip需要根据实际情况设置
+		<Acceptor Ip="127.0.0.1" Port="5021"/>
 	</ServiceConf>
 </zeze>
 ‘’‘
@@ -56,7 +53,7 @@
 在linkd.xml和gs.xml里面分别增加LoginQueueAgent配置。
 ’‘’
 	<ServiceConf Name="LoginQueueAgent">
-		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/> ip需要根据实际情况设置
+		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
 	</ServiceConf>
 ‘’‘
 * linkd编写代码
@@ -66,8 +63,10 @@ App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToke
 
 * 客户端（lua）
 '''
-ConnectLoginQueue(outIp, outPort)
+ConnectLoginQueue(ip, 5020)
+
 实现network.lua里面的三个回调。
+
 local function OnQueueFull()
 	-- 报告错误
 end
@@ -76,15 +75,15 @@ local function OnQueuePosition(queuePosition)
 	-- 报告队列位置
 end
 
-local function OnQueuePosition(LinkIp, LinkPort, Token)
+local function OnLoginToken(LinkIp, LinkPort, Token)
 	-- 排队成功
-	loginToken = Token;  -- 保存token
+	loginQueueToken = Token;  -- 保存token
 	Connect(LinkIp, LinkPort)
 end
 
 function network.on_connected()
 	local p = Auth::new()
-	p.LoginToken = loginToken;
+	p.LoginQueueToken = loginQueueToken;
 	... 其他参数
 	p.send();
 end

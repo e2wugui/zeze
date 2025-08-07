@@ -45,6 +45,8 @@ function network.RemoveRpcContext(session_id)
     return rpc
 end
 
+local LoginQueueToken;
+
 function network.Connect(ipOrHost, port, callback)
 	if IsWeChatMiniGame then
 		local wsUrl = string.format("ws://%s:%s/websocket", ipOrHost, port)
@@ -76,7 +78,7 @@ function network.on_connected()
     --local token = ""
     --local appVersion = ""
     --local linkd = require("module.syx.Linkd.ModuleLinkd")
-    --linkd.auth(account, token, appVersion)
+    --linkd.auth(account, token, appVersion, LoginQueueToken)
 	network._isConnected = true
 	if connectCallback then
 		connectCallback(true)
@@ -135,7 +137,9 @@ end
 local function OnQueuePosition(queuePosition)
 end
 
-local function OnQueuePosition(LinkIp, LinkPort, Token)
+local function OnLoginToken(LinkIp, LinkPort, Token)
+	LoginQueueToken = Token
+	Connect(LinkIp, LinkPort)
 end
 
 -- 约定注册给 c# 使用
