@@ -144,9 +144,9 @@ end
 
 -- 约定注册给 c# 使用
 _G.zezeActions = {
-    OnQueueFull = OnQueueFull
-    OnQueuePosition = OnQueuePosition
-    OnLoginToken = OnLoginToken
+    OnQueueFull = OnQueueFull,
+    OnQueuePosition = OnQueuePosition,
+    OnLoginToken = OnLoginToken,
 }
 
 return network
