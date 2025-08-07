@@ -1808,7 +1808,7 @@ namespace Zeze.Services.ToLuaService2
             return LuaInterface.LuaDLL.lua_gettop(luaState);
         }
 
-        public int lua_settop(lua_State L, int index)
+        public void lua_settop(lua_State L, int index)
         {
             LuaInterface.LuaDLL.lua_settop(luaState, index);
         }
