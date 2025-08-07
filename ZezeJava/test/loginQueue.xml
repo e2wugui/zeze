@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze>
+	<!-- LoginQueue 给登录用户开放的端口 -->
+	<ServiceConf Name="LoginQueue">
+		<Acceptor Ip="127.0.0.1" Port="5020"/>
+	</ServiceConf>
+
+	<!-- LoginQueue 给内部服务开放的端口 -->
+	<ServiceConf Name="LoginQueueServer">
+		<Acceptor Ip="127.0.0.1" Port="5021"/>
+	</ServiceConf>
+</zeze>
