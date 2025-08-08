@@ -1668,7 +1668,7 @@ namespace Zeze.Services.ToLuaService2
                 _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
                 {
                     var top = Instance.Lua.lua_gettop(luaState);
-                    if (GetLuaAction(luaState, "OnQueueFull"))
+                    if (GetLuaAction(luaState, "OnQueuePosition"))
                     {
                         Instance.Lua.lua_pushinteger(luaState, queuePosition.QueuePosition);
                         Instance.Lua.lua_pcall(luaState, 1, 0, 0);
@@ -1682,7 +1682,7 @@ namespace Zeze.Services.ToLuaService2
                 _serviceClient.ToLua.toLuaVariable.toLuaAction.Add(() =>
                 {
                     var top = Instance.Lua.lua_gettop(luaState);
-                    if (GetLuaAction(luaState, "OnQueueFull"))
+                    if (GetLuaAction(luaState, "OnLoginToken"))
                     {
                         Instance.Lua.lua_pushstring(luaState, loginToken.LinkIp);
                         Instance.Lua.lua_pushinteger(luaState, loginToken.LinkPort);
