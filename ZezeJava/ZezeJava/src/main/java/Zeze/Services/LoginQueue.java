@@ -7,6 +7,7 @@ import Zeze.Builtin.LoginQueue.BToken;
 import Zeze.Builtin.LoginQueue.PutLoginToken;
 import Zeze.Builtin.LoginQueue.PutQueueFull;
 import Zeze.Builtin.LoginQueue.PutQueuePosition;
+import Zeze.Builtin.LoginQueueServer.BServerLoad;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
@@ -113,23 +114,27 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 	}
 
+	private void putLoginToken(AsyncSocket so, BServerLoad.Data link, int providerServerId) throws Exception {
+		var p = new PutLoginToken();
+		p.Argument.setLinkIp(link.getServiceIp());
+		p.Argument.setLinkPort(link.getServicePort());
+		var token = new BToken.Data();
+		token.setServerId(providerServerId);
+		token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
+		token.setSerialId(serialIdSeed.incrementAndGet());
+		token.setLinkServerId(link.getServerId());
+		p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
+		p.Send(so);
+		so.closeGracefully();
+	}
+
 	private boolean tryAllocateLink(AsyncSocket so) throws Exception {
 		if (so.isClosed())
 			return true; // 对于关闭的目标连接，总是认为分配成功。
 
 		var link = server.choiceLink();
 		if (null != link) {
-			var p = new PutLoginToken();
-			p.Argument.setLinkIp(link.getServiceIp());
-			p.Argument.setLinkPort(link.getServicePort());
-			var token = new BToken.Data();
-			token.setServerId(-1);
-			token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
-			token.setSerialId(serialIdSeed.incrementAndGet());
-			token.setLinkServerId(link.getServerId());
-			p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
-			p.Send(so);
-			so.closeGracefully();
+			putLoginToken(so, link, -1);
 			return true;
 		}
 
@@ -147,17 +152,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		if (null != provider) {
 			var link = server.choiceLink();
 			if (null != link) {
-				var p = new PutLoginToken();
-				p.Argument.setLinkIp(link.getServiceIp());
-				p.Argument.setLinkPort(link.getServicePort());
-				var token = new BToken.Data();
-				token.setServerId(provider.getServerId());
-				token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
-				token.setSerialId(serialIdSeed.incrementAndGet());
-				token.setLinkServerId(link.getServerId());
-				p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
-				p.Send(so);
-				so.closeGracefully();
+				putLoginToken(so, link, provider.getServerId());
 				return true;
 			}
 		}
