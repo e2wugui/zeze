@@ -122,6 +122,12 @@ public class LoginQueue extends AbstractLoginQueue {
 			var p = new PutLoginToken();
 			p.Argument.setLinkIp(link.getServiceIp());
 			p.Argument.setLinkPort(link.getServicePort());
+			var token = new BToken.Data();
+			token.setServerId(-1);
+			token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
+			token.setSerialId(serialIdSeed.incrementAndGet());
+			token.setLinkServerId(link.getServerId());
+			p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
 			p.Send(so);
 			so.closeGracefully();
 			return true;

@@ -94,6 +94,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			return false;
 		if (token.getLinkServerId() != linkdApp.zeze.getConfig().getServerId())
 			return false;
+
+		if (token.getServerId() < 0)
+			return true; // 用户link-gs强绑等自定义选择模式下，不需要后面的选择和绑定。
+
 		// token.getSerialId() 用于严格重放。
 		// 根据provider.getServerId()查找provider，并且bind所有静态模块到session。
 		var providerSocket = serverId2ProviderSocket.get(token.getServerId());
