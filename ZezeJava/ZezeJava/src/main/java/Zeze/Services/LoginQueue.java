@@ -28,8 +28,8 @@ public class LoginQueue extends AbstractLoginQueue {
 
 		@Override
 		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
+			LoginQueue.this.onAccept(so); // 先触发逻辑，super默认的检查maxConnections后来处理。
 			super.OnSocketAccept(so);
-			LoginQueue.this.onAccept(so);
 		}
 
 		@Override
@@ -44,16 +44,14 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final Future<?> allocateTimer;
 	private int broadcastCount;
 	private final int maxOnlineNew;
-	private final int maxQueueSize;
 	private volatile TimeThrottle timeThrottle;
 	private int providerSize;
 	private final AtomicLong serialIdSeed = new AtomicLong();
 	private final LoginQueueService service;
 
-	public LoginQueue(int maxOnlineNew, int maxQueueSize) {
+	public LoginQueue(int maxOnlineNew) {
 		var config = Config.load("loginQueue.xml");
 		this.maxOnlineNew = maxOnlineNew;
-		this.maxQueueSize = maxQueueSize;
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
@@ -135,7 +133,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void onAccept(AsyncSocket so) throws Exception {
-		if (queue.size() >= maxQueueSize) {
+		if (queue.size() >= so.getService().getConfig().getMaxConnections()) {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
 			return;
@@ -153,20 +151,16 @@ public class LoginQueue extends AbstractLoginQueue {
 
 	public static void main(String [] args) throws Exception {
 		int maxOnlineNew = 100;
-		int maxQueueSize = 200 * 10000;
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i])
 			{
 			case "-maxOnlineNew":
 				maxOnlineNew = Integer.parseInt(args[++i]);
 				break;
-			case "-maxQueueSize":
-				maxQueueSize = Integer.parseInt(args[++i]);
-				break;
 			}
 		}
 		Task.tryInitThreadPool();
-		var lq = new LoginQueue(maxOnlineNew, maxQueueSize);
+		var lq = new LoginQueue(maxOnlineNew);
 		lq.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();

@@ -46,7 +46,7 @@ public class TestRoleTimer {
 		links.clear();
 		servers.clear();
 
-		loginQueue = new LoginQueue(100, 200 * 100000);
+		loginQueue = new LoginQueue(100);
 		loginQueue.start();
 
 		for (int i = 0; i < clientCount; ++i)
