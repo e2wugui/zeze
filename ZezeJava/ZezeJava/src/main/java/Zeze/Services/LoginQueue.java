@@ -44,14 +44,20 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final Future<?> allocateTimer;
 	private int broadcastCount;
 	private final int maxOnlineNew;
+	private final boolean choiceLinkOnly;
 	private volatile TimeThrottle timeThrottle;
 	private int providerSize;
 	private final AtomicLong serialIdSeed = new AtomicLong();
 	private final LoginQueueService service;
 
-	public LoginQueue(int maxOnlineNew) {
+	public LoginQueue() {
+		this(100, false);
+	}
+
+	public LoginQueue(int maxOnlineNew, boolean choiceLinkOnly) {
 		var config = Config.load("loginQueue.xml");
 		this.maxOnlineNew = maxOnlineNew;
+		this.choiceLinkOnly = choiceLinkOnly;
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
@@ -93,7 +99,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 
 		// 比分配更长的间隔。每N次timer触发广播一次。
-		if (++broadcastCount >= 5) {
+		if (++broadcastCount >= 3) {
 			broadcastCount = 0;
 			// 给前10000个客户端广播队列长度。
 			var i = 0;
@@ -107,7 +113,27 @@ public class LoginQueue extends AbstractLoginQueue {
 		}
 	}
 
+	private boolean tryAllocateLink(AsyncSocket so) throws Exception {
+		if (so.isClosed())
+			return true; // 对于关闭的目标连接，总是认为分配成功。
+
+		var link = server.choiceLink();
+		if (null != link) {
+			var p = new PutLoginToken();
+			p.Argument.setLinkIp(link.getServiceIp());
+			p.Argument.setLinkPort(link.getServicePort());
+			p.Send(so);
+			so.closeGracefully();
+			return true;
+		}
+
+		return false;
+	}
+
 	private boolean tryAllocateServer(AsyncSocket so) throws Exception {
+		if (choiceLinkOnly)
+			return tryAllocateLink(so);
+
 		if (so.isClosed())
 			return true; // 对于关闭的目标连接，总是认为分配成功。
 
@@ -151,16 +177,20 @@ public class LoginQueue extends AbstractLoginQueue {
 
 	public static void main(String [] args) throws Exception {
 		int maxOnlineNew = 100;
+		boolean choiceLinkOnly = false;
 		for (var i = 0; i < args.length; ++i) {
 			switch (args[i])
 			{
 			case "-maxOnlineNew":
 				maxOnlineNew = Integer.parseInt(args[++i]);
 				break;
+			case "-choiceLinkOnly":
+				choiceLinkOnly = Boolean.parseBoolean(args[++i]);
+				break;
 			}
 		}
 		Task.tryInitThreadPool();
-		var lq = new LoginQueue(maxOnlineNew);
+		var lq = new LoginQueue(maxOnlineNew, choiceLinkOnly);
 		lq.start();
 		synchronized (Thread.currentThread()) {
 			Thread.currentThread().wait();

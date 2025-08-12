@@ -37,7 +37,7 @@ public class TestOnline extends TestCase {
 	final static int RoleCount = 2;
 
 	private void start() throws Exception {
-		loginQueue = new LoginQueue(100);
+		loginQueue = new LoginQueue();
 		loginQueue.start();
 
 		for (int i = 0; i < LinkCount; ++i)

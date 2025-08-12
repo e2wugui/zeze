@@ -53,7 +53,7 @@ public class TestGameTimer {
 		links.clear();
 		servers.clear();
 
-		loginQueue = new LoginQueue(100);
+		loginQueue = new LoginQueue();
 		loginQueue.start();
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
@@ -120,7 +120,7 @@ public class TestGameTimer {
 		links.clear();
 		servers.clear();
 
-		loginQueue = new LoginQueue(100);
+		loginQueue = new LoginQueue();
 		loginQueue.start();
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
