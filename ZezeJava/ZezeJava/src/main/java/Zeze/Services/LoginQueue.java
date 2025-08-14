@@ -51,6 +51,9 @@ public class LoginQueue extends AbstractLoginQueue {
 	private final AtomicLong serialIdSeed = new AtomicLong();
 	private final LoginQueueService service;
 
+	// expire 因为排队完成客户端要登陆（输密码），所以这个时间不能太短。
+	public static final int eLoginTokenExpireTime = 30 * 60 * 1000;
+
 	public LoginQueue() {
 		this(100, false);
 	}
@@ -120,7 +123,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		p.Argument.setLinkPort(link.getServicePort());
 		var token = new BToken.Data();
 		token.setServerId(providerServerId);
-		token.setExpireTime(System.currentTimeMillis() + 5 * 60 * 1000); // expire
+		token.setExpireTime(System.currentTimeMillis() + eLoginTokenExpireTime);
 		token.setSerialId(serialIdSeed.incrementAndGet());
 		token.setLinkServerId(link.getServerId());
 		p.Argument.setToken(LoginQueueServer.encodeToken(server.getSecret(), token));
