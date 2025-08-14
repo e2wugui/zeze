@@ -88,6 +88,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
+	public ConcurrentHashMap<Integer, AsyncSocket> getServerId2ProviderSocket() {
+		return serverId2ProviderSocket;
+	}
+
 	public boolean choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
 		var token = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), tokenBin);
 		if (token.getExpireTime() < System.currentTimeMillis())
