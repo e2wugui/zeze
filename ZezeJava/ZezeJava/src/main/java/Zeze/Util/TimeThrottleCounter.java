@@ -18,13 +18,13 @@ public class TimeThrottleCounter implements TimeThrottle {
 		timer = Task.scheduleUnsafe(seconds * 1000L, seconds * 1000L, this::onTimer);
 	}
 
-	private void onTimer() {
+	private synchronized void onTimer() {
 		counter = 0;
 		bandwidth = 0;
 	}
 
 	@Override
-	public boolean checkNow(int size) {
+	public synchronized boolean checkNow(int size) {
 		++counter;
 		bandwidth += size; // 变成负数以后一直失败。
 		return counter < limit && Integer.compareUnsigned(bandwidth, bandwidthLimit) < 0;

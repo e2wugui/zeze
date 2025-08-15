@@ -41,7 +41,7 @@ public class TimeThrottleQueue implements TimeThrottle {
 	 * @return false if overflow
 	 */
 	@Override
-	public boolean checkNow(int size) {
+	public synchronized boolean checkNow(int size) {
 		var now = System.currentTimeMillis();
 		var start = now - expire;
 		for (var t = marks.peek(); t != null; t = marks.peek()) {
