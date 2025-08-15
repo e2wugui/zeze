@@ -29,8 +29,8 @@ public class LoginQueue extends AbstractLoginQueue {
 
 		@Override
 		public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
-			LoginQueue.this.onAccept(so); // 先触发逻辑，super默认的检查maxConnections后来处理。
-			super.OnSocketAccept(so);
+			if (LoginQueue.this.tryOnAccept(so)) // 先触发逻辑，super默认的检查maxConnections后来处理。
+				super.OnSocketAccept(so);
 		}
 
 		@Override
@@ -162,17 +162,18 @@ public class LoginQueue extends AbstractLoginQueue {
 		return false;
 	}
 
-	void onAccept(AsyncSocket so) throws Exception {
+	boolean tryOnAccept(AsyncSocket so) throws Exception {
 		if (queue.size() >= so.getService().getConfig().getMaxConnections()) {
 			new PutQueueFull().Send(so);
 			so.closeGracefully();
-			return;
+			return false;
 		}
 		if (queue.isEmpty() && timeThrottle.checkNow(1)) {
 			if (tryAllocateServer(so))
-				return; // 新连接，直接分配成功，done
+				return false; // 新连接，直接分配成功，done
 		}
 		queue.add(so);
+		return true;
 	}
 
 	void onClose(AsyncSocket so) {
