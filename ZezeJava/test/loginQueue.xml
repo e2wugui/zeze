@@ -2,7 +2,7 @@
 
 <zeze>
 	<!-- LoginQueue 给登录用户开放的端口 -->
-	<ServiceConf Name="LoginQueue">
+	<ServiceConf Name="LoginQueue" maxConnections="2000000">
 		<Acceptor Ip="127.0.0.1" Port="5020"/>
 	</ServiceConf>
 
