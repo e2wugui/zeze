@@ -65,27 +65,30 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return serverServiceNamePrefix;
 	}
 
-	public boolean choiceProvider(@NotNull AsyncSocket link, int moduleId, @NotNull Predicate<AsyncSocket> onSend) {
+	/**
+	 * @return 错误码. 0表示成功; [1,999]表示错误
+	 */
+	public int choiceProvider(@NotNull AsyncSocket link, int moduleId, @NotNull Predicate<AsyncSocket> onSend) {
 		var userSession = (LinkdUserSession)link.getUserState();
 		var providerSessionId = userSession.tryGetProvider(moduleId);
 		if (providerSessionId != null) {
 			var socket = linkdApp.linkdProviderService.GetSocket(providerSessionId);
 			if (socket != null && onSend.test(socket))
-				return true; // done
+				return 0; // done
 			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
 			// 此时应该处于 UnBind 过程中。
 		}
 
 		var provider = new OutLong();
-		if (choiceProviderAndBind(moduleId, userSession.clientAppVersion, link, provider)) {
+		int r = choiceProviderAndBind(moduleId, userSession.clientAppVersion, link, provider);
+		if (r == 0) {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
-			//noinspection RedundantIfStatement
 			if (providerSocket != null && onSend.test(providerSocket)) // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
-				return true;
+				return 0;
 			// else
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
-		return false;
+		return r;
 	}
 
 	public ConcurrentHashMap<Integer, AsyncSocket> getServerId2ProviderSocket() {
@@ -137,16 +140,19 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return providers != null ? (ProviderModuleState)providers.getSubscribeInfo().getLocalState() : null;
 	}
 
-	public boolean choiceProviderAndBind(int moduleId, long clientVersion, @NotNull AsyncSocket link,
-										 @NotNull OutLong provider) {
+	/**
+	 * @return 错误码. 0表示成功; [1,99]表示错误
+	 */
+	public int choiceProviderAndBind(int moduleId, long clientVersion, @NotNull AsyncSocket link,
+									 @NotNull OutLong provider) {
 		provider.value = 0L;
 		var distribute = distributes.selectDistribute(clientVersion >>> 48);
 		if (distribute == null)
-			return false;
+			return 1;
 		//noinspection DataFlowIssue
 		var providers = distribute.zeze.getServiceManager().getSubscribeStates().get(makeServiceName(moduleId));
 		if (providers == null)
-			return false;
+			return 2;
 		var linkSession = (LinkdUserSession)link.getUserState();
 
 		// 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，
@@ -157,38 +163,38 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		switch (providerModuleState.choiceType) {
 		case BModule.ChoiceTypeHashAccount:
 			if (!distribute.choiceHash(providers, Bean.hash32(linkSession.getAccount()), provider))
-				return false;
+				return 11;
 			break; // bind static later
 
 		case BModule.ChoiceTypeHashRoleId:
 			var roleId = linkSession.getRoleId();
 			if (roleId == null || !distribute.choiceHash(providers, ByteBuffer.calc_hashnr(roleId), provider))
-				return false;
+				return 21;
 			break; // bind static later
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
 			if (!distribute.choiceFeedFullOneByOne(providers, provider))
-				return false;
+				return 31;
 			break; // bind static later
 
 		case BModule.ChoiceTypeHashSourceAddress:
 			var remoteAddress = link.getRemoteAddress();
 			if (null == remoteAddress)
-				return false;
+				return 41;
 			if (!distribute.choiceHash(providers, remoteAddress.hashCode(), provider))
-				return false;
+				return 42;
 			break; // bind static later
 
 		case BModule.ChoiceTypeLoad:
 			if (!distribute.choiceLoad(providers, provider))
-				return false;
+				return 51;
 			break; // bind static later
 
 		case BModule.ChoiceTypeRequest:
 			// fall down
 		default:
 			if (!distribute.choiceRequest(providers, provider))
-				return false;
+				return 61;
 			break; // bind static later
 		}
 
@@ -207,7 +213,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				for (int i = 0, n = providers.getLocalStates().size(); i < n; i++) {
 					var e = providers.getNextStateEntry();
 					if (e == null)
-						return false;
+						return 71;
 					var sessionId = ((ProviderModuleState)e.getValue()).sessionId;
 					providerSocket = linkdApp.linkdProviderService.GetSocket(sessionId);
 					if (providerSocket == null || providerSocket.isClosed()) {
@@ -227,7 +233,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				providers.unlock();
 			}
 			if (providerSocket == null) // 这个条件，见上BUG。
-				return false;
+				return 72;
 		}
 
 		// 动态模块允许使用这个方法查找provider，
@@ -249,7 +255,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
 					providerModuleState.configType, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		}
-		return true;
+		return 0;
 	}
 
 	public void onProviderClose(@NotNull AsyncSocket provider) {

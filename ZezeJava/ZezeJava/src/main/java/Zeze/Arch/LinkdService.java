@@ -49,6 +49,7 @@ public class LinkdService extends HandshakeServer {
 	public long getLoginTimes() {
 		return loginTimes.get();
 	}
+
 	@Override
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
 		super.OnSocketAccept(so);
@@ -87,6 +88,7 @@ public class LinkdService extends HandshakeServer {
 	}
 
 	public void reportError(long linkSid, int from, int code, @Nullable String desc, boolean closeLink) {
+		logger.info("reportError: linkSid={} from={} code={} desc={}", linkSid, from, code, desc);
 		var link = GetSocket(linkSid);
 		if (link != null) {
 			new ReportError(new BReportError.Data(from, code, desc)).Send(link);
@@ -172,8 +174,11 @@ public class LinkdService extends HandshakeServer {
 		return false;
 	}
 
-	public boolean choiceBindSend(@NotNull LinkdUserSession linkSession, @NotNull AsyncSocket so, int moduleId,
-								  @NotNull Dispatch dispatch) {
+	/**
+	 * @return 错误码. 0表示成功; [1,999]表示错误
+	 */
+	public int choiceBindSend(@NotNull LinkdUserSession linkSession, @NotNull AsyncSocket so, int moduleId,
+							  @NotNull Dispatch dispatch) {
 		var provider = new OutLong();
 
 		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
@@ -185,30 +190,31 @@ public class LinkdService extends HandshakeServer {
 				linkSession.lastReportUnbindDynamicModuleTime = curTime;
 				new ReportError(new BReportError.Data(BReportError.FromDynamicModule, moduleId, null)).Send(so);
 			}
-			return true; // skip ...
+			return 0; // skip ...
 		}
 
-		if (linkdApp.linkdProvider.choiceProviderAndBind(moduleId, linkSession.clientAppVersion, so, provider)) {
+		int r = linkdApp.linkdProvider.choiceProviderAndBind(moduleId, linkSession.clientAppVersion, so, provider);
+		if (r == 0) {
 			var providerSocket = linkdApp.linkdProviderService.GetSocket(provider.value);
 			if (providerSocket == null)
-				return false;
+				return 101;
 
 			var ps = (LinkdProviderSession)providerSocket.getUserState();
 			if (ps.load.getOverload() == BLoad.eOverload) {
 				// 过载时会直接拒绝请求以及报告错误。
 				reportError(dispatch);
 				// 但是不能继续派发了。所以这里返回true，表示处理完成。
-				return true;
+				return 0;
 			}
 
 			// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 			if (providerSocket.Send(dispatch)) {
 				ps.timeCounter.increment();
-				return true;
+				return 0;
 			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
-		return false;
+		return r;
 	}
 
 	@Override
@@ -220,10 +226,11 @@ public class LinkdService extends HandshakeServer {
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
 		if (findSend(linkSession, moduleId, dispatch))
 			return;
-		if (choiceBindSend(linkSession, so, moduleId, dispatch))
+		int r = choiceBindSend(linkSession, so, moduleId, dispatch);
+		if (r == 0)
 			return;
 		reportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
-				"no provider: " + moduleId + ", " + protocolId);
+				"no provider: " + moduleId + ", " + protocolId + ", " + r);
 	}
 
 	@Override
@@ -289,6 +296,7 @@ public class LinkdService extends HandshakeServer {
 		}
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	public boolean discard(@NotNull AsyncSocket sender, int moduleId, int protocolId, int size) throws Exception {
 		/*
