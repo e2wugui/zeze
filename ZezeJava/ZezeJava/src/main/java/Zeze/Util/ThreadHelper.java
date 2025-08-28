@@ -83,7 +83,7 @@ public class ThreadHelper extends Thread {
 		try {
 			if (idle) {
 				if (!thisCond.await(ms, TimeUnit.MILLISECONDS))
-					logger.debug("await {} ms timeout", ms);
+					logger.trace("await {} ms timeout", ms);
 			}
 		} catch (InterruptedException ex) {
 			logger.warn("{} sleepOut. ex:", getClass().getName(), ex);
