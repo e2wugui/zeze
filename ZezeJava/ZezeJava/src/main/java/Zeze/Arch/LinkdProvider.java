@@ -95,28 +95,31 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return serverId2ProviderSocket;
 	}
 
-	public boolean choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
+	/**
+	 * @return 错误码. 0表示成功; [1,9]表示错误
+	 */
+	public int choiceProvider(@NotNull AsyncSocket link, Binary tokenBin) throws Exception {
 		var token = LoginQueueServer.decodeToken(linkdApp.getLinkdLoad().getLoginQueueAgent().getSecret(), tokenBin);
 		if (token.getExpireTime() < System.currentTimeMillis())
-			return false;
+			return 1;
 		if (token.getLinkServerId() != linkdApp.zeze.getConfig().getServerId())
-			return false;
+			return 2;
 
 		if (token.getServerId() < 0)
-			return true; // 用户link-gs强绑等自定义选择模式下，不需要后面的选择和绑定。
+			return 0; // 用户link-gs强绑等自定义选择模式下，不需要后面的选择和绑定。
 
 		// token.getSerialId() 用于严格重放。
 		// 根据provider.getServerId()查找provider，并且bind所有静态模块到session。
 		var providerSocket = serverId2ProviderSocket.get(token.getServerId());
 		if (null == providerSocket)
-			return false;
+			return 3;
 		var providerSession = (LinkdProviderSession)providerSocket.getUserState();
 		var linkSession = (LinkdUserSession)link.getUserState();
 		var staticBinds = providerSession.getStaticBinds();
 		linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
 		logger.info("static bind: account={}, moduleIds.size={}, provider={}",
 				linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress());
-		return true;
+		return 0;
 	}
 
 	public boolean choiceHashWithoutBind(int moduleId, long clientVersion, int hash, @NotNull OutLong provider) {

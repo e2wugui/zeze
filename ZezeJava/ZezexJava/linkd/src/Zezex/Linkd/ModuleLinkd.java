@@ -40,15 +40,18 @@ public final class ModuleLinkd extends AbstractModule {
 		linkSession.setAccount(rpc.Argument.getAccount());
 		linkSession.setClientAppVersion(Str.parseVersion(rpc.Argument.getAppVersion()));
 		linkSession.setAuthed();
-		if (!App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken()))
+		int r = App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken());
+		if (r != 0) {
+			logger.error("Auth account:{} ip:{} r:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress(), r);
 			return errorCode(Auth.Error);
+		}
 		logger.info("Auth account:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());
 		rpc.SendResult();
 		return 0;
 	}
 
-    @Override
-    protected long ProcessCs(Zezex.Linkd.Cs p) {
+	@Override
+	protected long ProcessCs(Zezex.Linkd.Cs p) {
 		logger.info("Cs {}", p.Argument);
 		var res = new Sc();
 		res.Argument.setAccount("Response");
@@ -57,12 +60,13 @@ public final class ModuleLinkd extends AbstractModule {
 			timer = Task.scheduleUnsafe(1000, 1000, this::sendSc);
 			clientId = p.getSender().getSessionId();
 		}
-        return 0;
-    }
+		return 0;
+	}
 
 	AtomicInteger sendScCount = new AtomicInteger();
 	long clientId;
 	Future<?> timer;
+
 	void sendSc() {
 		var count = sendScCount.incrementAndGet();
 		if (count > 3) {
