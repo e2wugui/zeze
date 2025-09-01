@@ -1382,7 +1382,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var state = link.getState();
 		if (state != eLogined) {
 			if (!trySend) {
-				logger.info("sendDirect({}): state={} != eLogined for roleId={}",
+				logger.debug("sendDirect({}): state={} != eLogined for roleId={}",
 						getTypeId(fullEncodedProtocol), state, roleId);
 			}
 			return false;
