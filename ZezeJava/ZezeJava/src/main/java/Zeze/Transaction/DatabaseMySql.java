@@ -12,6 +12,7 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
+import Zeze.Util.Action1;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -56,6 +57,20 @@ public final class DatabaseMySql extends DatabaseJdbc {
 			var storage = table.getStorage();
 			if (storage != null)
 				storage.getDatabaseTable().drop();
+		}
+	}
+
+	@Override
+	public void relationalSql(String sql, Action1<ResultSet> handle) throws Exception {
+		try (var conn = dataSource.getConnection()) {
+			conn.setAutoCommit(true);
+			try (var ps = conn.prepareStatement(sql)) {
+				try (var rs = ps.executeQuery()) {
+					while (rs.next()) {
+						handle.run(rs);
+					}
+				}
+			}
 		}
 	}
 

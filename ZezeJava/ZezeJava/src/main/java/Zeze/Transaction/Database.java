@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,6 +12,8 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.Action0;
+import Zeze.Util.Action1;
 import Zeze.Util.KV;
 import Zeze.Util.OutInt;
 import Zeze.Util.ShutdownHook;
@@ -205,6 +209,10 @@ public abstract class Database extends ReentrantLock {
 		if (offset == 0 && bytes.length == len)
 			return bytes;
 		return Arrays.copyOfRange(bytes, offset, offset + len);
+	}
+
+	public void relationalSql(String sql, Action1<ResultSet> handle) throws Exception {
+		throw new UnsupportedOperationException();
 	}
 
 	public interface Table {
