@@ -37,6 +37,7 @@ namespace Zeze.Gen
             "false" => false,
             _ => throw new System.Exception("RelationalMapping Options: true|false|project")
         };
+        public bool NoSchema { get; private set; }
 
         public Table(ModuleSpace space, XmlElement self)
         {
@@ -63,6 +64,9 @@ namespace Zeze.Gen
             Comment = Types.Bean.GetComment(self);
 
             RelationalMapping = self.GetAttribute("RelationalMapping");
+
+            attr = self.GetAttribute("noSchema");
+            NoSchema = attr.Length > 0 && bool.Parse(attr);
         }
 
         public void Compile()

@@ -165,7 +165,7 @@
 		<table name="TableImportant" key="long" value="BValue"/>
 
 		<table name="Table4" key="long" value="BValue" memory="true" gen="client" autokey="true"/>
-		<table name="Table5" key="long" value="demo.Module2.BValue" memory="false"/>
+		<table name="Table5" key="long" value="demo.Module2.BValue" memory="false" noSchema="true"/>
 		<!-- protocol的注释 -->
 		<protocol name="ProtocolNoProcedure" NoProcedure="true" handle="server"/>
 		<table name="tflush" key="long" value="BValue" memory="false"/>

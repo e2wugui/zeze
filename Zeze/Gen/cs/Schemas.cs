@@ -50,12 +50,15 @@ namespace Zeze.Gen.cs
 
             foreach (var table in Project.AllTables.Values)
             {
-                sw.WriteLine("            base.AddTable(new Zeze.Schemas.Table()");
-                sw.WriteLine("            {");
-                sw.WriteLine($"                Name = \"{table.Space.Path("_", table.Name)}\",");
-                sw.WriteLine($"                KeyName = \"{GetFullName(table.KeyType)}\",");
-                sw.WriteLine($"                ValueName = \"{GetFullName(table.ValueType)}\",");
-                sw.WriteLine("            });");
+                if (!table.NoSchema)
+                {
+                    sw.WriteLine("            base.AddTable(new Zeze.Schemas.Table()");
+                    sw.WriteLine("            {");
+                    sw.WriteLine($"                Name = \"{table.Space.Path("_", table.Name)}\",");
+                    sw.WriteLine($"                KeyName = \"{GetFullName(table.KeyType)}\",");
+                    sw.WriteLine($"                ValueName = \"{GetFullName(table.ValueType)}\",");
+                    sw.WriteLine("            });");
+                }
             }
 
             foreach (var type in Depends)

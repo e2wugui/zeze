@@ -48,7 +48,10 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public Schemas() {");
 
             foreach (var table in Project.AllTables.Values)
-                sw.WriteLine($"        addTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
+            {
+                if (!table.NoSchema)
+                    sw.WriteLine($"        addTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
+            }
 
             foreach (var type in Depends)
             {
