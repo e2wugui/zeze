@@ -456,7 +456,7 @@ public final class Application extends ReentrantLock {
 										   @Nullable TransactionLevel level) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
-					+ ", action=" + (actionName != null ? actionName : action.getClass()));
+					+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
 		}
 		return new Procedure(this, action, actionName, level);
 	}
@@ -466,7 +466,7 @@ public final class Application extends ReentrantLock {
 												   @NotNull Binary protocolRawArgument) {
 		if (!isStart()) {
 			throw new IllegalStateException("App Not Start: " + startState
-					+ ", action=" + (actionName != null ? actionName : action.getClass()));
+					+ ", action=" + (actionName != null && !actionName.isEmpty() ? actionName : action.getClass()));
 		}
 		return new ProtocolProcedure(this, action, actionName, level, protocolClassName, protocolRawArgument);
 	}

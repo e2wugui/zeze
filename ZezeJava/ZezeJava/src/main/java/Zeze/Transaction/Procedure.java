@@ -113,7 +113,9 @@ public class Procedure {
 	}
 
 	public final void setActionName(@Nullable String actionName) {
-		this.actionName = actionName != null ? actionName : (action != null ? action : this).getClass().getName();
+		this.actionName = actionName != null && !actionName.isEmpty()
+				? actionName
+				: (action != null ? action : this).getClass().getName();
 	}
 
 	/**
