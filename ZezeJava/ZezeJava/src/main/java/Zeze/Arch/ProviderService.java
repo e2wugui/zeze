@@ -257,7 +257,7 @@ public class ProviderService extends HandshakeClient {
 	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		if (p instanceof Dispatch) {
-			//noinspection RedundantCast,DataFlowIssue
+			//noinspection DataFlowIssue
 			getZeze().getTaskOneByOneByKey().Execute(((Dispatch)p).Argument.getAccount(),
 					() -> Task.call(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p),
 							p, Protocol::trySendResultCode), factoryHandle.Mode);

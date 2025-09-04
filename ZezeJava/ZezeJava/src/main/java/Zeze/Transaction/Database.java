@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -12,7 +11,6 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.KV;
 import Zeze.Util.OutInt;
@@ -34,8 +32,6 @@ public abstract class Database extends ReentrantLock {
 	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X。其中MySql 8是3072.
 	// 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。
 	public static final int eMaxKeyLength = 3070;
-
-	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	static {
 		ShutdownHook.init();
@@ -227,7 +223,7 @@ public abstract class Database extends ReentrantLock {
 			return 0;
 		}
 
-		///////////////////////////////////////////////////////////
+		/// ////////////////////////////////////////////////////////
 		// TableX类型下沉到这里，准备添加关系表映射。
 		<K extends Comparable<K>, V extends Bean> @Nullable V find(@NotNull TableX<K, V> table, @NotNull Object key);
 
@@ -317,7 +313,7 @@ public abstract class Database extends ReentrantLock {
 
 	// KV表辅助类，实现所有的下沉的带类型接口。
 	public static abstract class AbstractKVTable implements Table {
-		////////////////////////////////////////////////////////////
+		/// /////////////////////////////////////////////////////////
 		// KV表操作接口。
 		public abstract @Nullable ByteBuffer find(@NotNull ByteBuffer key);
 
