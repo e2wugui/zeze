@@ -230,7 +230,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param delay       首次触发延迟(毫秒), 不能小于0
 	 * @param period      触发周期(毫秒), 只有大于0才会周期触发
 	 * @param times       限制触发次数, -1表示不限次数
-	 * @param endTime     限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime     限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
@@ -247,7 +247,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param delay          首次触发延迟(毫秒), 不能小于0
 	 * @param period         触发周期(毫秒), 只有大于0才会周期触发
 	 * @param times          限制触发次数, -1表示不限次数
-	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime        限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    Timer处理Class
 	 * @param customData     自定义数据
@@ -416,7 +416,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 *
 	 * @param cronExpression cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
-	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime        限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
@@ -434,7 +434,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 *
 	 * @param cronExpression cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
-	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime        限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
@@ -580,7 +580,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param delay          首次触发延迟(毫秒), 不能小于0
 	 * @param period         触发周期(毫秒), 只有大于0才会周期触发
 	 * @param times          限制触发次数, -1表示不限次数
-	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime        限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
@@ -635,7 +635,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param timerId     如果同名timer已存在则直接返回false
 	 * @param cron        cron表达式
 	 * @param times       限制触发次数, -1表示不限次数
-	 * @param endTime     限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime     限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
@@ -654,7 +654,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param timerId        如果同名timer已存在则直接返回false
 	 * @param cron           cron表达式
 	 * @param times          限制触发次数, -1表示不限次数
-	 * @param endTime        限制触发的最后时间(unix毫秒时间戳)
+	 * @param endTime        限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
