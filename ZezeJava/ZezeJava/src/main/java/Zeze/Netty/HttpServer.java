@@ -33,6 +33,7 @@ import Zeze.Util.GlobalTimer;
 import Zeze.Util.PropertiesHelper;
 import Zeze.Util.Reflect;
 import Zeze.Util.TaskOneByOneByKey;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -40,11 +41,18 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelId;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollChannelOption;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.unix.Errors;
 import io.netty.handler.codec.http.HttpDecoderConfig;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -61,7 +69,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Sharable
-public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
+public class HttpServer extends ChannelInboundHandlerAdapter implements Closeable {
 	public static final @NotNull Charset defaultCharset = StandardCharsets.UTF_8;
 
 	protected static final int sendStackTrace = PropertiesHelper.getInt("HttpServer.sendStackTrace", 1);
@@ -212,10 +220,35 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		try {
 			if (scheduler != null)
 				throw new IllegalStateException("already started");
-			scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
-					() -> channels.keySet().forEach(this::checkTimeout),
+			var eventLoopGroup = netty.getEventLoopGroup();
+			scheduler = eventLoopGroup.scheduleWithFixedDelay(() -> channels.keySet().forEach(this::checkTimeout),
 					checkIdleInterval, checkIdleInterval, TimeUnit.SECONDS);
-			return channelFuture = netty.startServer(this, host, port);
+			var b = new ServerBootstrap();
+			if (eventLoopGroup instanceof EpollEventLoopGroup)
+				b = b.option(EpollChannelOption.SO_REUSEPORT, true);
+			b = b.group(eventLoopGroup)
+					.option(ChannelOption.SO_BACKLOG, 8192)
+					.option(ChannelOption.SO_REUSEADDR, true)
+					.childOption(ChannelOption.SO_REUSEADDR, true)
+					.childOption(ChannelOption.SO_KEEPALIVE, true)
+					.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
+					.channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+					.childHandler(new ChannelInitializer<SocketChannel>() {
+						@Override
+						public void initChannel(@NotNull SocketChannel ch) throws Exception {
+							HttpServer.this.initChannel(ch);
+						}
+					});
+			ChannelFuture future;
+			if (host != null && !(host = host.trim()).isEmpty())
+				future = b.bind(host, port);
+			else {
+				future = b.bind(port);
+				host = "any";
+			}
+			channelFuture = future;
+			Netty.logger.info("startServer {} on {}:{}", getClass().getName(), host, port);
+			return future;
 		} finally {
 			unlock();
 		}
@@ -460,10 +493,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@SuppressWarnings("RedundantThrows")
-	@Override
 	protected void initChannel(@NotNull SocketChannel ch) throws Exception {
-		if (ch.pipeline().get(HttpResponseEncoder.class) != null)
-			return;
 		Netty.logger.info("accept: {}", ch.remoteAddress());
 		var p = ch.pipeline();
 		if (sslCtx != null)
