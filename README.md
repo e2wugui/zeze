@@ -10,7 +10,12 @@ Zeze是一个基于一致性缓存的分布式事务应用框架，它具有很�
 内存数据自动和后端数据库同步，完全不需要用户关心。
 * 除了定义数据，使用数据实现逻辑，用户几乎不需要考虑任何其他问题就能实现服务器功能。应用开发高效简单。
 
-更多文档详见 https://gitee.com/e2wugui/zeze/blob/master/doc/index.md
+更多文档详见:
+- https://gitee.com/e2wugui/zeze/blob/master/doc/index.md
+- https://stallboy.github.io/zezedocs/
+
+使用zeze框架的初始项目模板:
+- https://gitee.com/dwing/zezeboot
 
 ## Maven
 
