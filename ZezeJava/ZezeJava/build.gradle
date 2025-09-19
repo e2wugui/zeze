@@ -6,11 +6,14 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.25.1'
     implementation 'org.jetbrains:annotations:26.0.2'
     implementation 'org.pcollections:pcollections:4.0.2'
-    implementation 'org.rocksdb:rocksdbjni:10.2.1'
+    compileOnly 'org.rocksdb:rocksdbjni:10.4.2'
+    runtimeOnly 'org.rocksdb:rocksdbjni:10.4.2:win64'
+    runtimeOnly 'org.rocksdb:rocksdbjni:10.4.2:linux64'
+    runtimeOnly 'org.rocksdb:rocksdbjni:10.4.2:osx'
 
     // for netty
-    compileOnly 'io.netty:netty-codec-http:4.1.123.Final'
-    compileOnly 'io.netty:netty-transport-native-epoll:4.1.123.Final:linux-x86_64'
+    compileOnly 'io.netty:netty-codec-http:4.1.127.Final'
+    compileOnly 'io.netty:netty-transport-native-epoll:4.1.127.Final:linux-x86_64'
     compileOnly 'org.slf4j:slf4j-api:2.0.17'
     compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.1'
 
