@@ -1,4 +1,5 @@
 // auto-generated @formatter:off
+
 public class Redirect_Zeze_Component_Timer extends Zeze.Component.Timer {
     private final Zeze.Arch.RedirectBase _redirect_;
 

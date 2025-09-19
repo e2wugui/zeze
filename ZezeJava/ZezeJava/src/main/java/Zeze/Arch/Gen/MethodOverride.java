@@ -35,7 +35,6 @@ final class MethodOverride {
 	final Type resultType;
 	final Class<?> resultClass;
 	final boolean oneByOne;
-	boolean returnTypeHasResultCode;
 
 	MethodOverride(Method method, Annotation annotation) {
 		this.method = method;
@@ -144,21 +143,10 @@ final class MethodOverride {
 		else {
 			resultTypeName = toShort((resultType == resultClass ?
 					resultClass.getName() : resultType.toString()).replace('$', '.'));
-			if (Serializable.class.isAssignableFrom(resultClass)) {
-				try {
-					resultClass.getMethod("setResultCode", long.class);
-					returnTypeHasResultCode = true;
-				} catch (NoSuchMethodException e) {
-					returnTypeHasResultCode = false;
-				}
-			} else {
+			if (!Serializable.class.isAssignableFrom(resultClass)) {
 				for (var field : resultClass.getFields()) {
-					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) { // 只允许public和可选的volatile
-						if (field.getName().equals("resultCode") && field.getType() == long.class)
-							returnTypeHasResultCode = true;
-						else
-							resultFields.add(field);
-					}
+					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) // 只允许public和可选的volatile
+						resultFields.add(field);
 				}
 			}
 		}

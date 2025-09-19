@@ -1,4 +1,5 @@
 // auto-generated @formatter:off
+
 public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
     private final Zeze.Arch.RedirectBase _redirect_;
 
@@ -30,13 +31,19 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                     _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
                     return Zeze.Transaction.Procedure.Success;
                 }
-                _f_.setResult(_rpc_.getResultCode());
+                var _c_ = _rpc_.getResultCode();
+                if (_c_ != Zeze.Transaction.Procedure.Success) {
+                    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
+                    return Zeze.Transaction.Procedure.Success;
+                }
+                var _param_ = _rpc_.Result.getParams();
+                _f_.setResult(_param_.size() > 0 ? Zeze.Serialize.ByteBuffer.Wrap(_param_).ReadLong() : null);
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
             }
         } catch (Exception e) {
-            _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));
+            _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.LOCAL_EXECUTION, e.getMessage(), e));
         }
         return _f_;
     }
@@ -71,13 +78,19 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                     _f_.setException(Zeze.Arch.RedirectException.timeoutInstance);
                     return Zeze.Transaction.Procedure.Success;
                 }
-                _f_.setResult(_rpc_.getResultCode());
+                var _c_ = _rpc_.getResultCode();
+                if (_c_ != Zeze.Transaction.Procedure.Success) {
+                    _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
+                    return Zeze.Transaction.Procedure.Success;
+                }
+                var _param_ = _rpc_.Result.getParams();
+                _f_.setResult(_param_.size() > 0 ? Zeze.Serialize.ByteBuffer.Wrap(_param_).ReadLong() : null);
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
             }
         } catch (Exception e) {
-            _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, e.getMessage(), e));
+            _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.LOCAL_EXECUTION, e.getMessage(), e));
         }
         return _f_;
     }

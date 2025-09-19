@@ -10,6 +10,7 @@ import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
@@ -70,21 +71,22 @@ public class ProviderDirect extends AbstractProviderDirect {
 		}
 		if (result instanceof RedirectFuture) {
 			((RedirectFuture<?>)result).onSuccess(r -> {
-				if (r instanceof Long)
-					rpc.SendResultCode((Long)r);
-				else if (r instanceof Binary) {
+				if (r instanceof Long) {
+					var v = (long)r;
+					var b = new byte[ByteBuffer.WriteLongSize(v)];
+					ByteBuffer.Wrap(b).WriteLong(v);
+					rpc.Result.setParams(new Binary(b));
+				} else if (r instanceof Binary)
 					rpc.Result.setParams((Binary)r);
-					rpc.SendResultCode(Procedure.Success);
-				} else if (r instanceof String) {
+				else if (r instanceof String)
 					rpc.Result.setParams(new Binary((String)r));
-					rpc.SendResultCode(Procedure.Success);
-				} else {
+				else if (r != null) {
 					var re = handle.resultEncoder;
 					if (re != null)
 						rpc.Result.setParams(re.apply(r));
 					// rpc 成功了，具体handle结果还需要看ReturnCode。
-					rpc.SendResultCode(Procedure.Success);
 				}
+				rpc.SendResultCode(Procedure.Success);
 			}).onFail(e -> {
 				logger.error("call failed:", e);
 				rpc.SendResultCode(Procedure.Exception);
