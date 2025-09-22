@@ -9,14 +9,17 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.FastLock;
 import Zeze.Util.TimeThrottle;
 import io.netty.buffer.ByteBuf;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class Websocket extends AsyncSocket {
+	private static final @NotNull Logger logger = LogManager.getLogger(Websocket.class);
 	private static final @NotNull VarHandle closedHandle;
 
 	private final HttpExchange x;
-	private byte closed;
+	@SuppressWarnings("unused") private byte closed;
 	private final ByteBuffer input = ByteBuffer.Allocate();
 	private final SocketAddress remote;
 	private final TimeThrottle timeThrottle;
@@ -79,7 +82,7 @@ public class Websocket extends AsyncSocket {
 
 	void processInput(ByteBuf buf) throws Exception {
 		int n = buf.readableBytes();
-		super.recvCount ++;
+		super.recvCount++;
 		super.recvSize += n;
 		input.EnsureWrite(n);
 		buf.readBytes(input.Bytes, input.WriteIndex, n);

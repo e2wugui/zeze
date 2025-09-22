@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class TcpSocket extends AsyncSocket implements SelectorHandle, Closeable {
-	public static final @NotNull Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(TcpSocket.class);
 	private static final @NotNull VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED
 	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
@@ -276,7 +276,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	}
 
 	public TcpSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
-					   @Nullable Object userState, @Nullable Connector connector) {
+					 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
 		this.acceptorOrConnector = connector;

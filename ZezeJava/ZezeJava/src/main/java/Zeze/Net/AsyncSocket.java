@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class AsyncSocket implements Closeable {
-	public static final @NotNull Logger logger = LogManager.getLogger();
+	private static final @NotNull Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final @NotNull Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
 	public static final boolean ENABLE_DEBUG_LOG = logger.isDebugEnabled();
@@ -328,5 +328,4 @@ public abstract class AsyncSocket implements Closeable {
 	public void setHandshakeDone(boolean value) {
 		isHandshakeDone = value;
 	}
-
 }
