@@ -85,30 +85,22 @@ public class HandshakeBase extends Service {
 
 	private int serverCompressS2c(int s2cHint) {
 		var options = getConfig().getHandshakeOptions();
-		if (options.getCompressS2c() != 0) {
-			if (s2cHint != Constant.eCompressTypeDisable && options.isSupportedCompress(s2cHint))
+		if (options.getCompressS2c() != Constant.eCompressTypeDisable) { // 必须选择一种压缩
+			if (options.isSupportedCompress(s2cHint)) // 优先客户端选择的压缩,但服务器需支持
 				return s2cHint;
-			return Constant.eCompressTypeMppc;
-		}
-		if (s2cHint == 0)
-			return 0;
-		if (options.isSupportedCompress(s2cHint))
+		} else if (s2cHint == Constant.eCompressTypeDisable || options.isSupportedCompress(s2cHint)) // 服务器可以不压缩时,优先客户端的选择,但服务器需支持
 			return s2cHint;
-		return Constant.eCompressTypeMppc;
+		return Constant.eCompressTypeMppc; // 跟客户端选择的不兼容,就强制以MPPC作为兜底的压缩,客户端如果还不支持就无法继续通信了
 	}
 
 	private int serverCompressC2s(int c2sHint) {
 		var options = getConfig().getHandshakeOptions();
-		if (options.getCompressC2s() != 0) {
-			if (c2sHint != Constant.eCompressTypeDisable && options.isSupportedCompress(c2sHint))
+		if (options.getCompressC2s() != Constant.eCompressTypeDisable) { // 必须选择一种压缩
+			if (options.isSupportedCompress(c2sHint)) // 优先客户端选择的压缩,但服务器需支持
 				return c2sHint;
-			return Constant.eCompressTypeMppc;
-		}
-		if (c2sHint == 0)
-			return 0;
-		if (options.isSupportedCompress(c2sHint))
+		} else if (c2sHint == Constant.eCompressTypeDisable || options.isSupportedCompress(c2sHint)) // 服务器可以不压缩时,优先客户端的选择,但服务器需支持
 			return c2sHint;
-		return Constant.eCompressTypeMppc;
+		return Constant.eCompressTypeMppc; // 跟客户端选择的不兼容,就强制以MPPC作为兜底的压缩,客户端如果还不支持就无法继续通信了
 	}
 
 	private long processCHandshake(@NotNull CHandshake p) {

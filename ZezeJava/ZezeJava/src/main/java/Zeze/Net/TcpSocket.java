@@ -340,7 +340,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	}
 
 	public void verifySecurity() {
-		if (getService().getConfig().getHandshakeOptions().getEncryptType() != 0 && !isSecurity())
+		if (getService().getConfig().getHandshakeOptions().getEncryptType() != Constant.eEncryptTypeDisable && !isSecurity())
 			throw new IllegalStateException(getService().getName() + " !isSecurity");
 	}
 

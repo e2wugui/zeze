@@ -18,8 +18,8 @@ public class HandshakeOptions {
 	private int compressC2s = Constant.eCompressTypeDisable;
 	private int encryptType = Constant.eEncryptTypeDisable;
 
-	private final ArrayList<Integer> supportedCompress = new ArrayList<>(); // empty 表示支持所有内建的。
-	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>(); // empty 表示支持所有内建的。
+	private final ArrayList<Integer> supportedCompress = new ArrayList<>();
+	private final ArrayList<Integer> supportedEncrypt = new ArrayList<>();
 
 	private int keepCheckPeriod; // 检查所有socket是否有发送或接收超时的检查周期(秒). 0表示禁用(下面两个超时都不会生效)
 	private int keepRecvTimeout; // 检查距上次接收的超时时间(秒). 0表示禁用, 超时会触发onKeepAliveTimeout, 通常会认为对方无响应而关闭连接
