@@ -1093,7 +1093,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		//	throw new IllegalStateException("this is not a memory table.");
 
 		// 内存表并且限制了容量，使用本地缓存的walk。
-		if (isMemory() && getTableConf().getRealCacheCapacity() > 0)
+		if (isMemory() && getTableConf().getRealCacheCapacity() >= 0)
 			return localRocksCacheTable.walk(this, callback);
 
 		// 内存表不限制容量或者非内存表walk内存里面的缓存，直接访问内存的map。

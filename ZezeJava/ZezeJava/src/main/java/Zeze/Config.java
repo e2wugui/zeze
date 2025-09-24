@@ -989,7 +989,7 @@ public final class Config {
 		}
 
 		public int getRealCacheCapacity() {
-			return (int)(cacheCapacity * cacheFactor);
+			return (int)Math.floor(cacheCapacity * cacheFactor);
 		}
 
 		public int getCacheCapacity() {
