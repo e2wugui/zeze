@@ -14,8 +14,8 @@
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
-	<TableConf CacheCapaicty="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
-	<TableConf Name="demo_Module1_Table1" CacheCapaicty="20000"/>
+	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
+	<TableConf Name="demo_Module1_Table1" CacheCapacity="20000"/>
 
 	<ServiceConf Name="Server">
 		<Acceptor Ip="127.0.0.1" Port="9999"/>
