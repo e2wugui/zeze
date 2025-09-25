@@ -72,14 +72,14 @@ namespace Zeze.Services.GlobalCacheManager
             GlobalKey = bb.ReadBinary();
             State = bb.ReadUInt();
             ReduceTid = new Id128();
-            ReduceTid.Decode(bb);
+            ReduceTid.DecodeRaw(bb);
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteBinary(GlobalKey);
             bb.WriteUInt(State);
-            ReduceTid.Encode(bb);
+            ReduceTid.EncodeRaw(bb);
         }
 
         public override string ToString()

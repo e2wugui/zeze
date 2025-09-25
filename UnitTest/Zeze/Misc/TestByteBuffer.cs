@@ -18,7 +18,7 @@ namespace UnitTest.Zeze.Misc
             var b2 = new byte[8];
             var b3 = new byte[10];
 
-            var len = 4 + b1.Length + 4 + b1.Length + 4 + b3.Length;
+            var len = 4 + b1.Length + 4 + b2.Length + 4 + b3.Length;
             var bb = ByteBuffer.Allocate(len);
             bb.WriteInt4(b1.Length);
             bb.Append(b1);
