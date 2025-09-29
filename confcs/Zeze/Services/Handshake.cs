@@ -24,7 +24,8 @@ namespace Zeze.Services
 
         public const int eCompressTypeDisable = 0;
         public const int eCompressTypeMppc = 1;
-        //public const int eCompressTypeZstd = 2;
+
+        // public const int eCompressTypeZstd = 2;
     }
 
     /// <summary>
@@ -37,6 +38,7 @@ namespace Zeze.Services
         public HashSet<int> DhGroups = new HashSet<int>();
         public byte[] SecureIp;
         public RSA RsaPubKey;
+        public RSA RsaPriKey;
         public int CompressS2c = Constant.eCompressTypeDisable;
         public int CompressC2s = Constant.eCompressTypeDisable;
 
@@ -263,7 +265,17 @@ namespace Zeze.Services
                         break;
                     }
                     case Constant.eEncryptTypeRsaAes:
-                        throw new Exception("unsupported eEncryptTypeRsaAes for server"); //TODO
+                    {
+                        var rsaPriKey = Config.HandshakeOptions.RsaPriKey;
+                        if (rsaPriKey == null)
+                            throw new Exception("need RsaPriKeyFile in ServiceConf");
+                        inputKey = rsaPriKey.Decrypt(p.Argument.EncryptParam, RSAEncryptionPadding.Pkcs1);
+                        if (inputKey == null || inputKey.Length != 64)
+                            throw new Exception("invalid secret length = " + (inputKey?.Length ?? -1));
+                        outputKey = new byte[32];
+                        Buffer.BlockCopy(inputKey, 32, outputKey, 0, 32);
+                        break;
+                    }
                 }
                 var s2c = ServerCompressS2c(p.Argument.CompressS2c);
                 var c2s = ServerCompressC2s(p.Argument.CompressC2s);

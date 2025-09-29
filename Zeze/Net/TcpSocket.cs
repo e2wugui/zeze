@@ -1,7 +1,5 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Net.Sockets;
 using Zeze.Serialize;
 using System.Net;
@@ -69,7 +67,7 @@ namespace Zeze.Net
         }
 
         /// <summary>
-        /// use inner. create when accept;
+        /// use inner. create when accepted;
         /// </summary>
         TcpSocket(Service service, Socket accepted, Acceptor acceptor)
             : base(service)
@@ -136,11 +134,17 @@ namespace Zeze.Net
 
         public void SetOutputSecurityCodec(byte[] key, int compress)
         {
+            key = Digest.Md5(key);
+            SetOutputSecurityCodec(key, key, compress);
+        }
+
+        public void SetOutputSecurityCodec(byte[] key, byte[] iv, int compress)
+        {
             lock (this)
             {
                 Codec chain = outputCodecBuffer;
                 if (key != null)
-                    chain = new Encrypt(chain, key);
+                    chain = new Encrypt(chain, key, iv);
                 if (compress != 0)
                     chain = new Compress(chain);
                 outputCodecChain?.Dispose();
@@ -161,13 +165,19 @@ namespace Zeze.Net
 
         public void SetInputSecurityCodec(byte[] key, int compress)
         {
+            key = Digest.Md5(key);
+            SetInputSecurityCodec(key, key, compress);
+        }
+
+        public void SetInputSecurityCodec(byte[] key, byte[] iv, int compress)
+        {
             lock (this)
             {
                 Codec chain = inputCodecBuffer;
                 if (compress != 0)
                     chain = new Decompress(chain);
                 if (key != null)
-                    chain = new Decrypt(chain, key);
+                    chain = new Decrypt(chain, key, iv);
                 inputCodecChain?.Dispose();
                 inputCodecChain = chain;
                 IsInputSecurity = true;
@@ -200,8 +210,7 @@ namespace Zeze.Net
                         outputCodecBuffer.Buffer.FreeInternalBuffer();
                     }
 
-                    if (_outputBufferList == null)
-                        _outputBufferList = new List<ArraySegment<byte>>();
+                    _outputBufferList ??= new List<ArraySegment<byte>>();
                     _outputBufferList.Add(new ArraySegment<byte>(bytes, offset, length));
                     _outputBufferListCountSum += length;
 

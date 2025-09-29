@@ -132,6 +132,12 @@ namespace Zeze.Net
             UserState = userState;
         }
 
+        public void SetOutputSecurityCodec(byte[] key, int compress)
+        {
+            key = Digest.Md5(key);
+            SetOutputSecurityCodec(key, key, compress);
+        }
+
         public void SetOutputSecurityCodec(byte[] key, byte[] iv, int compress)
         {
             lock (this)
@@ -155,6 +161,12 @@ namespace Zeze.Net
         {
             if (Service.Config.HandshakeOptions.EncryptType != 0 && !IsSecurity)
                 throw new Exception($"{Service.Name} !IsSecurity");
+        }
+
+        public void SetInputSecurityCodec(byte[] key, int compress)
+        {
+            key = Digest.Md5(key);
+            SetInputSecurityCodec(key, key, compress);
         }
 
         public void SetInputSecurityCodec(byte[] key, byte[] iv, int compress)
