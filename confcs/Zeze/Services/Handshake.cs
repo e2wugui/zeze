@@ -19,10 +19,11 @@ namespace Zeze.Services
     {
         public const int eEncryptTypeDisable = 0;
         public const int eEncryptTypeAes = 1;
+        public const int eEncryptTypeAesNoSecureIp = 2;
 
         public const int eCompressTypeDisable = 0;
         public const int eCompressTypeMppc = 1;
-        public const int eCompressTypeZstd = 2;
+        //public const int eCompressTypeZstd = 2;
     }
 
     /// <summary>
@@ -54,9 +55,10 @@ namespace Zeze.Services
             AddDhGroup(5);
 
             AddSupportedCompress(Constant.eCompressTypeMppc);
-            AddSupportedCompress(Constant.eCompressTypeZstd);
+            //AddSupportedCompress(Constant.eCompressTypeZstd);
 
             AddSupportedEncrypt(Constant.eEncryptTypeAes);
+            AddSupportedEncrypt(Constant.eEncryptTypeAesNoSecureIp);
         }
 
         public void AddSupportedCompress(int c)
@@ -205,32 +207,52 @@ namespace Zeze.Services
                 const int group = 1;
 
                 var p = (Handshake.CHandshake)_p;
-                if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
+                switch (p.Argument.EncryptType)
                 {
-                    // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
-                    /*
-                    if (!Config.HandshakeOptions.DhGroups.Contains(group))
-                    {
-                        p.Sender.Close(new Exception("dhGroup Not Supported"));
-                        return Task.FromResult(0L);
-                    }
-                    */
-                    Array.Reverse(p.Argument.EncryptParam);
-                    var data = new BigInteger(p.Argument.EncryptParam);
-                    var rand = Handshake.Helper.MakeDHRandom();
-                    byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
-                    Array.Reverse(material);
-                    IPAddress ipaddress = p.Sender.LocalAddress.Address;
-                    // logger.Debug(ipaddress);
-                    if (ipaddress.IsIPv4MappedToIPv6)
-                        ipaddress = ipaddress.MapToIPv4();
-                    byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
-                    logger.Debug("{0} localIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
-                    int half = material.Length / 2;
-                    inputKey = Digest.HmacMd5(key, material, 0, half);
-                    response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
-                    Array.Reverse(response);
-                    outputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                    case Constant.eEncryptTypeAes:
+                        {
+                            // 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
+                            /*
+                            if (!Config.HandshakeOptions.DhGroups.Contains(group))
+                            {
+                                p.Sender.Close(new Exception("dhGroup Not Supported"));
+                                return Task.FromResult(0L);
+                            }
+                            */
+                            Array.Reverse(p.Argument.EncryptParam);
+                            var data = new BigInteger(p.Argument.EncryptParam);
+                            var rand = Handshake.Helper.MakeDHRandom();
+                            byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
+                            Array.Reverse(material);
+                            IPAddress ipaddress = p.Sender.LocalAddress.Address;
+                            // logger.Debug(ipaddress);
+                            if (ipaddress.IsIPv4MappedToIPv6)
+                                ipaddress = ipaddress.MapToIPv4();
+                            byte[] key = Config.HandshakeOptions.SecureIp ?? ipaddress.GetAddressBytes();
+                            logger.Debug("{0} localIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                            int half = material.Length / 2;
+                            inputKey = Digest.HmacMd5(key, material, 0, half);
+                            response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
+                            Array.Reverse(response);
+                            outputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                        }
+                        break;
+                    case Constant.eEncryptTypeAesNoSecureIp:
+                        {
+                            Array.Reverse(p.Argument.EncryptParam);
+                            var data = new BigInteger(p.Argument.EncryptParam);
+                            var rand = Handshake.Helper.MakeDHRandom();
+                            byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
+                            Array.Reverse(material);
+                            int half = material.Length / 2;
+                            inputKey = new byte[half];
+                            Buffer.BlockCopy(material, 0, inputKey, 0, half);
+                            response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
+                            Array.Reverse(response);
+                            outputKey = new byte[material.Length - half];
+                            Buffer.BlockCopy(material, half, outputKey, 0, outputKey.Length);
+                        }
+                        break;
                 }
                 var s2c = ServerCompressS2c(p.Argument.CompressS2c);
                 var c2s = ServerCompressC2s(p.Argument.CompressC2s);
@@ -335,21 +357,40 @@ namespace Zeze.Services
                     {
                         byte[] inputKey = null;
                         byte[] outputKey = null;
-                        if (p.Argument.EncryptType == Constant.eEncryptTypeAes)
+                        switch (p.Argument.EncryptType)
                         {
-                            Array.Reverse(p.Argument.EncryptParam);
-                            byte[] material = Handshake.Helper.ComputeDHKey(
-                                1,
-                                new BigInteger(p.Argument.EncryptParam),
-                                ctx.DhRandom).ToByteArray();
-                            Array.Reverse(material);
-                            IPAddress ipaddress = p.Sender.RemoteAddress.Address;
-                            if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
-                            byte[] key = ipaddress.GetAddressBytes();
-                            logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
-                            int half = material.Length / 2;
-                            outputKey = Digest.HmacMd5(key, material, 0, half);
-                            inputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                            case Constant.eEncryptTypeAes:
+                                {
+                                    Array.Reverse(p.Argument.EncryptParam);
+                                    byte[] material = Handshake.Helper.ComputeDHKey(
+                                        1,
+                                        new BigInteger(p.Argument.EncryptParam),
+                                        ctx.DhRandom).ToByteArray();
+                                    Array.Reverse(material);
+                                    IPAddress ipaddress = p.Sender.RemoteAddress.Address;
+                                    if (ipaddress.IsIPv4MappedToIPv6) ipaddress = ipaddress.MapToIPv4();
+                                    byte[] key = ipaddress.GetAddressBytes();
+                                    logger.Debug("{0} remoteIp={1}", p.Sender.SessionId, BitConverter.ToString(key));
+                                    int half = material.Length / 2;
+                                    outputKey = Digest.HmacMd5(key, material, 0, half);
+                                    inputKey = Digest.HmacMd5(key, material, half, material.Length - half);
+                                }
+                                break;
+                            case Constant.eEncryptTypeAesNoSecureIp:
+                                {
+                                    Array.Reverse(p.Argument.EncryptParam);
+                                    byte[] material = Handshake.Helper.ComputeDHKey(
+                                        1,
+                                        new BigInteger(p.Argument.EncryptParam),
+                                        ctx.DhRandom).ToByteArray();
+                                    Array.Reverse(material);
+                                    int half = material.Length / 2;
+                                    outputKey = new byte[half];
+                                    Buffer.BlockCopy(material, 0, outputKey, 0, half);
+                                    inputKey = new byte[material.Length - half];
+                                    Buffer.BlockCopy(material, half, inputKey, 0, inputKey.Length);
+                                }
+                                break;
                         }
 
                         ((TcpSocket)p.Sender).SetOutputSecurityCodec(outputKey, p.Argument.CompressC2s);
@@ -386,6 +427,15 @@ namespace Zeze.Services
             return Constant.eCompressTypeMppc; // 使用最老的压缩。
         }
 
+        private int ClientEncrypt(int e)
+        {
+            if (e == Constant.eEncryptTypeDisable)
+                return e; // 推荐不加密就不加密
+            if (Config.HandshakeOptions.IsSupportedEncrypt(e))
+                return e; // 直接的加密，使用推荐的。
+            return Constant.eEncryptTypeAesNoSecureIp; // 保底。现在的代码已经支持这个了，作为未来的保底。
+        }
+
         protected void StartHandshake(Handshake.SHandshake0Argument arg, AsyncSocket so)
         {
             try
@@ -394,8 +444,9 @@ namespace Zeze.Services
                 if (!DHContext.TryAdd(so.SessionId, ctx))
                     throw new Exception("handshake duplicate context for same session.");
                 var cHandshake = new Handshake.CHandshake();
-                cHandshake.Argument.EncryptType = arg.EncryptType;
-                if (arg.EncryptType == Constant.eEncryptTypeAes)
+                cHandshake.Argument.EncryptType = ClientEncrypt(arg.EncryptType);
+                if (cHandshake.Argument.EncryptType == Constant.eEncryptTypeAes
+                    || cHandshake.Argument.EncryptType == Constant.eEncryptTypeAesNoSecureIp)
                 {
                     byte[] response = Handshake.Helper.GenerateDHResponse(1, ctx.DhRandom).ToByteArray();
                     Array.Reverse(response);
