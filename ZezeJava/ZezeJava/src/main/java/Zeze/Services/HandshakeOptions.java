@@ -34,6 +34,7 @@ public class HandshakeOptions {
 		addSupportedCompress(Constant.eCompressTypeMppc);
 
 		addSupportedEncrypt(Constant.eEncryptTypeAes);
+		addSupportedEncrypt(Constant.eEncryptTypeAesNoSecureIp);
 	}
 
 	public int getKeepCheckPeriod() {

@@ -363,6 +363,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			switch (encryptType) {
 			case Constant.eEncryptTypeDisable:
 				break;
+			case Constant.eEncryptTypeAesNoSecureIp:
 			case Constant.eEncryptTypeAes:
 				//noinspection DataFlowIssue
 				var keyMd5 = Digest.md5(encryptParam);
@@ -394,6 +395,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			switch (encryptType) {
 			case Constant.eEncryptTypeDisable:
 				break;
+			case Constant.eEncryptTypeAesNoSecureIp:
 			case Constant.eEncryptTypeAes:
 				//noinspection DataFlowIssue
 				var keyMd5 = Digest.md5(encryptParam);

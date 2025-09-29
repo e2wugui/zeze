@@ -625,7 +625,7 @@ public class BenchSocket {
 		var serverConfig = new Config();
 		var server = new ServerService("benchServer", serverConfig);
 		server.getConfig().addAcceptor(new Acceptor(9797, "127.0.0.1"));
-		server.getConfig().getHandshakeOptions().setEncryptType(encrypt ? Constant.eEncryptTypeAes : 0);
+		server.getConfig().getHandshakeOptions().setEncryptType(encrypt ? Constant.eEncryptTypeAesNoSecureIp : 0);
 
 		// create client and connector
 		var clientConfig = new Config();

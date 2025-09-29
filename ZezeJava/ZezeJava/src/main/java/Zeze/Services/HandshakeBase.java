@@ -109,7 +109,11 @@ public class HandshakeBase extends Service {
 			byte[] outputKey = null;
 			byte[] response = ByteBuffer.Empty;
 			int group = 1;
-			if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
+			if (p.Argument.encryptParam.length == 0) // 兼容旧的客户端。
+				p.Argument.encryptType = Constant.eEncryptTypeDisable;
+			switch (p.Argument.encryptType) {
+			case Constant.eEncryptTypeAes:
+			{
 				// 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
 				/*
 				if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
@@ -131,6 +135,19 @@ public class HandshakeBase extends Service {
 				inputKey = Digest.hmacMd5(key, material, 0, half);
 				response = Helper.generateDHResponse(group, rand).toByteArray();
 				outputKey = Digest.hmacMd5(key, material, half, material.length - half);
+				break;
+			}
+			case Constant.eEncryptTypeAesNoSecureIp: {
+				BigInteger data = new BigInteger(p.Argument.encryptParam);
+				BigInteger rand = Helper.makeDHRandom();
+				byte[] material = Helper.computeDHKey(group, data, rand).toByteArray();
+				int half = material.length / 2;
+
+				inputKey = Arrays.copyOfRange(material, 0, half);
+				response = Helper.generateDHResponse(group, rand).toByteArray();
+				outputKey = Arrays.copyOfRange(material, half, material.length);
+				break;
+			}
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
@@ -194,7 +211,8 @@ public class HandshakeBase extends Service {
 			if (ctx != null) {
 				byte[] inputKey = null;
 				byte[] outputKey = null;
-				if (p.Argument.encryptType == Constant.eEncryptTypeAes) {
+				switch (p.Argument.encryptType) {
+				case Constant.eEncryptTypeAes: {
 					byte[] material = Helper.computeDHKey(1,
 							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
 					var remoteInet = p.getSender().getRemoteInet();
@@ -205,6 +223,16 @@ public class HandshakeBase extends Service {
 					int half = material.length / 2;
 					outputKey = Digest.hmacMd5(key, material, 0, half);
 					inputKey = Digest.hmacMd5(key, material, half, material.length - half);
+					break;
+					}
+				case Constant.eEncryptTypeAesNoSecureIp: {
+					byte[] material = Helper.computeDHKey(1,
+							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
+					int half = material.length / 2;
+					outputKey = Arrays.copyOfRange(material, 0, half);
+					inputKey = Arrays.copyOfRange(material, half, material.length);
+					break;
+					}
 				}
 				((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
@@ -244,7 +272,8 @@ public class HandshakeBase extends Service {
 			var cHandShake = new CHandshake();
 			// 默认加密压缩尽量都有服务器决定，不进行选择。
 			cHandShake.Argument.encryptType = arg.encryptType;
-			cHandShake.Argument.encryptParam = arg.encryptType == Constant.eEncryptTypeAes
+			cHandShake.Argument.encryptParam =
+					(arg.encryptType == Constant.eEncryptTypeAes || arg.encryptType == Constant.eEncryptTypeAesNoSecureIp)
 					? Helper.generateDHResponse(1, ctx.dhRandom).toByteArray()
 					: ByteBuffer.Empty;
 			cHandShake.Argument.compressS2c = clientCompress(arg.compressS2c);

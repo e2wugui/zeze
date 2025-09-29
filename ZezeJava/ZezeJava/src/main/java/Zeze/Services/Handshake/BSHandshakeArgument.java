@@ -17,10 +17,12 @@ public final class BSHandshakeArgument implements Serializable {
 		compressC2s = bb.ReadInt();
 
 		// 兼容旧版
-		if (!bb.isEmpty())
+		if (!bb.isEmpty()) {
 			encryptType = bb.ReadInt();
-		else
+		} else {
+			// 新的eEncryptTypeAesNoSecureIp已经过了这个兼容需要了吧。这里不需要考虑这个类型。
 			encryptType = encryptParam.length != 0 ? Constant.eEncryptTypeAes : Constant.eEncryptTypeDisable;
+		}
 	}
 
 	@Override
