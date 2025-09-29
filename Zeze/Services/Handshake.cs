@@ -433,7 +433,7 @@ namespace Zeze.Services
                 return e; // 推荐不加密就不加密
             if (Config.HandshakeOptions.IsSupportedEncrypt(e))
                 return e; // 直接的加密，使用推荐的。
-            return Constant.eEncryptTypeAes; // 保底。
+            return Constant.eEncryptTypeAesNoSecureIp; // 保底。现在的代码已经支持这个了，作为未来的保底。
         }
 
         protected void StartHandshake(Handshake.SHandshake0Argument arg, AsyncSocket so)
