@@ -1,5 +1,7 @@
 package Zeze.Services;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Services.Handshake.Helper;
@@ -13,7 +15,9 @@ import Zeze.Util.IntHashSet;
  */
 public class HandshakeOptions {
 	private IntHashSet dhGroups = new IntHashSet(); // for HandshakeServer
-	private byte[] secureIp;
+	private byte[] secureIp; // for eEncryptTypeAes
+	private PublicKey rsaPubKey; // for eEncryptTypeRsaAes client
+	private PrivateKey rsaPriKey; // for eEncryptTypeRsaAes server
 	private int compressS2c = Constant.eCompressTypeDisable;
 	private int compressC2s = Constant.eCompressTypeDisable;
 	private int encryptType = Constant.eEncryptTypeDisable;
@@ -35,6 +39,7 @@ public class HandshakeOptions {
 
 		addSupportedEncrypt(Constant.eEncryptTypeAes);
 		addSupportedEncrypt(Constant.eEncryptTypeAesNoSecureIp);
+		addSupportedEncrypt(Constant.eEncryptTypeRsaAes);
 	}
 
 	public int getKeepCheckPeriod() {
@@ -110,6 +115,22 @@ public class HandshakeOptions {
 
 	public final void setSecureIp(byte[] value) {
 		secureIp = value;
+	}
+
+	public final PublicKey getRsaPubKey() {
+		return rsaPubKey;
+	}
+
+	public final void setRsaPubKey(PublicKey rsaPubKey) {
+		this.rsaPubKey = rsaPubKey;
+	}
+
+	public final PrivateKey getRsaPriKey() {
+		return rsaPriKey;
+	}
+
+	public final void setRsaPriKey(PrivateKey rsaPriKey) {
+		this.rsaPriKey = rsaPriKey;
 	}
 
 	public final int getCompressS2c() {

@@ -1,14 +1,20 @@
 package Zeze.Net;
 
+import java.math.BigInteger;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import Zeze.Config;
+import Zeze.Services.Handshake.KeyExchange;
 import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
+import Zeze.Util.BitConverter;
+import Zeze.Util.Cert;
 import Zeze.Util.Func3;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
@@ -285,6 +291,24 @@ public final class ServiceConf extends ReentrantLock {
 				throw new IllegalStateException(ex);
 			}
 		}
+		attr = self.getAttribute("RsaPubKey");
+		if (!attr.isBlank()) {
+			try {
+				getHandshakeOptions().setRsaPubKey(
+						Cert.loadRsaPublicKey(new BigInteger(1, BitConverter.toBytes(attr)), KeyExchange.pubKeyE));
+			} catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
+		attr = self.getAttribute("RsaPriKeyFile");
+		if (!attr.isBlank()) {
+			try {
+				getHandshakeOptions().setRsaPriKey(Cert.loadRsaPrivateKey(Files.readAllBytes(Path.of(attr))));
+			} catch (Exception ex) {
+				throw new IllegalStateException(ex);
+			}
+		}
+
 		attr = self.getAttribute("CompressS2c");
 		if (!attr.isBlank())
 			getHandshakeOptions().setCompressS2c(Integer.parseInt(attr));

@@ -20,6 +20,7 @@ import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Cert;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.Task;
@@ -34,11 +35,11 @@ public class HandshakeBase extends Service {
 	private final LongHashSet handshakeProtocols = new LongHashSet();
 
 	static class Context {
-		final @NotNull BigInteger dhRandom;
+		final @NotNull Object context;
 		@Nullable Future<?> timeoutTask;
 
-		Context(@NotNull BigInteger random) {
-			dhRandom = random;
+		Context(@NotNull Object context) {
+			this.context = context;
 		}
 	}
 
@@ -110,8 +111,7 @@ public class HandshakeBase extends Service {
 			byte[] response = ByteBuffer.Empty;
 			int group = 1;
 			switch (p.Argument.encryptType) {
-			case Constant.eEncryptTypeAes:
-			{
+			case Constant.eEncryptTypeAes: {
 				// 当group采用客户端参数时需要检查参数正确性，现在统一采用了1，不需要检查了。
 				/*
 				if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
@@ -146,6 +146,17 @@ public class HandshakeBase extends Service {
 				outputKey = Arrays.copyOfRange(material, half, material.length);
 				break;
 			}
+			case Constant.eEncryptTypeRsaAes:
+				var rsaPriKey = getConfig().getHandshakeOptions().getRsaPriKey();
+				if (rsaPriKey == null)
+					throw new IllegalStateException("need RsaPriKeyFile in ServiceConf");
+				inputKey = Cert.decryptRsa(rsaPriKey, p.Argument.encryptParam);
+				if (inputKey == null || inputKey.length != 64) {
+					throw new IllegalStateException("invalid secret length = "
+							+ (inputKey != null ? inputKey.length : -1));
+				}
+				outputKey = Arrays.copyOfRange(inputKey, 32, 64);
+				break;
 			}
 			var s2c = serverCompressS2c(p.Argument.compressS2c);
 			var c2s = serverCompressC2s(p.Argument.compressC2s);
@@ -212,7 +223,7 @@ public class HandshakeBase extends Service {
 				switch (p.Argument.encryptType) {
 				case Constant.eEncryptTypeAes: {
 					byte[] material = Helper.computeDHKey(1,
-							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
+							new BigInteger(p.Argument.encryptParam), (BigInteger)ctx.context).toByteArray();
 					var remoteInet = p.getSender().getRemoteInet();
 
 					byte[] key = remoteInet != null ? remoteInet.getAddress().getAddress() : ByteBuffer.Empty;
@@ -222,15 +233,19 @@ public class HandshakeBase extends Service {
 					outputKey = Digest.hmacMd5(key, material, 0, half);
 					inputKey = Digest.hmacMd5(key, material, half, material.length - half);
 					break;
-					}
+				}
 				case Constant.eEncryptTypeAesNoSecureIp: {
 					byte[] material = Helper.computeDHKey(1,
-							new BigInteger(p.Argument.encryptParam), ctx.dhRandom).toByteArray();
+							new BigInteger(p.Argument.encryptParam), (BigInteger)ctx.context).toByteArray();
 					int half = material.length / 2;
 					outputKey = Arrays.copyOfRange(material, 0, half);
 					inputKey = Arrays.copyOfRange(material, half, material.length);
 					break;
-					}
+				}
+				case Constant.eEncryptTypeRsaAes:
+					outputKey = (byte[])ctx.context;
+					inputKey = Arrays.copyOfRange(outputKey, 32, 64);
+					break;
 				}
 				((TcpSocket)p.getSender()).setOutputSecurityCodec(p.Argument.encryptType, outputKey, p.Argument.compressC2s);
 				((TcpSocket)p.getSender()).setInputSecurityCodec(p.Argument.encryptType, inputKey, p.Argument.compressS2c);
@@ -262,7 +277,30 @@ public class HandshakeBase extends Service {
 
 	protected final void startHandshake(@NotNull BSHandshake0Argument arg, @NotNull AsyncSocket so) {
 		try {
-			var ctx = new Context(Helper.makeDHRandom());
+			Object context;
+			byte[] encryptParam;
+			switch (arg.encryptType) {
+			case Constant.eEncryptTypeAes:
+			case Constant.eEncryptTypeAesNoSecureIp:
+				var randomBigInt = Helper.makeDHRandom();
+				context = randomBigInt;
+				encryptParam = Helper.generateDHResponse(1, randomBigInt).toByteArray();
+				break;
+			case Constant.eEncryptTypeRsaAes:
+				var rsaPubKey = getConfig().getHandshakeOptions().getRsaPubKey();
+				if (rsaPubKey == null)
+					throw new IllegalStateException("need RsaPubKey in ServiceConf");
+				var random64 = Helper.makeRandValues(64); // inputIv + inputKey + outputIv + outputKey
+				context = random64;
+				encryptParam = Cert.encryptRsa(rsaPubKey, random64);
+				break;
+			default:
+				context = BigInteger.ZERO;
+				encryptParam = ByteBuffer.Empty;
+				break;
+			}
+
+			var ctx = new Context(context);
 			if (null != dhContext.putIfAbsent(so.getSessionId(), ctx)) {
 				throw new IllegalStateException("handshake duplicate context for same session.");
 			}
@@ -270,10 +308,7 @@ public class HandshakeBase extends Service {
 			var cHandShake = new CHandshake();
 			// 默认加密压缩尽量都有服务器决定，不进行选择。
 			cHandShake.Argument.encryptType = arg.encryptType;
-			cHandShake.Argument.encryptParam =
-					(arg.encryptType == Constant.eEncryptTypeAes || arg.encryptType == Constant.eEncryptTypeAesNoSecureIp)
-					? Helper.generateDHResponse(1, ctx.dhRandom).toByteArray()
-					: ByteBuffer.Empty;
+			cHandShake.Argument.encryptParam = encryptParam;
 			cHandShake.Argument.compressS2c = clientCompress(arg.compressS2c);
 			cHandShake.Argument.compressC2s = clientCompress(arg.compressC2s);
 			cHandShake.Send(so);

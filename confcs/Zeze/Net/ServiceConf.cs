@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Security.Cryptography;
 using Zeze.Services;
 using System.Threading.Tasks;
 using Zeze.Util;
@@ -192,6 +193,25 @@ namespace Zeze.Net
             }
             attr = self.GetAttribute("SecureIp");
             if (attr.Length > 0) HandshakeOptions.SecureIp = IPAddress.Parse(attr).GetAddressBytes();
+            attr = self.GetAttribute("RsaPubKey");
+            if (attr.Length > 0)
+            {
+                var rsa = RSA.Create();
+                try
+                {
+                    rsa.ImportParameters(new RSAParameters
+                    {
+                        Exponent = Str.toBytes(attr),
+                        Modulus = new byte[] { 1, 0, 1 } // 65537
+                    });
+                    HandshakeOptions.RsaPubKey = rsa;
+                }
+                catch
+                {
+                    rsa.Dispose();
+                    throw;
+                }
+            }
             attr = self.GetAttribute("CompressS2c");
             if (attr.Length > 0) HandshakeOptions.CompressS2c = int.Parse(attr);
             attr = self.GetAttribute("CompressC2s");

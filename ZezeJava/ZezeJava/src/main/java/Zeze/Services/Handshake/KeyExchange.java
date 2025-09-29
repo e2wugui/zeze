@@ -1,6 +1,10 @@
 package Zeze.Services.Handshake;
 
+import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
@@ -20,6 +24,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.BitConverter;
 import Zeze.Util.Cert;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
@@ -235,7 +240,7 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		return TypeId;
 	}
 
-	public static void main(String[] args) throws GeneralSecurityException {
+	public static void main(String[] args) throws GeneralSecurityException, IOException {
 		// 生成RSA的公私钥
 		long t = System.nanoTime();
 		var keyPair = Cert.generateRsaKeyPair();
@@ -269,6 +274,23 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 		System.out.println("encryptRsa = [" + data1.length + "] " + data1[0] + ", " + data1[1] + ", ...");
 		System.out.println("decryptRsa = [" + data2.length + "] " + data2[0] + ", " + data2[1] + ", ...");
 		System.out.println("check decrypt data: " + Arrays.equals(data0, data2));
+
+		if (args.length == 2 && args[0].equals("-gen")) {
+			Files.write(Path.of(args[1]), priKeyData, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+			System.out.println("Public Key:\n{");
+			int i = 0;
+			while (pubKeyN[i] == 0)
+				i++;
+			System.out.println(BitConverter.toHexString(pubKeyN, i, pubKeyN.length - i));
+			for (int j = 0; i < pubKeyN.length; i++) {
+				System.out.format(" 0x%02X,", pubKeyN[i] & 0xff);
+				if (++j == 16) {
+					j = 0;
+					System.out.println();
+				}
+			}
+			System.out.println("};");
+		}
 	}
 }
 /*

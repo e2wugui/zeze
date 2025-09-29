@@ -50,19 +50,15 @@ namespace Zeze.Net
     {
         public static byte[] Md5(byte[] message)
         {
-            using (var md = MD5.Create())
-            {
-                return md.ComputeHash(message);
-            }
+            using var md = MD5.Create();
+            return md.ComputeHash(message);
         }
 
         public static byte[] HmacMd5(byte[] key, byte[] data, int offset, int length)
         {
-            using (HashAlgorithm hash = new HMACMD5(key))
-            {
-                hash.TransformFinalBlock(data, offset, length);
-                return hash.Hash;
-            }
+            using HashAlgorithm hash = new HMACMD5(key);
+            hash.TransformFinalBlock(data, offset, length);
+            return hash.Hash;
         }
     }
 
@@ -77,13 +73,18 @@ namespace Zeze.Net
         //private readonly byte[] _out = new byte[16];
         private int count;
 
-        public Encrypt(Codec sink, byte[] key)
+        public Encrypt(Codec sink, byte[] key) : this(sink, Digest.Md5(key), null)
+        {
+        }
+
+        public Encrypt(Codec sink, byte[] key, byte[] iv)
         {
             this.sink = sink;
-            _iv = Digest.Md5(key);
+            iv ??= key;
             Aes aes = Aes.Create();
             aes.Mode = CipherMode.ECB;
-            cipher = aes.CreateEncryptor(_iv, _iv);
+            cipher = aes.CreateEncryptor(key, iv);
+            _iv = iv;
         }
 
         private void succeed()
@@ -169,13 +170,18 @@ namespace Zeze.Net
         private readonly byte[] _out = new byte[16];
         private int count;
 
-        public Decrypt(Codec sink, byte[] key)
+        public Decrypt(Codec sink, byte[] key) : this(sink, Digest.Md5(key), null)
+        {
+        }
+
+        public Decrypt(Codec sink, byte[] key, byte[] iv)
         {
             this.sink = sink;
-            _iv = Digest.Md5(key);
+            iv ??= key;
             Aes aes = Aes.Create();
             aes.Mode = CipherMode.ECB;
-            cipher = aes.CreateEncryptor(_iv, _iv);
+            cipher = aes.CreateEncryptor(key, iv);
+            _iv = iv;
         }
 
         private void succeed()

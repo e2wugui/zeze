@@ -13,6 +13,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiFunction;
 import Zeze.Serialize.ByteBuffer;
@@ -369,6 +370,10 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Decrypt2(chain, keyMd5, keyMd5);
 				break;
+			case Constant.eEncryptTypeRsaAes:
+				//noinspection DataFlowIssue
+				chain = new Decrypt2(chain, Arrays.copyOfRange(encryptParam, 16, 32), encryptParam);
+				break;
 			// 新增加密算法支持这里加case
 			default:
 				throw new UnsupportedOperationException("SetInputSecurityCodec: unknown encryptType=" + encryptType);
@@ -400,6 +405,10 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				//noinspection DataFlowIssue
 				var keyMd5 = Digest.md5(encryptParam);
 				chain = new Encrypt2(chain, keyMd5, keyMd5);
+				break;
+			case Constant.eEncryptTypeRsaAes:
+				//noinspection DataFlowIssue
+				chain = new Encrypt2(chain, Arrays.copyOfRange(encryptParam, 16, 32), encryptParam);
 				break;
 			// 新增加密算法支持这里加case
 			default:

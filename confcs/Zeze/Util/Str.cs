@@ -63,5 +63,41 @@ namespace Zeze.Util
                 sb[sb.Length - 1] = '}';
             }
         }
+
+        // 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
+        public static void toBytes(string hex, byte[] bytes, int offset)
+        {
+            const long MASK = ~0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
+            for (int i = 0, v = 1, s = hex.Length; i < s; i++)
+            {
+                int c = hex[i] - '0';
+                if ((c & ~63 | (int)(MASK >> c) & 1) == 0)
+                {
+                    v = (v << 4) + (c & 0xf) + ((c >> 4) & 1) * 9;
+                    if (v > 0xff)
+                    {
+                        // ReSharper disable once IntVariableOverflowInUncheckedContext
+                        bytes[offset++] = (byte)v;
+                        v = 1;
+                    }
+                }
+            }
+        }
+
+        // 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
+        public static byte[] toBytes(string hex)
+        {
+            const long MASK = 0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
+            int n = 0;
+            for (int i = 0, s = hex.Length; i < s; i++)
+            {
+                int c = hex[i] - '0';
+                if ((c & ~63) == 0)
+                    n += (int)(MASK >> c) & 1;
+            }
+            byte[] b = new byte[n >> 1];
+            toBytes(hex, b, 0);
+            return b;
+        }
     }
 }
