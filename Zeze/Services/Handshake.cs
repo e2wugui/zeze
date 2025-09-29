@@ -23,7 +23,7 @@ namespace Zeze.Services
 
         public const int eCompressTypeDisable = 0;
         public const int eCompressTypeMppc = 1;
-        public const int eCompressTypeZstd = 2;
+        //public const int eCompressTypeZstd = 2;
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ namespace Zeze.Services
             AddDhGroup(5);
 
             AddSupportedCompress(Constant.eCompressTypeMppc);
-            AddSupportedCompress(Constant.eCompressTypeZstd);
+            //AddSupportedCompress(Constant.eCompressTypeZstd);
 
             AddSupportedEncrypt(Constant.eEncryptTypeAes);
             AddSupportedEncrypt(Constant.eEncryptTypeAesNoSecureIp);
