@@ -109,8 +109,11 @@ public class HandshakeBase extends Service {
 			byte[] outputKey = null;
 			byte[] response = ByteBuffer.Empty;
 			int group = 1;
-			if (p.Argument.encryptParam.length == 0) // 兼容旧的客户端。
+			if (p.Argument.encryptParam.length == 0) { // 兼容旧的客户端。
 				p.Argument.encryptType = Constant.eEncryptTypeDisable;
+				// 选项可能是共享的，这样设置，使得这个服务的加密都关闭了，也就是说发现一个不兼容客户端，加密通通关闭。
+				p.getSender().getService().getConfig().getHandshakeOptions().setEncryptType(Constant.eEncryptTypeDisable);
+			}
 			switch (p.Argument.encryptType) {
 			case Constant.eEncryptTypeAes:
 			{
