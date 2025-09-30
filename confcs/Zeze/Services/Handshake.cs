@@ -91,6 +91,51 @@ namespace Zeze.Services
             if (Handshake.Helper.IsDHGroupSupported(group))
                 DhGroups.Add(group);
         }
+
+        public void LoadRsaPubKey(byte[] pubKeyData)
+        {
+            var rsa = RSA.Create();
+            try
+            {
+                rsa.ImportParameters(new RSAParameters
+                {
+                    Exponent = new byte[] { 1, 0, 1 }, // 65537
+                    Modulus = pubKeyData
+                });
+                RsaPubKey = rsa;
+            }
+            catch
+            {
+                rsa.Dispose();
+                throw;
+            }
+        }
+
+        public void LoadRsaPriKey(byte[] priKeyData)
+        {
+            var bb = ByteBuffer.Wrap(priKeyData);
+            var rsa = RSA.Create();
+            try
+            {
+                rsa.ImportParameters(new RSAParameters
+                {
+                    D = bb.ReadBytes(),
+                    DP = bb.ReadBytes(),
+                    DQ = bb.ReadBytes(),
+                    Exponent = bb.ReadBytes(),
+                    InverseQ = bb.ReadBytes(),
+                    Modulus = bb.ReadBytes(),
+                    P = bb.ReadBytes(),
+                    Q = bb.ReadBytes()
+                });
+                RsaPriKey = rsa;
+            }
+            catch
+            {
+                rsa.Dispose();
+                throw;
+            }
+        }
     }
 
     public class HandshakeBase : Service

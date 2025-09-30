@@ -277,11 +277,11 @@ public final class KeyExchange extends Rpc<KeyExchange.Arg, KeyExchange.Res> {
 
 		if (args.length == 2 && args[0].equals("-gen")) {
 			Files.write(Path.of(args[1]), priKeyData, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-			System.out.println("Public Key:\n{");
 			int i = 0;
 			while (pubKeyN[i] == 0)
 				i++;
-			System.out.println(BitConverter.toHexString(pubKeyN, i, pubKeyN.length - i));
+			System.out.println("RsaPubKey=\"" + BitConverter.toHexString(pubKeyN, i, pubKeyN.length - i) + '"');
+			System.out.println("{");
 			for (int j = 0; i < pubKeyN.length; i++) {
 				System.out.format(" 0x%02X,", pubKeyN[i] & 0xff);
 				if (++j == 16) {
