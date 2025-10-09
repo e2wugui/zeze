@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -280,6 +281,15 @@ public final class Checkpoint {
 		flush(records, onzProcedure != null ? Set.of(onzProcedure) : Set.of(), history);
 	}
 
+	private String extractTableNames(Iterable<Record> rs, History history) {
+		var tables = new HashSet<String>();
+		for (var r : rs)
+			tables.add(r.getTable().getName());
+		if (null != history)
+			tables.add(zeze.getHistoryModule().getHistoryTable().getName());
+		return tables.toString();
+	}
+
 	public void flush(@NotNull Iterable<Record> rs, @Nullable Set<OnzProcedure> onzProcedures,
 					  @Nullable History history) {
 		var dts = new IdentityHashMap<Database, Database.Transaction>();
@@ -347,7 +357,7 @@ public final class Checkpoint {
 			} catch (Throwable ex) { // logger.error
 				logger.error("Flush Rollback Exception", ex);
 			}
-			throw e;
+			throw new RuntimeException(extractTableNames(rs, history), e);
 		} finally {
 			for (var t : dts.values()) {
 				try {
