@@ -319,12 +319,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return;
 			}
 			r.enterFairLock();
+			rpc.Result.state = GlobalCacheManagerConst.StateReduceException; // default error state
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isTraceEnabled)
 						logger.trace("reduceShare SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
-					rpc.SendResult();
+					// rpc.SendResult(); // send in finally
 					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
@@ -338,7 +339,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 2 {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -350,7 +351,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 3 {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -362,7 +363,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult * {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -372,10 +373,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 4 {}", r);
-				rpc.SendResult();
+				// rpc.SendResult(); // send in finally
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
 			} finally {
+				rpc.SendResult();
 				r.exitFairLock();
 			}
 		} finally {
@@ -431,12 +433,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				logger.warn("reduceInvalid wait record lock too long! table={}, key={}, time={}ms",
 						getName(), key, timeNs / 1_000_000);
 			}
+			rpc.Result.state = GlobalCacheManagerConst.StateReduceException; // default error state
 			try {
 				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isTraceEnabled)
 						logger.trace("reduceInvalid SendResult fresh {}", r);
 					rpc.Result.state = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
-					rpc.SendResult();
+					// rpc.SendResult(); // send in finally
 					return;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
@@ -450,7 +453,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 2 {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -464,7 +467,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 3 {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -477,7 +480,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult * {}", r);
-						rpc.SendResult();
+						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
@@ -488,10 +491,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceInvalid SendResult 4 {}", r);
-				rpc.SendResult();
+				// rpc.SendResult(); // send in finally
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
 			} finally {
+				rpc.SendResult(); // send in finally
 				r.exitFairLock();
 			}
 		} finally {
