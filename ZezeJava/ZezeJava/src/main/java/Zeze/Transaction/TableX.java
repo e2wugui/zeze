@@ -370,6 +370,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
+				rpc.Result.state = StateShare;
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 4 {}", r);
@@ -460,6 +461,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateShare:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
+					rpc.Result.state = StateInvalid;
 					r.setTid(null);
 					if (ZezeCounter.instance != null)
 						ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
@@ -473,6 +475,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					break;
 				case StateModify:
 					r.setState(StateInvalid);
+					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					if (ZezeCounter.instance != null)
