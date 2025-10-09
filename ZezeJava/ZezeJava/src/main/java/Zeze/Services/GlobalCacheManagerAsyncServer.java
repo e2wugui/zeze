@@ -582,6 +582,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
+							logger.warn("acquireShare: reduce timeout. so={}, time={}, arg={}",
+									r.getSender(), r.getTimeout(), r.Argument);
 							state.reduceResultState = StateReduceRpcTimeout;
 						} else {
 							state.reduceResultState = r.Result.state;
@@ -756,6 +758,8 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						if (r.isTimeout()) {
+							logger.warn("acquireModify: reduce timeout. so={}, time={}, arg={}",
+									r.getSender(), r.getTimeout(), r.Argument);
 							state.reduceResultState = StateReduceRpcTimeout;
 						} else {
 							state.reduceResultState = r.Result.state;
