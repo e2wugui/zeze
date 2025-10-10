@@ -31,23 +31,42 @@ public class TestTaskOneByOne {
 				counter.incrementAndGet();
 			});
 		}
-		oo.Execute(1, () -> {
-			lock.lock();
-			try {
-				counter.incrementAndGet();
-				cond.signal();
-			} finally {
-				lock.unlock();
-			}
-		});
 		lock.lock();
 		try {
+			oo.Execute(1, () -> {
+				lock.lock();
+				try {
+					counter.incrementAndGet();
+					cond.signal();
+				} finally {
+					lock.unlock();
+				}
+			});
 			cond.await();
 		} finally {
 			lock.unlock();
 		}
 		b.report("TestTaskOneByOne.testBenchmark", TaskCount);
 		System.out.println(counter.get());
+	}
+
+	@Test
+	public void testCondSignalLost() throws InterruptedException {
+		// signal 会丢失，如果没有waiting thread。
+		/*
+		lock.lock();
+		try {
+			cond.signal();
+		} finally {
+			lock.unlock();
+		}
+		lock.lock();
+		try {
+			cond.await(); // 会丢失signal，卡死在这里。
+		} finally {
+			lock.unlock();
+		}
+		*/
 	}
 
 	@Test
@@ -60,17 +79,17 @@ public class TestTaskOneByOne {
 				counter.incrementAndGet();
 			});
 		}
-		oo.Execute(1, () -> {
-			lock.lock();
-			try {
-				counter.incrementAndGet();
-				cond.signal();
-			} finally {
-				lock.unlock();
-			}
-		});
 		lock.lock();
 		try {
+			oo.Execute(1, () -> {
+				lock.lock();
+				try {
+					counter.incrementAndGet();
+					cond.signal();
+				} finally {
+					lock.unlock();
+				}
+			});
 			cond.await();
 		} finally {
 			lock.unlock();
