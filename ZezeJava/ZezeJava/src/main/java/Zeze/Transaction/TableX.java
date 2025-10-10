@@ -312,9 +312,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (isTraceEnabled)
 				logger.trace("reduceShare NewState={} {}", rpc.Argument.state, r);
 			if (r == null) {
-				rpc.Result.state = StateInvalid;
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 1 r=null");
+				rpc.Result.state = StateInvalid;
 				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 				return;
 			}
@@ -332,37 +332,37 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				switch (r.getState()) {
 				case StateRemoved: // impossible! safe only.
 				case StateInvalid:
-					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 2 {}", r);
+						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
 				case StateShare:
-					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult 3 {}", r);
+						rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
 				case StateModify:
 					r.setState(StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-					rpc.Result.state = StateShare;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceShare SendResult * {}", r);
+						rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
@@ -370,16 +370,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
-				rpc.Result.state = StateShare;
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceShare SendResult 4 {}", r);
 				// rpc.SendResult(); // send in finally
 				// if (isDebugEnabled)
 				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
+				rpc.Result.state = StateShare; // 必须最后修改结果状态，因为send in finally
 			} finally {
-				rpc.SendResult();
-				r.exitFairLock();
+				try {
+					rpc.SendResult(); // send in finally
+				} finally {
+					r.exitFairLock();
+				}
 			}
 		} finally {
 			lockey.exitWriteLock();
@@ -447,13 +450,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				switch (r.getState()) {
 				case StateRemoved: // impossible! safe only.
 				case StateInvalid:
-					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 2 {}", r);
+						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
@@ -461,7 +464,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				case StateShare:
 					r.setState(StateInvalid);
 					rpc.Result.reducedTid = r.getTid();
-					rpc.Result.state = StateInvalid;
 					r.setTid(null);
 					if (ZezeCounter.instance != null)
 						ZezeCounter.instance.getOrAddTableInfo(getId()).reduceInvalid().increment();
@@ -469,13 +471,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult 3 {}", r);
+						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
 					break;
 				case StateModify:
 					r.setState(StateInvalid);
-					rpc.Result.state = StateInvalid;
 					rpc.Result.reducedTid = r.getTid();
 					r.setTid(null);
 					if (ZezeCounter.instance != null)
@@ -483,6 +485,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (!r.getDirty()) {
 						if (isTraceEnabled)
 							logger.trace("reduceInvalid SendResult * {}", r);
+						rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
 						// rpc.SendResult(); // send in finally
 						return;
 					}
@@ -490,16 +493,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
-				rpc.Result.state = StateInvalid;
 				flushWhenReduce(r);
 				if (isTraceEnabled)
 					logger.trace("reduceInvalid SendResult 4 {}", r);
-				// rpc.SendResult(); // send in finally
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
+				rpc.Result.state = StateInvalid; // 必须最后修改结果状态，因为send in finally
+				// rpc.SendResult(); // send in finally
 			} finally {
-				rpc.SendResult(); // send in finally
-				r.exitFairLock();
+				try {
+					rpc.SendResult(); // send in finally
+				} finally {
+					r.exitFairLock();
+				}
 			}
 		} finally {
 			lockey.exitWriteLock();
