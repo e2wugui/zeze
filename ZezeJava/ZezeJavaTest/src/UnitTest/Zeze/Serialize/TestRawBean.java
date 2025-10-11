@@ -94,7 +94,7 @@ public class TestRawBean extends TestCase {
 			assertEquals(RawBean.class, b.getClass());
 			assertEquals(12345, b.typeId());
 			assertEquals(bin, ((RawBean)b).getRawData());
-			((RawBean)b).setRawDataUnsafe(new Binary(new byte[]{0}));
+			b.reset();
 			return 0;
 		}, "testRawBean4").call();
 
