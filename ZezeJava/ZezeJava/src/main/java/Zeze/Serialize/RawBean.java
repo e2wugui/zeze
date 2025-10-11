@@ -20,7 +20,7 @@ public class RawBean extends Bean {
 	private final long typeId;
 	private @NotNull Binary rawData = Binary.Empty;
 
-	private static final VarHandle vh_rawData;
+	private static final @NotNull VarHandle vh_rawData;
 
 	static {
 		try {
@@ -64,12 +64,12 @@ public class RawBean extends Bean {
 		setRawData(Binary.Empty);
 	}
 
-	public RawBean copyIfManaged() {
+	public @NotNull RawBean copyIfManaged() {
 		return isManaged() ? copy() : this;
 	}
 
 	@Override
-	public RawBean copy() {
+	public @NotNull RawBean copy() {
 		var c = new RawBean(typeId);
 		c.setRawData(getRawData());
 		return c;
@@ -81,7 +81,7 @@ public class RawBean extends Bean {
 	}
 
 	@Override
-	public String toString() {
+	public @NotNull String toString() {
 		var sb = new StringBuilder();
 		buildString(sb, 0);
 		return sb.toString();
@@ -94,22 +94,23 @@ public class RawBean extends Bean {
 
 	@Override
 	public void encode(@NotNull ByteBuffer bb) {
-		if (rawData.size() == 0)
+		var rd = getRawData();
+		if (rd.size() == 0)
 			bb.WriteByte(0); // 表示一个空Bean的结束
 		else
-			bb.Append(rawData.bytesUnsafe(), rawData.getOffset(), rawData.size());
+			bb.Append(rd.bytesUnsafe(), rd.getOffset(), rd.size());
 	}
 
 	@Override
 	public void decode(@NotNull IByteBuffer bb) {
 		int i = bb.getReadIndex();
 		bb.skipAllUnknownFields(bb.ReadByte());
-		rawData = new Binary(bb.getBytes(i, bb.getReadIndex() - i));
+		setRawData(new Binary(bb.getBytes(i, bb.getReadIndex() - i)));
 	}
 
 	@Override
 	public int hashCode() {
-		return Long.hashCode(typeId) ^ rawData.hashCode();
+		return Long.hashCode(typeId) ^ getRawData().hashCode();
 	}
 
 	@Override
