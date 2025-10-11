@@ -277,6 +277,14 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 	}
 
 	@Override
+	public byte @NotNull [] getBytes(int offset, int length) {
+		VerifyArrayIndex(Bytes, offset, length);
+		var bytes = new byte[length];
+		System.arraycopy(Bytes, offset, bytes, 0, length);
+		return bytes;
+	}
+
+	@Override
 	public void Reset() {
 		ReadIndex = 0;
 		WriteIndex = 0;

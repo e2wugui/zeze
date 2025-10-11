@@ -51,6 +51,8 @@ public interface IByteBuffer {
 
 	byte @NotNull [] Copy();
 
+	byte @NotNull [] getBytes(int offset, int length);
+
 	void Reset();
 
 	@Contract("_ -> fail")

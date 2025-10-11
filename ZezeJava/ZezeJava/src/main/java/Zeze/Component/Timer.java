@@ -28,7 +28,7 @@ import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotHandle;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
-import Zeze.Serialize.GenericBean;
+import Zeze.Serialize.RawBean;
 import Zeze.Serialize.Serializable;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.AnnounceServers;
@@ -63,12 +63,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
-		//try {
+		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
-		//} catch (Exception ex) {
-		//	logger.error("create bean error. Skip!", ex);
-		//	return new GenericBean();
-		//}
+		} catch (Exception e) {
+			return new RawBean(typeId);
+		}
 	}
 
 	public static long getOnlineSpecialTypeIdFromBean(@NotNull Serializable bean) {
@@ -76,7 +75,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	public static @NotNull Bean createOnlineBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
+		try {
+			return beanFactory.createBeanFromSpecialTypeId(typeId);
+		} catch (Exception e) {
+			return new RawBean(typeId);
+		}
 	}
 
 	public final Application zeze;

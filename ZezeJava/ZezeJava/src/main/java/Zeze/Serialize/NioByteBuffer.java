@@ -99,6 +99,13 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 	}
 
 	@Override
+	public byte @NotNull [] getBytes(int offset, int length) {
+		var bytes = new byte[length];
+		bb.get(bytes, offset, length);
+		return bytes;
+	}
+
+	@Override
 	public void Reset() {
 		bb.position(0);
 		bb.limit(0);
