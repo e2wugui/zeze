@@ -1,6 +1,7 @@
 package demo.Module1;
 
 import Zeze.Collections.BeanFactory;
+import Zeze.Serialize.RawBean;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Data;
@@ -14,7 +15,11 @@ public class ModuleModule1 extends AbstractModule {
 	}
 
 	public static @NotNull Bean createBeanFromSpecialTypeId(long typeId) {
-		return beanFactory.createBeanFromSpecialTypeId(typeId);
+		try {
+			return beanFactory.createBeanFromSpecialTypeId(typeId);
+		} catch (Exception e) {
+			return new RawBean(typeId);
+		}
 	}
 
 	public tKuafu getKuafu() {
@@ -64,6 +69,7 @@ public class ModuleModule1 extends AbstractModule {
 	public Table1 getTable1() {
 		return _Table1;
 	}
+
 	public tCoverHistory getTableCoverHistory() {
 		return _tCoverHistory;
 	}
@@ -98,25 +104,25 @@ public class ModuleModule1 extends AbstractModule {
 		return Zeze.Transaction.Procedure.NotImplement;
 	}
 
-    @Override
-    protected long ProcessProtocolOnlyData(demo.Module1.ProtocolOnlyData p) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
+	@Override
+	protected long ProcessProtocolOnlyData(demo.Module1.ProtocolOnlyData p) {
+		return Zeze.Transaction.Procedure.NotImplement;
+	}
 
-    @Override
-    protected long ProcessProtocolOnlyUseData(demo.Module1.ProtocolOnlyUseData p) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
+	@Override
+	protected long ProcessProtocolOnlyUseData(demo.Module1.ProtocolOnlyUseData p) {
+		return Zeze.Transaction.Procedure.NotImplement;
+	}
 
-    @Override
-    protected long ProcessRpcOnlyDataRequest(demo.Module1.RpcOnlyData r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
+	@Override
+	protected long ProcessRpcOnlyDataRequest(demo.Module1.RpcOnlyData r) {
+		return Zeze.Transaction.Procedure.NotImplement;
+	}
 
-    @Override
-    protected long ProcessRpcOnlyUseDataRequest(demo.Module1.RpcOnlyUseData r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
+	@Override
+	protected long ProcessRpcOnlyUseDataRequest(demo.Module1.RpcOnlyUseData r) {
+		return Zeze.Transaction.Procedure.NotImplement;
+	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleModule1(demo.App app) {
