@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
@@ -38,6 +39,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.Reflect;
@@ -53,6 +55,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
+	private static final LongConcurrentHashMap<AtomicLong> exceptCounter = new LongConcurrentHashMap<>();
 
 	public static void setCountPerNode(int countPerNode) {
 		CountPerNode = Math.max(countPerNode, 1);
@@ -66,6 +69,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
 		} catch (Exception e) {
+			if (exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong()).getAndIncrement() < 10)
+				logger.error("createBeanFromSpecialTypeId({}) exception:", typeId, e);
 			return new RawBean(typeId);
 		}
 	}
@@ -78,6 +83,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		try {
 			return beanFactory.createBeanFromSpecialTypeId(typeId);
 		} catch (Exception e) {
+			if (exceptCounter.computeIfAbsent(typeId, __ -> new AtomicLong()).getAndIncrement() < 10)
+				logger.error("createOnlineBeanFromSpecialTypeId({}) exception:", typeId, e);
 			return new RawBean(typeId);
 		}
 	}

@@ -47,7 +47,7 @@ public class RawBean extends Bean {
 	/**
 	 * @param rawData 必须是标准的Bean序列化的数据
 	 */
-	public void setRawData(@NotNull Binary rawData) {
+	public void setRawDataUnsafe(@NotNull Binary rawData) {
 		//noinspection ConstantValue
 		if (rawData == null)
 			throw new IllegalArgumentException();
@@ -61,7 +61,7 @@ public class RawBean extends Bean {
 
 	@Override
 	public void reset() {
-		setRawData(Binary.Empty);
+		setRawDataUnsafe(Binary.Empty);
 	}
 
 	public @NotNull RawBean copyIfManaged() {
@@ -71,7 +71,7 @@ public class RawBean extends Bean {
 	@Override
 	public @NotNull RawBean copy() {
 		var c = new RawBean(typeId);
-		c.setRawData(getRawData());
+		c.setRawDataUnsafe(getRawData());
 		return c;
 	}
 
@@ -105,7 +105,7 @@ public class RawBean extends Bean {
 	public void decode(@NotNull IByteBuffer bb) {
 		int i = bb.getReadIndex();
 		bb.skipAllUnknownFields(bb.ReadByte());
-		setRawData(new Binary(bb.getBytes(i, bb.getReadIndex() - i)));
+		setRawDataUnsafe(new Binary(bb.getBytes(i, bb.getReadIndex() - i)));
 	}
 
 	@Override
@@ -138,7 +138,7 @@ public class RawBean extends Bean {
 
 	@Override
 	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		setRawData(new Binary(rs.getBytes(Bean.parentsToName(parents) + "rawData")));
+		setRawDataUnsafe(new Binary(rs.getBytes(Bean.parentsToName(parents) + "rawData")));
 	}
 
 	@Override
