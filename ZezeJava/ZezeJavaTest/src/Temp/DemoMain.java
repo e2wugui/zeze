@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Component.AutoKey;
+import Zeze.Transaction.Bean;
 import Zeze.Util.StableRandom;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
@@ -54,6 +55,9 @@ public class DemoMain {
 	}
 
 	public static void main(String[] args) throws Exception {
+		System.out.println(Bean.hash64("UnitTest.Zeze.Component.TestBean"));
+		if (args.length == 0)
+			return;
 		System.out.println(AutoKey.getServerIdFromId(2167583089L));
 		System.out.println(AutoKey.getServerIdFromId(6195073));
 
