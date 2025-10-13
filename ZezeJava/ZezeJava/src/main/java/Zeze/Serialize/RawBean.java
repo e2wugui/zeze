@@ -20,6 +20,7 @@ public class RawBean extends Bean {
 	private final long typeId;
 	private @NotNull Binary rawData = Binary.Empty;
 
+	/*
 	private static final @NotNull VarHandle vh_rawData;
 
 	static {
@@ -29,6 +30,7 @@ public class RawBean extends Bean {
 			throw Task.forceThrow(e);
 		}
 	}
+	*/
 
 	public RawBean(long typeId) {
 		this.typeId = typeId;
