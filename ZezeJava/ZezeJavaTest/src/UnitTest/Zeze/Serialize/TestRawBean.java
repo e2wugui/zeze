@@ -16,8 +16,7 @@ public class TestRawBean extends TestCase {
 		b1.setString3("abc");
 		var bin = new Binary(b1);
 
-		var rb1 = new RawBean(b1.typeId());
-		rb1.setRawDataUnsafe(bin);
+		var rb1 = new RawBean(b1.typeId(), bin);
 		System.out.println(rb1);
 		var bb = ByteBuffer.encode(rb1);
 
@@ -34,6 +33,7 @@ public class TestRawBean extends TestCase {
 		assertEquals(b1, b2);
 	}
 
+	/*
 	// clean all cache, force reload next time
 	private static void forceCleanCache(TableX<?, ?> table) throws Exception {
 		int oldCacheCapacity = table.getTableConf().getCacheCapacity();
@@ -109,4 +109,5 @@ public class TestRawBean extends TestCase {
 			return 0;
 		}, "testRawBean5").call();
 	}
+	*/
 }

@@ -34,45 +34,28 @@ public class RawBean extends Bean {
 		this.typeId = typeId;
 	}
 
-	public @NotNull Binary getRawData() {
-		if (!isManaged())
-			return rawData;
-		var t = Transaction.getCurrentVerifyRead(this);
-		if (t == null)
-			return rawData;
-		var log = (LogBinary)t.getLog(objectId() + 1);
-		return log != null ? log.value : rawData;
+	public RawBean(long typeId, @NotNull Binary rawData) {
+		this.typeId = typeId;
+		this.rawData = rawData;
 	}
 
-	/**
-	 * @param rawData 必须是标准的Bean序列化的数据
-	 */
-	public void setRawDataUnsafe(@NotNull Binary rawData) {
-		//noinspection ConstantValue
-		if (rawData == null)
-			throw new IllegalArgumentException();
-		if (!isManaged()) {
-			this.rawData = rawData;
-			return;
-		}
-		var t = Transaction.getCurrentVerifyWrite(this);
-		t.putLog(new LogBinary(this, 1, vh_rawData, rawData));
+	public @NotNull Binary getRawData() {
+		return rawData;
 	}
 
 	@Override
 	public void reset() {
-		setRawDataUnsafe(Binary.Empty);
+		// 特殊，cache管理，允许修改。
+		rawData = Binary.Empty;
 	}
 
 	public @NotNull RawBean copyIfManaged() {
-		return isManaged() ? copy() : this;
+		return this;
 	}
 
 	@Override
 	public @NotNull RawBean copy() {
-		var c = new RawBean(typeId);
-		c.setRawDataUnsafe(getRawData());
-		return c;
+		return this;
 	}
 
 	@Override
@@ -105,7 +88,7 @@ public class RawBean extends Bean {
 	public void decode(@NotNull IByteBuffer bb) {
 		int i = bb.getReadIndex();
 		bb.skipAllUnknownFields(bb.ReadByte());
-		setRawDataUnsafe(new Binary(bb.getBytes(i, bb.getReadIndex() - i)));
+		rawData = new Binary(bb.getBytes(i, bb.getReadIndex() - i));
 	}
 
 	@Override
@@ -126,24 +109,17 @@ public class RawBean extends Bean {
 
 	@Override
 	public void followerApply(@NotNull Log log) {
-		var vs = ((LogBean)log).getVariables();
-		if (vs == null)
-			return;
-		for (var i = vs.iterator(); i.moveToNext(); ) {
-			var v = i.value();
-			if (v.getVariableId() == 1)
-				rawData = v.binaryValue();
-		}
+		// 本来想在这里几个日志，因为此时这个代理Bean已经没法使用了，后面肯定会知道发生了某个问题。先不记录了。
 	}
 
 	@Override
 	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		setRawDataUnsafe(new Binary(rs.getBytes(Bean.parentsToName(parents) + "rawData")));
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
-		st.appendBinary(Bean.parentsToName(parents) + "rawData", getRawData());
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
