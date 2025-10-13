@@ -45,8 +45,7 @@ public class RawBean extends Bean {
 
 	@Override
 	public void reset() {
-		// 特殊，cache管理，允许修改。
-		rawData = Binary.Empty;
+		throw new UnsupportedOperationException();
 	}
 
 	public @NotNull RawBean copyIfManaged() {
