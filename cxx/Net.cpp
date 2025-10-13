@@ -16,10 +16,11 @@ namespace Net
 	public:
 		static const int eEncryptTypeDisable = 0;
 		static const int eEncryptTypeAes = 1;
+		static const int eEncryptTypeAesNoSecureIp = 2;
 
 		static const int eCompressTypeDisable = 0; // no compress
 		static const int eCompressTypeMppc = 1; // mppc
-		static const int eCompressTypeZstd = 2; // zstd
+		//static const int eCompressTypeZstd = 2; // zstd
 
 	};
 
@@ -189,13 +190,25 @@ namespace Net
 		return Constant::eCompressTypeMppc; // 使用最老的压缩。
 	}
 
+	int Service::ClientEncrypt(int e)
+	{
+		switch (e)
+		{
+			case Constant::eEncryptTypeDisable:
+			case Constant::eEncryptTypeAes:
+			case Constant::eEncryptTypeAesNoSecureIp:
+				return e;
+		}
+		return Constant::eEncryptTypeAesNoSecureIp; // 保底。
+	}
+
 	void Service::StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender)
 	{
 		sender->dhContext = limax::createDHContext(1);
 		const std::vector<unsigned char>& dhResponse = sender->dhContext->generateDHResponse();
 		CHandshake hand;
-		hand.Argument->encryptType = encryptType;
-		if (encryptType == Constant::eEncryptTypeAes)
+		hand.Argument->encryptType = ClientEncrypt(encryptType);
+		if (encryptType == Constant::eEncryptTypeAes || encryptType == Constant::eEncryptTypeAesNoSecureIp)
 			hand.Argument->encryptParam = std::string((const char*)&dhResponse[0], dhResponse.size());
 		hand.Argument->compressS2c = ClientCompress(compressS2c);
 		hand.Argument->compressC2s = ClientCompress(compressC2s);
@@ -235,28 +248,54 @@ namespace Net
 		SHandshake* p = (SHandshake*)_p;
 
 		const int8_t* inputKey = nullptr;
+		int inputKeyLen = 0;
 		const int8_t* outputKey = nullptr;
-		if (p->Argument->encryptType == Constant::eEncryptTypeAes) {
-			auto material = p->Sender->dhContext->computeDHKey(
-				(unsigned char*)p->Argument->encryptParam.data(), (int)p->Argument->encryptParam.size());
+		int outputKeyLen = 0;
+		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
+		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
 
-			size_t key_len = p->Sender->LastAddressBytes.size();
-			int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
+		switch (p->Argument->encryptType)
+		{
+			case Constant::eEncryptTypeAes:
+			{
+				auto material = p->Sender->dhContext->computeDHKey(
+					(unsigned char*)p->Argument->encryptParam.data(), (int)p->Argument->encryptParam.size());
 
-			int32_t half = (int32_t)material.size() / 2;
-			{
-				limax::HmacMD5 hmac(key, 0, (int)key_len);
-				hmac.update((int8_t*)&material[0], 0, half);
-				outputKey = hmac.digest();
+				size_t key_len = p->Sender->LastAddressBytes.size();
+				int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
+
+				int32_t half = (int32_t)material.size() / 2;
+				{
+					outputHmacMD5.reset(new limax::HmacMD5(key, 0, (int)key_len));
+					outputHmacMD5->update((int8_t*)&material[0], 0, half);
+					outputKey = outputHmacMD5->digest();
+					outputKeyLen = 16;
+				}
+				{
+					inputHmacMD5.reset(new limax::HmacMD5(key, 0, (int)key_len));
+					inputHmacMD5->update((int8_t*)&material[0], half, (int32_t)material.size() - half);
+					inputKey = inputHmacMD5->digest();
+					inputKeyLen = 16;
+				}
 			}
+			break;
+
+			case Constant::eEncryptTypeAesNoSecureIp:
 			{
-				limax::HmacMD5 hmac(key, 0, (int)key_len);
-				hmac.update((int8_t*)&material[0], half, (int32_t)material.size() - half);
-				inputKey = hmac.digest();
+				// material 是const std::vector<unsigned char>&，不用释放。
+				auto material = p->Sender->dhContext->computeDHKey(
+					(unsigned char*)p->Argument->encryptParam.data(), (int)p->Argument->encryptParam.size());
+
+				int32_t half = (int32_t)material.size() / 2;
+				outputKey = (const int8_t*)&material[0];
+				outputKeyLen = half;
+				inputKey = (const int8_t*)&material[half];
+				inputKeyLen = (int)(material.size() - half);
 			}
+			break;
 		}
-		p->Sender->SetOutputSecurity(p->Argument->encryptType, outputKey, 16, p->Argument->compressC2s);
-		p->Sender->SetInputSecurity(p->Argument->encryptType, inputKey, 16, p->Argument->compressS2c);
+		p->Sender->SetOutputSecurity(p->Argument->encryptType, outputKey, outputKeyLen, p->Argument->compressC2s);
+		p->Sender->SetInputSecurity(p->Argument->encryptType, inputKey, inputKeyLen, p->Argument->compressS2c);
 		CHandshakeDone done;
 		done.Send(p->Sender.get());
 		p->Sender->dhContext.reset();
@@ -294,6 +333,7 @@ namespace Net
 		case Constant::eEncryptTypeDisable:
 			break;
 		case Constant::eEncryptTypeAes:
+		case Constant::eEncryptTypeAesNoSecureIp:
 			codec = std::shared_ptr<limax::Codec>(new limax::Encrypt(codec, (int8_t*)key, keylen));
 			break;
 			//TODO: 新增加密算法支持这里加case
@@ -324,6 +364,7 @@ namespace Net
 		case Constant::eCompressTypeDisable:
 			break;
 		case Constant::eCompressTypeMppc:
+		case Constant::eEncryptTypeAesNoSecureIp:
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Decode(codec));
 			break;
 			// TODO: 新增压缩算法支持这里加case

@@ -245,6 +245,7 @@ namespace Net
 		int ProcessSHandshake0(Protocol* p);
 		int ProcessKeepAliveRequest(Protocol* _p);
 	public:
+		int ClientEncrypt(int e);
 		void StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender);
 
 		void TryStartKeepAliveCheckTimer();
