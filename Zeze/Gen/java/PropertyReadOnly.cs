@@ -12,9 +12,19 @@ namespace Zeze.Gen.java
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             sw.WriteLine($"{prefix}long typeId();");
+            sw.WriteLine($"{prefix}int preAllocSize();");
             sw.WriteLine($"{prefix}void encode(Zeze.Serialize.ByteBuffer _o_);");
+            sw.WriteLine($"{prefix}void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Transaction.SQLStatement _s_);");
             sw.WriteLine($"{prefix}boolean negativeCheck();");
             sw.WriteLine($"{prefix}{bean.Name} copy();");
+            if (Program.isData(bean))
+                sw.WriteLine($"{prefix}{bean.Name}.Data toData();");
+            sw.WriteLine($"{prefix}void buildString(StringBuilder _s_, int _l_);");
+            sw.WriteLine($"{prefix}long objectId();");
+            sw.WriteLine($"{prefix}int variableId();");
+            sw.WriteLine($"{prefix}Zeze.Transaction.TableKey tableKey();");
+            sw.WriteLine($"{prefix}boolean isManaged();");
+            sw.WriteLine($"{prefix}java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();");
             if (bean.Variables.Count > 0)
                 sw.WriteLine();
             foreach (Variable var in bean.Variables)

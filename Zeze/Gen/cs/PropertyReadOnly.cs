@@ -15,6 +15,12 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public void Encode(ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public bool NegativeCheck();");
             sw.WriteLine($"{prefix}public {bean.Name} Copy();");
+            sw.WriteLine($"{prefix}public void BuildString(System.Text.StringBuilder sb, int level);");
+            sw.WriteLine($"{prefix}public long ObjectId {{ get; }}");
+            sw.WriteLine($"{prefix}public int VariableId {{ get; }}");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.TableKey TableKey {{ get; }}");
+            sw.WriteLine($"{prefix}public bool IsManaged {{ get; }}");
+            sw.WriteLine($"{prefix}public int CapacityHintOfByteBuffer {{ get; }}");
             if (bean.Variables.Count > 0)
                 sw.WriteLine();
             foreach (Variable var in bean.Variables)
