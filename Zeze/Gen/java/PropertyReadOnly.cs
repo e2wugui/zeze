@@ -14,7 +14,7 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}long typeId();");
             sw.WriteLine($"{prefix}int preAllocSize();");
             sw.WriteLine($"{prefix}void encode(Zeze.Serialize.ByteBuffer _o_);");
-            sw.WriteLine($"{prefix}void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Transaction.SQLStatement _s_);");
+            sw.WriteLine($"{prefix}void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);");
             sw.WriteLine($"{prefix}boolean negativeCheck();");
             sw.WriteLine($"{prefix}{bean.Name} copy();");
             if (Program.isData(bean))
