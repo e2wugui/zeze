@@ -111,7 +111,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		}
 
 		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass) {
-			return openCsQueue(name, valueClass, 100);
+			return openCsQueue(name, valueClass, 15);
 		}
 	}
 

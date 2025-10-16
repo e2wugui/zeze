@@ -141,12 +141,12 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		}
 
 		public <T extends Bean> @NotNull LinkedMap<T> open(@NotNull String name, @NotNull Class<T> valueClass) {
-			return open(name, valueClass, 100);
+			return open(name, valueClass, 15);
 		}
 
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
 				@NotNull String name, @NotNull Class<T> valueClass) {
-			return openConcurrent(name, valueClass, 128, 100);
+			return openConcurrent(name, valueClass, 128, 15);
 		}
 
 		public <T extends Bean> @NotNull CHashMap<T> openConcurrent(
