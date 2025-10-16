@@ -79,7 +79,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		}
 
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
-			return open(name, valueClass, 100);
+			return open(name, valueClass, 15);
 		}
 
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
