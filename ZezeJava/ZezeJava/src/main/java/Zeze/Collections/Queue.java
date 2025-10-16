@@ -79,7 +79,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		}
 
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
-			return open(name, valueClass, 15);
+			return open(name, valueClass, 30);
 		}
 
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
@@ -111,7 +111,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		}
 
 		public <T extends Bean> CsQueue<T> openCsQueue(String name, Class<T> valueClass) {
-			return openCsQueue(name, valueClass, 15);
+			return openCsQueue(name, valueClass, 30);
 		}
 	}
 

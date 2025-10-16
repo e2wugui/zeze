@@ -100,7 +100,7 @@ public final class Config {
 	private @NotNull String hotDistributeDir = "distributes";
 	private int deadLockBreakerPeriod = 60000;
 
-	private int procedureLockWatcherMin = 25;
+	private int procedureLockWatcherMin = 50;
 	private long appVersion;
 	private @NotNull String history = "";
 	private int checkpointTransactionPeriod = 30_0000;
