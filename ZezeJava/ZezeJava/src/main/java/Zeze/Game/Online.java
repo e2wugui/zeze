@@ -1801,7 +1801,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 
 		void tryPerform() {
-			if (roleIds.size() > 20)
+			if (roleIds.size() > 10)
 				perform();
 		}
 

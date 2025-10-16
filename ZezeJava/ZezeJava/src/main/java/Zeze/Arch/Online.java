@@ -1531,7 +1531,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 
 		void tryPerform() {
-			if (accounts.size() > 20)
+			if (accounts.size() > 10)
 				perform();
 		}
 
