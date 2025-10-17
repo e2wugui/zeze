@@ -1812,7 +1812,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 						for (var roleId : roleIds)
 							tryRemoveLocal(roleId, true);
 						return 0L;
-					}, "Online.verifyLocal:" + roleIds).call();
+					}, "Online.verifyLocal").call();
 					sendDirect(roleIds, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
 				} catch (Exception e) {
 					logger.error("", e);

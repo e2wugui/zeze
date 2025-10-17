@@ -679,7 +679,7 @@ namespace Zeze.Game
                         {
                             await TryRemoveLocal(roleId);
                             return 0L;
-                        }, "VerifyLocal:" + roleId).CallSynchronously();
+                        }, "Online.VerifyLocal").CallSynchronously();
                     }
                     catch (Exception e)
                     {

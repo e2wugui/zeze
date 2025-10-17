@@ -1542,7 +1542,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 						for (var account : accounts)
 							tryRemoveLocal(account);
 						return 0;
-					}, "Online.verifyLocal:" + accounts).call();
+					}, "Online.verifyLocal").call();
 					sendAccountsDirect(accounts, CheckLinkSession.TypeId_, new Binary(new CheckLinkSession().encode()), true);
 				} catch (Exception e) {
 					logger.error("", e);
