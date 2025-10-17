@@ -42,7 +42,7 @@ public abstract class AbstractProviderImplement implements Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<>(Zeze.Builtin.Provider.Send.class, Zeze.Builtin.Provider.Send.TypeId_);
             factoryHandle.Factory = Zeze.Builtin.Provider.Send::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendResponse", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendResponse", Zeze.Transaction.TransactionLevel.None);
             factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendResponse", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }

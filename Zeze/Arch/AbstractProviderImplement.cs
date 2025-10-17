@@ -47,7 +47,7 @@ namespace Zeze.Arch
             service.AddFactoryHandle(47281226998238, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Provider.Send(),
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessSendResponse", Zeze.Transaction.TransactionLevel.Serializable),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessSendResponse", Zeze.Transaction.TransactionLevel.None),
                 Mode = _reflect.GetDispatchMode("ProcessSendResponse", Zeze.Transaction.DispatchMode.Normal),
             });
             service.AddFactoryHandle(47280110454586, new Zeze.Net.Service.ProtocolFactoryHandle()

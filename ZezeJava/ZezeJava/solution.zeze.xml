@@ -397,7 +397,7 @@
 				<variable name="ErrorLinkSids" id="1" type="list" value="long"/>
 			</bean>
 
-			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" UseData="false" handle="client"/>
+			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" TransactionLevel="None" UseData="false" handle="client"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>
