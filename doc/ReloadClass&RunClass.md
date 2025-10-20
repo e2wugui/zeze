@@ -31,7 +31,7 @@ reloadClassServer.start();
 1. 构造服务
 '''
 	/**
-	 * 构造ReloadClassServer
+	 * 构造RunClassServer
 	 *
 	 * @param app         应用App实例
 	 * @param urlPath     上传文件的urlPath
