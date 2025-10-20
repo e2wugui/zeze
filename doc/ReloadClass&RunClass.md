@@ -47,5 +47,5 @@ reloadClassServer.start();
 '''
 runClassServer = new RunClassServer(this, "/runClass", "clazz", "filename");
 '''
-4. uploadDir是存放上传的class的目录，重启不会再次运行。
-5. RunClass每次上传都执行一次，必须保持Classs文件名是新的，重名的class不会重新装载新的，会执行老的class。覆盖热更see ReloadClass。
+4. uploadDir是存放上传的class的目录，重名的class文件会覆盖。重启不会再次执行目录下的class。
+5. RunClass每次上传一个class，每次执行一次。

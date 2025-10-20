@@ -19,7 +19,6 @@ import org.jetbrains.annotations.NotNull;
 public class RunClassServer implements HttpFileUploadHandle {
 	private final String uploadDir;
 	private final String fileVarName;
-	private final BytecodeClassLoader classLoader = new BytecodeClassLoader();
 
 	/**
 	 * 构造ReloadClassServer
@@ -57,6 +56,7 @@ public class RunClassServer implements HttpFileUploadHandle {
 		if (fileUpload.renameTo(destFile)) {
 			var path = destFile.toPath();
 			var classBytes = Files.readAllBytes(path);
+			var classLoader = new BytecodeClassLoader();
 			var loadClass = classLoader.defineClass(classBytes);
 			var result = "";
 			if (Runnable.class.isAssignableFrom(loadClass)) {
