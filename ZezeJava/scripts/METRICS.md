@@ -82,14 +82,14 @@ percli apply --force -f built/zeze_output.json
   sum by(job, app)(rate(protocol_send_total[5m]))
 
 
-- 每秒发协议bytes [5m]
-
-  sum by(job, app)(rate(protocol_send_bytes_total[5m]))
-
-
 - 每秒收协议数 [5m]
 
   sum by(job, app)(rate(protocol_duration_seconds_count[5m]))
+
+
+- 每秒发协议bytes [5m]
+
+  sum by(job, app)(rate(protocol_send_bytes_total[5m]))
 
   "format": { "unit": "bytes" }
 
