@@ -106,16 +106,18 @@ import (
 	}
 }
 
-// ===== jvm相关 =====
-#cpuPanel: #briefPanel & {
-	#name:   "cpu时间/s [5m]"
+#decimalBriefPanel: #briefPanel & {
 	#plugin: #decimalStatChart
+}
+
+// ===== jvm相关 =====
+#cpuPanel: #decimalBriefPanel & {
+	#name:   "cpu时间/s [5m]"
 	#query:  "rate(process_cpu_seconds_total[5m])"
 }
 
-#gcPanel: #briefPanel & {
+#gcPanel: #decimalBriefPanel & {
 	#name:   "gc时间/s [5m]"
-	#plugin: #decimalStatChart
 	#query:  "sum by(job, app) (rate(jvm_gc_collection_seconds_count[5m]))"
 }
 
@@ -132,15 +134,13 @@ import (
 }
 
 // ===== 协议 =====
-#protoSendCountPanel: #briefPanel & {
+#protoSendCountPanel: #decimalBriefPanel & {
 	#name:   "发协议数/s [5m]"
-	#plugin: #decimalStatChart
 	#query:  "sum by(job, app)(rate(protocol_send_total[5m]))"
 }
 
-#protoRecvCountPanel: #briefPanel & {
+#protoRecvCountPanel: #decimalBriefPanel & {
 	#name:   "收协议数/s [5m]"
-	#plugin: #decimalStatChart
 	#query:  "sum by(job, app)(rate(protocol_duration_seconds_count[5m]))"
 }
 
@@ -157,22 +157,46 @@ import (
 }
 
 // ===== 事务 =====
-#tpsPanel: #briefPanel & {
+#tpsPanel: #decimalBriefPanel & {
 	#name:   "事务/s [5m]"
-	#plugin: #decimalStatChart
 	#query:  "sum by(job, app)(rate(procedurecompletedtotal[5m]))"
 }
 
-#transactionErrorPanel: #briefPanel & {
+#transactionErrorPanel: #decimalBriefPanel & {
 	#name:   "1h事务出错数"
-	#plugin: #decimalStatChart
 	#query:  "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))"
 }
 
-#taskRatePanel: #briefPanel & {
+#taskRatePanel: #decimalBriefPanel & {
 	#name:   "task/s [5m]"
-	#plugin: #decimalStatChart
+
 	#query:  "sum by(job, app)(rate(taskdurationseconds_count[5m]))"
+}
+
+// ===== 场景 =====
+#instanceCountPanel: #decimalBriefPanel & {
+	#name:   "副本数"
+	#query:  "scene_started_total{scene_type=\"instance\"} - scene_destroyed_total{scene_type=\"instance\"}"
+}
+
+#roleCountPanel: #decimalBriefPanel & {
+	#name:   "在线人数"
+	#query:  "fighter_started_total{fighter_type=\"role\"} - fighter_offline_total{fighter_type=\"role\"}"
+}
+
+#npcCountPanel: #decimalBriefPanel & {
+	#name:   "npc数"
+	#query:  "fighter_started_total{fighter_type=\"monster\"} - fighter_offline_total{fighter_type=\"monster\"}"
+}
+
+#projectileCountPanel: #decimalBriefPanel & {
+	#name:   "projectile数"
+	#query:  "fighter_started_total{fighter_type=\"projectile\"} - fighter_offline_total{fighter_type=\"projectile\"}"
+}
+
+#staticSceneCountPanel: #decimalBriefPanel & {
+	#name:   "static场景数"
+	#query:  "scene_started_total{scene_type=\"static\"} - scene_destroyed_total{scene_type=\"static\"}"
 }
 
 // ===== dashboard =====
@@ -208,6 +232,17 @@ dashboardBuilder & {
 					#tpsPanel.panel,
 					#transactionErrorPanel.panel,
 					#taskRatePanel.panel,
+				]
+			},
+			{
+				#title: "场景"
+				#cols:  2
+				#panels: [
+					#instanceCountPanel.panel,
+					#roleCountPanel.panel,
+					#npcCountPanel.panel,
+					#projectileCountPanel.panel,
+					#staticSceneCountPanel.panel,
 				]
 			},
 
