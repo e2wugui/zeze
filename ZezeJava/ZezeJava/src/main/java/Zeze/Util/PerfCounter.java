@@ -345,6 +345,9 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private long lastCpuTime = osBean.getProcessCpuTime();
 	private int clearSerial;
 	private @Nullable ScheduledFuture<?> scheduleFuture;
+	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
+	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
+
 
 	public static @NotNull PerfCounter instance() {
 		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
@@ -469,6 +472,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
 		// addRunTime(name, timeNs);
 		getOrAddProcedureInfo(name).getOrAddResult(resultCode).increment();
+	}
+
+	@Override
+	public void procedureRedo(@NotNull String name) {
+		transactionRedoCounter.increment();
+	}
+
+	@Override
+	public void procedureRedoAndReleaseLock(@NotNull String name) {
+		transactionRedoAndReleaseLockCounter.increment();
 	}
 
 	@Override

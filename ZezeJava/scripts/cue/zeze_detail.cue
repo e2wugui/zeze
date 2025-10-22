@@ -104,6 +104,24 @@ import (
 	#seriesNameFormat: "{{procedure}} - {{result_code}}"
 }
 
+#procedureRedoRateDetailPanel: #timeSeriesPanel & {
+	#name:             "每5m事务redo数 $job-$app"
+	#query:            "increase(procedure_redo_total{ \(#filter) }[5m])"
+	#seriesNameFormat: "{{procedure}}"
+}
+
+#procedureRedoAndReleaseLockRateDetailPanel: #timeSeriesPanel & {
+	#name:             "每5m事务redoAndReleaseLock数 $job-$app"
+	#query:            "increase(procedure_redo_and_release_lock_total{ \(#filter) }[5m])"
+	#seriesNameFormat: "{{procedure}}"
+}
+
+#procedureManyLocksRateDetailPanel: #timeSeriesPanel & {
+	#name:             "每5m事务(>50lock)数 $job-$app"
+	#query:            "increase(procedure_many_locks_count{ \(#filter) }[5m])"
+	#seriesNameFormat: "{{procedure}}"
+}
+
 // ===== 详细任务监控 =====
 #taskRateDetailPanel: #timeSeriesPanel & {
 	#name:             "每秒task数 [5m] $job-$app"
@@ -206,6 +224,9 @@ dashboardBuilder & {
 				#cols:  2
 				#panels: [
 					#procedureRateDetailPanel.panel,
+					#procedureRedoRateDetailPanel.panel,
+					#procedureRedoAndReleaseLockRateDetailPanel.panel,
+					#procedureManyLocksRateDetailPanel.panel,
 					#procedureDurationP95DetailPanel.panel,
 					#procedureDurationP99DetailPanel.panel,
 					#procedureErrorRateDetailPanel.panel,

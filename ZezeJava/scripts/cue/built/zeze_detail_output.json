@@ -204,6 +204,84 @@
                 "kind": "Panel",
                 "spec": {
                     "display": {
+                        "name": "每5m事务redo数 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(procedure_redo_total{ job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每5m事务redoAndReleaseLock数 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(procedure_redo_and_release_lock_total{ job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每5m事务(>50lock)数 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(procedure_many_locks_count{ job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_4": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
                         "name": "事务完成时间p95 [5m] $job-$app"
                     },
                     "plugin": {
@@ -226,7 +304,7 @@
                     ]
                 }
             },
-            "2_2": {
+            "2_5": {
                 "kind": "Panel",
                 "spec": {
                     "display": {
@@ -252,7 +330,7 @@
                     ]
                 }
             },
-            "2_3": {
+            "2_6": {
                 "kind": "Panel",
                 "spec": {
                     "display": {
@@ -680,6 +758,33 @@
                             "height": 6,
                             "content": {
                                 "$ref": "#/spec/panels/2_3"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 12,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_4"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 12,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_5"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 18,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_6"
                             }
                         }
                     ]

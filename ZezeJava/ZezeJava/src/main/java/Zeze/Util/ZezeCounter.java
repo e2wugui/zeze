@@ -130,6 +130,16 @@ public interface ZezeCounter {
 	void procedureEnd(@NotNull String name, long resultCode, long timeNs);
 
 	/**
+	 * 事务redo
+	 */
+	void procedureRedo(@NotNull String name);
+
+	/**
+	 * 事务redoAndReleaseLock
+	 */
+	void procedureRedoAndReleaseLock(@NotNull String name);
+
+	/**
 	 * 根据表ID获取其绑定的表统计器
 	 */
 	@NotNull TableCounter getOrAddTableInfo(long tableId);

@@ -19,10 +19,6 @@ import org.jetbrains.annotations.Nullable;
 
 public final class Transaction {
 	private static final @NotNull Logger logger = LogManager.getLogger(Transaction.class);
-	private static final @Nullable ZezeCounter.LongCounter transactionRedoCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocCounter("Transaction.Redo") : null;
-	private static final @Nullable ZezeCounter.LongCounter transactionRedoAndReleaseLockCounter
-			= ZezeCounter.instance != null ? ZezeCounter.instance.allocCounter("Transaction.RedoAndReleaseLock") : null;
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
 	public static @NotNull Transaction create(@NotNull Locks locks) {
@@ -368,12 +364,12 @@ public final class Transaction {
 
 					if (checkResult == CheckResult.RedoAndReleaseLock) {
 						// logger.debug("checkResult.RedoAndReleaseLock({}): break", procedure);
-						if (transactionRedoAndReleaseLockCounter != null)
-							transactionRedoAndReleaseLockCounter.increment();
+						if (ZezeCounter.instance != null)
+							ZezeCounter.instance.procedureRedoAndReleaseLock(procedure.getActionName());
 						break;
 					}
-					if (transactionRedoCounter != null)
-						transactionRedoCounter.increment();
+					if (ZezeCounter.instance != null)
+						ZezeCounter.instance.procedureRedo(procedure.getActionName());
 				}
 				//}
 				//finally {

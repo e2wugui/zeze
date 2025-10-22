@@ -128,6 +128,26 @@ import (
 	#query: "sum by(job, app)(rate(taskdurationseconds_count[5m]))"
 }
 
+#currentTransactionCountPanel: #decimalBriefPanel & {
+	#name:  "当前正在处理事务数"
+	#query: "sum by(job, app)(procedure_started_total) - sum by(job, app)(procedure_completed_total)"
+}
+
+#transactionRedoCountPanel: #decimalBriefPanel & {
+	#name:  "1h事务redo数"
+	#query: "sum by(job, app)(increase(procedure_redo_total[1h]))"
+}
+
+#transactionRedoAndReleaseLockCountPanel: #decimalBriefPanel & {
+	#name:  "1h事务redoAndReleaseLock数"
+	#query: "sum by(job, app)(increase(procedure_redo_and_release_lock_total[1h]))"
+}
+
+#transactionManyLocksCountPanel: #decimalBriefPanel & {
+	#name:  "1h事务(>50lock)数"
+	#query: "sum by(job, app)(increase(procedure_many_locks_count[1h]))"
+}
+
 // ===== 场景 =====
 #instanceCountPanel: #decimalBriefPanel & {
 	#name:  "副本数"
@@ -184,8 +204,12 @@ dashboardBuilder & {
 				#title: "事务"
 				#cols:  3
 				#panels: [
+					#currentTransactionCountPanel.panel,
 					#tpsPanel.panel,
 					#transactionErrorPanel.panel,
+					#transactionRedoCountPanel.panel,
+					#transactionRedoAndReleaseLockCountPanel.panel,
+					#transactionManyLocksCountPanel.panel,
 					#taskRatePanel.panel,
 				]
 			},

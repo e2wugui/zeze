@@ -115,6 +115,22 @@ percli apply 就是based on cue，将cue生成的dashboard配置应用到perses�
 
 ### 事务
 
+- 当前正在处理事务数
+
+  sum by(job, app)(procedure_started_total) - sum by(job, app)(procedure_completed_total)
+
+- 1h事务redo数
+
+  sum by(job, app)(increase(procedure_redo_total[1h]))
+
+- 1h事务redoAndReleaseLock数
+
+  sum by(job, app)(increase(procedure_redo_and_release_lock_total[1h]))
+
+- 1h事务(>50lock)数
+
+  sum by(job, app)(increase(procedure_many_locks_count[1h]))
+
 - 每秒处理事务 [5m]
 
   sum by(job, app)(rate(procedure_completed_total[5m]))
@@ -185,6 +201,17 @@ filter 也以这两个为准
   rate(procedure_completed_total[5m])
   ```
 
+- 每5m事务redo数
+
+  increase(procedure_redo_total[5m])
+
+- 每5m事务redoAndReleaseLock数
+
+  increase(procedure_redo_and_release_lock_total[5m])
+
+- 每5m事务(>50lock)数
+
+  increase(procedure_many_locks_count[5m])
 
 - 事务完成时间p95 [5m]
 

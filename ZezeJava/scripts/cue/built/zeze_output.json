@@ -319,6 +319,39 @@
                 "kind": "Panel",
                 "spec": {
                     "display": {
+                        "name": "当前正在处理事务数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(procedure_started_total) - sum by(job, app)(procedure_completed_total)",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
                         "name": "事务/s [5m]"
                     },
                     "plugin": {
@@ -348,7 +381,7 @@
                     ]
                 }
             },
-            "2_1": {
+            "2_2": {
                 "kind": "Panel",
                 "spec": {
                     "display": {
@@ -381,7 +414,106 @@
                     ]
                 }
             },
-            "2_2": {
+            "2_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "1h事务redo数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(increase(procedure_redo_total[1h]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_4": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "1h事务redoAndReleaseLock数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(increase(procedure_redo_and_release_lock_total[1h]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_5": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "1h事务(>50lock)数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(increase(procedure_many_locks_count[1h]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_6": {
                 "kind": "Panel",
                 "spec": {
                     "display": {
@@ -705,6 +837,42 @@
                             "height": 6,
                             "content": {
                                 "$ref": "#/spec/panels/2_2"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_3"
+                            }
+                        },
+                        {
+                            "x": 8,
+                            "y": 6,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_4"
+                            }
+                        },
+                        {
+                            "x": 16,
+                            "y": 6,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_5"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 12,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_6"
                             }
                         }
                     ]

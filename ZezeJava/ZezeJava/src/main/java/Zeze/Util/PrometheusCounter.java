@@ -200,6 +200,12 @@ public class PrometheusCounter implements ZezeCounter {
 			.labelNames("procedure", "result_code").register();
 	private final Histogram procedure_duration_seconds = Histogram.builder().name("procedure_duration_seconds")
 			.labelNames("procedure", "result_code").register();
+	private final Counter procedure_redo = Counter.builder().name("procedure_redo")
+			.labelNames("procedure").register();
+	private final Counter procedure_redo_and_release_lock = Counter.builder().name("procedure_redo_and_release_lock")
+			.labelNames("procedure").register();
+	private final Histogram procedure_many_locks = Histogram.builder().name("procedure_many_locks")
+			.labelNames("procedure").register();
 
 	private final Counter database_table_operation = Counter.builder().name("database_table_operation")
 			.labelNames("table", "operation").register();
@@ -370,6 +376,20 @@ public class PrometheusCounter implements ZezeCounter {
 	public void procedureEnd(@NotNull String name, long resultCode, long timeNs) {
 		procedure_completed.labelValues(name, String.valueOf(resultCode)).inc();
 		procedure_duration_seconds.labelValues(name, String.valueOf(resultCode)).observe(Unit.nanosToSeconds(timeNs));
+	}
+
+	@Override
+	public void procedureRedo(@NotNull String name) {
+		procedure_redo.labelValues(name).inc();
+	}
+
+	@Override
+	public void procedureRedoAndReleaseLock(@NotNull String name) {
+		procedure_redo_and_release_lock.labelValues(name).inc();
+	}
+
+	public void procedureManyLocks(@NotNull String name, int count) {
+		procedure_many_locks.labelValues(name).observe(count);
 	}
 
 	@Override
