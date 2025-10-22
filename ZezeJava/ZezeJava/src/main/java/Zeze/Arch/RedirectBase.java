@@ -245,6 +245,12 @@ public class RedirectBase {
 
 	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
 													@NotNull Func0<RedirectFuture<T>> func) {
+		return runFuture(level, func, "RedirectLoopBack");
+	}
+
+	public <T> @NotNull RedirectFuture<T> runFuture(@Nullable TransactionLevel level,
+													@NotNull Func0<RedirectFuture<T>> func,
+													@NotNull String actionName) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
@@ -266,11 +272,15 @@ public class RedirectBase {
 				throw e;
 			}
 			return Procedure.Success;
-		}, "Redirect Loop Back", level), DispatchMode.Normal);
+		}, actionName, level), DispatchMode.Normal);
 		return future;
 	}
 
 	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action) {
+		runVoid(level, action, "RedirectLoopBack");
+	}
+
+	public void runVoid(@Nullable TransactionLevel level, @NotNull Action0 action, @NotNull String actionName) {
 		Transaction t;
 		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
@@ -285,6 +295,6 @@ public class RedirectBase {
 		Task.executeUnsafe(providerApp.zeze.newProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, "Redirect Loop Back", level), DispatchMode.Normal);
+		}, actionName, level), DispatchMode.Normal);
 	}
 }

@@ -33,8 +33,8 @@ public final class ProcedureStatistics {
 
 		static long getTotalCount(@NotNull String procedureName) {
 			long total = 0;
-			if (ZezeCounter.instance instanceof PerfCounter counter) {
-				var pInfo = counter.getProcedureInfo(procedureName);
+			if (ZezeCounter.instance instanceof PerfCounter) {
+				var pInfo = ((PerfCounter)ZezeCounter.instance).getProcedureInfo(procedureName);
 				if (pInfo != null) {
 					for (var v : pInfo.getResultMapLast())
 						total += v.sum();

@@ -409,11 +409,11 @@ public final class GenModule extends ReentrantLock {
 		sb.appendLine("{}if (_t_ == null) { // local: loop-back", prefix);
 		if (returnName.equals("void")) {
 			sb.appendLine("{}    _redirect_.runVoid(Zeze.Transaction.TransactionLevel.{},", prefix, m.transactionLevel);
-			sb.appendLine("{}        () -> super.{}({}));", prefix, m.method.getName(), m.getBaseCallString());
+			sb.appendLine("{}        () -> super.{}({}), \"RedirectLoopBack_{}\");", prefix, m.method.getName(), m.getBaseCallString(), m.method.getName());
 			sb.appendLine("{}    return;", prefix);
 		} else {
 			sb.appendLine("{}    return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.{},", prefix, m.transactionLevel);
-			sb.appendLine("{}        () -> super.{}({}));", prefix, m.method.getName(), m.getBaseCallString());
+			sb.appendLine("{}        () -> super.{}({}), \"RedirectLoopBack_{}\");", prefix, m.method.getName(), m.getBaseCallString(), m.method.getName());
 		}
 		sb.appendLine("{}}", prefix);
 		sb.appendLine();

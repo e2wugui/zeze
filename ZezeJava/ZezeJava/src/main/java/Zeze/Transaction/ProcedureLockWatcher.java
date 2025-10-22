@@ -26,9 +26,8 @@ public class ProcedureLockWatcher {
 		if (lockCount < procedureLockWatcherMin)
 			return;
 
-		if (ZezeCounter.instance instanceof PrometheusCounter counter){
-			counter.procedureManyLocks(p.getActionName(), lockCount);
-		}
+		if (ZezeCounter.instance instanceof PrometheusCounter)
+			((PrometheusCounter)ZezeCounter.instance).procedureManyLocks(p.getActionName(), lockCount);
 
 		var max = procedureMaxLocks.computeIfAbsent(p.getActionName(), __ -> new AtomicInteger());
 		for (; ; ) {

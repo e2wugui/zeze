@@ -10,7 +10,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             var _t_ = _redirect_.choiceHash(this, hash, getConcurrentLevel(keyHint.getRankType()));
             if (_t_ == null) { // local: loop-back
                 return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
-                    () -> super.removeRank(hash, keyHint, roleId));
+                    () -> super.removeRank(hash, keyHint, roleId), "RedirectLoopBack_removeRank");
             }
 
             var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
@@ -55,7 +55,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             var _t_ = _redirect_.choiceHash(this, hash, getConcurrentLevel(keyHint.getRankType()));
             if (_t_ == null) { // local: loop-back
                 return _redirect_.runFuture(Zeze.Transaction.TransactionLevel.Serializable,
-                    () -> super.updateRank(hash, keyHint, roleId, value));
+                    () -> super.updateRank(hash, keyHint, roleId, value), "RedirectLoopBack_updateRank");
             }
 
             var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();

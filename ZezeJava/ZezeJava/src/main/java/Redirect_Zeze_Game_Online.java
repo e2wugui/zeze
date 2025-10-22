@@ -8,7 +8,7 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         var _t_ = _redirect_.choiceServer(this, serverId, false);
         if (_t_ == null) { // local: loop-back
             _redirect_.runVoid(Zeze.Transaction.TransactionLevel.None,
-                () -> super.redirectRemoveLocal(serverId, roleId, instanceName));
+                () -> super.redirectRemoveLocal(serverId, roleId, instanceName), "RedirectLoopBack_redirectRemoveLocal");
             return;
         }
 
