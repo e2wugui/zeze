@@ -1,4 +1,4 @@
-module: "cue.example"
+module: "cue.zeze"
 language: {
 	version: "v0.14.2"
 }
