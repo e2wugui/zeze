@@ -1,0 +1,772 @@
+{
+    "kind": "Dashboard",
+    "metadata": {
+        "name": "brief",
+        "createdAt": "0001-01-01T00:00:00Z",
+        "project": "zeze",
+        "updatedAt": "0001-01-01T00:00:00Z",
+        "version": 0
+    },
+    "spec": {
+        "datasources": {
+            "local": {
+                "default": true,
+                "plugin": {
+                    "kind": "PrometheusDatasource",
+                    "spec": {
+                        "proxy": {
+                            "kind": "HTTPProxy",
+                            "spec": {
+                                "url": "http://localhost:9090",
+                                "allowedEndpoints": [
+                                    {
+                                        "endpointPattern": "/api/v1/labels",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/series",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/metadata",
+                                        "method": "GET"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/query",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/query_range",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/label/([a-zA-Z0-9_-]+)/values",
+                                        "method": "GET"
+                                    }
+                                ]
+                            }
+                        },
+                        "scrapeInterval": "15s"
+                    }
+                }
+            }
+        },
+        "panels": {
+            "0_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "cpu时间/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "rate(process_cpu_seconds_total[5m])",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "0_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "gc时间/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app) (rate(jvm_gc_collection_seconds_count[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "0_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "jvm内存（heap+noheap）"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "bytes",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app) (jvm_memory_used_bytes)",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "0_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "jvm内存使用率（heap）"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "percent-decimal"
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "jvm_memory_used_bytes{area=\"heap\"} / jvm_memory_max_bytes{area=\"heap\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "1_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "发协议数/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(protocol_send_total[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "1_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "收协议数/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(protocol_duration_seconds_count[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "1_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "发协议bytes/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "bytes",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(protocol_send_bytes_total[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "1_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "收协议bytes/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "bytes",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(protocol_recv_bytes_total[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "事务/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(procedurecompletedtotal[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "1h事务出错数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "task/s [5m]"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by(job, app)(rate(taskdurationseconds_count[5m]))",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "副本数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "scene_started_total{scene_type=\"instance\"} - scene_destroyed_total{scene_type=\"instance\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "在线人数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "fighter_started_total{fighter_type=\"role\"} - fighter_offline_total{fighter_type=\"role\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "npc数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "fighter_started_total{fighter_type=\"monster\"} - fighter_offline_total{fighter_type=\"monster\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "projectile数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "fighter_started_total{fighter_type=\"projectile\"} - fighter_offline_total{fighter_type=\"projectile\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_4": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "static场景数"
+                    },
+                    "plugin": {
+                        "kind": "StatChart",
+                        "spec": {
+                            "calculation": "last-number",
+                            "format": {
+                                "unit": "decimal",
+                                "shortValues": true
+                            },
+                            "sparkline": {}
+                        }
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "scene_started_total{scene_type=\"static\"} - scene_destroyed_total{scene_type=\"static\"}",
+                                        "seriesNameFormat": "{{job}}-{{app}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "layouts": [
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "jvm"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_1"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_2"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_3"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "协议"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/1_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/1_1"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/1_2"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/1_3"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "事务"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_0"
+                            }
+                        },
+                        {
+                            "x": 8,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_1"
+                            }
+                        },
+                        {
+                            "x": 16,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_2"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "场景"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_1"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_2"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_3"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 12,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_4"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "duration": "3h",
+        "refreshInterval": "30s"
+    }
+}

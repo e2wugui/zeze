@@ -1,0 +1,830 @@
+{
+    "kind": "Dashboard",
+    "metadata": {
+        "name": "detail",
+        "createdAt": "0001-01-01T00:00:00Z",
+        "project": "zeze",
+        "updatedAt": "0001-01-01T00:00:00Z",
+        "version": 0
+    },
+    "spec": {
+        "datasources": {
+            "local": {
+                "default": true,
+                "plugin": {
+                    "kind": "PrometheusDatasource",
+                    "spec": {
+                        "proxy": {
+                            "kind": "HTTPProxy",
+                            "spec": {
+                                "url": "http://localhost:9090",
+                                "allowedEndpoints": [
+                                    {
+                                        "endpointPattern": "/api/v1/labels",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/series",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/metadata",
+                                        "method": "GET"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/query",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/query_range",
+                                        "method": "POST"
+                                    },
+                                    {
+                                        "endpointPattern": "/api/v1/label/([a-zA-Z0-9_-]+)/values",
+                                        "method": "GET"
+                                    }
+                                ]
+                            }
+                        },
+                        "scrapeInterval": "15s"
+                    }
+                }
+            }
+        },
+        "variables": [
+            {
+                "kind": "ListVariable",
+                "spec": {
+                    "name": "job",
+                    "allowAllValue": false,
+                    "allowMultiple": false,
+                    "plugin": {
+                        "kind": "PrometheusLabelValuesVariable",
+                        "spec": {
+                            "datasource": {
+                                "kind": "PrometheusDatasource",
+                                "name": "local"
+                            },
+                            "labelName": "job",
+                            "matchers": [
+                                "up{}"
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                "kind": "ListVariable",
+                "spec": {
+                    "name": "app",
+                    "allowAllValue": false,
+                    "allowMultiple": false,
+                    "plugin": {
+                        "kind": "PrometheusLabelValuesVariable",
+                        "spec": {
+                            "datasource": {
+                                "kind": "PrometheusDatasource",
+                                "name": "local"
+                            },
+                            "labelName": "app",
+                            "matchers": [
+                                "up{job=~\"$job\"}"
+                            ]
+                        }
+                    }
+                }
+            }
+        ],
+        "panels": {
+            "0_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒发协议数量 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(protocol_send_total{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{protocol}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "0_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒收协议数量 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(protocol_duration_seconds_count{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{protocol}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "1_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒写锁数 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(database_table_operation_total{operation=\"writeLock\", job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{table}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒事务数 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "rate(procedure_completed_total{ job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "事务完成时间p95 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "histogram_quantile(0.95, rate(procedure_duration_seconds_bucket{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "事务完成时间p99 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "histogram_quantile(0.99, rate(procedure_duration_seconds_bucket{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{procedure}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "2_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每5m事务出错数 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "sum by (procedure, result_code) (increase(procedure_completed_total{result_code!=\"0\", job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{procedure}} - {{result_code}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒task数 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "rate(task_duration_seconds_count{ job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{task}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "task完成时间p95 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "histogram_quantile(0.95, rate(task_duration_seconds_bucket{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{task}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "3_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "task完成时间p99 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "histogram_quantile(0.99, rate(task_duration_seconds_bucket{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{task}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "4_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒send数 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(service_send_total{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{service}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "4_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒send bytes [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(service_send_bytes_total{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{service}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "4_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒recv数 [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(service_recv_total{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{service}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "4_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "每秒recv bytes [5m] $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "topk(10, rate(service_recv_bytes_total{ job=~\"$job\",app=~\"$app\" }[5m]))",
+                                        "seriesNameFormat": "{{service}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "5_0": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "5m副本新开启 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(scene_started_total{scene_type=\"instance\", job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{scene}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "5_1": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "5m角色新创建 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(fighter_started_total{fighter_type=\"role\", job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{fighter}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "5_2": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "5m npc新创建 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(fighter_started_total{fighter_type=\"monster\", job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{fighter}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "5_3": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "5m projectile新创建 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(fighter_started_total{fighter_type=\"projectile\", job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{fighter}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "5_4": {
+                "kind": "Panel",
+                "spec": {
+                    "display": {
+                        "name": "5m 静态场景新创建 $job-$app"
+                    },
+                    "plugin": {
+                        "kind": "TimeSeriesChart",
+                        "spec": {}
+                    },
+                    "queries": [
+                        {
+                            "kind": "TimeSeriesQuery",
+                            "spec": {
+                                "plugin": {
+                                    "kind": "PrometheusTimeSeriesQuery",
+                                    "spec": {
+                                        "query": "increase(scene_started_total{scene_type=\"static\", job=~\"$job\",app=~\"$app\" }[5m])",
+                                        "seriesNameFormat": "{{scene}}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "layouts": [
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细协议监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/0_1"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细数据库监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 24,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/1_0"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细事务监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_1"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_2"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/2_3"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细任务监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_0"
+                            }
+                        },
+                        {
+                            "x": 8,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_1"
+                            }
+                        },
+                        {
+                            "x": 16,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/3_2"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细服务监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/4_0"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/4_1"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/4_2"
+                            }
+                        },
+                        {
+                            "x": 12,
+                            "y": 6,
+                            "width": 12,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/4_3"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "kind": "Grid",
+                "spec": {
+                    "display": {
+                        "title": "详细场景监控"
+                    },
+                    "items": [
+                        {
+                            "x": 0,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/5_0"
+                            }
+                        },
+                        {
+                            "x": 8,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/5_1"
+                            }
+                        },
+                        {
+                            "x": 16,
+                            "y": 0,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/5_2"
+                            }
+                        },
+                        {
+                            "x": 0,
+                            "y": 6,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/5_3"
+                            }
+                        },
+                        {
+                            "x": 8,
+                            "y": 6,
+                            "width": 8,
+                            "height": 6,
+                            "content": {
+                                "$ref": "#/spec/panels/5_4"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "duration": "3h",
+        "refreshInterval": "30s"
+    }
+}

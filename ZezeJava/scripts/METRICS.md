@@ -117,7 +117,7 @@ percli apply --force -f built/zeze_output.json
 
 ## 详细监控
 
-variables: app, job
+variables: job,app
 
 filter 也以这两个为准
 
@@ -135,6 +135,18 @@ filter 也以这两个为准
 
   topk(10, rate(protocol_duration_seconds_count[5m]))
 
+
+- 协议完成时间p95 [5m]
+
+  ```
+  histogram_quantile(0.95, rate(protocol_duration_seconds_bucket[5m]))
+  ```
+
+- 事务完成时间p99 [5m]
+
+  ```
+  histogram_quantile(0.99, rate(protocol_duration_seconds_bucket[5m]))
+  ```
 
 
 ### db

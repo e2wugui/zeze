@@ -1,57 +1,12 @@
 package zeze
 
 import (
+	"domain.com/ds"
 	dashboardBuilder "github.com/perses/perses/cue/dac-utils/dashboard"
 	panelGroupsBuilder "github.com/perses/perses/cue/dac-utils/panelgroups"
 	panelBuilder "github.com/perses/plugins/prometheus/sdk/cue/panel"
-	// commonProxy "github.com/perses/perses/cue/common/proxy"
-	// promDs "github.com/perses/plugins/prometheus/schemas/datasource:model"
 	promQuery "github.com/perses/plugins/prometheus/schemas/prometheus-time-series-query:model"
 )
-
-#localDatasources: {
-	local: {
-		default: true
-		plugin: {
-			kind: "PrometheusDatasource"
-			spec: {
-				proxy: {
-					kind: "HTTPProxy"
-					spec: {
-						url: "http://localhost:9090"
-						allowedEndpoints: [
-							{
-								endpointPattern: "/api/v1/labels"
-								method:          "POST"
-							},
-							{
-								endpointPattern: "/api/v1/series"
-								method:          "POST"
-							},
-							{
-								endpointPattern: "/api/v1/metadata"
-								method:          "GET"
-							},
-							{
-								endpointPattern: "/api/v1/query"
-								method:          "POST"
-							},
-							{
-								endpointPattern: "/api/v1/query_range"
-								method:          "POST"
-							},
-							{
-								endpointPattern: "/api/v1/label/([a-zA-Z0-9_-]+)/values"
-								method:          "GET"
-							},
-						]
-					}
-				}
-				scrapeInterval: "15s"
-			}
-		}
-	}
-}
 
 // 设置chart样式
 #baseStatChart: {
@@ -112,13 +67,13 @@ import (
 
 // ===== jvm相关 =====
 #cpuPanel: #decimalBriefPanel & {
-	#name:   "cpu时间/s [5m]"
-	#query:  "rate(process_cpu_seconds_total[5m])"
+	#name:  "cpu时间/s [5m]"
+	#query: "rate(process_cpu_seconds_total[5m])"
 }
 
 #gcPanel: #decimalBriefPanel & {
-	#name:   "gc时间/s [5m]"
-	#query:  "sum by(job, app) (rate(jvm_gc_collection_seconds_count[5m]))"
+	#name:  "gc时间/s [5m]"
+	#query: "sum by(job, app) (rate(jvm_gc_collection_seconds_count[5m]))"
 }
 
 #memPanel: #briefPanel & {
@@ -135,13 +90,13 @@ import (
 
 // ===== 协议 =====
 #protoSendCountPanel: #decimalBriefPanel & {
-	#name:   "发协议数/s [5m]"
-	#query:  "sum by(job, app)(rate(protocol_send_total[5m]))"
+	#name:  "发协议数/s [5m]"
+	#query: "sum by(job, app)(rate(protocol_send_total[5m]))"
 }
 
 #protoRecvCountPanel: #decimalBriefPanel & {
-	#name:   "收协议数/s [5m]"
-	#query:  "sum by(job, app)(rate(protocol_duration_seconds_count[5m]))"
+	#name:  "收协议数/s [5m]"
+	#query: "sum by(job, app)(rate(protocol_duration_seconds_count[5m]))"
 }
 
 #protoSendBytesPanel: #briefPanel & {
@@ -158,50 +113,50 @@ import (
 
 // ===== 事务 =====
 #tpsPanel: #decimalBriefPanel & {
-	#name:   "事务/s [5m]"
-	#query:  "sum by(job, app)(rate(procedurecompletedtotal[5m]))"
+	#name:  "事务/s [5m]"
+	#query: "sum by(job, app)(rate(procedurecompletedtotal[5m]))"
 }
 
 #transactionErrorPanel: #decimalBriefPanel & {
-	#name:   "1h事务出错数"
-	#query:  "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))"
+	#name:  "1h事务出错数"
+	#query: "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))"
 }
 
 #taskRatePanel: #decimalBriefPanel & {
-	#name:   "task/s [5m]"
+	#name: "task/s [5m]"
 
-	#query:  "sum by(job, app)(rate(taskdurationseconds_count[5m]))"
+	#query: "sum by(job, app)(rate(taskdurationseconds_count[5m]))"
 }
 
 // ===== 场景 =====
 #instanceCountPanel: #decimalBriefPanel & {
-	#name:   "副本数"
-	#query:  "scene_started_total{scene_type=\"instance\"} - scene_destroyed_total{scene_type=\"instance\"}"
+	#name:  "副本数"
+	#query: "scene_started_total{scene_type=\"instance\"} - scene_destroyed_total{scene_type=\"instance\"}"
 }
 
 #roleCountPanel: #decimalBriefPanel & {
-	#name:   "在线人数"
-	#query:  "fighter_started_total{fighter_type=\"role\"} - fighter_offline_total{fighter_type=\"role\"}"
+	#name:  "在线人数"
+	#query: "fighter_started_total{fighter_type=\"role\"} - fighter_offline_total{fighter_type=\"role\"}"
 }
 
 #npcCountPanel: #decimalBriefPanel & {
-	#name:   "npc数"
-	#query:  "fighter_started_total{fighter_type=\"monster\"} - fighter_offline_total{fighter_type=\"monster\"}"
+	#name:  "npc数"
+	#query: "fighter_started_total{fighter_type=\"monster\"} - fighter_offline_total{fighter_type=\"monster\"}"
 }
 
 #projectileCountPanel: #decimalBriefPanel & {
-	#name:   "projectile数"
-	#query:  "fighter_started_total{fighter_type=\"projectile\"} - fighter_offline_total{fighter_type=\"projectile\"}"
+	#name:  "projectile数"
+	#query: "fighter_started_total{fighter_type=\"projectile\"} - fighter_offline_total{fighter_type=\"projectile\"}"
 }
 
 #staticSceneCountPanel: #decimalBriefPanel & {
-	#name:   "static场景数"
-	#query:  "scene_started_total{scene_type=\"static\"} - scene_destroyed_total{scene_type=\"static\"}"
+	#name:  "static场景数"
+	#query: "scene_started_total{scene_type=\"static\"} - scene_destroyed_total{scene_type=\"static\"}"
 }
 
 // ===== dashboard =====
 dashboardBuilder & {
-	#name:    "zeze"
+	#name:    "brief"
 	#project: "zeze"
 	#panelGroups: panelGroupsBuilder & {
 		#input: [
@@ -249,7 +204,7 @@ dashboardBuilder & {
 		]
 	}
 
-	#datasources:     #localDatasources
+	#datasources:     ds.#localDatasources
 	#duration:        "3h"
 	#refreshInterval: "30s"
 }
