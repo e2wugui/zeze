@@ -34,12 +34,17 @@
 
 percli login http://localhost:8080 
 
+```
 更改zeze.cue
-
 percli dac build -f zeze.cue -ojson
-
 percli apply --force -f built/zeze_output.json
+```
 
+```
+更改zeze_detail.cue
+percli dac build -f zeze_detail.cue -ojson
+percli apply --force -f built/zeze_detail_output.json
+```
 
 
 ## 总体监控
