@@ -5,13 +5,15 @@
 使用-DZezeCounter=Zeze.Util.PrometheusCounter 参数启动gs。http://localhost:8080/  下点击metrics可以看到所有的指标
 
 下载 https://prometheus.io/ ，然后在prometheus.yml 的scrape_configs:下加入  
+
 ```
-- job_name: "server1"
+- job_name: "taiwan"
    static_configs:
     - targets: ["localhost:8080"]
       labels:
         app: "server"
 ```
+
 启动prometheus.exe，然后浏览 http://localhost:9090/
 
 - job_name 代表服务器组名称
@@ -28,24 +30,30 @@
 - perses用于dashboard展示
 
 
-以下监控是规划，最后会使用cuelang生成perses的配置（dashboard as code）
 
 ### 部署
 
+```
+percli 登录，方便之后percli apply
 percli login http://localhost:8080 
 
-```
+如果prometheus服务器不是 http://localhost:9090 或有多个prometheus服务器，
+更改cue\cue.mod\pkg\domain.com\ds\ds.cue
+
+---
+之后修改具体的dashboard，只要做以下操作就好：
+
 更改zeze.cue
 percli dac build -f zeze.cue -ojson
 percli apply --force -f built/zeze_output.json
-```
 
-```
 更改zeze_detail.cue
 percli dac build -f zeze_detail.cue -ojson
 percli apply --force -f built/zeze_detail_output.json
 ```
 
+以下监控说明是规划，具体的配置已经写在了zeze.cue，zeze_detail.cue里。
+percli apply 就是based on cue，将cue生成的dashboard配置应用到perses中。
 
 ## 总体监控
 
