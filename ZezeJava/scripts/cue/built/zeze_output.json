@@ -372,7 +372,7 @@
                                 "plugin": {
                                     "kind": "PrometheusTimeSeriesQuery",
                                     "spec": {
-                                        "query": "sum by(job, app)(rate(procedurecompletedtotal[5m]))",
+                                        "query": "sum by(job, app)(rate(procedure_completed_total[5m]))",
                                         "seriesNameFormat": "{{job}}-{{app}}"
                                     }
                                 }
@@ -405,7 +405,7 @@
                                 "plugin": {
                                     "kind": "PrometheusTimeSeriesQuery",
                                     "spec": {
-                                        "query": "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))",
+                                        "query": "sum by(job, app)(increase(procedure_completed_total{result_code!=\"0\"}[1h]))",
                                         "seriesNameFormat": "{{job}}-{{app}}"
                                     }
                                 }
@@ -537,7 +537,7 @@
                                 "plugin": {
                                     "kind": "PrometheusTimeSeriesQuery",
                                     "spec": {
-                                        "query": "sum by(job, app)(rate(taskdurationseconds_count[5m]))",
+                                        "query": "sum by(job, app)(rate(task_duration_seconds_count[5m]))",
                                         "seriesNameFormat": "{{job}}-{{app}}"
                                     }
                                 }

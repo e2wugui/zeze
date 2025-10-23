@@ -114,18 +114,18 @@ import (
 // ===== 事务 =====
 #tpsPanel: #decimalBriefPanel & {
 	#name:  "事务/s [5m]"
-	#query: "sum by(job, app)(rate(procedurecompletedtotal[5m]))"
+	#query: "sum by(job, app)(rate(procedure_completed_total[5m]))"
 }
 
 #transactionErrorPanel: #decimalBriefPanel & {
 	#name:  "1h事务出错数"
-	#query: "sum by(job, app)(increase(procedurecompletedtotal{result_code!=\"0\"}[1h]))"
+	#query: "sum by(job, app)(increase(procedure_completed_total{result_code!=\"0\"}[1h]))"
 }
 
 #taskRatePanel: #decimalBriefPanel & {
 	#name: "task/s [5m]"
 
-	#query: "sum by(job, app)(rate(taskdurationseconds_count[5m]))"
+	#query: "sum by(job, app)(rate(task_duration_seconds_count[5m]))"
 }
 
 #currentTransactionCountPanel: #decimalBriefPanel & {
