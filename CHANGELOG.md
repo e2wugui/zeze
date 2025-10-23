@@ -20,6 +20,8 @@
 - **AccountOnline模块**: 账号在线状态管理
 - **RunClassServer**: 热更新和动态类加载支持
 - **Prometheus监控**: 增加procedure_redo、procedure_redo_and_release_lock、procedure_many_locks等指标
+- **ReadOnly Bean接口**: 为所有Bean类型生成只读接口，提升类型安全
+- **noSchema表属性**: 支持定义noSchema="true"属性表示不参与表结构兼容性检查
 
 ### 变更
 - **Table缓存配置**: CacheCapacity=0表示尽量不留缓存，<0表示不限缓存量
@@ -32,6 +34,8 @@
 - **Netty依赖**: 改为可选依赖
 - **内存表优化**: 允许有dirty状态，避免软引用失效
 - **并发级别调整**: 默认值优化，减少锁竞争
+- **代码生成改进**: 按xml定义顺序生成java协议方法，提升代码可读性
+- **动态容器类型优化**: 为dynamic容器类型生成meta缓存，提升构造性能
 
 ### 修复
 - **并发问题**: 修复TestTaskOneByOne cond.signal丢失风险
@@ -43,6 +47,8 @@
 - **数组越界**: 修复长度为0时的数组越界问题
 - **文件上传**: 修复HttpMultipartHandle处理逻辑
 - **热更新**: 修正热更新机制
+- **Timer处理**: 修复Timer CustomData失败问题，需要忽略createBean失败
+- **检查点处理**: 修复checkpoint.flush异常时tableName信息显示问题
 
 ### 移除
 - **过时方法**: 移除TimerRole中的Deprecated方法
@@ -51,14 +57,16 @@
 - **冗余代码**: 清理不必要代码和配置
 
 ### 依赖更新
-- 更新多个依赖库版本
-- 移除过时依赖
-- 改进JDK11兼容性
+- 更新fastjson2库
+- 更新rocksdb版本
+- 更新mysql连接器版本
 
 ### 文档
 - 新增LoginQueue.md、ReloadClass&RunClass.md、Log.md等文档
 - 更新README和配置说明
 - 改进代码注释和警告信息
+- 新增METRICS.md监控指标文档
+- 更新CUE配置文档
 
 ## 版本历史
 
