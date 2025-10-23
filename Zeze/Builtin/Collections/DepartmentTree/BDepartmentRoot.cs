@@ -13,6 +13,12 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BDepartmentRoot Copy();
+        public void BuildString(System.Text.StringBuilder sb, int level);
+        public long ObjectId { get; }
+        public int VariableId { get; }
+        public Zeze.Transaction.TableKey TableKey { get; }
+        public bool IsManaged { get; }
+        public int CapacityHintOfByteBuffer { get; }
 
         public string Root { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBeanReadOnly> Managers { get; }

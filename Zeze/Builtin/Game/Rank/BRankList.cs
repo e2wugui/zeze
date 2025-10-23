@@ -13,6 +13,12 @@ namespace Zeze.Builtin.Game.Rank
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BRankList Copy();
+        public void BuildString(System.Text.StringBuilder sb, int level);
+        public long ObjectId { get; }
+        public int VariableId { get; }
+        public Zeze.Transaction.TableKey TableKey { get; }
+        public bool IsManaged { get; }
+        public int CapacityHintOfByteBuffer { get; }
 
         public System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Game.Rank.BRankValueReadOnly>RankList { get; }
     }

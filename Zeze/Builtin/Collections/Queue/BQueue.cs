@@ -18,6 +18,12 @@ namespace Zeze.Builtin.Collections.Queue
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BQueue Copy();
+        public void BuildString(System.Text.StringBuilder sb, int level);
+        public long ObjectId { get; }
+        public int VariableId { get; }
+        public Zeze.Transaction.TableKey TableKey { get; }
+        public bool IsManaged { get; }
+        public int CapacityHintOfByteBuffer { get; }
 
         public long HeadNodeId { get; }
         public long TailNodeId { get; }

@@ -13,6 +13,12 @@ namespace Zeze.Builtin.Game.Bag
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BItemClasses Copy();
+        public void BuildString(System.Text.StringBuilder sb, int level);
+        public long ObjectId { get; }
+        public int VariableId { get; }
+        public Zeze.Transaction.TableKey TableKey { get; }
+        public bool IsManaged { get; }
+        public int CapacityHintOfByteBuffer { get; }
 
         public System.Collections.Generic.IReadOnlySet<string> ItemClasses { get; }
     }

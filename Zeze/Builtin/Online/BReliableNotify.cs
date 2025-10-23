@@ -13,6 +13,12 @@ namespace Zeze.Builtin.Online
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public BReliableNotify Copy();
+        public void BuildString(System.Text.StringBuilder sb, int level);
+        public long ObjectId { get; }
+        public int VariableId { get; }
+        public Zeze.Transaction.TableKey TableKey { get; }
+        public bool IsManaged { get; }
+        public int CapacityHintOfByteBuffer { get; }
 
         public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>Notifies { get; }
         public long ReliableNotifyIndex { get; }
