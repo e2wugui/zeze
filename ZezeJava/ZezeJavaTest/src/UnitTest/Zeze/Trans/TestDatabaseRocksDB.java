@@ -98,7 +98,7 @@ public class TestDatabaseRocksDB extends TestCase {
 	private static DatabaseRocksDb getDatabaseRocksDb() {
 		String dbHome = "dbhome";
 		DatabaseConf databaseConf = new DatabaseConf();
-		databaseConf.setDatabaseType(DbType.MySql);
+		databaseConf.setDatabaseType(DbType.RocksDb);
 		databaseConf.setDatabaseUrl(dbHome);
 		databaseConf.setName("RocksDB");
 		databaseConf.setDruidConf(new Config.DruidConf());

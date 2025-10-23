@@ -13,6 +13,7 @@ import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.DatabaseMySql;
+import Zeze.Transaction.DatabasePostgreSQL;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DatabaseSqlServer;
 import Zeze.Transaction.DatabaseTikv;
@@ -43,6 +44,7 @@ public final class Config {
 		DynamoDb,
 		Dbh2,
 		Redis,
+		PostgreSQL,
 	}
 
 	private @NotNull String name = "";
@@ -422,6 +424,8 @@ public final class Config {
 			return new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
 		case Redis:
 			return new Zeze.Transaction.DatabaseRedis(zeze, conf);
+		case PostgreSQL:
+			return new DatabasePostgreSQL(zeze, conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
@@ -920,7 +924,7 @@ public final class Config {
 			name = self.getAttribute("Name").trim();
 			switch (self.getAttribute("DatabaseType").trim()) {
 			case "Memory":
-				// DatabaseType = DbType.Memory;
+				// databaseType = DbType.Memory;
 				break;
 			case "MySql":
 				databaseType = DbType.MySql;
@@ -933,6 +937,12 @@ public final class Config {
 				druidConf = new DruidConf(self);
 				if (druidConf.driverClassName == null)
 					druidConf.driverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
+				break;
+			case "PostgreSQL":
+				databaseType = DbType.PostgreSQL;
+				druidConf = new DruidConf(self);
+				if (druidConf.driverClassName == null)
+					druidConf.driverClassName = "org.postgresql.Driver";
 				break;
 			case "Tikv":
 				databaseType = DbType.Tikv;

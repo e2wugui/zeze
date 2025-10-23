@@ -31,6 +31,7 @@ dependencies {
     // for jdbc(mysql,sqlserver,tidb)
     compileOnly 'com.alibaba:druid:1.2.27'
     compileOnly 'com.mysql:mysql-connector-j:8.4.0'
+    compileOnly 'org.postgresql:postgresql:9.4.1208'
 
     // for redis(kvrocks,pika,tendis)
     compileOnly 'redis.clients:jedis:5.2.0'
