@@ -251,7 +251,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!ex.getMessage().contains("tuple concurrently updated"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
@@ -314,7 +314,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!ex.getMessage().contains("tuple concurrently updated"))
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
@@ -348,7 +348,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
-					if (!ex.getMessage().contains("already exist"))
+					if (!ex.getMessage().contains("tuple concurrently updated"))
 						throw ex;
 				}
 			} catch (SQLException e) {
@@ -490,7 +490,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 	public static boolean tableAlreadyExistsWarning(@Nullable SQLWarning warning) {
 		for (; warning != null; warning = warning.getNextWarning()) {
 			var msg = warning.getMessage();
-			if (msg.startsWith("Table") && msg.contains("already exists"))
+			if (msg.startsWith("Table") && msg.contains("tuple concurrently updated"))
 				return true;
 		}
 		return false;
@@ -532,7 +532,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("already exist"))
+				if (!e.getMessage().contains("tuple concurrently updated"))
 					Task.forceThrow(e);
 				isNew = false;
 			}
@@ -1062,7 +1062,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
 				}
 			} catch (SQLException e) {
-				if (!e.getMessage().contains("already exist"))
+				if (!e.getMessage().contains("tuple concurrently updated"))
 					Task.forceThrow(e);
 				isNew = false;
 			}
