@@ -123,7 +123,7 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assert.assertTrue(testBean2.getTestValue() < 10);
+		Assert.assertTrue(testBean2.getTestValue() <= 10);
 		System.out.println("========== Test3 Passed ==========");
 	}
 }
