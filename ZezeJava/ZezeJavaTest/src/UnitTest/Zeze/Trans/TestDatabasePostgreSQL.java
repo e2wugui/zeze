@@ -16,7 +16,6 @@ import org.junit.Assert;
 import org.junit.Ignore;
 
 @SuppressWarnings("CallToPrintStackTrace")
-@Ignore
 public class TestDatabasePostgreSQL extends TestCase {
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {

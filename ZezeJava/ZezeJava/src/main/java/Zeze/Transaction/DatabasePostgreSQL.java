@@ -199,58 +199,58 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var tableDataWithVersionSql = "CREATE TABLE IF NOT EXISTS _ZezeDataWithVersion_(" +
-						"id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY, " +
-						"data LONGBLOB NOT NULL, version BIGINT NOT NULL)";
+						"id BYTEA NOT NULL PRIMARY KEY, " +
+						"data BYTEA NOT NULL, version BIGINT NOT NULL)";
 				try (var ps = conn.prepareStatement(tableDataWithVersionSql)) {
 					ps.executeUpdate();
 				}
-				var procSaveDataWithSameVersionSql = "CREATE PROCEDURE _ZezeSaveDataWithSameVersion_(\n" +
-						"    IN    in_id VARBINARY(" + eMaxKeyLength + "),\n" +
-						"    IN    in_data LONGBLOB,\n" +
+				var procSaveDataWithSameVersionSql = "CREATE OR REPLACE FUNCTION _ZezeSaveDataWithSameVersion_(\n" +
+						"    IN    in_id BYTEA,\n" +
+						"    IN    in_data BYTEA,\n" +
 						"    INOUT inout_version BIGINT,\n" +
-						"    OUT   ret_value INT\n" +
+						"    OUT   ret_value INTEGER\n" +
 						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE old_ver BIGINT;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
+						"LANGUAGE plpgsql\n" +
+						"AS $$\n" +
+						"DECLARE \n" +
+						"  old_ver BIGINT;\n" +
+						"  row_count INTEGER;\n" +
+						"BEGIN\n" +
+						"    ret_value := 1;\n" +
 						"    SELECT version INTO old_ver FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
-						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=in_id;\n" +
+						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count > 0 THEN\n" +
 						"        IF old_ver <> inout_version THEN\n" +
-						"            SET ret_value=2;\n" +
-						"            ROLLBACK;\n" +
-						"            LEAVE return_label;\n" +
+						"            ret_value := 2;\n" +
+						"            RETURN;\n" +
 						"        END IF;\n" +
-						"        SET old_ver = old_ver + 1;\n" +
+						"        old_ver := old_ver + 1;\n" +
 						"        UPDATE _ZezeDataWithVersion_ SET data=in_data, version=old_ver WHERE id=in_id;\n" +
-						"        SELECT ROW_COUNT() INTO row_count;\n" +
+						"        GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"        IF row_count = 1 THEN\n" +
-						"            SET inout_version = old_ver;\n" +
-						"            SET ret_value=0;\n" +
-						"            COMMIT;\n" +
-						"            LEAVE return_label;\n" +
+						"            inout_version := old_ver;\n" +
+						"            ret_value := 0;\n" +
+						"            RETURN;\n" +
 						"        END IF;\n" +
-						"        SET ret_value=3;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 3;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"\n" +
-						"    INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"  BEGIN\n" +
+						"    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\n" +
+						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 1 THEN\n" +
-						"        SET ret_value=0;\n" +
-						"        COMMIT;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 0;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    SET ret_value=4;\n" +
-						"    IF 1=1 THEN\n" +
-						"        ROLLBACK;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+						"    ret_value := 4;\n" +
+						"    RETURN;\n" +
+						"    EXCEPTION\n" +
+						"        WHEN unique_violation THEN\n" +
+						"        ret_value := 4;\n" +
+						"        RETURN;\n" +
+						"  END;\n" +
+						"END;\n" +
+						"$$;\n";
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
@@ -258,67 +258,70 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
-				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY)";
+				var tableInstancesSql = "CREATE TABLE IF NOT EXISTS _ZezeInstances_(localid int NOT NULL PRIMARY KEY);";
 				try (var ps = conn.prepareStatement(tableInstancesSql)) {
 					ps.executeUpdate();
 				}
 				//noinspection SpellCheckingInspection
-				var procSetInUseSql = "CREATE PROCEDURE _ZezeSetInUse_(\n" +
-						"    IN  in_local_id INT,\n" +
-						"    IN  in_global LONGBLOB,\n" +
-						"    OUT ret_value INT\n" +
+				var procSetInUseSql = "CREATE OR REPLACE FUNCTION _ZezeSetInUse_(\n" +
+						"    IN  in_local_id INTEGER,\n" +
+						"    IN  in_global BYTEA,\n" +
+						"    OUT ret_value INTEGER\n" +
 						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE cur_global LONGBLOB;\n" +
-						"    DECLARE empty_bin LONGBLOB;\n" +
-						"    DECLARE instance_count INT;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
-						"    IF exists (SELECT localid FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
-						"        SET ret_value=2;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
+						"LANGUAGE plpgsql\n" +
+						"AS $$\n" +
+						"DECLARE\n" +
+						"    cur_global BYTEA;\n" +
+						"    empty_bin BYTEA := E'\\\\x'::bytea;\n" +
+						"    instance_count INTEGER;\n" +
+						"    row_count INTEGER;\n" +
+						"BEGIN\n" +
+						"    ret_value := 1;\n" +
+						"    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
+						"        ret_value := 2;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    INSERT IGNORE INTO _ZezeInstances_ VALUES(in_local_id);\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"    BEGIN\n" +
+						"    INSERT INTO _ZezeInstances_ VALUES(in_local_id);\n" +
+						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 0 THEN\n" +
-						"        SET ret_value=3;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 3;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    SET empty_bin = BINARY '';\n" +
+						"    EXCEPTION\n" +
+						"        WHEN unique_violation THEN\n" +
+						"            ret_value := 3;\n" +
+						"            RETURN;\n" +
+						"    END;\n" +
 						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
-						"    SELECT COUNT(*) INTO row_count FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
+						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count > 0 THEN\n" +
-						"        IF cur_global <> in_global THEN\n" +
-						"            SET ret_value=4;\n" +
-						"            ROLLBACK;\n" +
-						"            LEAVE return_label;\n" +
+						"        IF cur_global IS DISTINCT FROM in_global THEN\n" +
+						"            ret_value := 4;\n" +
+						"            RETURN;\n" +
 						"        END IF;\n" +
 						"    ELSE\n" +
 						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
-						"        INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);\n" +
+						"        BEGIN\n" +
+						"        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);\n" +
+						"        EXCEPTION\n" +
+						"            WHEN unique_violation THEN\n" +
+						"                NULL;\n" +
+						"        END;\n" +
 						"    END IF;\n" +
-						"    SET instance_count=0;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 1 THEN\n" +
-						"        SET ret_value=0;\n" +
-						"        COMMIT;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 0;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    IF LENGTH(in_global)=0 THEN\n" +
-						"        SET ret_value=6;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 6;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    SET ret_value=0;\n" +
-						"    IF 1=1 THEN\n" +
-						"        COMMIT;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+						"    ret_value := 0;\n" +
+						"    RETURN;\n" +
+						"END;\n" +
+						"$$\n";
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
@@ -326,37 +329,33 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						throw ex;
 				}
 				//noinspection SpellCheckingInspection
-				var procClearInUseSql = "CREATE PROCEDURE _ZezeClearInUse_(\n" +
-						"    IN  in_local_id int,\n" +
-						"    IN  in_global LONGBLOB,\n" +
-						"    OUT ret_value int\n" +
+				var procClearInUseSql = "CREATE OR REPLACE FUNCTION _ZezeClearInUse_(\n" +
+						"    IN  in_local_id INTEGER,\n" +
+						"    IN  in_global BYTEA,\n" +
+						"    OUT ret_value INTEGER\n" +
 						")\n" +
-						"return_label:BEGIN\n" +
-						"    DECLARE instance_count INT;\n" +
-						"    DECLARE empty_bin LONGBLOB;\n" +
-						"    DECLARE row_count INT;\n" +
-						"\n" +
-						"    START TRANSACTION;\n" +
-						"    SET ret_value=1;\n" +
+						"LANGUAGE plpgsql\n" +
+						"AS $$\n" +
+						"DECLARE\n" +
+						"    instance_count INTEGER;\n" +
+						"    empty_bin BYTEA := E'\\\\x'::bytea;\n" +
+						"    row_count INTEGER;\n" +
+						"BEGIN\n" +
+						"    ret_value := 1;\n" +
 						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
+						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 0 THEN\n" +
-						"        SET ret_value=2;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
+						"        ret_value := 2;\n" +
+						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    SET instance_count=0;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 0 THEN\n" +
-						"        SET empty_bin = BINARY '';\n" +
 						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
 						"    END IF;\n" +
 						"    SET ret_value=0;\n" +
-						"    IF 1=1 THEN\n" +
-						"        COMMIT;\n" +
-						"    END IF;\n" +
-						"    LEAVE return_label;\n" +
-						"END;";
+						"    RETURN;\n" +
+						"END;\n" +
+						"$$;\n";
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
 					ps.executeUpdate();
 				} catch (SQLException ex) {
@@ -371,8 +370,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 		@Override
 		public boolean tryLock() {
 			// 总是尝试创建记录，忽略已经存在。
-			var createRecordSql = "INSERT IGNORE INTO _ZezeDataWithVersion_ VALUES(?,?,?)";
-			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=1 WHERE id=? AND version=0";
+			var createRecordSql = "INSERT INTO _ZezeDataWithVersion_ VALUES(?,?,?) ON CONFLICT(id) DO NOTHING;";
+			var lockSql = "UPDATE _ZezeDataWithVersion_ SET version=1 WHERE id=? AND version=0;";
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				try (var ps = conn.prepareStatement(createRecordSql)) {
@@ -1068,7 +1067,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(true);
 				var sql = "CREATE TABLE IF NOT EXISTS " + name
-						+ "(id VARBINARY(" + eMaxKeyLength + ") NOT NULL PRIMARY KEY, value LONGBLOB NOT NULL)";
+						+ "(id BYTEA NOT NULL PRIMARY KEY, value BYTEA NOT NULL)";
 				try (var ps = conn.prepareStatement(sql)) {
 					ps.executeUpdate();
 					isNew = !tableAlreadyExistsWarning(ps.getWarnings());
@@ -1081,7 +1080,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 
 			sqlFind = "SELECT value FROM " + name + " WHERE id=?";
 			sqlRemove = "DELETE FROM " + name + " WHERE id=?";
-			sqlReplace = "REPLACE " + name + " VALUE(?,?)";
+			sqlReplace = "INSERT INTO " + name + " VALUES(?,?) ON CONFLICT(id) DO UPDATE SET value=EXCLUDED.value;";
 			this.isNew = isNew;
 		}
 
