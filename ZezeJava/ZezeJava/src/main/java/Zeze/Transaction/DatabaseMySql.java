@@ -1081,7 +1081,7 @@ public final class DatabaseMySql extends DatabaseJdbc {
 
 			sqlFind = "SELECT value FROM " + name + " WHERE id=?";
 			sqlRemove = "DELETE FROM " + name + " WHERE id=?";
-			sqlReplace = "REPLACE INTO " + name + " VALUES(?,?)";
+			sqlReplace = "REPLACE " + name + " VALUE(?,?)";
 			this.isNew = isNew;
 		}
 

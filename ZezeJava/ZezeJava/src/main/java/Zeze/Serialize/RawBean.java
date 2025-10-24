@@ -1,18 +1,10 @@
 package Zeze.Serialize;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import Zeze.Builtin.HotDistribute.BVariable;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.Collections.LogBean;
 import Zeze.Transaction.Log;
-import Zeze.Transaction.Logs.LogBinary;
-import Zeze.Transaction.Transaction;
-import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,16 +103,6 @@ public class RawBean extends Bean {
 	@Override
 	public void followerApply(@NotNull Log log) {
 		// 本来想在这里几个日志，因为此时这个代理Bean已经没法使用了，后面肯定会知道发生了某个问题。先不记录了。
-	}
-
-	@Override
-	public void decodeResultSet(ArrayList<String> parents, ResultSet rs) throws SQLException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void encodeSQLStatement(ArrayList<String> parents, SQLStatement st) {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override

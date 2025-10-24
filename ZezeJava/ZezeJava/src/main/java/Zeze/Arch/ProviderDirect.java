@@ -73,9 +73,9 @@ public class ProviderDirect extends AbstractProviderDirect {
 			((RedirectFuture<?>)result).onSuccess(r -> {
 				if (r instanceof Long) {
 					var v = (long)r;
-					var b = new byte[ByteBuffer.WriteLongSize(v)];
-					ByteBuffer.Wrap(b).WriteLong(v);
-					rpc.Result.setParams(new Binary(b));
+					var bb = ByteBuffer.Allocate(ByteBuffer.WriteLongSize(v));
+					bb.WriteLong(v);
+					rpc.Result.setParams(new Binary(bb));
 				} else if (r instanceof Binary)
 					rpc.Result.setParams((Binary)r);
 				else if (r instanceof String)
