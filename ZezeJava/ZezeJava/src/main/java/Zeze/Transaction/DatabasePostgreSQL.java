@@ -222,6 +222,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    IF row_count > 0 THEN\n" +
 						"        IF old_ver <> inout_version THEN\n" +
 						"            ret_value := 2;\n" +
+						"            ROLLBACK;\n" +
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"        old_ver := old_ver + 1;\n" +
@@ -233,22 +234,18 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"        ret_value := 3;\n" +
+						"        ROLLBACK;\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
-						"  BEGIN\n" +
-						"    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version);\n" +
+						"    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;\n" +
 						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 1 THEN\n" +
-						"        ret_value := 0;\n" +
-						"        RETURN;\n" +
+						"      ret_value := 0;\n" +
+						"      RETURN;\n" +
 						"    END IF;\n" +
 						"    ret_value := 4;\n" +
+						"    ROLLBACK;\n" +
 						"    RETURN;\n" +
-						"    EXCEPTION\n" +
-						"        WHEN unique_violation THEN\n" +
-						"        ret_value := 4;\n" +
-						"        RETURN;\n" +
-						"  END;\n" +
 						"END;\n" +
 						"$$;\n";
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
@@ -279,35 +276,26 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    ret_value := 1;\n" +
 						"    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
 						"        ret_value := 2;\n" +
+						"        ROLLBACK;\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    BEGIN\n" +
-						"    INSERT INTO _ZezeInstances_ VALUES(in_local_id);\n" +
+						"    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;\n" +
 						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 0 THEN\n" +
 						"        ret_value := 3;\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
-						"    EXCEPTION\n" +
-						"        WHEN unique_violation THEN\n" +
-						"            ret_value := 3;\n" +
-						"            RETURN;\n" +
-						"    END;\n" +
 						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
 						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count > 0 THEN\n" +
 						"        IF cur_global IS DISTINCT FROM in_global THEN\n" +
 						"            ret_value := 4;\n" +
+						"            ROLLBACK;\n" +
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"    ELSE\n" +
 						// 忽略这一行的操作结果，当最后一个实例退出的时候，这条记录会被删除。不考虑退出和启动的并发了？
-						"        BEGIN\n" +
-						"        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0);\n" +
-						"        EXCEPTION\n" +
-						"            WHEN unique_violation THEN\n" +
-						"                NULL;\n" +
-						"        END;\n" +
+						"        INSERT INTO _ZezeDataWithVersion_ VALUES(empty_bin, in_global, 0) ON CONFLICT (id) DO NOTHING;\n" +
 						"    END IF;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 1 THEN\n" +
@@ -316,6 +304,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    END IF;\n" +
 						"    IF LENGTH(in_global)=0 THEN\n" +
 						"        ret_value := 6;\n" +
+						"        ROLLBACK;\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    ret_value := 0;\n" +
@@ -352,7 +341,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    IF instance_count = 0 THEN\n" +
 						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
 						"    END IF;\n" +
-						"    SET ret_value=0;\n" +
+						"    ret_value := 0;\n" +
 						"    RETURN;\n" +
 						"END;\n" +
 						"$$;\n";
