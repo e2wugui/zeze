@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
@@ -9,6 +10,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import Zeze.Application;
 import Zeze.Hot.HotGuard;
 import Zeze.IModule;
@@ -83,6 +85,38 @@ public final class Task {
 
 	public static @NotNull ExecutorService getCriticalThreadPool() {
 		return threadPoolCritical;
+	}
+
+	public static void shutdownNow(long awaitTimeoutSeconds) throws InterruptedException, TimeoutException {
+		threadPoolScheduled.shutdownNow();
+		threadPoolDefault.shutdownNow();
+		threadPoolCritical.shutdownNow();
+
+		var timeout = "";
+		if (!threadPoolScheduled.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolScheduled timeout,";
+		if (!threadPoolDefault.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolDefault timeout,";
+		if (!threadPoolCritical.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolCritical timeout,";
+		if (!timeout.isEmpty())
+			throw new TimeoutException(timeout);
+	}
+
+	public static void shutdown(long awaitTimeoutSeconds) throws InterruptedException, TimeoutException {
+		threadPoolScheduled.shutdown();
+		threadPoolDefault.shutdown();
+		threadPoolCritical.shutdown();
+
+		var timeout = "";
+		if (!threadPoolScheduled.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolScheduled timeout,";
+		if (!threadPoolDefault.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolDefault timeout,";
+		if (!threadPoolCritical.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+			timeout += "await threadPoolCritical timeout,";
+		if (!timeout.isEmpty())
+			throw new TimeoutException(timeout);
 	}
 
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
