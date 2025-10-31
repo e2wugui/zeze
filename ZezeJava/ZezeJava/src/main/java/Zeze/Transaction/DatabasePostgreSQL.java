@@ -123,7 +123,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						}
 					}
 				} catch (SQLException e) {
-					if (!e.getMessage().contains("Deadlock"))
+					if (!e.getMessage().contains("deadlock detected"))
 						Task.forceThrow(e);
 				}
 			}
@@ -565,8 +565,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 		@Override
 		public long getSizeApproximation() {
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA="
-							+ name + " AND TABLE_NAME=" + name);
+					queryLong1(dataSource, "SELECT reltuples::bigint AS row_count FROM pg_class WHERE relname = '" + name + "';");
 		}
 
 		@Override
@@ -1100,8 +1099,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 		@Override
 		public long getSizeApproximation() {
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA="
-							+ name + " AND TABLE_NAME=" + name);
+					queryLong1(dataSource, "SELECT reltuples FROM pg_class WHERE relname = '" + name + "';");
 		}
 
 		@Override

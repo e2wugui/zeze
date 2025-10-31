@@ -125,6 +125,7 @@ public class TestDatabasePostgreSQL extends TestCase {
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
 		Assert.assertEquals(2, table.walk(TestDatabasePostgreSQL::PrintRecord));
+		System.out.println(table.getSizeApproximation());
 	}
 
 	public static boolean PrintRecord(byte[] key, byte[] value) {

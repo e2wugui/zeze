@@ -572,8 +572,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public long getSizeApproximation() {
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA="
-							+ name + " AND TABLE_NAME=" + name);
+					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA='"
+							+ name + "' AND TABLE_NAME='" + name + "'");
 		}
 
 		@Override
@@ -1107,8 +1107,8 @@ public final class DatabaseMySql extends DatabaseJdbc {
 		@Override
 		public long getSizeApproximation() {
 			return dropped ? -1 :
-					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA="
-							+ name + " AND TABLE_NAME=" + name);
+					queryLong1(dataSource, "SELECT TABLE_ROWS FROM information_schema.tables WHERE TABLE_SCHEMA='"
+							+ name + "' AND TABLE_NAME='" + name + "'");
 		}
 
 		@Override
