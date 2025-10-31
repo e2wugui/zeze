@@ -88,16 +88,24 @@ public final class Task {
 	}
 
 	public static void shutdownNow(long awaitTimeoutSeconds) throws InterruptedException, TimeoutException {
+
 		threadPoolScheduled.shutdownNow();
 		threadPoolDefault.shutdownNow();
 		threadPoolCritical.shutdownNow();
 
+		var threadPoolScheduledTmp = threadPoolScheduled;
+		var threadPoolDefaultTmp = threadPoolDefault;
+		var threadPoolCriticalTmp = threadPoolCritical;
+		threadPoolScheduled = null;
+		threadPoolDefault = null;
+		threadPoolCritical = null;
+
 		var timeout = "";
-		if (!threadPoolScheduled.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolScheduledTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefault.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolDefaultTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCritical.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolCriticalTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolCritical timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
@@ -108,12 +116,19 @@ public final class Task {
 		threadPoolDefault.shutdown();
 		threadPoolCritical.shutdown();
 
+		var threadPoolScheduledTmp = threadPoolScheduled;
+		var threadPoolDefaultTmp = threadPoolDefault;
+		var threadPoolCriticalTmp = threadPoolCritical;
+		threadPoolScheduled = null;
+		threadPoolDefault = null;
+		threadPoolCritical = null;
+
 		var timeout = "";
-		if (!threadPoolScheduled.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolScheduledTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefault.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolDefaultTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCritical.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolCriticalTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
 			timeout += "await threadPoolCritical timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
