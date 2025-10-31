@@ -82,6 +82,7 @@ public class TestDatabaseSqlServer extends TestCase {
 			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
 		Assert.assertEquals(2, table.walk(TestDatabaseSqlServer::PrintRecord));
+		System.out.println(table.getSizeApproximation());
 	}
 
 	public static boolean PrintRecord(byte[] key, byte[] value) {

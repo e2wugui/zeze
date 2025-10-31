@@ -10,6 +10,9 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
+import Zeze.Util.ZezeCounter;
+import com.alibaba.druid.pool.DruidDataSource;
+import org.jetbrains.annotations.NotNull;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	public DatabaseSqlServer(Application zeze, DatabaseConf conf) {
@@ -297,6 +300,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	private final class TableSqlServer extends Database.AbstractKVTable {
 		private final String name;
 		private final boolean isNew;
+		private boolean dropped;
 
 		@Override
 		public DatabaseSqlServer getDatabase() {
@@ -347,6 +351,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer find(ByteBuffer key) {
+			if (dropped)
+				return null;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -369,6 +376,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public void remove(Transaction t, ByteBuffer key) {
+			if (dropped)
+				return;
+
 			var my = (JdbcTrans)t;
 			String sql = "DELETE FROM " + getName() + " WHERE id=?";
 			try (var cmd = my.conn.prepareStatement(sql)) {
@@ -381,6 +391,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public void replace(Transaction t, ByteBuffer key, ByteBuffer value) {
+			if (dropped)
+				return;
+
 			var my = (JdbcTrans)t;
 			String sql = "update " + getName() + " set value=? where id=?" + " if @@rowcount = 0 and @@error = 0 insert into " + getName() + " values(?,?)";
 			try (var cmd = my.conn.prepareStatement(sql)) {
@@ -417,6 +430,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		private long walk(TableWalkHandleRaw callback, boolean asc) throws Exception {
+			if (dropped)
+				return 0;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -446,6 +462,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		}
 
 		private long walkKey(TableWalkKeyRaw callback, boolean asc) throws Exception {
+			if (dropped)
+				return 0;
+
 			try (var connection = dataSource.getConnection()) {
 				connection.setAutoCommit(true);
 
@@ -474,7 +493,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer walk(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
-			if (proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
@@ -505,7 +524,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer walkKey(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
-			if (proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
@@ -536,7 +555,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer walkDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkHandleRaw callback) throws Exception {
-			if (proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
@@ -567,7 +586,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 
 		@Override
 		public ByteBuffer walkKeyDesc(ByteBuffer exclusiveStartKey, int proposeLimit, TableWalkKeyRaw callback) throws Exception {
-			if (proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0)
 				return null;
 
 			try (var connection = dataSource.getConnection()) {
@@ -594,6 +613,48 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);
 			}
+		}
+
+		@Override
+		public void drop() {
+			if (dropped)
+				return;
+
+			var sql = "DROP TABLE IF EXISTS " + name;
+			try (var conn = dataSource.getConnection()) {
+				conn.setAutoCommit(true);
+				try (var ps = conn.prepareStatement(sql)) {
+					dropped = true; // set flag before real drop.
+					ps.executeUpdate();
+				}
+			} catch (SQLException e) {
+				dropped = false; // rollback
+				Task.forceThrow(e);
+			}
+		}
+
+		@Override
+		public long getSize() {
+			return dropped ? -1 : queryLong1(dataSource, "SELECT count(*) FROM " + name);
+		}
+
+		@Override
+		public long getSizeApproximation() {
+			return dropped ? -1 :
+					queryLong1(dataSource, "SELECT p.rows FROM sys.partitions p WHERE p.object_id = OBJECT_ID('"
+							+ name + "') AND p.index_id IN (0, 1);"); // -- 0=堆表, 1=聚集索引
+		}
+	}
+
+	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
+		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
+		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
+			return rs.next() ? rs.getLong(1) : -1;
+		} catch (SQLException e) {
+			throw Task.forceThrow(e);
+		} finally {
+			//if (mysqlSelectCounter != null)
+			//	mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
 		}
 	}
 }
