@@ -48,8 +48,8 @@ public class App {
 
 		for (var dbCfg : config.getDatabaseConfMap().values()) {
 			var dc = dbCfg.getDruidConf();
-			if (dc != null && (dc.maxActive == null || dc.maxActive > 10))
-				dc.maxActive = 10;
+			if (dc != null && (dc.maxActive == null || dc.maxActive > 8))
+				dc.maxActive = 8;
 		}
 	}
 

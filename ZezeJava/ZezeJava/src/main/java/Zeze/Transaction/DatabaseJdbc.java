@@ -44,7 +44,7 @@ public abstract class DatabaseJdbc extends Database {
 		ds.setMinIdle(Objects.requireNonNullElse(dc.minIdle, 4));
 
 		// 最大连接数(MySQL服务器连接数上限默认151), 默认:8
-		ds.setMaxActive(Objects.requireNonNullElse(dc.maxActive, 32));
+		ds.setMaxActive(Objects.requireNonNullElse(dc.maxActive, 8));
 
 		// 等待可用连接的超时时间, <=0表示没有超时, 默认:-1
 		ds.setMaxWait(Objects.requireNonNullElse(dc.maxWait, -1L));
