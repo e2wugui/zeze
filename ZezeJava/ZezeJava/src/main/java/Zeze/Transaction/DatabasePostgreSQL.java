@@ -222,7 +222,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    IF row_count > 0 THEN\n" +
 						"        IF old_ver <> inout_version THEN\n" +
 						"            ret_value := 2;\n" +
-						"            ROLLBACK;\n" +
+						"            RAISE EXCEPTION 'ROLLBACK';\n" +
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"        old_ver := old_ver + 1;\n" +
@@ -234,7 +234,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"        ret_value := 3;\n" +
-						"        ROLLBACK;\n" +
+						"        RAISE EXCEPTION 'ROLLBACK';\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    INSERT INTO _ZezeDataWithVersion_ VALUES(in_id,in_data,inout_version) ON CONFLICT (id) DO NOTHING;\n" +
@@ -244,8 +244,9 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"      RETURN;\n" +
 						"    END IF;\n" +
 						"    ret_value := 4;\n" +
-						"    ROLLBACK;\n" +
+						"    RAISE EXCEPTION 'ROLLBACK';\n" +
 						"    RETURN;\n" +
+						"EXCEPTION WHEN OTHERS THEN\n" +
 						"END;\n" +
 						"$$;\n";
 				try (var ps = conn.prepareStatement(procSaveDataWithSameVersionSql)) {
@@ -276,13 +277,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    ret_value := 1;\n" +
 						"    IF exists (SELECT 1 FROM _ZezeInstances_ WHERE localid=in_local_id) THEN\n" +
 						"        ret_value := 2;\n" +
-						"        ROLLBACK;\n" +
+						"        RAISE EXCEPTION 'ROLLBACK';\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    INSERT INTO _ZezeInstances_ VALUES(in_local_id) ON CONFLICT (localid) DO NOTHING;\n" +
 						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 0 THEN\n" +
 						"        ret_value := 3;\n" +
+						"        RAISE EXCEPTION 'ROLLBACK';\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    SELECT data INTO cur_global FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
@@ -290,7 +292,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    IF row_count > 0 THEN\n" +
 						"        IF cur_global IS DISTINCT FROM in_global THEN\n" +
 						"            ret_value := 4;\n" +
-						"            ROLLBACK;\n" +
+						"            RAISE EXCEPTION 'ROLLBACK';\n" +
 						"            RETURN;\n" +
 						"        END IF;\n" +
 						"    ELSE\n" +
@@ -304,11 +306,12 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    END IF;\n" +
 						"    IF LENGTH(in_global)=0 THEN\n" +
 						"        ret_value := 6;\n" +
-						"        ROLLBACK;\n" +
+						"        RAISE EXCEPTION 'ROLLBACK';\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    ret_value := 0;\n" +
 						"    RETURN;\n" +
+						"EXCEPTION WHEN OTHERS THEN\n" +
 						"END;\n" +
 						"$$\n";
 				try (var ps = conn.prepareStatement(procSetInUseSql)) {
@@ -335,6 +338,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
 						"    IF row_count = 0 THEN\n" +
 						"        ret_value := 2;\n" +
+						"        RAISE EXCEPTION 'ROLLBACK';\n" +
 						"        RETURN;\n" +
 						"    END IF;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
@@ -343,6 +347,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 						"    END IF;\n" +
 						"    ret_value := 0;\n" +
 						"    RETURN;\n" +
+						"EXCEPTION WHEN OTHERS THEN\n" +
 						"END;\n" +
 						"$$;\n";
 				try (var ps = conn.prepareStatement(procClearInUseSql)) {
