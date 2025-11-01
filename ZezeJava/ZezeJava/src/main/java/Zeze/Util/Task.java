@@ -87,7 +87,14 @@ public final class Task {
 		return threadPoolCritical;
 	}
 
-	public static void shutdownNow(long awaitTimeoutSeconds) throws InterruptedException, TimeoutException {
+	/**
+	 * 停止Task里面包含的默认的三个线程池,default,scheduled,critical。
+	 *
+	 * @param maxAwait 等待任务结束的毫秒数。
+	 * @throws InterruptedException await被中断异常
+	 * @throws TimeoutException await超时异常
+	 */
+	public static void shutdownNow(long maxAwait) throws InterruptedException, TimeoutException {
 
 		threadPoolScheduled.shutdownNow();
 		threadPoolDefault.shutdownNow();
@@ -101,17 +108,24 @@ public final class Task {
 		threadPoolCritical = null;
 
 		var timeout = "";
-		if (!threadPoolScheduledTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolScheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefaultTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolDefaultTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCriticalTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolCriticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolCritical timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
 	}
 
-	public static void shutdown(long awaitTimeoutSeconds) throws InterruptedException, TimeoutException {
+	/**
+	 * 停止Task里面包含的默认的三个线程池,default,scheduled,critical。
+	 *
+	 * @param maxAwait 等待任务结束的毫秒数。
+	 * @throws InterruptedException await被中断异常
+	 * @throws TimeoutException await超时异常
+	 */
+	public static void shutdown(long maxAwait) throws InterruptedException, TimeoutException {
 		threadPoolScheduled.shutdown();
 		threadPoolDefault.shutdown();
 		threadPoolCritical.shutdown();
@@ -124,11 +138,11 @@ public final class Task {
 		threadPoolCritical = null;
 
 		var timeout = "";
-		if (!threadPoolScheduledTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolScheduledTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolScheduled timeout,";
-		if (!threadPoolDefaultTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolDefaultTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolDefault timeout,";
-		if (!threadPoolCriticalTmp.awaitTermination(awaitTimeoutSeconds, TimeUnit.SECONDS))
+		if (!threadPoolCriticalTmp.awaitTermination(maxAwait, TimeUnit.MILLISECONDS))
 			timeout += "await threadPoolCritical timeout,";
 		if (!timeout.isEmpty())
 			throw new TimeoutException(timeout);
