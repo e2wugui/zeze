@@ -17,7 +17,6 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.Ignore;
 
-@Ignore
 @SuppressWarnings("CallToPrintStackTrace")
 public class TestGlobal extends TestCase {
 	public static class PrintLog extends LogSpecial<BValue, BValue> {
