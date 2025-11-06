@@ -370,7 +370,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		}
 
 		@Override
-		public @NotNull RedirectFuture<Object> then(@NotNull Action1<Object> onResult) {
+		public @NotNull RedirectFuture<Object> then(@NotNull Action1<@Nullable Object> onResult) {
 			finishOne();
 			return super.then(onResult);
 		}

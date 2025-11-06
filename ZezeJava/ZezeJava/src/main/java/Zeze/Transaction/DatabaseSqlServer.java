@@ -10,7 +10,6 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.Task;
-import Zeze.Util.ZezeCounter;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.jetbrains.annotations.NotNull;
 
@@ -647,14 +646,14 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 	}
 
 	public static long queryLong1(@NotNull DruidDataSource dataSource, @NotNull String sql) {
-		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
+		// var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql); var rs = ps.executeQuery()) {
 			return rs.next() ? rs.getLong(1) : -1;
 		} catch (SQLException e) {
 			throw Task.forceThrow(e);
-		} finally {
-			//if (mysqlSelectCounter != null)
-			//	mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
-		}
+		} /*finally {
+			if (mysqlSelectCounter != null)
+				mysqlSelectCounter.observe(System.nanoTime() - timeBegin);
+		}*/
 	}
 }

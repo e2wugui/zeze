@@ -6,6 +6,7 @@ import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	private static final @NotNull VarHandle ON_SUCCESS, ON_FAIL;
@@ -114,7 +115,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
-	public @NotNull RedirectFuture<R> then(@NotNull Action1<R> onResult) {
+	public @NotNull RedirectFuture<R> then(@NotNull Action1<@Nullable R> onResult) {
 		return onSuccess(onResult).onFail(__ -> onResult.run(null));
 	}
 

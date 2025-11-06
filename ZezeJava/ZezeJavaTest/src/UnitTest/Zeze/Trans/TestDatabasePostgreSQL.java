@@ -9,11 +9,9 @@ import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
-import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabasePostgreSQL;
 import junit.framework.TestCase;
 import org.junit.Assert;
-import org.junit.Ignore;
 
 @SuppressWarnings("CallToPrintStackTrace")
 public class TestDatabasePostgreSQL extends TestCase {
@@ -43,8 +41,7 @@ public class TestDatabasePostgreSQL extends TestCase {
 		case "doudouwang": // lichenghua's computer 2
 			return "jdbc:postgresql://localhost:5432/devtest?user=dev&password=devtest12345&useSSL=false";
 		default:
-			//return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-			return null; // 默认不测试mysql。
+			return null; // 默认不测试postgresql。
 		}
 	}
 

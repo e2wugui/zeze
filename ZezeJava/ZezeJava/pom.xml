@@ -198,6 +198,7 @@
 		<tikv.version>3.3.5</tikv.version>
 		<druid.version>1.2.27</druid.version>
 		<mysql-connector-j.version>8.4.0</mysql-connector-j.version>
+		<postgresql.version>42.7.7</postgresql.version>
 		<jedis.version>5.2.0</jedis.version>
 		<aws-java-sdk-dynamodb.version>1.12.788</aws-java-sdk-dynamodb.version>
 		<fdb-java.version>7.4.3</fdb-java.version>
@@ -337,7 +338,15 @@
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<version>${mysql-connector-j.version}</version>
-			<scope>provided</scope>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>${postgresql.version}</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
