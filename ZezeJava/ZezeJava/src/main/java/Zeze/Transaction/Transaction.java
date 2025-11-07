@@ -216,11 +216,19 @@ public final class Transaction {
 	}
 
 	public void runWhileCommit(@NotNull Runnable action) {
+		if (state == TransactionState.Completed) {
+			actions.add(new Savepoint.Action(Savepoint.ActionType.COMMIT, action));
+			return;
+		}
 		verifyRunning();
 		savepoints.get(savepoints.size() - 1).addCommitAction(action);
 	}
 
 	public void runWhileRollback(@NotNull Runnable action) {
+		if (state == TransactionState.Completed) {
+			actions.add(new Savepoint.Action(Savepoint.ActionType.ROLLBACK, action));
+			return;
+		}
 		verifyRunning();
 		savepoints.get(savepoints.size() - 1).addRollbackAction(action);
 	}
@@ -400,7 +408,8 @@ public final class Transaction {
 	}
 
 	private void triggerActions(@NotNull Procedure procedure) {
-		for (var action : actions) {
+		for (var i = 0; i < actions.size(); ++i) {
+			var action = actions.get(i);
 			try {
 				action.action.run();
 			} catch (AssertionError e) {
