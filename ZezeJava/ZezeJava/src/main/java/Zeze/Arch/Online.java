@@ -897,7 +897,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var login = online.getLogins().get(clientId);
 			if (login == null) {
 				if (!trySend) {
-					logger.info("sendDirects({}): not found login for clientId={} account={}",
+					logger.debug("sendDirects({}): not found login for clientId={} account={}",
 							getTypeId(fullEncodedProtocol), clientId, account);
 				}
 				continue;
@@ -906,7 +906,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			var state = link.getState();
 			if (state != eLogined) {
 				if (!trySend) {
-					logger.info("sendDirects({}): state={} != eLogined for clientId={} account={}",
+					logger.debug("sendDirects({}): state={} != eLogined for clientId={} account={}",
 							getTypeId(fullEncodedProtocol), state, clientId, account);
 				}
 				continue;
@@ -953,7 +953,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var login = online.getLogins().get(clientId);
 		if (login == null) {
 			if (!trySend) {
-				logger.info("sendDirect({}): not found login for clientId={} account={}",
+				logger.debug("sendDirect({}): not found login for clientId={} account={}",
 						getTypeId(fullEncodedProtocol), clientId, account);
 			}
 			return false;
@@ -963,7 +963,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var state = link.getState();
 		if (state != eLogined) {
 			if (!trySend) {
-				logger.info("sendDirect({}): state={} != eLogined for clientId={} account={}",
+				logger.debug("sendDirect({}): state={} != eLogined for clientId={} account={}",
 						getTypeId(fullEncodedProtocol), state, clientId, account);
 			}
 			return false;
