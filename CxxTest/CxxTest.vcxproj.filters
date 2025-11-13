@@ -180,6 +180,9 @@
     <ClCompile Include="Gen\demo\Module1\BTestSchemas.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
+    <ClCompile Include="..\cxx\wepoll.c">
+      <Filter>cxx</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cxx\Bean.h">
@@ -391,6 +394,9 @@
     </ClInclude>
     <ClInclude Include="Gen\demo\Module1\RpcOnlyUseData.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cxx\wepoll.h">
+      <Filter>cxx</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

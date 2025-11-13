@@ -73,6 +73,7 @@
     <ClCompile Include="..\CxxTest\main.cpp" />
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp" />
     <ClCompile Include="..\CxxTest\TestByteBuffer.cpp" />
+    <ClCompile Include="..\cxx\wepoll.c" />
     <ClCompile Include="Gen\demo\Module1\BKuafu.cpp" />
     <ClCompile Include="Gen\demo\Module1\BKuafuResult.cpp" />
     <ClCompile Include="Gen\demo\Module1\BOnlyData.cpp" />
@@ -141,6 +142,7 @@
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp" />
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp" />
     <ClInclude Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.h" />
+    <ClInclude Include="..\cxx\wepoll.h" />
     <ClInclude Include="Gen\demo\Module1\BKuafu.hpp" />
     <ClInclude Include="Gen\demo\Module1\BKuafuResult.hpp" />
     <ClInclude Include="Gen\demo\Module1\BOnlyData.hpp" />
