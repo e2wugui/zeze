@@ -42,10 +42,10 @@ Module & Gen
 	0. cxx的模块定义方式和其他语言版本差不多。
 	   和服务器（如java）共享solution.xml。
 	   增加一个project生成cxx的代码模板。
-	1. App 定义左右的模块和服务，App本身是一个单件。通过App::GetInstance()得到引用。
+	1. App 定义所有的模块和服务，App本身是一个单件。通过App::GetInstance()得到引用。
 	2. Module cxx 版本生成.h,.cpp两个文件，协议处理的实现写到cpp中。
 	    这两个文件生成到projectName/namespace下，属于srcDir。
 	3. Service.h 生成到srcDir的solutionName/下面，一般来说需要重载
                  DispatchProtocol DispatchRpcResponse两个方法，用来控制协议在客户端框架中的哪个线程来执行。
-                 默认实在网络线程中执行，这对于客户端框架一般是不合适的。
-	4. projectName/Gen 这些面生成所有总是覆盖的文件。包括Bean，模块的AbstractModule.h;.cpp，App.h等等。
+                 默认是在网络线程中执行，这对于客户端框架一般是不合适的。
+	4. projectName/Gen 这是生成文件目录，总是覆盖的文件。包括Bean，模块的AbstractModule.h;.cpp，App.h等等。
