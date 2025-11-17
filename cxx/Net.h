@@ -12,6 +12,14 @@
 #include "codec.h"
 #include <unordered_set>
 
+#ifdef LIMAX_OS_WINDOWS
+#include "wepoll.h"
+#else
+#include <sys/epoll.h>
+#define SOCKET int
+#endif
+
+
 namespace Zeze
 {
 namespace Net
@@ -23,13 +31,15 @@ namespace Net
 	class Protocol;
 	class BufferedCodec;
 	class Service;
+	class Selector;
 
 	class Socket
 	{
 		std::recursive_mutex mutex;
-		int socket = 0;
-		int selectorFlags = 0; // used in Selector
+		SOCKET socket = 0;
+		uint32_t selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;
+		Selector* selector = nullptr;
 
 		void SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compressC2s);
 		void SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compressS2c);
@@ -43,8 +53,8 @@ namespace Net
 		std::shared_ptr<limax::Codec> OutputCodec;
 		std::shared_ptr<limax::Codec> InputCodec;
 
-		void OnSend();
-		void OnRecv();
+		virtual void OnSend();
+		virtual void OnRecv();
 
 		int64_t activeSendTime;
 		int64_t activeRecvTime;
@@ -75,7 +85,11 @@ namespace Net
 		}
 		Socket(Service* svr);
 		~Socket();
-		void Close(std::exception* e);
+		void Close(const std::exception& e)
+		{
+			Close(&e);
+		}
+		void Close(const std::exception* e);
 		void Send(const char* data, int length) { Send(data, 0, length); }
 		void Send(const char* data, int offset, int length);
 		// 成功时，返回成功连接的地址。返回 empty string 表示失败。

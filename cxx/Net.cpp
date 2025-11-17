@@ -501,40 +501,92 @@ namespace Net
 	/// 下面使用系统socket-api实现真正的网络操作。尽量使用普通api，平台相关。
 	/// </summary>
 
+	class Buffer
+	{
+	public:
+		char* data;
+		int capacity;
+		Buffer()
+		{
+			capacity = 16 * 1024;
+			data = new char[capacity];
+		}
+		~Buffer()
+		{
+			delete[] data;
+		}
+	};
+
 	class Selector
 	{
 	public:
 		static Selector* Instance;
 
-		static const int OpRead = 1;
-		static const int OpWrite = 2;
-		static const int OpClose = 4;
-
-		std::mutex mutexPending;
-		std::unordered_map<std::shared_ptr<Socket>, int> pending;
-
-		void Select(const std::shared_ptr<Socket>& sock, int add, int remove)
+		void Add(SOCKET sock, uint32_t events)
 		{
-			std::lock_guard<std::mutex> g(mutexPending);
-			int oldFlags = sock->selectorFlags;
-			int newFlags = (oldFlags & ~remove) | add;
+			epoll_event event;
+			event.data.ptr = nullptr;
+			event.events = events;
+			epoll_ctl(epollHandle, EPOLL_CTL_ADD, sock, &event);
+		}
+
+		void Add(const std::shared_ptr<Socket>& sock, uint32_t events)
+		{
+			epoll_event event;
+			event.data.ptr = sock.get();
+			event.events = events;
+			epoll_ctl(epollHandle, EPOLL_CTL_ADD, sock->socket, &event);
+		}
+
+		void Mod(const std::shared_ptr<Socket>& sock, uint32_t events)
+		{
+			epoll_event event;
+			event.data.ptr = sock.get();
+			event.events = events;
+			epoll_ctl(epollHandle, EPOLL_CTL_MOD, sock->socket, &event);
+		}
+
+		void Del(const std::shared_ptr<Socket>& sock)
+		{
+			epoll_event event;
+			event.data.ptr = sock.get();
+			event.events = 0;
+			epoll_ctl(epollHandle, EPOLL_CTL_DEL, sock->socket, &event);
+		}
+
+		void Select(const std::shared_ptr<Socket>& sock, uint32_t add, uint32_t remove)
+		{
+			std::lock_guard<std::recursive_mutex> g(sock->mutex);
+			uint32_t oldFlags = sock->selectorFlags;
+			uint32_t newFlags = (oldFlags & ~remove) | add;
 			if (oldFlags != newFlags)
 			{
+				if (sock->selector)
+				{
+					if (sock->selector != this)
+						throw new std::exception("selector not null and not this.");
+					Mod(sock, newFlags);
+				}
+				else
+				{
+					Add(sock, newFlags);
+					sock->selector = this;
+				}
 				sock->selectorFlags = newFlags;
-				auto rc = pending.insert(std::make_pair(sock, newFlags));
-				if (false == rc.second) // 已经存在，更新flags
-					rc.first->second = newFlags;
 				Wakeup();
 			}
 		}
 
-		int wakeupfds[2];
+		SOCKET wakeupfds[2];
 		bool loop = true;
 		std::thread* worker;
-		std::unordered_map<std::shared_ptr<Socket>, int> sockets;
+		HANDLE epollHandle;
 
 		Selector()
 		{
+			epollHandle = epoll_create(1);
+			if (!epollHandle)
+				throw new std::exception("epoll_create");
 			pipe(wakeupfds);
 			worker = new std::thread(std::bind(&Selector::Loop, this));
 		}
@@ -544,74 +596,45 @@ namespace Net
 			loop = false;
 			worker->join();
 			delete worker;
-
-			for (auto& socket : sockets)
-				socket.first->Close(nullptr);
-			sockets.clear();
 		}
 
 		void Loop()
 		{
 			while (loop)
 			{
+				int timeout = 1000;
+				epoll_event events[200];
+				int rc = epoll_wait(epollHandle, events, 200, timeout);
+				if (rc == -1 && errno != EINTR)
+					return; // 内部错误。
+				if (rc == 0)
+					continue; // timeout
+				for (int i = 0; i < rc; ++i)
 				{
-					// apply pending
-					std::lock_guard<std::mutex> g(mutexPending);
-					for (auto& p : pending)
+					epoll_event& e = events[i];
+
+					try
 					{
-						if (p.second & OpClose)
-							sockets.erase(p.first);
-						else
-							sockets[p.first] = p.second;
+						if (e.data.ptr == nullptr)
+						{
+							Buffer buf; // 大一些，确保读完，如果实在读不完，那就再醒一次，等下次读。
+							recv(wakeupfds[0], buf.data, buf.capacity, 0);
+							continue;
+						}
+
+						if (e.events & EPOLLIN)
+							((Socket*)(e.data.ptr))->OnRecv();
+						else if (e.events & EPOLLOUT)
+							((Socket*)(e.data.ptr))->OnSend();
+						else if (e.events & EPOLLERR)
+							((Socket*)(e.data.ptr))->Close(std::exception("err"));
+						else if (e.events & EPOLLHUP)
+							((Socket*)(e.data.ptr))->Close(std::exception("hup"));
 					}
-					pending.clear();
-				}
-
-				fd_set setwrite, setread;
-				FD_ZERO(&setwrite);
-				FD_ZERO(&setread);
-
-				int maxfd = 0;
-				for (auto& socket : sockets)
-				{
-					if (socket.first->socket > maxfd)
-						maxfd = socket.first->socket;
-					if (socket.second & OpRead)
-						FD_SET(socket.first->socket, &setread);
-					if (socket.second & OpWrite)
-						FD_SET(socket.first->socket, &setwrite);
-				}
-				FD_SET(wakeupfds[0], &setread); // wakeup fd
-
-				struct timeval timeout = { 0 };
-				timeout.tv_sec = 1;
-				timeout.tv_usec = 0;
-
-				if (::select(maxfd + 1, &setread, &setwrite, nullptr, &timeout) > 0)
-				{
-					if (FD_ISSET(wakeupfds[0], &setread))
+					catch (std::exception& ex)
 					{
-						char buf[256];
-						while (true) // 确保读完所有的wakeup消息。
-						{
-							if (::recv(wakeupfds[0], buf, sizeof(buf), 0) < sizeof(buf))
-								break;
-						}
-					}
-					for (auto& socket : sockets)
-					{
-						try
-						{
-							if (FD_ISSET(socket.first->socket, &setread))
-								socket.first->OnRecv();
-							if (FD_ISSET(socket.first->socket, &setwrite))
-								socket.first->OnSend();
-						}
-						catch (std::exception& ex)
-						{
-							std::cout << "Selector Dispatch " << ex.what() << std::endl;
-							socket.first->Close(&ex);
-						}
+						std::cout << "Selector Dispatch " << ex.what() << std::endl;
+						((Socket*)(e.data.ptr))->Close(&ex);
 					}
 				}
 				{
@@ -653,7 +676,7 @@ namespace Net
 		// 客户端不需要大量连接，先实现一个总是使用select的版本。
 		// 看需要再实现其他版本。
 #ifdef LIMAX_OS_WINDOWS
-		int pipe(int fildes[2])
+		int pipe(SOCKET fildes[2])
 		{
 			sockaddr_in name;
 			memset(&name, 0, sizeof(name));
@@ -688,8 +711,9 @@ namespace Net
 			if (closesocket(tcp) == -1) {
 				goto clean;
 			}
-			fildes[0] = (int)tcp1;
-			fildes[1] = (int)tcp2;
+			fildes[0] = tcp1;
+			fildes[1] = tcp2;
+			Add(fildes[0], EPOLLIN);
 			return 0;
 		clean:
 			if (tcp != -1) {
@@ -736,17 +760,17 @@ namespace Net
 #endif
 	}
 
-	void Socket::Close(std::exception* e)
+	void Socket::Close(const std::exception* e)
 	{
 		if (Selector::Instance)
 		{
 			service->OnSocketClose(This, e);
-			Selector::Instance->Select(This, Selector::OpClose, 0);
+			Selector::Instance->Del(This);
 		}
 		This.reset();
 	}
 
-	inline void platform_close_socket(int& so)
+	inline void platform_close_socket(SOCKET so)
 	{
 #ifdef LIMAX_OS_WINDOWS
 		::closesocket(so);
@@ -770,22 +794,6 @@ namespace Net
 		std::cout << "~Socket" << std::endl;
 		platform_close_socket(socket);
 	}
-
-	class Buffer
-	{
-	public:
-		char* data;
-		int capacity;
-		Buffer()
-		{
-			capacity = 16 * 1024;
-			data = new char[capacity];
-		}
-		~Buffer()
-		{
-			delete[] data;
-		}
-	};
 
 	void Socket::OnRecv()
 	{
@@ -854,7 +862,7 @@ namespace Net
 		}
 		OutputBuffer->buffer.erase(0, rc);
 		if (OutputBuffer->buffer.empty())
-			Selector::Instance->Select(This, 0, Selector::OpWrite);
+			Selector::Instance->Select(This, 0, EPOLLOUT);
 	}
 
 	void Socket::Send(const char* data, int offset, int length)
@@ -893,7 +901,7 @@ namespace Net
 			{
 				OutputBuffer->buffer.erase(0, rc);
 				if (false == OutputBuffer->buffer.empty())
-					Selector::Instance->Select(This, Selector::OpWrite, 0);
+					Selector::Instance->Select(This, EPOLLOUT, 0);
 				return;
 			}
 			if (rc >= length)
@@ -904,7 +912,7 @@ namespace Net
 			offset += rc;
 			length -= rc;
 			OutputBuffer->buffer.append(data + offset, length);
-			Selector::Instance->Select(This, Selector::OpWrite, 0);
+			Selector::Instance->Select(This, EPOLLOUT, 0);
 			return;
 		}
 		// in sending
@@ -1029,7 +1037,7 @@ namespace Net
 			return false;
 		}
 		this->socket = so;
-		Selector::Instance->Select(This, Selector::OpRead, 0);
+		Selector::Instance->Select(This, EPOLLIN, 0);
 		service->OnSocketConnected(This);
 		return true;
 	}
