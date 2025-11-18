@@ -527,6 +527,7 @@ namespace Net
 
 		void Add(const std::shared_ptr<Socket>& sock, uint32_t events)
 		{
+			//std::cout << "add " << sock->socket << " " << events << std::endl;
 			epoll_event event;
 			event.data.ptr = sock.get();
 			event.events = events;
@@ -535,6 +536,7 @@ namespace Net
 
 		void Mod(const std::shared_ptr<Socket>& sock, uint32_t events)
 		{
+			//std::cout << "mod " << sock->socket << " " << events << std::endl;
 			epoll_event event;
 			event.data.ptr = sock.get();
 			event.events = events;
@@ -626,7 +628,6 @@ namespace Net
 					}
 					catch (std::exception& ex)
 					{
-						std::cout << "Selector Dispatch " << ex.what() << std::endl;
 						((Socket*)(e.data.ptr))->Close(&ex);
 					}
 				}
@@ -766,7 +767,7 @@ namespace Net
 
 		OutputBuffer.reset(new BufferedCodec());
 		InputBuffer.reset(new BufferedCodec());
-		Selector::Instance->Select(GetThisSharedPtr(), POLLIN, 0);
+		Selector::Instance->Select(GetThisSharedPtr(), EPOLLIN, 0);
 	}
 
 	Socket::~Socket()
@@ -777,6 +778,7 @@ namespace Net
 
 	void Socket::OnRecv()
 	{
+		auto ref = thisSharedPtr;
 		std::lock_guard<std::recursive_mutex> g(mutex);
 		activeRecvTime = time(0);
 
@@ -827,6 +829,7 @@ namespace Net
 
 	void Socket::OnSend()
 	{
+		auto ref = thisSharedPtr;
 		std::lock_guard<std::recursive_mutex> g(mutex);
 
 		if (connectPending)
@@ -835,7 +838,7 @@ namespace Net
 			{
 				connectPending = false; // one shot!
 				finishConnect();
-				Selector::Instance->Select(thisSharedPtr, POLLIN, POLLOUT);
+				Selector::Instance->Select(thisSharedPtr, EPOLLIN, EPOLLOUT);
 				service->OnSocketConnected(thisSharedPtr);
 			}
 			catch (std::exception& ex)
@@ -863,6 +866,7 @@ namespace Net
 
 	void Socket::Send(const char* data, int offset, int length)
 	{
+		auto ref = thisSharedPtr;
 		std::lock_guard<std::recursive_mutex> g(mutex);
 		activeSendTime = time(0);
 
