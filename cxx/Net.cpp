@@ -475,6 +475,25 @@ namespace Net
 	/// 下面使用系统socket-api实现真正的网络操作。尽量使用普通api，平台相关。
 	/// </summary>
 
+	inline void platform_close_socket(SOCKET so)
+	{
+#ifdef LIMAX_OS_WINDOWS
+		::closesocket(so);
+#else
+		::close(so);
+#endif
+		so = 0;
+	}
+
+	inline bool platform_ignore_error_for_send()
+	{
+#ifdef LIMAX_OS_WINDOWS
+		return ::WSAGetLastError() == WSAEWOULDBLOCK;
+#else
+		return errno = EWOULDBLOCK;
+#endif
+	}
+
 	class Buffer
 	{
 	public:
@@ -646,9 +665,6 @@ namespace Net
 			::send(wakeupfds[1], " ", 1, 0);
 		}
 
-		// 客户端不需要大量连接，先实现一个总是使用select的版本。
-		// 看需要再实现其他版本。
-#ifdef LIMAX_OS_WINDOWS
 		int pipe(SOCKET fildes[2])
 		{
 			sockaddr_in name;
@@ -681,26 +697,23 @@ namespace Net
 			if (tcp2 == -1) {
 				goto clean;
 			}
-			if (closesocket(tcp) == -1) {
-				goto clean;
-			}
+			platform_close_socket(tcp);
 			fildes[0] = tcp1;
 			fildes[1] = tcp2;
 			Add(fildes[0], EPOLLIN);
 			return 0;
 		clean:
 			if (tcp != INVALID_SOCKET) {
-				closesocket(tcp);
+				platform_close_socket(tcp);
 			}
 			if (tcp2 != INVALID_SOCKET) {
-				closesocket(tcp2);
+				platform_close_socket(tcp2);
 			}
 			if (tcp1 != INVALID_SOCKET) {
-				closesocket(tcp1);
+				platform_close_socket(tcp1);
 			}
 			return -1;
-	}
-#endif
+		}
 	};
 
 	Selector* Selector::Instance = nullptr;
@@ -741,25 +754,6 @@ namespace Net
 			Selector::Instance->Del(thisSharedPtr);
 		}
 		thisSharedPtr.reset();
-	}
-
-	inline void platform_close_socket(SOCKET so)
-	{
-#ifdef LIMAX_OS_WINDOWS
-		::closesocket(so);
-#else
-		::close(so);
-#endif
-		so = 0;
-	}
-
-	inline bool platform_ignore_error_for_send()
-	{
-#ifdef LIMAX_OS_WINDOWS
-		return ::WSAGetLastError() == WSAEWOULDBLOCK;
-#else
-		return errno = EWOULDBLOCK;
-#endif
 	}
 
 	Socket::Socket(Service* svr, SOCKET so)
