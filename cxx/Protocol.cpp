@@ -69,7 +69,7 @@ namespace Zeze
 					continue;
 				}
 				// 优先派发c++实现，然后尝试lua实现，最后UnknownProtocol。
-				if (nullptr != toLua && toLua->DecodeAndDispatch(service, sender->SessionId, moduleId, protocolId, pbb))
+				if (nullptr != toLua && toLua->DecodeAndDispatch(service, sender->GetSessionId(), moduleId, protocolId, pbb))
 					continue;
 				service->DispatchUnknownProtocol(sender, moduleId, protocolId, pbb);
 			}

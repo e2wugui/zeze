@@ -59,7 +59,33 @@ namespace Net
 		int64_t activeSendTime;
 		int64_t activeRecvTime;
 
+		bool handshakeDone;
+		int64_t sessionId;
+		Service* service;
+		std::shared_ptr<Socket> thisSharedPtr;
+		std::string lastAddress;
+		std::string lastAddressBytes;
+
 	public:
+		bool IsHandshakeDone() const {
+			return handshakeDone;
+		}
+		int64_t GetSessionId() const {
+			return sessionId;
+		}
+		Service* GetService() const {
+			return service;
+		}
+		const std::shared_ptr<Socket> & GetThisSharedPtr() const {
+			return thisSharedPtr;
+		}
+		const std::string & GetLastAddress() const {
+			return lastAddress;
+		}
+		const std::string & GetLastAddressBytes() const {
+			return lastAddressBytes;
+		}
+
 		int64_t GetActiveSendTime() const {
 			return activeSendTime;
 		}
@@ -67,13 +93,6 @@ namespace Net
 		int64_t GetActiveRecvTime() const {
 			return activeRecvTime;
 		}
-
-		bool IsHandshakeDone;
-		int64_t SessionId;
-		Service* service;
-		std::shared_ptr<Socket> This;
-		std::string LastAddress;
-		std::string LastAddressBytes;
 
 		static int64_t NextSessionId()
 		{
@@ -116,7 +135,7 @@ namespace Net
 		std::shared_ptr<Socket> GetSocket() { return socket; }
 		std::shared_ptr<Socket> GetSocket(int64_t sessionId)
 		{
-			if (socket.get() != nullptr && socket->SessionId == sessionId)
+			if (socket.get() != nullptr && socket->sessionId == sessionId)
 				return socket;
 			return std::shared_ptr<Socket>(nullptr);
 		}
@@ -270,7 +289,7 @@ namespace Net
 
 		/**
 		 * 1. 如果你是handshake的service，重载这个方法，按注释发送CKeepAlive即可；
-		 * 2. 如果你是其他service子类，重载这个方法，按住是发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
+		 * 2. 如果你是其他service子类，重载这个方法，按注释发送CKeepAlive，并且服务器端需要注册这条协议并写一个不需要处理代码的handler。
 		 * 3. 如果不发送, 会导致KeepTimerClient时间后再次触发, 也可以调用socket.setActiveSendTime()避免频繁触发
 		 *
 		 * 4. 实现：CKeepAlive().Send(socket.get());

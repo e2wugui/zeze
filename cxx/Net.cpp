@@ -261,8 +261,8 @@ namespace Net
 				auto material = p->Sender->dhContext->computeDHKey(
 					(unsigned char*)p->Argument->encryptParam.data(), (int)p->Argument->encryptParam.size());
 
-				size_t key_len = p->Sender->LastAddressBytes.size();
-				int8_t* key = (int8_t*)p->Sender->LastAddressBytes.data();
+				size_t key_len = p->Sender->GetLastAddressBytes().size();
+				int8_t* key = (int8_t*)p->Sender->GetLastAddressBytes().data();
 
 				int32_t half = (int32_t)material.size() / 2;
 				{
@@ -413,7 +413,7 @@ namespace Net
 
 	void Service::OnHandshakeDone(const std::shared_ptr<Socket>& sender)
 	{
-		sender->IsHandshakeDone = true;
+		sender->handshakeDone = true;
 	}
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
@@ -461,12 +461,12 @@ namespace Net
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 				Socket* sptr = new Socket(this);
-				std::shared_ptr<Socket> at = sptr->This;
+				std::shared_ptr<Socket> at = sptr->GetThisSharedPtr();
 				try
 				{
 					if (at->Connect(host, port, lastSuccessAddress, timeoutSecondsPerConnect))
 					{
-						lastSuccessAddress = at->LastAddress;
+						lastSuccessAddress = at->GetLastAddress();
 						return;
 					}
 					// 连接失败，内部已经调用Close释放shared_ptr。
@@ -488,9 +488,9 @@ namespace Net
 	Socket::Socket(Service* svr)
 		: service(svr)
 	{
-		This.reset(this);
-		IsHandshakeDone = false;
-		SessionId = NextSessionId();
+		thisSharedPtr.reset(this);
+		handshakeDone = false;
+		sessionId = NextSessionId();
 
 		OutputBuffer.reset(new BufferedCodec());
 		InputBuffer.reset(new BufferedCodec());
@@ -764,10 +764,10 @@ namespace Net
 	{
 		if (Selector::Instance)
 		{
-			service->OnSocketClose(This, e);
-			Selector::Instance->Del(This);
+			service->OnSocketClose(thisSharedPtr, e);
+			Selector::Instance->Del(thisSharedPtr);
 		}
-		This.reset();
+		thisSharedPtr.reset();
 	}
 
 	inline void platform_close_socket(SOCKET so)
@@ -823,20 +823,20 @@ namespace Net
 			InputCodec->update((int8_t*)recvbuf.data, 0, rc);
 			InputCodec->flush();
 			ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
-			service->OnSocketProcessInputBuffer(This, bb);
+			service->OnSocketProcessInputBuffer(thisSharedPtr, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else if (InputBuffer->buffer.size() > 0)
 		{
 			InputBuffer->buffer.append(recvbuf.data, rc);
 			ByteBuffer bb((unsigned char*)InputBuffer->buffer.data(), 0, (int)InputBuffer->buffer.size());
-			service->OnSocketProcessInputBuffer(This, bb);
+			service->OnSocketProcessInputBuffer(thisSharedPtr, bb);
 			InputBuffer->buffer.erase(0, bb.ReadIndex);
 		}
 		else
 		{
 			ByteBuffer bb((unsigned char*)recvbuf.data, 0, rc);
-			service->OnSocketProcessInputBuffer(This, bb);
+			service->OnSocketProcessInputBuffer(thisSharedPtr, bb);
 			if (bb.Size() > 0)
 				InputBuffer->buffer.append((const char *)(bb.Bytes + bb.ReadIndex), bb.Size());
 		}
@@ -862,7 +862,7 @@ namespace Net
 		}
 		OutputBuffer->buffer.erase(0, rc);
 		if (OutputBuffer->buffer.empty())
-			Selector::Instance->Select(This, 0, EPOLLOUT);
+			Selector::Instance->Select(thisSharedPtr, 0, EPOLLOUT);
 	}
 
 	void Socket::Send(const char* data, int offset, int length)
@@ -901,7 +901,7 @@ namespace Net
 			{
 				OutputBuffer->buffer.erase(0, rc);
 				if (false == OutputBuffer->buffer.empty())
-					Selector::Instance->Select(This, EPOLLOUT, 0);
+					Selector::Instance->Select(thisSharedPtr, EPOLLOUT, 0);
 				return;
 			}
 			if (rc >= length)
@@ -912,7 +912,7 @@ namespace Net
 			offset += rc;
 			length -= rc;
 			OutputBuffer->buffer.append(data + offset, length);
-			Selector::Instance->Select(This, EPOLLOUT, 0);
+			Selector::Instance->Select(thisSharedPtr, EPOLLOUT, 0);
 			return;
 		}
 		// in sending
@@ -987,10 +987,10 @@ namespace Net
 			int ret = ::connect(so, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
 			if (ret != -1) // 连接马上成功，异步socket，windows应该不会立即返回成功。保险写法
 			{
-				AssignAddressBytes(ai, LastAddressBytes);
+				AssignAddressBytes(ai, lastAddressBytes);
 				char addrName[256];
 				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
-					LastAddress = addrName; // 设置成功连接的地址
+					lastAddress = addrName; // 设置成功连接的地址
 				break;
 			}
 #ifdef LIMAX_OS_WINDOWS
@@ -1018,10 +1018,10 @@ namespace Net
 				{
 					if (err == 0)
 					{
-						AssignAddressBytes(ai, LastAddressBytes);
+						AssignAddressBytes(ai, lastAddressBytes);
 						char addrName[256];
 						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
-							LastAddress = addrName; // 设置成功连接的地址
+							lastAddress = addrName; // 设置成功连接的地址
 						break;
 					}
 				}
@@ -1037,8 +1037,8 @@ namespace Net
 			return false;
 		}
 		this->socket = so;
-		Selector::Instance->Select(This, EPOLLIN, 0);
-		service->OnSocketConnected(This);
+		Selector::Instance->Select(thisSharedPtr, EPOLLIN, 0);
+		service->OnSocketConnected(thisSharedPtr);
 		return true;
 	}
 
@@ -1096,7 +1096,7 @@ namespace Net
 
 	void Service::OnKeepAliveTimeout(const std::shared_ptr<Socket>& socket)
 	{
-		std::cout << "socket keep alive timeout " << socket->LastAddress << std::endl;
+		std::cout << "socket keep alive timeout " << socket->GetLastAddress() << std::endl;
 		socket->Close(NULL);
 	}
 

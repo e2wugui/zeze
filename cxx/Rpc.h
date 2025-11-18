@@ -40,7 +40,7 @@ namespace Zeze
 			{
 				if (so == nullptr)
 					return false;
-				auto service = so->service;
+				auto service = so->GetService();
 				if (service == nullptr)
 					return false;
 
