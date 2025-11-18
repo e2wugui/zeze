@@ -149,8 +149,6 @@ namespace Net
 	Service::Service()
 	{
 		SeedRpcContexts = 0;
-		autoReconnect = false;
-		autoReconnectDelay = 0;
 
 		SHandshake sHandshake;
 		AddProtocolFactory(sHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
@@ -168,6 +166,8 @@ namespace Net
 		handshakeProtocols.insert(sHandshake.TypeId());
 		handshakeProtocols.insert(sHandshake0.TypeId());
 		handshakeProtocols.insert(keepAlive.TypeId());
+
+		TryStartKeepAliveCheckTimer();
 	}
 
 	/*
@@ -393,22 +393,8 @@ namespace Net
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
 		sender;
-
 		if (e)
 			std::cout << "OnSocketClose " << e->what() << std::endl;
-
-		if (this->autoReconnect)
-		{
-			if (0 == autoReconnectDelay)
-				autoReconnectDelay = 1000;
-			else
-			{
-				autoReconnectDelay *= 2;
-				if (autoReconnectDelay > 30000)
-					autoReconnectDelay = 30000;
-			}
-			StartConnect(this->lastSuccessAddress, this->lastPort, autoReconnectDelay, 5);
-		}
 	}
 
 	void Service::OnHandshakeDone(const std::shared_ptr<Socket>& sender)
@@ -425,12 +411,12 @@ namespace Net
 
 	void Service::OnSocketConnected(const std::shared_ptr<Socket>& sender)
 	{
-		if (socket.get())
-		{
-			socket->Close(nullptr);
-		}
-		socket = sender;
-		autoReconnectDelay = 0;
+		AddSocket(sender);
+	}
+
+	void Service::OnSocketAccept(const std::shared_ptr<Socket>& sender)
+	{
+		AddSocket(sender);
 	}
 
 	void Service::DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle)
@@ -455,34 +441,23 @@ namespace Net
 		sender; moduleId; protocolId; data;
 	}
 
-	void Service::StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect)
+	void Service::StartConnect(const std::string& host, int port, int timeout)
 	{
-		std::thread([this, host, port, delay, timeoutSecondsPerConnect]
-			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-				Socket* sptr = new Socket(this);
-				std::shared_ptr<Socket> at = sptr->GetThisSharedPtr();
-				try
-				{
-					if (at->Connect(host, port, lastSuccessAddress, timeoutSecondsPerConnect))
-					{
-						lastSuccessAddress = at->GetLastAddress();
-						return;
-					}
-					// 连接失败，内部已经调用Close释放shared_ptr。
-				}
-				catch (...)
-				{
-					at->Close(nullptr); // XXX 异常的时候需要手动释放Socket内部的shared_ptr。
-				}
-			}).detach();
+		Socket* ss = new Socket(this);
+		try
+		{
+			ss->Connect(host, port, timeout);
+		}
+		catch (std::exception&)
+		{
+			// 异常必须主动关闭。
+			ss->Close(nullptr);
+		}
 	}
 
-	void Service::Connect(const std::string& host, int port, int timeoutSecondsPerConnect)
+	void Service::Connect(const std::string& host, int port, int timeout)
 	{
-		lastSuccessAddress = host;
-		lastPort = port;
-		StartConnect(host, port, autoReconnectDelay, timeoutSecondsPerConnect);
+		StartConnect(host, port, timeout);
 	}
 
 	Socket::Socket(Service* svr)
@@ -494,7 +469,6 @@ namespace Net
 
 		OutputBuffer.reset(new BufferedCodec());
 		InputBuffer.reset(new BufferedCodec());
-		service->TryStartKeepAliveCheckTimer();
 	}
 
 	/// <summary>
@@ -685,7 +659,7 @@ namespace Net
 			int namelen = sizeof(name);
 			SOCKET tcp1 = -1, tcp2 = -1;
 			SOCKET tcp = socket(AF_INET, SOCK_STREAM, 0);
-			if (tcp == -1) {
+			if (tcp == INVALID_SOCKET) {
 				goto clean;
 			}
 			if (bind(tcp, (sockaddr*)&name, namelen) == -1) {
@@ -698,7 +672,7 @@ namespace Net
 				goto clean;
 			}
 			tcp1 = socket(AF_INET, SOCK_STREAM, 0);
-			if (tcp1 == -1) {
+			if (tcp1 == INVALID_SOCKET) {
 				goto clean;
 			}
 			if (-1 == connect(tcp1, (sockaddr*)&name, namelen)) {
@@ -716,13 +690,13 @@ namespace Net
 			Add(fildes[0], EPOLLIN);
 			return 0;
 		clean:
-			if (tcp != -1) {
+			if (tcp != INVALID_SOCKET) {
 				closesocket(tcp);
 			}
-			if (tcp2 != -1) {
+			if (tcp2 != INVALID_SOCKET) {
 				closesocket(tcp2);
 			}
-			if (tcp1 != -1) {
+			if (tcp1 != INVALID_SOCKET) {
 				closesocket(tcp1);
 			}
 			return -1;
@@ -789,6 +763,18 @@ namespace Net
 #endif
 	}
 
+	Socket::Socket(Service* svr, SOCKET so)
+	{
+		socket = so;
+		thisSharedPtr.reset(this);
+		handshakeDone = false;
+		sessionId = NextSessionId();
+
+		OutputBuffer.reset(new BufferedCodec());
+		InputBuffer.reset(new BufferedCodec());
+		Selector::Instance->Select(GetThisSharedPtr(), POLLIN, 0);
+	}
+
 	Socket::~Socket()
 	{
 		std::cout << "~Socket" << std::endl;
@@ -848,6 +834,22 @@ namespace Net
 	void Socket::OnSend()
 	{
 		std::lock_guard<std::recursive_mutex> g(mutex);
+
+		if (connectPending)
+		{
+			try
+			{
+				connectPending = false; // one shot!
+				finishConnect();
+				Selector::Instance->Select(thisSharedPtr, POLLIN, POLLOUT);
+				service->OnSocketConnected(thisSharedPtr);
+			}
+			catch (std::exception& ex)
+			{
+				service->OnSocketConnectError(thisSharedPtr, &ex);
+			}
+			return;
+		}
 
 		int rc = ::send(socket, OutputBuffer->buffer.data(), (int)OutputBuffer->buffer.size(), 0);
 		if (-1 == rc)
@@ -920,29 +922,154 @@ namespace Net
 			OutputBuffer->buffer.append(data + offset, length);
 	}
 
-	inline void AssignAddressBytes(struct addrinfo* ai, std::string& out)
+	inline void AssignAddressBytesAi(addrinfo* ai, std::string& addrbytes, std::string &address)
 	{
+		char ip_str[INET6_ADDRSTRLEN];
 		switch (ai->ai_family)
 		{
 		case AF_INET:
 		{
 			sockaddr_in* sav4 = (sockaddr_in*)ai->ai_addr;
-			out.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
-			std::cout << "ipv4 " << sizeof(in_addr) << std::endl;
+			addrbytes.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
+			if (inet_ntop(AF_INET, &(sav4->sin_addr), ip_str, INET_ADDRSTRLEN) != NULL)
+				address.assign(ip_str);
 			break;
 		}
 		case AF_INET6:
 		{
 			sockaddr_in6* sav6 = (sockaddr_in6*)ai->ai_addr;
-			out.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
-			std::cout << "ipv6 " << sizeof(in6_addr) << std::endl;
+			addrbytes.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
+			if (inet_ntop(AF_INET6, &(sav6->sin6_addr), ip_str, INET6_ADDRSTRLEN) != NULL)
+				address.assign(ip_str);
 			break;
 		}
 		}
 	}
 
-	bool Socket::Connect(const std::string& host, int _port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect)
+	inline void AssignAddressBytes(sockaddr* ai, std::string& addrbytes, std::string & address)
 	{
+		char ip_str[INET6_ADDRSTRLEN];
+		switch (ai->sa_family)
+		{
+		case AF_INET:
+		{
+			sockaddr_in* sav4 = (sockaddr_in*)ai;
+			addrbytes.assign((const char*)&(sav4->sin_addr), sizeof(in_addr));
+			if (inet_ntop(AF_INET, &(sav4->sin_addr), ip_str, INET_ADDRSTRLEN) != NULL)
+				address.assign(ip_str);
+			break;
+		}
+		case AF_INET6:
+		{
+			sockaddr_in6* sav6 = (sockaddr_in6*)ai;
+			addrbytes.assign((const char*)&(sav6->sin6_addr), sizeof(in6_addr));
+			if (inet_ntop(AF_INET6, &(sav6->sin6_addr), ip_str, INET6_ADDRSTRLEN) != NULL)
+				address.assign(ip_str);
+			break;
+		}
+		}
+	}
+
+	class ServerSocket : public Socket
+	{
+		int family;
+	public:
+		ServerSocket(Service* service, SOCKET fd, int family)
+			: Socket(service, fd)
+		{
+			this->family = family;
+		}
+
+		virtual void OnRecv()
+		{
+			SOCKET acceptedso = -1;
+			switch (family)
+			{
+			case AF_INET:
+			{
+				struct sockaddr_in addr;
+				int addrlen = sizeof(addr);
+				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
+				break;
+			}
+			case AF_INET6:
+			{
+				struct sockaddr_in6 addr;
+				int addrlen = sizeof(addr);
+				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
+				break;
+			}
+			}
+			auto ss = new Socket(GetService(), acceptedso);
+			GetService()->OnSocketAccept(ss->GetThisSharedPtr());
+		}
+	};
+
+	std::string Service::Listen(const std::string& host, int port)
+	{
+		bool use_ipv6 = (host.find(':') != std::string::npos);
+
+		struct sockaddr* addr;
+		int addrlen;
+
+		struct sockaddr_in6 address6;
+		struct sockaddr_in address;
+
+		if (use_ipv6)
+		{
+			memset(&address6, 0, sizeof(address6));
+			address6.sin6_family = AF_INET6;
+			address6.sin6_port = htons(port);
+			if (host == "::" || host.empty())
+				address6.sin6_addr = in6addr_any;  // 监听所有IPv6接口
+			else if (inet_pton(AF_INET6, host.c_str(), &address6.sin6_addr) <= 0)
+				return "inet_pton";
+
+			addr = (sockaddr*)&address6;
+			addrlen = sizeof(address6);
+		}
+		else
+		{
+			memset(&address, 0, sizeof(address));
+			address.sin_family = AF_INET;
+			address.sin_port = htons(port);
+			if (host == "0.0.0.0" || host.empty())
+				address.sin_addr.s_addr = INADDR_ANY; // 监听所有IPv4接口
+			else if (inet_pton(AF_INET, host.c_str(), &address.sin_addr) <= 0)
+				return "inet_pton";
+
+			addr = (sockaddr*)&address;
+			addrlen = sizeof(address);
+		}
+
+		int domain = use_ipv6 ? AF_INET6 : AF_INET;
+		SOCKET serverfd = socket(domain, SOCK_STREAM, 0);
+		if (serverfd == INVALID_SOCKET)
+			return "create socket";
+
+		int opt = 1;
+		if (setsockopt(serverfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)))
+		{
+			platform_close_socket(serverfd);
+			return "setsockopt";
+		}
+		if (bind(serverfd, addr, addrlen) < 0)
+		{
+			platform_close_socket(serverfd);
+			return "bind";
+		}
+		if (listen(serverfd, SOMAXCONN) < 0)
+		{
+			platform_close_socket(serverfd);
+			return "listen";
+		}
+		serverSockets.insert((new ServerSocket(this, serverfd, domain))->GetThisSharedPtr());
+		return "";
+	}
+
+	bool Socket::Connect(const std::string& host, int _port, int timeout)
+	{
+		client = true;
 		struct addrinfo hints, *res;
 
 		memset(&hints, 0, sizeof(hints));
@@ -957,19 +1084,16 @@ namespace Net
 
 		if (0 != ::getaddrinfo(host.c_str(), port.c_str(), &hints, &res))
 		{
-			if (lastSuccessAddress.empty() || 0 != ::getaddrinfo(lastSuccessAddress.c_str(), port.c_str(), &hints, &res))
-			{
-				std::exception dnsfail("dns query fail");
-				this->Close(&dnsfail);
-				return false;
-			}
+			std::exception dnsfail("dns query fail");
+			this->Close(&dnsfail);
+			return false;
 		}
 
-		int so = 0;
+		SOCKET so = INVALID_SOCKET;
 		for (struct addrinfo* ai = res; ai != nullptr; ai = ai->ai_next)
 		{
-			so = (int)::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-			if (so == 0)
+			so = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+			if (so == INVALID_SOCKET)
 				continue;
 
 			// 设置异步模式
@@ -985,12 +1109,9 @@ namespace Net
 			}
 
 			int ret = ::connect(so, ai->ai_addr, static_cast<int>(ai->ai_addrlen));
-			if (ret != -1) // 连接马上成功，异步socket，windows应该不会立即返回成功。保险写法
+			if (ret == 0) // 连接马上成功，异步socket，windows应该不会立即返回成功。保险写法
 			{
-				AssignAddressBytes(ai, lastAddressBytes);
-				char addrName[256];
-				if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
-					lastAddress = addrName; // 设置成功连接的地址
+				AssignAddressBytesAi(ai, lastAddressBytes, lastAddress);
 				break;
 			}
 #ifdef LIMAX_OS_WINDOWS
@@ -999,38 +1120,18 @@ namespace Net
 			if (errno == EINPROGRESS)
 #endif
 			{
-				fd_set setw;
-				FD_ZERO(&setw);
-				FD_SET(so, &setw);
-				struct timeval timeout = { 0 };
-				timeout.tv_sec = timeoutSecondsPerConnect;
-				timeout.tv_usec = 0;
-				ret = ::select(so + 1, nullptr, &setw, nullptr, &timeout);
-				if (ret <= 0)
-				{
-					// 错误或者超时
-					platform_close_socket(so);
-					continue;
-				}
-				int err = -1;
-				socklen_t socklen = sizeof(err);
-				if (0 == ::getsockopt(so, SOL_SOCKET, SO_ERROR, (char*)&err, &socklen))
-				{
-					if (err == 0)
-					{
-						AssignAddressBytes(ai, lastAddressBytes);
-						char addrName[256];
-						if (::getnameinfo(ai->ai_addr, static_cast<socklen_t>(ai->ai_addrlen), addrName, sizeof(addrName), nullptr, 0, NI_NUMERICHOST) == 0)
-							lastAddress = addrName; // 设置成功连接的地址
-						break;
-					}
-				}
+				this->socket = so;
+				this->connectPending = true;
+				Selector::Instance->Select(thisSharedPtr, EPOLLOUT, 0);
+				::freeaddrinfo(res);
+				return true; // connect pending
 			}
 			platform_close_socket(so);
+			so = INVALID_SOCKET;
 		}
 		::freeaddrinfo(res);
 
-		if (0 == so)
+		if (INVALID_SOCKET == so)
 		{
 			std::exception connfail("connect fail");
 			this->Close(&connfail);
@@ -1040,6 +1141,26 @@ namespace Net
 		Selector::Instance->Select(thisSharedPtr, EPOLLIN, 0);
 		service->OnSocketConnected(thisSharedPtr);
 		return true;
+	}
+
+	void Socket::finishConnect()
+	{
+		int err = -1;
+		socklen_t socklen = sizeof(err);
+		if (0 == ::getsockopt(socket, SOL_SOCKET, SO_ERROR, (char*)&err, &socklen))
+		{
+			if (err == 0)
+			{
+				struct sockaddr_storage addr;
+				int addrlen = sizeof(addr);
+				if (0 == getpeername(socket, (sockaddr*)&addr, &addrlen))
+				{
+					AssignAddressBytes((sockaddr*) & addr, lastAddressBytes, lastAddress);
+				}
+				return;
+			}
+		}
+		throw std::exception("finishConnect");
 	}
 
 	void Service::SetKeepConfig(int period, int sendTimeout, int recvTimeout)
@@ -1067,28 +1188,30 @@ namespace Net
 			keepSendTimeout = 0x7fffffff;
 		int64_t now = time(0);
 
-		// c++ Service 只维护一个连接。
-		if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
+		for (auto it = sockets.begin(); it != sockets.end(); ++it)
 		{
-			try
+			auto socket = it->second;
+			if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
 			{
-				OnKeepAliveTimeout(socket);
+				try
+				{
+					OnKeepAliveTimeout(socket);
+				}
+				catch (std::exception& e)
+				{
+					std::cout << "onKeepAliveTimeout exception:" << e.what() << std::endl;
+				}
 			}
-			catch (std::exception& e)
+			if (socket->client && now - socket->GetActiveSendTime() > keepSendTimeout)
 			{
-				std::cout << "onKeepAliveTimeout exception:" << e.what() << std::endl;
-			}
-		}
-		// c++ Socket MUST BE client
-		if (now - socket->GetActiveSendTime() > keepSendTimeout)
-		{
-			try
-			{
-				OnSendKeepAlive(socket);
-			}
-			catch (std::exception& e)
-			{
-				std::cout << "onSendKeepAlive exception:" << e.what() << std::endl;
+				try
+				{
+					OnSendKeepAlive(socket);
+				}
+				catch (std::exception& e)
+				{
+					std::cout << "onSendKeepAlive exception:" << e.what() << std::endl;
+				}
 			}
 		}
 		TryStartKeepAliveCheckTimer();

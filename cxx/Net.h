@@ -17,6 +17,7 @@
 #else
 #include <sys/epoll.h>
 #define SOCKET int
+#define INVALID_SOCKET (-1)
 #endif
 
 
@@ -35,11 +36,14 @@ namespace Net
 
 	class Socket
 	{
+	protected:
 		std::recursive_mutex mutex;
 		SOCKET socket = 0;
 		uint32_t selectorFlags = 0; // used in Selector
 		std::shared_ptr<limax::DHContext> dhContext;
 		Selector* selector = nullptr;
+		bool client = false;
+		bool connectPending = false;
 
 		void SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compressC2s);
 		void SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compressS2c);
@@ -66,31 +70,40 @@ namespace Net
 		std::string lastAddress;
 		std::string lastAddressBytes;
 
+		void finishConnect();
 	public:
-		bool IsHandshakeDone() const {
+		bool IsHandshakeDone() const
+		{
 			return handshakeDone;
 		}
-		int64_t GetSessionId() const {
+		int64_t GetSessionId() const
+		{
 			return sessionId;
 		}
-		Service* GetService() const {
+		Service* GetService() const
+		{
 			return service;
 		}
-		const std::shared_ptr<Socket> & GetThisSharedPtr() const {
+		const std::shared_ptr<Socket> & GetThisSharedPtr() const
+		{
 			return thisSharedPtr;
 		}
-		const std::string & GetLastAddress() const {
+		const std::string & GetLastAddress() const
+		{
 			return lastAddress;
 		}
-		const std::string & GetLastAddressBytes() const {
+		const std::string & GetLastAddressBytes() const
+		{
 			return lastAddressBytes;
 		}
 
-		int64_t GetActiveSendTime() const {
+		int64_t GetActiveSendTime() const
+		{
 			return activeSendTime;
 		}
 
-		int64_t GetActiveRecvTime() const {
+		int64_t GetActiveRecvTime() const
+		{
 			return activeRecvTime;
 		}
 
@@ -103,6 +116,7 @@ namespace Net
 			return ++seed;
 		}
 		Socket(Service* svr);
+		Socket(Service* svr, SOCKET so);
 		~Socket();
 		void Close(const std::exception& e)
 		{
@@ -112,34 +126,44 @@ namespace Net
 		void Send(const char* data, int length) { Send(data, 0, length); }
 		void Send(const char* data, int offset, int length);
 		// 成功时，返回成功连接的地址。返回 empty string 表示失败。
-		bool Connect(const std::string& host, int port, const std::string& lastSuccessAddress, int timeoutSecondsPerConnect);
+		bool Connect(const std::string& host, int port, int timeout);
 
 	};
 
 	class Service
 	{
-		std::string lastSuccessAddress;
-		int lastPort;
-		bool autoReconnect;
-		int autoReconnectDelay;
+	protected:
 		std::unordered_set<int64_t> handshakeProtocols; // 构造的时候初始化，不需要线程保护。
-		int keepCheckPeriod;
-		int keepSendTimeout;
-		int keepRecvTimeout;
+		int keepCheckPeriod = 5;
+		int keepSendTimeout = 25;
+		int keepRecvTimeout = 60;
+		std::unordered_map<int64_t, std::shared_ptr<Socket>> sockets;
+		std::unordered_set<std::shared_ptr<Socket>> serverSockets;
 
 	public:
-		std::shared_ptr<Socket> socket;
-
 		Service();
 		virtual ~Service();
-		std::shared_ptr<Socket> GetSocket() { return socket; }
-		std::shared_ptr<Socket> GetSocket(int64_t sessionId)
+		std::shared_ptr<Socket> GetSocket() const
 		{
-			if (socket.get() != nullptr && socket->sessionId == sessionId)
-				return socket;
+			auto it = sockets.begin();
+			if (it != sockets.end())
+				return it->second;
 			return std::shared_ptr<Socket>(nullptr);
 		}
-		void Connect(const std::string& host, int port, int timeoutSecondsPerConnect = 5);
+		std::shared_ptr<Socket> GetSocket(int64_t sessionId) const
+		{
+			auto it = sockets.find(sessionId);
+			if (it != sockets.end())
+				return it->second;
+			return std::shared_ptr<Socket>(nullptr);
+		}
+		void AddSocket(const std::shared_ptr<Socket>& socket)
+		{
+			sockets[socket->GetSessionId()] = socket;
+		}
+		void Connect(const std::string& host, int port, int timeout = 5);
+		std::string Listen(const std::string& host, int port);
+
 		bool IsHandshakeProtocol(int64_t typeId) const
 		{
 			return handshakeProtocols.find(typeId) != handshakeProtocols.end();
@@ -213,15 +237,11 @@ namespace Net
 			this->dhGroup = _dhGroup;
 		}
 
-		void SetAutoConnect(bool bAuto)
-		{
-			this->autoReconnect = bAuto;
-		}
-
 		virtual void OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e);
 		virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender);
 		virtual void OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e);
 		virtual void OnSocketConnected(const std::shared_ptr<Socket>& sender);
+		virtual void OnSocketAccept(const std::shared_ptr<Socket>& sender);
 		virtual void DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, ByteBuffer& data);
 		virtual void DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle);
 		virtual void DispatchRpcResponse(Protocol* r, std::function<int(Protocol*)>& responseHandle, Service::ProtocolFactoryHandle& factoryHandle);
@@ -271,7 +291,7 @@ namespace Net
 		std::unordered_map<int64_t, Protocol*> RpcContexts;
 		int64_t SeedRpcContexts;
 		std::mutex MutexRpcContexts;
-		void StartConnect(const std::string& host, int port, int delay, int timeoutSecondsPerConnect);
+		void StartConnect(const std::string& host, int port, int timeout);
 
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
