@@ -16,25 +16,21 @@ class ToTypeScriptService : public Zeze::Net::Service
 public:
 	virtual void OnSocketClose(const std::shared_ptr<Zeze::Net::Socket>& sender, const std::exception* e) override
 	{
-		if (sender.get() == socket.get())
-		{
-			SetSocketClose(sender->SessionId);
-			socket.reset();
-		}
+		SetSocketClose(sender->GetSessionId());
 		Service::OnSocketClose(sender, e);
 	}
 
 	virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
 	{
 		Service::OnHandshakeDone(sender);
-		SetHandshakeDone(sender->SessionId);
+		SetHandshakeDone(sender->GetSessionId());
 	}
 
-	virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::Serialize::ByteBuffer& input) override
+	virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::ByteBuffer& input) override
 	{
-		if (sender->IsHandshakeDone)
+		if (sender->IsHandshakeDone())
 		{
-			AppendInputBuffer(sender->SessionId, input);
+			AppendInputBuffer(sender->GetSessionId(), input);
 			input.ReadIndex = input.WriteIndex;
 		}
 		else
@@ -42,9 +38,9 @@ public:
 			Zeze::Net::Protocol::DecodeProtocol(this, sender, input);
 		}
 	}
-	std::unordered_map<int64, std::string> ToBuffer;
-	std::unordered_set<int64> ToHandshakeDone;
-	std::unordered_set<int64> ToSocketClose;
+	std::unordered_map<int64_t, std::string> ToBuffer;
+	std::unordered_set<int64_t> ToHandshakeDone;
+	std::unordered_set<int64_t> ToSocketClose;
 	std::mutex mutex;
 
 	void SetHandshakeDone(long long socketSessionId)

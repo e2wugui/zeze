@@ -24,25 +24,21 @@ namespace Zeze
 
 			virtual void OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e) override
 			{
-				if (sender.get() == socket.get())
-				{
-					ToLua.SetSocketClose(sender->SessionId, this);
-					socket.reset();
-				}
+				ToLua.SetSocketClose(sender->GetSessionId(), this);
 				Service::OnSocketClose(sender, e);
 			}
 
 			virtual void OnHandshakeDone(const std::shared_ptr<Socket>& sender) override
 			{
 				Service::OnHandshakeDone(sender);
-				ToLua.SetHandshakeDone(sender->SessionId, this);
+				ToLua.SetHandshakeDone(sender->GetSessionId(), this);
 			}
 
 			virtual void OnSocketProcessInputBuffer(const std::shared_ptr<Socket>& sender, Zeze::ByteBuffer& input) override
 			{
-				if (sender->IsHandshakeDone)
+				if (sender->IsHandshakeDone())
 				{
-					ToLua.AppendInputBuffer(sender->SessionId, input);
+					ToLua.AppendInputBuffer(sender->GetSessionId(), input);
 					input.ReadIndex = input.WriteIndex;
 				}
 				else
