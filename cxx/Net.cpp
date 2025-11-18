@@ -983,6 +983,9 @@ namespace Net
 				struct sockaddr_in addr;
 				int addrlen = sizeof(addr);
 				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
+				if (acceptedso == INVALID_SOCKET)
+					return;
+				AssignAddressBytes((sockaddr*)&addr, lastAddressBytes, lastAddress);
 				break;
 			}
 			case AF_INET6:
@@ -990,6 +993,9 @@ namespace Net
 				struct sockaddr_in6 addr;
 				int addrlen = sizeof(addr);
 				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
+				if (acceptedso == INVALID_SOCKET)
+					return;
+				AssignAddressBytes((sockaddr*)&addr, lastAddressBytes, lastAddress);
 				break;
 			}
 			}

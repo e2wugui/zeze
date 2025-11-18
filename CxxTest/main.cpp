@@ -73,6 +73,8 @@ public:
 
 	virtual void OnHandshakeDone(const std::shared_ptr<Zeze::Net::Socket>& sender) override
 	{
+		Service::OnHandshakeDone(sender);
+
 		demo::Module1::Protocol3 p;
 		p.Send(GetSocket().get());
 		(new demo::Module1::Rpc1())->SendAsync(GetSocket().get(), [](Zeze::Net::Protocol* p)
