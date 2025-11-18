@@ -392,7 +392,7 @@ namespace Net
 
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
-		sender;
+		sockets.erase(sender->GetSessionId());
 		if (e)
 			std::cout << "OnSocketClose " << e->what() << std::endl;
 	}
@@ -404,7 +404,7 @@ namespace Net
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
-		sender;
+		sockets.erase(sender->GetSessionId());
 		if (e)
 			std::cout << "OnSocketConnectError " << e->what() << std::endl;
 	}
