@@ -13,7 +13,7 @@ public:
     void Stop();
 
     static int64_t getSpecialTypeIdFromBean(const Zeze::Bean* bean) {
-        throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:dynamic");
+        return bean->TypeId();
     }
 
     static Zeze::Bean* createBeanFromSpecialTypeId(int64_t typeId) {

@@ -392,6 +392,7 @@ namespace Net
 
 	void Service::OnSocketClose(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
+		std::lock_guard<std::recursive_mutex> g(mutex);
 		sockets.erase(sender->GetSessionId());
 		if (e)
 			std::cout << "OnSocketClose " << e->what() << std::endl;
@@ -404,6 +405,7 @@ namespace Net
 
 	void Service::OnSocketConnectError(const std::shared_ptr<Socket>& sender, const std::exception* e)
 	{
+		std::lock_guard<std::recursive_mutex> g(mutex);
 		sockets.erase(sender->GetSessionId());
 		if (e)
 			std::cout << "OnSocketConnectError " << e->what() << std::endl;
@@ -600,7 +602,6 @@ namespace Net
 				int rc = epoll_wait(epollHandle, events, 200, timeout);
 				if (rc == -1 && errno != EINTR)
 					return; // 内部错误。
-				rc = 0; // 后面需要处理timeout。
 				for (int i = 0; i < rc; ++i)
 				{
 					epoll_event& e = events[i];
@@ -1186,30 +1187,32 @@ namespace Net
 		if (keepSendTimeout <= 0)
 			keepSendTimeout = 0x7fffffff;
 		int64_t now = time(0);
-
-		for (auto it = sockets.begin(); it != sockets.end(); ++it)
 		{
-			auto socket = it->second;
-			if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
+			std::lock_guard<std::recursive_mutex> g(mutex);
+			for (auto it = sockets.begin(); it != sockets.end(); ++it)
 			{
-				try
+				std::shared_ptr<Socket>& socket = it->second;
+				if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
 				{
-					OnKeepAliveTimeout(socket);
+					try
+					{
+						OnKeepAliveTimeout(socket);
+					}
+					catch (std::exception& e)
+					{
+						std::cout << "onKeepAliveTimeout exception:" << e.what() << std::endl;
+					}
 				}
-				catch (std::exception& e)
+				if (socket->client && now - socket->GetActiveSendTime() > keepSendTimeout)
 				{
-					std::cout << "onKeepAliveTimeout exception:" << e.what() << std::endl;
-				}
-			}
-			if (socket->client && now - socket->GetActiveSendTime() > keepSendTimeout)
-			{
-				try
-				{
-					OnSendKeepAlive(socket);
-				}
-				catch (std::exception& e)
-				{
-					std::cout << "onSendKeepAlive exception:" << e.what() << std::endl;
+					try
+					{
+						OnSendKeepAlive(socket);
+					}
+					catch (std::exception& e)
+					{
+						std::cout << "onSendKeepAlive exception:" << e.what() << std::endl;
+					}
 				}
 			}
 		}

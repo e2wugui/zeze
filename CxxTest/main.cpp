@@ -127,6 +127,7 @@ public:
 
 	void OnSocketConnected(const std::shared_ptr<Zeze::Net::Socket>& sender)
 	{
+		Service::OnSocketConnected(sender);
 		std::string req("HEAD / HTTP/1.0\r\n\r\n");
 		sender->Send(req.data(), (int)req.size());
 	}
@@ -137,7 +138,7 @@ void TestSocket()
 	Zeze::Net::Startup();
 	Client client;
 	client.Connect("www.163.com", 80);
-	Sleep(2000);
+	Sleep(5000);
 	Zeze::Net::Cleanup();
 }
 

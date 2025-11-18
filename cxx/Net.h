@@ -133,8 +133,9 @@ namespace Net
 	class Service
 	{
 	protected:
+		std::recursive_mutex mutex;
 		std::unordered_set<int64_t> handshakeProtocols; // 构造的时候初始化，不需要线程保护。
-		int keepCheckPeriod = 5;
+		int keepCheckPeriod = 0;
 		int keepSendTimeout = 25;
 		int keepRecvTimeout = 60;
 		std::unordered_map<int64_t, std::shared_ptr<Socket>> sockets;
@@ -143,15 +144,17 @@ namespace Net
 	public:
 		Service();
 		virtual ~Service();
-		std::shared_ptr<Socket> GetSocket() const
+		std::shared_ptr<Socket> GetSocket()
 		{
+			std::lock_guard<std::recursive_mutex> g(mutex);
 			auto it = sockets.begin();
 			if (it != sockets.end())
 				return it->second;
 			return std::shared_ptr<Socket>(nullptr);
 		}
-		std::shared_ptr<Socket> GetSocket(int64_t sessionId) const
+		std::shared_ptr<Socket> GetSocket(int64_t sessionId)
 		{
+			std::lock_guard<std::recursive_mutex> g(mutex);
 			auto it = sockets.find(sessionId);
 			if (it != sockets.end())
 				return it->second;
@@ -159,6 +162,7 @@ namespace Net
 		}
 		void AddSocket(const std::shared_ptr<Socket>& socket)
 		{
+			std::lock_guard<std::recursive_mutex> g(mutex);
 			sockets[socket->GetSessionId()] = socket;
 		}
 		void Connect(const std::string& host, int port, int timeout = 5);
@@ -185,7 +189,7 @@ namespace Net
 		}
 
 		// seconds
-		void SetKeepConfig(int period, int sendTimeout, int recvTimeout);
+		void SetKeepConfig(int period, int sendTimeout = 25, int recvTimeout = 60);
 
 		///////////////////////////////////
 		// for ToLua interface
