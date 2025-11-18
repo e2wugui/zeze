@@ -581,8 +581,7 @@ namespace Net
 				int rc = epoll_wait(epollHandle, events, 200, timeout);
 				if (rc == -1 && errno != EINTR)
 					return; // 内部错误。
-				if (rc == 0)
-					continue; // timeout
+				rc = 0; // 后面需要处理timeout。
 				for (int i = 0; i < rc; ++i)
 				{
 					epoll_event& e = events[i];
