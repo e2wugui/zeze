@@ -1331,8 +1331,12 @@ namespace Net
 			keepSendTimeout = 0x7fffffff;
 		int64_t now = time(0);
 		{
-			std::lock_guard<std::recursive_mutex> g(mutex);
-			for (auto it = sockets.begin(); it != sockets.end(); ++it)
+			std::unordered_map<int64_t, std::shared_ptr<Socket>> tmp;
+			{
+				std::lock_guard<std::recursive_mutex> g(mutex);
+				tmp = sockets;
+			}
+			for (auto it = tmp.begin(); it != tmp.end(); ++it)
 			{
 				std::shared_ptr<Socket>& socket = it->second;
 				if (now - socket->GetActiveRecvTime() > keepRecvTimeout)
