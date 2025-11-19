@@ -11,19 +11,6 @@ namespace Zeze
 {
 namespace Net
 {
-	class Constant
-	{
-	public:
-		static const int eEncryptTypeDisable = 0;
-		static const int eEncryptTypeAes = 1;
-		static const int eEncryptTypeAesNoSecureIp = 2;
-
-		static const int eCompressTypeDisable = 0; // no compress
-		static const int eCompressTypeMppc = 1; // mppc
-		//static const int eCompressTypeZstd = 2; // zstd
-
-	};
-
 	class SHandshake0Argument : public Serializable
 	{
 	public:
@@ -149,13 +136,22 @@ namespace Net
 	Service::Service()
 	{
 		SeedRpcContexts = 0;
-
+		// client protocol
 		SHandshake sHandshake;
 		AddProtocolFactory(sHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake(); }, std::bind(&Service::ProcessSHandshake, this, std::placeholders::_1)));
+
+		// server protocol
 		SHandshake0 sHandshake0;
 		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
+		CHandshake cHandshake;
+		AddProtocolFactory(cHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+			[]() { return new CHandshake(); }, std::bind(&Service::ProcessCHandshake, this, std::placeholders::_1)));
+		CHandshakeDone done;
+		AddProtocolFactory(done.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+			[]() { return new CHandshakeDone(); }, std::bind(&Service::ProcessCHandshakeDone, this, std::placeholders::_1)));
+
 		KeepAlive keepAlive;
 		if (ProtocolFactory.find(keepAlive.TypeId()) == ProtocolFactory.end())
 		{
@@ -166,6 +162,8 @@ namespace Net
 		handshakeProtocols.insert(sHandshake.TypeId());
 		handshakeProtocols.insert(sHandshake0.TypeId());
 		handshakeProtocols.insert(keepAlive.TypeId());
+		handshakeProtocols.insert(sHandshake0.TypeId());
+		handshakeProtocols.insert(cHandshake.TypeId());
 
 		TryStartKeepAliveCheckTimer();
 	}
@@ -181,7 +179,16 @@ namespace Net
 	}
 	*/
 
-	int ClientCompress(int c) {
+	void Service::SetHandshakeOptions(int encryptType, int compressS2C, int compressC2S)
+	{
+		std::lock_guard<std::recursive_mutex> g(mutex);
+		this->encryptType = encryptType;
+		this->compressS2C = compressS2C;
+		this->compressC2S = compressC2S;
+	}
+
+	int ClientCompress(int c)
+	{
 		// 客户端检查一下当前版本是否支持推荐的压缩算法。
 		// 如果不支持则统一使用最老的。
 		// 这样当服务器新增了压缩算法，并且推荐了新的，客户端可以兼容它。
@@ -190,7 +197,7 @@ namespace Net
 		return Constant::eCompressTypeMppc; // 使用最老的压缩。
 	}
 
-	int Service::ClientEncrypt(int e)
+	int ClientEncrypt(int e)
 	{
 		switch (e)
 		{
@@ -419,6 +426,117 @@ namespace Net
 	void Service::OnSocketAccept(const std::shared_ptr<Socket>& sender)
 	{
 		AddSocket(sender);
+
+		SHandshake0 hand0;
+		hand0.Argument->encryptType = this->encryptType;
+		hand0.Argument->supportedEncryptList.push_back(eEncryptTypeAes);
+		hand0.Argument->supportedEncryptList.push_back(eEncryptTypeAesNoSecureIp);
+		hand0.Argument->compressS2c = this->compressS2C;
+		hand0.Argument->compressC2s = this->compressC2S;
+		hand0.Argument->supportedCompressList.push_back(eCompressTypeMppc);
+		hand0.Send(sender.get());
+	}
+
+	int Service::ProcessCHandshakeDone(Protocol* p)
+	{
+		OnHandshakeDone(p->Sender);
+		return 0;
+	}
+
+	int ServerCompressS2c(int s2cHint) {
+		switch (s2cHint)
+		{
+		case eCompressTypeDisable:
+		case eCompressTypeMppc:
+			return s2cHint;
+		}
+		return eCompressTypeMppc; // 跟客户端选择的不兼容,就强制以MPPC作为兜底的压缩,客户端如果还不支持就无法继续通信了
+	}
+
+	int ServerCompressC2s(int c2sHint) {
+		switch (c2sHint)
+		{
+		case eCompressTypeDisable:
+		case eCompressTypeMppc:
+			return c2sHint;
+		}
+		return eCompressTypeMppc; // 跟客户端选择的不兼容,就强制以MPPC作为兜底的压缩,客户端如果还不支持就无法继续通信了
+	}
+
+	int Service::ProcessCHandshake(Protocol* _p)
+	{
+		auto p = (CHandshake*)_p;
+		const int8_t* inputKey = nullptr;
+		int inputKeyLen = 0;
+		const int8_t* outputKey = nullptr;
+		int outputKeyLen = 0;
+		std::string response;
+		int group = 1;
+
+		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
+		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
+
+		switch (p->Argument->encryptType) {
+		case eEncryptTypeAes: {
+			std::string & data = p->Argument->encryptParam;
+			auto context = limax::createDHContext(group);
+			auto material = context->computeDHKey((unsigned char*)data.data(), (int)data.size());
+
+			std::string keyStr = GetSecureIp();
+			if (keyStr.empty())
+				keyStr = p->Sender->GetLocalAddress();
+			int8_t* key = (int8_t*)keyStr.data();
+			int keyLen = (int)keyStr.size();
+
+			int half = (int)material.size() / 2;
+
+			inputHmacMD5.reset(new limax::HmacMD5(key, 0, keyLen));
+			inputHmacMD5->update((int8_t*) & material[0], 0, half);
+			inputKey = inputHmacMD5->digest();
+			inputKeyLen = 16;
+
+			auto _response = context->generateDHResponse();
+			response.assign((char *) & _response[0], _response.size());
+
+			outputHmacMD5.reset(new limax::HmacMD5(key, 0, keyLen));
+			outputHmacMD5->update((int8_t*) & material[0], half, (int)material.size() - half);
+			outputKey = outputHmacMD5->digest();
+			outputKeyLen = 16;
+			break;
+		}
+		case eEncryptTypeAesNoSecureIp: {
+			std::string& data = p->Argument->encryptParam;
+			auto context = limax::createDHContext(group);
+			auto material = context->computeDHKey((unsigned char*)data.data(), (int)data.size());
+			int half = (int)material.size() / 2;
+
+			inputKey = (const int8_t*) & material[0];
+			inputKeyLen = half;
+			auto _response = context->generateDHResponse();
+			response.assign((char*)&_response[0], _response.size());
+			outputKey = (const int8_t*)&material[half];
+			outputKeyLen = (int)material.size() - half;
+			break;
+		}
+		}
+		auto s2c = ServerCompressS2c(p->Argument->compressS2c);
+		auto c2s = ServerCompressC2s(p->Argument->compressC2s);
+		p->Sender->SetInputSecurity(p->Argument->encryptType, inputKey, inputKeyLen, c2s);
+
+		SHandshake sHandshake;
+		sHandshake.Argument->encryptParam = response;
+		sHandshake.Argument->compressS2c = s2c;
+		sHandshake.Argument->compressC2s = c2s;
+		sHandshake.Argument->encryptType = p->Argument->encryptType;
+		sHandshake.Send(p->Sender.get());
+		p->Sender->SetOutputSecurity(p->Argument->encryptType, outputKey, outputKeyLen, s2c);
+
+		// 为了防止服务器在Handshake以后马上发送数据，
+		// 导致未加密数据和加密数据一起到达Client，这种情况很难处理。
+		// 这个本质上是协议相关的问题：就是前面一个协议的处理结果影响后面数据处理。
+		// 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
+		// OnHandshakeDone(p.Sender);
+		return 0;
 	}
 
 	void Service::DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle)
@@ -1146,6 +1264,26 @@ namespace Net
 		Selector::Instance->Select(thisSharedPtr, EPOLLIN, 0);
 		service->OnSocketConnected(thisSharedPtr);
 		return true;
+	}
+
+	std::string Socket::GetLocalAddress() const
+	{
+		struct sockaddr_storage addr;
+		socklen_t addr_len = sizeof(addr);
+
+		if (getsockname(socket, (struct sockaddr*)&addr, &addr_len) < 0)
+			return "";
+
+		struct sockaddr* a = (sockaddr*)&addr;
+		if (a->sa_family == AF_INET) {
+			struct sockaddr_in* addr4 = (struct sockaddr_in*)a;
+			return std::string((const char*)&addr4->sin_addr, INET_ADDRSTRLEN);
+		}
+		if (a->sa_family == AF_INET6) {
+			struct sockaddr_in6* addr6 = (struct sockaddr_in6*)a;
+			return std::string((const char*)&addr6->sin6_addr, INET6_ADDRSTRLEN);
+		}
+		return "";
 	}
 
 	void Socket::finishConnect()

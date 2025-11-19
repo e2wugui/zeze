@@ -1,3 +1,4 @@
+
 #include "Gen/demo/Bean1.hpp"
 #include "Gen/demo/Module1/BValue.hpp"
 #include "zeze/cxx/Net.h"
@@ -19,7 +20,7 @@ int main(char* args[])
 	std::cout << std::ceil(mills / 1000.0) << std::endl;
 	TestEncode();
 	TestSocket();
-	//TestEcho(); // telnet 127.0.0.1 9998 ÊäÈë¼¸¸ö×Ö·ûÈ»ºó¹Ø±Õ¾ÍÄÜÍË³öÕâ¸ö²âÊÔ¡£
+	//TestEcho(); // telnet 127.0.0.1 9998 è¾“å…¥å‡ ä¸ªå­—ç¬¦ç„¶åå…³é—­å°±èƒ½é€€å‡ºè¿™ä¸ªæµ‹è¯•ã€‚
 	TestProtocol();
 }
 
@@ -164,7 +165,7 @@ public:
 	void OnSocketAccept(const std::shared_ptr<Zeze::Net::Socket>& sender)
 	{
 		AddSocket(sender);
-		//Service::OnSocketAccept(sender); // Ä¬ÈÏµÄÊµÏÖÊÇhandshakeĞ­Òé¼ÓÃÜ¡£
+		//Service::OnSocketAccept(sender); // é»˜è®¤çš„å®ç°æ˜¯handshakeåè®®åŠ å¯†ã€‚
 		//std::cout << "on accept." << std::endl;
 	}
 

@@ -34,6 +34,18 @@ namespace Net
 	class Service;
 	class Selector;
 
+	enum Constant
+	{
+		eEncryptTypeDisable = 0,
+		eEncryptTypeAes = 1,
+		eEncryptTypeAesNoSecureIp = 2,
+
+		eCompressTypeDisable = 0, // no compress
+		eCompressTypeMppc = 1, // mppc
+		//eCompressTypeZstd = 2, // zstd
+
+	};
+
 	class Socket
 	{
 	protected:
@@ -72,6 +84,7 @@ namespace Net
 
 		void finishConnect();
 	public:
+		std::string GetLocalAddress() const;
 		bool IsHandshakeDone() const
 		{
 			return handshakeDone;
@@ -297,14 +310,28 @@ namespace Net
 		std::mutex MutexRpcContexts;
 		void StartConnect(const std::string& host, int port, int timeout);
 
+		// client handshake
 		char dhGroup = 1;
 		int ProcessSHandshake(Protocol* p);
 		int ProcessSHandshake0(Protocol* p);
-		int ProcessKeepAliveRequest(Protocol* _p);
-	public:
-		int ClientEncrypt(int e);
 		void StartHandshake(int encryptType, int compressS2c, int compressC2s, const std::shared_ptr<Socket>& sender);
 
+		// server handshake
+		int encryptType = eEncryptTypeDisable;
+		int compressS2C = eCompressTypeDisable;
+		int compressC2S = eCompressTypeDisable;
+		std::string secureIp;
+
+		// OnSocketAccept 发送SHandshake0开始协商
+		int ProcessCHandshake(Protocol* _p);
+		int ProcessCHandshakeDone(Protocol* p);
+		int ProcessKeepAliveRequest(Protocol* _p);
+	public:
+		// server handshake options
+		void SetHandshakeOptions(int encryptType, int compressS2C, int compressC2S);
+		void SetSecureIp(const std::string& ipAddress) { secureIp = ipAddress; }
+		const std::string& GetSecureIp() const { return secureIp; }
+		// handshake keepalive
 		void TryStartKeepAliveCheckTimer();
 		void CheckKeepAlive();
 
