@@ -9,6 +9,7 @@ void TestSocket();
 void TestEncode();
 void TestProtocol();
 void TestFuture();
+void TestEcho();
 
 int main(char* args[])
 {
@@ -18,6 +19,7 @@ int main(char* args[])
 	std::cout << std::ceil(mills / 1000.0) << std::endl;
 	TestEncode();
 	TestSocket();
+	//TestEcho(); // telnet 127.0.0.1 9998 输入几个字符然后关闭就能退出这个测试。
 	TestProtocol();
 }
 
@@ -131,6 +133,13 @@ public:
 		std::string req("HEAD / HTTP/1.0\r\n\r\n");
 		sender->Send(req.data(), (int)req.size());
 	}
+
+	void OnSocketClose(const std::shared_ptr<Zeze::Net::Socket>& sender, const std::exception* e)
+	{
+		Service::OnSocketClose(sender, e);
+		future.SetResult(1);
+	}
+	Zeze::TaskCompletionSource<int> future;
 };
 
 void TestSocket()
@@ -138,7 +147,41 @@ void TestSocket()
 	Zeze::Net::Startup();
 	Client client;
 	client.Connect("www.163.com", 80);
-	Sleep(5000);
+	client.future.Wait();
+	Zeze::Net::Cleanup();
+}
+
+class EchoServer : public Zeze::Net::Service
+{
+public:
+	void OnSocketProcessInputBuffer(const std::shared_ptr<Zeze::Net::Socket>& sender, Zeze::ByteBuffer& input) override
+	{
+		//std::cout << std::string((char*)input.Bytes, input.ReadIndex, input.Size()) << std::endl;
+		sender->Send((const char*)input.Bytes, input.ReadIndex, input.Size());
+		input.ReadIndex = input.WriteIndex;
+	}
+
+	void OnSocketAccept(const std::shared_ptr<Zeze::Net::Socket>& sender)
+	{
+		AddSocket(sender);
+		//Service::OnSocketAccept(sender); // 默认的实现是handshake协议加密。
+		//std::cout << "on accept." << std::endl;
+	}
+
+	void OnSocketClose(const std::shared_ptr<Zeze::Net::Socket> & sender, const std::exception * e)
+	{
+		Service::OnSocketClose(sender, e);
+		future.SetResult(1);
+	}
+	Zeze::TaskCompletionSource<int> future;
+};
+
+void TestEcho()
+{
+	Zeze::Net::Startup();
+	EchoServer server;
+	server.Listen("::", 9998);
+	server.future.Wait();
 	Zeze::Net::Cleanup();
 }
 

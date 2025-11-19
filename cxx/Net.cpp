@@ -463,8 +463,8 @@ namespace Net
 	}
 
 	Socket::Socket(Service* svr)
-		: service(svr)
 	{
+		service = svr;
 		thisSharedPtr.reset(this);
 		handshakeDone = false;
 		sessionId = NextSessionId();
@@ -761,6 +761,7 @@ namespace Net
 	Socket::Socket(Service* svr, SOCKET so)
 	{
 		socket = so;
+		service = svr;
 		thisSharedPtr.reset(this);
 		handshakeDone = false;
 		sessionId = NextSessionId();
@@ -772,7 +773,7 @@ namespace Net
 
 	Socket::~Socket()
 	{
-		std::cout << "~Socket" << std::endl;
+		//std::cout << "~Socket" << std::endl;
 		platform_close_socket(socket);
 	}
 
