@@ -915,7 +915,7 @@ public class Service extends ReentrantLock {
 	 */
 	@SuppressWarnings("MethodMayBeStatic")
 	protected void onSendKeepAlive(@NotNull AsyncSocket socket) {
-		KeepAlive.instance.Send(socket); // skip result
+		new KeepAlive().Send(socket); // skip result
 	}
 
 	public @NotNull DatagramSocket bindUdp(@NotNull InetSocketAddress local) throws IOException {
