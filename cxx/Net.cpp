@@ -137,14 +137,14 @@ namespace Net
 	{
 		SeedRpcContexts = 0;
 		// client protocol
+		SHandshake0 sHandshake0;
+		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
+			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
 		SHandshake sHandshake;
 		AddProtocolFactory(sHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new SHandshake(); }, std::bind(&Service::ProcessSHandshake, this, std::placeholders::_1)));
 
 		// server protocol
-		SHandshake0 sHandshake0;
-		AddProtocolFactory(sHandshake0.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
-			[]() { return new SHandshake0(); }, std::bind(&Service::ProcessSHandshake0, this, std::placeholders::_1)));
 		CHandshake cHandshake;
 		AddProtocolFactory(cHandshake.TypeId(), Zeze::Net::Service::ProtocolFactoryHandle(
 			[]() { return new CHandshake(); }, std::bind(&Service::ProcessCHandshake, this, std::placeholders::_1)));
@@ -159,11 +159,11 @@ namespace Net
 				[]() { return new KeepAlive(); }, std::bind(&Service::ProcessKeepAliveRequest, this, std::placeholders::_1)));
 		}
 
+		handshakeProtocols.insert(sHandshake0.TypeId());
 		handshakeProtocols.insert(sHandshake.TypeId());
-		handshakeProtocols.insert(sHandshake0.TypeId());
-		handshakeProtocols.insert(keepAlive.TypeId());
-		handshakeProtocols.insert(sHandshake0.TypeId());
 		handshakeProtocols.insert(cHandshake.TypeId());
+		handshakeProtocols.insert(done.TypeId());
+		handshakeProtocols.insert(keepAlive.TypeId());
 
 		TryStartKeepAliveCheckTimer();
 	}
@@ -385,6 +385,7 @@ namespace Net
 		case Constant::eEncryptTypeDisable:
 			break;
 		case Constant::eEncryptTypeAes:
+		case Constant::eEncryptTypeAesNoSecureIp:
 			codec = std::shared_ptr<limax::Codec>(new limax::Decrypt(codec, (int8_t*)key, keylen));
 			break;
 			//TODO: 新增加密算法支持这里加case
@@ -909,7 +910,7 @@ namespace Net
 		{
 			if (false == platform_ignore_error_for_send())
 			{
-				std::exception senderr("onsend error");
+				std::exception senderr("onrecv error");
 				this->Close(&senderr);
 				return;
 			}

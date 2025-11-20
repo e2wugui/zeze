@@ -69,7 +69,7 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				auto r = (demo::Module1::Rpc2*)p;
-				std::cout << "ProcessRpc2" << std::endl;
+				std::cout << "Server ProcessRpc2" << std::endl;
 				r->SendResult();
 				return 0;
 			}
@@ -102,11 +102,11 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				auto r = (demo::Module1::Rpc1*)p;
-				std::cout << "Server ProcessRpc1 Never!" << std::endl;
+				std::cout << "ProcessRpc1 Never!" << std::endl;
 				r->SendResult();
 				(new demo::Module1::Rpc2())->SendAsync(p->Sender.get(), [](Zeze::Net::Protocol* p)
 					{
-						std::cout << "Server Rpc2 Async Response." << std::endl;
+						std::cout << "Rpc2 Async Response." << std::endl;
 						return 0;
 					});
 				return 0;
@@ -121,7 +121,7 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				auto r = (demo::Module1::Rpc2*)p;
-				std::cout << "Server ProcessRpc2" << std::endl;
+				std::cout << "ProcessRpc2" << std::endl;
 				r->SendResult();
 				return 0;
 			}
@@ -140,13 +140,20 @@ public:
 				return 0;
 			});
 
+		(new demo::Module1::Rpc2())->SendAsync(GetSocket().get(), [](Zeze::Net::Protocol* p)
+			{
+				std::cout << "Rpc2 Async Response." << std::endl;
+				return 0;
+			});
 		std::thread([this]()
 			{
 				demo::Module1::Rpc1 rpc1;
 				rpc1.SendForWait(GetSocket().get())->Wait();
 				std::cout << "Send Rpc1 Done." << std::endl;
+				future.SetResult(1);
 			}).detach();
 	}
+	Zeze::TaskCompletionSource<int> future;
 };
 
 #include "zeze/cxx/TaskCompletionSource.h"
@@ -169,9 +176,10 @@ void TestProtocol()
 	Zeze::Net::Startup();
 	ProtocolClient client;
 	ProtocolServer server;
+	server.SetHandshakeOptions(Zeze::Net::eEncryptTypeAesNoSecureIp, Zeze::Net::eCompressTypeMppc, Zeze::Net::eCompressTypeMppc);
 	server.Listen("127.0.0.1", 7777);
 	client.Connect("127.0.0.1", 7777);
-	Sleep(2000);
+	client.future.Wait();
 	Zeze::Net::Cleanup();
 }
 
