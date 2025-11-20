@@ -18,6 +18,7 @@
     </ClCompile>
     <ClCompile Include="..\cxx\utils.cpp" />
     <ClCompile Include="..\cxx\Vector.cpp" />
+    <ClCompile Include="..\cxx\wepoll.c" />
     <ClCompile Include="..\CxxTest\demo\M6\M7\ModuleM7.cpp" />
     <ClCompile Include="..\CxxTest\demo\M6\ModuleM6.cpp" />
     <ClCompile Include="..\CxxTest\demo\Module1\Module11\ModuleModule11.cpp" />
@@ -46,8 +47,12 @@
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BAutoValue.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BFood.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BItem.cpp" />
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafu.cpp" />
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.cpp" />
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BOnlyData.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BRemoved2.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BSimple.cpp" />
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BValue.cpp" />
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
@@ -73,11 +78,6 @@
     <ClCompile Include="..\CxxTest\main.cpp" />
     <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp" />
     <ClCompile Include="..\CxxTest\TestByteBuffer.cpp" />
-    <ClCompile Include="..\cxx\wepoll.c" />
-    <ClCompile Include="Gen\demo\Module1\BKuafu.cpp" />
-    <ClCompile Include="Gen\demo\Module1\BKuafuResult.cpp" />
-    <ClCompile Include="Gen\demo\Module1\BOnlyData.cpp" />
-    <ClCompile Include="Gen\demo\Module1\BTestSchemas.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cxx\Bean.h" />
@@ -107,6 +107,7 @@
     <ClInclude Include="..\cxx\ToTypeScriptService.h" />
     <ClInclude Include="..\cxx\utils.h" />
     <ClInclude Include="..\cxx\Vector.h" />
+    <ClInclude Include="..\cxx\wepoll.h" />
     <ClInclude Include="..\CxxTest\demo\TestClient.h" />
     <ClInclude Include="..\CxxTest\demo\M6\ModuleM6.h" />
     <ClInclude Include="..\CxxTest\demo\M6\M7\ModuleM7.h" />
@@ -124,17 +125,25 @@
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BAutoValue.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BFood.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BItem.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafu.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BOnlyData.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BRemoved2.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BSimple.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BValue.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\EmptyKey.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Key.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Protocol3.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Protocol4.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolNoProcedure.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyData.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyUseData.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolUseData.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc1.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc2.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyData.hpp" />
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyUseData.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.hpp" />
     <ClInclude Include="..\CxxTest\Gen\demo\Module2\BValue.hpp" />
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\AbstractModule.hpp" />
@@ -142,15 +151,6 @@
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp" />
     <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp" />
     <ClInclude Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.h" />
-    <ClInclude Include="..\cxx\wepoll.h" />
-    <ClInclude Include="Gen\demo\Module1\BKuafu.hpp" />
-    <ClInclude Include="Gen\demo\Module1\BKuafuResult.hpp" />
-    <ClInclude Include="Gen\demo\Module1\BOnlyData.hpp" />
-    <ClInclude Include="Gen\demo\Module1\BTestSchemas.hpp" />
-    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyData.hpp" />
-    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyUseData.hpp" />
-    <ClInclude Include="Gen\demo\Module1\RpcOnlyData.hpp" />
-    <ClInclude Include="Gen\demo\Module1\RpcOnlyUseData.hpp" />
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">

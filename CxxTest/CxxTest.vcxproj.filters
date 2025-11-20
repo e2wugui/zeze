@@ -93,6 +93,9 @@
     <ClCompile Include="..\cxx\Vector.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
+    <ClCompile Include="..\cxx\wepoll.c">
+      <Filter>cxx</Filter>
+    </ClCompile>
     <ClCompile Include="..\CxxTest\demo\M6\M7\ModuleM7.cpp">
       <Filter>CxxTest\demo\M6\M7</Filter>
     </ClCompile>
@@ -132,10 +135,22 @@
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BItem.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafu.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BOnlyData.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BRemoved2.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BSimple.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
     <ClCompile Include="..\CxxTest\Gen\demo\Module1\BValue.cpp">
@@ -167,21 +182,6 @@
     </ClCompile>
     <ClCompile Include="..\CxxTest\TestByteBuffer.cpp">
       <Filter>CxxTest</Filter>
-    </ClCompile>
-    <ClCompile Include="Gen\demo\Module1\BKuafu.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="Gen\demo\Module1\BKuafuResult.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="Gen\demo\Module1\BOnlyData.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="Gen\demo\Module1\BTestSchemas.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\cxx\wepoll.c">
-      <Filter>cxx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -266,6 +266,9 @@
     <ClInclude Include="..\cxx\Vector.h">
       <Filter>cxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\cxx\wepoll.h">
+      <Filter>cxx</Filter>
+    </ClInclude>
     <ClInclude Include="..\CxxTest\demo\TestClient.h">
       <Filter>CxxTest\demo</Filter>
     </ClInclude>
@@ -317,10 +320,22 @@
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BItem.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafu.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BRemoved2.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BSimple.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\BValue.hpp">
@@ -341,6 +356,12 @@
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolNoProcedure.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyUseData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolUseData.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
@@ -348,6 +369,12 @@
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc2.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyUseData.hpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.hpp">
@@ -370,33 +397,6 @@
     </ClInclude>
     <ClInclude Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.h">
       <Filter>CxxTest\TaskTest\TaskExt</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\BKuafu.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\BKuafuResult.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\BOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\BTestSchemas.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\ProtocolOnlyUseData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\RpcOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="Gen\demo\Module1\RpcOnlyUseData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\wepoll.h">
-      <Filter>cxx</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

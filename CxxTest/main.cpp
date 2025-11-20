@@ -22,6 +22,7 @@ int main(char* args[])
 	TestSocket();
 	//TestEcho(); // telnet 127.0.0.1 9998 输入几个字符然后关闭就能退出这个测试。
 	TestProtocol();
+	std::cout << "Test OK!" << std::endl;
 }
 
 #include "Gen/demo/Module1/Protocol3.hpp"

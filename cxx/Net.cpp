@@ -372,7 +372,6 @@ namespace Net
 		case Constant::eCompressTypeDisable:
 			break;
 		case Constant::eCompressTypeMppc:
-		case Constant::eEncryptTypeAesNoSecureIp:
 			codec = std::shared_ptr<limax::Codec>(new limax::RFC2118Decode(codec));
 			break;
 			// TODO: 新增压缩算法支持这里加case
