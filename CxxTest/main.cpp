@@ -176,7 +176,7 @@ void TestProtocol()
 	Zeze::Net::Startup();
 	ProtocolClient client;
 	ProtocolServer server;
-	server.SetHandshakeOptions(Zeze::Net::eEncryptTypeAesNoSecureIp, Zeze::Net::eCompressTypeMppc, Zeze::Net::eCompressTypeMppc);
+	server.SetHandshakeOptions(Zeze::Net::eEncryptTypeAes, Zeze::Net::eCompressTypeMppc, Zeze::Net::eCompressTypeMppc);
 	server.Listen("127.0.0.1", 7777);
 	client.Connect("127.0.0.1", 7777);
 	client.future.Wait();

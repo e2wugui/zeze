@@ -260,7 +260,6 @@ namespace Net
 		int outputKeyLen = 0;
 		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
 		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
-
 		switch (p->Argument->encryptType)
 		{
 			case Constant::eEncryptTypeAes:
@@ -474,15 +473,14 @@ namespace Net
 		const int8_t* outputKey = nullptr;
 		int outputKeyLen = 0;
 		std::string response;
-		int group = 1;
 
 		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
 		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
-
+		int group = 1;
+		auto context = limax::createDHContext(group);
 		switch (p->Argument->encryptType) {
 		case eEncryptTypeAes: {
 			std::string & data = p->Argument->encryptParam;
-			auto context = limax::createDHContext(group);
 			auto material = context->computeDHKey((unsigned char*)data.data(), (int)data.size());
 
 			std::string keyStr = GetSecureIp();
@@ -509,7 +507,6 @@ namespace Net
 		}
 		case eEncryptTypeAesNoSecureIp: {
 			std::string& data = p->Argument->encryptParam;
-			auto context = limax::createDHContext(group);
 			auto material = context->computeDHKey((unsigned char*)data.data(), (int)data.size());
 			int half = (int)material.size() / 2;
 
@@ -1280,11 +1277,11 @@ namespace Net
 		struct sockaddr* a = (sockaddr*)&addr;
 		if (a->sa_family == AF_INET) {
 			struct sockaddr_in* addr4 = (struct sockaddr_in*)a;
-			return std::string((const char*)&addr4->sin_addr, INET_ADDRSTRLEN);
+			return std::string((const char*)&addr4->sin_addr, sizeof(addr4->sin_addr));
 		}
 		if (a->sa_family == AF_INET6) {
 			struct sockaddr_in6* addr6 = (struct sockaddr_in6*)a;
-			return std::string((const char*)&addr6->sin6_addr, INET6_ADDRSTRLEN);
+			return std::string((const char*)&addr6->sin6_addr, sizeof(addr6->sin6_addr));
 		}
 		return "";
 	}
