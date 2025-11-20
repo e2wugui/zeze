@@ -729,15 +729,15 @@ namespace Net
 				{
 					epoll_event& e = events[i];
 
+					if (e.data.ptr == nullptr)
+					{
+						Buffer buf; // 大一些，确保读完，如果实在读不完，那就再醒一次，等下次读。
+						recv(wakeupfds[0], buf.data, buf.capacity, 0);
+						continue;
+					}
+
 					try
 					{
-						if (e.data.ptr == nullptr)
-						{
-							Buffer buf; // 大一些，确保读完，如果实在读不完，那就再醒一次，等下次读。
-							recv(wakeupfds[0], buf.data, buf.capacity, 0);
-							continue;
-						}
-
 						if (e.events & EPOLLIN)
 							((Socket*)(e.data.ptr))->OnRecv();
 						else if (e.events & EPOLLOUT)
