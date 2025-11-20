@@ -28,6 +28,55 @@ int main(char* args[])
 #include "Gen/demo/Module1/Rpc1.hpp"
 #include "Gen/demo/Module1/Rpc2.hpp"
 
+class ProtocolServer : public Zeze::Net::Service
+{
+public:
+	ProtocolServer()
+	{
+		AddProtocolFactory(demo::Module1::Protocol3::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return new demo::Module1::Protocol3();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				std::cout << "Server ProcessProtocol3" << std::endl;
+				p->Send(p->Sender.get());
+				return 0;
+			}
+		));
+
+		AddProtocolFactory(demo::Module1::Rpc1::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return new demo::Module1::Rpc1();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				auto r = (demo::Module1::Rpc1*)p;
+				std::cout << "Server ProcessRpc1 Never!" << std::endl;
+				r->SendResult();
+
+				return 0;
+			}
+		));
+
+		AddProtocolFactory(demo::Module1::Rpc2::TypeId_, ProtocolFactoryHandle(
+			[]()
+			{
+				return new demo::Module1::Rpc2();
+			},
+			[](Zeze::Net::Protocol* p)
+			{
+				auto r = (demo::Module1::Rpc2*)p;
+				std::cout << "ProcessRpc2" << std::endl;
+				r->SendResult();
+				return 0;
+			}
+		));
+	}
+};
+
 class ProtocolClient : public Zeze::Net::Service
 {
 public:
@@ -53,8 +102,13 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				auto r = (demo::Module1::Rpc1*)p;
-				std::cout << "ProcessRpc1 Never!" << std::endl;
+				std::cout << "Server ProcessRpc1 Never!" << std::endl;
 				r->SendResult();
+				(new demo::Module1::Rpc2())->SendAsync(p->Sender.get(), [](Zeze::Net::Protocol* p)
+					{
+						std::cout << "Server Rpc2 Async Response." << std::endl;
+						return 0;
+					});
 				return 0;
 			}
 			));
@@ -67,7 +121,7 @@ public:
 			[](Zeze::Net::Protocol* p)
 			{
 				auto r = (demo::Module1::Rpc2*)p;
-				std::cout << "ProcessRpc2" << std::endl;
+				std::cout << "Server ProcessRpc2" << std::endl;
 				r->SendResult();
 				return 0;
 			}
@@ -114,6 +168,8 @@ void TestProtocol()
 {
 	Zeze::Net::Startup();
 	ProtocolClient client;
+	ProtocolServer server;
+	server.Listen("127.0.0.1", 7777);
 	client.Connect("127.0.0.1", 7777);
 	Sleep(2000);
 	Zeze::Net::Cleanup();

@@ -332,8 +332,9 @@ namespace Net
 		}
 	};
 
-	void Socket::SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compressC2s)
+	void Socket::SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compress)
 	{
+		std::cout << "SetOutputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
 		std::shared_ptr<limax::Codec> codec = OutputBuffer;
 		switch (encryptType)
 		{
@@ -348,7 +349,7 @@ namespace Net
 			throw new std::exception("SetOutputSecurityCodec: unknown encryptType=");
 		}
 
-		switch (compressC2s)
+		switch (compress)
 		{
 		case Constant::eCompressTypeDisable:
 			break;
@@ -363,10 +364,11 @@ namespace Net
 		OutputCodec = codec;
 	}
 
-	void Socket::SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compressS2c)
+	void Socket::SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compress)
 	{
+		std::cout << "SetInputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
 		std::shared_ptr<limax::Codec> codec = InputBuffer;
-		switch (compressS2c)
+		switch (compress)
 		{
 		case Constant::eCompressTypeDisable:
 			break;
