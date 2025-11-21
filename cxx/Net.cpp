@@ -777,6 +777,8 @@ namespace Net
 				}
 				{
 					std::lock_guard<std::mutex> g(mutex);
+					for (auto it = freshClosedSockets.begin(); it != freshClosedSockets.end(); ++it)
+						(*it)->thisSharedPtr.reset();
 					freshClosedSockets.clear();
 				}
 			}
@@ -882,7 +884,8 @@ namespace Net
 			service->OnSocketClose(thisSharedPtr, e);
 			Selector::Instance->Del(thisSharedPtr);
 		}
-		thisSharedPtr.reset();
+		else
+			thisSharedPtr.reset(); // 如果有selector，由selecot来释放。否则立即释放。
 	}
 
 	Socket::Socket(Service* svr, SOCKET so)
