@@ -666,6 +666,10 @@ namespace Net
 			event.data.ptr = sock.get();
 			event.events = 0;
 			epoll_ctl(epollHandle, EPOLL_CTL_DEL, sock->socket, &event);
+
+			// 新鲜关闭的Socket在Selector里面记录一下，不准释放。每次循环结束的时候整体释放。防止其他线程释放Socket，但是主循环还在使用。
+			std::lock_guard<std::mutex> g(mutex);
+			freshClosedSockets.insert(sock);
 		}
 
 		void Select(const std::shared_ptr<Socket>& sock, uint32_t add, uint32_t remove)
@@ -695,6 +699,8 @@ namespace Net
 		bool loop = true;
 		std::thread* worker;
 		HANDLE epollHandle;
+		std::mutex mutex;
+		std::unordered_set<std::shared_ptr<Socket>> freshClosedSockets;
 
 		Selector()
 		{
@@ -768,6 +774,10 @@ namespace Net
 						else
 							++it;
 					}
+				}
+				{
+					std::lock_guard<std::mutex> g(mutex);
+					freshClosedSockets.clear();
 				}
 			}
 		}
