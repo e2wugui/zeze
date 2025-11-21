@@ -333,7 +333,7 @@ namespace Net
 
 	void Socket::SetOutputSecurity(int encryptType, const int8_t* key, int keylen, int compress)
 	{
-		std::cout << "SetOutputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
+		//std::cout << "SetOutputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
 		std::shared_ptr<limax::Codec> codec = OutputBuffer;
 		switch (encryptType)
 		{
@@ -365,7 +365,7 @@ namespace Net
 
 	void Socket::SetInputSecurity(int encryptType, const int8_t* key, int keylen, int compress)
 	{
-		std::cout << "SetInputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
+		//std::cout << "SetInputSecurity encrypt=" << encryptType << " keyLen=" << keylen << " compress=" << compress << std::endl;
 		std::shared_ptr<limax::Codec> codec = InputBuffer;
 		switch (compress)
 		{
