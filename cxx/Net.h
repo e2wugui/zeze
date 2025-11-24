@@ -13,11 +13,22 @@
 #include <unordered_set>
 
 #ifdef LIMAX_OS_WINDOWS
+
 #include "wepoll.h"
-#else
+
+#elif defined(LIMAX_OS_ANDROID) || defined(LIMAX_OS_LINUX)
+
 #include <sys/epoll.h>
 #define SOCKET int
 #define INVALID_SOCKET (-1)
+
+#elif defined(LIMAX_OS_APPLE_FAMILY)
+
+#include <sys/event.h>
+#define SOCKET int
+#define INVALID_SOCKET (-1)
+
+
 #endif
 
 
