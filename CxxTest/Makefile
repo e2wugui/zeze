@@ -37,7 +37,7 @@ TaskTest/TaskExt/ModuleTaskExt.cpp \
 
 OBJS = $(SRCS:%.cpp=%.o)
 
-CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -Wunused-function -Wunused-variable -O2 -I . -I ../..
+CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -Wno-unused-function -Wno-unused-variable -O2 -I . -I ../..
 
 all: $(TARGET)
 
