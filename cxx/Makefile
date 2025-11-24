@@ -14,8 +14,6 @@ OBJSC = $(SRCS:%.c=%.o)
 CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -O2
 ARFLAGS = rcs
 
-#OBJS := $(addsuffix .o,$(basename ${SRCS}))`
-
 all: $(TARGET)
 
 clean:
