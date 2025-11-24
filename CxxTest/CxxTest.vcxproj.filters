@@ -221,6 +221,9 @@
     <ClInclude Include="..\cxx\LuaHelper.h">
       <Filter>cxx</Filter>
     </ClInclude>
+    <ClInclude Include="..\cxx\Makefile">
+      <Filter>cxx</Filter>
+    </ClInclude>
     <ClInclude Include="..\cxx\Net.h">
       <Filter>cxx</Filter>
     </ClInclude>
@@ -268,6 +271,9 @@
     </ClInclude>
     <ClInclude Include="..\cxx\wepoll.h">
       <Filter>cxx</Filter>
+    </ClInclude>
+    <ClInclude Include="..\CxxTest\Makefile">
+      <Filter>CxxTest</Filter>
     </ClInclude>
     <ClInclude Include="..\CxxTest\demo\TestClient.h">
       <Filter>CxxTest\demo</Filter>

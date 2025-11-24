@@ -5,8 +5,7 @@ RANLIB = ranlib
 
 TARGET = zezecxx.a
 
-SRCS = ByteBuffer.cpp codec.cpp dh.cpp Net.cpp octets.cpp Protocol.cpp rfc2118.cpp security.cpp utils.cpp Vector.cpp
-SRCSC = BI.c
+SRCS = ByteBuffer.cpp codec.cpp dh.cpp Net.cpp octets.cpp Protocol.cpp rfc2118.cpp security.cpp utils.cpp Vector.cpp BI.c
 
 OBJS = $(SRCS:%.cpp=%.o)
 OBJSC = $(SRCS:%.c=%.o)

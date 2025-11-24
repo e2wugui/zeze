@@ -74,14 +74,14 @@ static void testUInt()
 	assertEquals(v, bb.ReadUInt());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x20'0000;
+	v = 0x200000;
 	bb.WriteUInt(v);
 	assertEquals(4, bb.Size());
 //	assertEquals("E0-20-00-00", bb.toString());
 	assertEquals(v, bb.ReadUInt());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x1000'0000;
+	v = 0x10000000;
 	bb.WriteUInt(v);
 	assertEquals(5, bb.Size());
 //	assertEquals("F0-10-00-00-00", bb.toString());
@@ -122,49 +122,49 @@ static void testLong()
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x20'0000LL;
+	v = 0x200000LL;
 	bb.WriteLong(v);
 	assertEquals(4, bb.Size());
 //	assertEquals("70-20-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x1000'0000LL;
+	v = 0x10000000LL;
 	bb.WriteLong(v);
 	assertEquals(5, bb.Size());
 //	assertEquals("78-10-00-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x8'0000'0000LL;
+	v = 0x800000000LL;
 	bb.WriteLong(v);
 	assertEquals(6, bb.Size());
 //	assertEquals("7C-08-00-00-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x400'0000'0000LL;
+	v = 0x40000000000LL;
 	bb.WriteLong(v);
 	assertEquals(7, bb.Size());
 //	assertEquals("7E-04-00-00-00-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x2'0000'0000'0000LL;
+	v = 0x2000000000000LL;
 	bb.WriteLong(v);
 	assertEquals(8, bb.Size());
 //	assertEquals("7F-02-00-00-00-00-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x100'0000'0000'0000LL;
+	v = 0x100000000000000LL;
 	bb.WriteLong(v);
 	assertEquals(9, bb.Size());
 //	assertEquals("7F-81-00-00-00-00-00-00-00", bb.toString());
 	assertEquals(v, bb.ReadLong());
 	assertEquals(bb.ReadIndex, bb.WriteIndex);
 
-	v = 0x8000'0000'0000'0000LL;
+	v = 0x8000000000000000LL;
 	bb.WriteLong(v);
 	assertEquals(9, bb.Size());
 //	assertEquals("80-00-00-00-00-00-00-00-00", bb.toString());
@@ -260,8 +260,8 @@ static void testInteger()
 	{
 		testAll(1LL << i);
 		testAll((1LL << i) - 1);
-		testAll(((1LL << i) - 1) & 0x5555'5555'5555'5555LL);
-		testAll(((1LL << i) - 1) & 0xaaaa'aaaa'aaaa'aaaaLL);
+		testAll(((1LL << i) - 1) & 0x5555555555555555LL);
+		testAll(((1LL << i) - 1) & 0xaaaaaaaaaaaaaaaaLL);
 	}
 	for (int i = 0; i < 10000; i++)
 		testAll(nextLong());

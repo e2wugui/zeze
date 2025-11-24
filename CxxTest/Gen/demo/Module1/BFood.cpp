@@ -16,7 +16,7 @@ int64_t BFood::GetSpecialTypeIdFromBean_14(const Zeze::Bean* bean) {
         return 1LL; // demo::Bean1
     if (_typeId_ == 4513771153805810055L)
         return 2LL; // demo::Module1::BSimple
-    throw std::exception("Unknown Bean! dynamic@demo::Module1::BFood:Subclass");
+    throw std::runtime_error("Unknown Bean! dynamic@demo::Module1::BFood:Subclass");
 }
 
 Zeze::Bean* BFood::CreateBeanFromSpecialTypeId_14(int64_t typeId) {

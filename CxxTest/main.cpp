@@ -12,7 +12,7 @@ void TestProtocol();
 void TestFuture();
 void TestEcho();
 
-int main(char* args[])
+int main(int argc, const char* args[])
 {
 	TestByteBuffer();
 	TestFuture();

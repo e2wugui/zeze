@@ -19,7 +19,7 @@ int64_t BValue::GetSpecialTypeIdFromBean_14(const Zeze::Bean* bean) {
         return 2LL; // demo::Module1::BSimple
     if (_typeId_ == -1770669781233931946L)
         return 3LL; // demo::Module1::BItem
-    throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:dynamic14");
+    throw std::runtime_error("Unknown Bean! dynamic@demo::Module1::BValue:dynamic14");
 }
 
 Zeze::Bean* BValue::CreateBeanFromSpecialTypeId_14(int64_t typeId) {
@@ -54,7 +54,7 @@ int64_t BValue::GetSpecialTypeIdFromBean_26(const Zeze::Bean* bean) {
         return Zeze::EmptyBean::TYPEID;
     if (_typeId_ == 4513771153805810055L)
         return 4513771153805810055LL; // demo::Module1::BSimple
-    throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:map26");
+    throw std::runtime_error("Unknown Bean! dynamic@demo::Module1::BValue:map26");
 }
 
 Zeze::Bean* BValue::CreateBeanFromSpecialTypeId_26(int64_t typeId) {
@@ -73,7 +73,7 @@ int64_t BValue::GetSpecialTypeIdFromBean_27(const Zeze::Bean* bean) {
         return Zeze::EmptyBean::TYPEID;
     if (_typeId_ == 4513771153805810055L)
         return 4513771153805810055LL; // demo::Module1::BSimple
-    throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:dynamic27");
+    throw std::runtime_error("Unknown Bean! dynamic@demo::Module1::BValue:dynamic27");
 }
 
 Zeze::Bean* BValue::CreateBeanFromSpecialTypeId_27(int64_t typeId) {
@@ -92,7 +92,7 @@ int64_t BValue::GetSpecialTypeIdFromBean_43(const Zeze::Bean* bean) {
         return Zeze::EmptyBean::TYPEID;
     if (_typeId_ == 4513771153805810055L)
         return 4513771153805810055LL; // demo::Module1::BSimple
-    throw std::exception("Unknown Bean! dynamic@demo::Module1::BValue:list43");
+    throw std::runtime_error("Unknown Bean! dynamic@demo::Module1::BValue:list43");
 }
 
 Zeze::Bean* BValue::CreateBeanFromSpecialTypeId_43(int64_t typeId) {
