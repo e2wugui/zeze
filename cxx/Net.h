@@ -11,6 +11,7 @@
 #include "dh.h"
 #include "codec.h"
 #include <unordered_set>
+#include <memory>
 
 #ifdef LIMAX_OS_WINDOWS
 
@@ -21,12 +22,14 @@
 #include <sys/epoll.h>
 #define SOCKET int
 #define INVALID_SOCKET (-1)
+#define HANDLE int
 
 #elif defined(LIMAX_OS_APPLE_FAMILY)
 
 #include <sys/event.h>
 #define SOCKET int
 #define INVALID_SOCKET (-1)
+#define HANDLE int
 
 
 #endif
@@ -223,7 +226,6 @@ namespace Net
 		}
 		virtual void SendProtocol(Socket* so)
 		{
-			so;
 			// ToLuaService 实现
 		}
 
@@ -247,7 +249,7 @@ namespace Net
 		{
 			std::pair<ProtocolFactoryMap::iterator, bool> r = ProtocolFactory.insert(std::pair<int64_t, ProtocolFactoryHandle>(typeId, func));
 			if (false == r.second)
-				throw std::exception("duplicate protocol TypeId");
+				throw std::runtime_error("duplicate protocol TypeId");
 		}
 		bool FindProtocolFactoryHandle(int64_t typeId, ProtocolFactoryHandle& outFactoryHandle)
 		{

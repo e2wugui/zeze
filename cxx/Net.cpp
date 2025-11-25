@@ -6,6 +6,7 @@
 #include "security.h"
 #include "rfc2118.h"
 #include "Bean.h"
+#include <list>
 
 namespace Zeze
 {
@@ -258,8 +259,8 @@ namespace Net
 		int inputKeyLen = 0;
 		const int8_t* outputKey = nullptr;
 		int outputKeyLen = 0;
-		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
-		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
+		std::unique_ptr<limax::HmacMD5> outputHmacMD5;
+		std::unique_ptr<limax::HmacMD5> inputHmacMD5;
 		switch (p->Argument->encryptType)
 		{
 			case Constant::eEncryptTypeAes:
@@ -345,7 +346,7 @@ namespace Net
 			break;
 			//TODO: 新增加密算法支持这里加case
 		default:
-			throw new std::exception("SetOutputSecurityCodec: unknown encryptType=");
+			throw new std::runtime_error("SetOutputSecurityCodec: unknown encryptType=");
 		}
 
 		switch (compress)
@@ -357,7 +358,7 @@ namespace Net
 			break;
 			//TODO: 新增压缩算法支持这里加case
 		default:
-			throw new std::exception("SetOutputSecurityCodec: unknown compress=");
+			throw new std::runtime_error("SetOutputSecurityCodec: unknown compress=");
 		}
 		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		OutputCodec = codec;
@@ -376,7 +377,7 @@ namespace Net
 			break;
 			// TODO: 新增压缩算法支持这里加case
 		default:
-			throw new std::exception("SetInputSecurityCodec: unknown compressType=");
+			throw new std::runtime_error("SetInputSecurityCodec: unknown compressType=");
 		}
 		switch (encryptType)
 		{
@@ -388,7 +389,7 @@ namespace Net
 			break;
 			//TODO: 新增加密算法支持这里加case
 		default:
-			throw new std::exception("SetInputSecurityCodec: unknown encryptType=");
+			throw new std::runtime_error("SetInputSecurityCodec: unknown encryptType=");
 		}
 		std::lock_guard<std::recursive_mutex> scoped(mutex);
 		InputCodec = codec;
@@ -473,8 +474,8 @@ namespace Net
 		int outputKeyLen = 0;
 		std::string response;
 
-		std::auto_ptr<limax::HmacMD5> inputHmacMD5;
-		std::auto_ptr<limax::HmacMD5> outputHmacMD5;
+		std::unique_ptr<limax::HmacMD5> inputHmacMD5;
+		std::unique_ptr<limax::HmacMD5> outputHmacMD5;
 		int group = 1;
 		auto context = limax::createDHContext(group);
 		switch (p->Argument->encryptType) {
@@ -540,13 +541,13 @@ namespace Net
 
 	void Service::DispatchProtocol(Protocol* p, Service::ProtocolFactoryHandle& factoryHandle)
 	{
-		std::auto_ptr<Protocol> at(p);
+		std::unique_ptr<Protocol> at(p);
 		factoryHandle.Handle(p);
 	}
 
 	void Service::DispatchRpcResponse(Protocol* r, std::function<int(Protocol*)>& responseHandle, Service::ProtocolFactoryHandle& factoryHandle)
 	{
-		std::auto_ptr<Protocol> at(r);
+		std::unique_ptr<Protocol> at(r);
 		responseHandle(r);
 	}
 
@@ -557,7 +558,6 @@ namespace Net
 
 	void Service::DispatchUnknownProtocol(const std::shared_ptr<Socket>& sender, int moduleId, int protocolId, ByteBuffer& data)
 	{
-		sender; moduleId; protocolId; data;
 	}
 
 	void Service::StartConnect(const std::string& host, int port, int timeout)
@@ -682,7 +682,7 @@ namespace Net
 				if (sock->selector)
 				{
 					if (sock->selector != this)
-						throw new std::exception("selector not null and not this.");
+						throw new std::runtime_error("selector not null and not this.");
 					Mod(sock, newFlags);
 				}
 				else
@@ -702,11 +702,14 @@ namespace Net
 		std::mutex mutex;
 		std::unordered_set<std::shared_ptr<Socket>> freshClosedSockets;
 
+		typedef std::list<std::pair<std::function<void()>, int64_t>> timeouts_t;
+		timeouts_t timeouts;
+
 		Selector()
 		{
 			epollHandle = epoll_create(1);
 			if (!epollHandle)
-				throw new std::exception("epoll_create");
+				throw new std::runtime_error("epoll_create");
 			pipe(wakeupfds);
 			worker = new std::thread(std::bind(&Selector::Loop, this));
 		}
@@ -745,9 +748,9 @@ namespace Net
 						else if (e.events & EPOLLOUT)
 							((Socket*)(e.data.ptr))->OnSend();
 						else if (e.events & EPOLLERR)
-							((Socket*)(e.data.ptr))->Close(std::exception("err"));
+							((Socket*)(e.data.ptr))->Close(std::runtime_error("err"));
 						else if (e.events & EPOLLHUP)
-							((Socket*)(e.data.ptr))->Close(std::exception("hup"));
+							((Socket*)(e.data.ptr))->Close(std::runtime_error("hup"));
 					}
 					catch (std::exception& ex)
 					{
@@ -783,8 +786,6 @@ namespace Net
 				}
 			}
 		}
-		typedef std::list<std::pair<std::function<void()>, int64_t>> timeouts_t;
-		timeouts_t timeouts;
 
 		void SetTimeout(const std::function<void()>& func, int timeout)
 		{
@@ -802,7 +803,7 @@ namespace Net
 			memset(&name, 0, sizeof(name));
 			name.sin_family = AF_INET;
 			name.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-			int namelen = sizeof(name);
+			socklen_t namelen = sizeof(name);
 			SOCKET tcp1 = -1, tcp2 = -1;
 			SOCKET tcp = socket(AF_INET, SOCK_STREAM, 0);
 			if (tcp == INVALID_SOCKET) {
@@ -919,7 +920,7 @@ namespace Net
 		{
 			if (false == platform_ignore_error_for_send())
 			{
-				std::exception senderr("onrecv error");
+				std::runtime_error senderr("onrecv error");
 				this->Close(&senderr);
 				return;
 			}
@@ -984,7 +985,7 @@ namespace Net
 		{
 			if (false == platform_ignore_error_for_send())
 			{
-				std::exception senderr("onsend error");
+				std::runtime_error senderr("onsend error");
 				this->Close(&senderr);
 				return;
 			}
@@ -1021,7 +1022,7 @@ namespace Net
 			{
 				if (false == platform_ignore_error_for_send())
 				{
-					std::exception senderr("send error");
+					std::runtime_error senderr("send error");
 					this->Close(&senderr);
 					return;
 				}
@@ -1051,7 +1052,7 @@ namespace Net
 			OutputBuffer->buffer.append(data + offset, length);
 	}
 
-	inline void AssignAddressBytesAi(addrinfo* ai, std::string& addrbytes, std::string &address)
+	inline void AssignAddressBytesAi(struct addrinfo* ai, std::string& addrbytes, std::string &address)
 	{
 		char ip_str[INET6_ADDRSTRLEN];
 		switch (ai->ai_family)
@@ -1075,7 +1076,7 @@ namespace Net
 		}
 	}
 
-	inline void AssignAddressBytes(sockaddr* ai, std::string& addrbytes, std::string & address)
+	inline void AssignAddressBytes(struct sockaddr* ai, std::string& addrbytes, std::string & address)
 	{
 		char ip_str[INET6_ADDRSTRLEN];
 		switch (ai->sa_family)
@@ -1117,7 +1118,7 @@ namespace Net
 			case AF_INET:
 			{
 				struct sockaddr_in addr;
-				int addrlen = sizeof(addr);
+				socklen_t addrlen = sizeof(addr);
 				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
 				if (acceptedso == INVALID_SOCKET)
 					return;
@@ -1127,7 +1128,7 @@ namespace Net
 			case AF_INET6:
 			{
 				struct sockaddr_in6 addr;
-				int addrlen = sizeof(addr);
+				socklen_t addrlen = sizeof(addr);
 				acceptedso = accept(socket, (sockaddr*)&addr, &addrlen);
 				if (acceptedso == INVALID_SOCKET)
 					return;
@@ -1219,7 +1220,7 @@ namespace Net
 
 		if (0 != ::getaddrinfo(host.c_str(), port.c_str(), &hints, &res))
 		{
-			std::exception dnsfail("dns query fail");
+			std::runtime_error dnsfail("dns query fail");
 			this->Close(&dnsfail);
 			return false;
 		}
@@ -1236,7 +1237,7 @@ namespace Net
 			u_long ul = 1;
 			if (SOCKET_ERROR == ::ioctlsocket(so, FIONBIO, &ul))
 #else
-			if (-1 == fcntl(so, F_SETFL, fcntl(sock, F_GETFL) | O_NONBLOCK))
+			if (-1 == fcntl(so, F_SETFL, fcntl(so, F_GETFL) | O_NONBLOCK))
 #endif
 			{
 				platform_close_socket(so);
@@ -1268,7 +1269,7 @@ namespace Net
 
 		if (INVALID_SOCKET == so)
 		{
-			std::exception connfail("connect fail");
+			std::runtime_error connfail("connect fail");
 			this->Close(&connfail);
 			return false;
 		}
@@ -1307,7 +1308,7 @@ namespace Net
 			if (err == 0)
 			{
 				struct sockaddr_storage addr;
-				int addrlen = sizeof(addr);
+				socklen_t addrlen = sizeof(addr);
 				if (0 == getpeername(socket, (sockaddr*)&addr, &addrlen))
 				{
 					AssignAddressBytes((sockaddr*) & addr, lastAddressBytes, lastAddress);
@@ -1315,7 +1316,7 @@ namespace Net
 				return;
 			}
 		}
-		throw std::exception("finishConnect");
+		throw new std::runtime_error("finishConnect");
 	}
 
 	void Service::SetKeepConfig(int period, int sendTimeout, int recvTimeout)

@@ -42,7 +42,7 @@ namespace Zeze
 		void ToLua::SendProtocol(Socket* socket)
 		{
 			if (!Lua.IsTable(-1))
-				throw std::exception("SendProtocol param is not a table.");
+				throw std::runtime_error("SendProtocol param is not a table.");
 
 			Lua.GetField(-1, "ModuleId");
 			int ModuleId = (int)Lua.ToInteger(-1);
@@ -58,7 +58,7 @@ namespace Zeze
 			long long typeId = (long long)ModuleId << 32 | (unsigned int)ProtocolId;
 			ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
 			if (pit == ProtocolMetas.end())
-				throw std::exception("protocol not found in meta for typeid=" + typeId);
+				throw std::runtime_error("protocol not found in meta for typeid=" + typeId);
 
 			if (pit->second.IsRpc)
 			{
@@ -175,9 +175,9 @@ namespace Zeze
 		void ToLua::RegisterGlobalAndCallback(ToLuaService* service)
 		{
 			if (Lua.DoString("return (require 'Zeze')"))
-				throw std::exception("require 'Zeze' failed");
+				throw std::runtime_error("require 'Zeze' failed");
 			if (!Lua.IsTable(-1))
-				throw std::exception("require 'Zeze' not return a table");
+				throw std::runtime_error("require 'Zeze' not return a table");
 
 			Lua.PushString(std::string("Service") + service->Name);
 			Lua.PushObject(service);
@@ -260,7 +260,7 @@ namespace Zeze
 
 			ProtocolMetasMap::iterator pit = ProtocolMetas.find(typeId);
 			if (pit == ProtocolMetas.end())
-				throw std::exception("protocol not found in meta for typeid=" + typeId);
+				throw std::runtime_error("protocol not found in meta for typeid=" + typeId);
 
 			if (pit->second.IsRpc)
 			{

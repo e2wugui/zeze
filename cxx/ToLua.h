@@ -88,15 +88,15 @@ namespace Net
 			Lua.L = L;
 
 			if (Lua.DoString("return (require 'Zeze')"))
-				throw std::exception("require 'Zeze' failed");
+				throw std::runtime_error("require 'Zeze' failed");
 
 			BeanMetas.clear();
 			ProtocolMetas.clear();
 
 			if (Lua.DoString("return (require 'ZezeMeta')"))
-				throw std::exception("require 'ZezeMeta' failed");
+				throw std::runtime_error("require 'ZezeMeta' failed");
 			if (!Lua.IsTable(-1))
-				throw std::exception("require 'ZezeMeta' not return a table");
+				throw std::runtime_error("require 'ZezeMeta' not return a table");
 			Lua.GetField(-1, "beans");
 			for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1)) // -1 value of vars(table) -2 key of bean.TypeId
 			{
@@ -124,7 +124,7 @@ namespace Net
 							case 5: var.Value = (int)Lua.ToInteger(-1); break;
 							case 6: var.ValueBeanTypeId = Lua.ToInteger(-1); break;
 							case 7: var.Name = Lua.ToString(-1); break;
-							default: throw std::exception("error index for typetag");
+							default: throw std::runtime_error("error index for typetag");
 						}
 					}
 					beanMeta.Variables.push_back(var);
@@ -146,7 +146,7 @@ namespace Net
 					{
 					case 1: pa.ArgumentBeanTypeId = Lua.ToInteger(-1); pa.IsRpc = false; break;
 					case 2: pa.ResultBeanTypeId   = Lua.ToInteger(-1); pa.IsRpc = true;  break;
-					default: throw std::exception("error index for protocol argument bean typeId");
+					default: throw std::runtime_error("error index for protocol argument bean typeId");
 					}
 				}
 				ProtocolMetas[Lua.ToInteger(-2)] = pa;
@@ -172,7 +172,7 @@ namespace Net
 			if (Lua.GetGlobal("ZezeHandshakeDone") != LuaHelper::LuaType::Function) // push func onto stack
 			{
 				Lua.Pop(1);
-				throw std::exception("ZezeHandshakeDone is not a function");
+				throw std::runtime_error("ZezeHandshakeDone is not a function");
 			}
 
 			Lua.PushObject(service);
@@ -190,12 +190,12 @@ namespace Net
 		void EncodeBean(ByteBuffer& bb, long long beanTypeId)
 		{
 			if (!Lua.IsTable(-1))
-				throw std::exception("EncodeBean need a table");
+				throw std::runtime_error("EncodeBean need a table");
 			if (beanTypeId != 0)
 			{
 				BeanMetasMap::const_iterator bit = BeanMetas.find(beanTypeId);
 				if (bit == BeanMetas.cend())
-					throw std::exception("bean not found in meta for beanTypeId=" + beanTypeId);
+					throw std::runtime_error("bean not found in meta for beanTypeId=" + beanTypeId);
 				int lastId = 0;
 				for (const auto& v : bit->second.Variables)
 				{
@@ -212,7 +212,7 @@ namespace Net
 		int EncodeGetTableLength()
 		{
 			if (!Lua.IsTable(-1))
-				throw std::exception("EncodeGetTableLength: not a table");
+				throw std::runtime_error("EncodeGetTableLength: not a table");
 			int len = 0;
 			for (Lua.PushNil(); Lua.Next(-2); Lua.Pop(1))
 				len++;
@@ -282,9 +282,9 @@ namespace Net
 			case ByteBuffer::LIST:
 			{
 				if (!Lua.IsTable(-1))
-					throw std::exception("list must be a table");
+					throw std::runtime_erro("list must be a table");
 				if (id <= 0)
-					throw std::exception("list cannot be defined in container");
+					throw std::runtime_err("list cannot be defined in container");
 				int n = EncodeGetTableLength();
 				if (n > 0)
 				{
@@ -298,9 +298,9 @@ namespace Net
 			case ByteBuffer::LUA_SET:
 			{
 				if (!Lua.IsTable(-1))
-					throw std::exception("set must be a table");
+					throw std::runtime_err("set must be a table");
 				if (id <= 0)
-					throw std::exception("set cannot be defined in container");
+					throw std::runtime_err("set cannot be defined in container");
 				int n = EncodeGetTableLength();
 				if (n > 0)
 				{
@@ -314,9 +314,9 @@ namespace Net
 			case ByteBuffer::MAP:
 			{
 				if (!Lua.IsTable(-1))
-					throw std::exception("map must be a table");
+					throw std::runtime_error("map must be a table");
 				if (id <= 0)
-					throw std::exception("map cannot be defined in container");
+					throw std::runtime_error("map cannot be defined in container");
 				int n = EncodeGetTableLength();
 				if (n > 0)
 				{
@@ -348,10 +348,10 @@ namespace Net
 			case ByteBuffer::DYNAMIC:
 			{
 				if (id <= 0)
-					throw std::exception("dynamic cannot be defined in container");
+					throw std::runtime_error("dynamic cannot be defined in container");
 				Lua.GetField(-1, "_TypeId_");
 				if (Lua.IsNil(-1))
-					throw std::exception("'_TypeId_' not found. dynamic bean needed.");
+					throw std::runtime_error("'_TypeId_' not found. dynamic bean needed.");
 				long long beanTypeId = Lua.ToInteger(-1);
 				Lua.Pop(1);
 
@@ -359,7 +359,7 @@ namespace Net
 				if (Lua.GetGlobal(funcName.c_str()) != LuaHelper::LuaType::Function) // push func onto stack
 				{
 					Lua.Pop(1);
-					throw std::exception((funcName + " is not a function").c_str());
+					throw std::runtime_error((funcName + " is not a function").c_str());
 				}
 				Lua.PushInteger(beanTypeId);
 				Lua.Call(1, 1);
@@ -373,7 +373,7 @@ namespace Net
 				break;
 			}
 			default:
-				throw std::exception("Unkown Tag Type");
+				throw std::runtime_erro("Unkown Tag Type");
 			}
 			return lastId;
 		}
@@ -498,7 +498,7 @@ namespace Net
 				break;
 			}
 			default:
-				throw std::exception("Unkown Tag Type");
+				throw std::runtime_erro("Unkown Tag Type");
 			}
 		}
 

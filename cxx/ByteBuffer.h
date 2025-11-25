@@ -72,7 +72,7 @@ namespace Zeze
 		void Replace(int writeIndex, const char* src, int offset, int len)
 		{
 			if (writeIndex < ReadIndex || writeIndex + len > WriteIndex)
-				throw std::exception();
+				throw std::runtime_error("Replace Out Of Index");
 			memcpy(Bytes + writeIndex, src + offset, (size_t)len);
 		}
 
@@ -134,7 +134,7 @@ namespace Zeze
 		void EnsureWrite(int size)
 		{
 			if (DecodeOnlyMode)
-				throw std::exception("DecodeOnlyMode");
+				throw std::runtime_error("DecodeOnlyMode");
 
 			int newSize = WriteIndex + size;
 			if (newSize > Capacity)
@@ -152,7 +152,7 @@ namespace Zeze
 		void EnsureRead(int size) const
 		{
 			if (ReadIndex + size > WriteIndex)
-				throw std::exception("EnsureRead");
+				throw std::runtime_error("EnsureRead");
 		}
 
 		void WriteBool(bool b)
@@ -360,22 +360,22 @@ namespace Zeze
 			{
 				if (v <                0x40  ) return 1;
 				if (v <              0x2000  ) return 2;
-				if (v <           0x10'0000  ) return 3;
-				if (v <          0x800'0000  ) return 4;
-				if (v <       0x4'0000'0000LL) return 5;
-				if (v <     0x200'0000'0000LL) return 6;
-				if (v <  0x1'0000'0000'0000LL) return 7;
-				if (v < 0x80'0000'0000'0000LL) return 8;
+				if (v <           0x100000  ) return 3;
+				if (v <          0x8000000  ) return 4;
+				if (v <       0x400000000LL) return 5;
+				if (v <     0x20000000000LL) return 6;
+				if (v <  0x1000000000000LL) return 7;
+				if (v < 0x80000000000000LL) return 8;
 				return 9;
 			}
 			if (v >= -               0x40  ) return 1;
 			if (v >= -             0x2000  ) return 2;
-			if (v >= -          0x10'0000  ) return 3;
-			if (v >= -         0x800'0000  ) return 4;
-			if (v >= -      0x4'0000'0000LL) return 5;
-			if (v >= -    0x200'0000'0000LL) return 6;
-			if (v >= - 0x1'0000'0000'0000LL) return 7;
-			if (v >= -0x80'0000'0000'0000LL) return 8;
+			if (v >= -          0x100000  ) return 3;
+			if (v >= -         0x8000000  ) return 4;
+			if (v >= -      0x400000000LL) return 5;
+			if (v >= -    0x20000000000LL) return 6;
+			if (v >= - 0x1000000000000LL) return 7;
+			if (v >= -0x80000000000000LL) return 8;
 			return 9;
 		}
 
@@ -397,7 +397,7 @@ namespace Zeze
 					bytes[writeIndex + 1] = (unsigned char)x;
 					WriteIndex = writeIndex + 2;
 				}
-				else if (x < 0x10'0000) // 0110 xxxx +2B
+				else if (x < 0x100000) // 0110 xxxx +2B
 				{
 					EnsureWrite(3);
 					unsigned char* bytes = Bytes;
@@ -407,7 +407,7 @@ namespace Zeze
 					bytes[writeIndex + 2] = (unsigned char)x;
 					WriteIndex = writeIndex + 3;
 				}
-				else if (x < 0x800'0000) // 0111 0xxx +3B
+				else if (x < 0x8000000) // 0111 0xxx +3B
 				{
 					EnsureWrite(4);
 					unsigned char* bytes = Bytes;
@@ -418,7 +418,7 @@ namespace Zeze
 					bytes[writeIndex + 3] = (unsigned char)x;
 					WriteIndex = writeIndex + 4;
 				}
-				else if (x < 0x4'0000'0000LL) // 0111 10xx +4B
+				else if (x < 0x400000000LL) // 0111 10xx +4B
 				{
 					EnsureWrite(5);
 					unsigned char* bytes = Bytes;
@@ -430,7 +430,7 @@ namespace Zeze
 					bytes[writeIndex + 4] = (unsigned char)x;
 					WriteIndex = writeIndex + 5;
 				}
-				else if (x < 0x200'0000'0000LL) // 0111 110x +5B
+				else if (x < 0x20000000000LL) // 0111 110x +5B
 				{
 					EnsureWrite(6);
 					unsigned char* bytes = Bytes;
@@ -443,7 +443,7 @@ namespace Zeze
 					bytes[writeIndex + 5] = (unsigned char)x;
 					WriteIndex = writeIndex + 6;
 				}
-				else if (x < 0x1'0000'0000'0000LL) // 0111 1110 +6B
+				else if (x < 0x1000000000000LL) // 0111 1110 +6B
 				{
 					EnsureWrite(7);
 					unsigned char* bytes = Bytes;
@@ -457,7 +457,7 @@ namespace Zeze
 					bytes[writeIndex + 6] = (unsigned char)x;
 					WriteIndex = writeIndex + 7;
 				}
-				else if (x < 0x80'0000'0000'0000LL) // 0111 1111 0 +7B
+				else if (x < 0x80000000000000LL) // 0111 1111 0 +7B
 				{
 					EnsureWrite(8);
 					unsigned char* bytes = Bytes;
@@ -505,7 +505,7 @@ namespace Zeze
 					bytes[writeIndex + 1] = (unsigned char)x;
 					WriteIndex = writeIndex + 2;
 				}
-				else if (x >= -0x10'0000) // 1001 xxxx +2B
+				else if (x >= -0x100000) // 1001 xxxx +2B
 				{
 					EnsureWrite(3);
 					unsigned char* bytes = Bytes;
@@ -515,7 +515,7 @@ namespace Zeze
 					bytes[writeIndex + 2] = (unsigned char)x;
 					WriteIndex = writeIndex + 3;
 				}
-				else if (x >= -0x800'0000) // 1000 1xxx +3B
+				else if (x >= -0x8000000) // 1000 1xxx +3B
 				{
 					EnsureWrite(4);
 					unsigned char* bytes = Bytes;
@@ -526,7 +526,7 @@ namespace Zeze
 					bytes[writeIndex + 3] = (unsigned char)x;
 					WriteIndex = writeIndex + 4;
 				}
-				else if (x >= -0x4'0000'0000LL) // 1000 01xx +4B
+				else if (x >= -0x400000000LL) // 1000 01xx +4B
 				{
 					EnsureWrite(5);
 					unsigned char* bytes = Bytes;
@@ -538,7 +538,7 @@ namespace Zeze
 					bytes[writeIndex + 4] = (unsigned char)x;
 					WriteIndex = writeIndex + 5;
 				}
-				else if (x >= -0x200'0000'0000LL) // 1000 001x +5B
+				else if (x >= -0x20000000000LL) // 1000 001x +5B
 				{
 					EnsureWrite(6);
 					unsigned char* bytes = Bytes;
@@ -551,7 +551,7 @@ namespace Zeze
 					bytes[writeIndex + 5] = (unsigned char)x;
 					WriteIndex = writeIndex + 6;
 				}
-				else if (x >= -0x1'0000'0000'0000LL) // 1000 0001 +6B
+				else if (x >= -0x1000000000000LL) // 1000 0001 +6B
 				{
 					EnsureWrite(7);
 					unsigned char* bytes = Bytes;
@@ -565,7 +565,7 @@ namespace Zeze
 					bytes[writeIndex + 6] = (unsigned char)x;
 					WriteIndex = writeIndex + 7;
 				}
-				else if (x >= -0x80'0000'0000'0000LL) // 1000 0000 1 +7B
+				else if (x >= -0x80000000000000LL) // 1000 0000 1 +7B
 				{
 					EnsureWrite(8);
 					unsigned char* bytes = Bytes;
@@ -700,8 +700,8 @@ namespace Zeze
 				case 0: case 1: case 2: case 3: return ((b - 0x78) << 32) + ReadLong4BE();
 				case 4: case 5:                 return ((b - 0x7c) << 40) + ReadLong5BE();
 				case 6:                         return ReadLong6BE();
-				default: int64_t r = ReadLong7BE(); return r < 0x80'0000'0000'0000LL ?
-						r : ((r - 0x80'0000'0000'0000LL) << 8) + ReadLong1();
+				default: int64_t r = ReadLong7BE(); return r < 0x80000000000000LL ?
+						r : ((r - 0x80000000000000LL) << 8) + ReadLong1();
 				}
 			default: // 0x10
 				switch (b & 7)
@@ -709,8 +709,8 @@ namespace Zeze
 				case 4: case 5: case 6: case 7: return ((b + 0x78) << 32) + ReadLong4BE();
 				case 2: case 3:                 return ((b + 0x7c) << 40) + ReadLong5BE();
 				case 1:                         return 0xffff000000000000LL + ReadLong6BE();
-				default: int64_t r = ReadLong7BE(); return r >= 0x80'0000'0000'0000LL ?
-						0xff00'0000'0000'0000LL + r : ((r + 0x80'0000'0000'0000LL) << 8) + ReadLong1();
+				default: int64_t r = ReadLong7BE(); return r >= 0x80000000000000LL ?
+						0xff00000000000000LL + r : ((r + 0x80000000000000LL) << 8) + ReadLong1();
 				}
 			}
 		}
@@ -1358,7 +1358,7 @@ namespace Zeze
 				}
 				return;
 			default:
-				throw std::exception("SkipUnknownField");
+				throw std::runtime_error("SkipUnknownField");
 			}
 		}
 	};

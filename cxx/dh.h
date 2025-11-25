@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include <vector>
+#include <memory>
 
 namespace limax {
 

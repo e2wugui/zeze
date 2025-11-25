@@ -24,7 +24,7 @@ namespace Zeze
 				context->ResultCode = ResultCode::Timeout;
 
 				if (context->Future.get() != nullptr)
-					context->Future->TrySetException(std::exception("RpcTimeout"));
+					context->Future->TrySetException(std::runtime_error("RpcTimeout"));
 				else if (context->ResponseHandle) {
 					// 本来Schedule已经在Task中执行了，这里又派发一次。
 					// 主要是为了让应用能拦截修改Response的处理方式。
@@ -100,7 +100,7 @@ namespace Zeze
 			{
 				Future.reset(new TaskCompletionSource<bool>());
 				if (!Send(so, nullptr, millisecondsTimeout))
-					Future->TrySetException(std::exception("Send Failed."));
+					Future->TrySetException(std::runtime_error("Send Failed."));
 				return Future.get();
 			}
 

@@ -80,6 +80,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <netdb.h>
 
 #if __i386__
 #	define LIMAX_PLAT_32
