@@ -856,7 +856,7 @@ namespace Net
 
 	bool Startup()
 	{
-		bool sysresult = false;
+		bool sysresult = true;
 #ifdef LIMAX_OS_WINDOWS
 		WSADATA wData;
 		sysresult = (0 == ::WSAStartup(MAKEWORD(2, 2), &wData));
