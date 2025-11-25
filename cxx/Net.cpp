@@ -639,7 +639,7 @@ namespace Net
 			epoll_event event;
 			event.data.ptr = nullptr;
 			event.events = events;
-			epoll_ctl(epollHandle, EPOLL_CTL_ADD, sock, &event);
+			epoll_ctl(handle, EPOLL_CTL_ADD, sock, &event);
 		}
 
 		void Add(const std::shared_ptr<Socket>& sock, uint32_t events)
@@ -648,7 +648,7 @@ namespace Net
 			epoll_event event;
 			event.data.ptr = sock.get();
 			event.events = events;
-			epoll_ctl(epollHandle, EPOLL_CTL_ADD, sock->socket, &event);
+			epoll_ctl(handle, EPOLL_CTL_ADD, sock->socket, &event);
 		}
 
 		void Mod(const std::shared_ptr<Socket>& sock, uint32_t events)
@@ -657,7 +657,7 @@ namespace Net
 			epoll_event event;
 			event.data.ptr = sock.get();
 			event.events = events;
-			epoll_ctl(epollHandle, EPOLL_CTL_MOD, sock->socket, &event);
+			epoll_ctl(handle, EPOLL_CTL_MOD, sock->socket, &event);
 		}
 
 		void Del(const std::shared_ptr<Socket>& sock)
@@ -665,7 +665,7 @@ namespace Net
 			epoll_event event;
 			event.data.ptr = sock.get();
 			event.events = 0;
-			epoll_ctl(epollHandle, EPOLL_CTL_DEL, sock->socket, &event);
+			epoll_ctl(handle, EPOLL_CTL_DEL, sock->socket, &event);
 
 			// 新鲜关闭的Socket在Selector里面记录一下，不准释放。每次循环结束的时候整体释放。防止其他线程释放Socket，但是主循环还在使用。
 			std::lock_guard<std::mutex> g(mutex);
@@ -698,7 +698,7 @@ namespace Net
 		SOCKET wakeupfds[2];
 		bool loop = true;
 		std::thread* worker;
-		HANDLE epollHandle;
+		HANDLE handle;
 		std::mutex mutex;
 		std::unordered_set<std::shared_ptr<Socket>> freshClosedSockets;
 
@@ -707,8 +707,8 @@ namespace Net
 
 		Selector()
 		{
-			epollHandle = epoll_create(1);
-			if (!epollHandle)
+			handle = epoll_create(1);
+			if (!handle)
 				throw new std::runtime_error("epoll_create");
 			pipe(wakeupfds);
 			worker = new std::thread(std::bind(&Selector::Loop, this));
@@ -727,7 +727,7 @@ namespace Net
 			{
 				int timeout = 1000;
 				epoll_event events[200];
-				int rc = epoll_wait(epollHandle, events, 200, timeout);
+				int rc = epoll_wait(handle, events, 200, timeout);
 				if (rc == -1 && errno != EINTR)
 					return; // 内部错误。
 				for (int i = 0; i < rc; ++i)
