@@ -634,6 +634,7 @@ namespace Net
 	public:
 		static Selector* Instance;
 
+#ifdef ZEZE_USE_EPOLL
 		void Add(SOCKET sock, uint32_t events)
 		{
 			epoll_event event;
@@ -694,6 +695,29 @@ namespace Net
 				Wakeup();
 			}
 		}
+#else
+		void Select(const std::shared_ptr<Socket>& sock, uint32_t add, uint32_t remove)
+		{
+			struct kevent changes[2];
+			int change_count = 0;
+
+			remove &= ~add; // add 优先，从 remove 里面删除需要 add 的。
+
+			if (remove != 0)
+				EV_SET(&changes[change_count++], sock->socket, remove, EV_DELETE, 0, 0, sock.get());
+			
+			if (add != 0)
+				EV_SET(&changes[change_count++], sock->socket, add, EV_ADD | EV_ENABLE, 0, 0, sock.get());
+
+			if (change_count > 0 && kevent(kq, changes, change_count, NULL, 0, NULL) == -1)
+				throw new std::runtime_error("kevent modify error");
+
+			if (nullptr == sock->selecot)
+			{
+				sock->selector = this;
+			}
+		}
+#endif
 
 		SOCKET wakeupfds[2];
 		bool loop = true;
@@ -707,10 +731,17 @@ namespace Net
 
 		Selector()
 		{
+#ifdef ZEZE_USE_EPOLL
 			handle = epoll_create(1);
 			if (!handle)
 				throw new std::runtime_error("epoll_create");
 			pipe(wakeupfds);
+#else
+			handle = kqueue();
+			if (handle == -1)
+				throw new std::runtime_error("kqeueue_create");
+			// kqueue 不需要pipe。
+#endif
 			worker = new std::thread(std::bind(&Selector::Loop, this));
 		}
 
@@ -725,16 +756,21 @@ namespace Net
 		{
 			while (loop)
 			{
+#ifdef ZEZE_USE_EPOLL
 				int timeout = 1000;
 				epoll_event events[200];
 				int rc = epoll_wait(handle, events, 200, timeout);
-				if (rc == -1 && errno != EINTR)
-					return; // 内部错误。
+				if (rc == -1) {
+					if (errno == EINTR)
+						continue;
+					perror("epoll_wait");
+					break;
+				}
 				for (int i = 0; i < rc; ++i)
 				{
 					epoll_event& e = events[i];
-
-					if (e.data.ptr == nullptr)
+					Socket* conn = (Socket*)(e.data.ptr);
+					if (conn == nullptr)
 					{
 						Buffer buf; // 大一些，确保读完，如果实在读不完，那就再醒一次，等下次读。
 						recv(wakeupfds[0], buf.data, buf.capacity, 0);
@@ -744,19 +780,54 @@ namespace Net
 					try
 					{
 						if (e.events & EPOLLIN)
-							((Socket*)(e.data.ptr))->OnRecv();
-						else if (e.events & EPOLLOUT)
-							((Socket*)(e.data.ptr))->OnSend();
-						else if (e.events & EPOLLERR)
-							((Socket*)(e.data.ptr))->Close(std::runtime_error("err"));
+							conn->OnRecv();
+						if (e.events & EPOLLOUT)
+							conn->OnSend();
+						if (e.events & EPOLLERR)
+							conn->Close(std::runtime_error("err"));
 						else if (e.events & EPOLLHUP)
-							((Socket*)(e.data.ptr))->Close(std::runtime_error("hup"));
+							conn->Close(std::runtime_error("hup"));
 					}
 					catch (std::exception& ex)
 					{
-						((Socket*)(e.data.ptr))->Close(&ex);
+						conn->Close(&ex);
 					}
 				}
+#else
+				struct timespec timeout(1, 0);
+				struct kevent events[500];
+
+				int nev = kevent(handle, NULL, 0, events, 500, &timeout);
+				if (nev == -1) {
+					if (errno == EINTR)
+						continue;
+					perror("kevent");
+					break;
+				}
+				for (int i = 0; i < nev; i++) {
+					Socket* conn = (Socket*)(events[i].udata);
+					if (nullptr == conn)
+					{
+						platform_close_socket((SOCKET)events[i].ident);
+						continue;
+					}
+					try
+					{
+						if (events[i].flags & EV_ERROR) {
+							conn->Close(std::runtime_error("EV_ERROR"));
+							continue;
+						}
+						if (events[i].filter == EVFILT_READ)
+							conn->OnRecv();
+						if (events[i].filter == EVFILT_WRITE)
+							conn->OnSend();
+					}
+					catch (std::exception& ex)
+					{
+						conn->Close(&ex);
+					}
+				}
+#endif
 				{
 					int64_t now = time(0);
 					timeouts_t::iterator it = timeouts.begin();

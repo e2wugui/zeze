@@ -16,6 +16,7 @@
 #ifdef LIMAX_OS_WINDOWS
 
 #include "wepoll.h"
+#define ZEZE_USE_EPOLL
 
 #elif defined(LIMAX_OS_ANDROID) || defined(LIMAX_OS_LINUX)
 
@@ -23,14 +24,18 @@
 #define SOCKET int
 #define INVALID_SOCKET (-1)
 #define HANDLE int
+#define ZEZE_USE_EPOLL
 
 #elif defined(LIMAX_OS_APPLE_FAMILY)
 
 #include <sys/event.h>
+#include <time.h>
 #define SOCKET int
 #define INVALID_SOCKET (-1)
 #define HANDLE int
-
+#define ZEZE_USE_KQUEUE
+#define EPOLLIN EVFILT_READ
+#define EPOLLOUT EVFILT_WRITE
 
 #endif
 
