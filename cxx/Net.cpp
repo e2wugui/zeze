@@ -698,24 +698,26 @@ namespace Net
 #else
 		void Select(const std::shared_ptr<Socket>& sock, uint32_t add, uint32_t remove)
 		{
-			struct kevent changes[2];
+			struct kevent changes[4];
 			int change_count = 0;
 
 			remove &= ~add; // add 优先，从 remove 里面删除需要 add 的。
 
-			if (remove != 0)
-				EV_SET(&changes[change_count++], sock->socket, remove, EV_DELETE, 0, 0, sock.get());
-			
-			if (add != 0)
-				EV_SET(&changes[change_count++], sock->socket, add, EV_ADD | EV_ENABLE, 0, 0, sock.get());
+			if (remove & EPOLLIN)
+				EV_SET(&changes[change_count++], sock->socket, EVFILT_READ, EV_DELETE, 0, 0, sock.get());
+			if (remove & EPOLLOUT)
+				EV_SET(&changes[change_count++], sock->socket, EVFILT_WRITE, EV_DELETE, 0, 0, sock.get());
+
+			if (add & EPOLLIN)
+				EV_SET(&changes[change_count++], sock->socket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, sock.get());
+			if (add & EPOLLOUT)
+				EV_SET(&changes[change_count++], sock->socket, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, sock.get());
 
 			if (change_count > 0 && kevent(kq, changes, change_count, NULL, 0, NULL) == -1)
 				throw new std::runtime_error("kevent modify error");
 
 			if (nullptr == sock->selecot)
-			{
 				sock->selector = this;
-			}
 		}
 #endif
 

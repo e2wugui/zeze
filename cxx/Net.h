@@ -34,8 +34,8 @@
 #define INVALID_SOCKET (-1)
 #define HANDLE int
 #define ZEZE_USE_KQUEUE
-#define EPOLLIN EVFILT_READ
-#define EPOLLOUT EVFILT_WRITE
+#define EPOLLIN 1
+#define EPOLLOUT 2
 
 #endif
 
