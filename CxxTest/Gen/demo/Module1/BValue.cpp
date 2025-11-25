@@ -269,7 +269,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -283,7 +283,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -298,7 +298,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -337,7 +337,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -352,7 +352,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -415,7 +415,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -430,7 +430,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -445,7 +445,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -476,7 +476,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -490,7 +490,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -504,7 +504,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -518,7 +518,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -532,7 +532,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -546,7 +546,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -560,7 +560,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -574,7 +574,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -588,7 +588,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -602,7 +602,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -616,7 +616,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -631,7 +631,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -646,7 +646,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -661,7 +661,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -675,7 +675,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     {
@@ -710,7 +710,7 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
                 _n_--;
             }
             if (_n_ != 0)
-                throw std::exception();
+                throw std::runtime_error("concurrent modify.");
         }
     }
     _o_.WriteByte(0);

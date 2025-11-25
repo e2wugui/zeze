@@ -220,7 +220,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    if (_n_ != 0)");
-            sw.WriteLine(prefix + "        throw std::exception();");
+            sw.WriteLine(prefix + "        throw std::runtime_error(\"concurrent modify.\");");
             sw.WriteLine(prefix + "}");
         }
 
@@ -251,7 +251,7 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "        _n_--;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    if (_n_ != 0)");
-            sw.WriteLine(prefix + "        throw std::exception();");
+            sw.WriteLine(prefix + "        throw std::runtime_error(\"concurrent modify.\");");
             sw.WriteLine(prefix + "}");
         }
 

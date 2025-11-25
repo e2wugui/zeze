@@ -153,7 +153,7 @@ namespace Zeze.Gen.cxx
                     sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
                     sw.WriteLine($"{prefix}        return {real.Key}LL; // {real.Value.FullCxxName}");
                 }
-                sw.WriteLine($"{prefix}    throw std::exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullCxxName}:{var.Name}\");");
+                sw.WriteLine($"{prefix}    throw std::runtime_error(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullCxxName}:{var.Name}\");");
             }
             else
             {
