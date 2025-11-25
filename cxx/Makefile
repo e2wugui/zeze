@@ -10,7 +10,7 @@ SRCS = ByteBuffer.cpp codec.cpp dh.cpp Net.cpp octets.cpp Protocol.cpp rfc2118.c
 OBJS = $(SRCS:%.cpp=%.o)
 OBJSC = $(SRCS:%.c=%.o)
 
-CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -O2
+CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -pthread -O2
 ARFLAGS = rcs
 
 all: $(TARGET)
