@@ -819,10 +819,15 @@ namespace Net
 							conn->Close(std::runtime_error("EV_ERROR"));
 							continue;
 						}
-						if (events[i].filter == EVFILT_READ)
-							conn->OnRecv();
-						if (events[i].filter == EVFILT_WRITE)
-							conn->OnSend();
+						swtich(events[i].filter)
+						{
+							case EVFILT_READ: 
+								conn->OnRecv();
+								break;
+							case EVFILT_WRITE:
+								conn->OnSend();
+								break;
+						}
 					}
 					catch (std::exception& ex)
 					{
