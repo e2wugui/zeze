@@ -1106,8 +1106,13 @@ namespace limax {
 
 } // namespace limax {
 
+#ifdef __GNUC__
+#include <x86intrin.h>  // 替代 intrin.h
+#include <wmmintrin.h>  // AES 指令集
+#else
 #include <wmmintrin.h>
 #include <intrin.h>
+#endif
 
 namespace limax {
 

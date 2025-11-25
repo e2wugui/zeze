@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common.h"
+#include <memory>
+#include <condition_variable>
 
 namespace limax {
 

@@ -5,18 +5,22 @@ RANLIB = ranlib
 
 TARGET = zezecxx.a
 
-SRCS = Net.cpp
+SRCS = ByteBuffer.cpp codec.cpp dh.cpp Net.cpp octets.cpp Protocol.cpp rfc2118.cpp security.cpp utils.cpp Vector.cpp
 SRCSC = BI.c
 
 OBJS = $(SRCS:%.cpp=%.o)
 OBJSC = $(SRCS:%.c=%.o)
 
-CXXFLAGS = -std=c++11 -Wall -O2
+CXXFLAGS = -std=c++11 -march=native -mno-bmi2 -Wall -Wno-unknown-pragmas -O2
 ARFLAGS = rcs
 
 #OBJS := $(addsuffix .o,$(basename ${SRCS}))`
 
 all: $(TARGET)
+
+clean:
+	rm -rf *.o
+	rm $(TARGET)
 
 $(TARGET): $(OBJS) $(OBJSC)
 	$(AR) $(ARFLAGS) $@ $^
