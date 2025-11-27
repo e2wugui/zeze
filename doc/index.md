@@ -54,6 +54,8 @@
 
 [运维和配置](Writerside/topics/DevOps-and-configuration.md)
 
+[provider.module.binds](Writerside/topics/Providers.md)
+
 [Log](Writerside/topics/Log.md)
 
 [Inside Zeze](Writerside/topics/Inside-Zeze.md)
