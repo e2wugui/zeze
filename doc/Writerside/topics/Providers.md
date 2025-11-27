@@ -22,7 +22,7 @@
 	必须是全名。
 
 * ConfigType：
-	Special（特别的指定了运行provider的模块，这个类型实际上不建议配置，历史原因保留着），
+	Special（特别的指定了运行provider的模块，这样配置的模块不会在statiBinds里面整体绑定），
 	Dynamic（动态模块，由程序动态绑定选择运行的provider），
 	Default（没有提供module配置的就是默认模块）
 
