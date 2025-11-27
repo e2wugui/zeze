@@ -22,9 +22,9 @@
 	必须是全名。
 
 * ConfigType：
-	Special（特别的指定了运行provider的模块），
+	Special（特别的指定了运行provider的模块，这个类型实际上不建议配置，历史原因保留着），
 	Dynamic（动态模块，由程序动态绑定选择运行的provider），
-	Default（剩下的都是默认模块）
+	Default（没有提供module配置的就是默认模块）
 
 * ChoiceType link选择provider的算法选择。
 	ChoiceTypeHashAccount 按账号的hash选择provider。 
