@@ -152,6 +152,11 @@ public final class ProviderModuleBinds {
 	}
 
 	private static void splitIntoSet(@NotNull String providers, @NotNull IntHashSet set) {
+		if (providers.equals("*")) {
+			// 这个表示匹配所有provider，此时保持set为空，后面build逻辑会把空看成匹配成功。
+			set.clear();
+			return;
+		}
 		for (var provider : providers.split(",", -1)) {
 			var p = provider.trim();
 			if (!p.isEmpty())
@@ -181,7 +186,8 @@ public final class ProviderModuleBinds {
 			} else if (cm.configType == BModule.ConfigTypeDynamic)
 				continue;
 			else if (cm.configType == BModule.ConfigTypeSpecial) {
-				if (!cm.providers.contains(serverId))
+				// !cm.providers.isEmpty() 判断表示默认支持所有provider，这样special也可以配置"*"。
+				if (!cm.providers.isEmpty() && !cm.providers.contains(serverId))
 					continue;
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
 				continue;
