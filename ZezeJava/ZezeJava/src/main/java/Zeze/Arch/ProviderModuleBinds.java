@@ -153,34 +153,30 @@ public final class ProviderModuleBinds {
 		return providerNoDefaultModule;
 	}
 
-	// 非动态模块都为静态模块, 其中声明ConfigType="Special"及providers不为空的只有指定providers会注册该模块
-	// 声明ConfigType="Default"且providers为空的所有providers都会注册
+	// 非动态模块都为静态模块, 其中providers不为空的只有指定providers会注册该模块
+	// providers为空或"*"的所有providers都会注册
 	// 其它未在绑定配置定义的模块只要不在ProviderNoDefaultModule配置里的providers都会注册
 	public void buildStaticBinds(@NotNull Map<String, IModule> AllModules, int serverId,
 								 @NotNull IntHashMap<BModule.Data> out) {
 		var noDefaultModule = providerNoDefaultModule.contains(serverId);
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
-			if (cm == null) {
+			if (cm == null) { // 模块没有配置
 				if (noDefaultModule)
 					continue;
+				cm = defaultModule; // 先看默认配置，仍然可能为null。
 			} else if (cm.dynamic) {
 				continue;
 			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId))
 				continue;
 
-			if (cm == null) // 模块没有配置
-				cm = defaultModule; // 先看默认配置，仍然可能为null。
-
 			out.put(m.getId(),
 					cm != null ? new BModule.Data(cm.choiceType, cm.dynamic)
-					: new BModule.Data(
-							BModule.ChoiceTypeDefault,
-							false));
+							: new BModule.Data(BModule.ChoiceTypeDefault, false));
 		}
 	}
 
-	// 动态模块必须在绑定配置里 声明ConfigType="Dynamic" 或 缺省的ConfigType并指定空的providers
+	// 动态模块必须在绑定配置里声明dynamic="true"
 	// 动态模块的providers为空则表示所有providers都可以注册该模块, 否则只有指定的providers可以注册
 	public void buildDynamicBinds(@NotNull Map<String, IModule> AllModules, int serverId,
 								  @NotNull IntHashMap<BModule.Data> out) {

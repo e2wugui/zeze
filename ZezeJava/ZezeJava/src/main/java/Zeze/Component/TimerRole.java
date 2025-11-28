@@ -939,7 +939,7 @@ public class TimerRole {
 
 			var simpleTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			var serialSaved = bTimer.getSerialId();
-			var hasNext = Timer.nextSimpleTimer(simpleTimer, false);
+			Timer.beforeCallSimpleTimer(simpleTimer, false);
 			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {
 				Bean customData = null;
 				var localBean = online.<BOnlineTimers>getLocalBean(roleId, eOnlineTimers);
@@ -955,6 +955,7 @@ public class TimerRole {
 						simpleTimer.getHappenTimes(), simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 				context.roleId = roleId;
 				handle.onTimer(context);
+				simpleTimer.setNextExpectedTime(context.nextExpectedTimeMills);
 				return Procedure.Success;
 			}, "TimerRole.fireOnlineSimple.inner"));
 
@@ -969,8 +970,8 @@ public class TimerRole {
 			}
 			// 其他错误忽略
 
-			if (hasNext) { // 准备下一个间隔
-				var delay = simpleTimer.getNextExpectedTime() - System.currentTimeMillis();
+			if (simpleTimer.getNextExpectedTime() != 0) { // 准备下一个间隔
+				var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
 				if (hot)
 					scheduleOnlineSimpleHot(timerId, delay, handle.getClass());
 				else

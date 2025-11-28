@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import Zeze.Builtin.LinkdBase.BReportError;
@@ -249,7 +248,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			logger.info("static bind: account={}, moduleIds.size={}, provider={}, configType={}, choiceType={}," +
 							" clientVersion={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
-					providerModuleState.dynamic, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
+					false, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		}/* else if (providerModuleState.dynamic == BModule.ConfigTypeSpecial) {
 			// special 不跟随大部队，单独bind。
 			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);

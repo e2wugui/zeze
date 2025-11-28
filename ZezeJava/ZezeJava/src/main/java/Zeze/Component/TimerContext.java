@@ -13,7 +13,7 @@ public class TimerContext {
 	public @Nullable Bean customData; // 创建timer时用户指定的上下文数据(持久化过的)
 	public final long happenTimes; // 已经触发过的次数, 触发前自增, 即首次触发时是1
 	public final long expectedTimeMills; // 本次应该触发的时间(unix毫秒时间戳)
-	public final long nextExpectedTimeMills; // 下次计划触发的时间(unix毫秒时间戳)
+	public long nextExpectedTimeMills; // 下次计划触发的时间(unix毫秒时间戳), SimpleTimer可以修改并生效下次触发时间
 
 	public long roleId; // 所属的角色ID. 只用于TimerRole
 

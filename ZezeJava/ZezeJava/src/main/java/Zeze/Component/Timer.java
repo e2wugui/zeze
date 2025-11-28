@@ -921,38 +921,39 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		simpleTimer.setOneByOneKey(oneByOneKey);
 	}
 
-	public static boolean nextSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missfire) {
-		// check period
-		var period = simpleTimer.getPeriod();
-		if (period <= 0)
-			return false;
-
-		// check remain times
-		var remainTimes = simpleTimer.getRemainTimes();
-		if (remainTimes >= 0) {
-			if (remainTimes > 0)
-				simpleTimer.setRemainTimes(--remainTimes);
-			if (remainTimes == 0)
-				return false;
-		}
-
+	static void beforeCallSimpleTimer(@NotNull BSimpleTimer simpleTimer, boolean missfire) {
 		var nextExpectedTime = simpleTimer.getNextExpectedTime();
 		simpleTimer.setExpectedTime(nextExpectedTime);
 		simpleTimer.setHappenTimes(simpleTimer.getHappenTimes() + 1);
 		long now = System.currentTimeMillis();
 		simpleTimer.setHappenTime(now);
 
-		if (missfire && simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
-			// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
-			// simpleTimer.setStartTime(now);
-			nextExpectedTime = now + period;
-		} else
-			nextExpectedTime += period;
+		var remainTimes = simpleTimer.getRemainTimes();
+		if (remainTimes >= 0) {
+			if (remainTimes > 0)
+				simpleTimer.setRemainTimes(--remainTimes);
+			if (remainTimes == 0)
+				nextExpectedTime = 0;
+		}
+		if (nextExpectedTime != 0) {
+			var period = simpleTimer.getPeriod();
+			if (period <= 0)
+				nextExpectedTime = 0;
+			else {
+				var endTime = simpleTimer.getEndTime();
+				if (endTime > 0 && endTime < nextExpectedTime)
+					nextExpectedTime = 0;
+				else {
+					if (missfire && simpleTimer.getMissfirePolicy() == eMissfirePolicyRunOnce) {
+						// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
+						// simpleTimer.setStartTime(now);
+						nextExpectedTime = now + period;
+					} else // eMissfirePolicyRunOnceOldNext
+						nextExpectedTime += period;
+				}
+			}
+		}
 		simpleTimer.setNextExpectedTime(nextExpectedTime);
-
-		// check endTime
-		var endTime = simpleTimer.getEndTime();
-		return endTime <= 0 || nextExpectedTime <= endTime;
 	}
 
 	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
@@ -980,7 +981,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				var hasNext = nextSimpleTimer(simpleTimer, missfire);
+				beforeCallSimpleTimer(simpleTimer, missfire);
 				var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
 						simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 
@@ -1004,7 +1005,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				}
 				timer.setConcurrentFireSerialNo(concurrentSerialNo + 1);
 				// 其他错误忽略
-				if (!hasNext) {
+				var nextExpectedTime = context.nextExpectedTimeMills;
+				simpleTimer.setNextExpectedTime(nextExpectedTime);
+				if (nextExpectedTime == 0) {
 					cancel(serverId, timerId, nodeId, node, handle);
 					return 0;
 				}
@@ -1013,7 +1016,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 			// continue period
 			scheduleSimple(timerSerialId, serverId, timerId,
-					simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
+					Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, simpleTimer.getOneByOneKey());
 			return 0;
 		}, "Timer.fireSimple")) != 0) {
