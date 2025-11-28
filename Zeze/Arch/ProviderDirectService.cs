@@ -202,7 +202,7 @@ namespace Zeze.Arch
 			int mid, Builtin.Provider.BModule m)
 		{
 			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
-			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
+			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.Dynamic);
 			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
 			ss.SetIdentityLocalState(server.ServiceIdentity, pms);
 		}

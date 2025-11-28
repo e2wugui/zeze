@@ -178,7 +178,7 @@ namespace Zeze.Arch
             var pms = LinkdApp.LinkdProvider.GetProviderModuleState(moduleId);
             if (null == pms)
                 return false;
-            if (pms.ConfigType == BModule.ConfigTypeDynamic)
+            if (pms.Dynamic)
             {
                 ReportError(linkSession.SessionId, BReportError.FromLink, BReportError.CodeNoProvider,
                         "no provider: " + moduleId + ", " + dispatch.ProtocolId);

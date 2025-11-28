@@ -28,7 +28,7 @@ namespace Zeze.Arch
             return Task.FromResult(ResultCode.Success);
         }
 
-        public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
+        //public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
 
         protected override async Task<long> ProcessBindRequest(Zeze.Net.Protocol _p)
         {
@@ -38,13 +38,15 @@ namespace Zeze.Arch
                 var providerSession = rpc.Sender.UserState as LinkdProviderSession;
                 foreach (var module in rpc.Argument.Modules)
                 {
+                    /*
                     if (FirstModuleWithConfigTypeDefault == 0
                         && module.Value.ConfigType == BModule.ConfigTypeDefault)
                     {
                         FirstModuleWithConfigTypeDefault = module.Value.ConfigType;
                     }
+                    */
                     var providerModuleState = new ProviderModuleState(providerSession.SessionId,
-                        module.Key, module.Value.ChoiceType, module.Value.ConfigType);
+                        module.Key, module.Value.ChoiceType, module.Value.Dynamic);
                     var serviceName = ProviderDistribute.MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
                     var subState = await LinkdApp.Zeze.ServiceManager.SubscribeService(serviceName, providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -134,7 +136,7 @@ namespace Zeze.Arch
             foreach (var module in rpc.Argument.Modules)
             {
                 var providerModuleState = new ProviderModuleState(ps.SessionId,
-                        module.Key, module.Value.ChoiceType, module.Value.ConfigType);
+                        module.Key, module.Value.ChoiceType, module.Value.Dynamic);
                 var serviceName = ProviderDistribute.MakeServiceName(ps.Info.ServiceNamePrefix, module.Key);
                 var subState = await LinkdApp.Zeze.ServiceManager.SubscribeService(serviceName, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。

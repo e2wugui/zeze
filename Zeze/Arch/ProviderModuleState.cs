@@ -11,14 +11,14 @@ namespace Zeze.Arch
         public long SessionId { get; }
         public int ModuleId { get; }
         public int ChoiceType { get; }
-        public int ConfigType { get; }
+        public bool Dynamic { get; }
 
-        public ProviderModuleState(long sessionId, int moduleId, int choiceType, int configType)
+        public ProviderModuleState(long sessionId, int moduleId, int choiceType, bool dynamic)
         {
             SessionId = sessionId;
             ModuleId = moduleId;
             ChoiceType = choiceType;
-            ConfigType = configType;
+            Dynamic = dynamic;
         }
     }
 }

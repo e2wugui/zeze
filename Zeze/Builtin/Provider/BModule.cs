@@ -22,7 +22,7 @@ namespace Zeze.Builtin.Provider
         public int CapacityHintOfByteBuffer { get; }
 
         public int ChoiceType { get; }
-        public int ConfigType { get; }
+        public bool Dynamic { get; }
     }
 
     public sealed class BModule : Zeze.Transaction.Bean, BModuleReadOnly
@@ -31,12 +31,9 @@ namespace Zeze.Builtin.Provider
         public const int ChoiceTypeHashAccount = 1;
         public const int ChoiceTypeHashRoleId = 2;
         public const int ChoiceTypeFeedFullOneByOne = 3;
-        public const int ConfigTypeDefault = 0;
-        public const int ConfigTypeSpecial = 1;
-        public const int ConfigTypeDynamic = 2;
 
         int _ChoiceType;
-        int _ConfigType;
+        bool _Dynamic;
 
         public int _zeze_map_key_int_ { get; set; }
 
@@ -65,28 +62,28 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public int ConfigType
+        public bool Dynamic
         {
             get
             {
                 if (!IsManaged)
-                    return _ConfigType;
+                    return _Dynamic;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ConfigType;
+                if (txn == null) return _Dynamic;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ConfigType)txn.GetLog(ObjectId + 2);
-                return log != null ? log.Value : _ConfigType;
+                var log = (Log__Dynamic)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _Dynamic;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ConfigType = value;
+                    _Dynamic = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ConfigType() { Belong = this, VariableId = 2, Value = value });
+                txn.PutLog(new Log__Dynamic() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -94,16 +91,16 @@ namespace Zeze.Builtin.Provider
         {
         }
 
-        public BModule(int _ChoiceType_, int _ConfigType_)
+        public BModule(int _ChoiceType_, bool _Dynamic_)
         {
             _ChoiceType = _ChoiceType_;
-            _ConfigType = _ConfigType_;
+            _Dynamic = _Dynamic_;
         }
 
         public void Assign(BModule other)
         {
             ChoiceType = other.ChoiceType;
-            ConfigType = other.ConfigType;
+            Dynamic = other.Dynamic;
         }
 
         public BModule CopyIfManaged()
@@ -133,9 +130,9 @@ namespace Zeze.Builtin.Provider
             public override void Commit() { ((BModule)Belong)._ChoiceType = this.Value; }
         }
 
-        sealed class Log__ConfigType : Zeze.Transaction.Log<int>
+        sealed class Log__Dynamic : Zeze.Transaction.Log<bool>
         {
-            public override void Commit() { ((BModule)Belong)._ConfigType = this.Value; }
+            public override void Commit() { ((BModule)Belong)._Dynamic = this.Value; }
         }
 
         public override string ToString()
@@ -151,7 +148,7 @@ namespace Zeze.Builtin.Provider
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Provider.BModule: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ChoiceType").Append('=').Append(ChoiceType).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ConfigType").Append('=').Append(ConfigType).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Dynamic").Append('=').Append(Dynamic).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -168,11 +165,11 @@ namespace Zeze.Builtin.Provider
                 }
             }
             {
-                int _x_ = ConfigType;
-                if (_x_ != 0)
+                bool _x_ = Dynamic;
+                if (_x_)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                    _o_.WriteInt(_x_);
+                    _o_.WriteByte(1);
                 }
             }
             _o_.WriteByte(0);
@@ -189,7 +186,7 @@ namespace Zeze.Builtin.Provider
             }
             if (_i_ == 2)
             {
-                ConfigType = _o_.ReadInt(_t_);
+                Dynamic = _o_.ReadBool(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -202,7 +199,6 @@ namespace Zeze.Builtin.Provider
         public override bool NegativeCheck()
         {
             if (ChoiceType < 0) return true;
-            if (ConfigType < 0) return true;
             return false;
         }
 
@@ -214,7 +210,7 @@ namespace Zeze.Builtin.Provider
                 switch (vlog.VariableId)
                 {
                     case 1: _ChoiceType = vlog.IntValue(); break;
-                    case 2: _ConfigType = vlog.IntValue(); break;
+                    case 2: _Dynamic = vlog.BoolValue(); break;
                 }
             }
         }
@@ -222,7 +218,7 @@ namespace Zeze.Builtin.Provider
         public override void ClearParameters()
         {
             ChoiceType = 0;
-            ConfigType = 0;
+            Dynamic = false;
         }
     }
 }

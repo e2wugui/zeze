@@ -224,13 +224,7 @@
 				<enum name="ChoiceTypeFeedFullOneByOne" value="3"/>
 
 				<variable name="ChoiceType" id="1" type="int"/>
-
-				<!-- ConfigType 目前没有实际逻辑需要这个类型，根据模块绑定配置文件生成类型 -->
-				<enum name="ConfigTypeDefault" value="0"/>
-				<enum name="ConfigTypeSpecial" value="1"/>
-				<enum name="ConfigTypeDynamic" value="2"/>
-
-				<variable name="ConfigType" id="2" type="int"/>
+				<variable name="Dynamic" id="2" type="bool"/>
 			</bean>
 
 			<bean name="BBind">

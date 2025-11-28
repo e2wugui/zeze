@@ -45,7 +45,7 @@ namespace Zeze.Arch
             {
                 if (Modules.TryGetValue(m.Value.FullName, out var cm))
                 {
-                    if (cm.ConfigType != BModule.ConfigTypeDynamic)
+                    if (!cm.Dynamic)
                         continue;
 
                     if (cm.Providers.Count > 0 && !cm.Providers.Contains(serverId))
@@ -53,26 +53,26 @@ namespace Zeze.Arch
 
                     var tempVar = new BModule();
                     tempVar.ChoiceType = cm.ChoiceType;
-                    tempVar.ConfigType = BModule.ConfigTypeDynamic;
+                    tempVar.Dynamic = true;
                     result.Add(m.Value.Id, tempVar);
                 }
             }
         }
 
         public void BuildStaticBinds(Dictionary<string, IModule> AllModules,
-            int AutoKeyLocalId, Dictionary<int, BModule> modules)
+            int serverId, Dictionary<int, BModule> modules)
         {
-            Dictionary<string, int> binds = new Dictionary<string, int>();
+            Dictionary<string, bool> binds = new Dictionary<string, bool>();
 
             // special binds
             foreach (var m in Modules.Values)
             {
-                if (m.ConfigType == BModule.ConfigTypeSpecial && m.Providers.Contains(AutoKeyLocalId))
-                    binds.Add(m.FullName, BModule.ConfigTypeSpecial);
+                if (!m.Dynamic && m.Providers.Contains(serverId))
+                    binds.Add(m.FullName, false);
             }
 
             // default binds
-            if (false == ProviderNoDefaultModule.Contains(AutoKeyLocalId))
+            if (false == ProviderNoDefaultModule.Contains(serverId))
             {
                 foreach (var m in AllModules.Values)
                 {
@@ -80,7 +80,7 @@ namespace Zeze.Arch
                         continue; // 忽略动态注册的模块。
                     if (Modules.ContainsKey(m.FullName))
                         continue; // 忽略已经有特别配置的模块
-                    binds.Add(m.FullName, BModule.ConfigTypeDefault);
+                    binds.Add(m.FullName, false);
                 }
             }
 
@@ -91,7 +91,7 @@ namespace Zeze.Arch
                     modules.Add(m.Id, new BModule()
                     {
                         ChoiceType = GetModuleChoiceType(bind.Key),
-                        ConfigType = bind.Value,
+                        Dynamic = bind.Value,
                     });
             }
         }
@@ -102,7 +102,7 @@ namespace Zeze.Arch
             public int ChoiceType { get; }
             public HashSet<int> Providers { get; } = new HashSet<int>();
 
-            public int ConfigType { get; }
+            public bool Dynamic { get; }
 
             private int GetChoiceType(XmlElement self)
             {
@@ -126,29 +126,8 @@ namespace Zeze.Arch
 
                 ProviderModuleBinds.SplitIntoSet(self.GetAttribute("providers"), Providers);
 
-                string attr = self.GetAttribute("ConfigType").Trim();
-                switch (attr)
-                {
-                    case "":
-                        // 兼容，如果没有配置
-                        ConfigType = Providers.Count == 0 ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
-                        break;
-
-                    case "Special":
-                        ConfigType = BModule.ConfigTypeSpecial;
-                        break;
-
-                    case "Dynamic":
-                        ConfigType = BModule.ConfigTypeDynamic;
-                        break;
-
-                    case "Default":
-                        ConfigType = BModule.ConfigTypeDefault;
-                        break;
-
-                    default:
-                        throw new Exception("unknown ConfigType " + attr);
-                }
+                string attr = self.GetAttribute("dynamic").Trim();
+                Dynamic = !string.IsNullOrEmpty(attr) && bool.Parse(attr);
             }
         }
 
