@@ -5,26 +5,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ProviderModuleBinds>
 	<!-- 动态模块 -->
-	<module name="Zeze.World" ConfigType="Dynamic"/>
+	<module name="Zeze.World" dynamic="true"/>
 	<!-- 特别指定运行provider的模块 -->
-	<module name="Zeze.Special" ConfigType="Special" providers="0,1,2"/>
+	<module name="Zeze.Special" providers="0,1,2"/>
 	<!-- 本来是默认模块，但为了在provider=0上面运行，需要明确指名所有provider="*"，参考后面的ProviderNoDefaultModule -->
-	<module name="Zeze.RedirectToServerSample" ConfigType="Default" providers="*"/>
+	<module name="Zeze.RedirectToServerSample" providers="*"/>
 	<!-- 用来给模块提供默认配置 -->
-	<defaultModule ChoiceType=“ChoiceTypeDefault” ConfigType=“Default”>
+	<defaultModule ChoiceType=“ChoiceTypeDefault”>
 	<!-- 指定的provider上面不再运行默认模块 -->
 	<ProviderNoDefaultModule providers="0,1,2"/>
 </ProviderModuleBinds>
 ```
 
-## module(name, ConfigType, ChoiceType, providers)
+## module(name, dynamic, ChoiceType, providers)
 * name
 	必须是全名。
 
-* ConfigType：
-	Special（特别的指定了运行provider的模块，这样配置的模块不会在statiBinds里面整体绑定），
-	Dynamic（动态模块，由程序动态绑定选择运行的provider），
-	Default（没有提供module配置的就是默认模块）
+* dynamic：true|false
+	是否动态模块。动态模块在哪个provider上面运行由程序动态绑定控制。
 
 * ChoiceType link选择provider的算法选择。
 	ChoiceTypeHashAccount 按账号的hash选择provider。 
@@ -37,7 +35,7 @@
 	配置模块运行的provider。默认模块在所有的provider上面运行。选择指定的provider加上ProviderNoDefaultModule可以把provider
 	配置成专用服务器。
 
-## defaultModule(ChoiceType, ConfigType)
+## defaultModule(ChoiceType)
 * 为所有的module提供默认配置。
 
 ## ProviderNoDefaultModule(providers)
@@ -48,7 +46,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ProviderModuleBinds>
 	<!-- 本来是默认模块，但为了在provider=0上面运行，需要明确指名所有provider="*"，参考后面的ProviderNoDefaultModule -->
-	<module name="Zeze.RedirectToServerSample" ConfigType="Default" providers="*"/>
+	<module name="Zeze.RedirectToServerSample" providers="*"/>
 	<!-- 指定的provider上面不再运行默认模块 -->
 	<ProviderNoDefaultModule providers="0"/>
 </ProviderModuleBinds>
@@ -63,7 +61,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ProviderModuleBinds>
 	<!-- 特别指定运行provider的模块 -->
-	<module name="Zeze.Special" ConfigType="Special" providers="0,1,2"/>
+	<module name="Zeze.Special" providers="0,1,2"/>
 	<!-- 指定的provider上面不再运行默认模块 -->
 	<ProviderNoDefaultModule providers="0,1,2"/>
 </ProviderModuleBinds>

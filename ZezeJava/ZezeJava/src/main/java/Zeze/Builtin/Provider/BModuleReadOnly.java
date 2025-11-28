@@ -18,5 +18,5 @@ public interface BModuleReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     int getChoiceType();
-    int getConfigType();
+    boolean isDynamic();
 }

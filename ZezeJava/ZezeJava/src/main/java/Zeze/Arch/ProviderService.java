@@ -237,7 +237,7 @@ public class ProviderService extends HandshakeClient {
 		}
 
 		// 并通知所有links。
-		if (config.getConfigType() != BModule.Data.ConfigTypeDynamic) {
+		if (!config.isDynamic()) {
 			providerApp.staticBinds.put(module.getId(), config);
 			var bind = new Bind();
 			bind.Argument.getModules().put(module.getId(), config);

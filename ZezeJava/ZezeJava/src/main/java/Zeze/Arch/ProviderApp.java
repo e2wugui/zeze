@@ -157,13 +157,13 @@ public class ProviderApp extends ReentrantLock {
 		// 用于ProviderDirect。
 		var defaultModuleConfig = new BModule.Data(
 				BModule.ChoiceTypeDefault,
-				BModule.ConfigTypeDefault);
+				false);
 
 		for (var module : modules.values()) {
 			if (!this.modules.containsKey(module.getId())) { // 补充其它模块的信息
 				var m = binds.getModules().get(module.getFullName());
 				this.modules.put(module.getId(), m != null
-						? new BModule.Data(m.getChoiceType(), m.getConfigType())
+						? new BModule.Data(m.getChoiceType(), m.isDynamic())
 						: defaultModuleConfig);
 			}
 		}

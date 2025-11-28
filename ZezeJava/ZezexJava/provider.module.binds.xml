@@ -10,31 +10,16 @@
 		ChoiceTypeHashAccount，ChoiceTypeHashRoleId，【ChoiceTypeDefault】
 		用于linkd转发client的协议时，怎么选择provider。
 
-	2. Module ConfigType 怎么决定的。
-	ConfigTypeSpecial 所有特别配置的module都是这个类型。
-	ConfigTypeDynamic 这是动态bind使用的类型。这个文件仅生成static-bind，会忽略dynamic-bind，这个配置生成里面不会包含这个类型的module。
-	ConfigTypeDefault 默认配置类型。
-
+	2. Module dynamic = true | false。
 	3. linkd choice 来源
 	a) Transamit Client Request
 		根据 ChoiceType 选择 Provider。
 	b) ModuleRedirect
 		肯定使用 hash-choice，实际上hash由请求着计算。默认使用 ChoiceTypeHashAccount。
 		ModuleRedirectAll 不计算hash，直接从0~HashCodeConcurrentLevel进行hash-choice。
-
-	4. ServiceManager SubcribeType
-	linkd对所有的ConfigTypeSpecial-module的订阅使用SubscribeTypeReadyCommit，此时ChoiceType任意。
-	【特别规则】ModuleRedirect 只允许在ConfigTypeSpecial-module上使用。
-	这是一条不是必要的规则，仅为linkd对所有的provider都使用SubscribeTypeReadyCommit，就可以不用这个限制。
-	但是没有这个规则，所有的module（特别是多数都是default的）都使用ready-commit，因为module可能比较多，
-	在配置变更时会导致小的通告风暴。因为多数module都是default的，所以这个规则可以大大减少通告协议。
-	【规则实现】
-	a) ModuleRedirect.cs 生成代码加上 IsSpecialConfig 检测。
-	b) linkd 收到 bind 然后去订阅时判断 Module.ConfigType == ConfigTypeSpecial。
-	*) XXX 这个规则带来灵活性降低，到底要不要，考虑一下。XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 	-->
 	<module name="Game.UniqueModule" providers="0"/> providers里面填写 zeze.xml::ServerId，多个用','分开。
-	<module name="Game.Map" ConfigType="Dynamic" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
+	<module name="Game.Map" dynamic="true" providers=""/> providers为空表示动态绑定，不会注册到StaticBinds中。
 
 	<!--
 	表明该ServerId指定的服务器不注册默认模块。这个配置和module配置配合起来就能实现专用服务器。

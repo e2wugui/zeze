@@ -1852,7 +1852,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			bind.Argument.getLinkSids().add(link.getLinkSid());
 			for (var moduleId : moduleIds) {
 				bind.Argument.getModules().put(moduleId, new BModule.Data(
-						BModule.ChoiceTypeDefault, BModule.ConfigTypeDynamic));
+						BModule.ChoiceTypeDefault, true));
 			}
 			bind.SendForWait(socket);
 		});

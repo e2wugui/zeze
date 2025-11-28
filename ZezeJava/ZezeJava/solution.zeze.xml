@@ -332,13 +332,7 @@
 				<enum name="ChoiceTypeRequest"           value="6"/> 从符合条件的(有效,非过载,匹配版本)里面以最近5秒请求量反比为权重选取
 
 				<variable name="ChoiceType" id="1" type="int"/>
-
-				<!-- ConfigType 目前没有实际逻辑需要这个类型，根据模块绑定配置文件生成类型 -->
-				<enum name="ConfigTypeDefault" value="0"/>
-				<enum name="ConfigTypeSpecial" value="1"/>
-				<enum name="ConfigTypeDynamic" value="2"/>
-
-				<variable name="ConfigType" id="2" type="int"/>
+				<variable name="Dynamic" id="2" type="bool"/>
 			</bean>
 
 			<bean name="BBind">

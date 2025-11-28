@@ -43,7 +43,7 @@ public final class ProviderModuleBinds {
 	public static class Module {
 		private final @NotNull String fullName;
 		private final int choiceType;
-		private final int configType; // 为了兼容，没有配置的话，从其他条件推导出来。
+		private boolean dynamic; // 为了兼容，没有配置的话，从其他条件推导出来。
 		private final IntHashSet providers = new IntHashSet();
 
 		public final @NotNull String getFullName() {
@@ -54,8 +54,8 @@ public final class ProviderModuleBinds {
 			return choiceType;
 		}
 
-		public final int getConfigType() {
-			return configType;
+		public final boolean isDynamic() {
+			return dynamic;
 		}
 
 		public final @NotNull IntHashSet getProviders() {
@@ -88,28 +88,8 @@ public final class ProviderModuleBinds {
 
 			ProviderModuleBinds.splitIntoSet(self.getAttribute("providers"), providers);
 
-			String attr = self.getAttribute("ConfigType").trim();
-			switch (attr) {
-			case "":
-				// 兼容，如果没有配置
-				configType = providers.isEmpty() ? BModule.ConfigTypeDynamic : BModule.ConfigTypeSpecial;
-				break;
-
-			case "Special":
-				configType = BModule.ConfigTypeSpecial;
-				break;
-
-			case "Dynamic":
-				configType = BModule.ConfigTypeDynamic;
-				break;
-
-			case "Default":
-				configType = BModule.ConfigTypeDefault;
-				break;
-
-			default:
-				throw new UnsupportedOperationException("unknown ConfigType " + attr);
-			}
+			String attr = self.getAttribute("dynamic").trim();
+			dynamic = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		}
 	}
 
@@ -143,6 +123,7 @@ public final class ProviderModuleBinds {
 
 			case "defaultModule":
 				this.defaultModule = new Module(e);
+				this.defaultModule.dynamic = false; // 默认配置不允许设置动态。
 				break;
 
 			default:
@@ -183,23 +164,19 @@ public final class ProviderModuleBinds {
 			if (cm == null) {
 				if (noDefaultModule)
 					continue;
-			} else if (cm.configType == BModule.ConfigTypeDynamic)
+			} else if (cm.dynamic) {
 				continue;
-			else if (cm.configType == BModule.ConfigTypeSpecial) {
-				// !cm.providers.isEmpty() 判断表示默认支持所有provider，这样special也可以配置"*"。
-				if (!cm.providers.isEmpty() && !cm.providers.contains(serverId))
-					continue;
-			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId)) // ConfigTypeDefault
+			} else if (!cm.providers.isEmpty() && !cm.providers.contains(serverId))
 				continue;
 
 			if (cm == null) // 模块没有配置
 				cm = defaultModule; // 先看默认配置，仍然可能为null。
 
 			out.put(m.getId(),
-					cm != null ? new BModule.Data(cm.choiceType, cm.configType)
+					cm != null ? new BModule.Data(cm.choiceType, cm.dynamic)
 					: new BModule.Data(
 							BModule.ChoiceTypeDefault,
-							BModule.ConfigTypeDefault));
+							false));
 		}
 	}
 
@@ -209,9 +186,9 @@ public final class ProviderModuleBinds {
 								  @NotNull IntHashMap<BModule.Data> out) {
 		for (var m : AllModules.values()) {
 			var cm = modules.get(m.getFullName());
-			if (cm != null && cm.configType == BModule.ConfigTypeDynamic &&
+			if (cm != null && cm.dynamic &&
 					(cm.providers.isEmpty() || cm.providers.contains(serverId)))
-				out.put(m.getId(), new BModule.Data(cm.choiceType, BModule.ConfigTypeDynamic));
+				out.put(m.getId(), new BModule.Data(cm.choiceType, true));
 		}
 	}
 }

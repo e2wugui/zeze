@@ -45,7 +45,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	protected LinkdApp linkdApp;
 	protected ProviderDistributeVersion distributes;
-	private int firstModuleWithConfigTypeDefault;
+	//private int firstModuleWithConfigTypeDefault;
 
 	// 用于客户端选择Provider，只支持一种Provider。如果要支持多种，需要客户端增加参数，这个不考虑了。
 	// 内部的ModuleRedirect ModuleRedirectAll Transmit都携带了ServiceNamePrefix参数，所以，
@@ -243,21 +243,22 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		// 但是不会主动注册到linkUserSession，每次都需要重新查找。
 		// 动态模块需要主动bind/unbind。
 		// XXX
-		if (providerModuleState.configType == BModule.ConfigTypeDefault) {
+		if (!providerModuleState.dynamic) {
 			var staticBinds = ((LinkdProviderSession)providerSocket.getUserState()).getStaticBinds();
 			linkSession.bind(linkdApp.linkdProviderService, link, staticBinds.keySet(), providerSocket);
 			logger.info("static bind: account={}, moduleIds.size={}, provider={}, configType={}, choiceType={}," +
 							" clientVersion={}",
 					linkSession.account, staticBinds.size(), providerSocket.getRemoteAddress(),
-					providerModuleState.configType, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
-		} else if (providerModuleState.configType == BModule.ConfigTypeSpecial) {
+					providerModuleState.dynamic, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
+		}/* else if (providerModuleState.dynamic == BModule.ConfigTypeSpecial) {
 			// special 不跟随大部队，单独bind。
 			linkSession.bind(linkdApp.linkdProviderService, link, List.of(moduleId), providerSocket);
 			logger.info("special bind: account={}, moduleId={}, provider={}, configType={}, choiceType={}," +
 							" clientVersion={}",
 					linkSession.account, moduleId, providerSocket.getRemoteAddress(),
-					providerModuleState.configType, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
+					providerModuleState.dynamic, providerModuleState.choiceType, Str.toVersionStr(clientVersion));
 		}
+		*/
 		return 0;
 	}
 
@@ -308,12 +309,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			for (var e : bind.getModules().entrySet()) {
 				var moduleId = e.getKey();
 				var module = e.getValue();
+				/*
 				if (firstModuleWithConfigTypeDefault == 0 && module.getConfigType() == BModule.ConfigTypeDefault) {
 					//noinspection DataFlowIssue,ConstantValue
 					firstModuleWithConfigTypeDefault = module.getConfigType();
 				}
+				*/
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
-						moduleId, module.getChoiceType(), module.getConfigType());
+						moduleId, module.getChoiceType(), module.isDynamic());
 				var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
 				//noinspection DataFlowIssue
 				var subState = distributes.zeze.getServiceManager().subscribeService(
@@ -347,7 +350,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var moduleId = e.getKey();
 			var module = e.getValue();
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
-					moduleId, module.getChoiceType(), module.getConfigType());
+					moduleId, module.getChoiceType(), module.isDynamic());
 			var serviceName = ProviderDistribute.makeServiceName(providerInfo.getServiceNamePrefix(), moduleId);
 			//noinspection DataFlowIssue
 			var subState = distributes.zeze.getServiceManager().subscribeService(

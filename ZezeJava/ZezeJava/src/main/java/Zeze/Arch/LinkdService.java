@@ -140,7 +140,7 @@ public class LinkdService extends HandshakeServer {
 		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
 		if (null == pms)
 			return false;
-		if (pms.configType == BModule.ConfigTypeDynamic) {
+		if (pms.dynamic) {
 			reportError(linkSession.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider,
 					"no provider: " + moduleId + ", " + dispatch.getProtocolId());
 			// 此后断开连接，不再继续搜索，返回true
@@ -182,7 +182,7 @@ public class LinkdService extends HandshakeServer {
 		var provider = new OutLong();
 
 		var pms = linkdApp.linkdProvider.getProviderModuleState(moduleId);
-		if (null != pms && pms.configType == BModule.ConfigTypeDynamic) {
+		if (null != pms && pms.dynamic) {
 			logger.warn("dynamic module do not need choice. moduleId={}, protocolType={}",
 					moduleId, dispatch.Argument.getProtocolType());
 			var curTime = System.currentTimeMillis();

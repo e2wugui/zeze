@@ -259,7 +259,7 @@ public class ProviderDirectService extends HandshakeBoth {
 						  int mid, @NotNull BModule.Data m) {
 		var ss = providerApp.zeze.getServiceManager().getSubscribeStates().get(serviceName);
 		if (null != ss) {
-			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
+			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.isDynamic());
 			ps.getOrAddServiceReadyState(serviceName).put(server.getServiceIdentity(), pms);
 			ss.setIdentityLocalState(server.getServiceIdentity(), pms);
 		}
