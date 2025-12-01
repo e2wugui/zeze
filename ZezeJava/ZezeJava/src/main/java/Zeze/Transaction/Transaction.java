@@ -129,7 +129,7 @@ public final class Transaction {
 			holdLocks.clear();
 		}
 		// retry 可能保持已有的锁，清除记录和保存点。
-		procedureStack.clear();
+		// procedureStack.clear(); // 保留栈底的procedure
 		logActions.clear(); // retry 中间的日志不记录。
 		savepoints.clear();
 		actions.clear();
@@ -408,7 +408,8 @@ public final class Transaction {
 	}
 
 	private void triggerActions(@NotNull Procedure procedure) {
-		for (var i = 0; i < actions.size(); ++i) {
+		//noinspection ForLoopReplaceableByForEach
+		for (var i = 0; i < actions.size(); ++i) { // size可能会在循环中增加
 			var action = actions.get(i);
 			try {
 				action.action.run();
