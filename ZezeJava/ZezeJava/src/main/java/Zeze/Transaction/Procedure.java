@@ -131,6 +131,7 @@ public class Procedure {
 			long timeBegin = System.nanoTime();
 			try {
 				currentT = Transaction.create(zeze.getLocks());
+				currentT.getProcedureStack().add(this); // 在栈底加一层root procedure对象,在事务执行的其它阶段也能获取到
 				currentT.profiler.onProcedureBegin(actionName, timeBegin);
 				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.procedureStart(actionName);
@@ -138,14 +139,14 @@ public class Procedure {
 				// 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
 				return result = currentT.perform(this);
 			} finally {
-				var curTime = System.nanoTime();
-				var runTime = curTime - timeBegin;
 				if (currentT != null) {
-					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
-					currentT.reuseTransaction();
+					var curTime = System.nanoTime();
+					var runTime = curTime - timeBegin;
 					if (ZezeCounter.instance != null) {
 						ZezeCounter.instance.procedureEnd(actionName, result, runTime);
 					}
+					currentT.profiler.onProcedureEnd(actionName, curTime, runTime);
+					currentT.reuseTransaction();
 				}
 			}
 		}
