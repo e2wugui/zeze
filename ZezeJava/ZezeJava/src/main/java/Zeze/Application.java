@@ -15,7 +15,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.RedirectBase;
-import Zeze.Component.Auth;
 import Zeze.Component.AutoKey;
 import Zeze.Component.DelayRemove;
 import Zeze.Component.Timer;
@@ -97,7 +96,6 @@ public final class Application extends ReentrantLock {
 	private @NotNull StartState startState = StartState.eStopped;
 	public RedirectBase redirect;
 
-	private @Nullable Auth auth;
 	private Onz onz;
 
 	private final HotHandle<EventDispatcher.EventHandle> hotHandle = new HotHandle<>();
@@ -131,19 +129,6 @@ public final class Application extends ReentrantLock {
 
 	public Onz getOnz() {
 		return onz;
-	}
-
-	public void enableAuth() {
-		if (isStart())
-			throw new IllegalStateException("must enable auth before start.");
-
-		if (auth != null)
-			throw new IllegalStateException("auth has enabled.");
-		auth = new Auth(this);
-	}
-
-	public @Nullable Auth getAuth() {
-		return auth;
 	}
 
 	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
@@ -722,8 +707,6 @@ public final class Application extends ReentrantLock {
 				startState = StartState.eStarted;
 
 				delayRemove.start();
-				if (auth != null)
-					auth.start();
 				if (timer != null)
 					timer.loadCustomClassAnd();
 				if (deadlockBreaker != null)
@@ -789,11 +772,6 @@ public final class Application extends ReentrantLock {
 			if (timer != null) {
 				timer.stop();
 				timer = null;
-			}
-
-			if (auth != null) {
-				auth.stop();
-				auth = null;
 			}
 
 			if (LocalRocksCacheDb != null) {
