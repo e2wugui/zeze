@@ -72,7 +72,7 @@ public:
 DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackOnSocketHandshakeDone, int64, sessionId);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackOnSocketClose, int64, sessionId);
 DECLARE_DYNAMIC_DELEGATE_FourParams(FCallbackOnSocketProcessInputBuffer, int64, sessionId
-, FArrayBuffer&, buffer, int32, offset, int32, size);
+, FArrayBuffer, buffer, int32, offset, int32, size);
 
 UCLASS()
 class ZEZEUNREAL_API UToTypeScriptService : public UObject
@@ -97,7 +97,7 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect", ScriptName = "Connect", Keywords = "Zeze"), Category = "Zeze")
 		void Connect(const FString& host, int port, bool autoReconnect)
 	{
-		RealService.SetAutoConnect(autoReconnect);
+		//RealService.SetAutoConnect(autoReconnect);
 		RealService.Connect(std::string(TCHAR_TO_UTF8(*host)), port);
 	}
 

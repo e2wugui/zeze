@@ -14,8 +14,6 @@
 let HostLang: any;
 let IsUe = false;
 
-import { $Ref, $unref } from "puerts";
-
 try {
 	HostLang = require('csharp'); // puerts unity
 } catch (_) {
@@ -636,13 +634,13 @@ export module Zeze {
 			}
 		}
 
-		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer: $Ref<ArrayBuffer>, offset: number, len: number) {
+		protected CallbackOnSocketProcessInputBuffer(sessionId: bigint, buffer:ArrayBuffer, offset: number, len: number) {
 			if (this.Connection && this.Connection.SessionId === sessionId) {
 				if (this.ServiceEventHandle) {
-					if (this.ServiceEventHandle.OnSoekctInput(this, this.Connection, $unref<ArrayBuffer>(buffer), offset, len))
+					if (this.ServiceEventHandle.OnSoekctInput(this, this.Connection, buffer, offset, len))
 						return;
 				}
-				this.Connection.OnProcessInput($unref<ArrayBuffer>(buffer), offset, len);
+				this.Connection.OnProcessInput(buffer, offset, len);
 			}
 		}
 
