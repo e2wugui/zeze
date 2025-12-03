@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
@@ -189,7 +190,7 @@ public class PrometheusCounter implements ZezeCounter {
 	private final ConcurrentHashMap<Long, ProtocolRecvMetric> protocolRecvMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<Long, ProtocolSendMetric> protocolSendMap = new ConcurrentHashMap<>();
 	private final Map<String, ServiceMetric> serviceMap = new HashMap<>();
-	private final Object serviceMapMutex = new Object();
+	private final ReentrantLock serviceMapMutex = new ReentrantLock();
 
 	private final Histogram task_duration_seconds = Histogram.builder().name("task_duration_seconds")
 			.labelNames("task").register();
@@ -326,7 +327,8 @@ public class PrometheusCounter implements ZezeCounter {
 
 	@Override
 	public void serviceStart(Service service) {
-		synchronized (serviceMapMutex) {
+		serviceMapMutex.lock();
+		try {
 			String name = service.getName();
 			ServiceMetric metric = serviceMap.get(name);
 			if (metric != null) {// 按说不改有重名的，如果重名忽略后来的
@@ -339,12 +341,15 @@ public class PrometheusCounter implements ZezeCounter {
 					milliSec, new ServiceOutputObserve(service, outputObserve));
 
 			serviceMap.put(name, new ServiceMetric(service, outputObserve, scheduler));
+		} finally {
+			serviceMapMutex.unlock();
 		}
 	}
 
 	@Override
 	public void serviceStop(Service service) {
-		synchronized (serviceMapMutex) {
+		serviceMapMutex.lock();
+		try {
 			String name = service.getName();
 			ServiceMetric metric = serviceMap.get(name);
 			if (metric == null) { // 不应该出现
@@ -358,12 +363,17 @@ public class PrometheusCounter implements ZezeCounter {
 			serviceMap.remove(name);
 			service_output_buffer_bytes.remove(name);
 			metric.scheduler.cancel(false);
+		} finally {
+			serviceMapMutex.unlock();
 		}
 	}
 
 	private List<Service> getServiceSnapshot() {
-		synchronized (serviceMapMutex) {
+		serviceMapMutex.lock();
+		try {
 			return serviceMap.values().stream().map(s -> s.service).collect(Collectors.toList());
+		} finally {
+			serviceMapMutex.unlock();
 		}
 	}
 
