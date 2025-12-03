@@ -25,15 +25,6 @@ public class ProviderUserSession {
 	private static final Logger logger = LogManager.getLogger(ProviderUserSession.class);
 
 	protected final @NotNull Dispatch dispatch;
-	private String authFlags;
-
-	public void setAuthFlags(String authFlags) {
-		this.authFlags = authFlags;
-	}
-
-	public String getAuthFlags() {
-		return authFlags;
-	}
 
 	public ProviderUserSession(@NotNull Dispatch dispatch) {
 		this.dispatch = dispatch;

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Util.Factory;
 import Zeze.Util.Task;
@@ -39,6 +40,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private @Nullable Future<?> timerNewHot;
 	private @Nullable Future<?> timerClean;
 	private final LongAdder sizeCounter = new LongAdder();
+	private final ReentrantLock cleanNowLock = new ReentrantLock();
 
 	LongAdder getSizeCounter() {
 		return sizeCounter;
@@ -159,43 +161,48 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				(System.nanoTime() - timeBegin) / 1_000_000, lruQueue.size(), MAX_NODE_COUNT);
 	}
 
-	public synchronized void cleanNow() throws Exception {
-		// 这个任务的执行时间可能很长，
-		// 不直接使用 Scheduler 的定时任务，
-		// 每次执行完重新调度。
-		var capacity = table.getTableConf().getRealCacheCapacity();
-		if (capacity >= 0) {
-			var timeBegin = System.nanoTime();
-			int recordCount = 0, nodeCount = 0;
-			while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
-				var node = lruQueue.peek();
-				if (node == null || node == lruHot) // 热点。不回收。
-					break;
+	public void cleanNow() throws Exception {
+		cleanNowLock.lock();
+		try {
+			// 这个任务的执行时间可能很长，
+			// 不直接使用 Scheduler 的定时任务，
+			// 每次执行完重新调度。
+			var capacity = table.getTableConf().getRealCacheCapacity();
+			if (capacity >= 0) {
+				var timeBegin = System.nanoTime();
+				int recordCount = 0, nodeCount = 0;
+				while (dataMap.size() > capacity && table.getZeze().isStart()) { // 超出容量，循环尝试
+					var node = lruQueue.peek();
+					if (node == null || node == lruHot) // 热点。不回收。
+						break;
 
-				for (var e : node.entrySet()) {
-					if (tryRemoveRecord(e))
-						recordCount++;
+					for (var e : node.entrySet()) {
+						if (tryRemoveRecord(e))
+							recordCount++;
+					}
+					if (node.isEmpty()) {
+						lruQueue.poll();
+						nodeCount++;
+					} else {
+						logger.info("remain {} records when clean oldest lruNode", node.size());
+						// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+						var checkpoint = table.getZeze().getCheckpoint();
+						if (checkpoint != null)
+							checkpoint.runOnce();
+						//noinspection BusyWait
+						Thread.sleep(table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+					}
 				}
-				if (node.isEmpty()) {
-					lruQueue.poll();
-					nodeCount++;
-				} else {
-					logger.info("remain {} records when clean oldest lruNode", node.size());
-					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-					var checkpoint = table.getZeze().getCheckpoint();
-					if (checkpoint != null)
-						checkpoint.runOnce();
-					//noinspection BusyWait
-					Thread.sleep(table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+				if (recordCount > 0 || nodeCount > 0) {
+					logger.info("({}){}: cleaned {} records, {} nodes, {} ms, result: {}/{}",
+							table.getZeze().getConfig().getServerId(), table.getName(), recordCount, nodeCount,
+							(System.nanoTime() - timeBegin) / 1_000_000, dataMap.size(), capacity);
 				}
 			}
-			if (recordCount > 0 || nodeCount > 0) {
-				logger.info("({}){}: cleaned {} records, {} nodes, {} ms, result: {}/{}",
-						table.getZeze().getConfig().getServerId(), table.getName(), recordCount, nodeCount,
-						(System.nanoTime() - timeBegin) / 1_000_000, dataMap.size(), capacity);
-			}
+			tryPollLruQueue();
+		} finally {
+			cleanNowLock.unlock();
 		}
-		tryPollLruQueue();
 	}
 
 	void close() {

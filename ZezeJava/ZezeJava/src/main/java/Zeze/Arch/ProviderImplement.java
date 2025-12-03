@@ -104,13 +104,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		return new ProviderUserSession(p);
 	}
 
-	private @Nullable String getAuthFlags(@NotNull String account, long typeId) {
-		var auth = providerApp.zeze.getAuth();
-		if (null == auth)
-			return "";
-		return auth.getAccountAuth(account, typeId);
-	}
-
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@Override
 	protected long ProcessDispatch(@NotNull Dispatch p) {
@@ -125,13 +118,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		if (factoryHandle == null) {
 			sendKick(sender, linkSid, BKick.ErrorProtocolUnknown, "unknown protocol: " + typeId, controlKick);
 			return Procedure.LogicError;
-		}
-
-		// 验证协议权限
-		var authFlags = getAuthFlags(arg.getAccount(), typeId);
-		if (authFlags == null) {
-			sendKick(sender, linkSid, BKick.ErrorAuth, "auth fail " + typeId, controlKick);
-			return Procedure.AuthFail;
 		}
 
 		// 根据负载和协议级别处理熔断
@@ -171,7 +157,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			localDispatch.set(p);
 			int psize = arg.getProtocolData().size();
 			var session = newSession(p);
-			session.setAuthFlags(authFlags);
 			var zeze = sender.getService().getZeze();
 			var txn = Transaction.getCurrent();
 			var outRpcContext = new OutObject<Rpc<?, ?>>();

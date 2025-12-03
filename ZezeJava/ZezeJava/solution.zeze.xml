@@ -1713,18 +1713,6 @@
 
 		</module>
 
-		<module name="Auth" id="11036">
-			<bean name="BRoleAuth">
-				<variable id="1" name="Auths" type="map[long, string]"/>
-			</bean>
-			<table name="tRoleAuth" key="string" value="BRoleAuth" />
-
-			<bean name="BAccountAuth">
-				<variable id="1" name="Roles" type="set[string]"/>
-			</bean>
-			<table name="tAccountAuth" key="string" value="BAccountAuth" />
-		</module>
-
 		<module name="Zoker" id="11037" UseData="true" DefaultTransactionLevel="None">
 			<!--
 			只能新建服务，发布成功，整个目录RENAME并且备份旧的版本。
@@ -2241,15 +2229,6 @@
 		PackagePath="Zeze/Services" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Zoker"/>
-		</service>
-	</component>
-
-	<component name="Auth" 
-		GenDir="src/main/java"
-		SrcDir="src/main/java"
-		PackagePath="Zeze/Component" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Auth"/>
 		</service>
 	</component>
 
