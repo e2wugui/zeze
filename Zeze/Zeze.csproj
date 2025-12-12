@@ -29,7 +29,7 @@
     <None Remove="Dummy\**" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DotNext.Threading" Version="5.15.0" />
+    <PackageReference Include="DotNext.Threading" Version="5.26.1" />
     <PackageReference Include="Mvp.Xml" Version="3.1.0" />
     <PackageReference Include="MySql.Data" Version="9.1.0" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
