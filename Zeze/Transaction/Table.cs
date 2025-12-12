@@ -109,7 +109,7 @@ namespace Zeze.Transaction
                         r.Value = await TStorage.FindAsync(key, this); // r.Value still maybe null
 
                         // 【注意】这个变量不管 OldTable 中是否存在的情况。
-                        r.ExistInBackDatabase = null != r.Value;
+                        //r.ExistInBackDatabase = null != r.Value;
 
                         // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
                         // see Record1.Flush

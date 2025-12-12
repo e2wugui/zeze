@@ -171,8 +171,8 @@ namespace Zeze.Transaction
         }
 
         internal long SavedTimestampForCheckpointPeriod { get; set; }
-        internal bool ExistInBackDatabase { get; set; }
-        internal bool ExistInBackDatabaseSavedForFlushRemove { get; set; }
+        //internal bool ExistInBackDatabase { get; set; }
+        //internal bool ExistInBackDatabaseSavedForFlushRemove { get; set; }
 
         internal override void Commit(Transaction.RecordAccessed accessed)
         {
@@ -266,8 +266,8 @@ namespace Zeze.Transaction
             //【ExistInBackDatabaseSavedForFlushRemove】
             //    由于这里提前修改，所以需要保存一个副本后面写Database时用。
             //    see this.Flush
-            ExistInBackDatabaseSavedForFlushRemove = ExistInBackDatabase;
-            ExistInBackDatabase = null != snapshotValue;
+            //ExistInBackDatabaseSavedForFlushRemove = ExistInBackDatabase;
+            //ExistInBackDatabase = null != snapshotValue;
         }
 
         /*
@@ -301,7 +301,7 @@ namespace Zeze.Transaction
             else
             {
                 // removed
-                if (ExistInBackDatabaseSavedForFlushRemove) // 优化，仅在后台db存在时才去删除。
+                //if (ExistInBackDatabaseSavedForFlushRemove) // 优化，仅在后台db存在时才去删除。
                     await Table.Storage?.TableAsync.RemoveAsync(t, snapshotKey);
 
                 // 需要同步删除OldTable，否则下一次查找又会找到。
