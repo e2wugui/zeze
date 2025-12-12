@@ -37,9 +37,9 @@ namespace Zeze.Net
 
         public void AddConnector(Connector connector)
         {
+            connector.SetService(Service);
             if (!Connectors.TryAdd(connector.Name, connector))
                 throw new Exception($"Duplicate Connector={connector.Name}");
-            connector.SetService(Service);
         }
 
         public Connector FindConnector(string name)

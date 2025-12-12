@@ -116,7 +116,7 @@ namespace Zeze.Net
             Timeout = millisecondsTimeout;
 
             // try remove . 只维护一个上下文。
-            so.Service.TryRemoveRpcContext(SessionId, this);
+            //so.Service.TryRemoveRpcContext(SessionId, this);
             SessionId = so.Service.AddRpcContext(this);
 
             var timeoutTask = Schedule(so.Service, SessionId, millisecondsTimeout);

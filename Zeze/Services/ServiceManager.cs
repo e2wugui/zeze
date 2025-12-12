@@ -374,9 +374,13 @@ namespace Zeze.Services.ServiceManager
         /// 用于测试：Agent.Client.NewClientSocket(...)，不会自动重连，不要和Config混用。
         /// </summary>
         public Agent(Application zeze, string netServiceName = null)
+            : this(zeze.Config, netServiceName)
         {
             Zeze = zeze;
-            var config = zeze.Config;
+        }
+
+        public Agent(Config config, string netServiceName = null)
+        {
             if (null == config)
                 throw new Exception("Config is null");
 
@@ -703,20 +707,20 @@ namespace Zeze.Services.ServiceManager
         {
             ServiceName = bb.ReadString();
             ServiceIdentity = bb.ReadString();
+            Version = bb.ReadLong();
             PassiveIp = bb.ReadString();
             PassivePort = bb.ReadInt();
             ExtraInfo = bb.ReadBinary();
-            Version = bb.ReadLong();
         }
 
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteString(ServiceName);
             bb.WriteString(ServiceIdentity);
+            bb.WriteLong(Version);
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
             bb.WriteBinary(ExtraInfo);
-            bb.WriteLong(Version);
         }
 
         public override void ClearParameters()
