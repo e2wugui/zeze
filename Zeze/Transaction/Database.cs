@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Zeze.Util;
 #if USE_DATABASE
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using MySql.Data.MySqlClient;
 using RocksDbSharp;
 using System.Runtime.InteropServices;
