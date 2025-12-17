@@ -97,7 +97,7 @@ namespace Game.Rank
         {
             public long BuildTime { get; set; }
             public BRankList TableValue { get; set; }
-            public AsyncLock Mutex { get; } = new();
+            public AsyncLock Mutex { get; } = AsyncLock.Exclusive();
         }
 
         readonly ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new();

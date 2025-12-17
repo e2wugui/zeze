@@ -96,7 +96,7 @@ namespace Zeze.Transaction
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal Database.ITransaction DatabaseTransactionOldTmp { get; set; }
         internal abstract void SetDirty();
-        internal AsyncLock Mutex = new();
+        internal AsyncLock Mutex = AsyncLock.Exclusive();
 
         internal bool fresh;
         private long acquireTime;

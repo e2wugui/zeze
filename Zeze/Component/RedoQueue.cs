@@ -22,7 +22,7 @@ namespace Zeze.Component
 	 */
 	public class RedoQueue : Zeze.Services.HandshakeClient
 	{
-		private readonly AsyncLock Mutex = new();
+		private readonly AsyncLock Mutex = AsyncLock.Exclusive();
 
 		public RedoQueue(string name, Zeze.Config config)
 			: base(name, config)

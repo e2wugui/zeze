@@ -262,7 +262,7 @@ namespace Zeze.Services.ServiceManager
             public long Current { get; private set; }
             public int Count { get; private set; }
             public Agent Agent { get; }
-            private AsyncLock Mutex { get; } = new();
+            private AsyncLock Mutex { get; } = AsyncLock.Exclusive();
 
             internal AutoKey(string name, Agent agent)
             {

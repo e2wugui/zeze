@@ -87,7 +87,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private readonly AsyncLock Mutex = new();
+        private readonly AsyncLock Mutex = AsyncLock.Exclusive();
 
         internal async Task<IDisposable> LockAsync()
         {

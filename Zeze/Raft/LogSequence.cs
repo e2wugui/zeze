@@ -246,7 +246,7 @@ namespace Zeze.Raft
             public string DbName { get; set; }
 
             public LogSequence LogSequence { get; set; }
-            public AsyncLock Mutex { get; } = new();
+            public AsyncLock Mutex { get; } = AsyncLock.Exclusive();
 
             public UniqueRequestSet(LogSequence lq, string dbName)
             {

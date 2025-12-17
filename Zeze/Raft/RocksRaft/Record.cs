@@ -45,7 +45,7 @@ namespace Zeze.Raft.RocksRaft
 		internal abstract void LeaderApply(Transaction.RecordAccessed accessed);
 		internal abstract void Flush(WriteBatch batch);
 		public Table Table { get; internal set; }
-		public AsyncLock Mutex { get; } = new();
+		public AsyncLock Mutex { get; } = AsyncLock.Exclusive();
 	}
 
 	public class Record<K, V> : Record

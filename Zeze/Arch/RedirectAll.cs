@@ -29,7 +29,7 @@ namespace Zeze.Arch
         public Func<Binary, T> ResultDecoder { get; }
         public bool IsCompleted => HashCodes.Count == 0;
         public Func<RedirectAll<T>, Task> Processing { get; }
-        private AsyncLock Mutex = new();
+        private AsyncLock Mutex = AsyncLock.Exclusive();
 
         public RedirectAll(
             int concurrentLevel, string methodFullName,
