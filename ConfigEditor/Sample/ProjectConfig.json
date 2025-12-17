@@ -1,7 +1,0 @@
-{
-  "ResourceDirectory": null,
-  "DataOutputDirectory": "../Output/Data",
-  "ServerSrcDirectory": "../Output/ServerSrc",
-  "ClientSrcDirectory": "../Output/ClientSrc",
-  "ClientLanguage": "cs"
-}
