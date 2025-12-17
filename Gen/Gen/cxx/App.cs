@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using Zeze.Util;
 
 namespace Zeze.Gen.cxx
 {

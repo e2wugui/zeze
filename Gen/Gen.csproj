@@ -18,4 +18,11 @@
     <EmbeddedResource Include="templates\LuaModuleMeta.scriban-txt" />
     <EmbeddedResource Include="templates\ModuleRoot.scriban-txt" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Mvp.Xml" Version="3.2.0" />
+    <PackageReference Include="Scriban" Version="6.5.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\confcs\confcs.csproj" />
+  </ItemGroup>
 </Project>

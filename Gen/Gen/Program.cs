@@ -186,7 +186,7 @@ namespace Zeze.Gen
 
         public static void Main(string[] args)
         {
-            BeanTypeIdDuplicateChecker.Add(Transaction.EmptyBean.TYPEID);
+            BeanTypeIdDuplicateChecker.Add(ConfEmptyBean.TYPEID);
 
             List<string> xmlFileList = new List<string>();
             var BeautifulVariableId = false;

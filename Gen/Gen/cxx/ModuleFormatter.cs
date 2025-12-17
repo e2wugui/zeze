@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Zeze.Util;
 
 namespace Zeze.Gen.cxx
 {
@@ -22,7 +21,7 @@ namespace Zeze.Gen.cxx
             moduleName = Program.Upper1(module.Name);
         }
 
-        FileChunkGen FileChunkGen;
+        Zeze.Util.FileChunkGen FileChunkGen;
 
         public bool GenEmptyProtocolHandles(StreamWriter sw, bool shortIf = true)
         {
@@ -84,7 +83,7 @@ namespace Zeze.Gen.cxx
             // new file
             string fullDir = module.GetFullPath(srcDir);
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
-            FileSystem.CreateDirectory(fullDir);
+            Zeze.Util.FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             if (sw == null)
                 return;
@@ -124,7 +123,7 @@ namespace Zeze.Gen.cxx
             // new file
             string fullDir = module.GetFullPath(srcDir);
             string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.cpp");
-            FileSystem.CreateDirectory(fullDir);
+            Zeze.Util.FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             if (sw == null)
                 return;
@@ -164,7 +163,7 @@ namespace Zeze.Gen.cxx
             MakeInterface();
             {
                 GenCpp = false;
-                FileChunkGen = new FileChunkGen();
+                FileChunkGen = new Zeze.Util.FileChunkGen();
                 string fullDir = module.GetFullPath(srcDir);
                 string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.h");
                 if (FileChunkGen.LoadFile(fullFileName))
@@ -176,7 +175,7 @@ namespace Zeze.Gen.cxx
             }
             {
                 GenCpp = true;
-                FileChunkGen = new FileChunkGen();
+                FileChunkGen = new Zeze.Util.FileChunkGen();
                 string fullDir = module.GetFullPath(srcDir);
                 string fullFileName = Path.Combine(fullDir, $"Module{moduleName}.cpp");
                 if (FileChunkGen.LoadFile(fullFileName))
@@ -213,7 +212,7 @@ namespace Zeze.Gen.cxx
             var exist = new HashSet<Protocol>();
             foreach (var chunk in FileChunkGen.Chunks)
             {
-                if (chunk.State == FileChunkGen.State.Normal)
+                if (chunk.State == Zeze.Util.FileChunkGen.State.Normal)
                 {
                     foreach (var line in chunk.Lines)
                     {
@@ -269,7 +268,7 @@ namespace Zeze.Gen.cxx
             }
         }
 
-        void GenChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenChunkByName(StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {
@@ -284,7 +283,7 @@ namespace Zeze.Gen.cxx
             }
         }
 
-        void GenBeforeChunkByName(StreamWriter writer, FileChunkGen.Chunk chunk)
+        void GenBeforeChunkByName(StreamWriter writer, Zeze.Util.FileChunkGen.Chunk chunk)
         {
             switch (chunk.Name)
             {

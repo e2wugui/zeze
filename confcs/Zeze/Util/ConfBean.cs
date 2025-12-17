@@ -9,6 +9,8 @@ namespace Zeze.Util
     public abstract class ConfBean : Serializable
     {
         public readonly int VariableId; // reserve
+        public const int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
+        public const int MaxVariableId = ObjectIdStep - 1;
 
         protected ConfBean()
         {

@@ -34,9 +34,4 @@
     <PackageReference Include="MySql.Data" Version="9.1.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Sample\linkd\linkd.csproj" />
-    <ProjectReference Include="..\Sample\server\server.csproj" />
-    <ProjectReference Include="..\Zeze\Zeze.csproj" />
-  </ItemGroup>
 </Project>

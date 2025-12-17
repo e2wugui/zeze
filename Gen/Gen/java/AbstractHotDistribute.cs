@@ -39,9 +39,5 @@ namespace Zeze.Gen.java
         {
         }
 
-        public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)
-        {
-        }
-
     }
 }
