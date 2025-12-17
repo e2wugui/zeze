@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-
-<raft Name="127.0.0.1:7500">
-	<node Host="127.0.0.1" Port="7500"/>
-	<node Host="127.0.0.1" Port="7501"/>
-	<node Host="127.0.0.1" Port="7502"/>
-	<node Host="127.0.0.1" Port="7503"/>
-	<node Host="127.0.0.1" Port="7504"/>
-</raft>
