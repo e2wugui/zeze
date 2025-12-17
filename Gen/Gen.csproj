@@ -10,9 +10,6 @@
     <DefineConstants>$(DefineConstants);TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Zeze\Zeze.csproj" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="templates\LuaModule.scriban-txt" />
     <EmbeddedResource Include="templates\LuaModuleHandle.scriban-txt" />
     <EmbeddedResource Include="templates\LuaRoot.scriban-txt" />
