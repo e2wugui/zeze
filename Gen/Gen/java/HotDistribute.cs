@@ -30,7 +30,7 @@ namespace Zeze.Gen.java
 
         public bool HasDistribute()
         {
-            return Connector.TryGetReadySocket(1000) != null;
+            return Connector.TryGetReadySocket(0) != null;
         }
 
         // lastVars, curVars 都是按var.id排序的。
@@ -114,7 +114,7 @@ namespace Zeze.Gen.java
         {
             var r = new GetLastVersionBeanInfo();
             r.Argument.Name = fullName;
-            r.SendAsync(Connector.TryGetReadySocket(1000)).Wait();
+            r.SendAsync(Connector.TryGetReadySocket(0)).Wait();
 
             switch (r.ResultCode)
             {
