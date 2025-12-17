@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Arch;
 using Zeze.Util;
+using DotNext.Threading;
+using System.Threading;
 
 namespace Game.Rank
 {
@@ -95,7 +97,7 @@ namespace Game.Rank
         {
             public long BuildTime { get; set; }
             public BRankList TableValue { get; set; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            public AsyncLock Mutex { get; } = new();
         }
 
         readonly ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new();
@@ -142,7 +144,7 @@ namespace Game.Rank
         public async Task<Rank> GetRankDirect(BConcurrentKey keyHint)
         {
             var Rank = Ranks.GetOrAdd(keyHint, (key) => new Rank());
-            using (await Rank.Mutex.LockAsync())
+            using (await Rank.Mutex.AcquireAsync(CancellationToken.None))
             {
                 long now = Zeze.Util.Time.NowUnixMillis;
                 if (now - Rank.BuildTime < RebuildTime)
