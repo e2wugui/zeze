@@ -332,16 +332,16 @@ namespace Zeze.Gen
         {
             switch (Platform)
             {
-                case "cs":
-                    new global::Zeze.Gen.cs.Maker(this).Make();
-                    break;
+                //case "cs":
+                //    new global::Zeze.Gen.cs.Maker(this).Make();
+                //    break;
                 case "luaclient":
                     new Zeze.Gen.luaClient.Maker(this).Make();
                     break;
-                case "cs+luaclient":
-                    new global::Zeze.Gen.cs.Maker(this).Make();
-                    new Zeze.Gen.luaClient.Maker(this).Make();
-                    break;
+                //case "cs+luaclient":
+                //    new global::Zeze.Gen.cs.Maker(this).Make();
+                //    new Zeze.Gen.luaClient.Maker(this).Make();
+                //    break;
                 case "cxx":
                     var cxx = new cxx.Maker(this);
                     cxx.MakeCxx();
@@ -350,10 +350,10 @@ namespace Zeze.Gen
                 case "cxx+ts":
                     new ts.Maker(this).Make();
                     break;
-                case "cs+ts":
-                    new global::Zeze.Gen.cs.Maker(this).Make();
-                    new ts.Maker(this).Make();
-                    break;
+                //case "cs+ts":
+                //    new global::Zeze.Gen.cs.Maker(this).Make();
+                //    new ts.Maker(this).Make();
+                //    break;
                 case "java":
                     new java.Maker(this).Make();
                     break;
