@@ -7,11 +7,6 @@ set PATH=%~dp0\publish;%PATH%
 echo -------- Gen component.confcs.client.xml ...
 Gen.exe component.confcs.client.xml
 
-cd UnitTest
-echo -------- Gen UnitTest\solution.xml ...
-Gen.exe solution.xml
-cd ..
-
 cd confcs
 echo -------- Gen confcs\solution.xml ...
 Gen.exe solution.xml
