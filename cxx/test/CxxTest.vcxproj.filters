@@ -57,352 +57,335 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\cxx\BI.c">
+    <ClCompile Include="..\BI.c">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\ByteBuffer.cpp">
+    <ClCompile Include="..\ByteBuffer.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\codec.cpp">
+    <ClCompile Include="..\codec.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\dh.cpp">
+    <ClCompile Include="..\dh.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\Net.cpp">
+    <ClCompile Include="..\Net.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\octets.cpp">
+    <ClCompile Include="..\octets.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\Protocol.cpp">
+    <ClCompile Include="..\Protocol.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\rfc2118.cpp">
+    <ClCompile Include="..\rfc2118.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\security.cpp">
+    <ClCompile Include="..\security.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\ToLua.cpp">
+    <ClCompile Include="..\utils.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\utils.cpp">
+    <ClCompile Include="..\Vector.cpp">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\Vector.cpp">
+    <ClCompile Include="..\wepoll.c">
       <Filter>cxx</Filter>
     </ClCompile>
-    <ClCompile Include="..\cxx\wepoll.c">
-      <Filter>cxx</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\demo\M6\M7\ModuleM7.cpp">
-      <Filter>CxxTest\demo\M6\M7</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\demo\M6\ModuleM6.cpp">
-      <Filter>CxxTest\demo\M6</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\demo\Module1\Module11\ModuleModule11.cpp">
-      <Filter>CxxTest\demo\Module1\Module11</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\demo\Module1\ModuleModule1.cpp">
-      <Filter>CxxTest\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Bean1.cpp">
-      <Filter>CxxTest\Gen\demo</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\M6\AbstractModule.cpp">
+    <ClCompile Include=".\main.cpp" />
+    <ClCompile Include=".\TestByteBuffer.cpp" />
+    <ClCompile Include=".\Gen\demo\M6\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\M6</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\M6\B67.cpp">
-      <Filter>CxxTest\Gen\demo\M6</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\M6\M7\AbstractModule.cpp">
+    <ClCompile Include=".\Gen\demo\M6\M7\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\M6\M7</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\M6\M7\B67.cpp">
-      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\AbstractModule.cpp">
+    <ClCompile Include=".\Gen\demo\Module1\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\Module1</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BAutoValue.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BFood.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BItem.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafu.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BOnlyData.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BRemoved2.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BSimple.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\BValue.cpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.cpp">
+    <ClCompile Include=".\Gen\demo\Module1\Module11\AbstractModule.cpp">
       <Filter>CxxTest\Gen\demo\Module1\Module11</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\demo\Module2\BValue.cpp">
+    <ClCompile Include=".\Gen\demo\Bean1.cpp">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\M6\B67.cpp">
+      <Filter>CxxTest\Gen\demo\M6</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\M6\M7\B67.cpp">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BAutoValue.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BFood.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BItem.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BKuafu.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BKuafuResult.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BOnlyData.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BRemoved2.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BSimple.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module1\BTestSchemas.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\demo\Module2\BValue.cpp">
       <Filter>CxxTest\Gen\demo\Module2</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\AbstractModule.cpp">
+    <ClCompile Include=".\Gen\demo\Module1\BValue.cpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\demo\M6\ModuleM6.cpp">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClCompile>
+    <ClCompile Include=".\demo\M6\M7\ModuleM7.cpp">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClCompile>
+    <ClCompile Include=".\demo\Module1\ModuleModule1.cpp">
+      <Filter>CxxTest\demo\Module1</Filter>
+    </ClCompile>
+    <ClCompile Include=".\demo\Module1\Module11\ModuleModule11.cpp">
+      <Filter>CxxTest\demo\Module1\Module11</Filter>
+    </ClCompile>
+    <ClCompile Include=".\Gen\TaskTest\TaskExt\AbstractModule.cpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BMyTask01.cpp">
+    <ClCompile Include=".\Gen\TaskTest\TaskExt\BMyTask01.cpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.cpp">
+    <ClCompile Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorld.cpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.cpp">
+    <ClCompile Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.cpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClCompile>
-    <ClCompile Include="..\CxxTest\main.cpp">
-      <Filter>CxxTest</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.cpp">
+    <ClCompile Include=".\TaskTest\TaskExt\ModuleTaskExt.cpp">
       <Filter>CxxTest\TaskTest\TaskExt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\CxxTest\TestByteBuffer.cpp">
-      <Filter>CxxTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\cxx\Bean.h">
+    <ClInclude Include="..\Bean.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\BI.h">
+    <ClInclude Include="..\BI.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ByteBuffer.h">
+    <ClInclude Include="..\ByteBuffer.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\byteorder.h">
+    <ClInclude Include="..\byteorder.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\codec.h">
+    <ClInclude Include="..\codec.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\common.h">
+    <ClInclude Include="..\common.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Compare.h">
+    <ClInclude Include="..\Compare.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\dh.h">
+    <ClInclude Include="..\dh.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\IDecodeAndDispatcher.h">
+    <ClInclude Include="..\IDecodeAndDispatcher.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\IModule.h">
+    <ClInclude Include="..\IModule.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\luaheader.h">
+    <ClInclude Include="..\Net.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\LuaHelper.h">
+    <ClInclude Include="..\octets.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Makefile">
+    <ClInclude Include="..\osdefine.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Net.h">
+    <ClInclude Include="..\Protocol.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\octets.h">
+    <ClInclude Include="..\ResultCode.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\osdefine.h">
+    <ClInclude Include="..\rfc2118.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Protocol.h">
+    <ClInclude Include="..\Rpc.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ResultCode.h">
+    <ClInclude Include="..\security.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\rfc2118.h">
+    <ClInclude Include="..\Serializable.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Rpc.h">
+    <ClInclude Include="..\TaskCompletionSource.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\security.h">
+    <ClInclude Include="..\ToLuaService.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\Serializable.h">
+    <ClInclude Include="..\ToTypeScriptService.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\TaskCompletionSource.h">
+    <ClInclude Include="..\utils.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ToLua.h">
+    <ClInclude Include="..\Vector.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ToLuaService.h">
+    <ClInclude Include="..\wepoll.h">
       <Filter>cxx</Filter>
     </ClInclude>
-    <ClInclude Include="..\cxx\ToTypeScriptService.h">
-      <Filter>cxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\utils.h">
-      <Filter>cxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\Vector.h">
-      <Filter>cxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\cxx\wepoll.h">
-      <Filter>cxx</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Makefile">
-      <Filter>CxxTest</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\demo\TestClient.h">
-      <Filter>CxxTest\demo</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\demo\M6\ModuleM6.h">
-      <Filter>CxxTest\demo\M6</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\demo\M6\M7\ModuleM7.h">
-      <Filter>CxxTest\demo\M6\M7</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\demo\Module1\ModuleModule1.h">
-      <Filter>CxxTest\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\demo\Module1\Module11\ModuleModule11.h">
-      <Filter>CxxTest\demo\Module1\Module11</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\App.h">
-      <Filter>CxxTest\Gen\demo</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Bean1.hpp">
-      <Filter>CxxTest\Gen\demo</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\TestClientBase.hpp">
-      <Filter>CxxTest\Gen\demo</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\M6\AbstractModule.hpp">
-      <Filter>CxxTest\Gen\demo\M6</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\M6\B67.hpp">
-      <Filter>CxxTest\Gen\demo\M6</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\M6\M7\AbstractModule.hpp">
-      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\M6\M7\B67.hpp">
-      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\AbstractModule.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\AutoKey.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BAutoValue.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BFood.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BItem.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafu.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BKuafuResult.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BRemoved2.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BSimple.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BTestSchemas.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\BValue.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\EmptyKey.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Key.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Protocol3.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Protocol4.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolNoProcedure.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolOnlyUseData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\ProtocolUseData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc1.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Rpc2.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\RpcOnlyUseData.hpp">
-      <Filter>CxxTest\Gen\demo\Module1</Filter>
-    </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module1\Module11\AbstractModule.hpp">
+    <ClInclude Include=".\Gen\demo\Module1\Module11\AbstractModule.hpp">
       <Filter>CxxTest\Gen\demo\Module1\Module11</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\demo\Module2\BValue.hpp">
+    <ClInclude Include=".\Gen\demo\M6\M7\AbstractModule.hpp">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\AbstractModule.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\M6\AbstractModule.hpp">
+      <Filter>CxxTest\Gen\demo\M6</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\App.h">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Bean1.hpp">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\TestClientBase.hpp">
+      <Filter>CxxTest\Gen\demo</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\M6\B67.hpp">
+      <Filter>CxxTest\Gen\demo\M6</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\M6\M7\B67.hpp">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\AutoKey.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BAutoValue.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BFood.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BItem.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BKuafu.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BKuafuResult.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BRemoved2.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BSimple.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\BTestSchemas.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module2\BValue.hpp">
       <Filter>CxxTest\Gen\demo\Module2</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\AbstractModule.hpp">
+    <ClInclude Include=".\Gen\demo\Module1\BValue.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\EmptyKey.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\Key.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\demo\M6\ModuleM6.h">
+      <Filter>CxxTest\Gen\demo\M6</Filter>
+    </ClInclude>
+    <ClInclude Include=".\demo\M6\M7\ModuleM7.h">
+      <Filter>CxxTest\Gen\demo\M6\M7</Filter>
+    </ClInclude>
+    <ClInclude Include=".\demo\Module1\ModuleModule1.h">
+      <Filter>CxxTest\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\demo\Module1\Module11\ModuleModule11.h">
+      <Filter>CxxTest\demo\Module1\Module11</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\TaskTest\TaskExt\AbstractModule.hpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BMyTask01.hpp">
+    <ClInclude Include=".\Gen\TaskTest\TaskExt\BMyTask01.hpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp">
+    <ClInclude Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp">
+    <ClInclude Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp">
       <Filter>CxxTest\Gen\TaskTest\TaskExt</Filter>
     </ClInclude>
-    <ClInclude Include="..\CxxTest\TaskTest\TaskExt\ModuleTaskExt.h">
+    <ClInclude Include=".\TaskTest\TaskExt\ModuleTaskExt.h">
       <Filter>CxxTest\TaskTest\TaskExt</Filter>
     </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\Protocol3.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\Protocol4.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\ProtocolNoProcedure.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\ProtocolOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\ProtocolOnlyUseData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\ProtocolUseData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\Rpc1.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\Rpc2.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\RpcOnlyData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\Gen\demo\Module1\RpcOnlyUseData.hpp">
+      <Filter>CxxTest\Gen\demo\Module1</Filter>
+    </ClInclude>
+    <ClInclude Include=".\demo\TestClient.h">
+      <Filter>CxxTest\demo</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\readme.txt">
+      <Filter>cxx</Filter>
+    </Text>
   </ItemGroup>
 </Project>
