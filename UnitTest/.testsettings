@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<TestSettings name="TestSettings" 
-              id="350a1732-b798-4794-b711-15b44e8504e9" 
-              xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Deployment>
-    <DeploymentItem filename="tikv.dll" />
-  </Deployment>
-</TestSettings>

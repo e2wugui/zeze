@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-
-<zeze
-	CheckpointPeriod="0" ServerId="0"
-	>
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
-</zeze>
