@@ -18,11 +18,7 @@ namespace Zeze.Transaction
         public const int Edit = 2;
 
         public int State { get; set; }
-#if USE_CONFCS
         public Util.ConfBean Value { get; set; }
-#else
-        public Bean Value { get; set; }
-#endif
         public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
         // 解码辅助方法，
@@ -70,15 +66,9 @@ namespace Zeze.Transaction
     public interface ChangesTable
     {
         object DecodeKey(ByteBuffer bb);
-#if USE_CONFCS
         Util.ConfBean NewValueBean();
         Util.ConfBean Get(object key);
         void Put(object key, Util.ConfBean value);
-#else
-        Bean NewValueBean();
-        Bean Get(object key);
-        void Put(object key, Bean value);
-#endif
         void Remove(object key);
     }
 }

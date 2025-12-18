@@ -13,23 +13,6 @@ namespace Zeze.Transaction
     /// </summary>
     public abstract class Log : Serializable
     {
-#if !USE_CONFCS
-        public abstract void Commit();
-        //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
-
-        public virtual long LogKey => Belong.ObjectId + VariableId;
-        public Bean Belong;
-
-        public virtual void Collect(Changes changes, Bean recent, Log vlog)
-        {
-            // LogBean LogCollection 需要实现这个方法收集日志.
-        }
-
-        internal abstract void EndSavepoint(Savepoint currentsp);
-
-        internal abstract Log BeginSavepoint();
-
-#endif
         // 会被系列化，实际上由LogBean管理。
         public abstract int TypeId { get; }
         public int VariableId;
@@ -343,22 +326,5 @@ namespace Zeze.Transaction
         {
             return $"{Value}";
         }
-
-#if !USE_CONFCS
-        internal override void EndSavepoint(Savepoint currentsp)
-        {
-            currentsp.Logs[LogKey] = this;
-        }
-
-        internal override Log BeginSavepoint()
-        {
-            return this;
-        }
-
-        public override void Commit()
-        {
-            throw new NotSupportedException();
-        }
-#endif
     }
 }

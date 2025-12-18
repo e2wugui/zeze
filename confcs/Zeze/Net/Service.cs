@@ -262,14 +262,6 @@ namespace Zeze.Net
         public virtual void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
-#if !USE_CONFCS
-            if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
-            {
-                _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
-                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.Sender?.UserState), rpc);
-            }
-            else
-#endif
             {
                 _ = Mission.CallAsync(responseHandle, rpc);
             }
@@ -279,18 +271,6 @@ namespace Zeze.Net
         {
             if (factoryHandle.Handle != null)
             {
-#if !USE_CONFCS
-                if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
-                {
-                    Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
-                            () => factoryHandle.Handle(p), p.GetType().FullName,
-                            factoryHandle.TransactionLevel, p.Sender?.UserState),
-                        p, (p2, code) => p2.TrySendResultCode(code));
-                }
-                else if (Zeze != null)
-                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
-                else
-#endif
                 _ = Mission.CallAsync(factoryHandle.Handle, p, (p2, code) => p2.TrySendResultCode(code));
             }
             else
@@ -313,13 +293,6 @@ namespace Zeze.Net
                     // handshake protocol call direct in io-thread.
                     await Mission.CallAsync(factoryHandle.Handle, p);
                 }
-#if !USE_CONFCS
-                else if (Zeze != null && TransactionLevel.None != factoryHandle.TransactionLevel)
-                {
-                    _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
-                        p.GetType().FullName, factoryHandle.TransactionLevel, p.Sender?.UserState), p);
-                }
-#endif
                 else
                 {
                     _ = Mission.CallAsync(factoryHandle.Handle, p);
@@ -582,15 +555,6 @@ namespace Zeze.Net
         // ReSharper disable UnusedParameter.Global
         public virtual bool CheckThrottle(AsyncSocket sender, int moduleId, int protocolId, int size)
         {
-#if !USE_CONFCS
-            var throttle = sender.TimeThrottle;
-            if (throttle != null && !throttle.CheckNow(size))
-            {
-                // TrySendResultCode(ResultCode.Busy); // 超过速度限制，不报告错误。因为可能是一种攻击。
-                sender.Dispose();
-                return false; // 超过速度控制，丢弃这条协议。
-            }
-#endif
             return true;
         }
 

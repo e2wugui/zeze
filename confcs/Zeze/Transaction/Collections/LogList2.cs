@@ -6,11 +6,7 @@ using Zeze.Util;
 namespace Zeze.Transaction.Collections
 {
     public class LogList2<E> : LogList1<E>
-#if USE_CONFCS
         where E : ConfBean, new()
-#else
-        where E : Bean, new()
-#endif
     {
         public new static readonly string StableName = Reflect.GetStableName(typeof(LogList2<E>));
         public new static readonly int TypeId_ = FixedHash.Hash32(StableName);
@@ -29,61 +25,9 @@ namespace Zeze.Transaction.Collections
 
         public readonly Dictionary<LogBean, OutInt> Changed = new Dictionary<LogBean, OutInt>(); // changed V logs. using in collect.
 
-#if !USE_CONFCS
-        public LogList2()
-        {
-            AddSet = new IdentityHashSet<E>();
-        }
-
-        internal override Log BeginSavepoint()
-        {
-            var dup = new LogList2<E>();
-            dup.This = This;
-            dup.Belong = Belong;
-            dup.VariableId = VariableId;
-            dup.Value = Value;
-            return dup;
-        }
-
-        public override void Collect(Changes changes, Bean recent, Log vlog)
-        {
-            if (Changed.TryAdd((LogBean)vlog, new OutInt()))
-                changes.Collect(recent, this);
-        }
-
-#endif
-
         public override void Encode(ByteBuffer bb)
         {
-#if USE_CONFCS
             throw new System.NotImplementedException();
-#else
-            if (Value != null)
-            {
-                // follower接收到log时，Value为空，此时不做Changed过滤。
-                var miss = new List<LogBean>();
-                foreach (var e in Changed)
-                {
-                    var logBean = e.Key;
-                    var idxExist = Value.IndexOf((E)logBean.This);
-                    if (idxExist < 0 || AddSet.Contains(Value[idxExist]))
-                        miss.Add(logBean);
-                    else
-                        e.Value.Value = idxExist;
-                }
-                foreach (var logbean in miss)
-                    Changed.Remove(logbean);
-            }
-
-            bb.WriteUInt(Changed.Count);
-            foreach (var e in Changed)
-            {
-                EncodeLogBean(bb, e.Key);
-                bb.WriteUInt(e.Value.Value);
-            }
-            // encode opLogs
-            base.Encode(bb);
-#endif
         }
 
         public override void Decode(ByteBuffer bb)

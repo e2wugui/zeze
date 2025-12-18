@@ -14,47 +14,6 @@ namespace Zeze.Transaction.Collections
 
         public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
 
-#if !USE_CONFCS
-        public Bean This { get; set; }
-
-        // LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
-        internal override Log BeginSavepoint()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        internal override void EndSavepoint(Savepoint currentsp)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        // 仅发生在事务执行期间。Decode-Apply不会执行到这里。
-        public override void Collect(Changes changes, Bean recent, Log vlog)
-        {
-            if (Variables.TryAdd(vlog.VariableId, vlog))
-            {
-                // 向上传递
-                changes.Collect(recent, this);
-            }
-        }
-
-        public override void Commit()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public static void EncodeLogBean(ByteBuffer bb, LogBean logBean)
-        {
-            // 使用byte，未来可能扩展其他LogBean子类。
-            if (logBean is LogDynamic)
-                bb.WriteByte(1);
-
-            else // 全部都是LogBean子类，只能else。
-                bb.WriteByte(0);
-            logBean.Encode(bb);
-        }
-#endif
-
         public static LogBean DecodeLogBean(ByteBuffer bb)
         {
             var type = bb.ReadByte();
@@ -65,11 +24,7 @@ namespace Zeze.Transaction.Collections
                     logBean = new LogBean();
                     break;
                 case 1:
-#if USE_CONFCS
                     logBean = new LogConfDynamic();
-#else
-                    logBean = new LogDynamic();
-#endif
                     break;
                 default:
                     throw new System.Exception("unknown logBean subclass type=" + type);

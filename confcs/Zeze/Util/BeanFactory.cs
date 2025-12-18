@@ -3,12 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Zeze.Util
 {
-    public class BeanFactory<B>
-#if !USE_CONFCS
-        where B : Zeze.Transaction.Bean
-#else
-        where B : ConfBean
-#endif
+    public class BeanFactory<B> where B : ConfBean
     {
         private readonly ConcurrentDictionary<long, Func<B>> factories = new ConcurrentDictionary<long, Func<B>>();
 

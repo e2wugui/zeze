@@ -1,9 +1,6 @@
 ﻿using System;
 using Zeze.Serialize;
 using Zeze.Util;
-#if !USE_CONFCS
-using Zeze.Transaction;
-#endif
 
 namespace Zeze.Net
 {
@@ -25,13 +22,8 @@ namespace Zeze.Net
         public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
         public virtual int FamilyClass => Zeze.Net.FamilyClass.Protocol;
 
-#if USE_CONFCS
         public virtual ConfBean ResultBean => null;
         public abstract ConfBean ArgumentBean { get; }
-#else
-        public virtual Bean ResultBean => null;
-        public abstract Bean ArgumentBean { get; }
-#endif
         public bool Recycle { get; set; } = true;
 
         public static int GetModuleId(long typeId)
@@ -240,11 +232,7 @@ namespace Zeze.Net
     {
         public TArgument Argument { get; set; } = new TArgument();
 
-#if USE_CONFCS
         public override ConfBean ArgumentBean => Argument as ConfBean;
-#else
-        public override Bean ArgumentBean => Argument as Bean;
-#endif
         public override void Decode(ByteBuffer bb)
         {
             var compress = bb.ReadUInt();

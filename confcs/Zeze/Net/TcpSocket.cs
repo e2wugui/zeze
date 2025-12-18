@@ -57,9 +57,6 @@ namespace Zeze.Net
             Socket.Bind(localEP);
             Socket.Listen(service.SocketOptions.Backlog);
 
-#if !USE_CONFCS
-            TimeThrottle = null;
-#endif
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
 
@@ -86,9 +83,6 @@ namespace Zeze.Net
             if (service.SocketOptions.NoDelay != null)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-#if !USE_CONFCS
-            TimeThrottle = TimeThrottle.Create(service.SocketOptions);
-#endif
             _inputBuffer = new byte[service.SocketOptions.InputBufferSize];
 
             LocalAddress = ((IPEndPoint)Socket.LocalEndPoint);
@@ -120,9 +114,6 @@ namespace Zeze.Net
             if (service.SocketOptions.NoDelay != null)
                 Socket.NoDelay = service.SocketOptions.NoDelay.Value;
 
-#if !USE_CONFCS
-            TimeThrottle = TimeThrottle.Create(service.SocketOptions);
-#endif
             Dns.BeginGetHostAddresses(hostNameOrAddress, OnAsyncGetHostAddresses, port);
         }
 
@@ -582,9 +573,6 @@ namespace Zeze.Net
             {
                 logger.Error(e);
             }
-#if !USE_CONFCS
-            TimeThrottle?.Close();
-#endif
         }
 
         public override void Dispose()

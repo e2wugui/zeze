@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Zeze.Net;
-#if !USE_CONFCS
-using Zeze.Transaction;
-#endif
 
 namespace Zeze.Util
 {
@@ -66,10 +63,6 @@ namespace Zeze.Util
                 ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel
                 : LogLevel.Trace;
             LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
-
-#if ENABLE_STATISTICS
-            ProcedureStatistics.Instance.GetOrAdd(actionName).GetOrAdd(result).IncrementAndGet();
-#endif
         }
 
         public static void DefaultLogAction(LogLevel level, Exception ex, long result, string message)
@@ -135,10 +128,6 @@ namespace Zeze.Util
                 var errorCode = ResultCode.Exception;
                 if (ex is TaskCanceledException)
                     errorCode = ResultCode.CancelException;
-#if !USE_CONFCS
-                else if (ex is Raft.RaftRetryException)
-                    errorCode = ResultCode.RaftRetry;
-#endif
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
                 // use last inner cause
@@ -176,10 +165,6 @@ namespace Zeze.Util
                 var errorCode = ResultCode.Exception;
                 if (ex is TaskCanceledException)
                     errorCode = ResultCode.CancelException;
-#if !USE_CONFCS
-                else if (ex is Raft.RaftRetryException)
-                    errorCode = ResultCode.RaftRetry;
-#endif
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
                 // use last inner cause
@@ -192,35 +177,5 @@ namespace Zeze.Util
                 return errorCode;
             }
         }
-
-#if !USE_CONFCS
-        public static async Task<long> CallAsync(Procedure procedure, Protocol from = null,
-            Action<Protocol, long> actionWhenError = null)
-        {
-            bool? isRequestSaved = from?.IsRequest;
-            try
-            {
-                // 日志在Call里面记录。因为要支持嵌套。
-                // 统计在Call里面实现。
-                long result = await procedure.CallAsync();
-                if (result != 0 && isRequestSaved != null && isRequestSaved.Value)
-                    actionWhenError?.Invoke(from, result);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                // Procedure.Call处理了所有错误。除非内部错误或者单元测试异常，不会到这里。
-                if (isRequestSaved != null && isRequestSaved.Value)
-                    actionWhenError?.Invoke(from, ResultCode.Exception);
-                LogAction?.Invoke(LogLevel.Error, ex, ResultCode.Exception, procedure.ActionName);
-#if DEBUG
-                // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
-                if (ex.GetType().Name == "AssertFailedException")
-                    throw;
-#endif
-                return ResultCode.Exception;
-            }
-        }
-#endif
     }
 }

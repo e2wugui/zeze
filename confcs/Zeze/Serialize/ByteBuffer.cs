@@ -1726,11 +1726,7 @@ namespace Zeze.Serialize
             return bean;
         }
 
-#if USE_CONFCS
         public ConfDynamicBean ReadDynamic(ConfDynamicBean dynBean, int tag)
-#else
-        public Transaction.DynamicBean ReadDynamic(Transaction.DynamicBean dynBean, int tag)
-#endif
         {
             int type = tag & TAG_MASK;
             if (type == DYNAMIC)

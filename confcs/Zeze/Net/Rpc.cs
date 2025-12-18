@@ -7,11 +7,7 @@ namespace Zeze.Net
 {
     public interface Rpc : Serializable
     {
-#if USE_CONFCS
         ConfBean ResultBean { get; }
-#else
-        Transaction.Bean ResultBean { get; }
-#endif
 
         Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
         int FamilyClass { get; }
@@ -42,11 +38,7 @@ namespace Zeze.Net
 
         public TResult Result { get; set; } = new TResult();
 
-#if USE_CONFCS
         public override ConfBean ResultBean => Result as ConfBean;
-#else
-        public override Transaction.Bean ResultBean => Result as Transaction.Bean;
-#endif
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
         public override int FamilyClass => IsRequest ? Zeze.Net.FamilyClass.Request : Zeze.Net.FamilyClass.Response;
         public bool IsTimeout { get; internal set; }

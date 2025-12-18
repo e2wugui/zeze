@@ -18,10 +18,6 @@ namespace Zeze.Net
 
         public long SessionId { get; private set; }
 
-#if !USE_CONFCS
-        public TimeThrottle TimeThrottle { get; protected set; }
-#endif
-
         /// <summary>
         /// 保存需要存储在Socket中的状态。
         /// 简单变量，没有考虑线程安全问题。

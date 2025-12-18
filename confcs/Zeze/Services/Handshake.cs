@@ -737,14 +737,10 @@ namespace Zeze.Services.Handshake
         }
     }
 
-#if USE_CONFCS
     public sealed class CHandshakeArgument : ConfBean
     {
         public override long TypeId => FixedHash.Hash64(typeof(CHandshakeArgument).FullName);
-#else
-    public sealed class CHandshakeArgument : Transaction.Bean
-    {
-#endif
+
         public int EncryptType;
         public byte[] EncryptParam;
         public int CompressS2c;
@@ -780,14 +776,10 @@ namespace Zeze.Services.Handshake
         }
     }
 
-#if USE_CONFCS
     public sealed class SHandshakeArgument : ConfBean
     {
         public override long TypeId => FixedHash.Hash64(typeof(SHandshakeArgument).FullName);
-#else
-    public sealed class SHandshakeArgument : Transaction.Bean
-    {
-#endif
+
         public byte[] EncryptParam;
         public int CompressS2c;
         public int CompressC2s;
@@ -834,11 +826,7 @@ namespace Zeze.Services.Handshake
         public override int ProtocolId => ProtocolId_;
     }
 
-#if USE_CONFCS
     public sealed class CHandshakeDone : Protocol<ConfEmptyBean>
-#else
-    public sealed class CHandshakeDone : Protocol<Transaction.EmptyBean>
-#endif
     {
         public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(CHandshakeDone).FullName);
 
@@ -846,11 +834,7 @@ namespace Zeze.Services.Handshake
         public override int ProtocolId => ProtocolId_;
     }
 
-#if USE_CONFCS
     public sealed class KeepAlive : Rpc<ConfEmptyBean, ConfEmptyBean>
-#else
-    public sealed class KeepAlive : Rpc<Transaction.EmptyBean, Transaction.EmptyBean>
-#endif
     {
         public static readonly int ProtocolId_ = FixedHash.Hash32(typeof(KeepAlive).FullName);
 
@@ -860,14 +844,9 @@ namespace Zeze.Services.Handshake
         public static readonly KeepAlive Instance = new KeepAlive();
     }
 
-#if USE_CONFCS
     public sealed class SHandshake0Argument : ConfBean
     {
         public override long TypeId => FixedHash.Hash64(typeof(SHandshake0Argument).FullName);
-#else
-    public sealed class SHandshake0Argument : Transaction.Bean
-    {
-#endif
         public int EncryptType;
         public List<int> SupportedEncryptList = new List<int>();
         public int CompressS2c;

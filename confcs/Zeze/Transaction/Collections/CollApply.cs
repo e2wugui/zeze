@@ -29,11 +29,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyList2<E>(List<E> _list, Log _log)
-#if USE_CONFCS
             where E : Util.ConfBean, new()
-#else
-            where E : Bean, new()
-#endif
         {
             var log = (LogList2<E>)_log;
             var newest = new HashSet<int>();
@@ -76,11 +72,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyMap2<K, V>(Dictionary<K, V> _map, Log _log)
-#if USE_CONFCS
             where V : Util.ConfBean, new()
-#else
-            where V : Bean, new()
-#endif
         {
             var log = (LogMap2<K, V>)_log;
 
@@ -105,11 +97,7 @@ namespace Zeze.Transaction.Collections
         }
 
         public static void ApplyOne<V>(ref V value, Log _log)
-#if USE_CONFCS
             where V : Util.ConfBean, new()
-#else
-            where V : Bean, new()
-#endif
         {
             var log = (LogOne<V>)_log;
             if (log.Value != null)
