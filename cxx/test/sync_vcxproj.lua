@@ -12,8 +12,6 @@ local basepath = "..\\"
 
 local includes =
 {
-	"^cxx\\",
-	"^CxxTest\\",
 }
 
 local excludes =
@@ -24,7 +22,7 @@ local excludes =
 
 local compileExcludes =
 {
-	"\\ToLua.cpp$",
+	"^ToLua.cpp$",
 }
 
 local filetypes =
@@ -42,6 +40,8 @@ local filetypes =
 	inc = "ClInclude",
 	hrp = "ClInclude",
 	[""] = "ClInclude",
+
+	txt = "Text",
 }
 
 local logDebug = print
@@ -89,6 +89,7 @@ logDebug("baseFullPath: '" .. baseFullPath .. "'")
 
 local srcfiles = {}
 local incfiles = {}
+local txtfiles = {}
 for filename in filenames:gmatch("%C+") do
 	if filename:find(baseFullPath, 1, true) == 1 then
 		filename = filename:sub(baseFullPathBegin)
@@ -99,6 +100,8 @@ for filename in filenames:gmatch("%C+") do
 				srcfiles[#srcfiles + 1] = filename
 			elseif filetype == "ClInclude" then
 				incfiles[#incfiles + 1] = filename
+			elseif filetype == "Text" then
+				txtfiles[#txtfiles + 1] = filename
 			end
 		end
 	end
@@ -148,6 +151,13 @@ if #incfiles > 0 then
 	end
 	t[#t + 1] = "  </ItemGroup>\r\n"
 end
+if #txtfiles > 0 then
+	t[#t + 1] = "  <ItemGroup>\r\n"
+	for _, filename in ipairs(txtfiles) do
+		t[#t + 1] = "    <Text Include=\"" .. basepath .. filename .. "\" />\r\n"
+	end
+	t[#t + 1] = "  </ItemGroup>\r\n"
+end
 
 local f = open(vcxproj, "rb")
 local s = f:read "*a"
@@ -160,7 +170,8 @@ checksave(vcxproj, s, d)
 -----------------------------------------------------------------------------
 
 local function getPath(filename)
-	return filename:match("(.+)\\[^\\]*$")
+	local path = filename:match("^(.+)\\[^\\]*$")
+	return path or baseFullPath:match("\\([^\\]*)$")
 end
 
 local pathset = {}
@@ -174,6 +185,14 @@ for _, filename in ipairs(srcfiles) do
 	end
 end
 for _, filename in ipairs(incfiles) do
+	local path = getPath(filename)
+	while path do
+		if pathset[path] then break end
+		pathset[path] = true
+		path = getPath(path)
+	end
+end
+for _, filename in ipairs(txtfiles) do
 	local path = getPath(filename)
 	while path do
 		if pathset[path] then break end
@@ -205,6 +224,13 @@ if #incfiles > 0 then
 	t[#t + 1] = "  <ItemGroup>\r\n"
 	for _, filename in ipairs(incfiles) do
 		t[#t + 1] = format("    <ClInclude Include=\"" .. basepath .. filename .. "\">\r\n      <Filter>%s</Filter>\r\n    </ClInclude>\r\n", getPath(filename))
+	end
+	t[#t + 1] = "  </ItemGroup>\r\n"
+end
+if #txtfiles > 0 then
+	t[#t + 1] = "  <ItemGroup>\r\n"
+	for _, filename in ipairs(txtfiles) do
+		t[#t + 1] = format("    <Text Include=\"" .. basepath .. filename .. "\">\r\n      <Filter>%s</Filter>\r\n    </Text>\r\n", getPath(filename))
 	end
 	t[#t + 1] = "  </ItemGroup>\r\n"
 end

@@ -4,71 +4,77 @@
     <ClCompile Include="..\BI.c" />
     <ClCompile Include="..\ByteBuffer.cpp" />
     <ClCompile Include="..\codec.cpp" />
-    <ClCompile Include=".\demo\M6\M7\ModuleM7.cpp" />
-    <ClCompile Include=".\demo\M6\ModuleM6.cpp" />
-    <ClCompile Include=".\demo\Module1\Module11\ModuleModule11.cpp" />
-    <ClCompile Include=".\demo\Module1\ModuleModule1.cpp" />
-    <ClCompile Include=".\Gen\demo\Bean1.cpp" />
-    <ClCompile Include=".\Gen\demo\M6\AbstractModule.cpp" />
-    <ClCompile Include=".\Gen\demo\M6\B67.cpp" />
-    <ClCompile Include=".\Gen\demo\M6\M7\AbstractModule.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\demo\M6\M7\B67.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)B67_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)B67_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)B67_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)B67_1.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\demo\Module1\AbstractModule.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\demo\Module1\BAutoValue.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BFood.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BItem.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BKuafu.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BKuafuResult.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BOnlyData.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BRemoved2.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BSimple.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BTestSchemas.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\BValue.cpp" />
-    <ClCompile Include=".\Gen\demo\Module1\Module11\AbstractModule.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\demo\Module2\BValue.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)BValue_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)BValue_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)BValue_1.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)BValue_1.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\TaskTest\TaskExt\AbstractModule.cpp">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include=".\Gen\TaskTest\TaskExt\BMyTask01.cpp" />
-    <ClCompile Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorld.cpp" />
-    <ClCompile Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.cpp" />
-    <ClCompile Include=".\main.cpp" />
-    <ClCompile Include=".\TaskTest\TaskExt\ModuleTaskExt.cpp" />
-    <ClCompile Include=".\TestByteBuffer.cpp" />
     <ClCompile Include="..\dh.cpp" />
     <ClCompile Include="..\Net.cpp" />
     <ClCompile Include="..\octets.cpp" />
     <ClCompile Include="..\Protocol.cpp" />
     <ClCompile Include="..\rfc2118.cpp" />
     <ClCompile Include="..\security.cpp" />
+    <ClCompile Include="..\test\demo\M6\M7\ModuleM7.cpp" />
+    <ClCompile Include="..\test\demo\M6\ModuleM6.cpp" />
+    <ClCompile Include="..\test\demo\Module1\Module11\ModuleModule11.cpp" />
+    <ClCompile Include="..\test\demo\Module1\ModuleModule1.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Bean1.cpp" />
+    <ClCompile Include="..\test\Gen\demo\M6\AbstractModule.cpp" />
+    <ClCompile Include="..\test\Gen\demo\M6\B67.cpp" />
+    <ClCompile Include="..\test\Gen\demo\M6\M7\AbstractModule.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_1.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\demo\M6\M7\B67.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)B67_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)B67_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)B67_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)B67_1.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\demo\Module1\AbstractModule.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_2.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\demo\Module1\BAutoValue.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BFood.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BItem.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BKuafu.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BKuafuResult.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BOnlyData.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BRemoved2.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BSimple.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BTestSchemas.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\BValue.cpp" />
+    <ClCompile Include="..\test\Gen\demo\Module1\Module11\AbstractModule.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_3.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\demo\Module2\BValue.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)BValue_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)BValue_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)BValue_1.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)BValue_1.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\TaskTest\TaskExt\AbstractModule.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)AbstractModule_4.obj</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="..\test\Gen\TaskTest\TaskExt\BMyTask01.cpp" />
+    <ClCompile Include="..\test\Gen\TaskTest\TaskExt\BTConditionExploreWorld.cpp" />
+    <ClCompile Include="..\test\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.cpp" />
+    <ClCompile Include="..\test\main.cpp" />
+    <ClCompile Include="..\test\TaskTest\TaskExt\ModuleTaskExt.cpp" />
+    <ClCompile Include="..\test\TestByteBuffer.cpp" />
+    <ClCompile Include="..\ToLua.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\utils.cpp" />
     <ClCompile Include="..\Vector.cpp" />
     <ClCompile Include="..\wepoll.c" />
@@ -81,52 +87,12 @@
     <ClInclude Include="..\codec.h" />
     <ClInclude Include="..\common.h" />
     <ClInclude Include="..\Compare.h" />
-    <ClInclude Include=".\demo\TestClient.h" />
-    <ClInclude Include=".\demo\M6\ModuleM6.h" />
-    <ClInclude Include=".\demo\M6\M7\ModuleM7.h" />
-    <ClInclude Include=".\demo\Module1\ModuleModule1.h" />
-    <ClInclude Include=".\demo\Module1\Module11\ModuleModule11.h" />
-    <ClInclude Include=".\Gen\demo\App.h" />
-    <ClInclude Include=".\Gen\demo\Bean1.hpp" />
-    <ClInclude Include=".\Gen\demo\TestClientBase.hpp" />
-    <ClInclude Include=".\Gen\demo\M6\AbstractModule.hpp" />
-    <ClInclude Include=".\Gen\demo\M6\B67.hpp" />
-    <ClInclude Include=".\Gen\demo\M6\M7\AbstractModule.hpp" />
-    <ClInclude Include=".\Gen\demo\M6\M7\B67.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\AbstractModule.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\AutoKey.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BAutoValue.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BFood.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BItem.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BKuafu.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BKuafuResult.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BOnlyData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BRemoved2.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BSimple.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BTestSchemas.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\BValue.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\EmptyKey.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Key.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Protocol3.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Protocol4.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\ProtocolNoProcedure.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\ProtocolOnlyData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\ProtocolOnlyUseData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\ProtocolUseData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Rpc1.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Rpc2.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\RpcOnlyData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\RpcOnlyUseData.hpp" />
-    <ClInclude Include=".\Gen\demo\Module1\Module11\AbstractModule.hpp" />
-    <ClInclude Include=".\Gen\demo\Module2\BValue.hpp" />
-    <ClInclude Include=".\Gen\TaskTest\TaskExt\AbstractModule.hpp" />
-    <ClInclude Include=".\Gen\TaskTest\TaskExt\BMyTask01.hpp" />
-    <ClInclude Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp" />
-    <ClInclude Include=".\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp" />
-    <ClInclude Include=".\TaskTest\TaskExt\ModuleTaskExt.h" />
     <ClInclude Include="..\dh.h" />
     <ClInclude Include="..\IDecodeAndDispatcher.h" />
     <ClInclude Include="..\IModule.h" />
+    <ClInclude Include="..\luaheader.h" />
+    <ClInclude Include="..\LuaHelper.h" />
+    <ClInclude Include="..\Makefile" />
     <ClInclude Include="..\Net.h" />
     <ClInclude Include="..\octets.h" />
     <ClInclude Include="..\osdefine.h" />
@@ -137,11 +103,59 @@
     <ClInclude Include="..\security.h" />
     <ClInclude Include="..\Serializable.h" />
     <ClInclude Include="..\TaskCompletionSource.h" />
+    <ClInclude Include="..\ToLua.h" />
     <ClInclude Include="..\ToLuaService.h" />
     <ClInclude Include="..\ToTypeScriptService.h" />
     <ClInclude Include="..\utils.h" />
     <ClInclude Include="..\Vector.h" />
     <ClInclude Include="..\wepoll.h" />
+    <ClInclude Include="..\test\Makefile" />
+    <ClInclude Include="..\test\demo\TestClient.h" />
+    <ClInclude Include="..\test\demo\M6\ModuleM6.h" />
+    <ClInclude Include="..\test\demo\M6\M7\ModuleM7.h" />
+    <ClInclude Include="..\test\demo\Module1\ModuleModule1.h" />
+    <ClInclude Include="..\test\demo\Module1\Module11\ModuleModule11.h" />
+    <ClInclude Include="..\test\Gen\demo\App.h" />
+    <ClInclude Include="..\test\Gen\demo\Bean1.hpp" />
+    <ClInclude Include="..\test\Gen\demo\TestClientBase.hpp" />
+    <ClInclude Include="..\test\Gen\demo\M6\AbstractModule.hpp" />
+    <ClInclude Include="..\test\Gen\demo\M6\B67.hpp" />
+    <ClInclude Include="..\test\Gen\demo\M6\M7\AbstractModule.hpp" />
+    <ClInclude Include="..\test\Gen\demo\M6\M7\B67.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\AbstractModule.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\AutoKey.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BAutoValue.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BFood.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BItem.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BKuafu.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BKuafuResult.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BOnlyData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BRemoved2.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BSimple.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BTestSchemas.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\BValue.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\EmptyKey.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Key.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Protocol3.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Protocol4.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\ProtocolNoProcedure.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\ProtocolOnlyData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\ProtocolOnlyUseData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\ProtocolUseData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Rpc1.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Rpc2.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\RpcOnlyData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\RpcOnlyUseData.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module1\Module11\AbstractModule.hpp" />
+    <ClInclude Include="..\test\Gen\demo\Module2\BValue.hpp" />
+    <ClInclude Include="..\test\Gen\TaskTest\TaskExt\AbstractModule.hpp" />
+    <ClInclude Include="..\test\Gen\TaskTest\TaskExt\BMyTask01.hpp" />
+    <ClInclude Include="..\test\Gen\TaskTest\TaskExt\BTConditionExploreWorld.hpp" />
+    <ClInclude Include="..\test\Gen\TaskTest\TaskExt\BTConditionExploreWorldEvent.hpp" />
+    <ClInclude Include="..\test\TaskTest\TaskExt\ModuleTaskExt.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\readme.txt" />
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -160,9 +174,6 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\readme.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -33,7 +33,7 @@ Gen/TaskTest/TaskExt/BMyTask01.cpp \
 Gen/TaskTest/TaskExt/BTConditionExploreWorld.cpp \
 Gen/TaskTest/TaskExt/BTConditionExploreWorldEvent.cpp \
 TaskTest/TaskExt/ModuleTaskExt.cpp \
-../cxx/zezecxx.a
+../zezecxx.a
 
 OBJS = $(SRCS:%.cpp=%.o)
 
