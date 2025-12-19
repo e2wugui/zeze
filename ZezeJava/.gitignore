@@ -22,6 +22,7 @@ test.ks
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*
 /test/Dbh2/master
+/test/InfiniteSimulate/CommitRocks*
 /ZezeJavaTest/test.ks
 /ZezeJavaTest/CommitOnzServer0
 /ZezeJavaTest/CommitRocks*
