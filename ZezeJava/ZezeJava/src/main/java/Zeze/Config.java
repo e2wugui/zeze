@@ -93,8 +93,8 @@ public final class Config {
 
 	private int offlineTimerLimit = 200;
 	private boolean dbh2LocalCommit = true;
-	private int providerThreshold = 2500;
-	private int providerOverload = 5000;
+	private int providerThreshold = 2000;
+	private int providerOverload = 4000;
 
 	private long procedureStatisticsReportPeriod = 60000;
 	private long tableStatisticsReportPeriod = 60000;
