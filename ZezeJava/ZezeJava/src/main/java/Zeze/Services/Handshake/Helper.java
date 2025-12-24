@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Helper {
 	private static final BigInteger dh_g = BigInteger.valueOf(2);
-	@SuppressWarnings("SpellCheckingInspection")
 	private static final BigInteger[] dh_group = new BigInteger[]{
 			BigInteger.ZERO
 			, new BigInteger("0FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A3620FFFFFFFFFFFFFFFF", 16)

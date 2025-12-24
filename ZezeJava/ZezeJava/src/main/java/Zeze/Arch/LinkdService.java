@@ -7,7 +7,6 @@ import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.BDispatch;
 import Zeze.Builtin.Provider.BLoad;
-import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;

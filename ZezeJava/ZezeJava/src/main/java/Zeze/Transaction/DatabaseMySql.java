@@ -325,7 +325,6 @@ public final class DatabaseMySql extends DatabaseJdbc {
 					if (!ex.getMessage().contains("already exist"))
 						throw ex;
 				}
-				//noinspection SpellCheckingInspection
 				var procClearInUseSql = "CREATE PROCEDURE _ZezeClearInUse_(\n" +
 						"    IN  in_local_id int,\n" +
 						"    IN  in_global LONGBLOB,\n" +
