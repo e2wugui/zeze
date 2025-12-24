@@ -230,7 +230,7 @@
 		</service>
 	</project>
 
-	<project name="CxxTest" GenDir="../../CxxTest/Gen" SrcDir="../../CxxTest" platform="cxx" GenTables="" ClientScript="true">
+	<project name="CxxTest" GenDir="../../cxx/test/Gen" SrcDir="../../cxx/test" platform="cxx" GenTables="" ClientScript="true">
 		<service name="TestClient" handle="client,clientscript">
 			<module ref="Module1"/>
 			<module ref="M6"/>
