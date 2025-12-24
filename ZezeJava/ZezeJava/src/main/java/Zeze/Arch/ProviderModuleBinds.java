@@ -83,11 +83,13 @@ public final class ProviderModuleBinds {
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
 		public Module(@NotNull Element self) {
+			if (!self.getAttribute("ConfigType").isEmpty())
+				throw new RuntimeException("use 'dynamic=\"true|false\"' instead.");
+
 			fullName = self.getAttribute("name");
 			choiceType = getChoiceType(self);
 
 			ProviderModuleBinds.splitIntoSet(self.getAttribute("providers"), providers);
-
 			String attr = self.getAttribute("dynamic").trim();
 			dynamic = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		}
