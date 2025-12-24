@@ -339,6 +339,7 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<version>${mysql-connector-j.version}</version>
 			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
@@ -347,6 +348,7 @@
 			<artifactId>postgresql</artifactId>
 			<version>${postgresql.version}</version>
 			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
