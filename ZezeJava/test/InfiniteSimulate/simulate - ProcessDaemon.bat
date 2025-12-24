@@ -4,6 +4,6 @@ pushd %~dp0
 
 rem -ea -XX:NativeMemoryTracking=detail
 java -Dlogname=SimulateWithDaemon -cp .;..\..\ZezeJavaTest\lib\* Zeze.Services.Daemon ^
-     -Dlogname=Simulate           -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.6.1.jar Infinite.Simulate
+     -Dlogname=Simulate           -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.6.2-SNAPSHOT.jar Infinite.Simulate
 
 pause
