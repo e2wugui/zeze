@@ -50,6 +50,7 @@ public final class ClassReloader {
 	}
 
 	public static void main(String[] args) {
+		System.err.println("start agent: " + System.getProperty("java.version"));
 		if (args.length != 2) {
 			System.exit(-1);
 			return;
@@ -58,7 +59,6 @@ public final class ClassReloader {
 			VirtualMachine vm = VirtualMachine.attach(args[0]);
 			vm.loadAgent(args[1], null);
 			vm.detach();
-			System.err.println("agent loaded: " + System.getProperty("java.version"));
 		} catch (Throwable e) { // exit
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
