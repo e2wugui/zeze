@@ -10,6 +10,7 @@ import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.jar.Attributes;
@@ -50,7 +51,7 @@ public final class ClassReloader {
 	}
 
 	public static void main(String[] args) {
-		System.err.println("start agent: " + System.getProperty("java.version"));
+		System.err.println("start agent: " + System.getProperty("java.version") + ' ' + Arrays.toString(args));
 		if (args.length != 2) {
 			System.exit(-1);
 			return;
@@ -94,13 +95,14 @@ public final class ClassReloader {
 			String path = agentJar.getAbsolutePath();
 			String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
 			String pid = nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
-			Process proc = Runtime.getRuntime().exec(new String[]{"java", "-cp", path, fullClassName, pid, path});
+			// System.out.println(pid);
+			Process proc = Runtime.getRuntime().exec(new String[]{"java", "-Djdk.attach.compat=true", "-cp", path, fullClassName, pid, path});
 			int r = proc.waitFor();
 			if (r != 0) {
 				throw new IllegalStateException("loadAgent process = " + r + '\n'
-						+ new String(proc.getErrorStream().readAllBytes()));
+						+ new String(proc.getErrorStream().readAllBytes(), System.getProperty("sun.jnu.encoding")));
 			}
-			System.out.println(new String(proc.getErrorStream().readAllBytes()));
+			System.out.println(new String(proc.getErrorStream().readAllBytes(), System.getProperty("sun.jnu.encoding")));
 		} catch (Exception e) {
 			Task.forceThrow(e);
 		}
