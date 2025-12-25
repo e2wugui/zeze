@@ -58,6 +58,7 @@ public final class ClassReloader {
 			VirtualMachine vm = VirtualMachine.attach(args[0]);
 			vm.loadAgent(args[1], null);
 			vm.detach();
+			System.err.println("agent loaded: " + System.getProperty("java.version"));
 		} catch (Throwable e) { // exit
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
@@ -93,9 +94,13 @@ public final class ClassReloader {
 			String path = agentJar.getAbsolutePath();
 			String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
 			String pid = nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
-			int r = Runtime.getRuntime().exec(new String[]{"java", "-cp", path, fullClassName, pid, path}).waitFor();
-			if (r != 0)
-				throw new IllegalStateException("loadAgent process = " + r);
+			Process proc = Runtime.getRuntime().exec(new String[]{"java", "-cp", path, fullClassName, pid, path});
+			int r = proc.waitFor();
+			if (r != 0) {
+				throw new IllegalStateException("loadAgent process = " + r + '\n'
+						+ new String(proc.getErrorStream().readAllBytes()));
+			}
+			System.out.println(new String(proc.getErrorStream().readAllBytes()));
 		} catch (Exception e) {
 			Task.forceThrow(e);
 		}
