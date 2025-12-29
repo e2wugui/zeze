@@ -21,7 +21,7 @@ public class TestLog4jQ {
 	@Test
 	public void testSearch() throws Exception {
 		var beginDate = Calendar.getInstance();
-		beginDate.add(Calendar.DAY_OF_MONTH, -1);
+		beginDate.add(Calendar.DAY_OF_YEAR, -1);
 		var beginTime = beginDate.getTime().getTime();
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:00.816");
 		var logActive = "zeze.log";
@@ -52,7 +52,7 @@ public class TestLog4jQ {
 	@Test
 	public void testBrowse() throws Exception {
 		var beginDate = Calendar.getInstance();
-		beginDate.add(Calendar.DAY_OF_MONTH, -1);
+		beginDate.add(Calendar.DAY_OF_YEAR, -1);
 		var beginTime = beginDate.getTime().getTime();
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:01.239");
 		var logActive = "zeze.log";
