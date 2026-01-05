@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
-public final class DatabasePostgreSQL extends DatabaseJdbc {
+public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRelationalMapping {
 	public static final byte[] keyOfLock =
 			("Zeze.AtomicOpenDatabase.Flag." + 5284111301429717881L).getBytes(StandardCharsets.UTF_8);
 
@@ -47,6 +47,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 		return new TablePostgreSQL(name);
 	}
 
+	@Override
 	public @NotNull Database.Table openRelationalTable(@NotNull String name) {
 		return new TablePostgreSQLRelational(name);
 	}
@@ -590,6 +591,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc {
 			}
 		}
 
+		@Override
 		public void tryAlter() {
 			if (isNew) {
 				logger.info("tryAlter isNew {}", name);

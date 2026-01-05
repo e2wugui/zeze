@@ -240,7 +240,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		var v = strongDirtyValue;
-		if (table.isUseRelationalMapping()) {
+		if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
 			var sqlKey = new SQLStatement();
 			table.encodeKeySQLStatement(sqlKey, key);
 			if (v == null)

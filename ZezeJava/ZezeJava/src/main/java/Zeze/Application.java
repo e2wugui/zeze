@@ -35,6 +35,7 @@ import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
+import Zeze.Transaction.DatabaseRelationalMapping;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.GlobalAgent;
@@ -322,6 +323,8 @@ public final class Application extends ReentrantLock {
 
 	public void __install_alter__() {
 		for (var table : replaceTableRecent) {
+			if (!(table.getDatabase() instanceof DatabaseRelationalMapping))
+				continue;
 			if (!table.isRelationalMapping())
 				continue;
 			logger.info("tryAlter {}", table.getName());
@@ -574,7 +577,7 @@ public final class Application extends ReentrantLock {
 				}
 
 				for (var db : getDatabases().values()) {
-					if (!(db instanceof DatabaseMySql))
+					if (!(db instanceof DatabaseRelationalMapping))
 						continue;
 					for (var table : db.getTables()) {
 						if (!table.isRelationalMapping())

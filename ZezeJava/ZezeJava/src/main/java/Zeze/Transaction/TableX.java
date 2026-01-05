@@ -67,8 +67,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		// Old 但是需要清除
 		localRocksCacheTable = exist.getLocalRocksCacheTable();
 		localRocksCacheTable.clear();
-		// Old：oldConfig & oldDatabase 刚好是oldRseRelationalMapping
-		useRelationalMapping = exist.isRelationalMapping() && database instanceof DatabaseMySql;
 	}
 
 	@Override
@@ -121,10 +119,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public int keyOffsetInRawKey() {
 		var s = storage;
 		return s != null ? s.getDatabaseTable().keyOffsetInRawKey() : 0;
-	}
-
-	public boolean isUseRelationalMapping() {
-		return useRelationalMapping;
 	}
 
 	public final int getCacheSize() {
@@ -758,7 +752,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		oldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.getDatabase(getTableConf().getDatabaseOldName()).openTable(getName(), getId()) : null;
 		localRocksCacheTable = localTable != null ? localTable : app.getLocalRocksCacheDb().openTable(getName(), getId());
-		useRelationalMapping = isRelationalMapping() && database instanceof DatabaseMySql;
 		return storage;
 	}
 
@@ -1318,9 +1311,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	@Override
 	public void tryAlter() {
 		var storage = this.storage;
-		var dbTable = storage != null ? storage.getDatabaseTable() : null;
-		if (dbTable instanceof DatabaseMySql.TableMysqlRelational)
-			((DatabaseMySql.TableMysqlRelational)dbTable).tryAlter();
+		if (storage != null)
+			storage.getDatabaseTable().tryAlter();
 	}
 
 	/**

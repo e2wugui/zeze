@@ -309,6 +309,10 @@ public abstract class Database extends ReentrantLock {
 		default void drop() {
 			throw new UnsupportedOperationException();
 		}
+
+		default void tryAlter() {
+			throw new UnsupportedOperationException();
+		}
 	}
 
 	// KV表辅助类，实现所有的下沉的带类型接口。

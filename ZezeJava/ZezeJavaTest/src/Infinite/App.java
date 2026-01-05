@@ -4,6 +4,7 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseRelationalMapping;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
@@ -93,7 +94,7 @@ public class App {
 			int total;
 		};
 
-		if (table.isUseRelationalMapping()) {
+		if (table.isRelationalMapping() && table.getDatabase() instanceof DatabaseRelationalMapping) {
 			var sqlKey = new SQLStatement();
 			dbTable.walkDatabaseKey(table, k -> {
 				sqlKey.clear();

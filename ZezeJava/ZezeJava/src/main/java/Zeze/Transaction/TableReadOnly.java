@@ -30,8 +30,6 @@ public interface TableReadOnly<K extends Comparable<K>, V extends Bean, VReadOnl
 
 	boolean isAutoKey();
 
-	boolean isUseRelationalMapping();
-
 	int getCacheSize();
 
 	@NotNull Binary encodeGlobalKey(@NotNull K key);

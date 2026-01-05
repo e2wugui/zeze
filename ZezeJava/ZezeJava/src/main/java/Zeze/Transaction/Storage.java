@@ -14,11 +14,9 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 
 	public Storage(@NotNull TableX<K, V> table, @NotNull Database database, @NotNull String tableName) {
 		this.table = table;
-		if (table.isRelationalMapping() && database instanceof DatabaseMySql) {
-//			if (!(database instanceof DatabaseMySql))
-//				throw new IllegalArgumentException("Only DatabaseMySql Support RelationalMapping.");
-			var mysql = (DatabaseMySql)database;
-			databaseTable = mysql.openRelationalTable(tableName);
+		if (table.isRelationalMapping() && database instanceof DatabaseRelationalMapping) {
+			var mapping = (DatabaseRelationalMapping)database;
+			databaseTable = mapping.openRelationalTable(tableName);
 			return; // done
 		}
 		databaseTable = database.openTable(tableName, table.getId());

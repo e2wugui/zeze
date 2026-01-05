@@ -195,7 +195,7 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		if (!t.isUseRelationalMapping()) {
+		if (!t.isRelationalMapping()) {
 			t.walkDatabaseRaw((key, value) -> {
 				var bbKey = t.decodeKey(key);
 				walkTimes.value += 1;
@@ -220,7 +220,7 @@ public class TestWalkPage {
 		ArrayList<Integer> walkedKeys = new ArrayList<>();
 		var walkTimes = new OutInt(0);
 
-		if (!t.isUseRelationalMapping()) {
+		if (!t.isRelationalMapping()) {
 			t.walkDatabaseRawDesc((key, value) -> {
 				var bbKey = t.decodeKey(key);
 				walkTimes.value += 1;
