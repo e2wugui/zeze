@@ -1,5 +1,3 @@
-Hot 热更模块什么时候注册进ServiceManager的？
-
 DatabaseTikv.OperatesTikv
 DatabaseDynamoDb 还需测试。
 
