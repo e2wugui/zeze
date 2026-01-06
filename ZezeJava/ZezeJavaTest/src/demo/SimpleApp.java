@@ -54,7 +54,7 @@ public class SimpleApp extends AppBase {
 		provider.create(this);
 		zeze.initialize(this);
 
-		var modules = new HashMap<String, IModule>();
+		//var modules = new HashMap<String, IModule>();
 
 //		bag = new Bag.Module(zeze);
 //		bag.Initialize(this);

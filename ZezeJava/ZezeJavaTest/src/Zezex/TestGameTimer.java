@@ -38,10 +38,10 @@ public class TestGameTimer {
 
 	private static void waitLinkdProvider(Zezex.App linkd) throws InterruptedException {
 		while (true) {
-			System.out.println(linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().values());
-			if (!linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().isEmpty())
+			logger.info("providers={}", linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().values());
+			if (linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().size() > 5)
 				break;
-			System.out.println("wait Linkd Provider.");
+			logger.info("wait Linkd Provider.");
 			//noinspection BusyWait
 			Thread.sleep(1000);
 		}
