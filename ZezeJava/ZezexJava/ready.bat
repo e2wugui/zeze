@@ -7,12 +7,12 @@ call gradlew.bat build copyJar
 cd ZezexJava
 
 call distribute.bat
-copy server\hot\modules\Game.Equip.jar server\hotrun\distributes\
-copy server\hot\interfaces\Game.Equip.interface.jar server\hotrun\distributes\
-copy server\hot\__hot_schemas__Game.jar server\hotrun\distributes\
+copy server\hot\modules\Game.Equip.jar server\hot\distributes\
+copy server\hot\interfaces\Game.Equip.interface.jar server\hot\distributes\
+copy server\hot\__hot_schemas__Game.jar server\hot\distributes\
 
 if "%1" == "" (
-echo. > server\hotrun\distributes\ready
+echo. > server\hot\distributes\ready
 ) else (
-echo %1 > server\hotrun\distributes\ready
+echo %1 > server\hot\distributes\ready
 )

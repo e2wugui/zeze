@@ -10,8 +10,8 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	CheckpointPeriod="60000"
 	ServerId="0"
 	ServiceManager=""
-	HotWorkingDir="hotrun"
-	HotDistributeDir="hotrun/distributes"
+	HotWorkingDir="hot"
+	HotDistributeDir="hot/distributes"
 	>
 	<GlobalCacheManagersConf>
 		<host name="global.raft.xml"/>
@@ -19,9 +19,9 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
-	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
-	<!--
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+
+	<!--
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
 	-->
 
