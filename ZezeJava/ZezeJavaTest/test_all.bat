@@ -2,7 +2,9 @@
 setlocal
 pushd %~dp0
 
-java -Dlogname=ZezeJavaTest -ea -cp .;lib/*;build/libs/* org.junit.runner.JUnitCore ^
+rem call ..\ZezeJava\test\build.bat
+
+java -Dlogname=ZezeJavaTest -ea -cp .;lib/*;build/classes/java/main org.junit.runner.JUnitCore ^
 Benchmark.ABasicSimpleAddOneThread ^
 Benchmark.BBasicSimpleAddConcurrentWithConflict ^
 Benchmark.BenchSocket ^
@@ -17,6 +19,8 @@ Dbh2.Dbh2Test ^
 Dbh2.TestLocateBucket ^
 Dbh2.TestRocksDb ^
 Infinite.Simulate ^
+MQ.TestFileWithIndexed ^
+MQ.TestMQ ^
 Onz.TestOnz ^
 RelationalMapping.TestRelationalTableDiff ^
 TestLog4jQuery.TestLog4jQ ^
@@ -32,7 +36,6 @@ UnitTest.Zeze.Component.TestTimer ^
 UnitTest.Zeze.Component.TestToken ^
 UnitTest.Zeze.Game.TestBag ^
 UnitTest.Zeze.Game.TestRank ^
-UnitTest.Zeze.Game.TestTask ^
 UnitTest.Zeze.Misc.TestRocketMQ ^
 UnitTest.Zeze.Misc.TestServiceManager ^
 UnitTest.Zeze.Misc.TestThreading ^
@@ -45,6 +48,7 @@ UnitTest.Zeze.Net.TestRpc ^
 UnitTest.Zeze.Netty.TestNettyHttpServer ^
 UnitTest.Zeze.Serialize.TestByteBuffer ^
 UnitTest.Zeze.Serialize.TestDynamic ^
+UnitTest.Zeze.Serialize.TestRawBean ^
 UnitTest.Zeze.Trans.TestBegin ^
 UnitTest.Zeze.Trans.TestChangeListener ^
 UnitTest.Zeze.Trans.TestCheckpoint ^
@@ -53,10 +57,13 @@ UnitTest.Zeze.Trans.TestConcurrentDictionary ^
 UnitTest.Zeze.Trans.TestConcurrentStartServer ^
 UnitTest.Zeze.Trans.TestConflict ^
 UnitTest.Zeze.Trans.TestDatabaseMySql ^
+UnitTest.Zeze.Trans.TestDatabasePostgreSQL ^
 UnitTest.Zeze.Trans.TestDatabaseRocksDB ^
 UnitTest.Zeze.Trans.TestDatabaseSqlServer ^
 UnitTest.Zeze.Trans.TestDatabaseTikv ^
 UnitTest.Zeze.Trans.TestGlobal ^
+UnitTest.Zeze.Trans.TestGTable ^
+UnitTest.Zeze.Trans.TestJsonVar ^
 UnitTest.Zeze.Trans.TestLock ^
 UnitTest.Zeze.Trans.TestLostRedo ^
 UnitTest.Zeze.Trans.TestMemorySize ^
@@ -67,6 +74,7 @@ UnitTest.Zeze.Trans.TestTable ^
 UnitTest.Zeze.Trans.TestTableKey ^
 UnitTest.Zeze.Trans.TestTableNest ^
 UnitTest.Zeze.Trans.TestTableNestAction ^
+UnitTest.Zeze.Trans.TestTid ^
 UnitTest.Zeze.Trans.TestTransactionLevelSerializable ^
 UnitTest.Zeze.Trans.TestWalkPage ^
 UnitTest.Zeze.Util.TestBloomFilter ^
