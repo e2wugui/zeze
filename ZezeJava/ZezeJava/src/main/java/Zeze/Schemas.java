@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.DatabaseRelationalMapping;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -256,37 +257,8 @@ public class Schemas implements Serializable {
 				((Bean)value).keyRefCount++;
 		}
 
-		private static final Map<String, String> sqlTypeTable = new HashMap<>();
-
-		static {
-			sqlTypeTable.put("bool", "BOOL");
-			//sqlTypeTable.put("boolean", "BOOL");
-			sqlTypeTable.put("byte", "TINYINT");
-			sqlTypeTable.put("short", "SMALLINT");
-			sqlTypeTable.put("int", "INT");
-			sqlTypeTable.put("long", "BIGINT");
-			sqlTypeTable.put("float", "FLOAT");
-			sqlTypeTable.put("double", "DOUBLE");
-			sqlTypeTable.put("binary", "BLOB");
-			sqlTypeTable.put("string", "TEXT");
-			// json
-			sqlTypeTable.put("dynamic", "TEXT");
-			sqlTypeTable.put("list", "TEXT");
-			sqlTypeTable.put("array", "TEXT");
-			sqlTypeTable.put("set", "TEXT");
-			sqlTypeTable.put("map", "TEXT");
-			sqlTypeTable.put("gtable", "TEXT");
-			// 下面的类型会被展开，这里的类型展开后的实际类型。
-			sqlTypeTable.put("vector2", "FLOAT");
-			sqlTypeTable.put("vector2int", "INT");
-			sqlTypeTable.put("vector3", "FLOAT");
-			sqlTypeTable.put("vector3int", "INT");
-			sqlTypeTable.put("vector4", "FLOAT");
-			sqlTypeTable.put("quaternion", "FLOAT");
-		}
-
-		public @NotNull String toSqlType(boolean isKey) {
-			var sqlType = sqlTypeTable.get(name);
+		public @NotNull String toSqlType(boolean isKey, DatabaseRelationalMapping mapping) {
+			var sqlType = mapping.getSqlTypeMap().get(name);
 			if (sqlType == null)
 				throw new UnsupportedOperationException("unknown sql type=" + name);
 			if (name.equals("string") && isKey)
@@ -321,34 +293,34 @@ public class Schemas implements Serializable {
 
 		public void buildRelationalColumns(boolean isKey, @NotNull Variable variable,
 										   @NotNull ArrayList<String> varNames, @NotNull ArrayList<Integer> varIds,
-										   @NotNull ArrayList<Column> columns) {
+										   @NotNull ArrayList<Column> columns, DatabaseRelationalMapping mapping) {
 			switch (name) {
 			case "vector2":
 			case "vector2int":
 				// int or float 由toSqlType的结果区分，其他都一样。
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey, mapping)));
 				break;
 			case "vector3":
 			case "vector3int":
 				// int or float 由toSqlType的结果区分，其他都一样。
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), variable, toSqlType(isKey, mapping)));
 				break;
 			case "vector4":
 			case "quaternion":
-				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), variable, toSqlType(isKey)));
-				columns.add(new Column(toColumnName(varNames, "w"), toVarIds(varIds, 4), variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames, "x"), toVarIds(varIds, 1), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "y"), toVarIds(varIds, 2), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "z"), toVarIds(varIds, 3), variable, toSqlType(isKey, mapping)));
+				columns.add(new Column(toColumnName(varNames, "w"), toVarIds(varIds, 4), variable, toSqlType(isKey, mapping)));
 				break;
 
 			default:
 				var ids = new int[varIds.size()];
 				for (var i = 0; i < varIds.size(); ++i)
 					ids[i] = varIds.get(i);
-				columns.add(new Column(toColumnName(varNames), ids, variable, toSqlType(isKey)));
+				columns.add(new Column(toColumnName(varNames), ids, variable, toSqlType(isKey, mapping)));
 				break;
 			}
 		}
@@ -616,7 +588,8 @@ public class Schemas implements Serializable {
 										   @NotNull Variable variable,
 										   @NotNull ArrayList<String> varNames,
 										   @NotNull ArrayList<Integer> varIds,
-										   @NotNull ArrayList<Column> columns) {
+										   @NotNull ArrayList<Column> columns,
+										   @NotNull DatabaseRelationalMapping mapping) {
 			for (var e : variables.entrySet()) {
 				// var key = e.getKey();
 				var value = e.getValue();
@@ -626,7 +599,7 @@ public class Schemas implements Serializable {
 //					// 实际上单独判断了也不需要特别处理。先明确写一下。
 //					value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
 //				else
-				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns);
+				value.type.buildRelationalColumns(isKey, value, varNames, varIds, columns, mapping);
 				varIds.remove(varIds.size() - 1);
 				varNames.remove(varNames.size() - 1);
 			}
@@ -689,7 +662,7 @@ public class Schemas implements Serializable {
 			valueType = s.compile(valueName, "", "");
 		}
 
-		public @NotNull String buildRelationalColumns(@NotNull ArrayList<Column> columns) {
+		public @NotNull String buildRelationalColumns(@NotNull ArrayList<Column> columns, @NotNull DatabaseRelationalMapping mapping) {
 			String keyColumns;
 
 			// 构造一个虚拟变量。Column需要用到。
@@ -704,7 +677,7 @@ public class Schemas implements Serializable {
 				varNames.add(varKey.name);
 				var varIds = new ArrayList<Integer>();
 				varIds.add(varKey.id);
-				keyType.buildRelationalColumns(true, varKey, varNames, varIds, columns);
+				keyType.buildRelationalColumns(true, varKey, varNames, varIds, columns, mapping);
 				columns.sort(new ColumnComparator());
 				var sb = new StringBuilder();
 				for (var column : columns) {
@@ -716,13 +689,13 @@ public class Schemas implements Serializable {
 			} else {
 				keyColumns = varKey.name;
 				var varIds = new int[]{varKey.id};
-				columns.add(new Column(varKey.name, varIds, varKey, keyType.toSqlType(true)));
+				columns.add(new Column(varKey.name, varIds, varKey, keyType.toSqlType(true, mapping)));
 			}
 			var varNames = new ArrayList<String>();
 			var varIds = new ArrayList<Integer>();
 			varIds.add(2); // 这里用"2"，因为关系表Table(Key,Value)，需要加一级虚拟Bean，只要保证这一级varId不重复即可，见上面的"1"。
 			// 【注意】valueType 肯定是Bean，下面调用的参数”Variable varKey“并不会被用到，这里用它是为了避免@NotNull警告。
-			valueType.buildRelationalColumns(false, varKey, varNames, varIds, columns);
+			valueType.buildRelationalColumns(false, varKey, varNames, varIds, columns, mapping);
 
 			// 构建好就排序，不能再diff的时候排序，有可能diff不会被调用。
 			var comparator = new ColumnComparator();
@@ -1038,16 +1011,16 @@ public class Schemas implements Serializable {
 	}
 	*/
 
-	public static @NotNull RelationalTable newRelationalTable(@NotNull Table cur, @Nullable Table other) {
+	public static @NotNull RelationalTable newRelationalTable(@NotNull DatabaseRelationalMapping mapping, @NotNull Table cur, @Nullable Table other) {
 		var relational = new RelationalTable(cur.name);
-		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current);
+		relational.currentKeyColumns = cur.buildRelationalColumns(relational.current, mapping);
 		//System.out.println(relational.createTableSql());
 
 		// build other. prepare to alter.
 		// is null if new table
 		logger.info("current.columns={}", relational.current);
 		if (other != null) {
-			other.buildRelationalColumns(relational.previous);
+			other.buildRelationalColumns(relational.previous, mapping);
 			logger.info("previous.columns={}", relational.previous);
 			relational.diff();
 		}
@@ -1055,11 +1028,15 @@ public class Schemas implements Serializable {
 		return relational;
 	}
 
-	public @NotNull RelationalTable newRelationalTable(@NotNull Application zeze , @NotNull Zeze.Transaction.Table table) {
-		var cur = tables.get(table.getName());
-		var previous = zeze.getSchemasPrevious();
-		var other = previous != null ? previous.tables.get(table.getName()) : null;
-		return newRelationalTable(cur, other);
+	public RelationalTable newRelationalTable(@NotNull Application zeze , @NotNull Zeze.Transaction.Table table) {
+		if (table.getDatabase() instanceof DatabaseRelationalMapping) {
+			var mapping = (DatabaseRelationalMapping)table.getDatabase();
+			var cur = tables.get(table.getName());
+			var previous = zeze.getSchemasPrevious();
+			var other = previous != null ? previous.tables.get(table.getName()) : null;
+			return newRelationalTable(mapping, cur, other);
+		}
+		return null;
 	}
 
 	// 构建整个应用的需要关系映射的表。

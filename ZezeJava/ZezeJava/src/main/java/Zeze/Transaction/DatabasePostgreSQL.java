@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
 import Zeze.Net.Binary;
@@ -40,6 +42,40 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	public DatabasePostgreSQL(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesPostgreSQL());
+	}
+
+	private static final Map<String, String> sqlTypeTable = new HashMap<>();
+
+	static {
+		sqlTypeTable.put("bool", "BOOL");
+		//sqlTypeTable.put("boolean", "BOOL");
+		sqlTypeTable.put("byte", "TINYINT");
+		sqlTypeTable.put("short", "SMALLINT");
+		sqlTypeTable.put("int", "INT");
+		sqlTypeTable.put("long", "BIGINT");
+		sqlTypeTable.put("float", "FLOAT");
+		sqlTypeTable.put("double", "DOUBLE");
+		sqlTypeTable.put("binary", "BLOB");
+		sqlTypeTable.put("string", "TEXT");
+		// json
+		sqlTypeTable.put("dynamic", "TEXT");
+		sqlTypeTable.put("list", "TEXT");
+		sqlTypeTable.put("array", "TEXT");
+		sqlTypeTable.put("set", "TEXT");
+		sqlTypeTable.put("map", "TEXT");
+		sqlTypeTable.put("gtable", "TEXT");
+		// 下面的类型会被展开，这里的类型展开后的实际类型。
+		sqlTypeTable.put("vector2", "FLOAT");
+		sqlTypeTable.put("vector2int", "INT");
+		sqlTypeTable.put("vector3", "FLOAT");
+		sqlTypeTable.put("vector3int", "INT");
+		sqlTypeTable.put("vector4", "FLOAT");
+		sqlTypeTable.put("quaternion", "FLOAT");
+	}
+
+	@Override
+	public Map<String, String> getSqlTypeMap() {
+		return sqlTypeTable;
 	}
 
 	@Override

@@ -60,7 +60,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (!isMemory() || cache == null) // 如果时内存表，并且是已经存在的表的回滚，保持cache不变。
 			cache = new TableCache<>(app, this); // New
 		relationalTable = null;
-		if (isRelationalMapping() && database instanceof DatabaseRelationalMapping)
+		if (isRelationalMapping())
 			relationalTable = getZeze().getSchemas().newRelationalTable(getZeze(), this);
 		storage = isMemory() ? null : new Storage<>(this, database, getName()); // New
 		database.replaceStorage(exist.getStorage(), storage);
@@ -750,7 +750,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		setTableConf(app.getConfig().getTableConf(getName()));
 		cache = new TableCache<>(app, this);
 		relationalTable = null;
-		if (isRelationalMapping() && database instanceof DatabaseRelationalMapping)
+		if (isRelationalMapping())
 			relationalTable = getZeze().getSchemas().newRelationalTable(getZeze(), this);
 		storage = isMemory() ? null : new Storage<>(this, database, getName());
 		oldTable = getTableConf().getDatabaseOldMode() == 1
