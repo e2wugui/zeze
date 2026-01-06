@@ -47,30 +47,30 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	private static final Map<String, String> sqlTypeTable = new HashMap<>();
 
 	static {
-		sqlTypeTable.put("bool", "BOOL");
+		sqlTypeTable.put("bool", "boolean");
 		//sqlTypeTable.put("boolean", "BOOL");
-		sqlTypeTable.put("byte", "TINYINT");
-		sqlTypeTable.put("short", "SMALLINT");
-		sqlTypeTable.put("int", "INT");
-		sqlTypeTable.put("long", "BIGINT");
-		sqlTypeTable.put("float", "FLOAT");
-		sqlTypeTable.put("double", "DOUBLE");
-		sqlTypeTable.put("binary", "BLOB");
-		sqlTypeTable.put("string", "TEXT");
+		sqlTypeTable.put("byte", "smallint");
+		sqlTypeTable.put("short", "smallint");
+		sqlTypeTable.put("int", "integer");
+		sqlTypeTable.put("long", "bigint");
+		sqlTypeTable.put("float", "real");
+		sqlTypeTable.put("double", "double precision");
+		sqlTypeTable.put("binary", "bytea");
+		sqlTypeTable.put("string", "text");
 		// json
-		sqlTypeTable.put("dynamic", "TEXT");
-		sqlTypeTable.put("list", "TEXT");
-		sqlTypeTable.put("array", "TEXT");
-		sqlTypeTable.put("set", "TEXT");
-		sqlTypeTable.put("map", "TEXT");
-		sqlTypeTable.put("gtable", "TEXT");
+		sqlTypeTable.put("dynamic", "text");
+		sqlTypeTable.put("list", "text");
+		sqlTypeTable.put("array", "text");
+		sqlTypeTable.put("set", "text");
+		sqlTypeTable.put("map", "text");
+		sqlTypeTable.put("gtable", "text");
 		// 下面的类型会被展开，这里的类型展开后的实际类型。
-		sqlTypeTable.put("vector2", "FLOAT");
-		sqlTypeTable.put("vector2int", "INT");
-		sqlTypeTable.put("vector3", "FLOAT");
-		sqlTypeTable.put("vector3int", "INT");
-		sqlTypeTable.put("vector4", "FLOAT");
-		sqlTypeTable.put("quaternion", "FLOAT");
+		sqlTypeTable.put("vector2", "real");
+		sqlTypeTable.put("vector2int", "integer");
+		sqlTypeTable.put("vector3", "real");
+		sqlTypeTable.put("vector3int", "integer");
+		sqlTypeTable.put("vector4", "real");
+		sqlTypeTable.put("quaternion", "real");
 	}
 
 	@Override
@@ -643,6 +643,8 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			}
 
 			var sb = new StringBuilder();
+			var renames = new ArrayList<StringBuilder>();
+
 			sb.append("ALTER TABLE ").append(name);
 			var first = true;
 			for (var c : r.add) {
@@ -664,18 +666,33 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					first = false;
 				else
 					sb.append(", ");
-				sb.append(" CHANGE COLUMN ").append(c.change.name).append(' ')
-						.append(c.name).append(' ').append(c.sqlType);
+				// 先改类型
+				sb.append(" ALTER COLUMN ").append(c.change.name).append(" TYPE ").append(c.sqlType);
+				// 再rename（mysql可以一起修改）
+				if (!c.change.name.equals(c.name)) {
+					var rename = new StringBuilder();
+					renames.add(rename);
+					rename.append("ALTER TABLE ").append(name)
+							.append(" RENAME COLUMN ").append(c.change.name).append(" TO ").append(c.name);
+				}
 			}
-			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
+			// 需要独立语句。
+			//sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
 			logger.info("tryAlter {} {}", table.getName(), sql);
 
 			try (var conn = dataSource.getConnection()) {
-				conn.setAutoCommit(true);
+				conn.setAutoCommit(false);
 				try (var ps = conn.prepareStatement(sql)) {
 					ps.executeUpdate();
 				}
+				for (var rename : renames) {
+					try (var psRename = conn.prepareStatement(rename.toString())) {
+						psRename.executeUpdate();
+					}
+				}
+				// primary key TODO 优化：确实发生了变化才重建。
+				conn.commit();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}

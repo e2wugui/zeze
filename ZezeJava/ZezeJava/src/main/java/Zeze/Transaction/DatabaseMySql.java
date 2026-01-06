@@ -674,6 +674,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 				sb.append(" CHANGE COLUMN ").append(c.change.name).append(' ')
 						.append(c.name).append(' ').append(c.sqlType);
 			}
+			// TODO 这个有效率问题，最好比对，发现确实key变了，才重建。
 			sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
 			logger.info("tryAlter {} {}", table.getName(), sql);

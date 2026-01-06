@@ -262,7 +262,7 @@ public class Schemas implements Serializable {
 			if (sqlType == null)
 				throw new UnsupportedOperationException("unknown sql type=" + name);
 			if (name.equals("string") && isKey)
-				return "VARCHAR(256)";
+				return mapping.getKeyStringType();
 			return sqlType;
 		}
 
