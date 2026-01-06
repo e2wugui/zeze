@@ -1,6 +1,7 @@
 package Temp;
 
 import java.lang.ref.SoftReference;
+import java.util.ArrayList;
 import Zeze.Transaction.TableX;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
@@ -77,8 +78,10 @@ public class TestMemoryTable {
 		}, "get3"));
 
 		try {
-			//noinspection unused
-			var obj = new long[2_000_000_000];
+			//noinspection MismatchedQueryAndUpdateOfCollection
+			var objs = new ArrayList<long[]>();
+			for (; ; )
+				objs.add(new long[2_000_000_000]);
 		} catch (OutOfMemoryError err) {
 			System.out.println("OutOfMemoryError");
 		}
