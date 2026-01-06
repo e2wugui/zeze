@@ -540,7 +540,7 @@ public final class Application extends ReentrantLock {
 					version = dataVersion.version;
 				}
 				// schemasPrevious maybe null
-				schemas.buildRelationalTables(this, schemasPrevious);
+				//schemas.buildRelationalTables(this, schemasPrevious);
 
 				var newData = ByteBuffer.Allocate(1024);
 				schemas.encode(newData);

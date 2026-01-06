@@ -851,7 +851,7 @@ public class Schemas implements Serializable {
 			throw new IllegalStateException("AddTable duplicate=" + table.name);
 	}
 
-	public transient final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
+	//public transient final HashMap<String, RelationalTable> relationalTables = new HashMap<>();
 
 	public static class Column {
 		public final @NotNull String name;
@@ -1055,18 +1055,25 @@ public class Schemas implements Serializable {
 		return relational;
 	}
 
-	// 构建整个应用的需要关系映射的表。
-	public void buildRelationalTables(@NotNull Application zeze, @Nullable Schemas other) {
-		for (var db : zeze.getDatabases().values()) {
-			for (var table : db.getTables()) {
-				if (table.isRelationalMapping()) {
-					var relational = newRelationalTable(
-							tables.get(table.getName()),
-							other != null ? other.tables.get(table.getName()) : null);
-					relationalTables.put(table.getName(), relational);
-				}
-			}
-		}
-		//logger.info("relationalTables: {}", relationalTables);
+	public @NotNull RelationalTable newRelationalTable(@NotNull Application zeze , @NotNull Zeze.Transaction.Table table) {
+		var cur = tables.get(table.getName());
+		var previous = zeze.getSchemasPrevious();
+		var other = previous != null ? previous.tables.get(table.getName()) : null;
+		return newRelationalTable(cur, other);
 	}
+
+	// 构建整个应用的需要关系映射的表。
+//	public void buildRelationalTables(@NotNull Application zeze, @Nullable Schemas other) {
+//		for (var db : zeze.getDatabases().values()) {
+//			for (var table : db.getTables()) {
+//				if (table.isRelationalMapping()) {
+//					var relational = newRelationalTable(
+//							tables.get(table.getName()),
+//							other != null ? other.tables.get(table.getName()) : null);
+//					relationalTables.put(table.getName(), relational);
+//				}
+//			}
+//		}
+//		//logger.info("relationalTables: {}", relationalTables);
+//	}
 }
