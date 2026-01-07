@@ -10,7 +10,7 @@ public:
     static const int Enum1 = 4; // enum的注释
 
     short S; // com 2
-    std::string Str; // com 2			com 2
+    std::string Str; // com 2
 
     // for decode only
     Key() {

@@ -88,6 +88,7 @@ public:
 
     std::string JsonObject;
     std::string JsonArray;
+    int64_t RelationalMappingAlter;
     int64_t Version;
     std::vector<int64_t> LongList;
 
@@ -124,7 +125,7 @@ public:
     }
 
     BValue();
-    BValue(int Int_1_, int64_t Long2_, const std::string& String3_, bool Bool4_, short Short5_, float Float6_, double Double7_, const std::string& Bytes8_, char Byte13_, const Zeze::Vector2& Vector2_, const Zeze::Vector2Int& Vector2Int_, const Zeze::Vector3& Vector3_, const Zeze::Vector3Int& Vector3Int_, const Zeze::Vector4& Vector4_, const Zeze::Quaternion& Quaternion_, demo::Module1::Key Key28_, const std::string& JsonObject_, const std::string& JsonArray_);
+    BValue(int Int_1_, int64_t Long2_, const std::string& String3_, bool Bool4_, short Short5_, float Float6_, double Double7_, const std::string& Bytes8_, char Byte13_, const Zeze::Vector2& Vector2_, const Zeze::Vector2Int& Vector2Int_, const Zeze::Vector3& Vector3_, const Zeze::Vector3Int& Vector3Int_, const Zeze::Vector4& Vector4_, const Zeze::Quaternion& Quaternion_, demo::Module1::Key Key28_, const std::string& JsonObject_, const std::string& JsonArray_, int64_t RelationalMappingAlter_);
     virtual void Assign(const Zeze::Bean& other) override;
     void Assign(const BValue& other);
     BValue& operator=(const BValue& other);

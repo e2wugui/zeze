@@ -139,6 +139,7 @@
 			<variable id="43" name="list43" type="list[dynamic:BSimple]"/>
 			<variable id="44" name="jsonObject" type="string" value="JSON_OBJECT"/>
 			<variable id="45" name="jsonArray" type="string" value="JSON_ARRAY"/>
+			<variable id="46" name="relationalMappingAlter" type="long"/>
 
 			<variable id="50" name="version" type="long"/>
 
@@ -148,7 +149,6 @@
 			<enum name="Enum1" value="4" description="enum的注释"/>
 			<variable id="1" default="1" name="s" type="short"/> com 2
 			<variable id="2" name="str" type="string"/> com 2
-			com 2
 		</beankey>
 		<beankey name="EmptyKey"/> beankey的注释
 

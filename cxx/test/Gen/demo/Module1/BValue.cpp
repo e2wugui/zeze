@@ -113,10 +113,11 @@ BValue::BValue()
     Float6 = 0.0f;
     Double7 = 0.0;
     Byte13 = 0;
+    RelationalMappingAlter = 0;
     Version = 0;
 }
 
-BValue::BValue(int Int_1_, int64_t Long2_, const std::string& String3_, bool Bool4_, short Short5_, float Float6_, double Double7_, const std::string& Bytes8_, char Byte13_, const Zeze::Vector2& Vector2_, const Zeze::Vector2Int& Vector2Int_, const Zeze::Vector3& Vector3_, const Zeze::Vector3Int& Vector3Int_, const Zeze::Vector4& Vector4_, const Zeze::Quaternion& Quaternion_, demo::Module1::Key Key28_, const std::string& JsonObject_, const std::string& JsonArray_)
+BValue::BValue(int Int_1_, int64_t Long2_, const std::string& String3_, bool Bool4_, short Short5_, float Float6_, double Double7_, const std::string& Bytes8_, char Byte13_, const Zeze::Vector2& Vector2_, const Zeze::Vector2Int& Vector2Int_, const Zeze::Vector3& Vector3_, const Zeze::Vector3Int& Vector3Int_, const Zeze::Vector4& Vector4_, const Zeze::Quaternion& Quaternion_, demo::Module1::Key Key28_, const std::string& JsonObject_, const std::string& JsonArray_, int64_t RelationalMappingAlter_)
     : Dynamic14(GetSpecialTypeIdFromBean_14, CreateBeanFromSpecialTypeId_14)
     , Dynamic23(GetSpecialTypeIdFromBean_23, CreateBeanFromSpecialTypeId_23)
     , Dynamic27(GetSpecialTypeIdFromBean_27, CreateBeanFromSpecialTypeId_27)
@@ -139,6 +140,7 @@ BValue::BValue(int Int_1_, int64_t Long2_, const std::string& String3_, bool Boo
     Key28 = Key28_;
     JsonObject = JsonObject_;
     JsonArray = JsonArray_;
+    RelationalMappingAlter = RelationalMappingAlter_;
 }
 
 void BValue::Assign(const Zeze::Bean& other) {
@@ -191,6 +193,7 @@ void BValue::Assign(const BValue& other) {
     List43 = other.List43;
     JsonObject = other.JsonObject;
     JsonArray = other.JsonArray;
+    RelationalMappingAlter = other.RelationalMappingAlter;
     Version = other.Version;
     LongList = other.LongList;
 }
@@ -693,6 +696,13 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
         }
     }
     {
+        auto _x_ = RelationalMappingAlter;
+        if (_x_ != 0) {
+            _i_ = _o_.WriteTag(_i_, 46, Zeze::ByteBuffer::INTEGER);
+            _o_.WriteLong(_x_);
+        }
+    }
+    {
         auto _x_ = Version;
         if (_x_ != 0) {
             _i_ = _o_.WriteTag(_i_, 50, Zeze::ByteBuffer::INTEGER);
@@ -1128,6 +1138,10 @@ void BValue::Decode(Zeze::ByteBuffer& _o_) {
     }
     if (_i_ == 45) {
         JsonArray = _o_.ReadString(_t_);
+        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+    }
+    if (_i_ == 46) {
+        RelationalMappingAlter = _o_.ReadLong(_t_);
         _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
     }
     while ((_t_ & 0xff) > 1 && _i_ < 50) {

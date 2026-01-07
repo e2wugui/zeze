@@ -530,9 +530,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	public static boolean tableAlreadyExistsWarning(@Nullable SQLWarning warning) {
+		//logger.info(warning.toString());
 		for (; warning != null; warning = warning.getNextWarning()) {
 			var msg = warning.getMessage();
-			if (msg.startsWith("Table") && msg.contains("tuple concurrently updated"))
+			if (msg.startsWith("relation") && msg.contains("already exists, skipping"))
 				return true;
 		}
 		return false;
@@ -544,7 +545,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		private boolean dropped;
 
 		public TablePostgreSQLRelational(@NotNull String name) {
-			this.name = name;
+			this.name = name; // pg 表名被统一转换成小写的了。
 			/*
 			if (name.equals("demo_Module1_Table1") || name.equals("demo_Module1_Table2")) {
 				System.out.println("new " + name);
@@ -696,7 +697,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 				// primary key TODO 优化：确实发生了变化才重建。
 				// 查询主键约束的名字，用来删除。
 				var sqlPkName = "SELECT constraint_name FROM information_schema.table_constraints"
-						+ " WHERE table_name = '" + name + "' AND constraint_type = 'PRIMARY KEY';";
+						+ " WHERE table_name = '" + name.toLowerCase() + "' AND constraint_type = 'PRIMARY KEY';";
 				String pkName = null;
 				try (var stPkName = conn.prepareStatement(sqlPkName)) {
 					try (var rs = stPkName.executeQuery()) {
