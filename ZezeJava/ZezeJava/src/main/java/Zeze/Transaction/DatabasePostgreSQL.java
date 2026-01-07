@@ -679,7 +679,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			// 需要独立语句。
 			//sb.append(", DROP PRIMARY KEY, ADD PRIMARY KEY (").append(r.currentKeyColumns).append(')');
 			var sql = sb.toString();
-			logger.info("tryAlter {} {}", table.getName(), sql);
+			logger.info("tryAlter {}", sql);
 
 			try (var conn = dataSource.getConnection()) {
 				conn.setAutoCommit(false);
@@ -687,11 +687,33 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 					ps.executeUpdate();
 				}
 				for (var rename : renames) {
-					try (var psRename = conn.prepareStatement(rename.toString())) {
+					var renameSql = rename.toString();
+					logger.info("tryAlter {}", renameSql);
+					try (var psRename = conn.prepareStatement(renameSql)) {
 						psRename.executeUpdate();
 					}
 				}
 				// primary key TODO 优化：确实发生了变化才重建。
+				// 查询主键约束的名字，用来删除。
+				var sqlPkName = "SELECT constraint_name FROM information_schema.table_constraints"
+						+ " WHERE table_name = '" + name + "' AND constraint_type = 'PRIMARY KEY';";
+				String pkName = null;
+				try (var stPkName = conn.prepareStatement(sqlPkName)) {
+					try (var rs = stPkName.executeQuery()) {
+						if (rs.next())
+							pkName = rs.getString(1);
+					}
+				}
+				if (pkName != null) {
+					try (var stDropPk = conn.prepareStatement("ALTER TABLE " + name + " DROP CONSTRAINT " + pkName)) {
+						stDropPk.executeUpdate();
+					}
+					var sqlMakePk = "ALTER TABLE " + name + " ADD PRIMARY KEY (" + r.currentKeyColumns + ")";
+					logger.info("tryAlter {}", sqlMakePk);
+					try (var stMakePk = conn.prepareStatement(sqlMakePk)) {
+						stMakePk.executeUpdate();
+					}
+				}
 				conn.commit();
 			} catch (SQLException e) {
 				Task.forceThrow(e);

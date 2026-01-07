@@ -682,7 +682,7 @@ public class Schemas implements Serializable {
 				var sb = new StringBuilder();
 				for (var column : columns) {
 					if (sb.length() > 0)
-						sb.append(", ");
+						sb.append(",");
 					sb.append(column.name);
 				}
 				keyColumns = sb.toString();
