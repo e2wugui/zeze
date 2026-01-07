@@ -771,6 +771,26 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			}
 		}
 
+		private static void parseSqlStatement(SQLStatement st, ArrayList<String> columns, StringBuilder values) {
+			var sql = st.sql.toString();
+			var kvs = sql.split(",");
+			for (var kv : kvs) {
+				var nv2 = kv.split("=");
+				columns.add(nv2[0]);
+				if (!values.isEmpty())
+					values.append(",");
+				values.append(nv2[1]);
+			}
+		}
+
+		private static void appendStringBuilder(StringBuilder sb, ArrayList<String> columns) {
+			for (var i = 0; i < columns.size(); ++i) {
+				if (i > 0)
+					sb.append(",");
+				sb.append(columns.get(i));
+			}
+		}
+
 		@Override
 		public void replace(@NotNull Transaction t, @NotNull Object key, @NotNull Object value) {
 			if (dropped)
@@ -779,7 +799,30 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
-			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
+			var keyColumns = new ArrayList<String>();
+			var sbKeyValues = new StringBuilder();
+			parseSqlStatement(stKey, keyColumns, sbKeyValues);
+			var valueColumns = new ArrayList<String>();
+			var sbValueValues = new StringBuilder();
+			parseSqlStatement(stValue, valueColumns, sbValueValues);
+
+			var sqlSb = new StringBuilder();
+			sqlSb.append("INSERT INTO ").append(name).append("(");
+			appendStringBuilder(sqlSb, keyColumns);
+			sqlSb.append(", ");
+			appendStringBuilder(sqlSb, valueColumns);
+			sqlSb.append(") VALUES (").append(sbKeyValues).append(",").append(sbValueValues);
+			sqlSb.append(") ON CONFLICT (");
+			appendStringBuilder(sqlSb, keyColumns);
+			sqlSb.append(") DO UPDATE SET ");
+			for (var i = 0; i < valueColumns.size(); ++i) {
+				if (i > 0)
+					sqlSb.append(", ");
+				var col = valueColumns.get(i);
+				sqlSb.append(col).append(" = EXCLUDED.").append(col);
+			}
+
+			var sql = sqlSb.toString();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
 				setParams(ps, 1, stKey.params);
 				setParams(ps, stKey.params.size() + 1, stValue.params);
