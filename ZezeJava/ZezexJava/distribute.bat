@@ -4,6 +4,7 @@ pushd %~dp0
 
 rd /s /q server\hot 2>nul
 mkdir server\hot\distributes
+echo. > server\hot\distributes\.gitkeep
 
 rem 必须cd到启动目录执行，配置目录有依赖。
 cd server
