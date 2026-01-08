@@ -706,6 +706,8 @@ public class HotManager extends ClassLoader {
 			for (var file : files) {
 				if (file.isDirectory())
 					continue;
+				if (file.getName().startsWith("."))
+					continue; // 特殊文件不移动。现在可能有：.gitkeep
 				if (!file.renameTo(new File(backupDirFile, file.getName())))
 					logger.error("rename {} fail", file);
 			}
