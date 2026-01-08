@@ -33,7 +33,7 @@ public class HotModule extends ClassLoader implements Closeable {
 	public HotModule(HotManager parent, String namespace, File jarFile) throws Exception {
 		super(namespace, parent);
 		this.jarFile = jarFile;
-		this.jar = new JarFile(jarFile);
+		//this.jar = new JarFile(jarFile);
 		// App.ModuleClassName：MySolution.MyName.ModuleMyName，namespace=MySolution.MyName
 		// MyName 一般就叫模块名字。
 		var moduleClassName = namespace + ".Module" + last(namespace);
@@ -50,7 +50,7 @@ public class HotModule extends ClassLoader implements Closeable {
 	}
 
 	public String getJarFileName() {
-		return jar.getName();
+		return jarFile.getName();
 	}
 
 	JarFile getJarFile() {
