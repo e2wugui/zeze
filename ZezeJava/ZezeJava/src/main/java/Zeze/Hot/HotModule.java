@@ -53,7 +53,9 @@ public class HotModule extends ClassLoader implements Closeable {
 		return jarFile.getName();
 	}
 
-	JarFile getJarFile() {
+	JarFile getJarFile() throws IOException {
+		if (null == jar)
+			jar = new JarFile(jarFile);
 		return jar;
 	}
 
