@@ -6,12 +6,12 @@ rd /s /q server\hot 2>nul
 mkdir server\hot\distributes
 echo. > server\hot\distributes\.gitkeep
 
-rem å¿…é¡»cdåˆ°å¯åŠ¨ç›®å½•æ‰§è¡Œï¼Œé…ç½®ç›®å½•æœ‰ä¾èµ–ã€‚
+rem ±ØĞëcdµ½Æô¶¯Ä¿Â¼Ö´ĞĞ£¬ÅäÖÃÄ¿Â¼ÓĞÒÀÀµ¡£
 cd server
 
 set classes=../../ZezeJava/build/classes/java/main;build/classes/java/main
 
-echo æ‰“åŒ…...
+echo ´ò°ü...
 java -cp %classes%;../../ZezeJavaTest/lib/* Zeze.Hot.Distribute -privateBean -app Game.App -workingDir hot -classes  build/classes/java/main -providerModuleBinds ../provider.module.binds.xml -config server.xml
 echo OK
 

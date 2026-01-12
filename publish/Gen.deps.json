@@ -10,7 +10,7 @@
       "Gen/1.0.0": {
         "dependencies": {
           "Mvp.Xml": "3.2.0",
-          "Scriban": "6.5.2",
+          "Scriban": "5.12.0",
           "confcs": "1.0.0",
           "runtimepack.Microsoft.NETCore.App.Runtime.win-x64": "8.0.22"
         },
@@ -799,11 +799,11 @@
           "System.Private.Uri": "4.3.0"
         }
       },
-      "Scriban/6.5.2": {
+      "Scriban/5.12.0": {
         "runtime": {
           "lib/net7.0/Scriban.dll": {
-            "assemblyVersion": "6.0.0.0",
-            "fileVersion": "6.5.2.0"
+            "assemblyVersion": "5.0.0.0",
+            "fileVersion": "5.12.0.0"
           }
         }
       },
@@ -1209,12 +1209,12 @@
       "path": "runtime.win.system.runtime.extensions/4.3.0",
       "hashPath": "runtime.win.system.runtime.extensions.4.3.0.nupkg.sha512"
     },
-    "Scriban/6.5.2": {
+    "Scriban/5.12.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-JXli/Sh1WVZs/pqnPPRJTlwEsZHPJtndzxiaPnrteXDpAqVqHxh4ifhx4puTaYKVMPJUMOp9bnCpEVBpYlt/eQ==",
-      "path": "scriban/6.5.2",
-      "hashPath": "scriban.6.5.2.nupkg.sha512"
+      "sha512": "sha512-/YTTCxjBIpfwX3MKMT4JMFVl1jX4IHW7zih+Bg3cTIkzGnbFt+B3l/k90ILDw6DRiFE7T+VxEyls7zk4p029ng==",
+      "path": "scriban/5.12.0",
+      "hashPath": "scriban.5.12.0.nupkg.sha512"
     },
     "System.Buffers/4.3.0": {
       "type": "package",
