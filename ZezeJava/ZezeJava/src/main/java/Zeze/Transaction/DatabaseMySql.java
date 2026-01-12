@@ -503,11 +503,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			return "";
 
 		table.encodeKeySQLStatement(st, exclusiveStartKey);
-		return " WHERE " + st.sql.toString().replace(",", " AND ").replace('=', asc ? '>' : '<');
+		return " WHERE " + st.getSql().toString().replace(",", " AND ").replace('=', asc ? '>' : '<');
 	}
 
 	private static @NotNull String buildKeyWhere(@NotNull SQLStatement st) {
-		return st.sql.toString().replace(",", " AND ");
+		return st.getSql().toString().replace(",", " AND ");
 	}
 
 	private static <K extends Comparable<K>, V extends Bean>
@@ -700,7 +700,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
+				setParams(ps, 1, st.getParams());
 				try (var rs = ps.executeQuery()) {
 					if (!rs.next())
 						return null;
@@ -727,7 +727,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			table.encodeKeySQLStatement(st, key);
 			var sql = "SELECT * FROM " + name + " WHERE " + buildKeyWhere(st);
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
+				setParams(ps, 1, st.getParams());
 				try (var rs = ps.executeQuery()) {
 					return rs.next();
 				}
@@ -747,10 +747,10 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var stKey = (SQLStatement)key;
 			var stValue = (SQLStatement)value;
-			var sql = "REPLACE " + name + " SET " + stKey.sql + ", " + stValue.sql;
+			var sql = "REPLACE " + name + " SET " + stKey.getSql() + ", " + stValue.getSql();
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
-				setParams(ps, 1, stKey.params);
-				setParams(ps, stKey.params.size() + 1, stValue.params);
+				setParams(ps, 1, stKey.getParams());
+				setParams(ps, stKey.getParams().size() + 1, stValue.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -769,7 +769,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var stKey = (SQLStatement)key;
 			var sql = "DELETE FROM " + name + " WHERE " + buildKeyWhere(stKey);
 			try (var ps = ((JdbcTrans)t).conn.prepareStatement(sql)) {
-				setParams(ps, 1, stKey.params);
+				setParams(ps, 1, stKey.getParams());
 				ps.executeUpdate();
 			} catch (SQLException e) {
 				Task.forceThrow(e);
@@ -855,8 +855,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var sql = "SELECT * FROM " + getName() + keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
-				ps.setInt(st.params.size() + 1, proposeLimit);
+				setParams(ps, 1, st.getParams());
+				ps.setInt(st.getParams().size() + 1, proposeLimit);
 				try (var rs = ps.executeQuery()) {
 					while (rs.next()) {
 						if (!invokeCallback(table, rs, callback, lastKey))
@@ -881,8 +881,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
-				ps.setInt(st.params.size() + 1, proposeLimit);
+				setParams(ps, 1, st.getParams());
+				ps.setInt(st.getParams().size() + 1, proposeLimit);
 				try (var rs = ps.executeQuery()) {
 					while (rs.next()) {
 						if (!invokeKeyCallback(table, rs, callback, lastKey))
@@ -1005,8 +1005,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			var parents = new ArrayList<String>();
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
-				ps.setInt(st.params.size() + 1, proposeLimit);
+				setParams(ps, 1, st.getParams());
+				ps.setInt(st.getParams().size() + 1, proposeLimit);
 				try (var rs = ps.executeQuery()) {
 					while (rs.next()) {
 						var key = table.decodeKeyResultSet(rs);
@@ -1037,8 +1037,8 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					+ keyWhere + orderBy + " LIMIT ?";
 			var lastKey = new OutObject<K>();
 			try (var conn = dataSource.getConnection(); var ps = conn.prepareStatement(sql)) {
-				setParams(ps, 1, st.params);
-				ps.setInt(st.params.size() + 1, proposeLimit);
+				setParams(ps, 1, st.getParams());
+				ps.setInt(st.getParams().size() + 1, proposeLimit);
 				try (var rs = ps.executeQuery()) {
 					while (rs.next()) {
 						var key = table.decodeKeyResultSet(rs);

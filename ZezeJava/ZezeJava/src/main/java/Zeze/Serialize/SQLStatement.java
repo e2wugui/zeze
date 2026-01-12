@@ -5,9 +5,16 @@ import Zeze.Net.Binary;
 import org.jetbrains.annotations.NotNull;
 
 public final class SQLStatement {
-	// 数据对象，全public。
-	public final StringBuilder sql = new StringBuilder();
-	public final ArrayList<Object> params = new ArrayList<>();
+	private final StringBuilder sql = new StringBuilder();
+	private final ArrayList<Object> params = new ArrayList<>();
+
+	public StringBuilder getSql() {
+		return sql;
+	}
+
+	public ArrayList<Object> getParams() {
+		return params;
+	}
 
 	public void clear() {
 		sql.setLength(0);
