@@ -1,7 +1,7 @@
 /* eslint-disable camelcase, class-methods-use-this, import/no-cycle, new-cap, no-unused-vars, no-useless-constructor, prettier/prettier */
 // ZEZE_FILE_CHUNK {{{ IMPORT GEN
 import { Zeze } from '../../Zeze/zeze';
-import { demo_Module1_Protocol1, demo_Module1_Protocol3, demo_Module1_Rpc1, demo_Module1_Rpc2 } from '../gen';
+import { demo_Module1_Protocol3, demo_Module1_Protocol4, demo_Module1_Rpc1, demo_Module1_Rpc2, demo_Module1_RpcOnlyData, demo_Module1_RpcOnlyUseData } from '../gen';
 import App from '../App';
 // ZEZE_FILE_CHUNK }}} IMPORT GEN
 
@@ -10,18 +10,24 @@ export default class ModuleModule1 {
     // ZEZE_FILE_CHUNK }}} MODULE ENUMS
     public constructor(app: App) {
         // ZEZE_FILE_CHUNK {{{ REGISTER PROTOCOL
-        app.Client.FactoryHandleMap.set(7370347356n, new Zeze.ProtocolFactoryHandle(
-            () => { return new demo_Module1_Protocol1(); },
-            p => this.ProcessProtocol1(<demo_Module1_Protocol1>p)));
-        app.Client.FactoryHandleMap.set(7815467220n, new Zeze.ProtocolFactoryHandle(
+        app.TestClient.FactoryHandleMap.set(7815467220n, new Zeze.ProtocolFactoryHandle(
             () => { return new demo_Module1_Protocol3(); },
             p => this.ProcessProtocol3(<demo_Module1_Protocol3>p)));
-        app.Client.FactoryHandleMap.set(5635082623n, new Zeze.ProtocolFactoryHandle(
+        app.TestClient.FactoryHandleMap.set(5222864529n, new Zeze.ProtocolFactoryHandle(
+            () => { return new demo_Module1_Protocol4(); },
+            p => this.ProcessProtocol4(<demo_Module1_Protocol4>p)));
+        app.TestClient.FactoryHandleMap.set(5635082623n, new Zeze.ProtocolFactoryHandle(
             () => { return new demo_Module1_Rpc1(); },
             null));
-        app.Client.FactoryHandleMap.set(7854078040n, new Zeze.ProtocolFactoryHandle(
+        app.TestClient.FactoryHandleMap.set(7854078040n, new Zeze.ProtocolFactoryHandle(
             () => { return new demo_Module1_Rpc2(); },
             p => this.ProcessRpc2Request(<demo_Module1_Rpc2>p)));
+        app.TestClient.FactoryHandleMap.set(7336162357n, new Zeze.ProtocolFactoryHandle(
+            () => { return new demo_Module1_RpcOnlyData(); },
+            null));
+        app.TestClient.FactoryHandleMap.set(7938190671n, new Zeze.ProtocolFactoryHandle(
+            () => { return new demo_Module1_RpcOnlyUseData(); },
+            null));
         // ZEZE_FILE_CHUNK }}} REGISTER PROTOCOL
     }
 
@@ -31,7 +37,7 @@ export default class ModuleModule1 {
     public Stop(app: App): void {
     }
 
-    public ProcessProtocol1(protocol: demo_Module1_Protocol1): number {
+    public ProcessProtocol4(protocol: demo_Module1_Protocol4): number {
         return 0;
     }
 

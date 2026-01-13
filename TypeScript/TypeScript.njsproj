@@ -41,13 +41,13 @@
     <TypeScriptCompile Include="demo\Module1\Module11\ModuleModule11.ts" />
     <TypeScriptCompile Include="demo\Module1\ModuleModule1.ts" />
     <TypeScriptCompile Include="test.ts" />
-    <TypeScriptCompile Include="zeze\zeze.ts" />
+    <TypeScriptCompile Include="Zeze\zeze.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="demo\" />
     <Folder Include="demo\Module1\" />
     <Folder Include="demo\Module1\Module11\" />
-    <Folder Include="zeze\" />
+    <Folder Include="Zeze\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
   <ProjectExtensions>

@@ -9,12 +9,12 @@ export default class App {
     // ZEZE_FILE_CHUNK {{{ PROPERTY GEN
     public moduleModule1: ModuleModule1;
     public moduleModule11: ModuleModule11;
-    public Client: Zeze.Service;
+    public TestClient: Zeze.Service;
     // ZEZE_FILE_CHUNK }}} PROPERTY GEN
 
     public constructor() {
         // ZEZE_FILE_CHUNK {{{ PROPERTY INIT GEN
-        this.Client = new Zeze.Service("Client");
+        this.TestClient = new Zeze.Service("TestClient");
         this.moduleModule1 = new ModuleModule1(this);
         this.moduleModule11 = new ModuleModule11(this);
         // ZEZE_FILE_CHUNK }}} PROPERTY INIT GEN
