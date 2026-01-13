@@ -13,7 +13,7 @@ import org.w3c.dom.Element;
 
 public class WebsocketHandle implements HttpWebSocketHandle {
 	private final String path;
-	private Zeze.Netty.HttpServer httpServer; // todo 怎么获取这个变量？通过 Zeze 传递？
+	private Zeze.Netty.HttpServer httpServer;
 	private Service service;
 	private final ConcurrentHashMap<HttpExchange, Websocket> websockets = new ConcurrentHashMap<>();
 
