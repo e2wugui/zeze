@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Scriban;
+using Scriban.Parsing;
+using Scriban.Runtime;
 using Zeze.Gen.Types;
 using Zeze.Util;
 
@@ -34,6 +36,22 @@ namespace Zeze.Gen.luaClient
                 return Program.Upper1(str);
 
             return str.ToUpper();
+        }
+
+
+        private string Render(Template template, object model)
+        {
+            ScriptObject scriptObject = new ScriptObject();
+            if (model != null)
+            {
+                ScriptObject script = scriptObject;
+                script.Import(model);
+            }
+            TemplateContext context = template.LexerOptions.Lang == ScriptLang.Liquid ? (TemplateContext) new LiquidTemplateContext() : new TemplateContext();
+            context.LoopLimit = 0;
+            context.RecursiveLimit = 0;
+            context.PushGlobal((IScriptObject) scriptObject);
+            return template.Render(context);
         }
 
         public void Make()
@@ -81,7 +99,7 @@ namespace Zeze.Gen.luaClient
             {
                 string luaMetaTemplateString = GetTemplate("LuaMeta.scriban-txt");
                 Template template = Template.Parse(luaMetaTemplateString);
-                string luaMeta = template.Render(new
+                string luaMeta = Render(template, new
                 {
                     modules = allRefModulesList,
                     beans = Project.AllBeans.Values,
@@ -116,7 +134,7 @@ namespace Zeze.Gen.luaClient
 
                     string fullFileName = module.GetFullPath(genDir) + ".lua";
                     string fullDir = Path.GetDirectoryName(fullFileName);
-                    string luaModule = moduleTemplate.Render(new
+                    string luaModule = Render(moduleTemplate, new
                     {
                         module,
                         beans,
@@ -151,7 +169,7 @@ namespace Zeze.Gen.luaClient
 
                     string fullFileName = module.GetFullPath(metaDir) + "Meta.lua";
                     string fullDir = Path.GetDirectoryName(fullFileName);
-                    string luaModule = moduleTemplate.Render(new
+                    string luaModule = Render(moduleTemplate, new
                     {
                         module,
                         beans,
@@ -173,7 +191,7 @@ namespace Zeze.Gen.luaClient
             {
                 string luaRootTemplateString = GetTemplate("LuaRoot.scriban-txt");
                 Template rootTemplate = Template.Parse(luaRootTemplateString);
-                string luaRoot = rootTemplate.Render(new
+                string luaRoot = Render(rootTemplate, new
                 {
                     modules = allRefModulesList,
                     solution = Project.Solution,
@@ -193,7 +211,7 @@ namespace Zeze.Gen.luaClient
                 var solutionNames = allRefModulesList.Select(m => m.Solution.Name).ToHashSet();
                 string luaInitTemplateText = GetTemplate("message_init.lua");
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
-                string luaRoot = luaInitTemplate.Render(new
+                string luaRoot = Render(luaInitTemplate, new
                 {
                     solutionNames,
                     messageNamespace = messageNamespace,
@@ -228,7 +246,7 @@ namespace Zeze.Gen.luaClient
 
                     if (!fileChunkGen.LoadFile(fullFileName))
                     {
-                        string luaModule = moduleTemplate.Render(new
+                        string luaModule = Render(moduleTemplate, new
                         {
                             module, protocols,
                             messageNamespace = messageNamespace,
@@ -294,7 +312,7 @@ namespace Zeze.Gen.luaClient
                 var modules = allRefModulesList.Where(module => Project.AllProtocols.Values.Intersect(module.Protocols.Values).Any())
                     .ToList();
                 
-                string luaRoot = luaInitTemplate.Render(new
+                string luaRoot = Render(luaInitTemplate, new
                 {
                     modules = modules,
                 });
