@@ -11,15 +11,24 @@
 /* eslint-disable global-require */
 /* eslint-disable prettier/prettier */
 /* eslint-disable max-classes-per-file */
+
+enum eHostLang {
+	eTs,    // 2
+	eUnity,      // 0
+	eUe,    // 1
+}
+
+let enumHostLang = eHostLang.eTs;
+
 let HostLang: any;
-let IsUe = false;
 
 try {
 	HostLang = require('csharp'); // puerts unity
+	enumHostLang = eHostLang.eUnity;
 } catch (_) {
 	try {
 		HostLang = require('ue'); // puerts unreal
-		IsUe = true;
+		enumHostLang = eHostLang.eUe;
 	} catch (__) { /* empty */ }
 }
 
@@ -647,10 +656,17 @@ export module Zeze {
 		private Implement: any;
 
 		public constructor(name: string) {
-			if (IsUe)
-				this.Implement = new HostLang.ToTypeScriptService();
-			else
-				this.Implement = new HostLang.ToTypeScriptService(name);
+			switch (enumHostLang) {
+				case eHostLang.eUe:
+					this.Implement = new HostLang.ToTypeScriptService();
+					break;
+				case eHostLang.eUnity:
+					this.Implement = new HostLang.ToTypeScriptService(name);
+					break;
+				default:
+					// this.Implement = new WebsocketService(); // TODO 为纯ts环境实现一套基于Websocket的Service。
+					break;
+			}
 			this.Implement.CallbackWhenSocketHandshakeDone = this.CallbackOnSocketHandshakeDone.bind(this);
 			this.Implement.CallbackWhenSocketClose = this.CallbackOnSocketClose.bind(this);
 			this.Implement.CallbackWhenSocketProcessInputBuffer = this.CallbackOnSocketProcessInputBuffer.bind(this);
