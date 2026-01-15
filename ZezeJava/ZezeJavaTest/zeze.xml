@@ -22,6 +22,7 @@
 	<DatabaseConf Name="" DatabaseType="PostgreSQL" DatabaseUrl="jdbc:postgresql://localhost:5432/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false"/>
 	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
 	<DatabaseConf Name="" DatabaseType="Redis" DatabaseUrl="redis://127.0.0.1:6379/"/>
+	<DatabaseConf Name="" DatabaseType="MongoDB" DatabaseUrl="mongodb://127.0.0.1:27017/?retryWrites=false&amp;retryReads=false&amp;w=1&amp;readConcernLevel=local&amp;socketTimeoutMS=300000"/>
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 

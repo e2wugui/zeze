@@ -31,6 +31,7 @@ public abstract class Database extends ReentrantLock {
 
 	// 当数据库对Key长度有限制时，使用这个常量。这个数字来自 PolarDb-X 3070。其中MySql 8是3072.
 	// 以后需要升级时，修改这个常量。但是对于已经存在的表，需要自己完成Alter。PostgreSql是2712。
+	// mongodb 是1024,由于不影响定义，先不改这个常量了。
 	public static final int eMaxKeyLength = 2712;
 
 	static {
@@ -676,7 +677,7 @@ public abstract class Database extends ReentrantLock {
 
 		@Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key);
 
-		// 只有mysql,dbh2实现这个。
+		// 只有mysql,postgres,dbh2实现这个。
 		default boolean tryLock() {
 			return true;
 		}

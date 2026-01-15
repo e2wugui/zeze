@@ -12,6 +12,7 @@ import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMemory;
+import Zeze.Transaction.DatabaseMongoDb;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabasePostgreSQL;
 import Zeze.Transaction.DatabaseRocksDb;
@@ -45,6 +46,7 @@ public final class Config {
 		Dbh2,
 		Redis,
 		PostgreSQL,
+		MongoDb,
 	}
 
 	private @NotNull String name = "";
@@ -426,6 +428,8 @@ public final class Config {
 			return new Zeze.Transaction.DatabaseRedis(zeze, conf);
 		case PostgreSQL:
 			return new DatabasePostgreSQL(zeze, conf);
+		case MongoDb:
+			return new DatabaseMongoDb(zeze, conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
@@ -844,24 +848,33 @@ public final class Config {
 
 	public static final class DatabaseConf {
 		private @NotNull String name = "";
+		private @NotNull String databaseName = "zeze_mongodb";
 		private @NotNull DbType databaseType = DbType.Memory;
 		private @NotNull String databaseUrl = "";
 		private DruidConf druidConf; // only valid when jdbc: mysql, sqlserver,
 		private DynamoConf dynamoConf; // only valid when dynamodb
 		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 		private boolean disableOperates;
-		private long prepareMaxTime = 10_000; // 10s
+		//private long prepareMaxTime = 10_000; // 10s
 
-		public long getPrepareMaxTime() {
-			return prepareMaxTime;
-		}
+		//public long getPrepareMaxTime() {
+		//	return prepareMaxTime;
+		//}
 
-		public void setPrepareMaxTime(long value) {
-			prepareMaxTime = value;
-		}
+		//public void setPrepareMaxTime(long value) {
+		//	prepareMaxTime = value;
+		//}
 
 		public @NotNull String getName() {
 			return name;
+		}
+
+		public @NotNull String getDatabaseName() {
+			return databaseName;
+		}
+
+		public void setDatabaseName(@NotNull String value) {
+			databaseName  = value.isBlank() ? "zeze_mongodb" : value;
 		}
 
 		public void setName(@Nullable String name) {
@@ -922,6 +935,8 @@ public final class Config {
 
 		public DatabaseConf(@NotNull Config conf, @NotNull Element self) {
 			name = self.getAttribute("Name").trim();
+			setDatabaseName(self.getAttribute("DatabaseName").trim()); // mongodb databaseName 需要独立指名，有默认值。
+
 			switch (self.getAttribute("DatabaseType").trim()) {
 			case "Memory":
 				// databaseType = DbType.Memory;
@@ -960,15 +975,18 @@ public final class Config {
 			case "Redis":
 				databaseType = DbType.Redis;
 				break;
+			case "MongoDB":
+				databaseType = DbType.MongoDb;
+				break;
 			default:
 				throw new UnsupportedOperationException("unknown database type.");
 			}
 			databaseUrl = self.getAttribute("DatabaseUrl").trim();
 			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn").trim());
 			disableOperates = "true".equalsIgnoreCase(self.getAttribute("DisableOperates").trim());
-			var attr = self.getAttribute("PrepareMaxTime");
-			if (!attr.isBlank())
-				prepareMaxTime = Long.parseLong(attr);
+			//var attr = self.getAttribute("PrepareMaxTime");
+			//if (!attr.isBlank())
+			//	prepareMaxTime = Long.parseLong(attr);
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");
