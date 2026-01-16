@@ -4,15 +4,21 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
+import Zeze.Util.OutLong;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.DeleteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
 import org.bson.types.Binary;
 import org.jetbrains.annotations.NotNull;
@@ -121,9 +127,8 @@ public class DatabaseMongoDb extends Database {
 			if (dropped)
 				return null;
 
-			var filter = new Document("_id", new Binary(key.CopyIf()));
-			var findIterable  = collection.find(filter);
-			var doc = findIterable.first();
+			var filter = Filters.eq("_id", key.CopyIf());
+			var doc  = collection.find(filter).first();
 			if (doc == null)
 				return null;
 			var valueBinary = doc.get("value", Binary.class);
@@ -143,7 +148,7 @@ public class DatabaseMongoDb extends Database {
 			var doc = new Document("_id", keyBinary).append("value", new Binary(value.CopyIf()));
 			var result = collection.replaceOne(txn.getSession(), new Document("_id", keyBinary), doc,
 					new ReplaceOptions().upsert(true).bypassDocumentValidation(false));
-			var success = result.getModifiedCount() > 0 || result.getUpsertedId() != null;
+			var success = result.getMatchedCount() > 0 || result.getUpsertedId() != null;
 			if (!success)
 				throw new RuntimeException("replaceOne error");
 		}
@@ -159,60 +164,188 @@ public class DatabaseMongoDb extends Database {
 			collection.deleteOne(txn.getSession(), filter, options); // skip not exist.
 		}
 
+
+		public static byte[] getByteArray(Document doc, String fieldName) {
+			Object value = doc.get(fieldName);
+			if (value == null)
+				throw new NullPointerException(fieldName + " is null");
+			if (value instanceof byte[])
+				return (byte[])value;
+			if (value instanceof Binary)
+				return ((Binary)value).getData();
+			throw new ClassCastException("field '" + fieldName + "' type " + value.getClass() + " cast to byte[]");
+		}
+
 		@Override
 		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return 0;
-			return 0;
+			var iterable = collection.find();
+			iterable.sort(Sorts.ascending("_id"));
+			var countWalked = new OutLong();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					var value = getByteArray(document,"value");
+					countWalked.value++;
+					callback.handle(key, value);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return countWalked.value;
 		}
 
 		@Override
 		public long walkKey(@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return 0;
-			return 0;
+			var iterable = collection.find();
+			iterable.projection(Projections.include("_id"));
+			iterable.sort(Sorts.ascending("_id"));
+			var countWalked = new OutLong();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					countWalked.value++;
+					callback.handle(key);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return countWalked.value;
 		}
 
 		@Override
 		public long walkDesc(@NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return 0;
-			return 0;
+			var iterable = collection.find();
+			iterable.sort(Sorts.descending("_id"));
+			var countWalked = new OutLong();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					var value = getByteArray(document,"value");
+					countWalked.value++;
+					callback.handle(key, value);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return countWalked.value;
 		}
 
 		@Override
 		public long walkKeyDesc(@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return 0;
-			return 0;
+			var iterable = collection.find();
+			iterable.projection(Projections.include("_id"));
+			iterable.sort(Sorts.descending("_id"));
+			var countWalked = new OutLong();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					countWalked.value++;
+					callback.handle(key);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return countWalked.value;
 		}
 
 		@Override
 		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
-			return null;
+
+			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
+			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
+			iterable.limit(proposeLimit);
+			iterable.sort(Sorts.ascending("_id"));
+			var lastKey = new OutObject<byte[]>();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					var value = getByteArray(document,"value");
+					lastKey.value = key;
+					callback.handle(key, value);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
-			return null;
+
+			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
+			var iterable = start == null ? collection.find() : collection.find(Filters.gt("_id", start));
+			iterable.projection(Projections.include("_id"));
+			iterable.sort(Sorts.ascending("_id"));
+			iterable.limit(proposeLimit);
+			var lastKey = new OutObject<byte[]>();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					lastKey.value = key;
+					callback.handle(key);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
-			return null;
+
+			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
+			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
+			iterable.limit(proposeLimit);
+			iterable.sort(Sorts.descending("_id"));
+			var lastKey = new OutObject<byte[]>();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					var value = getByteArray(document,"value");
+					lastKey.value = key;
+					callback.handle(key, value);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
 		}
 
 		@Override
 		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
-			return null;
+
+			var start = exclusiveStartKey != null ? exclusiveStartKey.CopyIf() : null;
+			var iterable = start == null ? collection.find() : collection.find(Filters.lt("_id", start));
+			iterable.projection(Projections.include("_id"));
+			iterable.sort(Sorts.descending("_id"));
+			iterable.limit(proposeLimit);
+			var lastKey = new OutObject<byte[]>();
+			iterable.forEach(document -> {
+				try {
+					var key = getByteArray(document, "_id");
+					lastKey.value = key;
+					callback.handle(key);
+				} catch (Exception e) {
+					Task.forceThrow(e);
+				}
+			});
+			return lastKey.value != null ? ByteBuffer.Wrap(lastKey.value) : null;
 		}
 
 		public @NotNull String getName() {

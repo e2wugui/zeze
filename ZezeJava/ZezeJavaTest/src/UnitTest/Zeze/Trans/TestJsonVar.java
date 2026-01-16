@@ -31,6 +31,11 @@ public class TestJsonVar {
 	public void testJsonArray() {
 		App.getInstance().Zeze.newProcedure(() -> {
 			var bValue = App.getInstance().demo_Module1.getTable1().getOrAdd(7678L);
+			bValue.getJsonArray_JSON_ARRAY().clear();
+			return 0;
+		}, "jsonArray.clear").call();
+		App.getInstance().Zeze.newProcedure(() -> {
+			var bValue = App.getInstance().demo_Module1.getTable1().getOrAdd(7678L);
 			var json = new JSONObject();
 			json.put("key", "value");
 			bValue.getJsonArray_JSON_ARRAY().add(json);
