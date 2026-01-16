@@ -168,10 +168,11 @@ public class DatabaseMongoDb extends Database {
 				return;
 
 			var txn = (MongoTrans)t;
-			var keyBinary = new Binary(key.CopyIf());
-			var doc = new Document("_id", keyBinary).append("value", new Binary(value.CopyIf()));
-			var result = collection.replaceOne(txn.getSession(), new Document("_id", keyBinary), doc,
-					new ReplaceOptions().upsert(true).bypassDocumentValidation(false));
+
+			var keyBytes = key.CopyIf();
+			var doc = new Document("_id", new Binary(keyBytes)).append("value", new Binary(value.CopyIf()));
+			var result = collection.replaceOne(txn.getSession(),
+					Filters.eq("_id", keyBytes), doc, new ReplaceOptions().upsert(true));
 			var success = result.getMatchedCount() > 0 || result.getUpsertedId() != null;
 			if (!success)
 				throw new RuntimeException("replaceOne error");
