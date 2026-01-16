@@ -24,7 +24,7 @@
 	<DatabaseConf Name="" DatabaseType="Redis" DatabaseUrl="redis://127.0.0.1:6379/"/>
 	<DatabaseConf Name="" DatabaseType="MongoDB" DatabaseUrl="mongodb://127.0.0.1:27017/?replicaSet=rs0"/>
 	-->
-	<DatabaseConf Name="" DatabaseType="MongoDB" DatabaseUrl="mongodb://127.0.0.1:27017/?replicaSet=rs0"/>
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
 	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
 	<TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/>
