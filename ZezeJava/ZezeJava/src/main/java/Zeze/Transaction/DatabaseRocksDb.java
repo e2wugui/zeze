@@ -434,7 +434,7 @@ public class DatabaseRocksDb extends Database {
 				dv.data = data;
 				var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
 				dv.encode(value);
-				table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, 0, value.WriteIndex);
+				table.put(key.Bytes, key.ReadIndex, key.size(), value.Bytes, value.ReadIndex, value.size());
 				return KV.create(version, true);
 			} catch (RocksDBException e) {
 				throw Task.forceThrow(e);

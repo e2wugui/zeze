@@ -9,7 +9,6 @@ import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.ClientSession;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -30,9 +29,9 @@ public class DatabaseMongoDb extends Database {
 
 	public DatabaseMongoDb(Application zeze, Config.DatabaseConf conf) {
 		super(zeze, conf);
-		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMongoDb());
 		mongoClient = MongoClients.create(conf.getDatabaseUrl());
 		mongoDatabase = mongoClient.getDatabase(conf.getDatabaseName());
+		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : new OperatesMongoDb());
 	}
 
 	@Override
@@ -51,7 +50,13 @@ public class DatabaseMongoDb extends Database {
 		mongoClient.close();
 	}
 
-	class OperatesMongoDb implements Operates {
+	private class OperatesMongoDb implements Operates {
+		private final TableMongoDb dataWithVersion;
+
+		public OperatesMongoDb() {
+			var schemaTableName = "zeze.OperatesMongoDb.Schemas";
+			dataWithVersion = (TableMongoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
+		}
 
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
@@ -65,12 +70,31 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public @Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
-			return null;
+			var dv = getDataWithVersion(key);
+			if (dv.version != version)
+				return KV.create(version, false);
+
+			dv.version = ++version;
+			dv.data = data;
+			var value = ByteBuffer.Allocate(5 + 9 + dv.data.size());
+			dv.encode(value);
+
+			try (var trans = beginTransaction()) {
+				dataWithVersion.replace(trans, key, value);
+				trans.commit();
+			} catch (Exception e) {
+				Task.forceThrow(e);
+			}
+			return KV.create(version, true);
 		}
 
 		@Override
 		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
-			return null;
+			var result = new DataWithVersion();
+			var bb = dataWithVersion.find(key);
+			if (bb != null)
+				result.decode(bb);
+			return result;
 		}
 	}
 
