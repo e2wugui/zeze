@@ -403,5 +403,15 @@ public class DatabaseMongoDb extends Database {
 				Task.forceThrow(e);
 			}
 		}
+
+		@Override
+		public long getSize() {
+			return collection.countDocuments();
+		}
+
+		@Override
+		public long getSizeApproximation() {
+			return collection.estimatedDocumentCount();
+		}
 	}
 }
