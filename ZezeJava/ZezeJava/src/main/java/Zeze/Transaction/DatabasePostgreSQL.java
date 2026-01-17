@@ -539,6 +539,27 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return false;
 	}
 
+	private static void parseSqlStatement(@NotNull SQLStatement st, @NotNull ArrayList<String> columns,
+										  @NotNull StringBuilder values) {
+		var sql = st.getSql().toString();
+		var kvs = sql.split(",");
+		for (var kv : kvs) {
+			var nv2 = kv.split("=");
+			columns.add(nv2[0]);
+			if (values.length() > 0)
+				values.append(",");
+			values.append(nv2[1]);
+		}
+	}
+
+	private static void appendStringBuilder(@NotNull StringBuilder sb, @NotNull ArrayList<String> columns) {
+		for (var i = 0; i < columns.size(); ++i) {
+			if (i > 0)
+				sb.append(",");
+			sb.append(columns.get(i));
+		}
+	}
+
 	public final class TablePostgreSQLRelational implements Table {
 		private final @NotNull String name;
 		private boolean isNew;
@@ -768,26 +789,6 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} finally {
 				if (postgreSelectCounter != null)
 					postgreSelectCounter.observe(System.nanoTime() - timeBegin);
-			}
-		}
-
-		private static void parseSqlStatement(SQLStatement st, ArrayList<String> columns, StringBuilder values) {
-			var sql = st.getSql().toString();
-			var kvs = sql.split(",");
-			for (var kv : kvs) {
-				var nv2 = kv.split("=");
-				columns.add(nv2[0]);
-				if (!values.isEmpty())
-					values.append(",");
-				values.append(nv2[1]);
-			}
-		}
-
-		private static void appendStringBuilder(StringBuilder sb, ArrayList<String> columns) {
-			for (var i = 0; i < columns.size(); ++i) {
-				if (i > 0)
-					sb.append(",");
-				sb.append(columns.get(i));
 			}
 		}
 

@@ -199,6 +199,7 @@
 		<druid.version>1.2.27</druid.version>
 		<mysql-connector-j.version>8.4.0</mysql-connector-j.version>
 		<postgresql.version>42.7.8</postgresql.version>
+		<mongodb-driver-sync.version>5.6.2</mongodb-driver-sync.version>
 		<jedis.version>5.2.0</jedis.version>
 		<aws-java-sdk-dynamodb.version>1.12.796</aws-java-sdk-dynamodb.version>
 		<fdb-java.version>7.4.3</fdb-java.version>
@@ -349,6 +350,14 @@
 			<version>${postgresql.version}</version>
 			<scope>runtime</scope>
 			<optional>true</optional>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.mongodb/mongodb-driver-sync -->
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongodb-driver-sync</artifactId>
+			<version>${mongodb-driver-sync.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->

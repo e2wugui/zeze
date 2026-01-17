@@ -27,7 +27,7 @@ public class DatabaseMongoDb extends Database {
 	final @NotNull MongoClient mongoClient;
 	final @NotNull MongoDatabase mongoDatabase;
 
-	public DatabaseMongoDb(Application zeze, Config.DatabaseConf conf) {
+	public DatabaseMongoDb(@Nullable Application zeze, @NotNull Config.DatabaseConf conf) {
 		super(zeze, conf);
 		mongoClient = MongoClients.create(conf.getDatabaseUrl());
 		mongoDatabase = mongoClient.getDatabase(conf.getDatabaseName());
@@ -51,7 +51,7 @@ public class DatabaseMongoDb extends Database {
 	}
 
 	private class OperatesMongoDb implements Operates {
-		private final TableMongoDb dataWithVersion;
+		private final @NotNull TableMongoDb dataWithVersion;
 
 		public OperatesMongoDb() {
 			var schemaTableName = "zeze.OperatesMongoDb.Schemas";
@@ -69,7 +69,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data, long version) {
+		public @NotNull KV<Long, Boolean> saveDataWithSameVersion(@NotNull ByteBuffer key, @NotNull ByteBuffer data,
+																  long version) {
 			var dv = getDataWithVersion(key);
 			if (dv.version != version)
 				return KV.create(version, false);
@@ -89,7 +90,7 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
+		public @NotNull DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
 			var result = new DataWithVersion();
 			var bb = dataWithVersion.find(key);
 			if (bb != null)
@@ -126,10 +127,21 @@ public class DatabaseMongoDb extends Database {
 		}
 	}
 
+	public static byte @NotNull [] getByteArray(@NotNull Document doc, @NotNull String fieldName) {
+		Object value = doc.get(fieldName);
+		if (value == null)
+			throw new NullPointerException(fieldName + " is null");
+		if (value instanceof byte[])
+			return (byte[])value;
+		if (value instanceof Binary)
+			return ((Binary)value).getData();
+		throw new ClassCastException("field '" + fieldName + "' type " + value.getClass() + " cast to byte[]");
+	}
+
 	public final class TableMongoDb extends AbstractKVTable {
 		private final @NotNull String name;
+		private final @NotNull MongoCollection<Document> collection;
 		private final boolean isNew;
-		private final MongoCollection<Document> collection;
 		private boolean dropped;
 
 		public TableMongoDb(@NotNull String name) {
@@ -140,7 +152,8 @@ public class DatabaseMongoDb extends Database {
 			} catch (MongoCommandException e) {
 				if (e.getErrorCode() == 48)
 					isNew = false; // collection 已经存在。
-				Task.forceThrow(e);
+				else
+					throw e;
 			}
 			this.isNew = isNew;
 			this.collection = mongoDatabase.getCollection(name);
@@ -152,7 +165,7 @@ public class DatabaseMongoDb extends Database {
 				return null;
 
 			var filter = Filters.eq("_id", key.CopyIf());
-			var doc  = collection.find(filter).first();
+			var doc = collection.find(filter).first();
 			if (doc == null)
 				return null;
 			var valueBinary = doc.get("value", Binary.class);
@@ -189,18 +202,6 @@ public class DatabaseMongoDb extends Database {
 			collection.deleteOne(txn.getSession(), filter, options); // skip not exist.
 		}
 
-
-		public static byte[] getByteArray(Document doc, String fieldName) {
-			Object value = doc.get(fieldName);
-			if (value == null)
-				throw new NullPointerException(fieldName + " is null");
-			if (value instanceof byte[])
-				return (byte[])value;
-			if (value instanceof Binary)
-				return ((Binary)value).getData();
-			throw new ClassCastException("field '" + fieldName + "' type " + value.getClass() + " cast to byte[]");
-		}
-
 		@Override
 		public long walk(@NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
@@ -211,7 +212,7 @@ public class DatabaseMongoDb extends Database {
 			iterable.forEach(document -> {
 				try {
 					var key = getByteArray(document, "_id");
-					var value = getByteArray(document,"value");
+					var value = getByteArray(document, "value");
 					countWalked.value++;
 					callback.handle(key, value);
 				} catch (Exception e) {
@@ -251,7 +252,7 @@ public class DatabaseMongoDb extends Database {
 			iterable.forEach(document -> {
 				try {
 					var key = getByteArray(document, "_id");
-					var value = getByteArray(document,"value");
+					var value = getByteArray(document, "value");
 					countWalked.value++;
 					callback.handle(key, value);
 				} catch (Exception e) {
@@ -282,7 +283,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walk(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+										 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
 
@@ -294,7 +296,7 @@ public class DatabaseMongoDb extends Database {
 			iterable.forEach(document -> {
 				try {
 					var key = getByteArray(document, "_id");
-					var value = getByteArray(document,"value");
+					var value = getByteArray(document, "value");
 					lastKey.value = key;
 					callback.handle(key, value);
 				} catch (Exception e) {
@@ -305,7 +307,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
 
@@ -328,7 +331,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkHandleRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+											 @NotNull TableWalkHandleRaw callback) throws Exception {
 			if (dropped)
 				return null;
 
@@ -340,7 +344,7 @@ public class DatabaseMongoDb extends Database {
 			iterable.forEach(document -> {
 				try {
 					var key = getByteArray(document, "_id");
-					var value = getByteArray(document,"value");
+					var value = getByteArray(document, "value");
 					lastKey.value = key;
 					callback.handle(key, value);
 				} catch (Exception e) {
@@ -351,7 +355,8 @@ public class DatabaseMongoDb extends Database {
 		}
 
 		@Override
-		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit, @NotNull TableWalkKeyRaw callback) throws Exception {
+		public @Nullable ByteBuffer walkKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
+												@NotNull TableWalkKeyRaw callback) throws Exception {
 			if (dropped)
 				return null;
 
@@ -389,7 +394,6 @@ public class DatabaseMongoDb extends Database {
 
 		@Override
 		public void close() {
-
 		}
 
 		@Override
