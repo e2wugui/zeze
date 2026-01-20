@@ -68,7 +68,7 @@ public final class Transaction {
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
-	private Long tid; // 线程不安全。
+	private volatile Long tid;
 
 	private Transaction() {
 	}
@@ -80,10 +80,14 @@ public final class Transaction {
 	public long getTransactionId() {
 		if (null != tid)
 			return tid;
-		var topProcedure = getTopProcedure();
-		if (null != topProcedure) {
-			tid = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
-			return tid;
+		synchronized (this) {
+			if (null != tid)
+				return tid;
+			var topProcedure = getTopProcedure();
+			if (null != topProcedure) {
+				tid = topProcedure.getZeze().getTransactionIdAutoKey().nextId();
+				return tid;
+			}
 		}
 		return 0;
 	}
@@ -108,6 +112,7 @@ public final class Transaction {
 	void reuseTransaction() {
 		// holdLocks.forEach(Lockey::exitLock);
 		// holdLocks.clear(); // 执行完肯定清理了。
+		tid = null;
 		procedureStack.clear();
 		logActions.clear();
 		savepoints.clear();
