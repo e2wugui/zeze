@@ -24,7 +24,6 @@ namespace Zeze.Net
         private readonly ClientWebSocket _clientWebSocket = new ClientWebSocket();
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly BlockingCollection<ArraySegment<byte>> _sendQueue = new BlockingCollection<ArraySegment<byte>>();
-        private readonly Uri _uri;
 #else
         private WebSocket _webSocket = null;
         private bool isWebSocketOpen = false;
@@ -36,14 +35,14 @@ namespace Zeze.Net
             base.Connector = connector;
             base.Type = AsyncSocketType.eClient;
 
-            var _uri = new Uri(wsUrl);
-            base.RemoteAddress = new IPEndPoint(IPAddress.Parse(_uri.Host), _uri.Port);
+            var url = new Uri(wsUrl);
+            base.RemoteAddress = new IPEndPoint(IPAddress.Parse(url.Host), url.Port);
             base.UserState = userState;
 
 #if !UNITY_WEBSOCKET
             // LocalAddress = null; // 得不到。
             // 接收循环放到后台。
-            _ = ConnectReceive();
+            _ = ConnectReceive(url);
 #else
             _webSocket = new WebSocket(wsUrl);
             _webSocket.OnOpen += OnWebSocketOpen;
@@ -55,13 +54,13 @@ namespace Zeze.Net
         }
 
 #if !UNITY_WEBSOCKET
-        private async Task ConnectReceive()
+        private async Task ConnectReceive(Uri url)
         {
             try
             {
                 _clientWebSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
                 using var connectCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                await _clientWebSocket.ConnectAsync(_uri, connectCts.Token);
+                await _clientWebSocket.ConnectAsync(url, connectCts.Token);
                 Service.AddSocket(this);
                 Service.OnHandshakeDone(this);
                 // 连接成功，发送循环放到后台。
