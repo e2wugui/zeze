@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityWebSocket;
 using WebSocket = UnityWebSocket.WebSocket;
 using WebSocketState = UnityWebSocket.WebSocketState;
+using System.Collections.Generic;
 #endif
 
 namespace Zeze.Net
