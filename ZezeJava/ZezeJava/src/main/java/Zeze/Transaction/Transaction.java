@@ -57,7 +57,7 @@ public final class Transaction {
 
 	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 	private final ArrayList<Procedure> procedureStack = new ArrayList<>(); // 嵌套存储过程栈。
-	private @Nullable ArrayList<Runnable> logActions;
+	private @Nullable ArrayList<Runnable> logActions; // 延迟初始化
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
@@ -66,7 +66,7 @@ public final class Transaction {
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
-	private @Nullable ArrayList<Runnable> redoActions;
+	private @Nullable ArrayList<Runnable> redoActions; // 延迟初始化
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
