@@ -42,6 +42,7 @@ public final class Transaction {
 	}
 
 	public static @Nullable Transaction getCurrentVerifyRead(@NotNull Bean bean) {
+		// 读操作全部允许，所以实际上不做验证，这个函数只是为了语义完备，定义在这里。
 		return getCurrent();
 	}
 
@@ -55,7 +56,7 @@ public final class Transaction {
 
 	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 	private final ArrayList<Procedure> procedureStack = new ArrayList<>(); // 嵌套存储过程栈。
-	final ArrayList<Runnable> logActions = new ArrayList<>();
+	private @Nullable ArrayList<Runnable> logActions;
 	private final ArrayList<Savepoint> savepoints = new ArrayList<>();
 	private final ArrayList<Savepoint.Action> actions = new ArrayList<>();
 	private final TreeMap<TableKey, RecordAccessed> accessedRecords = new TreeMap<>();
@@ -92,6 +93,12 @@ public final class Transaction {
 		return 0;
 	}
 
+	public void addLogAction(Runnable action) {
+		if (null == logActions)
+			logActions = new ArrayList<>();
+		logActions.add(action);
+	}
+
 	@NotNull TreeMap<TableKey, RecordAccessed> getAccessedRecords() {
 		return accessedRecords;
 	}
@@ -114,7 +121,8 @@ public final class Transaction {
 		// holdLocks.clear(); // 执行完肯定清理了。
 		tid = null;
 		procedureStack.clear();
-		logActions.clear();
+		if (null != logActions)
+			logActions.clear();
 		savepoints.clear();
 		actions.clear();
 		accessedRecords.clear();
@@ -135,7 +143,8 @@ public final class Transaction {
 		}
 		// retry 可能保持已有的锁，清除记录和保存点。
 		// procedureStack.clear(); // 保留栈底的procedure
-		logActions.clear(); // retry 中间的日志不记录。
+		if (null != logActions)
+			logActions.clear(); // retry 中间的日志不记录。
 		savepoints.clear();
 		actions.clear();
 		accessedRecords.clear();
@@ -525,8 +534,10 @@ public final class Transaction {
 		state = TransactionState.Completed;
 
 		try {
-			for (var act : logActions)
-				act.run();
+			if (null != logActions) {
+				for (var act : logActions)
+					act.run();
+			}
 			cc.notifyListener();
 			triggerCommitActions(proc);
 		} catch (Throwable ex) { // logger.error
@@ -544,8 +555,10 @@ public final class Transaction {
 		savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		state = TransactionState.Completed;
 		try {
-			for (var act : logActions)
-				act.run();
+			if (null != logActions) {
+				for (var act : logActions)
+					act.run();
+			}
 			if (executeRollbackAction)
 				triggerRollbackActions(procedure);
 		} catch (Throwable ex) { // logger.error

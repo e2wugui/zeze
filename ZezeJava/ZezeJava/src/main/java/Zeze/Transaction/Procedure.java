@@ -180,7 +180,7 @@ public class Procedure {
 		} catch (Throwable e) { // logger, rethrow AssertionError
 			// rollback.
 			currentT.rollback();
-			currentT.logActions.add(() -> {
+			currentT.addLogAction(() -> {
 				var tmpLogAction = logAction;
 				if (tmpLogAction != null)
 					tmpLogAction.run(e, Exception, this, "");
