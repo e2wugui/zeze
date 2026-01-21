@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import javax.validation.constraints.Null;
 import Zeze.History.History;
 import Zeze.Onz.Onz;
 import Zeze.Onz.OnzProcedure;
@@ -65,7 +66,7 @@ public final class Transaction {
 	private boolean created;
 	private boolean alwaysReleaseLockWhenRedo;
 	private final ArrayList<Bean> redoBeans = new ArrayList<>();
-	private final ArrayList<Runnable> redoActions = new ArrayList<>();
+	private @Nullable ArrayList<Runnable> redoActions;
 	private @Nullable OnzProcedure onzProcedure;
 	final Profiler profiler = new Profiler();
 	private final AtomicLong totalTransaction = new AtomicLong();
@@ -131,7 +132,8 @@ public final class Transaction {
 		created = false;
 		alwaysReleaseLockWhenRedo = false;
 		redoBeans.clear();
-		redoActions.clear();
+		if (null != redoActions)
+			redoActions.clear();
 		onzProcedure = null;
 		profiler.reset();
 	}
@@ -150,7 +152,8 @@ public final class Transaction {
 		accessedRecords.clear();
 		state = TransactionState.Running; // prepare to retry
 		redoBeans.clear();
-		redoActions.clear();
+		if (null != redoActions)
+			redoActions.clear();
 		// profiler.reset(); // 可以收集，区分？不同redo的信息，全部体现。
 	}
 
@@ -202,13 +205,17 @@ public final class Transaction {
 		//  1. triggerRedoActions 上面两个分支调用，第一个分支异常，会导致catch里面再次执行。是不是应该吧两个调回统一到下面的for循环继续的地方？
 		//  2. redo不跟savepoint打交道，总是事务级别的，这个定义应该是正确的吧。
 		//  3. 现在下面的tryWhileRedo只有Rpc使用了，确认使用方式是否正确。
-		redoActions.forEach(Runnable::run); // redo action 不能抛出异常，否则终止事务。
+		if (null != redoActions)
+			redoActions.forEach(Runnable::run); // redo action 不能抛出异常，否则终止事务。
 	}
 
 	public static void tryWhileRedo(@NotNull Runnable action) {
 		var txn = getCurrent();
-		if (txn != null)
+		if (txn != null) {
+			if (null == txn.redoActions)
+				txn.redoActions = new ArrayList<>();
 			txn.redoActions.add(action);
+		}
 	}
 
 	static void whileRedo(@NotNull Bean b) {
