@@ -91,8 +91,9 @@ public class LogSet1<V> extends LogSet<V> {
 	public final void clear() {
 		//for (V v : getValue())
 		//	remove(v);
-		added.removeAll(getValue());
-		removed.addAll(getValue());
+		var exist = getValue();
+		added.removeAll(exist);
+		removed.addAll(exist);
 		setValue(Empty.set());
 	}
 
