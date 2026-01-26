@@ -54,7 +54,7 @@ public class DatabaseMongoDb extends Database {
 		private final @NotNull TableMongoDb dataWithVersion;
 
 		public OperatesMongoDb() {
-			var schemaTableName = "zeze.OperatesMongoDb.Schemas";
+			var schemaTableName = "Zeze_OperatesMongoDb_Schemas";
 			dataWithVersion = (TableMongoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
 		}
 

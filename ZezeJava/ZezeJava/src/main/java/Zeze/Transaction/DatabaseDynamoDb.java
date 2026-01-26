@@ -55,7 +55,7 @@ public class DatabaseDynamoDb extends Database {
 		private final TableDynamoDb dataWithVersion;
 
 		public OperatesDynamoDb() {
-			var schemaTableName = "zeze.OperatesDynamoDb.Schemas";
+			var schemaTableName = "Zeze_OperatesDynamoDb_Schemas";
 			dataWithVersion = (TableDynamoDb)openTable(schemaTableName, Bean.hash32(schemaTableName));
 		}
 

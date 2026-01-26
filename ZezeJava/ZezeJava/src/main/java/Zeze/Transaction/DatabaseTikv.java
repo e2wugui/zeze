@@ -82,7 +82,7 @@ public class DatabaseTikv extends Database {
 		private final AbstractKVTable table;
 
 		public OperatesTikv() {
-			var schemaTableName = "zeze.OperatesTikv.Schemas";
+			var schemaTableName = "Zeze_OperatesTikv_Schemas";
 			table = openTable(schemaTableName, Bean.hash32(schemaTableName));
 		}
 

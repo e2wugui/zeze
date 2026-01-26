@@ -407,7 +407,7 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	private final class OperatesRocksDb implements Operates {
-		private final RocksDatabase.Table table = getOrAddTable("zeze.OperatesRocksDb.Schemas", null);
+		private final RocksDatabase.Table table = getOrAddTable("Zeze_OperatesRocksDb_Schemas", null);
 
 		@Override
 		public @NotNull DataWithVersion getDataWithVersion(@NotNull ByteBuffer key) {
