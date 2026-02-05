@@ -1875,9 +1875,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	/**
 	 * 踢掉某个玩家，
 	 * 其中code参考BKick里面的常量定义，自定义的使用不同的值，不在预定义范围即可。
+	 *
 	 * @param roleId roleId
-	 * @param code error-code
-	 * @param desc description
+	 * @param code   error-code
+	 * @param desc   description
 	 */
 	public void kick(long roleId, int code, String desc) {
 		var online = _tOnlineShared.selectDirty(roleId);
@@ -1938,7 +1939,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (isBound && assignLogoutVersion(onlineShared)) {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin, "duplicate role login");
+						BKick.ErrorDuplicateLogin, "duplicate role login: account=" + onlineAccount
+								+ ", roleId=" + roleId + ", onlineSet=" + multiInstanceName);
 			}
 			var ret = logoutTrigger(roleId, LogoutReason.LOGIN);
 			if (ret != 0)
@@ -2032,7 +2034,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (isBound && assignLogoutVersion(onlineShared)) {
 			if (!link.getLinkName().equals(session.getLinkName()) || link.getLinkSid() != session.getLinkSid()) {
 				providerApp.providerService.kick(link.getLinkName(), link.getLinkSid(),
-						BKick.ErrorDuplicateLogin, "duplicate role login");
+						BKick.ErrorDuplicateLogin, "duplicate role login: account=" + onlineAccount
+								+ ", roleId=" + roleId + ", onlineSet=" + multiInstanceName);
 			}
 			var ret = logoutTrigger(roleId, LogoutReason.RE_LOGIN);
 			if (ret != 0)
