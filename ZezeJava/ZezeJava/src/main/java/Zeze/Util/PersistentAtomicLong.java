@@ -42,8 +42,9 @@ public class PersistentAtomicLong {
 			try {
 				var lock = fs.getChannel().lock();
 				try {
+					fs.seek(0);
 					var line = fs.readLine();
-					if (line != null) {
+					if (line != null && !line.isEmpty()) {
 						allocatedEnd = Long.parseLong(line);
 						currentId.set(allocatedEnd);
 					}
@@ -146,8 +147,10 @@ public class PersistentAtomicLong {
 						var reset = newLast < 0;
 						if (reset)
 							newLast = allocateSize;
+						fs.seek(0);
 						fs.setLength(0);
 						fs.write(String.valueOf(newLast).getBytes(StandardCharsets.UTF_8));
+						channel.force(false);
 						allocatedEnd = newLast; // first
 						if (reset)
 							currentId.set(0); // second
