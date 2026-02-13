@@ -28,7 +28,7 @@ Var friends = LinkedMapModule.open(“Friends”, BFreind.clsss);
 | clear        | 清楚整个容器             |
 | walk         | 遍历容器               |
 
-[LinkedMap By AI](LinkedMap.md)
+[Detail By AI](LinkedMap.md)
 
 ## Queue
 一个容量巨大的单向链表队列。所有数据操作支持事务。遍历操作是事务外的。
@@ -48,7 +48,7 @@ Var friends = LinkedMapModule.open(“Friends”, BFreind.clsss);
 | pop      | Stack                  |
 | walk     | 事务外遍历整个队列              |
 
-[Queue By AI](Queue.md)
+[Detail By AI](Queue.md)
 
 ## DepartmentTree
 这是一棵树。
@@ -74,7 +74,7 @@ MyApp.DepartmentTree = new DepartmentTree.Module(zeze, LinkedMapModule);
 | isRecursiveChild         | 是否某个部门的子（孙）部门      |
 | moveDepartment           | 移动部门               |
 
-[DepartmentTree By AI](DepartmentTree.md)
+[Detail By AI](DepartmentTree.md)
 
 ## CsQueue
 Concurrent Server Queue。每个server拥有自己私有的队列，只能操作自己的队列。server
@@ -95,6 +95,8 @@ Concurrent Server Queue。每个server拥有自己私有的队列，只能操作
 | pop      | Stack                  |
 | walk     | 事务外遍历整个队列              |
 
+[Detail By AI](CsQueue.md)
+
 ## CHashMap
 具有多个桶的大容量持久化HashMap实现。C=Concurrent。
 主要数据结构：LinkedMap<V>[] buckets；
@@ -112,3 +114,4 @@ var bucket = buckets[index];
 | size     | Map.size   |
 | isEmpty  | Map是否为空    |
 
+[Detail By AI](CHashMap.md)
