@@ -28,6 +28,8 @@ Var friends = LinkedMapModule.open(“Friends”, BFreind.clsss);
 | clear        | 清楚整个容器             |
 | walk         | 遍历容器               |
 
+[LinkedMap By AI](LinkedMap.md)
+
 ## Queue
 一个容量巨大的单向链表队列。所有数据操作支持事务。遍历操作是事务外的。
 不需要初始化，通过Zeze.Application.Queues创建和大概队列。
@@ -45,6 +47,8 @@ Var friends = LinkedMapModule.open(“Friends”, BFreind.clsss);
 | push     | Stack                  |
 | pop      | Stack                  |
 | walk     | 事务外遍历整个队列              |
+
+[Queue By AI](Queue.md)
 
 ## DepartmentTree
 这是一棵树。
@@ -69,6 +73,8 @@ MyApp.DepartmentTree = new DepartmentTree.Module(zeze, LinkedMapModule);
 | deleteDepartment         | 删除部门               |
 | isRecursiveChild         | 是否某个部门的子（孙）部门      |
 | moveDepartment           | 移动部门               |
+
+[DepartmentTree By AI](DepartmentTree.md)
 
 ## CsQueue
 Concurrent Server Queue。每个server拥有自己私有的队列，只能操作自己的队列。server
