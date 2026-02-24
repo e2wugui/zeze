@@ -57,13 +57,15 @@ void register(String queue, int type, Predicate<Binary> task)
 ```
 
 ## Timer
+持久化分布式定时器组件，支持简单定时器和 Cron 表达式定时器。
+
 ### Auto Named Timer
 ```
 String Schedule(delay); 一定延迟后执行一次。返回TimerId。
 String Schedule(delay, period); 一定延迟后开始按间隔执行。
 String Schedule(cron); crontab风格定时器配置。
 // a)自动命名的定时器。每次调用调度函数都会注册新的定时器，内部自动命名。自动
-// 命名的定时器的名字以‘@’开头。
+// 命名的定时器的名字以'@'开头。
 // b)持久化。重启以后Timer会继续调度。
 // c)分布式。一开始在注册所在的Server上执行，当Server非法宕机会被调度到其他Server上。
 // d)真正的调度用ScheduledThreadPool.schedule实现。
@@ -104,10 +106,12 @@ String ScheduleOffline(userid, …);
 2. 持久化！
 3. 数量有限制。每个用户用一个Offline Bean存储它所有的定时器。
 4. 持续限制！Offline Timer不能一直持续，需要次数或者时间限制。
-5. 只允许在一台Server“下线”，即Offline Timer都在一台上注册和调度。当在下线在
+5. 只允许在一台Server"下线"，即Offline Timer都在一台上注册和调度。当在下线在
 ServerA，然后又登录到ServerB时，ServerA的Timer会被去取消。
 f)	生命期和ModuleOnline.LocalData相反。Offline Bean在ModuleOnline的登录事件
 中删除，内嵌到登录事务中，这样可以保持数据一致性。但取消ThreadPool的任务
 通过@Redirect通知。为了处理Redirect可能丢失的问题，需要在Offline Timer中
 记录Login.Version，并且在触发定期回调时检查定时器版本号是否和当前登录版本
 号一致。
+
+[Detail By AI](Timer.md)
