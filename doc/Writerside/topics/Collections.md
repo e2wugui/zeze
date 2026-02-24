@@ -115,3 +115,15 @@ var bucket = buckets[index];
 | isEmpty  | Map是否为空    |
 
 [Detail By AI](CHashMap.md)
+
+## BoolList
+持久化的布尔值列表，使用位压缩技术存储。每个布尔值仅占用1 bit，支持海量布尔值的高效存储和访问。
+
+| 方法      | 说明                          |
+|-----------|-------------------------------|
+| get       | 获取指定索引位置的布尔值       |
+| set       | 将指定索引位置设为 true        |
+| clear     | 将指定索引位置设为 false       |
+| clearAll  | 清除所有数据（事务外调用）     |
+
+[Detail By AI](BoolList.md)
