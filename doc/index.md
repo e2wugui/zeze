@@ -58,6 +58,8 @@
 
 [Log](Writerside/topics/Log.md)
 
+[WebSocket](Writerside/topics/wss.md)
+
 [Inside Zeze](Writerside/topics/Inside-Zeze.md)
 
 [Onz](Writerside/topics/Onz.md)
