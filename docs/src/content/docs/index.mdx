@@ -1,0 +1,57 @@
+---
+title: Zeze 文档
+description: 基于缓存一致性的分布式事务框架
+template: splash
+hero:
+  tagline: 基于缓存一致性的分布式事务框架，提供自动事务管理、乐观锁多线程安全和多数据库后端支持。
+  actions:
+    - text: 快速开始
+      link: /getting-started/quick-start/
+      icon: right-arrow
+    - text: 什么是 Zeze
+      link: /getting-started/what-is-zeze/
+      icon: right-arrow
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## 核心特性
+
+<CardGrid stagger>
+	<Card title="自动事务管理" icon="pencil">
+		乐观锁机制，无死锁风险。支持 Serializable 和 AllowDirtyWhenAllRead 两种事务级别。
+	</Card>
+	<Card title="多数据库支持" icon="database">
+		MySQL、PostgreSQL、MongoDB、Redis、TiKV、DynamoDB、FoundationDB 等多种后端。
+	</Card>
+	<Card title="分布式架构" icon="globe">
+		Provider-Linkd 架构，全球同服支持，内置 Raft 共识和缓存同步。
+	</Card>
+	<Card title="多平台客户端" icon="code">
+		Java、C#、TypeScript、Lua、Unreal 多平台支持。
+	</Card>
+	<Card title="游戏开发友好" icon="rocket">
+		内置 Online 管理、背包、排行榜、定时器、登录队列等游戏常用模块。
+	</Card>
+	<Card title="热更新" icon="refresh">
+		支持运行时类重载和热更新，无需停服。
+	</Card>
+</CardGrid>
+
+## 文档导航
+
+<CardGrid stagger>
+	<Card title="入门指南" icon="open-book">
+		从 [前言](/getting-started/preface/) 开始了解 Zeze，[快速开始](/getting-started/quick-start/) 帮你迅速上手。
+	</Card>
+	<Card title="核心概念" icon="key">
+		理解 [事务](/core/transaction/)、[Bean 数据结构](/core/bean/)、[序列化](/core/serialize/) 等核心机制。
+	</Card>
+	<Card title="架构设计" icon="layout">
+		了解 [Provider-Linkd 架构](/architecture/arch/)、[网络层](/architecture/net/)、[全球同服](/architecture/one-world-one-dream/)。
+	</Card>
+	<Card title="运维部署" icon="setting">
+		[运维配置](/devops/devops-and-configuration/)、[Maven 部署](/devops/maven-deploy/)、[发布与热更](/devops/release-and-update/)。
+	</Card>
+</CardGrid>
