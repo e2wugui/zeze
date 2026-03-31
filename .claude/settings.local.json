@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -E '\\\\.\\(md|xml|json|txt|yml|yaml\\)$')",
-      "Bash(npx astro:*)"
-    ]
-  }
-}
