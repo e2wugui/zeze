@@ -4,8 +4,7 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://e2wugui.github.io',
-	base: '/zeze/',
+	base: '/zeze',
 	integrations: [
 		starlight({
 			title: 'Zeze 文档',
