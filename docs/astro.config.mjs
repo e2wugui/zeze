@@ -4,11 +4,16 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
+	site: 'https://e2wugui.github.io',
+	base: '/zeze/',
 	integrations: [
 		starlight({
 			title: 'Zeze 文档',
 			defaultLocale: 'zh',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/e2wugui/zeze' }],
+			editLink: {
+				baseUrl: 'https://github.com/e2wugui/zeze/edit/master/docs/'
+			},
 			sidebar: [
 				{
 					label: '入门指南',
