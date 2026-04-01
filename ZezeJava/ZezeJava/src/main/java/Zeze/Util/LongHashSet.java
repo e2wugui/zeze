@@ -283,10 +283,11 @@ public class LongHashSet implements Cloneable {
 	public @NotNull String toString() {
 		if (size == 0)
 			return "{}";
-		StringBuilder sb = new StringBuilder(32).append('{');
-		long[] kt = keyTable;
-		int i = 0, n = Math.min(kt.length, 20);
+		final StringBuilder sb = new StringBuilder(32).append('{');
+		final long[] kt = keyTable;
+		final int n = kt.length;
 		long k;
+		int i = 0;
 		if (hasZeroKey)
 			sb.append('0');
 		else {
@@ -297,11 +298,15 @@ public class LongHashSet implements Cloneable {
 				}
 			}
 		}
-		for (; i < n; i++)
-			if ((k = kt[i]) != 0)
+		for (int left = 20; i < n; i++) { // 限制显示的键数量
+			if ((k = kt[i]) != 0) {
+				if (--left == 0) {
+					sb.append(",...");
+					break;
+				}
 				sb.append(',').append(k);
-		if (n != kt.length)
-			sb.append(",...");
+			}
+		}
 		return sb.append('}').toString();
 	}
 }
