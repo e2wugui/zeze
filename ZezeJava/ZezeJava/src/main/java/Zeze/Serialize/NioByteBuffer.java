@@ -90,7 +90,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		int size = size();
 		if (size == 0)
 			return ByteBuffer.Empty;
-		byte[] copy = new byte[size];
+		var copy = new byte[size];
 		// bb.get(bb.position(), copy); // need JDK13+
 		int pos = bb.position();
 		bb.get(copy);
@@ -100,9 +100,12 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 
 	@Override
 	public byte @NotNull [] getBytes(int offset, int length) {
-		var bytes = new byte[length];
-		bb.get(bytes, offset, length);
-		return bytes;
+		int pos = bb.position();
+		bb.position(offset);
+		var copy = new byte[length];
+		bb.get(copy);
+		bb.position(pos);
+		return copy;
 	}
 
 	@Override
@@ -296,7 +299,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 		if (bb.hasArray()) {
 			int pos = bb.position();
 			bb.position(pos + n);
-			return new String(bb.array(), pos, n, StandardCharsets.UTF_8);
+			return new String(bb.array(), bb.arrayOffset() + pos, n, StandardCharsets.UTF_8);
 		}
 		var buf = new byte[n];
 		bb.get(buf);
@@ -413,6 +416,7 @@ public class NioByteBuffer implements IByteBuffer, Comparable<NioByteBuffer> {
 			unknown.WriteByte(tag & TAG_MASK);
 			unknown.WriteUInt(size);
 			unknown.EnsureWrite(size);
+			bb.position(beginIdx);
 			bb.get(unknown.Bytes, unknown.WriteIndex, size);
 			unknown.WriteIndex += size;
 			return unknown;

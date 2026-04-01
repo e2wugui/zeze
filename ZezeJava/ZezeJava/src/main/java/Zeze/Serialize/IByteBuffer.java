@@ -233,7 +233,7 @@ public interface IByteBuffer {
 	default <T extends java.io.Serializable> T ReadJavaObject() {
 		var bb = ReadByteBuffer();
 		try (var bs = new ByteArrayInputStream(bb.Bytes, bb.ReadIndex, bb.size());
-			 var os = new ObjectInputStream(bs)) {
+		     var os = new ObjectInputStream(bs)) {
 			return (T)os.readObject();
 		} catch (IOException | ClassNotFoundException e) {
 			throw Task.forceThrow(e);
@@ -419,6 +419,13 @@ public interface IByteBuffer {
 
 	default byte @Nullable [] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
 		while (tag != 0) {
+			if (tag == 1) { // 忽略父bean标志,暂时还不支持收集父bean到unknown里
+				do {
+					SkipUnknownField(tag);
+					ReadTagSize(tag = ReadByte());
+				} while (tag != 0);
+				break;
+			}
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());
 		}
