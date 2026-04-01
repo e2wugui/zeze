@@ -1,8 +1,9 @@
 ---
 title: "Others"
+sidebar:
+  order: 5
 ---
 
-# Others
 
 ## 使用zeze需要掌握多深的多线程知识？
 1.	只访问zeze管理的数据是线程安全的，不需要任何多线程背景。这类问题就是zeze主要解

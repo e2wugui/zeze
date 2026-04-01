@@ -1,8 +1,9 @@
 ---
 title: "provider.module.binds.xml"
+sidebar:
+  order: 4
 ---
 
-# provider.module.binds.xml
 
 配置模块在provider上的分布和运行。先给一个整体例子，后面详细说明。
 ```

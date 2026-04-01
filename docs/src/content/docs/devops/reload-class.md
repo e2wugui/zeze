@@ -1,8 +1,9 @@
 ---
 title: "Misc"
+sidebar:
+  order: 7
 ---
 
-# Misc
 
 ## Zeze.Services.ReloadClassServer
 1. 构造服务

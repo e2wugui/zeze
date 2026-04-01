@@ -1,8 +1,9 @@
 ---
 title: "Queue 使用文档"
+sidebar:
+  order: 8
 ---
 
-# Queue 使用文档
 
 ## 概述
 

@@ -1,8 +1,9 @@
 ---
 title: "Web(Netty)"
+sidebar:
+  order: 3
 ---
 
-# Web(Netty)
 
 可嵌入Server的Web模块，提供开发简单的Web服务。这样系统就有了让浏览器成为终
 端的能力。对于一个有点规模的系统，这个能力是比较重要的。至少系统的在线管理功能是

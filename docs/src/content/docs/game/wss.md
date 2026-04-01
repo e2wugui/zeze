@@ -1,8 +1,9 @@
 ---
 title: "Zeze WebSocket / WSS 支持"
+sidebar:
+  order: 5
 ---
 
-# Zeze WebSocket / WSS 支持
 
 Zeze 通过 `HttpServer`（基于 Netty）提供 WebSocket 和 WSS（WebSocket Secure）服务端支持，同时通过 `WebsocketClient` 提供 WebSocket 客户端连接能力。WebSocket 连接在建立后会被封装为 `AsyncSocket`，与普通 TCP 连接使用相同的协议派发机制，无需额外学习成本。
 

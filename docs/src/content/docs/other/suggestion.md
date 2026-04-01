@@ -1,8 +1,9 @@
 ---
 title: "Suggestion"
+sidebar:
+  order: 4
 ---
 
-# Suggestion
 
 ## 不要为了重用而重用
 存储Bean的定义和协议Bean的定义最好不要为了重用而特意定义成一份当存储和协议的

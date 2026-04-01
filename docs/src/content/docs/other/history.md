@@ -1,8 +1,9 @@
 ---
 title: "History"
+sidebar:
+  order: 1
 ---
 
-# History
 
 * 历史
 

@@ -1,8 +1,9 @@
 ---
 title: "Collections"
+sidebar:
+  order: 2
 ---
 
-# Collections
 
 Collections是Zeze的内建模块。
 

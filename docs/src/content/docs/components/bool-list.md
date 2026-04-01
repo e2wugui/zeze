@@ -1,8 +1,9 @@
 ---
 title: "BoolList 使用文档"
+sidebar:
+  order: 3
 ---
 
-# BoolList 使用文档
 
 ## 概述
 

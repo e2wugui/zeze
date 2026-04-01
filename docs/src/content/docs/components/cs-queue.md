@@ -1,8 +1,9 @@
 ---
 title: "CsQueue 使用文档"
+sidebar:
+  order: 5
 ---
 
-# CsQueue 使用文档
 
 ## 概述
 

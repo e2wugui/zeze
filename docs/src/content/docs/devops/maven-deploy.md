@@ -1,5 +1,7 @@
 ---
 title: "maven-deploy"
+sidebar:
+  order: 5
 ---
 
 ### 准备

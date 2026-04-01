@@ -1,8 +1,9 @@
 ---
 title: "LinkedMap 使用文档"
+sidebar:
+  order: 7
 ---
 
-# LinkedMap 使用文档
 
 ## 概述
 

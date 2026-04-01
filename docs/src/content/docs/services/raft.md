@@ -1,8 +1,9 @@
 ---
 title: "Raft"
+sidebar:
+  order: 2
 ---
 
-# Raft
 
 ## 什么是Raft
 请阅读 zeze/Zeze/Raft/下的Raft.mhtml，raft.pdf，OngaroPhD.pdf。

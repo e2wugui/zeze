@@ -1,8 +1,9 @@
 ---
 title: "Game"
+sidebar:
+  order: 1
 ---
 
-# Game
 
 Game是Zeze内建模块。
 

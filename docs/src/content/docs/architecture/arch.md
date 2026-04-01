@@ -1,8 +1,9 @@
 ---
 title: "Arch"
+sidebar:
+  order: 1
 ---
 
-# Arch
 
 Arch详细说明和使用。
 

@@ -1,8 +1,9 @@
 ---
 title: "Dbh2"
+sidebar:
+  order: 1
 ---
 
-# Dbh2
 
 ## 什么是Dbh2
 Dbh2是一个专用于Zeze的基于RocksDB和Raft的分布式KV数据库。它不支持冲突记录的并发写，

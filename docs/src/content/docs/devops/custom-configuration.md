@@ -1,8 +1,9 @@
 ---
 title: "自定义配置"
+sidebar:
+  order: 2
 ---
 
-# 自定义配置
 
 配置由Zeze.Config类管理。
 

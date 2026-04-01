@@ -1,8 +1,9 @@
 ---
 title: "CHashMap 使用文档"
+sidebar:
+  order: 4
 ---
 
-# CHashMap 使用文档
 
 ## 概述
 

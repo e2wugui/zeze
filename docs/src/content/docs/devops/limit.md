@@ -1,8 +1,9 @@
 ---
 title: "Limit"
+sidebar:
+  order: 4
 ---
 
-# Limit
 
 ## Database
 * Zeze.Transaction.Database.eMaxKeyLength

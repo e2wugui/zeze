@@ -1,8 +1,9 @@
 ---
 title: "Performance"
+sidebar:
+  order: 3
 ---
 
-# Performance
 
 ## Cache命中率
 Zeze 直接使用本进程内的Cache。在Cache命中的情况下，没有任何远程访问。此时性能

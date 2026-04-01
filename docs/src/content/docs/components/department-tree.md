@@ -1,8 +1,9 @@
 ---
 title: "DepartmentTree 使用文档"
+sidebar:
+  order: 6
 ---
 
-# DepartmentTree 使用文档
 
 ## 概述
 

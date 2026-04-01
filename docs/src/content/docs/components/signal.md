@@ -1,8 +1,9 @@
 ---
 title: "Signal"
+sidebar:
+  order: 9
 ---
 
-# Signal
 
 ## 安全结束(SIGHUP(1), SIGINT(2), SIGTERM(15))
 * Java程序: System.exit(...)

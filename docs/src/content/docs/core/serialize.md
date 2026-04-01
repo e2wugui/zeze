@@ -1,8 +1,9 @@
 ---
 title: "Serialize"
+sidebar:
+  order: 6
 ---
 
-# Serialize
 
 Zeze有一个很小的自己的序列化实现。麻雀虽小五脏俱全。
 Zeze.Transaction.Bean是在ByteBuffer基础上构建的一套对象序列化实现。

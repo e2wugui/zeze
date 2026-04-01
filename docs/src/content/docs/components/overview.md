@@ -1,8 +1,9 @@
 ---
 title: "Component"
+sidebar:
+  order: 1
 ---
 
-# Component
 
 Component是Zeze内建模块；
 

@@ -1,8 +1,9 @@
 ---
 title: "Log"
+sidebar:
+  order: 3
 ---
 
-# Log
 
 本章介绍Zeze日志的配置选项，定制方法。
 

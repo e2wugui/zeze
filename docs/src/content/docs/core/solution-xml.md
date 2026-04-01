@@ -1,8 +1,9 @@
 ---
 title: "Solution.xml"
+sidebar:
+  order: 2
 ---
 
-# Solution.xml
 
 ## Solution
 解决方案。一个应用系统可以包含多个解决方案。配置文件名字可以不叫solution.xml。但

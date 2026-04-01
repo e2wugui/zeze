@@ -1,8 +1,9 @@
 ---
 title: "Tikv"
+sidebar:
+  order: 2
 ---
 
-# Tikv
 
 ## Windows安装虚拟机及CentOS系统
 
