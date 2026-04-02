@@ -3,6 +3,7 @@ package Zeze.Serialize;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+@SuppressWarnings("EqualsAndHashcode")
 public class Quaternion extends Vector4 {
 	public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 

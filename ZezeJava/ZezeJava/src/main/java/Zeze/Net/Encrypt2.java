@@ -135,4 +135,10 @@ public final class Encrypt2 implements Codec {
 		}
 		sink.flush();
 	}
+
+	@Override
+	public void close() {
+		if (sink != null)
+			sink.close();
+	}
 }

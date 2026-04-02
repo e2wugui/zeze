@@ -160,5 +160,6 @@ public final class DecompressMppcZstd extends Decompress implements Closeable {
 	@Override
 	public void close() {
 		ds.close();
+		super.close();
 	}
 }

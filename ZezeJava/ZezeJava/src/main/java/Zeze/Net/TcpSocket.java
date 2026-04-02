@@ -277,7 +277,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 	}
 
 	public TcpSocket(@NotNull Service service, @Nullable String hostNameOrAddress, int port,
-					 @Nullable Object userState, @Nullable Connector connector) {
+	                 @Nullable Object userState, @Nullable Connector connector) {
 		super(service);
 
 		this.acceptorOrConnector = connector;
@@ -510,6 +510,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				setActiveSendTime();
 				return true;
 			}
+			outputBufferSizeHandle.getAndAdd(this, (long)-length);
 		} catch (Exception ex) {
 			outputBufferSizeHandle.getAndAdd(this, (long)-length);
 			close(ex);
@@ -594,7 +595,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 						throw new IllegalStateException("InputBufferMaxProtocolSize " + remain + " >= " + max);
 					codecBuf.Compact();
 				}
-			} else if (!readAgain)
+			} else if (bytesTransferred < 0)
 				getService().OnSocketInputClosed(this);
 			else
 				readAgain = false;
@@ -704,6 +705,16 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				outputBuffer.close();
 			try {
 				getService().OnSocketDisposed(this);
+				Codec codec = inputCodecChain;
+				if (codec != null) {
+					inputCodecChain = null;
+					codec.close();
+				}
+				codec = outputCodecChain;
+				if (codec != null) {
+					outputCodecChain = null;
+					codec.close();
+				}
 			} catch (Exception e) {
 				logger.error("service.OnSocketDisposed exception:", e);
 			}

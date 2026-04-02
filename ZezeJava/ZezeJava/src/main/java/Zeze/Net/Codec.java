@@ -1,8 +1,9 @@
 package Zeze.Net;
 
+import java.io.Closeable;
 import org.jetbrains.annotations.NotNull;
 
-public interface Codec {
+public interface Codec extends Closeable {
 	void update(byte c) throws CodecException;
 
 	/**
@@ -18,5 +19,9 @@ public interface Codec {
 	}
 
 	default void flush() throws CodecException {
+	}
+
+	@Override
+	default void close() {
 	}
 }

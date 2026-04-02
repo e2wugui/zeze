@@ -135,4 +135,9 @@ public class Compress implements Codec {
 		}
 		sink.flush();
 	}
+
+	@Override
+	public void close() {
+		sink.close();
+	}
 }

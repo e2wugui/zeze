@@ -164,4 +164,9 @@ public class Decompress implements Codec {
 			process();
 		sink.flush();
 	}
+
+	@Override
+	public void close() {
+		sink.close();
+	}
 }

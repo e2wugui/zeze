@@ -1,10 +1,9 @@
 package Zeze.Net;
 
-import java.io.Closeable;
 import Zeze.Util.ZstdFactory;
 import org.jetbrains.annotations.NotNull;
 
-public final class DecompressZstd implements Codec, Closeable {
+public final class DecompressZstd implements Codec {
 	public static final int DEFAULT_SRC_BUF_SIZE = 1024;
 
 	private final @NotNull Codec sink;
@@ -65,5 +64,6 @@ public final class DecompressZstd implements Codec, Closeable {
 	@Override
 	public void close() {
 		ds.close();
+		sink.close();
 	}
 }

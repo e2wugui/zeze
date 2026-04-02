@@ -122,4 +122,10 @@ public final class Decrypt2 implements Codec {
 		}
 		sink.flush();
 	}
+
+	@Override
+	public void close() {
+		if (sink != null)
+			sink.close();
+	}
 }

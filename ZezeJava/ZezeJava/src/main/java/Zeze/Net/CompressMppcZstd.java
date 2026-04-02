@@ -87,5 +87,6 @@ public final class CompressMppcZstd extends Compress implements Closeable {
 	@Override
 	public void close() {
 		cs.close();
+		super.close();
 	}
 }

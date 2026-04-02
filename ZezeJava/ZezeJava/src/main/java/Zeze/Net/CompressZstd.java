@@ -66,5 +66,6 @@ public final class CompressZstd implements Codec, Closeable {
 	@Override
 	public void close() {
 		cs.close();
+		sink.close();
 	}
 }
