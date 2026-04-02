@@ -137,13 +137,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * @return true: success
 	 */
 	public final boolean Send(@Nullable AsyncSocket so,
-							  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
+	                          @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		return Send(so, responseHandle, timeout);
 	}
 
 	public final boolean Send(@Nullable AsyncSocket so,
-							  @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
-							  int millisecondsTimeout) {
+	                          @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
+	                          int millisecondsTimeout) {
 		if (so == null)
 			return false;
 		Service service = so.getService();
@@ -172,13 +172,13 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	 * 连接(so)可以为null，此时Rpc请求将在Timeout后回调。
 	 */
 	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
-									 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
+	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle) {
 		SendReturnVoid(service, so, responseHandle, 5000);
 	}
 
 	public final void SendReturnVoid(@NotNull Service service, @Nullable AsyncSocket so,
-									 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
-									 int millisecondsTimeout) {
+	                                 @Nullable ProtocolHandle<Rpc<TArgument, TResult>> responseHandle,
+	                                 int millisecondsTimeout) {
 		if (so != null && so.getService() != service)
 			throw new IllegalStateException("so.Service != service");
 
@@ -195,6 +195,8 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		return SendForWait(so, 5000);
 	}
 
+	// 注意这个同步发送方法会覆盖future,而且之后不会自动清除,除非再次调用同步发送
+	// 如果接着调用异步发送,可能因为旧的future导致无法响应responseHandle
 	public final TaskCompletionSource<TResult> SendForWait(@Nullable AsyncSocket so, int millisecondsTimeout) {
 		future = new TaskCompletionSource<>();
 		if (!Send(so, null, millisecondsTimeout))
@@ -238,7 +240,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public void dispatch(@NotNull Service service,
-						 @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	                     @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest) {
 			super.dispatch(service, factoryHandle);
 			return;
@@ -283,7 +285,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 
 	@Override
 	public long handle(@NotNull Service service,
-					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	                   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		if (isRequest)
 			return super.handle(service, factoryHandle);
 

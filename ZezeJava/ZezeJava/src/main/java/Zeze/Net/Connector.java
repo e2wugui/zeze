@@ -82,12 +82,14 @@ public class Connector extends ReentrantLock {
 
 	public Connector(@NotNull Element self) {
 		hostNameOrAddress = self.getAttribute("HostNameOrAddress");
-		port = Integer.parseInt(self.getAttribute("Port"));
 		this.url = self.getAttribute("Url");
-		if (url.isBlank())
+		if (url.isBlank()) {
+			port = Integer.parseInt(self.getAttribute("Port"));
 			name = hostNameOrAddress + '_' + port;
-		else
+		} else {
+			port = 0;
 			name = url;
+		}
 		String attr = self.getAttribute("IsAutoReconnect");
 		isAutoReconnect = !attr.isEmpty() && Boolean.parseBoolean(attr);
 		attr = self.getAttribute("MaxReconnectDelay");
@@ -248,6 +250,9 @@ public class Connector extends ReentrantLock {
 				else
 					socket = service.newWebsocketClient(url, userState, this);
 			}
+		} catch (Exception e) {
+			TryReconnect();
+			throw e;
 		} finally {
 			unlock();
 		}

@@ -705,6 +705,9 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 				outputBuffer.close();
 			try {
 				getService().OnSocketDisposed(this);
+			} catch (Exception e) {
+				logger.error("service.OnSocketDisposed exception:", e);
+			} finally {
 				Codec codec = inputCodecChain;
 				if (codec != null) {
 					inputCodecChain = null;
@@ -715,8 +718,6 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 					outputCodecChain = null;
 					codec.close();
 				}
-			} catch (Exception e) {
-				logger.error("service.OnSocketDisposed exception:", e);
 			}
 		});
 		selector.wakeup();

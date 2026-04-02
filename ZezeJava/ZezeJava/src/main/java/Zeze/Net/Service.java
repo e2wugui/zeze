@@ -379,7 +379,7 @@ public class Service extends ReentrantLock {
 	 * @param so new socket accepted.
 	 */
 	public void OnSocketAccept(@NotNull AsyncSocket so) throws Exception {
-		if (socketMap.size() > config.getMaxConnections())
+		if (socketMap.size() >= config.getMaxConnections()) // 这里可能有并发原子性问题,不能保证限制在max以内
 			throw new IllegalStateException("too many connections");
 		if (config.getHaProxyKey() != null)
 			((TcpSocket)so).setHaProxyHeader(new HaProxyHeader(config.getHaProxyKey()));

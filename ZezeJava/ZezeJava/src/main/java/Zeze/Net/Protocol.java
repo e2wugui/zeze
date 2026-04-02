@@ -69,7 +69,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public @Nullable Service getService() {
-		return sender.getService();
+		var sender = this.sender;
+		return sender != null ? sender.getService() : null;
 	}
 
 	public @Nullable Object getUserState() {
@@ -243,13 +244,13 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public void dispatch(@NotNull Service service,
-						 @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	                     @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		service.dispatchProtocol(this, factoryHandle);
 	}
 
 	@SuppressWarnings("unchecked")
 	public long handle(@NotNull Service service,
-					   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
+	                   @NotNull Service.ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		var handle = factoryHandle.Handle;
 		if (handle != null)
 			return ((ProtocolHandle<Protocol<?>>)handle).handle(this);
@@ -271,8 +272,8 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	 * @return decoded protocol instance. if decode fail return null.
 	 */
 	public static @Nullable Protocol<?> decode(@NotNull ProtocolFactoryFinder service,
-											   @NotNull ByteBuffer singleEncodedProtocol,
-											   @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
+	                                           @NotNull ByteBuffer singleEncodedProtocol,
+	                                           @Nullable OutObject<Service.ProtocolFactoryHandle<?>> outFactoryHandle) {
 		int moduleId = singleEncodedProtocol.ReadInt4();
 		int protocolId = singleEncodedProtocol.ReadInt4();
 		int size = singleEncodedProtocol.ReadInt4();
@@ -295,7 +296,7 @@ public abstract class Protocol<TArgument extends Serializable> implements Serial
 	}
 
 	public static @Nullable Protocol<?> decode(@NotNull Service service,
-											   @NotNull ByteBuffer singleEncodedProtocol) {
+	                                           @NotNull ByteBuffer singleEncodedProtocol) {
 		return decode(service::findProtocolFactoryHandle, singleEncodedProtocol, null);
 	}
 
