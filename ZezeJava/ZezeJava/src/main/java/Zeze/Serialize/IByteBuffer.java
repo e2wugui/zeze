@@ -418,17 +418,12 @@ public interface IByteBuffer {
 	@Nullable ByteBuffer readUnknownField(int idx, int tag, @Nullable ByteBuffer unknown);
 
 	default byte @Nullable [] readAllUnknownFields(int idx, int tag, @Nullable ByteBuffer unknown) {
-		while (tag != 0) {
-			if (tag == 1) { // 忽略父bean标志,暂时还不支持收集父bean到unknown里
-				do {
-					SkipUnknownField(tag);
-					ReadTagSize(tag = ReadByte());
-				} while (tag != 0);
-				break;
-			}
+		while ((tag & ~1) != 0) { // (tag != 0 && tag != 1)
 			unknown = readUnknownField(idx, tag, unknown);
 			idx += ReadTagSize(tag = ReadByte());
 		}
+		if (tag == 1) // 忽略父bean标志,暂时还不支持收集父bean到unknown里
+			skipAllUnknownFields(tag);
 		return unknown != null ? unknown.CopyIf() : null;
 	}
 

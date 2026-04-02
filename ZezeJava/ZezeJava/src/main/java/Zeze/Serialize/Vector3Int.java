@@ -39,13 +39,19 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2Int o) {
-		Vector3Int v = (Vector3Int)o;
+	public int compareTo(@NotNull Vector2Int v) {
 		int c = Integer.compare(x, v.x);
 		if (c != 0)
 			return c;
 		c = Integer.compare(y, v.y);
-		return c != 0 ? c : Integer.compare(z, v.z);
+		if (c != 0)
+			return c;
+		if (!(v instanceof Vector3Int))
+			return 1;
+		c = Integer.compare(z, ((Vector3Int)v).z);
+		if (c != 0)
+			return c;
+		return v.getClass() == Vector3Int.class ? 0 : -1;
 	}
 
 	@Override

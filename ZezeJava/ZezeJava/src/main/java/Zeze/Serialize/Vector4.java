@@ -44,16 +44,24 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 o) {
-		Vector4 v = (Vector4)o;
+	public int compareTo(@NotNull Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
 		c = Float.compare(y, v.y);
 		if (c != 0)
 			return c;
-		c = Float.compare(z, v.z);
-		return c != 0 ? c : Float.compare(w, v.w);
+		if (!(v instanceof Vector3))
+			return 1;
+		c = Float.compare(z, ((Vector3)v).z);
+		if (c != 0)
+			return c;
+		if (!(v instanceof Vector4))
+			return 1;
+		c = Float.compare(w, ((Vector4)v).w);
+		if (c != 0)
+			return c;
+		return v.getClass() == Vector4.class ? 0 : -1;
 	}
 
 	@Override
@@ -75,10 +83,13 @@ public class Vector4 extends Vector3 {
 	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
-		if (o == null || o.getClass() != Vector4.class && o.getClass() != Quaternion.class)
+		if (o == null || o.getClass() != Vector4.class)
 			return false;
 		Vector4 v = (Vector4)o;
-		return x == v.x && y == v.y && z == v.z && w == v.w;
+		return Float.floatToRawIntBits(x) == Float.floatToRawIntBits(v.x) &&
+				Float.floatToRawIntBits(y) == Float.floatToRawIntBits(v.y) &&
+				Float.floatToRawIntBits(z) == Float.floatToRawIntBits(v.z) &&
+				Float.floatToRawIntBits(w) == Float.floatToRawIntBits(v.w);
 	}
 
 	@Override

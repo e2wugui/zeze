@@ -31,7 +31,12 @@ public class Vector2Int implements Comparable<Vector2Int> {
 	@Override
 	public int compareTo(@NotNull Vector2Int v) {
 		int c = Integer.compare(x, v.x);
-		return c != 0 ? c : Integer.compare(y, v.y);
+		if (c != 0)
+			return c;
+		c = Integer.compare(y, v.y);
+		if (c != 0)
+			return c;
+		return v.getClass() == Vector2Int.class ? 0 : -1;
 	}
 
 	@Override

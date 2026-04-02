@@ -31,7 +31,12 @@ public class Vector2 implements Comparable<Vector2> {
 	@Override
 	public int compareTo(@NotNull Vector2 v) {
 		int c = Float.compare(x, v.x);
-		return c != 0 ? c : Float.compare(y, v.y);
+		if (c != 0)
+			return c;
+		c = Float.compare(y, v.y);
+		if (c != 0)
+			return c;
+		return v.getClass() == Vector2.class ? 0 : -1;
 	}
 
 	@Override
@@ -41,7 +46,8 @@ public class Vector2 implements Comparable<Vector2> {
 		if (o == null || o.getClass() != Vector2.class)
 			return false;
 		Vector2 v = (Vector2)o;
-		return x == v.x && y == v.y;
+		return Float.floatToRawIntBits(x) == Float.floatToRawIntBits(v.x) &&
+				Float.floatToRawIntBits(y) == Float.floatToRawIntBits(v.y);
 	}
 
 	@Override

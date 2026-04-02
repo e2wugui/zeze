@@ -39,13 +39,19 @@ public class Vector3 extends Vector2 {
 	}
 
 	@Override
-	public int compareTo(@NotNull Vector2 o) {
-		Vector3 v = (Vector3)o;
+	public int compareTo(@NotNull Vector2 v) {
 		int c = Float.compare(x, v.x);
 		if (c != 0)
 			return c;
 		c = Float.compare(y, v.y);
-		return c != 0 ? c : Float.compare(z, v.z);
+		if (c != 0)
+			return c;
+		if (!(v instanceof Vector3))
+			return 1;
+		c = Float.compare(z, ((Vector3)v).z);
+		if (c != 0)
+			return c;
+		return v.getClass() == Vector3.class ? 0 : -1;
 	}
 
 	@Override
@@ -55,7 +61,9 @@ public class Vector3 extends Vector2 {
 		if (o == null || o.getClass() != Vector3.class)
 			return false;
 		Vector3 v = (Vector3)o;
-		return x == v.x && y == v.y && z == v.z;
+		return Float.floatToRawIntBits(x) == Float.floatToRawIntBits(v.x) &&
+				Float.floatToRawIntBits(y) == Float.floatToRawIntBits(v.y) &&
+				Float.floatToRawIntBits(z) == Float.floatToRawIntBits(v.z);
 	}
 
 	@Override
