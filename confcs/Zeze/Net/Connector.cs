@@ -219,10 +219,18 @@ namespace Zeze.Net
 
                 if (Socket == null)
                 {
-                    if (string.IsNullOrEmpty(Url))
-                        Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
-                    else
-                        Socket = Service.NewWebsocketClient(Url, UserState, this);
+                    try
+                    {
+                        if (string.IsNullOrEmpty(Url))
+                            Socket = Service.NewClientSocket(HostNameOrAddress, Port, UserState, this);
+                        else
+                            Socket = Service.NewWebsocketClient(Url, UserState, this);
+                    }
+                    catch
+                    {
+                        TryReconnect();
+                        throw;
+                    }
                 }
             }
         }

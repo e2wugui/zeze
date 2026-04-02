@@ -151,6 +151,8 @@ namespace Zeze.Net
             base.Send(so);
         }
 
+        // 注意这个同步发送方法会覆盖Future,而且之后不会自动清除,除非再次调用同步发送
+        // 如果接着调用异步发送,可能因为旧的Future导致无法响应responseHandle
         public async Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
             Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
