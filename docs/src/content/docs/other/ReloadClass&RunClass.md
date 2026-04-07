@@ -1,4 +1,10 @@
-# Misc
+---
+title: "热更之 ReloadClass,RunClass 辅助类说明"
+sidebar:
+  order: 6
+---
+
+热更之 ReloadClass,RunClass 辅助类说明
 
 ## Zeze.Services.ReloadClassServer
 1. 构造服务
