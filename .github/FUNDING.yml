@@ -9,4 +9,4 @@ community_bridge: # Replace with a single Community Bridge project-name e.g., cl
 #liberapay: lichenghua
 issuehunt: # Replace with a single IssueHunt username
 otechie: # Replace with a single Otechie username
-custom: ['https://github.com/e2wugui/zeze/blob/master/doc/sponsor/weixin.jpg','https://github.com/e2wugui/zeze/blob/master/doc/sponsor/zhifubao.jpg']
+custom: ['https://github.com/e2wugui/zeze/blob/master/docs/sponsor/weixin.jpg','https://github.com/e2wugui/zeze/blob/master/docs/sponsor/zhifubao.jpg']
