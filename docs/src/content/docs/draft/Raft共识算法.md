@@ -1,3 +1,9 @@
+---
+title: "Raft共识算法"
+sidebar:
+  order: 4
+---
+
 # Raft共识算法
 
 ## 状态

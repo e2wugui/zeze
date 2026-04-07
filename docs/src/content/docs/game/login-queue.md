@@ -39,7 +39,7 @@ sidebar:
 ## 启动和配置LoginQueue
 * 启动LoginQueue服务
 使用下面的配置，文件名为loginQueue.xml，启动 java -cp zeze.jar:... Zeze.Service.LoginQueue
-'''
+```
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze>
@@ -53,21 +53,21 @@ sidebar:
 		<Acceptor Ip="127.0.0.1" Port="5021"/>
 	</ServiceConf>
 </zeze>
-‘’‘
+```
 * 配置两个地方
 在linkd.xml和gs.xml里面分别增加LoginQueueAgent配置。
-’‘’
+```
 	<ServiceConf Name="LoginQueueAgent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
 	</ServiceConf>
-‘’‘
+```
 * linkd编写代码
 linkd收到客户端携带LoginQueueToken的Auth协议，在ProcessAuthRequest的处理最后调用
 App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken())
 如果choiceProvider成功则最终返回Auth成功，否则告知Auth失败。
 
 * 客户端（lua）
-'''
+```
 ConnectLoginQueue(ip, 5020)
 
 实现network.lua里面的三个回调。
@@ -93,4 +93,4 @@ function network.on_connected()
 	p.send();
 end
 
-'''
+```

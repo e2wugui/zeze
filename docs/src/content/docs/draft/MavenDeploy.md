@@ -1,3 +1,9 @@
+---
+title: "Maven Deploy"
+sidebar:
+  order: 2
+---
+
 ### 准备
 1. 到sonatype网站 https://central.sonatype.com/ 注册账号(推荐使用github账号认证), 为发布包的域名做认证, 获取上传token
    (域名认证是给域名的TXT属性设置为认证指定的一串随机码,设置后可用"nslookup -type=TXT 域名"查询)

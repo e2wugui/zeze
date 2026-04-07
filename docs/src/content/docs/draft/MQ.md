@@ -1,7 +1,14 @@
-MQ
+---
+title: "MQ Draft"
+sidebar:
+  order: 3
+---
+
+##MQ
     Message Queue。参考Kafka，TaskOneByOne。
 
-MQ Api
+##MQ Api
+```
 class MQ {
     public static void createMQ(String topic, int partition, Options options);
     // 只能增加partitionCount，增加的时候，队列中最好没有消息，否则onebyone特性可能被破坏。
@@ -51,8 +58,9 @@ class Message {
     Properties properties; // 定义这个？
     Binary body;
 }
+```
 
-MQ Server
+## MQ Server
 1. MQType-Single
     单一MQ Server实现，没有任何备份。
 
@@ -77,6 +85,6 @@ MQ Server
         这会导致Reader可能读取重复的消息，这点表现和RocksMQ一样。
     d) 参考dbh2管理模式，比如：manager n(>3)个，打开队列时，负载均衡方式选取manager并建立queue。
 
-MQ 并发模式
+## MQ 并发模式
 1. partitionCount 的数量决定并发。
 

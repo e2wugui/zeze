@@ -1,11 +1,16 @@
+---
+title: "Zeze漫谈草稿"
+sidebar:
+  order: 5
+---
 
-Zeze漫谈
+# Zeze漫谈
 ------------------------------------------------------------------------------------------------------------
 
-简介
+## 简介
 	Zeze是一个嵌入开发语言的分布式事务框架。
 
-思想变化和规则
+## 思想变化和规则
 	简单
 	直接
 	暴力
@@ -15,7 +20,7 @@ Zeze漫谈
 	分层思路、二的魔法
 		考虑某个局部系统时，一般只考虑二级。从整个系统，最终还是多级的。
 
-庞大的记录(Record)
+## 庞大的记录(Record)
 	Record最早只是Cache中的一个数据，后来所有相关功能需要的时候，都会在Record里面加上自己的状态。现在已经变得很庞大。
 
 	1. class Record
@@ -45,7 +50,7 @@ Zeze漫谈
 	long acquireTime;
 	用来表示记录是否新鲜的。刚刚获得控制权的记录，由于乐观锁，有可能没有真正成功执行完事务又会被其他服务器抢走，
 	造成资源浪费，甚至一直互相抢夺造成事务失败，虽然可能性比较低。
-
+```
 	final boolean isFresh() {
 		// 这个标志在申请锁时会被发送给Global，并影响Global对锁的分配。
 		return fresh;
@@ -68,7 +73,7 @@ Zeze漫谈
 		acquireTime = System.currentTimeMillis();
 		fresh = true;
 	}
-
+```
 	c) Checkpoint的优化
 	Database.Transaction databaseTransactionTmp;
 	Database.Transaction databaseTransactionOldTmp;
@@ -127,7 +132,7 @@ Zeze漫谈
 	java的lru用LinkedList结构记录了全访问顺序队列，这造成它的并发性能不高。
 	ConcurrentLruLike基于ConcurrentHashMap，提供修改的并发访问，访问顺序队列变得不精确，按lruQueue的精度推进。
 
-乐观锁详解
+## 乐观锁详解
 	算法要点
 	1．排序加锁，实际上所访问的记录存储在SortedDictionary中。
 	2．加锁后检查冲突，即数据是否改变。冲突则重做事务。
@@ -140,7 +145,7 @@ Zeze漫谈
 	   也需要重做。
 
 	上代码。
-
+```
 	public long perform(Procedure procedure) {
 		try { // 【7.】 try 1. 释放记录锁
 			var checkpoint = procedure.getZeze().getCheckpoint();
@@ -465,8 +470,9 @@ Zeze漫谈
 			e.atomicTupleRecord.record.exitFairLock();
 		}
 	}
+```
 
-单点的Global
+## 单点的Global
 	1. 介绍
 	多台服务器共享后台数据库。每台服务器拥有自己的缓存。一致性缓存就是维护多台服务器之间缓存的一致性。
 	zeze一致性缓存和CPU-Cache-Memory的结构很像。所以参考了CPU的MESI协议自己实现了一个锁分配机制。
@@ -592,7 +598,7 @@ Zeze漫谈
 	都有多个Raft备份，只要Raft系统中的健康节点超过Raft节点数/2个，系统就能持续提供服务。
 	Raft系统的问题是性能会下降很多。具体应用需要根据自己的需求，决定是否采用Global Raft版本。
 
-关联记录集合
+## 关联记录集合
 	一个事务中修改的记录集合就是一个关联记录集合。只要整个关联记录集合一起按事务的方式保存到后端数据库，事务就被保证了。
 	考虑几个问题：1. 事务需要能并发的执行的问题；2. 事务是需要系列化的，有时序的问题；3. 事务保存到后端数据库的并发问题；
 	
@@ -636,7 +642,7 @@ Zeze漫谈
 		}
 	}
 
-Listener
+## Listener
 	订阅数据变更。
 
 	实现历史
@@ -646,6 +652,6 @@ Listener
 	   但实现了以后，带来一个通用的增量同步数据的能力。这个版本一开始是为RocksRaft写的，RocksRaft需要增量同步数据的能力。
 	   后来觉得这个能力挺不错的，就把Zeze的Listener也改成这个方式了。
 
-RocksDb 误打误撞
+## RocksDb 误打误撞
 	接入Java RocksDb时，时间紧迫，不熟悉包装，沿用了c#的FamilyColumn的机制来在一个Db内实现多张表。
 	带来的好处是整个应用一个RocksDb实例，使用Batch，没有使用事务。作为不需要扩展的系统，凑合了。
