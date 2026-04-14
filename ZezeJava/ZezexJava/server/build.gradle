@@ -3,9 +3,9 @@ apply from: '../../ZezeJava/build.gradle'
 dependencies {
     implementation project(":ZezeJava")
 
-    implementation 'org.jgrapht:jgrapht-core:1.5.2'
+    implementation 'org.jgrapht:jgrapht-core:1.5.3'
     implementation 'com.mysql:mysql-connector-j:8.4.0'
-    implementation 'com.alibaba:druid:1.2.27'
+    implementation 'com.alibaba:druid:1.2.28'
 }
 
 sourceSets {
