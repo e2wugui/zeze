@@ -132,7 +132,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	private final class OperatesMySql implements Operates {
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
-			while (true) {
+			for (int i = 0; i < 64; ++i) {
 				try (var conn = dataSource.getConnection()) {
 					conn.setAutoCommit(true);
 					try (var ps = conn.prepareCall("{CALL _ZezeSetInUse_(?,?,?)}")) {
@@ -164,6 +164,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						Task.forceThrow(e);
 				}
 			}
+			throw new IllegalStateException("setInUse Deadlock");
 		}
 
 		@Override

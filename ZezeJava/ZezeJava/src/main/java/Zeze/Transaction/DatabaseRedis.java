@@ -254,7 +254,7 @@ public class DatabaseRedis extends Database {
 
 		@Override
 		public void setInUse(int localId, @NotNull String global) {
-			while (true) {
+			for (int i = 0; i < 64; ++i) {
 				if (tryLock()) {
 					try (var jedis = pool.getResource()) {
 						var inUse = InUse.decode(jedis.get(keyInUse));
@@ -283,6 +283,7 @@ public class DatabaseRedis extends Database {
 					Task.forceThrow(e);
 				}
 			}
+			throw new IllegalStateException("setInUse tryLock fail.");
 		}
 
 		@Override
