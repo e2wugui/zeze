@@ -66,7 +66,7 @@ public class LongHashMap<V> implements Cloneable {
 		return keyTable;
 	}
 
-	public @Nullable V @NotNull [] getValueTable() {
+	public @Nullable Object @NotNull [] getValueTable() {
 		return valueTable;
 	}
 
