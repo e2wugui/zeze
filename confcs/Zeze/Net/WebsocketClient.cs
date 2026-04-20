@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 #if UNITY_WEBSOCKET
 using UnityEngine;
@@ -33,12 +34,43 @@ namespace Zeze.Net
 
         public WebsocketClient(Service service, string wsUrl, object userState, Connector connector) : base(service)
         {
-            base.Connector = connector;
-            base.Type = AsyncSocketType.eClient;
+            Connector = connector;
+            Type = AsyncSocketType.eClient;
 
             var url = new Uri(wsUrl);
-            base.RemoteAddress = new IPEndPoint(IPAddress.Parse(url.Host), url.Port);
-            base.UserState = userState;
+            
+            // 修改后的代码：支持 IP 和域名
+            if (IPAddress.TryParse(url.Host, out var ip))
+            {
+                RemoteAddress = new IPEndPoint(ip, url.Port);
+            }
+            else
+            {
+                // 如果是域名，尝试 DNS 解析
+                try
+                {
+                    var addresses = System.Net.Dns.GetHostAddresses(url.Host);
+                    // 优先选择 IPv4 地址，如果没有则取第一个
+                    ip = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) ??
+                         addresses.FirstOrDefault();
+                    if (ip != null)
+                    {
+                        RemoteAddress = new IPEndPoint(ip, url.Port);
+                    }
+                    else
+                    {
+                        // 解析失败，抛出异常
+                        throw new Exception($"DNS resolution failed for {url.Host}: no valid IP address found.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // DNS 解析异常，记录日志并重新抛出
+                    logger.Error($"DNS resolution failed for {url.Host}: {ex.Message}");
+                    throw;  // 重新抛出原始异常
+                }
+            }
+            UserState = userState;
 
 #if !UNITY_WEBSOCKET
             // LocalAddress = null; // 得不到。
@@ -65,7 +97,7 @@ namespace Zeze.Net
                 Service.AddSocket(this);
                 Service.OnHandshakeDone(this);
                 // 连接成功，发送循环放到后台。
-                _ = Task.Run(SendLoop);
+                _ = Task.Run(SendLoop, _cts.Token);
 
                 receiveBuffer = ByteBuffer.Allocate(4096);
                 while (_clientWebSocket.State == WebSocketState.Open && !_cts.IsCancellationRequested)
@@ -110,21 +142,23 @@ namespace Zeze.Net
 
         public override bool Send(byte[] bytes, int offset, int length)
         {
-            lock(this)
-            {
-                _sendQueue.Add(new ArraySegment<byte>(bytes, offset, length));
-                return true;
-            }
+            _sendQueue.Add(new ArraySegment<byte>(bytes, offset, length));
+            return true;
         }
 
-        public override async void Dispose()
+        public override void Dispose()
         {
-            if (base.ClosedState(1) != 0)
+            if (ClosedState(1) != 0)
                 return;
             try
             {
                 _cts.Cancel();
-                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
+                    CancellationToken.None).ContinueWith(t =>
+                {
+                    if (t.Exception != null)
+                        logger.Error(t.Exception.InnerException ?? t.Exception);
+                }, TaskContinuationOptions.OnlyOnFaulted);
             }
             catch (Exception ex)
             {
