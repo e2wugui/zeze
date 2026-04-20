@@ -1,18 +1,18 @@
-﻿
-using System;
+﻿using System;
 using System.Net.WebSockets;
 using System.Threading.Tasks;
 using System.Threading;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
-using System.Linq;
-using System.Net;
+
 #if UNITY_WEBSOCKET
 using UnityEngine;
 using UnityWebSocket;
 using WebSocket = UnityWebSocket.WebSocket;
 using WebSocketState = UnityWebSocket.WebSocketState;
 using System.Collections.Generic;
+#else
+using System.Net; // unity不支持System.Net
 #endif
 
 namespace Zeze.Net
@@ -25,7 +25,8 @@ namespace Zeze.Net
 #if !UNITY_WEBSOCKET
         private readonly ClientWebSocket _clientWebSocket = new ClientWebSocket();
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
-        private readonly BlockingCollection<ArraySegment<byte>> _sendQueue = new BlockingCollection<ArraySegment<byte>>();
+        private readonly BlockingCollection<ArraySegment<byte>> _sendQueue =
+            new BlockingCollection<ArraySegment<byte>>();
 #else
         private WebSocket _webSocket = null;
         private bool isWebSocketOpen = false;
@@ -38,38 +39,14 @@ namespace Zeze.Net
             Type = AsyncSocketType.eClient;
 
             var url = new Uri(wsUrl);
-            
-            // 修改后的代码：支持 IP 和域名
+
+#if !UNITY_WEBSOCKET
+            // RemoteAddress 可能为null，没关系
             if (IPAddress.TryParse(url.Host, out var ip))
             {
                 RemoteAddress = new IPEndPoint(ip, url.Port);
             }
-            else
-            {
-                // 如果是域名，尝试 DNS 解析
-                try
-                {
-                    var addresses = System.Net.Dns.GetHostAddresses(url.Host);
-                    // 优先选择 IPv4 地址，如果没有则取第一个
-                    ip = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) ??
-                         addresses.FirstOrDefault();
-                    if (ip != null)
-                    {
-                        RemoteAddress = new IPEndPoint(ip, url.Port);
-                    }
-                    else
-                    {
-                        // 解析失败，抛出异常
-                        throw new Exception($"DNS resolution failed for {url.Host}: no valid IP address found.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // DNS 解析异常，记录日志并重新抛出
-                    logger.Error($"DNS resolution failed for {url.Host}: {ex.Message}");
-                    throw;  // 重新抛出原始异常
-                }
-            }
+#endif
             UserState = userState;
 
 #if !UNITY_WEBSOCKET
@@ -103,13 +80,15 @@ namespace Zeze.Net
                 while (_clientWebSocket.State == WebSocketState.Open && !_cts.IsCancellationRequested)
                 {
                     receiveBuffer.EnsureWrite(4096);
-                    var segment = new ArraySegment<byte>(receiveBuffer.Bytes, receiveBuffer.WriteIndex, receiveBuffer.Capacity - receiveBuffer.WriteIndex);
+                    var segment = new ArraySegment<byte>(receiveBuffer.Bytes, receiveBuffer.WriteIndex,
+                        receiveBuffer.Capacity - receiveBuffer.WriteIndex);
                     var result = await _clientWebSocket.ReceiveAsync(segment, _cts.Token);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         Dispose();
                         break;
                     }
+
                     receiveBuffer.WriteIndex += result.Count;
                     if (result.EndOfMessage)
                     {
@@ -134,7 +113,7 @@ namespace Zeze.Net
                     await _clientWebSocket.SendAsync(buffer, WebSocketMessageType.Binary, true, CancellationToken.None);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Close(ex);
             }
@@ -164,6 +143,7 @@ namespace Zeze.Net
             {
                 logger.Error(ex);
             }
+
             try
             {
                 Service.OnSocketClose(this, LastException);
@@ -244,7 +224,7 @@ namespace Zeze.Net
             byte[] targetBytes = null;
             if (offset != 0 || bytes.Length != length)
             {
-                targetBytes =  new byte[length];
+                targetBytes = new byte[length];
                 Buffer.BlockCopy(bytes, offset, targetBytes, 0, length);
             }
             else
@@ -314,6 +294,5 @@ namespace Zeze.Net
         {
             Dispose();
         }
-
     }
 }
