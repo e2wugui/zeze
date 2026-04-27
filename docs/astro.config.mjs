@@ -56,6 +56,10 @@ export default defineConfig({
 					label: '其他',
 					autogenerate: { directory: 'other' },
 				},
+				{
+					label: '草稿',
+					autogenerate: { directory: 'draft' },
+				},
 			],
 		}),
 	],
