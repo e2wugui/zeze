@@ -1,5 +1,5 @@
 ---
-title: "热更之 ReloadClass,RunClass 辅助类说明"
+title: "热更类说明"
 sidebar:
   order: 6
 ---
