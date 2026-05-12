@@ -267,12 +267,13 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						"                        BEGIN TRANSACTION" + "\r\n" +
 						"                        set @ReturnValue=1" + "\r\n" +
 						"                        delete from _ZezeInstances_ where localid=@localid" + "\r\n" +
-						"                        if @@rowcount = 0" + "\r\n" +
-						"                        begin" + "\r\n" +
-						"                            set @ReturnValue=2" + "\r\n" +
-						"                            ROLLBACK TRANSACTION" + "\r\n" +
-						"                            return 2" + "\r\n" +
-						"                        end" + "\r\n" +
+						//实例不存在的情况不判断了，总是去执行后面的清除判断。
+						//"                        if @@rowcount = 0" + "\r\n" +
+						//"                        begin" + "\r\n" +
+						//"                            set @ReturnValue=2" + "\r\n" +
+						//"                            ROLLBACK TRANSACTION" + "\r\n" +
+						//"                            return 2" + "\r\n" +
+						//"                        end" + "\r\n" +
 						"                        DECLARE @InstanceCount int" + "\r\n" +
 						"                        set @InstanceCount=0" + "\r\n" +
 						"                        select @InstanceCount=count(*) from _ZezeInstances_" + "\r\n" +

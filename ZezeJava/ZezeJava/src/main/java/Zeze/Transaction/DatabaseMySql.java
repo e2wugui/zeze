@@ -376,12 +376,13 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 						"    START TRANSACTION;\n" +
 						"    SET ret_value=1;\n" +
 						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-						"    SELECT ROW_COUNT() INTO row_count;\n" +
-						"    IF row_count = 0 THEN\n" +
-						"        SET ret_value=2;\n" +
-						"        ROLLBACK;\n" +
-						"        LEAVE return_label;\n" +
-						"    END IF;\n" +
+						//实例不存在的情况不判断了，总是去执行后面的清除判断。
+						//"    SELECT ROW_COUNT() INTO row_count;\n" +
+						//"    IF row_count = 0 THEN\n" +
+						//"        SET ret_value=2;\n" +
+						//"        ROLLBACK;\n" +
+						//"        LEAVE return_label;\n" +
+						//"    END IF;\n" +
 						"    SET instance_count=0;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 0 THEN\n" +

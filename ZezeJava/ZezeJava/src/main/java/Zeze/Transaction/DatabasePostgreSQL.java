@@ -373,12 +373,13 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 						"BEGIN\n" +
 						"    ret_value := 1;\n" +
 						"    DELETE FROM _ZezeInstances_ WHERE localid=in_local_id;\n" +
-						"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
-						"    IF row_count = 0 THEN\n" +
-						"        ret_value := 2;\n" +
-						"        RAISE EXCEPTION 'ROLLBACK';\n" +
-						"        RETURN;\n" +
-						"    END IF;\n" +
+						//实例不存在的情况不判断了，总是去执行后面的清除判断。
+						//"    GET DIAGNOSTICS row_count = ROW_COUNT;\n" +
+						//"    IF row_count = 0 THEN\n" +
+						//"        ret_value := 2;\n" +
+						//"        RAISE EXCEPTION 'ROLLBACK';\n" +
+						//"        RETURN;\n" +
+						//"    END IF;\n" +
 						"    SELECT count(*) INTO instance_count FROM _ZezeInstances_;\n" +
 						"    IF instance_count = 0 THEN\n" +
 						"        DELETE FROM _ZezeDataWithVersion_ WHERE id=empty_bin;\n" +
