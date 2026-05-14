@@ -228,7 +228,7 @@ public class Rank extends AbstractRank {
 		var factor = computeFactor;
 		if (factor < 2)
 			factor = 2;
-		return (int)(getConcurrentLevel(rankType) * factor);
+		return (int)(getRankSize(rankType) * factor);
 	}
 
 	/**
