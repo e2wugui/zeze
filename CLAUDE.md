@@ -6,14 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Zeze is a distributed transaction framework based on cache coherence. It provides automatic transaction management, multi-threading safety with optimistic locking (no deadlocks), and automatic memory-database synchronization across multiple backend databases (MySQL, PostgreSQL, MongoDB, Redis, TiKV, DynamoDB, FoundationDB, etc.).
 
+Initial project template: https://gitee.com/dwing/zezeboot
+
 ## Build Commands
 
 ### Java (Primary Language)
 - **Build all Java modules**: `cd ZezeJava/ZezeJava && mvn clean package`
 - **Run tests**: `cd ZezeJava/ZezeJavaTest && mvn test`
 - **Run single test**: `cd ZezeJava/ZezeJavaTest && mvn test -Dtest=ClassName#methodName`
+- **Install locally**: `cd ZezeJava/ZezeJava && mvn install`
 - **Deploy to Maven Central**: `cd ZezeJava/ZezeJava && mvn deploy` (requires GPG signing and Sonatype setup)
-- **Install locally**: `mvn install`
+- **Gradle build**: Also available via `settings.gradle` in `ZezeJava/`
 
 ### TypeScript Client
 - **First-time setup**: `cd TypeScript && npm install --save-dev typescript`
@@ -23,6 +26,13 @@ Zeze is a distributed transaction framework based on cache coherence. It provide
 ### C++
 - **Build**: Uses Makefile in `cxx/` directory
 
+### Documentation Site (Astro/Starlight)
+- **Install deps**: `cd docs && pnpm install`
+- **Dev server**: `cd docs && pnpm dev`
+- **Build**: `cd docs && pnpm build`
+- **Preview**: `cd docs && pnpm preview`
+- **Deploy**: Auto-deploys to GitHub Pages on push to master via `.github/workflows/deploy-docs.yml`
+
 ### Code Generation
 - The framework uses code generation from XML definitions (solution.xml)
 - Generated files are typically in `Gen/` directories and should not be manually edited
@@ -31,16 +41,20 @@ Zeze is a distributed transaction framework based on cache coherence. It provide
 
 ```
 ZezeJava/              # Java implementation (main)
-  ├─ ZezeJava/         # Core framework
-  ├─ ZezeJavaTest/     # Tests
-  ├─ ZezexJava/        # Extensions (client, linkd, server examples)
+  ├─ ZezeJava/         # Core framework (pom.xml)
+  ├─ ZezeJavaTest/     # Tests (JUnit 4)
+  ├─ ZezexJava/        # Extension modules
+  │   ├─ client/       # Client library
+  │   ├─ linkd/        # Linkd server (connection load balancer)
+  │   └─ server/       # Server example (game demo)
   └─ ZokerManager/     # Process management
-cxx/                   # C++ implementation (client-side)
+cxx/                   # C++ client implementation
 TypeScript/            # TypeScript/JavaScript client
 python/                # Code generation tools
-doc/Writerside/        # Comprehensive documentation
+docs/                  # Documentation site (Astro/Starlight)
 Gen/                   # Code generation (C#)
 confcs/                # Configuration (C#)
+tools/                 # Utilities including LuaJIT
 ```
 
 ## Core Architecture
@@ -112,7 +126,7 @@ The framework supports multiple database backends simultaneously:
 ### Maven Publishing
 - Requires GPG signing setup
 - Requires Sonatype account with domain verification
-- See `doc/MavenDeploy.md` for detailed instructions
+- See `docs/src/content/docs/devops/maven-deploy.md` for detailed instructions
 
 ### Configuration Files
 - Server configs are XML files (e.g., `server.xml`, `linkd.xml`)
@@ -125,14 +139,19 @@ The framework supports multiple database backends simultaneously:
 1. **Java Version**: Target Java 11
 2. **Package Structure**: Always use `Zeze.*` imports, not `com.zeze.*`
 3. **Generated Code**: Files in `Gen/` directories are auto-generated, do not edit
-4. **Maven Coordinates**: Published as `com.zezeno:zeze-java:1.6.1`
+4. **Maven Coordinates**: `com.zezeno:zeze-java` (current development: 1.6.3-SNAPSHOT)
 5. **Dependencies**: Most dependencies are marked as `<scope>provided</scope>` - applications must include them
 
 ## Documentation
 
-Comprehensive documentation is available in `doc/Writerside/topics/`:
-- `Arch.md` - Architecture details
-- `Transaction.md` - Transaction system
-- `Quick-Start.md` - Getting started guide
-- `Bean.md`, `Collections.md`, `Component.md` - Framework components
-- Online docs: https://stallboy.github.io/zezedocs/
+Documentation source is in `docs/src/content/docs/` (Astro/Starlight site):
+- `getting-started/` - Introduction, quick start, theory
+- `architecture/` - Architecture, networking, providers
+- `core/` - Bean, transaction, serialization, solution.xml
+- `components/` - Collections, queues, signals
+- `database/` - Dbh2, TiKV
+- `services/` - Raft, platform services
+- `devops/` - Configuration, metrics, logging, class reload
+- `game/` - Game-specific features (timer, tasks, login queue)
+
+Online docs: https://e2wugui.github.io/zeze/

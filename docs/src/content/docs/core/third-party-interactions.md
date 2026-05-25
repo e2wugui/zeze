@@ -1,86 +1,169 @@
 ---
-title: "事务和第三方系统交互问题"
+title: "事务中操作外部系统"
 sidebar:
-  order: 3
+  order: 6
 ---
 
+Zeze 事务可能因冲突而重做（参见 → transaction），而外部系统操作无法随事务自动回滚。本文说明如何在事务中安全地调度外部操作。
 
-## 问题分析
-当事务访问的数据全部都是zeze管理的，这种情况下，zeze已经处理了所有问题（几乎吧），
-实现逻辑时，可以按自己最舒服的方式进行编写逻辑实现。当事务需要操作非zeze管理的
-数据（这里的数据包括不是zeze管理的内存变量）时，如上一章提到的注册Timer，向
-ThreadPool提交任务等，这些操作非常可靠，几乎可以认为不会失败，此时可以简单的用
-Transaction.WhileCommit处理。当事务操作的是第三方系统的数据，由于第三方系统是有
-可能失败的，此时不能简单的使用WhileCommit处理。如果第三方系统支持两段式提交等
-事务方式，可以采用并融入本地事务，如果第三方系统不支持事务，需要具体问题具体分析。
-下面先举个例子。
-```
-Transaction(InputParam)
-{
-      Foreach (var item in InputParam.Items)
-      {
-            If (false == Bag.Remove(item))
-                  Return false; // rollback
-　　   }
-　　   // Oss：某个云对象存储系统。
-　　   If (false == oss.putObject(InputParam))
-　　	        Return false; // 希望正确rollback
-　　   Return true; // 事务提交
+## 核心问题
+
+Zeze 采用乐观锁，当检测到冲突时整个事务体会重新执行（redo）。这意味着：1）事务体重做时，其中的外部调用会被再次发起；2）如果事务重做后最终回滚，之前已执行的外部操作不会自动回滚。
+
+```java
+// 危险：直接在事务体中调用外部系统
+long call() {
+    bag.remove(itemId);          // Zeze 管理，自动回滚
+    oss.putObject(data);         // 外部系统，无法回滚
+    return 0;                    // 如果事务重做，putObject 会执行多次
 }
 ```
-上面的流程看起来非常合理，但是已知存在如下问题：
-1.	事务可能重做，但最终成功，oss.putObject会写入多次，这不是个大问题，仅仅影响性
-      能。
-2.	由于事务可能重做，并且再次尝试时回滚了，但是oss.putObject的数据已经写到第三
-      方系统了，这会导致错误的写入Oss。
 
-## 解决思路
-* 还是WhileCommit
+## WhileCommit / WhileRollback
 
-如果认为Oss系统足够可靠，那么简单的使用WhileCommit(() => oss.putObject())即可。这
-种方案在安全性要求不高的情况下推荐采用，虽然不出错的第三方系统应该是不存在的。但只要需求足够
-就行了。这个方案实际上不做特殊处理，仅仅由系统保证安全性。
+**`Transaction.whileCommit()`** 注册一个回调，仅在事务最终提交成功后执行一次。**`Transaction.whileRollback()`** 注册的回调则在事务回滚时执行。两者都保证：无论事务重做多少次，回调只执行一次。
 
-* 队列啊队列
-
-当第三方系统不支持事务方式操作时，可以引入一个“支持事务的队列”。zeze事务处理时，
-先写入这个队列，落地持久化。然后这个队列有个订阅者搬运工，把提交的内容搬到真正的
-第三方系统中。这个“支持事务的队列”的实现，可以千奇百怪了，下面举几个例子。
-
-  * 使用Zeze的Table
-      使用zeze的table存储将要保存到oss的数据。这就把原来事务内对oss的操作转换成受
-      zeze管理的数据的操作。然后有个搬运线程，不断的把最新提交的数据搬到oss。TODO 抽
-      象并包装成zeze-one-object-queue。
-  * 使用本地文件系统
-      使用本地文件系统存储将要保存到oss的数据。实际上这个就是自己实现一个队列了。注意，
-      保存到文件系统的数据有先后关系，别忘了这是一个队列。即，最新事务提交的数据应该后
-      处理，最终保存到oss的数据是最新的。这个方案的缺点是，不支持分布式。当存在多个server
-      时， server之间的队列之间没有通讯，会导致fifo失效。
-  * 使用RocksMQ
-      对于大系统，可以考虑采用现在已经很成熟的第三方队列。Zeze已经对RocksMQ进行了简
-      单包装。这个方案的缺点是系统复杂度大大提升，需要自己权衡得失。TODO 确认zeze对
-      RocksMQ的包装处理了所有问题。
-* 事务与第三方交互建议规则
-
-这里的事务与第三方交互问题不是分布式事务性质的交互，仅仅是事务与外部系统的调度问
-      题，上面的解决思路提供了一些方法，但不完善。另外这个问题没有一致的解决方法，下面
-      提供两个基本规则。
-  * 事务外调度
-      把本地事务看成一个procedure.call，第三方任意的看成rpc1.call(),rpc2.call()，然后把这些
-      call按比较合理的规则排号顺序。这就是事务外调度，一般来说推荐这种调度方式。
-  * 事务内调用
-      有些时候事务外调度可能不符合需求。比如某个rpc的参数是事务内计算得到的，而rpc的
-      结果又决定了事务是否继续执行。此时就要求事务内调用，那么这个需要自行处理事务重做
-      以及其他可能的问题。举个例子，比如有个第三方的消息过滤服务，这里假定其调用rpc的
-      参数要求事务内计算得到，如果检查不通过，事务需要回滚。此时就需要事务内调用。这个
-      第三方消息过滤服务看功能就是符合事务重做等情况下，都能随时调用，不会出现任何问题。
-  * 事务内调用改造成事务外调用
-      当rpc调用需要在一个事务流程内调用，但是它又不能安全的处理zeze事务的重做问题，
-      此时有个办法就是把这个事务一分为二，proc1,proc2,proc1_undo然后采用事务外规则，安
-      排好执行。比如：
+```java
+public static void whileCommit(@NotNull Runnable action);
+public static void whileRollback(@NotNull Runnable action);
 ```
-if (proc1.call() && rpc.call())
-      return proc2.call();
-else
-      proc1_undo.call();
+
+`whileCommit` 的 action 在 `finalCommit` 阶段、数据写入完成后触发；`whileRollback` 的 action 在 `finalRollback` 阶段、日志清空后触发。如果事务已完成（`Completed` 状态），action 会立即执行。
+
+## 常见场景
+
+### 发送网络协议
+
+框架的 `Online` 组件已封装 `sendWhileCommit` 方法，内部就是 `whileCommit` + `send` 的组合：
+
+```java
+// Game.Online 封装
+public void sendWhileCommit(long roleId, Protocol<?> p) {
+    Transaction.whileCommit(() -> send(roleId, p));
+}
+
+// 使用示例
+long call() {
+    bag.add(reward);
+    Transaction.whileCommit(() -> online.send(roleId, new SNotify(reward)));
+    return 0;
+}
+```
+
+回滚时通知客户端（例如告知操作失败），可使用对应的 `sendWhileRollback` 方法。
+
+### 注册 Timer
+
+Timer 的注册和取消都应放在 `whileCommit` 中，确保只在事务成功时生效：
+
+```java
+long call() {
+    role.setState(Waiting);
+    Transaction.whileCommit(() ->
+        timer.schedule(delay, roleId, "timeoutHandle")
+    );
+    return 0;
+}
+```
+
+### 提交异步任务
+
+向线程池提交任务等操作，也应放在 `whileCommit` 中：
+
+```java
+long call() {
+    data.setProcessed(true);
+    Transaction.whileCommit(() ->
+        executor.submit(() -> postProcess(data.copy()))
+    );
+    return 0;
+}
+```
+
+注意：传给异步任务的参数需要在注册回调时就确定值（或复制），事务提交后临时变量已不可访问。
+
+### 操作自定义内存数据
+
+非 Zeze 管理的内存变量（如本地缓存、统计计数器），需通过 `whileCommit` 保证一致性：
+
+```java
+long call() {
+    player.setLevel(newLevel);
+    Transaction.whileCommit(() -> localCache.update(playerId, newLevel));
+    return 0;
+}
+```
+
+## in/out/ref 参数的建议模式
+
+事务回调中引用外部变量时，需要注意变量捕获的时机。对于需要"传入"事务的值，直接使用即可；对于需要"传出"事务的结果，应该通过 `whileCommit` 写回：
+
+```java
+// 错误：直接修改外部变量，事务重做会导致结果不确定
+int result;
+long call() {
+    result = compute();  // 事务重做时 result 会被反复覆盖
+    return 0;
+}
+
+// 正确：通过 whileCommit 传出结果
+long call() {
+    int computed = compute();
+    Transaction.whileCommit(() -> outerResult.set(computed));
+    return 0;
+}
+```
+
+## 第三方系统的可靠性问题
+
+如果外部系统本身可能失败（如网络超时），仅用 `whileCommit` 并不能保证最终一致性。
+
+### 可靠性足够时：直接 WhileCommit
+
+外部操作几乎不会失败时（如本地发协议、本地线程池提交），直接用 `whileCommit` 即可：
+
+```java
+Transaction.whileCommit(() -> channel.writeAndFlush(msg));
+```
+
+### 需要可靠投递时：事务队列
+
+引入受 Zeze 管理的表作为队列，事务内写入队列记录，提交后由搬运线程消费并执行外部操作：
+
+```java
+long call() {
+    bag.remove(itemId);
+    // 将外部操作写入 Zeze 表，受事务保护
+    queueTable.put(taskId, new QueueItem(ossPath, data));
+    Transaction.whileCommit(() -> worker.wakeup());
+    return 0;
+}
+```
+
+### 调度方式选择
+
+| 方式 | 适用场景 | 说明 |
+|------|---------|------|
+| **事务外调度** | 外部操作不依赖事务计算结果 | 先完成事务，再发起外部调用 |
+| **事务内调用** | 外部操作参数来自事务内计算 | 外部调用需能安全处理重做 |
+| **拆分事务** | 外部调用不可重做但需要事务内参数 | 拆成 proc1 + rpc + proc2 |
+
+## 幂等性设计
+
+当事务重做时，`whileCommit` 中的 action 只执行一次，但事务体中的代码会重复执行。如果必须在事务体内调用外部系统，需要确保操作具备**幂等性**：
+
+- 使用唯一请求 ID（如 `AutoKey` 生成），外部系统通过 ID 去重。
+- 查询类操作天然幂等，可安全地在事务体内执行。
+- 写入类操作尽量避免在事务体内调用，改用 `whileCommit`。
+
+```java
+long call() {
+    // 使用 AutoKey 生成幂等 ID，即使事务重做也能去重
+    long requestId = autoKey.nextId();
+    item.setData(newData);
+    Transaction.whileCommit(() ->
+        externalService.submit(requestId, newData)
+    );
+    return 0;
+}
 ```

@@ -1,96 +1,121 @@
 ---
-title: "登录排队"
+title: 登录队列
 sidebar:
-  order: 4
+  order: 3
 ---
 
-实现登录排队。gs统计负载，当都达到上限时，用户排队登录。
+当大量玩家同时登录时，直接涌入会导致服务器过载。Zeze 提供了 **LoginQueue** 登录队列服务，通过排队机制控制登录速率，保障服务器稳定运行。
 
-## 登录排队服务器
-整个服务集群有一台专用的登录排队服务器，他监控gs的负载，负责排队让用户进来登录。
-这个取名：LoginQueueServer
+## 架构概览
 
-## 系统各部分介绍
-* Gs
-游戏服务器，通过LoginQueueAgent连接LoginQueueServer，并通过这个连接向LoginQueueServer报告自己的负载。
-* LoginQueueServer
-独立的Tcp服务，维护用户登录队列。
-* LoginQueueAgent
-登录排队服务内部客户端接口，由Gs使用。
-* LoginQueueClient
-登录排队服务客户端接口服务，由客户端使用。
-* Linkd
-游戏连接服务，用户登录游戏需要通过这个服务连接，并由他转发请求给Gs。Linkd也链接LoginQueueServer并报告自己的负载。
-
-## 开启登录排队配置和步骤
-1. Gs的zeze.xml增加到LoginQueueServer连接的LoginQueueAgent的配置。
-2. Linkd的zeze.xml增加到LoginQueueServer连接的LoginQueueAgent的配置。
-
-## 登录排队服务各部分算法描述
-1. Gs连接LoginQueueServer，ProviderLoadBase.java 实现报告自己的负载。
-2. LoginQueueServer维护一个LoginQueueClient的所有用户连接的队列。当有Gs空闲时，向用户连接发放
-    一个算法加密的token。token包含具体gs的信息和过期时间信息。
-3. LoginQueueClient连接LoginQueueServer，并得到当前队列的数量。当前队列数量定时更新。当到达队头时
-    会收到token。
-4. 客户端从token中得到需要连接的Linkd，连接linkd发送auth，需要带上loginqueuetoken，
-5. Linkd收到Auth和token，在Auth步骤的最后一步，手动调用一下choiceProvider(link, token)。
-    这个方法内部提供。
-
-## 启动和配置LoginQueue
-* 启动LoginQueue服务
-使用下面的配置，文件名为loginQueue.xml，启动 java -cp zeze.jar:... Zeze.Service.LoginQueue
 ```
+客户端 ──> LoginQueue ──排队分配──> 客户端拿到 Token ──> Linkd ──> Provider
+               │
+               v
+         LoginQueueServer <──上报负载── LoginQueueAgent (部署在 Linkd/Provider 上)
+```
+
+- **LoginQueue**：独立进程，接受客户端连接，根据负载排队分配登录许可
+- **LoginQueueServer**：内嵌在 LoginQueue 中，收集 Linkd 和 Provider 的负载信息
+- **LoginQueueAgent**：部署在每个 Linkd 或 Provider 中，向 LoginQueueServer 上报负载
+
+## LoginQueue 配置
+
+```java
+var loginQueue = new LoginQueue(100, false);  // maxOnlineNew, choiceLinkOnly
+loginQueue.start();
+```
+
+`loginQueue.xml` 配置文件：
+
+```xml
 <?xml version="1.0" encoding="utf-8"?>
-
 <zeze>
-	<!-- LoginQueue 给登录用户开放的端口 -->
-	<ServiceConf Name="LoginQueue">
-		<Acceptor Ip="127.0.0.1" Port="5020"/>
-	</ServiceConf>
-
-	<!-- LoginQueue 给内部服务开放的端口 -->
-	<ServiceConf Name="LoginQueueServer">
-		<Acceptor Ip="127.0.0.1" Port="5021"/>
-	</ServiceConf>
+    <ServiceConf Name="LoginQueue">
+        <Acceptor Ip="127.0.0.1" Port="5020"/>
+    </ServiceConf>
+    <ServiceConf Name="LoginQueueServer">
+        <Acceptor Ip="127.0.0.1" Port="5021"/>
+    </ServiceConf>
 </zeze>
 ```
-* 配置两个地方
-在linkd.xml和gs.xml里面分别增加LoginQueueAgent配置。
-```
-	<ServiceConf Name="LoginQueueAgent">
-		<Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
-	</ServiceConf>
-```
-* linkd编写代码
-linkd收到客户端携带LoginQueueToken的Auth协议，在ProcessAuthRequest的处理最后调用
-App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken())
-如果choiceProvider成功则最终返回Auth成功，否则告知Auth失败。
 
-* 客户端（lua）
+## 排队策略
+
+LoginQueue 使用 **TimeThrottle** 进行速率控制：
+
+1. 客户端连接时，如果队列为空且配额允许，直接分配服务器
+2. 否则加入等待队列，每秒触发一次分配
+3. 分配时根据 Provider 数量计算配额，随机分配一半以上
+4. 定时向排队中的客户端广播队列位置（最多 10000 个）
+5. 分配成功后通过 `PutLoginToken` 发送加密 **Token**
+
+Token 使用 AES-CBC-PKCS5 加密，包含 `serverId`、`linkServerId`、`expireTime`（默认 30 分钟）和 `serialId`。
+
+## 负载选择算法
+
+LoginQueueServer 使用加权随机策略选择服务器：
+
+- 跳过过载（`eOverload`）的服务器
+- 权重 = `proposeMaxOnline - online`，权重越大被选中概率越高
+- 没有可用服务器时返回 null，客户端继续排队
+
+## LoginQueueAgent 配置
+
+在 linkd.xml 和 gs.xml 中增加：
+
+```xml
+<ServiceConf Name="LoginQueueAgent">
+    <Connector HostNameOrAddress="127.0.0.1" Port="5021"/>
+</ServiceConf>
+```
+
+```java
+var agent = new LoginQueueAgent(config, serverId, "192.168.1.10", 8080);
+agent.start();
+agent.reportLinkLoad(load);      // 上报 Linkd 负载
+agent.reportProviderLoad(load);  // 或上报 Provider 负载（二选一）
+```
+
+## LoginQueueClient 客户端
+
+```java
+var client = new LoginQueueClient();
+client.setQueuePosition(pos -> System.out.println("排队位置: " + pos.getQueuePosition()));
+client.setLoginToken(token -> { /* 使用 token 连接 Linkd */ });
+client.setQueueFull(() -> System.out.println("队列已满"));
+client.connect("login.example.com", 5020);
+```
+
+| 协议 | 说明 |
+|------|------|
+| `PutQueuePosition` | 排队位置更新 |
+| `PutLoginToken` | 登录许可，包含 Linkd 地址和加密 Token |
+| `PutQueueFull` | 队列已满，连接关闭 |
+
+### Lua 客户端
+
 ```
 ConnectLoginQueue(ip, 5020)
-
-实现network.lua里面的三个回调。
-
-local function OnQueueFull()
-	-- 报告错误
-end
-
-local function OnQueuePosition(queuePosition)
-	-- 报告队列位置
-end
-
-local function OnLoginToken(LinkIp, LinkPort, Token)
-	-- 排队成功
-	loginQueueToken = Token;  -- 保存token
-	Connect(LinkIp, LinkPort)
-end
-
-function network.on_connected()
-	local p = Auth::new()
-	p.LoginQueueToken = loginQueueToken;
-	... 其他参数
-	p.send();
-end
-
+-- 实现 OnQueueFull、OnQueuePosition、OnLoginToken 三个回调
+-- OnLoginToken 中保存 token，连接 Linkd 后在 Auth 中带上 loginQueueToken
 ```
+
+## Linkd 侧处理
+
+Linkd 收到 Auth 协议时调用：
+
+```java
+App.LinkdProvider.choiceProvider(rpc.getSender(), rpc.Argument.getLoginQueueToken());
+```
+
+## 启动
+
+```bash
+java -cp zezex.jar Zeze.Services.LoginQueue -maxOnlineNew 100 -choiceLinkOnly false
+```
+
+## 相关文档
+
+- [架构设计](../architecture/arch/)：Provider-Linkd 架构
+- [运维配置](../devops/configuration/)：XML 配置说明

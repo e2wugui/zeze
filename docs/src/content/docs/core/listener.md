@@ -1,148 +1,160 @@
 ---
-title: "Listener"
+title: "ChangeListener 数据变更监听"
 sidebar:
-  order: 4
+  order: 5
 ---
 
+**ChangeListener** 是 Zeze 提供的 Table 级别数据变更回调机制。当事务提交后表中记录发生插入、修改或删除时，已注册的监听器会收到通知，携带变更的键和详细日志。不管修改操作如何变化，只要数据定义不变，监听逻辑就无需调整。此功能最常见的用途是同步数据给客户端。
 
-Zeze支持在Table中注册数据变更监听器，当数据发生变化时，回调监听器。不管什么修
-改操作，不管有多少修改操作，只要对数据进行了修改，都能得到通知。只要数据定义没有
-变化，修改操作随意变化，监听逻辑都保持不变。这个功能非常一般用于同步数据给客户端。
-除非逻辑接近事件这种模型，否则不要用监听器实现逻辑。
-## 分布式
-分布式情况下，Server有多台实例。此时Listener在每个Server上都注册。以后哪台Server
-发生了修改，就回调哪一台上的Listener。Listener这个模式不能算是一个良好的分布式定
-义，需要注意。
-## 接口
+## 接口与变更类型
+
+ChangeListener 是一个函数式接口：
+
 ```java
+@FunctionalInterface
 public interface ChangeListener {
     void OnChanged(Object key, Changes.Record r);
 }
 ```
-## 例子
+
+回调参数中 `key` 为记录的主键，`Changes.Record` 包含变更细节，通过 `getState()` 获取变更类型：
+
+| 状态常量 | 值 | 含义 |
+|---|---|---|
+| `Changes.Record.Put` | 1 | 记录被插入或整个替换，`getValue()` 返回新值 |
+| `Changes.Record.Edit` | 2 | 记录被增量修改，日志描述了哪些字段发生了变化 |
+| `Changes.Record.Remove` | 0 | 记录被删除 |
+
+## 注册与移除
+
+每张表内置一个 **ChangeListenerMap**，用于管理该表的监听器集合：
+
 ```java
-public static class ItemsChangeListener implelents ChangeListener {
-    void OnChanged(Object key, Changes.Record r) {
+// 注册监听器
+table.getChangeListenerMap().addListener(listener);
+
+// 移除监听器
+table.getChangeListenerMap().removeListener(listener);
+
+// 查询是否已注册
+table.getChangeListenerMap().hasListener();
+```
+
+ChangeListenerMap 内部使用读写分离策略：写操作加锁，读操作访问不可变快照，保证在事务收集日志阶段和通知阶段使用同一份监听器快照，避免因注册变动造成不一致。
+
+## 与事务的关系
+
+ChangeListener 的触发时机在事务 **finalCommit** 阶段——事务已提交成功、状态置为 Completed 之后，在 `whileCommit` 回调的同一阶段执行。关键特性：
+
+- **事务内触发**：监听器回调发生在事务提交成功之后，属于事务生命周期的一部分。回调中不应再对同一张表执行写操作。
+- **非事务上下文**：在事务外直接修改数据时，不会触发 ChangeListener。ChangeListener 严格绑定于事务提交流程。
+
+如果需要在监听器中执行后续逻辑（如网络推送），可以在 `OnChanged` 中直接进行，框架会捕获回调中的异常并记录日志，不会影响其他监听器或事务状态。
+
+## 变更日志结构
+
+当变更类型为 `Edit` 时，`Changes.Record` 携带增量日志，可通过 `getVariableLog(variableId)` 获取指定变量的变更详情。各类型的日志结构如下：
+
+| 日志类型 | 说明 |
+|---|---|
+| `LogBean` | Bean 的修改日志，包含 `Variables` 映射（variableId -> Log） |
+| `LogList1` / `LogList2` | 列表操作日志，List2 还包含列表项的 Bean 变更 |
+| `LogMap1` | Map 的替换和删除日志：`Replaced`、`Removed` |
+| `LogMap2` | Map 的替换、删除和项内变更：`Replaced`、`Removed`、`Changed` |
+| `LogSet1` | Set 的新增和删除：`Added`、`Removed` |
+| 简单类型日志 | 如 int、long 等，包含新值 `Value` |
+
+## 完整示例
+
+以下示例展示监听角色背包变更，并将增量数据打包发送给客户端：
+
+```java
+public class ItemsChangeListener implements ChangeListener {
+    @Override
+    public void OnChanged(Object key, Changes.Record r) {
+        long roleId = (Long) key;
         switch (r.getState()) {
         case Changes.Record.Put:
-            // 记录整个被替换。
+            // 整条记录被替换，发送全量数据
+            sendFullToClient(roleId, r.getValue());
             break;
         case Changes.Record.Edit:
-            // 增量变化，
-            var notemap2 = (LogMap2<Integer, BItem>)
-            c.getVariableLog(tequip.VAR_Items);
-            if (null != notemap2) {
-                // 访问详细日志。对于这里的LogMap2，note里面包含
-                // Replaced(被替换的项)，
-                // Removed（被删除的项），
-                // Changed（Map中的项是一个Bean并且发生了变化）
-
-                // 由于同步Map的数据时，Changed通常可以合并到Replaced中。
-                // 所以首先调用下面的方法合并。
-                notemap2.MergeChangedToReplaced();
-                // 然后把Replaced，Removed打包到协议中发送给客户端。
+            // 增量变化，仅发送修改的部分
+            var noteMap = (LogMap2<Integer, BItem>) r.getVariableLog(BRole.VAR_Items);
+            if (noteMap != null) {
+                // 将 Changed 合并到 Replaced，简化客户端处理
+                noteMap.MergeChangedToReplaced();
+                sendDeltaToClient(roleId, noteMap.getReplaced(), noteMap.getRemoved());
             }
             break;
         case Changes.Record.Remove:
-            // 记录删除
+            // 记录被删除
+            sendRemoveToClient(roleId);
             break;
-		}
-	}
+        }
+    }
+}
+
+// 注册到背包表
+_roleTable.getChangeListenerMap().addListener(new ItemsChangeListener());
+```
+
+## 客户端处理
+
+客户端收到服务端推送的变更协议后，按变更类型处理本地缓存：
+
+```java
+switch (notify.getChangeTag()) {
+case Put:
+    localMap.clear();
+    localMap.putAll(notify.getReplaced());
+    break;
+case Edit:
+    localMap.putAll(notify.getReplaced());
+    localMap.removeAll(notify.getRemoved());
+    break;
+case Remove:
+    localMap = null;
+    break;
 }
 ```
-## 注册
-```java
-_tequip.getChangeListenerMap().AddListener(new ItemsChangeListener());
-```
-## 客户端收到数据变化协议的处理伪码
-```java
-Switch (ItemsChangeNotify.getChangeTag()) {
-    Case Put:
-        Localmap.clear();
-        Localmap.putAll(ItemsChangeNotify.Replaced());
-        // Put时Removed没有意义。
-        Break;
-    Case Edit:
-        Localmap.putAll(ItemsChangeNotify.Replaced());
-        Localmap.removeAll(ItemsChangeNotify.Removed());
-        Break;
-    Case Remove:
-        Localmap = null;
-        Break;
-}
-```
-## 变更日志
-1.	Bean的日志LogBean，包含IntHashMap<Log> Variables
-2.	List1的日志LogList1，包含List的操作日志。
-3.	List2的日志LogList2，包含List的操作日志以及List中的项修改的Changed。
-4.	Map1的日志LogMap1，包含Replaced，Removed。
-5.	Map2的日志LogMap2，包含Replaced，Removed，Changed。
-6.	Set的日志LogSet1，包含Added，Removed。
-7.	简单类型（如int）的日志，包含新的值Value。
 
-## 数据同步模式探讨
-### 探讨的问题
+## 数据同步模式
 
-1.	客户端数据怎么从服务器获取和同步？
-2.	客户端获取数据的时机？
-3.	客户端数据存储（生命期）探讨？
+ChangeListener 最常用于客户端数据同步。以下是几种典型模式：
 
-### 数据获取（侧重和服务器交互）
+### 全量推送
 
-* Get 模式
+服务端检测到变更后，将整条记录打包 Push 给客户端。结构清晰、实现简单，推荐优先采用。
 
-客户端主动发送Get请求，服务器返回结果。
-【这个模式大大的推荐！】
+### 增量推送
 
-* Push模式
+客户端先 Get 一次完整数据，之后服务端仅推送增量变更日志。需要注意两个问题：
 
-客户端缓存数据，并且通过交互协议与服务器数据进行同步，客户端数据总是最新的。一般
-用于登录期间一直有效的数据。客户端初始Get一次或者0 Get或者订阅方案。服务器主动
-通告最新数据给客户端。
+1. **Get 与增量的原子性**：Get 和后续增量推送之间可能存在变更丢失。
+2. **消息丢失**：网络不可靠可能导致增量消息丢失。
 
-* Push 完整数据
+推荐方案：在数据中维护一个版本号，每次修改递增；推送时携带版本号；客户端发现版本不连续时重新 Get。
 
-当服务器发现数据变更时，把最新数据打包Push给客户端。客户端数据结构和服务器数据
-结构不一致，打包时可做翻译。这个模式结构清晰，实现简单。
-【这个模式大大的推荐！】
+### Relogin 差异同步
 
-* Push 不完备增量更新
+玩家断线重连时，可以利用 ChangeListener 记录离线期间的变更日志。客户端重连后只需同步差异部分，避免全量数据传输。
 
-客户端主动Get一次数据，以后服务器Push增量更新给客户端。这里不完备的意思是仅打
-包部分修改Log（比如Bean的第一级变量的Map，Set类型相关的修改数据）。
-【这个模式限制使用！迫不得已时采用！】
-这个模式有两个问题：a）Get和增量更新原子问题。b）增量更新消息丢失。这两个问
-题的推荐解决方案：在数据中记录一个修改版本号，修改时递增；Push时带上版本号；客
-户端发现版本号出现错误，重新Get再次开启新的增量流程。
+## 分布式注意事项
 
-* Push 完备增量更新
+分布式环境下每台 Server 实例各自注册 ChangeListener，只有实际执行修改的那台实例会触发回调。因此监听器适合同步**个人数据**（如角色背包），不太适合同步**共享数据**（如群成员列表）。如果确实需要同步共享数据，可考虑配合广播机制使用。
 
-完备的意思是任何Bean结构的增量更新。在客户端实现这个需要的代码较多。目前只有
-conf+cs+net支持（还没测试过）。
-【这个模式暂时不推荐使用！】
+## 使用限制建议
 
-* Zeze.Listener 的使用场景（限制）
+**除非逻辑接近事件这种模型，否则不要用监听器实现逻辑。** Listener 适合同步个人数据，不适合更新共享数据（如群成员列表变化——虽然可以发 notify 广播，但有点浪费）。
 
-Listener适合同步个人数据。比如角色包裹，服务器监听Listener，发现改变发送push-notify
-给该包裹拥有者，客户端接收push-notify并更新本地数据。Listener不适合更新共享的数
-据，比如群成员列表这个数据的变化，虽然可以发notify广播，但有点浪费，【实在要使用
-也可以考虑这样做】。
+## 数据同步模式推荐
 
-### 客户端数据获取时机
-* 在Loading界面准备数据，然后一起显示。
-* 先显示UI，然后获取数据，再逐渐显示出来。
-* 客户端时机点
-1.	Auth 验证
-2.	Login 登录
-3.	Map.EnterWorld 进入地图场景
-4.	UI显示时
-5.	其他需要数据的时候（对于服务器Auth是必须的）
-6.	客户端数据存储管理模式
-### 客户端数据存储管理模式
-* 全局数据管理器
+- **Get 模式**（大大的推荐！）——客户端主动拉取完整数据
+- **Push 完整数据**（大大的推荐！）——服务端推送完整 Bean 数据
+- **Push 不完备增量更新**（限制使用！迫不得已时采用）——推送部分变更，不保证完备
+- **Push 完备增量更新**（暂时不推荐使用）——完备增量同步
 
-不够灵活，不太容易满足各种需求。
+## 客户端数据获取时机
 
-* 模块自己管理
-
-个人建议这一种。当模块需要热拔插时尤其需要这种。
+典型时序：Auth 验证 → Login 登录 → Map.EnterWorld 进入地图场景 → UI 显示时 → 其他需要数据的时候。对于客户端数据存储管理，建议模块自己管理（当模块需要热拔插时尤其需要这种）。

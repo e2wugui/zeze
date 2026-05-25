@@ -1,179 +1,209 @@
 ---
-title: "Transaction"
+title: "事务系统"
 sidebar:
   order: 1
 ---
 
+Zeze 的事务系统以**存储过程**为执行单位，采用乐观锁实现无死锁并发控制，开发者只需关注业务逻辑，框架自动处理冲突检测、重做和持久化。
 
 ## 存储过程
-事务的执行单位是存储过程。通常情况下，应用不需要创建自己的存储过程，可以通过配置
-或注解声明事务级别（TransactionLevel），然后由Zeze自动创建。
 
-## @TransactionLevel
+**存储过程**（Procedure）是 Zeze 中事务的执行单位。每个协议处理函数默认运行在一个独立的存储过程内。框架会在调用时自动创建 `Procedure` 对象，开发者通常不需要手动创建。
 
-在定义协议的时候，配置TransactionLevel属性（默认是Serializable，表示需要事务）。
-在处理函数前面加注解。注解的优先级最高，会覆盖定义协议时的配置。例子：
-@Zeze.Util.TransactionLevelAnnotation(Level=Zeze.Transaction.TransactionLevel.None)
+存储过程的核心生命周期：执行业务代码 → 提交时加锁并检查冲突 → 成功则提交，冲突则重做。
+
+## TransactionLevel 配置
+
+`TransactionLevel` 决定事务的隔离语义：
 
 ```java
 public enum TransactionLevel {
-    None, // 不需要事务
-    Serializable, // 可串行化的事务。【Default】
-    AllowDirtyWhenAllRead, // 当事务没有写操作时，允许脏读。
+    None,                  // 不需要事务
+    Serializable,          // 可串行化，所有访问的记录未修改时事务才成功。【默认】
+    AllowDirtyWhenAllRead, // 当事务没有写操作时，允许脏读，不判断所读记录是否发生变化
 }
 ```
 
-举个事务等级的例子。两个账户初始为0，系统并发随机转账（允许结果为负数）。一个统计事务把两个账户加起
-来得到Sum。当Serializable时，Sum总是为0。当AllowDirtyWhenAllRead时，Sum可能
-不为0。
+配置优先级从低到高，高优先级会覆盖低优先级：
 
-1. 程序默认TransactionLevel为Serializable
-   优先级最低。
-2. Module.DefaultTransactionLevel
-   配置模块里面协议的默认事务级别。仅应用于当前模块，不包括子模块。模块默认事务级别
-   一开始要计划好，设定了之后就不能改了。
-3. Protocol.TransactionLevel
-   协议里面配置这个协议处理时的事务级别。
-4. @TransactionLevel
-   协议处理函数前面加这个注解，指定处理函数的事务级别。
+1. **程序默认** —— `Serializable`，优先级最低。
+2. **Module.DefaultTransactionLevel** —— 配置模块内协议的默认事务级别，仅应用于当前模块，不包括子模块。建议在模块规划阶段确定，设定后不再修改。
+3. **Protocol.TransactionLevel** —— 在协议定义中配置该协议处理时的事务级别。
+4. **@TransactionLevelAnnotation** —— 在协议处理函数上加注解，优先级最高。
 
-## TrasactionLevel的建议配置方式
+```java
+@Zeze.Util.TransactionLevelAnnotation(Level = Zeze.Transaction.TransactionLevel.None)
+protected long ProcessMyProtocol(MyProtocol p) {
+    // 此处理函数不使用事务
+}
+```
 
-上面1-4，四个地方可以配置事务级别，优先级从低到高，高优先级如果配置了会覆盖低优
-先级配置。
-1.	模块内大部分协议处理需要Serializable级别的事务时，除了个别用注解或协议
-      级别配置覆盖，其他都不需要配置。
-2.	模块内大部分协议处理不需要事务时，配置Module.DefaultTransactionLevel为
-      None，个别需要的用注解或协议级别配置。
+**建议配置方式**：如果模块内大部分协议需要事务，保持默认 `Serializable`，个别协议用注解覆盖为 `None`；如果大部分不需要事务，设置 `Module.DefaultTransactionLevel` 为 `None`，个别需要的用注解覆盖。
+
+### Serializable vs AllowDirtyWhenAllRead
+
+以转账统计为例：两个账户初始为 0，系统并发随机转账（允许结果为负数），一个统计事务把两个账户加起来得到 `sum`。
+
+- **Serializable**：`sum` 总是 0。事务提交时检查所有读取的记录是否被修改，只要存在冲突就重做，保证一致性。
+- **AllowDirtyWhenAllRead**：`sum` 可能不为 0。当事务只有读操作没有写操作时，不检查所读记录是否发生变化，允许读到不一致的快照。适用于统计、查询等只读场景，可减少不必要的重做，提高性能。
 
 ## 嵌套存储过程
 
-当业务需要忽略部分失败，并继续执行事务时，就需要嵌套存储过程。此时需要主动创建存
-储过程。创建存储过程接口为：Zeze.Application.NewProcedure。例子如下：
+当业务需要忽略部分失败并继续执行事务时，使用**嵌套存储过程**。通过 `Application.newProcedure` 创建并调用：
 
 ```java
 protected long ProcessMainTransaction(SomeProtocol p) {
-　　// 一些处理
-	if (0 != App.Zeze.NewProcedure(MyNestProcedure, “MyNestProcedure”).Call()) {
-		// 一些嵌套存储过程失败的处理，此时MyNestProcedure的修改全部被回滚。
-	}
-	// 继续处理
+    // 一些处理
+    long result = App.Zeze.newProcedure(this::myNestedProcedure, "MyNestedProcedure").call();
+    if (result != 0) {
+        // 嵌套存储过程失败，其修改已全部回滚，此处可继续执行其他逻辑
+    }
+    // 继续处理
+    return 0;
 }
-private long MyNestProcedure() {
-	if (someCondition)
-		return 0; // success
-	return ErrorCode(1); // fail
+
+private long myNestedProcedure() {
+    if (someCondition)
+        return 0;  // 成功
+    return errorCode(1);  // 失败，仅回滚此嵌套过程
 }
 ```
 
-## Table
+嵌套存储过程在同一事务内执行。当嵌套过程返回非零值时，仅回滚该层修改，外层事务不受影响。嵌套过程使用 **Savepoint** 机制实现局部回滚，详见下文。
 
-Table是存储过程访问数据的接口。
-Table的数据结构在Solution.xml中描述。
-Table就像一个Map，主要包含的方法：GetOrAdd，Get，Put，Remove。
+## Savepoint —— 部分回滚
 
-## 乐观锁 &amp; 不会死锁
+**Savepoint** 是事务内的保存点机制，也是嵌套存储过程的底层实现。`Transaction.begin()` 创建一个新的 Savepoint，`commit()` 将当前 Savepoint 的日志合并到上一层，`rollback()` 则回滚当前 Savepoint 的修改并通知上一层。
 
-Zeze采用乐观锁，事务执行过程中不会对数据加锁，在最后提交时才加锁并检查冲突，如
-果冲突了就重做事务。
+每次 `Procedure.call()` 执行嵌套过程时，会自动调用 `begin()` / `commit()` / `rollback()`。开发者一般不需要直接操作 Savepoint，而是通过嵌套存储过程间接使用。
 
-## WhileCommit & WhileRollback
+Savepoint 内部维护了日志映射和提交/回滚动作列表。当嵌套过程失败时，其日志被丢弃，注册的 `whileCommit` 动作被转为 `NESTED_ROLLBACK` 类型传递给上一层，确保副作用得到正确处理。
 
-由于事务会重做，即事务内的所有代码都会可能被重复执行。当在事务内发送协议时，重做
-导致协议可能被发送多次。
-•	WhileCommit 事务成功提交时执行。
-•	WhileRollback 事务失败回滚时执行。
-这两个方法定义在Zeze.Transaction.Transaction中。
+## WhileCommit / WhileRollback
+
+事务可能因冲突而重做，所有事务内代码都可能被重复执行。`Transaction.whileCommit` 和 `Transaction.whileRollback` 用于控制副作用仅在确定的时机执行：
+
+- **whileCommit** —— 事务最终成功提交时执行。
+- **whileRollback** —— 事务最终失败回滚时执行。
 
 ```java
-　　public void VerifyAccountSum() {
-　　  var account1 = tableAccount.get(“tom”);
-　　  var account2 = talbeAccount.get(“jack”);
-　　  var sum = account1.value + account2.value;
-　　  Transacton.WhileCommit(() => assert sum == 0);
-　　  // 如果没有WhileCommit，即使在TransactionLevel为Serializable，
-　　  // 这个断言也会失败。因为乐观锁执行的过程中是不加锁的。
-　　}
+Transaction.whileCommit(() -> {
+    // 仅在事务成功提交后执行
+    logger.info("事务提交成功，执行后续操作");
+});
 ```
+
+**典型场景**——在只读事务中验证数据一致性：
+
+```java
+public void verifyAccountSum() {
+    var account1 = tableAccount.get("tom");
+    var account2 = tableAccount.get("jack");
+    var sum = account1.getValue() + account2.getValue();
+    Transaction.whileCommit(() -> assert sum == 0);
+    // 即使 TransactionLevel 为 Serializable，不用 whileCommit 断言也可能失败。
+    // 因为乐观锁执行过程中不加锁，只有在最终提交时才检测冲突。
+}
+```
+
+## SendWhileCommit / SendWhileRollback
+
+在事务中发送协议是最常见的副作用之一。如果直接在事务内发送，重做会导致协议重复发送。Arch 框架的 `Online` 组件提供了事务安全的发送方法：
+
+```java
+// 事务提交后发送
+online.sendWhileCommit(account, clientId, protocol);
+
+// 事务回滚后发送
+online.sendWhileRollback(account, clientId, protocol);
+
+// 事务提交后发送 Rpc 响应
+online.sendResponseWhileCommit(account, clientId, rpc);
+```
+
+这些方法内部使用 `Transaction.whileCommit` / `Transaction.whileRollback` 包装实际的发送操作。对于第三方交互的更多细节，参见 → third-party-interactions。
 
 ## 自定义日志
 
-可以通过Transaction.GetLog、PutLog实现自定义日志完成一些事务相关特殊操作。自定义
-日志实现的Commit必须成功，否则程序会终止运行。
+通过 `Transaction.getLog` / `putLog` 实现自定义日志，用于在事务中记录特殊操作：
+
+```java
+// 获取日志，不存在则通过工厂创建
+Log log = Transaction.getCurrent().logGetOrAdd(logKey, MyLog::new);
+
+// 放入日志
+Transaction.getCurrent().putLog(myLog);
+```
+
+自定义日志需要继承 `Zeze.Transaction.Log` 并实现 `commit()` 方法。**注意**：`commit()` 必须成功，否则程序会终止运行（`halt`）。自定义日志的 `category()` 应返回 `Log.Category.eUser` 或 `Log.Category.eSpecial`。
 
 ## 存储过程返回值
 
-* =0: 成功
-* &lt;0: Zeze内部错误码
-* &gt;0: 用户自定义错误码。
+`Procedure.call()` 返回 `long` 类型的结果码：
 
-编码：(Module.Id << 16) | Module.ErrorCode。Module的
-基类有个辅助函数Zeze.IModule.ErrorCode(int code)用来构造这种错误码。模块级
-别的错误码可以在模块定义(solutions.xml)中用枚举(enum)定义。
+| 范围 | 含义 | 示例 |
+|------|------|------|
+| `= 0` | 成功 | `Procedure.Success` |
+| `< 0` | Zeze 内部错误 | `Procedure.Exception`(-1), `Procedure.TooManyTry`(-2) |
+| `> 0` | 用户自定义错误码 | `(moduleId << 16) \| errorCode` |
 
-## 日志
+### 错误码编码
 
-Zeze记录了几乎所有的错误（异常）日志，只要出现问题，查看日志是个好办法。应用实
-现时，记录自己逻辑相关的日志即可。
+用户错误码按 `(Module.Id << 16) | ModuleErrorCode` 编码。`IModule` 基类提供辅助方法：
 
-## 自动发送Rpc错误结果
+```java
+// 在模块内构造错误码
+return errorCode(1);  // 等价于 (getId() << 16) | 1
 
-Arch框架在处理Rpc的存储过程时，如果得到非零的返回值，会自动发送Rpc的错误结果。
-异常的时候也会返回错误码。所以一般存储过程的处理流程只需要在正常的时候设置自定义
-rpc的正常结果参数并调用rpc.SendResult()；错误的时候直接返回错误码。
+// 解码
+int moduleId = IModule.getModuleId(result);   // 提取模块ID
+int errCode = IModule.getErrorCode(result);    // 提取错误码
+```
 
-## 分布式事务
+模块级错误码可以在模块定义（solution.xml）中用枚举（enum）声明。
 
-在分布式架构中，Server有多台实例，每一台的代码是一样的。开发Server时，用户可以
-简单的认为自己单独拥有后台Database的所有数据。在使用事务读写由Zeze-Table管理的
-数据时，不需要任何额外的操作。数据在多台Server实例间的共享以及一致性保证由Zeze
-处理。这就相当于任何Server实例上的事务都是分布的了。
+### 自动发送 Rpc 错误结果
 
-## 事务重做导致的问题例子
+Arch 框架在处理 Rpc 的存储过程时，如果得到非零返回值，会自动发送 Rpc 的错误结果。异常时也会返回错误码。因此，正常流程只需设置 Rpc 结果参数并调用 `rpc.SendResult()`，错误时直接返回错误码即可。
 
-事务在执行的过程中，如果发生了冲突，会自动重做。应用开发的时候必须注意这个特性，
-否则会出现麻烦。例子如下：
-* 事务中发送协议。除非不在乎协议的重复发送，可以使用直接发送协议的函数，否
-则应该使用SendWhileCommit,SendWhileRollback等事务相关的版本。
-* 事务中注册Timer。使用Task.schedule或者自己的Timer管理器注册Timer时，请
-使用Transaction.whileCommit,whileRollback注册action完成注册操作。Zeze的
-Timer会嵌入事务，自动回滚，不需要whileCommit。
-* 事务中提交任务（Task）给线程池。一般也需要使用whileCommit,whileRollback。
-* 事务中需要操作非Zeze管理的数据（自定义数据）。上面的Timer，Task实际上也
-是操作非Zeze管理数据的一种。操作自定义数据，一般都需要使用whileCommit，
-whileRollback。
+## 事务重做导致的问题
 
-## 传in，out，ref参数进存储过程说明
+事务执行中如果发生冲突，会自动重做（最多 256 次）。应用开发必须注意此特性：
 
-* 当参数传进存储过程是只读的，此时不会发生任何问题，不需要注意什么。
-* 当参数是out，即存储过程执行完，通过这个参数返回处理结果，这里分为两种情况。
-一，是赋值单个引用给out参数的成员变量，此时是安全的。二，通过out参数的一个
-Collections形式的变量返回多个值，有两种处理方式：out集合能clear时，存储过程
-执行开始的时候调用一下clear，防止由于事务重做，收集到多余的结果；out集合具
-有归并能力，原来就有数据，不能clear，此时存储先收集自己的本地局部变量的集合
-中，通过whileCommit合并到out集合中。
-* 当参数是ref，即存储过程需要读取，同时也需要通过它返回结果。此时返回的结果需
-要通过whileCommit设置到ref变量里面。如果结果是集合，先收集到本地局部变量中。
+- **发送协议** —— 除非不在乎重复发送，否则应使用 `sendWhileCommit` 等事务安全版本。
+- **注册 Timer** —— 使用 `Transaction.whileCommit` 包装注册操作。Zeze 内置的 Timer 组件会自动嵌入事务，无需额外处理。
+- **提交任务给线程池** —— 一般需要使用 `whileCommit` / `whileRollback` 包装。
+- **操作自定义数据** —— 所有非 Zeze 管理的数据都属于自定义数据，推荐统一模式：随意读取 → 计算值存入局部变量 → `whileCommit` 中修改自定义数据。读取修改自定义数据需要自行控制并发。参见 → third-party-interactions。
 
-## 存储过程修改非zeze管理的数据
+## in / out / ref 参数注意事项
 
-上面的事务重做导致的问题例子说了几个重做引起的问题。这里进一步特别说明一下，当在
-存储过程中读取修改自己的数据时，此时这些数据可以隐含的看作是存储过程的参数，根据
-上面in，out，ref的参数的建议形式进行处理即可。推荐的统一模式就是，1，随便读取自
-己的数据；2. 计算值使用存储过程内的本地局部变量存储；3. whileCommit修改自己的数
-据。读取修改自己定义的数据需要自定控制它的并发，因为存储过程是并发的。如果对自己
-的数据的并发访问很复杂，最终可能会实现出另一套zeze的并发控制，所以一般情况下，
-不自己定义的数据，都定义成zeze的数据，特殊情况下，并发控制比较简单，此时可以受
-限的定义一些自己数据。建议让具有很高多线程开发经验，并且熟悉zeze事务的开发人员
-来开发这样的模块。
+当向存储过程传递参数时，事务重做可能导致数据不一致：
+
+- **in 参数（只读）** —— 安全，无需特殊处理。
+- **out 参数（仅返回结果）**
+  - 赋值单个引用给 out 参数的成员变量是安全的。
+  - 通过集合返回多个值时，有两种处理方式：如果集合可以 `clear()`，在存储过程开始时调用一次，防止重做收集多余结果；如果集合不能清空（需要归并），先收集到局部变量，再通过 `whileCommit` 合并到 out 集合中。
+- **ref 参数（读写兼返回）** —— 返回结果需通过 `whileCommit` 设置到 ref 变量中。集合类型结果先收集到局部变量。
 
 ## @DispatchMode
 
-这是一个协议处理函数的注解，用来控制协议的调度方式（仅用于Java）：
-1.	在普通线程池中执行。默认是这种。
-2.	在重要线程池中执行。
-3.	在调用者线程执行。
-      协议的线程调度方式除了用这个注解单独控制。还可以在Zeze.Net.Service子类中重载
-      DispatchProtocol,DispatchRpcResponse等控制。重载会覆盖默认实现，优先级比注解高。
-      默认实现按注解方式调度协议的执行。
+`@DispatchModeAnnotation` 是协议处理函数的注解，用于控制协议的调度方式：
 
+```java
+public enum DispatchMode {
+    Normal,    // 在普通线程池中执行。【默认】
+    Critical,  // 在重要线程池中执行。
+    Direct,    // 在调用者线程中执行。
+}
+```
+
+使用示例：
+
+```java
+@Zeze.Util.DispatchModeAnnotation(mode = Zeze.Transaction.DispatchMode.Critical)
+protected long ProcessImportantProtocol(ImportantProtocol p) {
+    // 在重要线程池中执行，适用于高优先级协议
+}
+```
+
+协议的线程调度还可以在 `Zeze.Net.Service` 子类中重载 `DispatchProtocol`、`DispatchRpcResponse` 等方法控制。重载会覆盖默认实现，优先级高于注解。
