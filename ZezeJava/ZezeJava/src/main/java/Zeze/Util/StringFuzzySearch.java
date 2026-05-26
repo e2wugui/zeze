@@ -34,24 +34,17 @@ public final class StringFuzzySearch {
 		final var v = ((long)(0xfff / n) << 48) + sid;
 		for (int i = 0; i < n; i++)
 			index1.computeIfAbsent(s.charAt(i), __ -> new LongList()).add(v);
-		int j = s.charAt(0);
-		for (int i = 1; i < n; i++) {
-			j = (j << 16) + s.charAt(i);
-			index2.computeIfAbsent(j, __ -> new LongList()).add(v);
-		}
-		if (n < 3)
-			return true;
-		var k = ((long)s.charAt(0) << 16) + (long)s.charAt(1);
-		for (int i = 2; i < n; i++) {
-			k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL;
-			index3.computeIfAbsent(k, __ -> new LongList()).add(v);
-		}
-		if (n < 4)
-			return true;
-		k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + (long)s.charAt(2);
-		for (int i = 3; i < n; i++) {
-			k = (k << 16) + s.charAt(i);
-			index4.computeIfAbsent(k, __ -> new LongList()).add(v);
+		for (int i = 1, j = s.charAt(0); i < n; i++)
+			index2.computeIfAbsent(j = (j << 16) + s.charAt(i), __ -> new LongList()).add(v);
+		if (n >= 3) {
+			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
+			for (int i = 2; i < n; i++)
+				index3.computeIfAbsent(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL, __ -> new LongList()).add(v);
+			if (n >= 4) {
+				k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
+				for (int i = 3; i < n; i++)
+					index4.computeIfAbsent(k = (k << 16) + s.charAt(i), __ -> new LongList()).add(v);
+			}
 		}
 		return true;
 	}
@@ -70,30 +63,26 @@ public final class StringFuzzySearch {
 			//noinspection DataFlowIssue
 			list.removeAndExchangeLast(list.indexOf(v));
 		}
-		int j = s.charAt(0);
-		for (int i = 1; i < n; i++) {
-			j = (j << 16) + s.charAt(i);
-			final var list = index2.get(j);
+		for (int i = 1, j = s.charAt(0); i < n; i++) {
+			final var list = index2.get(j = (j << 16) + s.charAt(i));
 			//noinspection DataFlowIssue
 			list.removeAndExchangeLast(list.indexOf(v));
 		}
-		if (n < 3)
-			return true;
-		var k = ((long)s.charAt(0) << 16) + (long)s.charAt(1);
-		for (int i = 2; i < n; i++) {
-			k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL;
-			final var list = index3.get(k);
-			//noinspection DataFlowIssue
-			list.removeAndExchangeLast(list.indexOf(v));
-		}
-		if (n < 4)
-			return true;
-		k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + (long)s.charAt(2);
-		for (int i = 3; i < n; i++) {
-			k = (k << 16) + s.charAt(i);
-			final var list = index4.get(k);
-			//noinspection DataFlowIssue
-			list.removeAndExchangeLast(list.indexOf(v));
+		if (n >= 3) {
+			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
+			for (int i = 2; i < n; i++) {
+				final var list = index3.get(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL);
+				//noinspection DataFlowIssue
+				list.removeAndExchangeLast(list.indexOf(v));
+			}
+			if (n >= 4) {
+				k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
+				for (int i = 3; i < n; i++) {
+					final var list = index4.get(k = (k << 16) + s.charAt(i));
+					//noinspection DataFlowIssue
+					list.removeAndExchangeLast(list.indexOf(v));
+				}
+			}
 		}
 		return true;
 	}
@@ -101,36 +90,29 @@ public final class StringFuzzySearch {
 	// 只读,可加读锁
 	public int search(final @NotNull String s, final @NotNull String @NotNull [] res) {
 		final int max = res.length;
-		final var m = new LongHashMap<OutInt>();
 		final int n = s.length();
+		final var m = new LongHashMap<OutInt>();
 		if (n >= 4) {
-			var k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + (long)s.charAt(2);
-			for (int i = 3; i < n; i++) {
-				k = (k << 16) + s.charAt(i);
-				merge(m, index4.get(k), 16);
-			}
+			var k = ((long)s.charAt(0) << 32) + ((long)s.charAt(1) << 16) + s.charAt(2);
+			for (int i = 3; i < n; i++)
+				merge(m, index4.get(k = (k << 16) + s.charAt(i)), 16);
 		}
 		if (n >= 3 && m.size() < max) {
-			var k = (long)s.charAt(0) << 16 + (long)s.charAt(1);
-			for (int i = 2; i < n; i++) {
-				k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL;
-				merge(m, index3.get(k), 9);
-			}
+			var k = ((long)s.charAt(0) << 16) + s.charAt(1);
+			for (int i = 2; i < n; i++)
+				merge(m, index3.get(k = ((k << 16) + s.charAt(i)) & 0xffff_ffff_ffffL), 9);
 		}
 		if (n >= 2 && m.size() < max) {
-			int j = s.charAt(0);
-			for (int i = 1; i < n; i++) {
-				j = (j << 16) + s.charAt(i);
-				merge(m, index2.get(j), 4);
-			}
+			for (int i = 1, j = s.charAt(0); i < n; i++)
+				merge(m, index2.get(j = (j << 16) + s.charAt(i)), 4);
 		}
 		if (n >= 1 && m.size() < max) {
 			for (int i = 0; i < n; i++)
 				merge(m, index1.get(s.charAt(i)), 1);
 		}
 		int i = 0, e = m.size();
-		final var is = new long[e];
 		final var f = 0x1_0000_0000L / n;
+		final var is = new long[e];
 		for (final var it = m.iterator(); it.moveToNext(); )
 			is[i++] = (it.key() & 0xffff_ffff_ffffL) + (Math.min((it.value().value * f) >>> 32, 0xffff) << 48);
 		Arrays.sort(is);
