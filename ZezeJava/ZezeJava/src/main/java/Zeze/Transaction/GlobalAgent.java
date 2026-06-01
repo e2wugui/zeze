@@ -112,6 +112,14 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				connector.stop(); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
 			}
 		}
+
+		@Override
+		public void startRelease(@NotNull Application zeze, @Nullable Runnable endAction) {
+			super.startRelease(zeze, endAction);
+			var socket = connector.TryGetReadySocket();
+			if (socket != null)
+				socket.close();
+		}
 	}
 
 	private final @NotNull Application zeze;
