@@ -1258,7 +1258,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}, "Timer.spliceAndLoadTimerLocal"));
 
 		if (r == 0)
-			loadTimer(first.value, last.value, serverId);
+			loadTimer(first.value, last.value, zeze.getConfig().getServerId()); // 这里应该使用本地接管者的ServerId。
 		return r;
 	}
 
