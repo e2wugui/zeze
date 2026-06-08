@@ -31,6 +31,11 @@ public final class DatabaseMemory extends Database implements Database.Operates 
 		}
 	}
 
+	@Override
+	public void renameTable(String tableOldName, String tableNewName) throws Exception {
+		// not need
+	}
+
 	public DatabaseMemory(@Nullable Application zeze, @NotNull DatabaseConf conf) {
 		super(zeze, conf);
 		setDirectOperates(conf.isDisableOperates() ? new NullOperates() : this);

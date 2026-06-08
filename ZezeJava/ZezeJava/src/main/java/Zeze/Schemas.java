@@ -14,6 +14,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DatabaseRelationalMapping;
 import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -610,6 +611,7 @@ public class Schemas implements Serializable {
 		public String name; // FullName, sample: demo_Module1_Table1
 		public String keyName;
 		public String valueName;
+		public int version;
 		public transient Type keyType;
 		public transient Type valueType;
 
@@ -617,11 +619,16 @@ public class Schemas implements Serializable {
 		}
 
 		public Table(@NotNull String n, @NotNull String k, @NotNull String v) {
-			if (n.isEmpty())
-				throw new IllegalArgumentException("table name is empty");
+			this(n, k, v, 0);
+		}
+
+		public Table(@NotNull String n, @NotNull String k, @NotNull String v, int version) {
+			if (n.isBlank())
+				throw new IllegalArgumentException("table name is blank");
 			name = n;
 			keyName = k;
 			valueName = v;
+			this.version = version;
 		}
 
 		@Override
@@ -629,6 +636,7 @@ public class Schemas implements Serializable {
 			name = bb.ReadString();
 			keyName = bb.ReadString();
 			valueName = bb.ReadString();
+			version = bb.ReadInt();
 		}
 
 		@Override
@@ -636,6 +644,7 @@ public class Schemas implements Serializable {
 			bb.WriteString(name);
 			bb.WriteString(keyName);
 			bb.WriteString(valueName);
+			bb.WriteInt(version);
 		}
 
 		public boolean isCompatible(@NotNull Table other, @NotNull Context context) {
@@ -718,7 +727,7 @@ public class Schemas implements Serializable {
 		appVersion = version;
 	}
 
-	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) {
+	public void checkCompatible(@Nullable Schemas other, @NotNull Application app) throws Exception {
 		if (other == null)
 			return;
 
@@ -732,9 +741,22 @@ public class Schemas implements Serializable {
 		boolean res = true;
 		for (var table : tables.values()) {
 			var otherTable = other.tables.get(table.name);
-			if (otherTable != null && !table.isCompatible(otherTable, context)) {
-				logger.error("Not Compatible Table={}", table.name);
-				res = false;
+			if (otherTable != null) {
+				// 限制一下：版本号必须递增。
+				if (table.version < otherTable.version)
+					throw new IllegalStateException("table version less than current version");
+				// 版本发生了变更：一般意味着不兼容修改，此时renameTable。
+				if (table.version > otherTable.version) {
+					if (!table.name.equals(otherTable.name))
+						throw new IllegalStateException(Str.format("table name is not matched {} -> {}", table.name, otherTable.name));
+					var db = app.getDatabase(app.getConfig().getTableConf(table.name).getDatabaseName());
+					db.renameTable(table.name, "zeze_backup_" + table.name + "_" + otherTable.version);
+				}
+				// 继续Table的类型的兼容检查。
+				if (!table.isCompatible(otherTable, context)) {
+					logger.error("Not Compatible Table={}", table.name);
+					res = false;
+				}
 			}
 		}
 		// bean的dynamicBeans兼容检查时，没有递归进去，这里的引用可能有循环，所以单独对所有的bean再执行一遍兼容检查。

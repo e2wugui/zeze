@@ -313,7 +313,7 @@ public final class Application extends ReentrantLock {
 		replaceTableRecent.clear();
 	}
 
-	public @Nullable Schemas __upgrade_schemas__(@Nullable Schemas schemas) {
+	public @Nullable Schemas __upgrade_schemas__(@Nullable Schemas schemas) throws Exception {
 		var current = this.schemas;
 		this.schemasPrevious = null;
 		this.schemas = schemas;
@@ -510,14 +510,14 @@ public final class Application extends ReentrantLock {
 	*/
 
 	// 数据库Meta兼容检查，初始化。
-	private void schemasCompatible() {
+	private void schemasCompatible() throws Exception {
 		var defaultDb = getDatabase(conf.getDefaultTableConf().getDatabaseName());
 		if (schemas != null) {
 			schemas.compile();
 			schemas.setAppVersion(conf.getAppVersion());
 			var keyOfSchemas = ByteBuffer.Allocate(32);
 			var serverId = conf.getServerId();
-			keyOfSchemas.WriteString("zeze.Schemas.V3." + serverId);
+			keyOfSchemas.WriteString("zeze.Schemas.V4." + serverId);
 			while (true) {
 				var dataVersion = defaultDb.getDirectOperates().getDataWithVersion(keyOfSchemas);
 				long version = 0;

@@ -98,6 +98,17 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 	}
 
 	@Override
+	public void renameTable(String tableOldName, String tableNewName) throws Exception {
+		String sql = "RENAME TABLE " + tableOldName + " TO " + tableNewName;
+		try (var conn = dataSource.getConnection())	{
+			conn.setAutoCommit(true);
+			try (var ps = conn.prepareStatement(sql)) {
+				ps.executeUpdate();
+			}
+		}
+	}
+
+	@Override
 	public void relationalSql(String sql, Action1<ResultSet> handle) throws Exception {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);

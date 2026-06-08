@@ -212,6 +212,10 @@ public abstract class Database extends ReentrantLock {
 		throw new UnsupportedOperationException();
 	}
 
+	public void renameTable(String tableOldName, String tableNewName) throws Exception{
+		throw new UnsupportedOperationException();
+	}
+
 	public interface Table {
 		boolean isNew();
 

@@ -8,6 +8,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import com.mongodb.MongoCommandException;
+import com.mongodb.MongoNamespace;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -16,6 +17,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.DeleteOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.RenameCollectionOptions;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.Sorts;
 import org.bson.Document;
@@ -37,6 +39,13 @@ public class DatabaseMongoDb extends Database {
 	@Override
 	public @NotNull Table openTable(@NotNull String name, int id) {
 		return new TableMongoDb(name);
+	}
+
+	@Override
+	public void renameTable(String tableOldName, String tableNewName) {
+		var collection = mongoDatabase.getCollection(tableOldName);
+		collection.renameCollection(new MongoNamespace(mongoDatabase.getName(), tableNewName),
+				new RenameCollectionOptions().dropTarget(false));
 	}
 
 	@Override

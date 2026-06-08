@@ -29,6 +29,7 @@ namespace Zeze.Gen
         public int Id { get; private set; }
         public string Comment { get; private set; }
         public string RelationalMapping { get; private set; } = string.Empty;
+        public int Version { get; private set; }
         public bool IsRelationalMapping => RelationalMapping switch
         {
             "project" => Project.MakingInstance.RelationalMapping,
@@ -64,6 +65,7 @@ namespace Zeze.Gen
             Comment = Types.Bean.GetComment(self);
 
             RelationalMapping = self.GetAttribute("RelationalMapping");
+            Version = int.Parse(self.GetAttribute("version"));
 
             attr = self.GetAttribute("noSchema");
             NoSchema = attr.Length > 0 && bool.Parse(attr);

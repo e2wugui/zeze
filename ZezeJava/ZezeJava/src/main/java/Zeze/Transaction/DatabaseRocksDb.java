@@ -44,6 +44,11 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	@Override
+	public void renameTable(String oldName, String newName) throws Exception {
+		rocksDb.dropTable(oldName);
+	}
+
+	@Override
 	public @NotNull Transaction beginTransaction() {
 		return new RocksDbTrans();
 	}

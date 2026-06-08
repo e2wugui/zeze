@@ -24,6 +24,16 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		return new TableSqlServer(name);
 	}
 
+	@Override
+	public void renameTable(String oldName, String newName) throws Exception {
+		String sql = "EXEC sp_rename '" + oldName + "', '" + newName + "'";
+		try (var conn = dataSource.getConnection()) {
+			try (var stmt = conn.prepareStatement(sql)) {
+				stmt.executeUpdate();
+			}
+		}
+	}
+
 	private final class OperatesSqlServer implements Operates {
 		@Override
 		public void setInUse(int localId, String global) {

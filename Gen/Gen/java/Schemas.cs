@@ -50,7 +50,7 @@ namespace Zeze.Gen.java
             foreach (var table in Project.AllTables.Values)
             {
                 if (!table.NoSchema)
-                    sw.WriteLine($"        addTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\"));");
+                    sw.WriteLine($"        addTable(new Zeze.Schemas.Table(\"{table.Space.Path("_", table.Name)}\", \"{GetFullName(table.KeyType)}\", \"{GetFullName(table.ValueType)}\", {table.Version}));");
             }
 
             foreach (var type in Depends)

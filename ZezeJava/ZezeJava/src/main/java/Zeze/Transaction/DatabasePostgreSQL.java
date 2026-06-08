@@ -98,6 +98,17 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 	}
 
 	@Override
+	public void renameTable(String tableOldName, String tableNewName) throws Exception {
+		String sql = "ALTER TABLE " + tableOldName + " RENAME TO " + tableNewName;
+		try (var conn = dataSource.getConnection())	{
+			conn.setAutoCommit(true);
+			try (var ps = conn.prepareStatement(sql)) {
+				ps.executeUpdate();
+			}
+		}
+	}
+
+	@Override
 	public void relationalSql(String sql, Action1<ResultSet> handle) throws Exception {
 		try (var conn = dataSource.getConnection()) {
 			conn.setAutoCommit(true);
