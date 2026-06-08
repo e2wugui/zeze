@@ -65,7 +65,8 @@ namespace Zeze.Gen
             Comment = Types.Bean.GetComment(self);
 
             RelationalMapping = self.GetAttribute("RelationalMapping");
-            Version = int.Parse(self.GetAttribute("version"));
+            attr = self.GetAttribute("version");
+            Version = attr.Length > 0 ? int.Parse(attr) : 0;
 
             attr = self.GetAttribute("noSchema");
             NoSchema = attr.Length > 0 && bool.Parse(attr);
