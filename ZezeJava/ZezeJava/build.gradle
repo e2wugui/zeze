@@ -2,8 +2,8 @@ apply from: '../build.gradle'
 
 dependencies {
     // required dependencies
-    implementation 'org.apache.logging.log4j:log4j-api:2.25.4'
-    implementation 'org.apache.logging.log4j:log4j-core:2.25.4'
+    implementation 'org.apache.logging.log4j:log4j-api:2.26.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
     implementation 'org.jetbrains:annotations:26.1.0'
     implementation 'org.pcollections:pcollections:4.0.2'
     compileOnly 'org.rocksdb:rocksdbjni:10.10.1.1'
@@ -12,10 +12,10 @@ dependencies {
     runtimeOnly 'org.rocksdb:rocksdbjni:10.10.1.1:osx'
 
     // for netty
-    compileOnly 'io.netty:netty-codec-http:4.1.132.Final'
-    compileOnly 'io.netty:netty-transport-native-epoll:4.1.132.Final:linux-x86_64'
-    compileOnly 'org.slf4j:slf4j-api:2.0.17'
-    compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.4'
+    compileOnly 'io.netty:netty-codec-http:4.1.135.Final'
+    compileOnly 'io.netty:netty-transport-native-epoll:4.1.135.Final:linux-x86_64'
+    compileOnly 'org.slf4j:slf4j-api:2.0.18'
+    compileOnly 'org.apache.logging.log4j:log4j-slf4j2-impl:2.26.0'
 
     // optional dependencies
 
@@ -23,7 +23,7 @@ dependencies {
     //compileOnly 'com.google.guava:guava:33.4.0-jre'
 
     // for Json field
-    compileOnly 'com.alibaba.fastjson2:fastjson2:2.0.61'
+    compileOnly 'com.alibaba.fastjson2:fastjson2:2.0.62'
 
     // for tikv
     compileOnly 'org.tikv:tikv-client-java:3.3.5'
@@ -31,10 +31,10 @@ dependencies {
     // for jdbc(mysql,sqlserver,postgresql,tidb)
     compileOnly 'com.alibaba:druid:1.2.28'
     runtimeOnly 'com.mysql:mysql-connector-j:8.4.0'
-    runtimeOnly 'org.postgresql:postgresql:42.7.10'
+    runtimeOnly 'org.postgresql:postgresql:42.7.11'
 
     // for mongodb
-    compileOnly 'org.mongodb:mongodb-driver-sync:5.6.5'
+    compileOnly 'org.mongodb:mongodb-driver-sync:5.8.0'
 
     // for redis(kvrocks,pika,tendis)
     compileOnly 'redis.clients:jedis:5.2.0'
