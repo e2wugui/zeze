@@ -418,7 +418,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			if (ret != 0)
 				return ret;
 			localRemoveEvents.triggerProcedure(providerApp.zeze, this, arg);
-			Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
+			Transaction.whileCommit(() -> localRemoveEvents.triggerThread(providerApp.zeze, this, arg, account));
 		}
 		return 0;
 	}
@@ -441,7 +441,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (0 != ret)
 			return ret;
 		logoutEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> logoutEvents.triggerThread(providerApp.zeze, this, arg, account));
 		return 0;
 	}
 
@@ -451,7 +451,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (0 != ret)
 			return ret;
 		loginEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> loginEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> loginEvents.triggerThread(providerApp.zeze, this, arg, account));
 		loginTimes.incrementAndGet();
 		return 0;
 	}
@@ -462,7 +462,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (0 != ret)
 			return ret;
 		reloginEvents.triggerProcedure(providerApp.zeze, this, arg);
-		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> reloginEvents.triggerThread(providerApp.zeze, this, arg, account));
 		loginTimes.incrementAndGet();
 		return 0;
 	}

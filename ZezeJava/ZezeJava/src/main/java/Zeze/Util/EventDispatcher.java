@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Application;
 import Zeze.Transaction.DispatchMode;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class EventDispatcher {
 	// private static final @NotNull Logger logger = LogManager.getLogger(EventDispatcher.class);
@@ -94,16 +95,30 @@ public class EventDispatcher {
 	// 事件派发。需要触发者在明确的地方显式的调用。
 
 	// 启动新的线程执行。
-	public void triggerThread(@NotNull Object sender, @NotNull EventArgument arg) {
-		for (var handle : runThreadEvents) {
-			var classNameOrHandle = handle.classNameOrHandle;
-			if (classNameOrHandle instanceof EventHandle) {
-				Task.run(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg),
-						"EventDispatch." + name + ".runAsync", DispatchMode.Normal);
-			} else {
-				var className = (String)classNameOrHandle;
-				Task.run(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg),
-						"EventDispatch." + name + ".runAsync " + className, DispatchMode.Normal);
+	public void triggerThread(@NotNull Application app, @NotNull Object sender, @NotNull EventArgument arg, @Nullable Object oneByOneKey) {
+		if (oneByOneKey == null) {
+			for (var handle : runThreadEvents) {
+				var classNameOrHandle = handle.classNameOrHandle;
+				if (classNameOrHandle instanceof EventHandle) {
+					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
+					Task.run(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName));
+				} else {
+					var className = (String)classNameOrHandle;
+					var actionName = "EventDispatch." + name + ".runAsync." + className;
+					Task.run(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName));
+				}
+			}
+		} else {
+			for (var handle : runThreadEvents) {
+				var classNameOrHandle = handle.classNameOrHandle;
+				if (classNameOrHandle instanceof EventHandle) {
+					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
+					app.runTaskOneByOneByKey(oneByOneKey, actionName, () -> ((EventHandle)classNameOrHandle).invoke(sender, arg));
+				} else {
+					var className = (String)classNameOrHandle;
+					var actionName = "EventDispatch." + name + ".runAsync." + className;
+					app.runTaskOneByOneByKey(oneByOneKey, actionName, () -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg));
+				}
 			}
 		}
 	}
@@ -126,16 +141,12 @@ public class EventDispatcher {
 		for (var handle : runProcedureEvents) {
 			var classNameOrHandle = handle.classNameOrHandle;
 			if (classNameOrHandle instanceof EventHandle) {
-				Task.call(app.newProcedure(() -> {
-					((EventHandle)classNameOrHandle).invoke(sender, arg); // 忽略嵌套的存储的执行。
-					return 0L;
-				}, "EventDispatcher.triggerProcedure"));
+				var actionName = "EventDispatcher." + name + ".triggerProcedure." + classNameOrHandle.getClass().getName();
+				Task.call(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName));
 			} else {
 				var className = (String)classNameOrHandle;
-				Task.call(app.newProcedure(() -> {
-					zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg); // 忽略嵌套的存储的执行。
-					return 0L;
-				}, "EventDispatcher.triggerProcedure." + className));
+				var actionName = "EventDispatcher." + name + ".triggerProcedure." + className;
+				Task.call(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName));
 			}
 		}
 	}
