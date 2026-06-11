@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Application;
-import Zeze.Transaction.DispatchMode;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

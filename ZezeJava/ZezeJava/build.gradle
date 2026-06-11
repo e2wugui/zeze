@@ -85,7 +85,7 @@ tasks.withType(JavaCompile) {
                              "--add-exports", "java.base/sun.security.x509=ALL-UNNAMED"]
 }
 
-task startServiceManager(type: JavaExec) {
+tasks.register('startServiceManager', JavaExec) {
     classpath = configurations.runtimeClasspath
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')
@@ -93,7 +93,7 @@ task startServiceManager(type: JavaExec) {
     allJvmArgs = ['-Dlogname=ServiceManagerServer']
 }
 
-task startGlobalCacheManager(type: JavaExec) {
+tasks.register('startGlobalCacheManager', JavaExec) {
     classpath = configurations.runtimeClasspath
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')
@@ -101,7 +101,7 @@ task startGlobalCacheManager(type: JavaExec) {
     allJvmArgs = ['-Dlogname=GlobalCacheManagerServer']
 }
 
-task startGlobalCacheManagerAsync(type: JavaExec) {
+tasks.register('startGlobalCacheManagerAsync', JavaExec) {
     classpath = configurations.runtimeClasspath
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')

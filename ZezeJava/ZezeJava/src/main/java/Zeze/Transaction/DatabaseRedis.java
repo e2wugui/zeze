@@ -277,7 +277,6 @@ public class DatabaseRedis extends Database {
 					}
 				}
 				try {
-					//noinspection BusyWait
 					Thread.sleep(150);
 				} catch (InterruptedException e) {
 					Task.forceThrow(e);

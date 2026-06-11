@@ -148,7 +148,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 
-				//noinspection SpellCheckingInspection
 				String ProcSaveDataWithSameVersion = "Create or Alter procedure _ZezeSaveDataWithSameVersion_" + "\r\n" +
 						"                        @id VARBINARY(Max)," + "\r\n" +
 						"                        @data VARBINARY(MAX)," + "\r\n" +
@@ -267,7 +266,6 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 
-				//noinspection SpellCheckingInspection
 				String ProcClearInUse = "Create or Alter procedure _ZezeClearInUse_" + "\r\n" +
 						"                        @localid int," + "\r\n" +
 						"                        @global VARBINARY(MAX)," + "\r\n" +

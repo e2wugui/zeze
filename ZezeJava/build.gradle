@@ -1,12 +1,12 @@
 allprojects {
-    group 'com.zezeno'
-    version '1.6.3-SNAPSHOT'
+    group = 'com.zezeno'
+    version = '1.6.3-SNAPSHOT'
     apply plugin: 'java'
     apply plugin: 'idea'
 
     repositories {
-        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
-        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        maven { url = 'https://repo.huaweicloud.com/repository/maven/' }
+        maven { url = 'https://maven.aliyun.com/nexus/content/groups/public/' }
         mavenCentral()
     }
 
@@ -62,11 +62,11 @@ test {
     useJUnitPlatform()
 }
 
-task clearJar(type: Delete) {
+tasks.register('clearJar', Delete) {
     delete 'lib'
 }
 
-task copyJar(type: Sync) {
+tasks.register('copyJar', Sync) {
     from configurations.runtimeClasspath
     into 'lib'
 }
