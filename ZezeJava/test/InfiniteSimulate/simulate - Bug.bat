@@ -3,6 +3,6 @@ setlocal
 pushd %~dp0
 
 rem -ea -XX:NativeMemoryTracking=detail
-java -Dlogname=TwoTestBug -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.6.3.jar Infinite.TwoTestBug
+java -Dlogname=TwoTestBug -cp .;..\..\ZezeJavaTest\lib\*;..\..\ZezeJavaTest\build\libs\ZezeJavaTest-1.7.0-SNAPSHOT.jar Infinite.TwoTestBug
 
 pause
