@@ -60,9 +60,8 @@ final class BLeaderIsArgument extends Bean {
 	public boolean equals(Object obj) {
 		if (obj == this)
 			return true;
-		if (!(obj instanceof BLeaderIsArgument))
+		if (!(obj instanceof BLeaderIsArgument other))
 			return false;
-		BLeaderIsArgument other = (BLeaderIsArgument)obj;
 		return term == other.term && leaderId.equals(other.leaderId);
 	}
 

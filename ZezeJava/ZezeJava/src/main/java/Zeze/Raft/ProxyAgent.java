@@ -51,10 +51,9 @@ public class ProxyAgent extends Service {
 		if (null == p)
 			return Procedure.NotImplement;
 
-		if (!(p instanceof ProxyableRpc<?, ?>))
+		if (!(p instanceof ProxyableRpc<?, ?> proxyable))
 			throw new RuntimeException("not a proxyable rpc.");
 
-		var proxyable = (ProxyableRpc<?, ?>)p;
 		proxyable.setProxyRequest(r);
 		// 重新派发一次，有点浪费线程切换，以后再考虑优化。
 		client.dispatchProtocol(p, outFactoryHandle.value);

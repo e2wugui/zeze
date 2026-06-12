@@ -105,17 +105,15 @@ public class Helper {
 	public static void dependsBean(@NotNull Class<?> beanClass, @NotNull DependsResult result) throws Exception {
 		if (result.allBeans.add(beanClass)) {
 			var obj = beanClass.getConstructor((Class<?>[])null).newInstance((Object[])null);
-			if (obj instanceof BeanKey) {
+			if (obj instanceof BeanKey beanKey) {
 				result.beanKeys.add((Class<? extends Serializable>)beanClass);
-				var beanKey = (BeanKey)obj;
 				for (var v : beanKey.variables()) {
 					var type = v.getType();
 					if (!isBuiltinType(type))
 						dependsBean(Class.forName(type), result);
 				}
-			} else if (obj instanceof Bean) {
+			} else if (obj instanceof Bean bean) {
 				result.beans.add((Class<? extends Bean>)beanClass);
-				var bean = (Bean)obj;
 				for (var v : bean.variables()) {
 					var type = v.getType();
 					switch (type) {

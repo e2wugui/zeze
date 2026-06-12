@@ -276,7 +276,8 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 				var outBufSize = new OutLong();
 				service.foreach(socket -> {
 					if (socket instanceof TcpSocket) {
-						var tcp = (TcpSocket)socket;
+						TcpSocket tcp;
+						tcp = (TcpSocket)socket;
 						operates.value += tcp.getOperateSize();
 						outBufSize.value += tcp.getOutputBufferSize();
 					}

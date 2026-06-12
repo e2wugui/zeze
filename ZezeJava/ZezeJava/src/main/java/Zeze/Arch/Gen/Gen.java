@@ -232,9 +232,7 @@ final class Gen {
 		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
-			if (keyType instanceof Class && valueType instanceof Class) {
-				var keyClass = (Class<?>)keyType;
-				var valueClass = (Class<?>)valueType;
+			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
 				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
@@ -264,8 +262,7 @@ final class Gen {
 		}
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class) {
-				var elemClass = (Class<?>)elemType;
+			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
 				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
 					sb.appendLine("{}{}.WriteUInt({}.size());", prefix, bbName, varName);
@@ -281,9 +278,7 @@ final class Gen {
 		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
-			if (keyType instanceof Class && valueType instanceof Class) {
-				var keyClass = (Class<?>)keyType;
-				var valueClass = (Class<?>)valueType;
+			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
 				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&
@@ -327,8 +322,7 @@ final class Gen {
 		}
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class) {
-				var elemClass = (Class<?>)elemType;
+			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
 				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
 					sb.appendLine("{}for (int _n_ = {}.ReadUInt(); _n_ > 0; _n_--) {", prefix, bbName);
@@ -349,9 +343,7 @@ final class Gen {
 		if (Map.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var keyType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
 			var valueType = ((ParameterizedType)paramType).getActualTypeArguments()[1];
-			if (keyType instanceof Class && valueType instanceof Class) {
-				var keyClass = (Class<?>)keyType;
-				var valueClass = (Class<?>)valueType;
+			if (keyType instanceof Class<?> keyClass && valueType instanceof Class<?> valueClass) {
 				var keySerializer = serializers.get(keyClass);
 				var valueSerializer = serializers.get(valueClass);
 				if (!isAbstract(keyClass) && (keySerializer != null || Serializable.class.isAssignableFrom(keyClass)) &&

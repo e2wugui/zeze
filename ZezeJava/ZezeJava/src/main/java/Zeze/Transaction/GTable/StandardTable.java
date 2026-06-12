@@ -523,18 +523,16 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean contains(@CheckForNull Object o) {
-        if (o instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) o;
-          return containsMapping(entry.getKey(), columnKey, entry.getValue());
+        if (o instanceof Entry<?, ?> entry) {
+			return containsMapping(entry.getKey(), columnKey, entry.getValue());
         }
         return false;
       }
 
       @Override
       public boolean remove(@CheckForNull Object obj) {
-        if (obj instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) obj;
-          return removeMapping(entry.getKey(), columnKey, entry.getValue());
+        if (obj instanceof Entry<?, ?> entry) {
+			return removeMapping(entry.getKey(), columnKey, entry.getValue());
         }
         return false;
       }
@@ -830,9 +828,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean contains(@CheckForNull Object obj) {
-        if (obj instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) obj;
-          return entry.getKey() != null
+        if (obj instanceof Entry<?, ?> entry) {
+			return entry.getKey() != null
               && entry.getValue() instanceof Map
               && Utils.safeContains(backingMap.entrySet(), entry);
         }
@@ -841,9 +838,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean remove(@CheckForNull Object obj) {
-        if (obj instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) obj;
-          return entry.getKey() != null
+        if (obj instanceof Entry<?, ?> entry) {
+			return entry.getKey() != null
               && entry.getValue() instanceof Map
               && backingMap.entrySet().remove(entry);
         }
@@ -910,9 +906,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
 
       @Override
       public boolean contains(@CheckForNull Object obj) {
-        if (obj instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) obj;
-          if (containsColumn(entry.getKey())) {
+        if (obj instanceof Entry<?, ?> entry) {
+			if (containsColumn(entry.getKey())) {
             // requireNonNull is safe because of the containsColumn check.
             return Utils.requireNonNull(get(entry.getKey())).equals(entry.getValue());
           }
@@ -926,9 +921,8 @@ class StandardTable<R, C, V> extends AbstractTable<R, C, V> implements Serializa
          * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
          * nullness checker.
          */
-        if (contains(obj) && obj instanceof Entry) {
-          Entry<?, ?> entry = (Entry<?, ?>) obj;
-          removeColumn(entry.getKey());
+        if (contains(obj) && obj instanceof Entry<?, ?> entry) {
+			removeColumn(entry.getKey());
           return true;
         }
         return false;

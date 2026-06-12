@@ -744,11 +744,10 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	protected long ProcessNormalCloseRequest(NormalClose rpc) throws Exception {
 		Object userState = rpc.getSender().getUserState();
-		if (!(userState instanceof CacheHolder)) {
+		if (!(userState instanceof CacheHolder session)) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
-		CacheHolder session = (CacheHolder)userState;
 		if (!session.tryUnBindSocket(rpc.getSender())) {
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;

@@ -192,8 +192,7 @@ public class GenericBean {
 				sb.append('"').append(v).append('"');
 			else if (v instanceof byte[])
 				sb.append(BitConverter.toStringWithLimit((byte[])v, 16, 4));
-			else if (v instanceof List) {
-				var list = (List<?>)v;
+			else if (v instanceof List<?> list) {
 				sb.append('[');
 				if (!list.isEmpty()) {
 					if (list.get(0) instanceof Number && list.size() <= 16) {
@@ -209,8 +208,7 @@ public class GenericBean {
 					}
 				}
 				sb.append(']');
-			} else if (v instanceof Map) {
-				var map = (Map<?, ?>)v;
+			} else if (v instanceof Map<?, ?> map) {
 				sb.append('{');
 				if (!map.isEmpty()) {
 					for (var e2 : map.entrySet()) {

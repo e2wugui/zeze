@@ -44,8 +44,7 @@ public class CubeIndex implements Comparable<CubeIndex> {
 		if (obj == this)
 			return true;
 
-		if (obj instanceof CubeIndex) {
-			CubeIndex other = (CubeIndex)obj;
+		if (obj instanceof CubeIndex other) {
 			return x == other.x && y == other.y && z == other.z;
 		}
 		return false;

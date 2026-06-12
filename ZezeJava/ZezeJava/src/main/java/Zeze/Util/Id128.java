@@ -150,9 +150,8 @@ public class Id128 implements BeanKey, Comparable<Id128>, Serializable, Cloneabl
 	public boolean equals(@Nullable Object o) {
 		if (this == o)
 			return true;
-		if (!(o instanceof Id128))
+		if (!(o instanceof Id128 id128))
 			return false;
-		var id128 = (Id128)o;
 		return low == id128.low && high == id128.high;
 	}
 

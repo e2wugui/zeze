@@ -418,9 +418,8 @@ public class LongList implements Comparable<LongList>, Cloneable, Serializable {
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof LongList))
+		if (!(o instanceof LongList ll))
 			return false;
-		LongList ll = (LongList)o;
 		int n = count;
 		if (n != ll.count)
 			return false;

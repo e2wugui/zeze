@@ -26,8 +26,7 @@ public final class TableKey implements Comparable<TableKey> {
 		if (this == obj)
 			return true;
 
-		if (obj instanceof TableKey) {
-			var another = (TableKey)obj;
+		if (obj instanceof TableKey another) {
 			return name.equals(another.name) && key.equals(another.key);
 		}
 		return false;

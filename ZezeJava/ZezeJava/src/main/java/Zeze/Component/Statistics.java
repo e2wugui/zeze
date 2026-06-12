@@ -12,8 +12,7 @@ public class Statistics extends AbstractStatistics {
 		var sb = new StringBuilder();
 
 		var counter = ZezeCounter.instance;
-		if (counter instanceof PerfCounter) {
-			var perfCounter = (PerfCounter)counter;
+		if (counter instanceof PerfCounter perfCounter) {
 			sb.append("Procedures:\n");
 			for (var p : perfCounter.getProcedureInfoMap().values())
 				sb.append("    ").append(p).append("\n");

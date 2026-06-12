@@ -58,9 +58,8 @@ public class StringSpan implements Comparable<Object> {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (obj instanceof String) {
+		if (obj instanceof String s1) {
 			var s0 = string;
-			var s1 = (String)obj;
 			var n0 = length;
 			var o0 = offset;
 			if (n0 != s1.length())
@@ -71,8 +70,7 @@ public class StringSpan implements Comparable<Object> {
 			}
 			return true;
 		}
-		if (obj instanceof StringSpan) {
-			var ss = (StringSpan)obj;
+		if (obj instanceof StringSpan ss) {
 			var s0 = string;
 			var s1 = ss.string;
 			var n0 = length;
@@ -93,9 +91,8 @@ public class StringSpan implements Comparable<Object> {
 	public int compareTo(@Nullable Object obj) {
 		if (this == obj)
 			return 0;
-		if (obj instanceof String) {
+		if (obj instanceof String s1) {
 			var s0 = string;
-			var s1 = (String)obj;
 			var n0 = length;
 			var n1 = s1.length();
 			var o0 = offset;
@@ -108,8 +105,7 @@ public class StringSpan implements Comparable<Object> {
 			}
 			return n0 - n1;
 		}
-		if (obj instanceof StringSpan) {
-			var ss = (StringSpan)obj;
+		if (obj instanceof StringSpan ss) {
 			var s0 = string;
 			var s1 = ss.string;
 			var n0 = length;

@@ -115,8 +115,7 @@ public class Utils {
 
 		@Override
 		public boolean equals(@CheckForNull Object obj) {
-			if (obj instanceof InPredicate) {
-				InPredicate<?> that = (InPredicate<?>) obj;
+			if (obj instanceof InPredicate<?> that) {
 				return target.equals(that.target);
 			}
 			return false;
@@ -158,8 +157,7 @@ public class Utils {
 
 		@Override
 		public boolean equals(@CheckForNull Object obj) {
-			if (obj instanceof IsEqualToPredicate) {
-				IsEqualToPredicate that = (IsEqualToPredicate) obj;
+			if (obj instanceof IsEqualToPredicate that) {
 				return target.equals(that.target);
 			}
 			return false;
@@ -207,8 +205,7 @@ public class Utils {
 
 		@Override
 		public boolean equals(@CheckForNull Object obj) {
-			if (obj instanceof NotPredicate) {
-				NotPredicate<?> that = (NotPredicate<?>) obj;
+			if (obj instanceof NotPredicate<?> that) {
 				return predicate.equals(that.predicate);
 			}
 			return false;
@@ -409,8 +406,7 @@ public class Utils {
 		if (obj == table) {
 			return true;
 		}
-		if (obj instanceof Table) {
-			Table<?, ?, ?> that = (Table<?, ?, ?>) obj;
+		if (obj instanceof Table<?, ?, ?> that) {
 			return table.cellSet().equals(that.cellSet());
 		}
 		return false;
@@ -578,8 +574,7 @@ public class Utils {
 
 		@Override
 		public boolean equals(@CheckForNull Object obj) {
-			if (obj instanceof CompositionPredicate) {
-				CompositionPredicate<?, ?> that = (CompositionPredicate<?, ?>) obj;
+			if (obj instanceof CompositionPredicate<?, ?> that) {
 				return f.equals(that.f) && p.equals(that.p);
 			}
 			return false;
@@ -864,8 +859,7 @@ public class Utils {
 
 		@Override
 		public boolean contains(@CheckForNull Object o) {
-			if (o instanceof Map.Entry) {
-				Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+			if (o instanceof Map.Entry<?, ?> entry) {
 				Object key = entry.getKey();
 				V value = Utils.safeGet(map(), key);
 				return equal(value, entry.getValue()) && (value != null || map().containsKey(key));
@@ -884,8 +878,7 @@ public class Utils {
 			 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
 			 * nullness checker.
 			 */
-			if (contains(o) && o instanceof Map.Entry) {
-				Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+			if (contains(o) && o instanceof Map.Entry<?, ?> entry) {
 				return map().remove(entry.getKey()) != null;
 			}
 			return false;
@@ -913,8 +906,7 @@ public class Utils {
 					 * `o instanceof Entry` is guaranteed by `contains`, but we check it here to satisfy our
 					 * nullness checker.
 					 */
-					if (contains(o) && o instanceof Map.Entry) {
-						Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+					if (contains(o) && o instanceof Map.Entry<?, ?> entry) {
 						keys.add(entry.getKey());
 					}
 				}
@@ -1005,8 +997,7 @@ public class Utils {
 			if (obj == this) {
 				return true;
 			}
-			if (obj instanceof Table.Cell) {
-				Table.Cell<?, ?, ?> other = (Table.Cell<?, ?, ?>) obj;
+			if (obj instanceof Table.Cell<?, ?, ?> other) {
 				return equal(getRowKey(), other.getRowKey())
 						&& equal(getColumnKey(), other.getColumnKey())
 						&& equal(getValue(), other.getValue());

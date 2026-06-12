@@ -68,9 +68,8 @@ public class TestTransactionHalt {
 		// 基本不可能会发生这个情况：setLong2(0) 全部 flush 前就halt了。保险起见判断一下。
 		App.Instance.Zeze.checkpointRun();
 
-		if (App.Instance.demo_Module1.getTable1().getDatabase() instanceof DatabaseRocksDb) {
+		if (App.Instance.demo_Module1.getTable1().getDatabase() instanceof DatabaseRocksDb rocksDb) {
 			DatabaseRocksDb.verifyAction = () -> {
-				var rocksDb = (DatabaseRocksDb)App.Instance.demo_Module1.getTable1().getDatabase();
 				var table1 = App.Instance.demo_Module1.getTable1().getName();
 				var table3 = App.Instance.demo_Module1.getTable3().getName();
 				var query = new HashMap<String, Set<ByteBuffer>>();

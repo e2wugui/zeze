@@ -14,8 +14,7 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 
 	public Storage(@NotNull TableX<K, V> table, @NotNull Database database, @NotNull String tableName) {
 		this.table = table;
-		if (table.isRelationalMapping() && database instanceof DatabaseRelationalMapping) {
-			var mapping = (DatabaseRelationalMapping)database;
+		if (table.isRelationalMapping() && database instanceof DatabaseRelationalMapping mapping) {
 			databaseTable = mapping.openRelationalTable(tableName);
 			return; // done
 		}

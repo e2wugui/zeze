@@ -122,9 +122,8 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
   class CellSet extends AbstractSet<Cell<R, C, V>> {
     @Override
     public boolean contains(@CheckForNull Object o) {
-      if (o instanceof Cell) {
-        Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
-        Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
+      if (o instanceof Cell<?, ?, ?> cell) {
+		  Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
             && Utils.safeContains(
                 row.entrySet(), Utils.immutableEntry(cell.getColumnKey(), cell.getValue()));
@@ -134,9 +133,8 @@ abstract class AbstractTable<R, C, V> implements Table<R, C, V> {
 
     @Override
     public boolean remove(@CheckForNull Object o) {
-      if (o instanceof Cell) {
-        Cell<?, ?, ?> cell = (Cell<?, ?, ?>) o;
-        Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
+      if (o instanceof Cell<?, ?, ?> cell) {
+		  Map<C, V> row = Utils.safeGet(rowMap(), cell.getRowKey());
         return row != null
             && Utils.safeRemove(
                 row.entrySet(), Utils.immutableEntry(cell.getColumnKey(), cell.getValue()));

@@ -416,9 +416,8 @@ public class FloatList implements Comparable<FloatList>, Cloneable, Serializable
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof FloatList))
+		if (!(o instanceof FloatList fl))
 			return false;
-		FloatList fl = (FloatList)o;
 		int n = count;
 		if (n != fl.count)
 			return false;

@@ -418,9 +418,8 @@ public class IntList implements Comparable<IntList>, Cloneable, Serializable {
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof IntList))
+		if (!(o instanceof IntList il))
 			return false;
-		IntList il = (IntList)o;
 		int n = count;
 		if (n != il.count)
 			return false;

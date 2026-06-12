@@ -468,13 +468,11 @@ public class Schemas implements Serializable {
 				return false;
 			}
 
-			if (!(other instanceof Bean)) {
+			if (!(other instanceof Bean beanOther)) {
 				logger.error("other is not Bean. parent={}, bean={}, other={}",
 						parent, getName(), other.getClass().getName());
 				return false;
 			}
-
-			Bean beanOther = (Bean)other;
 
 			var result = context.getCheckResult(beanOther, this);
 			if (result != null) {
@@ -1031,8 +1029,7 @@ public class Schemas implements Serializable {
 	}
 
 	public RelationalTable newRelationalTable(@NotNull Application zeze , @NotNull Zeze.Transaction.Table table) {
-		if (table.getDatabase() instanceof DatabaseRelationalMapping) {
-			var mapping = (DatabaseRelationalMapping)table.getDatabase();
+		if (table.getDatabase() instanceof DatabaseRelationalMapping mapping) {
 			var cur = tables.get(table.getName());
 			var previous = zeze.getSchemasPrevious();
 			var other = previous != null ? previous.tables.get(table.getName()) : null;

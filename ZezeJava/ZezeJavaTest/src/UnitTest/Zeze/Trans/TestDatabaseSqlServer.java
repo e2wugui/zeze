@@ -27,9 +27,8 @@ public class TestDatabaseSqlServer extends TestCase {
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(null, databaseConf);
 		Database.Table tableTmp = sqlserver.openTable("test1", Bean.hash32("test1"));
-		if (! (tableTmp instanceof Database.AbstractKVTable))
+		if (! (tableTmp instanceof Database.AbstractKVTable table))
 			return;
-		var table = (Database.AbstractKVTable)tableTmp;
 		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{

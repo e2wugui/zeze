@@ -162,8 +162,7 @@ public final class BServiceInfo implements Serializable, Comparable<BServiceInfo
 		if (obj == this)
 			return true;
 
-		if (obj instanceof BServiceInfo) {
-			var other = (BServiceInfo)obj;
+		if (obj instanceof BServiceInfo other) {
 			// 版本分类存储，同一个集合的版本肯定相等，这里不需要判断版本。
 			return serviceName.equals(other.serviceName) && serviceIdentity.equals(other.serviceIdentity);
 		}

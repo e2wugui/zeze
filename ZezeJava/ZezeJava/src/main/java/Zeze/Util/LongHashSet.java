@@ -268,9 +268,8 @@ public class LongHashSet implements Cloneable {
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof LongHashSet))
+		if (!(o instanceof LongHashSet ls))
 			return false;
-		LongHashSet ls = (LongHashSet)o;
 		if (size != ls.size || hasZeroKey != ls.hasZeroKey)
 			return false;
 		for (long k : keyTable)

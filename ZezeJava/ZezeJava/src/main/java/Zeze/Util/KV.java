@@ -41,8 +41,7 @@ public class KV<K, V> {
 	public boolean equals(Object obj) {
 		if (obj == this)
 			return true;
-		if (obj instanceof KV) {
-			var kv = (KV<?, ?>)obj;
+		if (obj instanceof KV<?, ?> kv) {
 			return key.equals(kv.key) && value.equals(kv.value);
 		}
 		return false;

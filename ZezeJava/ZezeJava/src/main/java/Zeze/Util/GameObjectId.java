@@ -47,8 +47,7 @@ public class GameObjectId implements Comparable<GameObjectId> {
 		if (obj == this)
 			return true;
 
-		if (obj instanceof GameObjectId) {
-			GameObjectId o = (GameObjectId)obj;
+		if (obj instanceof GameObjectId o) {
 			return getType() == o.getType() && getConfigId() == o.getConfigId() && getInstanceId() == o.getInstanceId();
 		}
 		return false;

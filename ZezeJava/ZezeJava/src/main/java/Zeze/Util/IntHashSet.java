@@ -266,9 +266,8 @@ public class IntHashSet implements Cloneable {
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof IntHashSet))
+		if (!(o instanceof IntHashSet is))
 			return false;
-		IntHashSet is = (IntHashSet)o;
 		if (size != is.size || hasZeroKey != is.hasZeroKey)
 			return false;
 		for (int k : keyTable)

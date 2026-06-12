@@ -457,9 +457,8 @@ public class KVList<K, V> implements Cloneable {
 	public boolean equals(@Nullable Object o) {
 		if (o == this)
 			return true;
-		if (!(o instanceof KVList))
+		if (!(o instanceof KVList<?, ?> kvl))
 			return false;
-		KVList<?, ?> kvl = (KVList<?, ?>)o;
 		int n = count;
 		if (n != kvl.count)
 			return false;

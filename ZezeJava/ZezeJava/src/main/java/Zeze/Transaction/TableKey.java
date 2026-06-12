@@ -34,8 +34,7 @@ public final class TableKey implements Comparable<TableKey> {
 		if (this == obj)
 			return true;
 
-		if (obj instanceof TableKey) {
-			TableKey another = (TableKey)obj;
+		if (obj instanceof TableKey another) {
 			return id == another.id && key.equals(another.key);
 		}
 		return false;
