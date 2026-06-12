@@ -21,7 +21,12 @@ public final class Encrypt2 implements Codec {
 
 	static {
 		try {
-			var clsAESCrypt = Class.forName("com.sun.crypto.provider.AESCrypt");
+			Class<?> clsAESCrypt;
+			try {
+				clsAESCrypt = Class.forName("com.sun.crypto.provider.AESCrypt"); // for JDK 11~25
+			} catch (ClassNotFoundException e) {
+				clsAESCrypt = Class.forName("com.sun.crypto.provider.AES_Crypt"); // for JDK 26+
+			}
 			var cryptCtor = clsAESCrypt.getDeclaredConstructor((Class<?>[])null);
 			var mCryptInit = clsAESCrypt.getDeclaredMethod("init", boolean.class, String.class, byte[].class);
 			var mCryptEncrypt = clsAESCrypt.getDeclaredMethod("encryptBlock",
