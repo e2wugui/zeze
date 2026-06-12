@@ -1,37 +1,14 @@
 package Zeze.Util;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class ThreadFactoryWithName implements ThreadFactory {
-	private static final @Nullable Object virtualThreadBuilder;
-	private static final @Nullable MethodHandle mhUnstarted;
-
-	static {
-		Object virtualThreadBuilder0;
-		MethodHandle mhUnstarted0;
-		try {
-			var lookup = MethodHandles.lookup();
-			virtualThreadBuilder0 = lookup.findStatic(Thread.class, "ofVirtual",
-					MethodType.methodType(Class.forName("java.lang.Thread$Builder$OfVirtual"))).invoke();
-			mhUnstarted0 = lookup.findVirtual(Class.forName("java.lang.Thread$Builder"), "unstarted",
-					MethodType.methodType(Thread.class, Runnable.class));
-			Task.logger.info("ThreadFactoryWithName can use virtual thread");
-		} catch (Throwable ignored) { // ignore
-			virtualThreadBuilder0 = null;
-			mhUnstarted0 = null;
-		}
-		virtualThreadBuilder = virtualThreadBuilder0;
-		mhUnstarted = mhUnstarted0;
-	}
+	private static final @NotNull Thread.Builder.OfVirtual virtualThreadBuilder = Thread.ofVirtual();
 
 	public static boolean isVirtualThreadEnabled() {
-		return mhUnstarted != null;
+		return true;
 	}
 
 	protected final AtomicLong threadNumber = new AtomicLong();
@@ -56,13 +33,9 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	@Override
 	public @NotNull Thread newThread(@NotNull Runnable r) {
 		Thread t;
-		if (mhUnstarted != null && canBeVirtualThread) {
-			try {
-				t = (Thread)mhUnstarted.invoke(virtualThreadBuilder, r);
-				t.setName(namePrefix + threadNumber.incrementAndGet());
-			} catch (Throwable e) { // rethrow
-				throw Task.forceThrow(e);
-			}
+		if (canBeVirtualThread) {
+			t = virtualThreadBuilder.unstarted(r);
+			t.setName(namePrefix + threadNumber.incrementAndGet());
 		} else {
 			t = new Thread(r, namePrefix + threadNumber.incrementAndGet());
 			t.setDaemon(true); // 先不考虑安全关闭，以后再调整。
