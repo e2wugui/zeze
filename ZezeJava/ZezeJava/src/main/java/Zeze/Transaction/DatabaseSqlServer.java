@@ -121,14 +121,11 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.setLong(3, version);
 					cmd.registerOutParameter(4, Types.INTEGER); // return code
 					cmd.executeUpdate();
-					switch (cmd.getInt(4)) {
-					case 0:
-						return KV.create(cmd.getLong(3), true);
-					case 2:
-						return KV.create(0L, false);
-					default:
-						throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
-					}
+					return switch (cmd.getInt(4)) {
+						case 0 -> KV.create(cmd.getLong(3), true);
+						case 2 -> KV.create(0L, false);
+						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error.");
+					};
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);

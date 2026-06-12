@@ -717,8 +717,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 							&& timer.getHandleName().equals(handleClass.getName())
 							&& timer.getCustomData().getBean().equals(customData)) {
 						var timerObj = timer.getTimerObj().getBean();
-						if (timerObj instanceof BCronTimer) {
-							var cronTimer = (BCronTimer)timerObj;
+						if (timerObj instanceof BCronTimer cronTimer) {
 							return cronTimer.getCronExpression().equals(cron)
 									&& cronTimer.getRemainTimes() == times
 									&& cronTimer.getEndTime() == endTime

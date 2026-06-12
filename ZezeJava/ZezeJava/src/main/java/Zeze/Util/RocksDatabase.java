@@ -195,16 +195,12 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 	private static @NotNull RocksDB realOpen(@NotNull DbType dbType, @NotNull DBOptions options, @NotNull String path,
 											 @NotNull List<ColumnFamilyDescriptor> cfds,
 											 @NotNull List<ColumnFamilyHandle> cfhs) throws RocksDBException {
-		switch (dbType) {
-		case eRocksDb:
-			return RocksDB.open(options, path, cfds, cfhs);
-		case eOptimisticTransactionDb:
-			return OptimisticTransactionDB.open(options, path, cfds, cfhs);
-		case eTransactionDb:
-			return TransactionDB.open(options, transactionDbOptions, path, cfds, cfhs);
-		default:
-			throw new UnsupportedOperationException("unknown dbType=" + dbType);
-		}
+		return switch (dbType) {
+			case eRocksDb -> RocksDB.open(options, path, cfds, cfhs);
+			case eOptimisticTransactionDb -> OptimisticTransactionDB.open(options, path, cfds, cfhs);
+			case eTransactionDb -> TransactionDB.open(options, transactionDbOptions, path, cfds, cfhs);
+			default -> throw new UnsupportedOperationException("unknown dbType=" + dbType);
+		};
 	}
 
 	public static @NotNull RocksDB open(@NotNull DbType dbType, @NotNull DBOptions options, @NotNull String path,

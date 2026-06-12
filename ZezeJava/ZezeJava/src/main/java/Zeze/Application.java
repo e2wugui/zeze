@@ -164,18 +164,15 @@ public final class Application extends ReentrantLock {
 
 	public static @Nullable AbstractAgent createServiceManager(@NotNull Config conf,
 															   @NotNull String raftSessionNamePrefix) throws Exception {
-		switch (conf.getServiceManager()) {
-		case "raft":
-			if (conf.getServiceManagerConf().getSessionName().isEmpty())
-				conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
-			return new ServiceManagerAgentWithRaft(conf);
-
-		case "disable":
-			return null;
-
-		default:
-			return new Agent(conf);
-		}
+		return switch (conf.getServiceManager()) {
+			case "raft" -> {
+				if (conf.getServiceManagerConf().getSessionName().isEmpty())
+					conf.getServiceManagerConf().setSessionName(raftSessionNamePrefix + "#" + conf.getServerId());
+				yield new ServiceManagerAgentWithRaft(conf);
+			}
+			case "disable" -> null;
+			default -> new Agent(conf);
+		};
 	}
 
 	public Application(@NotNull String projectName, @Nullable Config config) throws Exception {

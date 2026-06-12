@@ -107,14 +107,11 @@ public class Database extends Zeze.Transaction.Database {
 			r.Argument.setVersion(version);
 			r.SendForWait(masterAgent.getService().GetSocket()).await();
 			var error = IModule.getErrorCode(r.getResultCode());
-			switch (error) {
-			case BSaveDataWithSameVersion.eSuccess:
-				return KV.create(r.Result.getVersion(), true);
-			case BSaveDataWithSameVersion.eVersionMismatch:
-				return KV.create(0L, false);
-			default:
-				throw new RuntimeException("SaveDataWithSameVersion error=" + error);
-			}
+			return switch (error) {
+				case BSaveDataWithSameVersion.eSuccess -> KV.create(r.Result.getVersion(), true);
+				case BSaveDataWithSameVersion.eVersionMismatch -> KV.create(0L, false);
+				default -> throw new RuntimeException("SaveDataWithSameVersion error=" + error);
+			};
 		}
 
 		@Override

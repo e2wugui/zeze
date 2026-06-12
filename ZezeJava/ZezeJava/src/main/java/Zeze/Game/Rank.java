@@ -145,38 +145,22 @@ public class Rank extends AbstractRank {
 		var c = Calendar.getInstance();
 		c.setTimeInMillis(time);
 		var year = c.get(Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
-		long offset;
+		long offset = switch (timeType) {
+			case BConcurrentKey.TimeTypeTotal -> {
+				year = 0;
+				yield 0;
+			}
+			case BConcurrentKey.TimeTypeDay -> c.get(Calendar.DAY_OF_YEAR);
+			case BConcurrentKey.TimeTypeWeek -> c.get(Calendar.WEEK_OF_YEAR);
+			case BConcurrentKey.TimeTypeSeason -> getSimpleChineseSeason(c);
+			case BConcurrentKey.TimeTypeYear -> 0;
+			case BConcurrentKey.TimeTypeCustomize -> {
+				year = 0;
+				yield customizeId;
+			}
+			default -> throw new UnsupportedOperationException("Unsupported TimeType=" + timeType);
+		};
 
-		switch (timeType) {
-		case BConcurrentKey.TimeTypeTotal:
-			year = 0;
-			offset = 0;
-			break;
-
-		case BConcurrentKey.TimeTypeDay:
-			offset = c.get(Calendar.DAY_OF_YEAR);
-			break;
-
-		case BConcurrentKey.TimeTypeWeek:
-			offset = c.get(Calendar.WEEK_OF_YEAR);
-			break;
-
-		case BConcurrentKey.TimeTypeSeason:
-			offset = getSimpleChineseSeason(c);
-			break;
-
-		case BConcurrentKey.TimeTypeYear:
-			offset = 0;
-			break;
-
-		case BConcurrentKey.TimeTypeCustomize:
-			year = 0;
-			offset = customizeId;
-			break;
-
-		default:
-			throw new UnsupportedOperationException("Unsupported TimeType=" + timeType);
-		}
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}
 

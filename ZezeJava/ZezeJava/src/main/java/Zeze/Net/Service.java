@@ -435,8 +435,7 @@ public class Service extends ReentrantLock {
 	 * @return 是否可以立即再次从socket接收数据(如果缓冲区还有数据的话), 否则会等下次select循环再处理
 	 */
 	public boolean OnSocketProcessInputBuffer(@NotNull AsyncSocket so, @NotNull ByteBuffer input) throws Exception {
-		if (so instanceof TcpSocket) {
-			var tcp = (TcpSocket)so;
+		if (so instanceof TcpSocket tcp) {
 			var haProxyHeader = tcp.getHaProxyHeader();
 			if (haProxyHeader != null && !haProxyHeader.decodeHeader(input))
 				return true; // 没有解析完header，看作成功。

@@ -102,8 +102,7 @@ final class MethodOverride {
 		inputParameters.remove(0);
 
 		var rType = method.getGenericReturnType();
-		if (rType instanceof ParameterizedType) {
-			var rpType = (ParameterizedType)rType;
+		if (rType instanceof ParameterizedType rpType) {
 			if (annotation instanceof RedirectAll) {
 				if (rpType.getRawType() == RedirectAllFuture.class) {
 					resultType = rpType.getActualTypeArguments()[0];

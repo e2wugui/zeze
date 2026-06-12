@@ -525,8 +525,7 @@ public final class Transaction {
 				//noinspection DataFlowIssue
 				var future = zeze.getServiceManager().getLastTid128CacheFuture();
 				assert future != null;
-				if (proc instanceof ProtocolProcedure) {
-					var pp = (ProtocolProcedure)proc;
+				if (proc instanceof ProtocolProcedure pp) {
 					return History.buildLogChanges(future, cc, pp.getProtocolClassName(), pp.getProtocolRawArgument());
 				}
 				return History.buildLogChanges(future, cc, null, null);
@@ -684,16 +683,15 @@ public final class Transaction {
 			}
 
 			// read lock
-			switch (e.atomicTupleRecord.record.getState()) {
-			case GlobalCacheManagerConst.StateRemoved:
-				// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
-				return CheckResult.Redo;
-
-			case GlobalCacheManagerConst.StateInvalid:
-				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
-			}
-			return e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
-					? CheckResult.Redo : CheckResult.Success;
+			return switch (e.atomicTupleRecord.record.getState()) {
+				case GlobalCacheManagerConst.StateRemoved ->
+					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+						CheckResult.Redo;
+				case GlobalCacheManagerConst.StateInvalid ->
+						CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+				default -> e.atomicTupleRecord.timestamp != e.atomicTupleRecord.record.getTimestamp()
+						? CheckResult.Redo : CheckResult.Success;
+			};
 		} finally {
 			e.atomicTupleRecord.record.exitFairLock();
 		}

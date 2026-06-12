@@ -1105,12 +1105,10 @@ public class ByteBuffer implements IByteBuffer, Comparable<ByteBuffer> {
 			return equals((ByteBuffer)other);
 		if (other instanceof NioByteBuffer)
 			return ((NioByteBuffer)other).bb.equals(java.nio.ByteBuffer.wrap(Bytes, ReadIndex, size()));
-		if (other instanceof byte[]) {
-			var bytes = (byte[])other;
+		if (other instanceof byte[] bytes) {
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex, bytes, 0, bytes.length);
 		}
-		if (other instanceof Binary) {
-			var binary = (Binary)other;
+		if (other instanceof Binary binary) {
 			return Arrays.equals(Bytes, ReadIndex, WriteIndex,
 					binary.bytesUnsafe(), binary.getOffset(), binary.getOffset() + binary.size());
 		}

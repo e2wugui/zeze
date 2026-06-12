@@ -152,8 +152,7 @@ public abstract class AsyncSocket implements Closeable {
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
 		Object bean;
-		if (p instanceof Rpc) {
-			var rpc = ((Rpc<?, ?>)p);
+		if (p instanceof Rpc<?, ?> rpc) {
 			sb.append(':').append(rpc.getSessionId());
 			logResultCode = !rpc.isRequest();
 			bean = logResultCode ? rpc.Result : rpc.Argument;
@@ -175,8 +174,7 @@ public abstract class AsyncSocket implements Closeable {
 		sb.append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
 		Object bean;
-		if (p instanceof Rpc) {
-			var rpc = ((Rpc<?, ?>)p);
+		if (p instanceof Rpc<?, ?> rpc) {
 			sb.append(':').append(rpc.getSessionId());
 			logResultCode = !rpc.isRequest();
 			bean = logResultCode ? rpc.Result : rpc.Argument;
@@ -195,8 +193,7 @@ public abstract class AsyncSocket implements Closeable {
 		sb.append(action).append(':').append(id).append(' ').append(p.getClass().getSimpleName());
 		boolean logResultCode;
 		Object bean;
-		if (p instanceof Rpc) {
-			var rpc = ((Rpc<?, ?>)p);
+		if (p instanceof Rpc<?, ?> rpc) {
 			sb.append(':').append(rpc.getSessionId());
 			logResultCode = !rpc.isRequest();
 			bean = logResultCode ? rpc.Result : rpc.Argument;

@@ -219,8 +219,7 @@ final class Gen {
 		var paramType = param.getParameterizedType();
 		if (Collection.class.isAssignableFrom(type) && paramType instanceof ParameterizedType) {
 			var elemType = ((ParameterizedType)paramType).getActualTypeArguments()[0];
-			if (elemType instanceof Class) {
-				var elemClass = (Class<?>)elemType;
+			if (elemType instanceof Class<?> elemClass) {
 				var serializer = serializers.get(elemClass);
 				if (!isAbstract(elemClass) && (serializer != null || Serializable.class.isAssignableFrom(elemClass))) {
 					sb.appendLine("{}var {} = new {}<{}>();", prefix, name,

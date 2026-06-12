@@ -46,9 +46,8 @@ public class UniqueRequestId implements Serializable {
 	public boolean equals(Object obj) {
 		if (obj == this)
 			return true;
-		if (!(obj instanceof UniqueRequestId))
+		if (!(obj instanceof UniqueRequestId other))
 			return false;
-		UniqueRequestId other = (UniqueRequestId)obj;
 		return clientId.equals(other.clientId) && requestId == other.requestId;
 	}
 

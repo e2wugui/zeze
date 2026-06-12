@@ -665,8 +665,8 @@ public class Schemas implements Serializable {
 
 		public void compile(@NotNull Schemas s) {
 			keyType = s.compile(keyName, "", "");
-			if (keyType instanceof Bean) {
-				((Bean)keyType).keyRefCount++;
+			if (keyType instanceof Bean bean) {
+				bean.keyRefCount++;
 			}
 			valueType = s.compile(valueName, "", "");
 		}
@@ -919,40 +919,20 @@ public class Schemas implements Serializable {
 		}
 
 		private static @NotNull KV<Integer, Integer> catType(@NotNull String type) {
-			switch (type) {
-			//@formatter:off
-			case "bool":
-			case "byte": return KV.create(0, 1); // bool<->byte
-			case "short": return KV.create(0, 2); // byte->short->int->long->float->double
-			case "int": return KV.create(0, 3);
-			case "long": return KV.create(0, 4);
-			case "float": return KV.create(0, 5);
-			case "double": return KV.create(0, 6);
+			return switch (type) {
+				//@formatter:off
+			case "bool","byte"->KV.create(0, 1); // bool<->byte
+			case "short"->KV.create(0, 2); // byte->short->int->long->float->double
+			case "int"->KV.create(0, 3);case "long"->KV.create(0, 4);case "float"->KV.create(0, 5);case "double"->KV.create(0, 6);case "string"->KV.create(1, 1); // string->binary
+			case "binary"->KV.create(1, 2);case "vector2int","vector3int"->KV.create(2, 1); // 允许互转
 
-			case "string": return KV.create(1, 1); // string->binary
-			case "binary": return KV.create(1, 2);
+			case "vector2","vector3","vector4","quaternion"->KV.create(3, 1); // 允许自由互转，返回同一个值即可。
 
-			case "vector2int":
-			case "vector3int":
-				return KV.create(2, 1); // 允许互转
-
-			case "vector2":
-			case "vector3":
-			case "vector4":
-			case "quaternion":
-				return KV.create(3, 1); // 允许自由互转，返回同一个值即可。
-
-			case "dynamic":
-			case "list":
-			case "array":
-			case "set":
-			case "map":
-				return KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
-			case "gtable":
-				return KV.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "dynamic","list","array","set","map"->KV.create(4, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
+			case "gtable"->KV.create(5, 1); // 这几个类型不是都能互转的。他们的兼容性遵循ByteBuffer的要求，关系映射这里不做检查。
 			//@formatter:on
-			}
-			throw new UnsupportedOperationException("unknown type=" + type);
+				default -> throw new UnsupportedOperationException("unknown type=" + type);
+			};
 		}
 
 		// 检查兼容，并返回列是否需要change。

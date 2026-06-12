@@ -230,14 +230,11 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 					ps.setLong(3, version);
 					ps.registerOutParameter(4, Types.INTEGER); // ret_value
 					ps.executeUpdate();
-					switch (ps.getInt(4)) {
-					case 0:
-						return KV.create(ps.getLong(3), true);
-					case 2:
-						return KV.create(0L, false);
-					default:
-						throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
-					}
+					return switch (ps.getInt(4)) {
+						case 0 -> KV.create(ps.getLong(3), true);
+						case 2 -> KV.create(0L, false);
+						default -> throw new IllegalStateException("Procedure SaveDataWithSameVersion Exec Error");
+					};
 				}
 			} catch (SQLException e) {
 				throw Task.forceThrow(e);

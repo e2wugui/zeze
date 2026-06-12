@@ -409,30 +409,22 @@ public final class Config {
 	}
 
 	public static Database createDatabase(@NotNull Application zeze, @NotNull DatabaseConf conf) throws Exception {
-		switch (GenModule.instance.genFileSrcRoot == null ? conf.databaseType : DbType.Memory) {
-		case Memory:
-			return new DatabaseMemory(zeze, conf);
-		case MySql:
-			return new DatabaseMySql(zeze, conf);
-		case SqlServer:
-			return new DatabaseSqlServer(zeze, conf);
-		case Tikv:
-			return new DatabaseTikv(zeze, conf);
-		case RocksDb:
-			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
-				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
-			return new DatabaseRocksDb(zeze, conf);
-		case Dbh2:
-			return new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
-		case Redis:
-			return new Zeze.Transaction.DatabaseRedis(zeze, conf);
-		case PostgreSQL:
-			return new DatabasePostgreSQL(zeze, conf);
-		case MongoDb:
-			return new DatabaseMongoDb(zeze, conf);
-		default:
-			throw new UnsupportedOperationException("unknown database type.");
-		}
+		return switch (GenModule.instance.genFileSrcRoot == null ? conf.databaseType : DbType.Memory) {
+			case Memory -> new DatabaseMemory(zeze, conf);
+			case MySql -> new DatabaseMySql(zeze, conf);
+			case SqlServer -> new DatabaseSqlServer(zeze, conf);
+			case Tikv -> new DatabaseTikv(zeze, conf);
+			case RocksDb -> {
+				if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isBlank())
+					throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
+				yield new DatabaseRocksDb(zeze, conf);
+			}
+			case Dbh2 -> new Zeze.Dbh2.Database(zeze, zeze.tryNewDbh2AgentManager(), conf);
+			case Redis -> new Zeze.Transaction.DatabaseRedis(zeze, conf);
+			case PostgreSQL -> new DatabasePostgreSQL(zeze, conf);
+			case MongoDb -> new DatabaseMongoDb(zeze, conf);
+			default -> throw new UnsupportedOperationException("unknown database type.");
+		};
 	}
 
 	public void createDatabase(@NotNull Application zeze, @NotNull HashMap<String, Database> map) throws Exception {

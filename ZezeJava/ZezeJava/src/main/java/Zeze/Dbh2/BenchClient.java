@@ -163,8 +163,7 @@ public class BenchClient {
 		public boolean equals(Object other) {
 			if (this == other)
 				return true;
-			if (other instanceof TableKey) {
-				var otk = (TableKey)other;
+			if (other instanceof TableKey otk) {
 				return otk.table == this.table && otk.key == this.key;
 			}
 			return false;
