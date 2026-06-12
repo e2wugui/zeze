@@ -68,14 +68,11 @@ public abstract class AbstractIterator<T> extends UnmodifiableIterator<T> {
 	@Override
 	public final boolean hasNext() {
 		Utils.checkState(state != State.FAILED);
-		switch (state) {
-		case DONE:
-			return false;
-		case READY:
-			return true;
-		default:
-		}
-		return tryToComputeNext();
+		return switch (state) {
+			case DONE -> false;
+			case READY -> true;
+			default -> tryToComputeNext();
+		};
 	}
 
 	private boolean tryToComputeNext() {

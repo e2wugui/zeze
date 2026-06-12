@@ -82,25 +82,17 @@ public class BoolList {
 	private static boolean get(BValue value, int index) {
 		var i = index & RECORD_BOOLS_MASK; // %RECORD_BOOLS_COUNT
 		var varBit = 1L << (i & LONG_BITS_MASK);
-		switch (i >>> LONG_BITS_SHIFT) { // /LONG_BITS_COUNT
-		case 0:
-			return (value.getItem0() & varBit) != 0;
-		case 1:
-			return (value.getItem1() & varBit) != 0;
-		case 2:
-			return (value.getItem2() & varBit) != 0;
-		case 3:
-			return (value.getItem3() & varBit) != 0;
-		case 4:
-			return (value.getItem4() & varBit) != 0;
-		case 5:
-			return (value.getItem5() & varBit) != 0;
-		case 6:
-			return (value.getItem6() & varBit) != 0;
-		case 7:
-			return (value.getItem7() & varBit) != 0;
-		}
-		return false;
+		return switch (i >>> LONG_BITS_SHIFT) { // /LONG_BITS_COUNT
+			case 0 -> (value.getItem0() & varBit) != 0;
+			case 1 -> (value.getItem1() & varBit) != 0;
+			case 2 -> (value.getItem2() & varBit) != 0;
+			case 3 -> (value.getItem3() & varBit) != 0;
+			case 4 -> (value.getItem4() & varBit) != 0;
+			case 5 -> (value.getItem5() & varBit) != 0;
+			case 6 -> (value.getItem6() & varBit) != 0;
+			case 7 -> (value.getItem7() & varBit) != 0;
+			default -> false;
+		};
 	}
 
 	private static void set(BValue value, int index) {

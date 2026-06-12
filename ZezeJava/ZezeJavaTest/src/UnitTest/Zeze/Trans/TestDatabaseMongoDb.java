@@ -19,12 +19,10 @@ public class TestDatabaseMongoDb extends TestCase {
 	private static String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
-		switch (hostName) {
-		case "doudouwang": // lichenghua's computer 2
+		if (hostName.equals("doudouwang")) { // lichenghua's computer 2
 			return "mongodb://127.0.0.1:27017/?replicaSet=rs0";
-		default:
-			return null; // 默认不测试postgresql。
 		}
+		return null; // 默认不测试postgresql。
 	}
 
 	public final void test1() throws Exception {

@@ -122,17 +122,11 @@ public class LogBean extends Log {
 
 	public static @NotNull LogBean decodeLogBean(@NotNull IByteBuffer bb) {
 		int type = bb.ReadByte();
-		LogBean logBean;
-		switch (type) {
-		case 0:
-			logBean = new LogBean(null, 0, null);
-			break;
-		case 1:
-			logBean = new LogDynamic(null, 0, null);
-			break;
-		default:
-			throw new RuntimeException("unknown logBean subclass type=" + type);
-		}
+		LogBean logBean = switch (type) {
+			case 0 -> new LogBean(null, 0, null);
+			case 1 -> new LogDynamic(null, 0, null);
+			default -> throw new RuntimeException("unknown logBean subclass type=" + type);
+		};
 		logBean.decode(bb);
 		return logBean;
 	}

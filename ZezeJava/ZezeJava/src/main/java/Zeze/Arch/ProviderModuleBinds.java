@@ -63,22 +63,13 @@ public final class ProviderModuleBinds {
 		}
 
 		private static int getChoiceType(@NotNull Element self) {
-			switch (self.getAttribute("ChoiceType")) {
-			case "ChoiceTypeHashAccount":
-				return BModule.ChoiceTypeHashAccount;
-
-			case "ChoiceTypeHashRoleId":
-				return BModule.ChoiceTypeHashRoleId;
-
-			case "ChoiceTypeHashSourceAddress":
-				return BModule.ChoiceTypeHashSourceAddress;
-
-			case "ChoiceTypeFeedFullOneByOne":
-				return BModule.ChoiceTypeFeedFullOneByOne;
-
-			default:
-				return BModule.ChoiceTypeDefault;
-			}
+			return switch (self.getAttribute("ChoiceType")) {
+				case "ChoiceTypeHashAccount" -> BModule.ChoiceTypeHashAccount;
+				case "ChoiceTypeHashRoleId" -> BModule.ChoiceTypeHashRoleId;
+				case "ChoiceTypeHashSourceAddress" -> BModule.ChoiceTypeHashSourceAddress;
+				case "ChoiceTypeFeedFullOneByOne" -> BModule.ChoiceTypeFeedFullOneByOne;
+				default -> BModule.ChoiceTypeDefault;
+			};
 		}
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。

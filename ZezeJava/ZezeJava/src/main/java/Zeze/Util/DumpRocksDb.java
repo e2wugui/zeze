@@ -188,32 +188,18 @@ public final class DumpRocksDb {
 		System.err.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "' ...");
 		var t = System.currentTimeMillis();
 		Action2<OutputStream, ByteBuffer> keyDumper, valueDumper;
-		switch (System.getProperty("key", "")) {
-		case "long":
-			keyDumper = DumpRocksDb::dumpLong;
-			break;
-		case "string":
-			keyDumper = DumpRocksDb::dumpString;
-			break;
-		case "nstring":
-			keyDumper = DumpRocksDb::dumpNString;
-			break;
-		case "bean":
-			keyDumper = DumpRocksDb::dumpBean;
-			break;
-		default:
-			keyDumper = DumpRocksDb::dumpRaw;
-		}
-		switch (System.getProperty("value", "")) {
-		case "bean":
-			valueDumper = DumpRocksDb::dumpBean;
-			break;
-		case "raftLog":
-			valueDumper = DumpRocksDb::dumpRaftLog;
-			break;
-		default:
-			valueDumper = DumpRocksDb::dumpRaw;
-		}
+		keyDumper = switch (System.getProperty("key", "")) {
+			case "long" -> DumpRocksDb::dumpLong;
+			case "string" -> DumpRocksDb::dumpString;
+			case "nstring" -> DumpRocksDb::dumpNString;
+			case "bean" -> DumpRocksDb::dumpBean;
+			default -> DumpRocksDb::dumpRaw;
+		};
+		valueDumper = switch (System.getProperty("value", "")) {
+			case "bean" -> DumpRocksDb::dumpBean;
+			case "raftLog" -> DumpRocksDb::dumpRaftLog;
+			default -> DumpRocksDb::dumpRaw;
+		};
 		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 		try (var rocksDb = RocksDB.openReadOnly(dbOptions, inputDbPath, columnFamilies, outHandles);
 			 var ro = new ReadOptions();

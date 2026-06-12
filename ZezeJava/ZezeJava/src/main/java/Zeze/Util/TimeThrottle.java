@@ -21,12 +21,10 @@ public interface TimeThrottle extends AutoCloseable {
 		if (name == null || name.isBlank() || seconds == null || limit == null || bandwidth == null)
 			return null;
 
-		switch (name) {
-		case "queue":
-			return new TimeThrottleQueue(seconds, limit, bandwidth);
-		case "counter":
-			return new TimeThrottleCounter(seconds, limit, bandwidth);
-		}
-		throw new UnsupportedOperationException("unknown time throttle " + name);
+		return switch (name) {
+			case "queue" -> new TimeThrottleQueue(seconds, limit, bandwidth);
+			case "counter" -> new TimeThrottleCounter(seconds, limit, bandwidth);
+			default -> throw new UnsupportedOperationException("unknown time throttle " + name);
+		};
 	}
 }

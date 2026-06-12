@@ -124,17 +124,12 @@ public final class ModuleEquip extends AbstractModule implements IModuleEquip {
 			var equip = mc.getService();
 			var count = 1; // default is 1
 			var custom = (BEquipExtra)context.customData;
-			switch (custom.getDefence()) {
-			case 1:
-				count = equip.getHotTimerCount();
-				break;
-			case 2:
-				count = equip.getNamedTimerCount();
-				break;
-			case 3:
-				count = equip.getOnlineTimerCount();
-				break;
-			}
+			count = switch (custom.getDefence()) {
+				case 1 -> equip.getHotTimerCount();
+				case 2 -> equip.getNamedTimerCount();
+				case 3 -> equip.getOnlineTimerCount();
+				default -> count;
+			};
 			if (count != custom.getAttack())
 				throw new RuntimeException("HotTimer verify fail. type=" + custom.getDefence()
 						+ " count=" + count + ":" + custom.getAttack());

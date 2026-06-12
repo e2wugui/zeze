@@ -251,28 +251,27 @@ public class Helper {
 	}
 
 	public static @Nullable Class<?> getBuiltinBoxingClass(@NotNull String type) {
-		switch (type) {
-		//@formatter:off
-		case "bool": return Boolean.class;
-		case "byte": return Byte.class;
-		case "short": return Short.class;
-		case "int": return Integer.class;
-		case "long": return Long.class;
-		case "float": return Float.class;
-		case "double": return Double.class;
-		case "binary": return Zeze.Net.Binary.class;
-		case "string": return String.class;
-		case "decimal": return BigDecimal.class;
-		case "vector2": return Zeze.Serialize.Vector2.class;
-		case "vector2int": return Zeze.Serialize.Vector2Int.class;
-		case "vector3": return Zeze.Serialize.Vector3.class;
-		case "vector3int": return Zeze.Serialize.Vector3Int.class;
-		case "vector4": return Zeze.Serialize.Vector4.class;
-		case "quaternion": return Zeze.Serialize.Quaternion.class;
-		case "dynamic": return Zeze.Transaction.DynamicBean.class;
-		//@formatter:on
-		}
-		return null;
+		return switch (type) {
+			//@formatter:off
+		case "bool"->Boolean.class;
+		case "byte"->Byte.class;
+		case "short"->Short.class;
+		case "int"->Integer.class;
+		case "long"->Long.class;
+		case "float"->Float.class;
+		case "double"->Double.class;
+		case "binary"->Zeze.Net.Binary.class;
+		case "string"->String.class;
+		case "decimal"->BigDecimal.class;
+		case "vector2"->Zeze.Serialize.Vector2.class;
+		case "vector2int"->Zeze.Serialize.Vector2Int.class;
+		case "vector3"->Zeze.Serialize.Vector3.class;
+		case "vector3int"->Zeze.Serialize.Vector3Int.class;
+		case "vector4"->Zeze.Serialize.Vector4.class;
+		case "quaternion"->Zeze.Serialize.Quaternion.class;
+		case "dynamic"->DynamicBean.class;
+		default -> null;
+		};
 	}
 
 	public static boolean isBuiltinType(@NotNull String type) {

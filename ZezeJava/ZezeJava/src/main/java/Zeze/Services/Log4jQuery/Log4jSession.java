@@ -65,16 +65,12 @@ public class Log4jSession {
 	}
 
 	private static boolean containsCheck(Log4jLog log, List<String> words, int containsType) {
-		switch (containsType) {
-		case BCondition.ContainsAll:
-			return log.containsAll(words);
-		case BCondition.ContainsAny:
-			return log.containsAny(words);
-		case BCondition.ContainsNone:
-			return log.containsNone(words);
-		default:
-			throw new RuntimeException("unknown contains type=" + containsType);
-		}
+		return switch (containsType) {
+			case BCondition.ContainsAll -> log.containsAll(words);
+			case BCondition.ContainsAny -> log.containsAny(words);
+			case BCondition.ContainsNone -> log.containsNone(words);
+			default -> throw new RuntimeException("unknown contains type=" + containsType);
+		};
 	}
 
 	/**

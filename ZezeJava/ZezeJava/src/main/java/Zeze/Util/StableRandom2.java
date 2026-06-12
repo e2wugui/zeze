@@ -45,20 +45,14 @@ public class StableRandom2 {
 	}
 
 	public long getSeed(int i) {
-		switch (i) {
-		case 1:
-			return s1;
-		case 2:
-			return s2;
-		case 3:
-			return s3;
-		case 4:
-			return s4;
-		case 5:
-			return s5;
-		default:
-			throw new IllegalArgumentException(String.valueOf(i));
-		}
+		return switch (i) {
+			case 1 -> s1;
+			case 2 -> s2;
+			case 3 -> s3;
+			case 4 -> s4;
+			case 5 -> s5;
+			default -> throw new IllegalArgumentException(String.valueOf(i));
+		};
 	}
 
 	public @NotNull StableRandom2 setSeed(long s1, long s2, long s3, long s4, long s5) {

@@ -97,23 +97,14 @@ public class InMemoryJavaCompiler {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");
 			int warningLevel = 0;
 			for (Diagnostic<?> d : collector.getDiagnostics()) {
-				switch (d.getKind()) {
-				case OTHER:
-					warningLevel = Math.max(warningLevel, 1);
-					break;
-				case NOTE:
-					warningLevel = Math.max(warningLevel, 2);
-					break;
-				case MANDATORY_WARNING:
-					warningLevel = Math.max(warningLevel, 3);
-					break;
-				case WARNING:
-					warningLevel = Math.max(warningLevel, 4);
-					break;
-				default: // ERROR
-					warningLevel = 5;
-					break;
-				}
+				warningLevel = switch (d.getKind()) {
+					case OTHER -> Math.max(warningLevel, 1);
+					case NOTE -> Math.max(warningLevel, 2);
+					case MANDATORY_WARNING -> Math.max(warningLevel, 3);
+					case WARNING -> Math.max(warningLevel, 4);
+					default -> // ERROR
+							5;
+				};
 				exceptionMsg.append('\n').append("[kind=").append(d.getKind());
 				var source = d.getSource();
 				if (source instanceof SourceCode)

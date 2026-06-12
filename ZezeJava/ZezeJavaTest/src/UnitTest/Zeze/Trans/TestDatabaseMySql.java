@@ -37,17 +37,16 @@ public class TestDatabaseMySql extends TestCase {
 	private static String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
-		switch (hostName) {
-		case "doudouwang": // lichenghua's computer 2
-			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-		case "DESKTOP-VVU42V2":
-			return checkTcpPort(null, 3306)
+		return switch (hostName) {
+			case "doudouwang" -> // lichenghua's computer 2
+					"jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+			case "DESKTOP-VVU42V2" -> checkTcpPort(null, 3306)
 					? "jdbc:mysql://localhost/devtest?user=root&password=&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
 					: null;
-		default:
-			//return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-			return null; // 默认不测试mysql。
-		}
+			default ->
+				//return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+					null; // 默认不测试mysql。
+		};
 	}
 
 	public final void test1() throws Exception {

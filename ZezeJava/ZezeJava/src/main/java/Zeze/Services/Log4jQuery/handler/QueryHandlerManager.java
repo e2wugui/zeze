@@ -89,34 +89,17 @@ public class QueryHandlerManager {
 		private static Object cast(@NotNull Class<?> clazz, String str) {
 			if (clazz == String.class)
 				return str;
-			switch (clazz.getName()) {
-			case "int":
-			case "java.lang.Integer":
-				return Integer.valueOf(str);
-			case "long":
-			case "java.lang.Long":
-				return Long.valueOf(str);
-			case "byte":
-			case "java.lang.Byte":
-				return Byte.valueOf(str);
-			case "short":
-			case "java.lang.Short":
-				return Short.valueOf(str);
-			case "float":
-			case "java.lang.Float":
-				return Float.valueOf(str);
-			case "double":
-			case "java.lang.Double":
-				return Double.valueOf(str);
-			case "boolean":
-			case "java.lang.Boolean":
-				return Boolean.valueOf(str);
-			case "char":
-			case "java.lang.Character":
-				return (char)Integer.parseInt(str);
-			default:
-				return Json.parse(str, clazz);
-			}
+			return switch (clazz.getName()) {
+				case "int", "java.lang.Integer" -> Integer.valueOf(str);
+				case "long", "java.lang.Long" -> Long.valueOf(str);
+				case "byte", "java.lang.Byte" -> Byte.valueOf(str);
+				case "short", "java.lang.Short" -> Short.valueOf(str);
+				case "float", "java.lang.Float" -> Float.valueOf(str);
+				case "double", "java.lang.Double" -> Double.valueOf(str);
+				case "boolean", "java.lang.Boolean" -> Boolean.valueOf(str);
+				case "char", "java.lang.Character" -> (char)Integer.parseInt(str);
+				default -> Json.parse(str, clazz);
+			};
 		}
 	}
 }

@@ -199,20 +199,13 @@ public class PList1<V> extends PList<V> {
 		var log = (LogList1<V>)_log;
 		var tmp = list;
 		for (var opLog : log.getOpLogs()) {
-			switch (opLog.op) {
-			case LogList1.OpLog.OP_MODIFY:
-				tmp = tmp.with(opLog.index, opLog.value);
-				break;
-			case LogList1.OpLog.OP_ADD:
-				tmp = tmp.plus(opLog.index, opLog.value);
-				break;
-			case LogList1.OpLog.OP_REMOVE:
-				tmp = tmp.minus(opLog.index);
-				break;
-			case LogList1.OpLog.OP_CLEAR:
-				tmp = Empty.vector();
-				break;
-			}
+			tmp = switch (opLog.op) {
+				case LogList1.OpLog.OP_MODIFY -> tmp.with(opLog.index, opLog.value);
+				case LogList1.OpLog.OP_ADD -> tmp.plus(opLog.index, opLog.value);
+				case LogList1.OpLog.OP_REMOVE -> tmp.minus(opLog.index);
+				case LogList1.OpLog.OP_CLEAR -> Empty.vector();
+				default -> tmp;
+			};
 		}
 		list = tmp;
 	}

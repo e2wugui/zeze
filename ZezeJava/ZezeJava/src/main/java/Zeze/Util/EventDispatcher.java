@@ -54,16 +54,12 @@ public class EventDispatcher {
 	}
 
 	private @NotNull ConcurrentLinkedQueue<HandleClass> getQueue(@NotNull Mode mode) {
-		switch (mode) {
-		case RunEmbed:
-			return runEmbedEvents;
-		case RunProcedure:
-			return runProcedureEvents;
-		case RunThread:
-			return runThreadEvents;
-		default:
-			throw new IllegalArgumentException("Unknown mode=" + mode);
-		}
+		return switch (mode) {
+			case RunEmbed -> runEmbedEvents;
+			case RunProcedure -> runProcedureEvents;
+			case RunThread -> runThreadEvents;
+			default -> throw new IllegalArgumentException("Unknown mode=" + mode);
+		};
 	}
 
 	/**
