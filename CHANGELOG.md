@@ -5,6 +5,92 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且这个项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.6.3] - 2026-06-11
+
+### 新增
+- **表结构版本管理**: 新增 `table.version` 属性，表结构版本增长时自动重命名表
+- **EventDispatcher**: `triggerThread` 增加可选 `oneByOne` 参数，支持在存储过程中执行
+
+### 变更
+- **StringFuzzySearch**: 再次修正和改进字符串模糊搜索算法
+- **连接关闭**: `startRelease` 的时候关闭连接
+
+### 修复
+- **Timer接管**: 接管其他 ServerId 时，开始 `LoadTimer` 需要使用本地 ServerId，不能用被接管的 ServerId
+- **Rank计算**: `Rank.getComputeCount` 应该从 `getRankSize` 计算，而不是 `getConcurrentLevel`
+- **ClearInUse**: 实例不存在的情况不再判断，总是执行后面的清除判断
+- **setInUse死锁**: 死循环重试改成限定次数重试，避免死锁
+- **WebSocketClient**: url 为域名时先解析；`RemoteAddress` 可能为 null（小程序不支持解析 dns）
+- **Map返回类型**: 修正几个 Map 的 `getValueTable` 返回类型，避免运行时转换异常
+- **Gen**: 修正 Table 的 `version` 属性默认值
+
+### 依赖更新
+- 更新几个依赖库版本
+- gradle 升级
+
+## [1.6.2] - 2026-04-14
+
+### 新增
+- **MongoDB数据库支持**: 新增 `DatabaseMongoDb`，实现 `TableMongoDb.getSize`、`getSizeApproximation`，`OperatesMongoDb` 实现 `Schemas(DataVersion)` 存储
+- **字符串模糊匹配**: `Util` 增加字符串模糊匹配算法 `StringFuzzySearch`
+- **TypeScript WebSocket**: 为纯 ts 环境提供 `WebsocketService`
+- **Unity WebSocket**: 加入 `UNITY_WEBSOCKET` 支持，依赖 UnityWebSocket
+- **文档站点**: 使用 astro 和 starlight 重新构建 docs，发布到 github pages
+- **DatabaseRelationalMapping接口**: 重构数据库映射接口，为未来实现 pg 的 mapping 准备
+
+### 变更
+- **数据库驱动**: 数据库驱动的运行时依赖改成可选的
+- **Connector改进**: Connector 以 Url 配置时不需要读 Port 配置；start 异常时也尝试重连
+- **向量类**: 修正向量类的 `compareTo` 和 `equals` 以保证一致性
+- **HotModule**: 延迟打开 `JarFile`
+- **OnlineTimer**: 修改 delay 生成机制，避免注册和触发 `OnlineTimer` 同时执行
+- **PersistentAtomicLong**: 修正几处潜在的问题
+
+### 修复
+- **Codec资源泄漏**: `Codec` 补充 `close` 方法，避免 Zstd 本地库资源泄漏
+- **SocketChannel**: `read` 读到 0 长度不再当做连接关闭
+- **序列化**: 修正几处序列化 bug
+- **Map/Set容器**: 修正几个 Map/Set 容器的 `toString`
+- **TestMemoryTable**: 修正大内存环境的测试
+- **duplicate role login**: 报错补充账号相关信息
+- **表名**: 几个包含 "." 字符的表名改成 "_"
+- **Scriban**: 修复版本升级导致的异常
+- **JDK25兼容**: 解决 Windows 下无法传递带宽字符的 agent.jar 路径的问题
+
+### 依赖更新
+- 更新依赖库版本
+- pom.xml 补充 mongodb 依赖
+
+## [1.6.1] - 2025-12-24
+
+### 新增
+- **PostgreSQL数据库支持**: 新增 `DatabasePostgreSQL`，支持存储过程、`REPLACE`、`RelationalMapping`
+- **Cxx网络层**: 基于 epoll/wepoll/kqueue 实现网络层 Net，支持 handshake 和协议收发
+- **SimpleTimer**: 处理时支持指定下次触发时间
+- **provider配置**: `provider.module.binds.xml` 增加 `dynamic="true"` 配置，加入时检测并提醒修改配置
+- **数据库驱动**: 改进数据库驱动的依赖方式
+
+### 变更
+- **KeepAlive**: 取消 KeepAlive 单例
+- **Task.shutdown**: 参数改名并改为毫秒
+- **druid**: 默认连接池数量为 8
+- **synchronized**: 去掉 `synchronized`，替换成 `ReentrantLock`
+- **DatabaseSqlServer**: 加上 `getSize`、`getSizeApproximation`、`drop` 的实现
+- **事务**: 在事务的栈底加一层 root procedure 对象，在事务执行的其它阶段也能获取到
+- **Completed状态**: 允许增加 `whileCommit`、`whileRollback`
+
+### 移除
+- **Zeze(c#)**: 删除 Zeze(c#) 框架及相关代码，迁移 `Zeze/Gen` 到独立的 `Gen` 项目
+- **ConfigEditor**: 删除
+- **Auth组件**: 删除（定义不完善）
+
+### 修复
+- **getSizeApproximation**: 修正 Mysql、Postgres 语法错误
+- **Redirect**: 修正 Redirect 序列化 Long 返回值
+
+### 依赖更新
+- 更新一些依赖库
+
 ## [1.6.0] - 2025-10-23
 
 ### 新增
@@ -187,6 +273,9 @@
 
 ## 版本历史
 
+[1.6.3]: https://gitee.com/e2wugui/zeze/compare/v1.6.2...v1.6.3
+[1.6.2]: https://gitee.com/e2wugui/zeze/compare/v1.6.1...v1.6.2
+[1.6.1]: https://gitee.com/e2wugui/zeze/compare/v1.6.0...v1.6.1
 [1.6.0]: https://gitee.com/e2wugui/zeze/compare/v1.5.10...v1.6.0
 [1.5.10]: https://gitee.com/e2wugui/zeze/compare/v1.5.9...v1.5.10
 [1.5.9]: https://gitee.com/e2wugui/zeze/compare/v1.5.8...v1.5.9
