@@ -1289,7 +1289,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	}
 
 	private void loadTimer(@NotNull OutLong nodeId, long last) throws ParseException {
-		var serverId = zeze.getConfig().getServerId();
 		var node = _tNodes.get(nodeId.value);
 		if (node == null) {
 			logger.warn("loadTimer not found nodeId={}", nodeId.value);
@@ -1303,6 +1302,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 		var now = System.currentTimeMillis();
 		var appVer = zeze.getConfig().getAppVersion();
+		var serverId = zeze.getConfig().getServerId();
 		for (var it = node.getTimers().values().iterator(); it.hasNext(); ) {
 			var timer = it.next();
 			var index = _tIndexs.get(timer.getTimerName());
