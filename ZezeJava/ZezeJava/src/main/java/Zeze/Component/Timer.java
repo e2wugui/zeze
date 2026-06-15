@@ -1214,7 +1214,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @return 事务执行结果. 0表示成功
 	 */
 	private long spliceLoadTimer(int serverId, long loadSerialNo) {
-		if (serverId == zeze.getConfig().getServerId())
+		final var localServerId = zeze.getConfig().getServerId();
+		if (serverId == localServerId)
 			return 0; // skip self
 
 		var first = new OutLong();
@@ -1234,7 +1235,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			if (srcHead == null || srcTail == null)
 				throw new IllegalStateException("maybe operate before timer created.");
 
-			var root = _tNodeRoot.getOrAdd(zeze.getConfig().getServerId());
+			var root = _tNodeRoot.getOrAdd(localServerId);
 			var headNodeId = root.getHeadNodeId();
 			var tailNodeId = root.getTailNodeId();
 			var head = _tNodes.get(headNodeId);
@@ -1257,7 +1258,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}, "Timer.spliceAndLoadTimerLocal"));
 
 		if (r == 0)
-			loadTimer(first.value, last.value, zeze.getConfig().getServerId()); // 这里应该使用本地接管者的ServerId。
+			loadTimer(first.value, last.value, localServerId); // 这里应该使用本地接管者的ServerId。
 		return r;
 	}
 
