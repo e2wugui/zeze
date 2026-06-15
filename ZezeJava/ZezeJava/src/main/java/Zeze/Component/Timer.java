@@ -1184,7 +1184,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			offlineNotify.notifySerialId = outRoot.getLoadSerialNo();
 			zeze.getServiceManager().offlineRegister(offlineNotify,
 					notify -> spliceLoadTimer(notify.serverId, notify.notifySerialId));
-			loadTimer(outRoot.getHeadNodeId(), outRoot.getHeadNodeId(), serverId); // last也填头节点是因为链表是循环的
+			loadTimer(outRoot.getHeadNodeId(), outRoot.getHeadNodeId()); // last也填头节点是因为链表是循环的
 		} else
 			logger.error("loadTimer failed: r={}", r);
 
@@ -1258,12 +1258,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		}, "Timer.spliceAndLoadTimerLocal"));
 
 		if (r == 0)
-			loadTimer(first.value, last.value, localServerId); // 这里应该使用本地接管者的ServerId。
+			loadTimer(first.value, last.value); // 这里应该使用本地接管者的ServerId。
 		return r;
 	}
 
 	// 如果存在node，至少执行一次循环。
-	private void loadTimer(long first, long last, int serverId) {
+	private void loadTimer(long first, long last) {
 		if (first == 0 && last == 0)
 			return;
 		var idSet = new LongHashSet();
@@ -1274,7 +1274,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				break;
 			// skip error. 使用node返回的值决定是否继续循环。
 			var r = Task.call(zeze.newProcedure(() -> {
-				loadTimer(node, last, serverId);
+				loadTimer(node, last);
 				return 0;
 			}, "Timer.loadTimer"));
 			if (r != Procedure.Success) {
@@ -1288,7 +1288,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		} while (node.value != last);
 	}
 
-	private void loadTimer(@NotNull OutLong nodeId, long last, int serverId) throws ParseException {
+	private void loadTimer(@NotNull OutLong nodeId, long last) throws ParseException {
+		var serverId = zeze.getConfig().getServerId();
 		var node = _tNodes.get(nodeId.value);
 		if (node == null) {
 			logger.warn("loadTimer not found nodeId={}", nodeId.value);
