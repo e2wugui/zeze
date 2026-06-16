@@ -91,7 +91,7 @@ public final class Task {
 	 *
 	 * @param maxAwait 等待任务结束的毫秒数。
 	 * @throws InterruptedException await被中断异常
-	 * @throws TimeoutException await超时异常
+	 * @throws TimeoutException     await超时异常
 	 */
 	public static void shutdownNow(long maxAwait) throws InterruptedException, TimeoutException {
 
@@ -122,7 +122,7 @@ public final class Task {
 	 *
 	 * @param maxAwait 等待任务结束的毫秒数。
 	 * @throws InterruptedException await被中断异常
-	 * @throws TimeoutException await超时异常
+	 * @throws TimeoutException     await超时异常
 	 */
 	public static void shutdown(long maxAwait) throws InterruptedException, TimeoutException {
 		threadPoolScheduled.shutdown();
@@ -150,13 +150,9 @@ public final class Task {
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
-			try {
-				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-						(Class<?>[])null).invoke(null, (Object[])null);
-				logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
-				return es;
-			} catch (ReflectiveOperationException ignored) {
-			}
+			var es = Executors.newVirtualThreadPerTaskExecutor();
+			logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
+			return es;
 		}
 		return Executors.newFixedThreadPool(threadCount,
 				new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
@@ -165,19 +161,15 @@ public final class Task {
 	// 关键线程池, 不使用虚拟线程时设为普通优先级+2, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
 		if (USE_VIRTUAL_THREAD) {
-			try {
-				var es = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor",
-						(Class<?>[])null).invoke(null, (Object[])null);
-				logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
-				return es;
-			} catch (ReflectiveOperationException ignored) {
-			}
+			var es = Executors.newVirtualThreadPerTaskExecutor();
+			logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
+			return es;
 		}
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 	}
 
 	public static void initThreadPool(@NotNull ExecutorService pool,
-									  @NotNull ScheduledExecutorService scheduled) {
+	                                  @NotNull ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
 			//noinspection ConstantValue
@@ -204,7 +196,7 @@ public final class Task {
 	}
 
 	public static boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
-											@Nullable ScheduledExecutorService scheduled) {
+	                                        @Nullable ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
 			if (threadPoolDefault != null || threadPoolScheduled != null)
@@ -307,12 +299,12 @@ public final class Task {
 	}
 
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
-											   @Nullable DispatchMode mode) {
+	                                           @Nullable DispatchMode mode) {
 		return runUnsafe(action, name, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
-											   @Nullable DispatchMode mode, long timeout) {
+	                                           @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var future = new TaskCompletionSource<Long>();
@@ -355,12 +347,12 @@ public final class Task {
 	}
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
-									 @Nullable DispatchMode mode) {
+	                                 @Nullable DispatchMode mode) {
 		executeUnsafe(action, name, mode, defaultTimeout);
 	}
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
-									 @Nullable DispatchMode mode, long timeout) {
+	                                 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try {
@@ -475,12 +467,12 @@ public final class Task {
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
-															   @NotNull Action0 action) {
+	                                                           @NotNull Action0 action) {
 		return scheduleAtUnsafe(hour, minute, period, action, defaultTimeout);
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
-															   @NotNull Action0 action, long timeout) {
+	                                                           @NotNull Action0 action, long timeout) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -515,7 +507,7 @@ public final class Task {
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
-														 long timeout) {
+	                                                     long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -538,7 +530,7 @@ public final class Task {
 	}
 
 	public static void DefaultLogAction(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
-										@NotNull String actionName) {
+	                                    @NotNull String actionName) {
 		// exception -> Error
 		// 0 != result -> level from p or Info
 		// others -> Trace
@@ -583,12 +575,12 @@ public final class Task {
 	}
 
 	public static void logAndStatistics(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
-										boolean isRequestSaved) {
+	                                    boolean isRequestSaved) {
 		logAndStatistics(ex, result, p, isRequestSaved, null);
 	}
 
 	public static void logAndStatistics(@Nullable Throwable ex, long result, @Nullable Protocol<?> p,
-										boolean isRequestSaved, @Nullable String aName) {
+	                                    boolean isRequestSaved, @Nullable String aName) {
 		var protocolName = p != null ? p.getClass().getName() : "?";
 		var actionName = aName != null ? aName : isRequestSaved ? protocolName : protocolName + ":Response";
 		var tmpVolatile = logAction;
@@ -606,7 +598,7 @@ public final class Task {
 	}
 
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
-							@Nullable ProtocolErrorHandle actionWhenError) {
+	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		return call(func, p, actionWhenError, null);
 	}
 
@@ -620,7 +612,7 @@ public final class Task {
 	}
 
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
-							@Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+	                        @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -667,7 +659,7 @@ public final class Task {
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
-						   @Nullable ProtocolErrorHandle actionWhenError) {
+	                       @Nullable ProtocolErrorHandle actionWhenError) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError));
@@ -676,7 +668,7 @@ public final class Task {
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
-						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName));
@@ -685,8 +677,8 @@ public final class Task {
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
-						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-						   @Nullable DispatchMode mode) {
+	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                       @Nullable DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode));
@@ -695,8 +687,8 @@ public final class Task {
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
-						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-						   @Nullable DispatchMode mode, long timeout) {
+	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                       @Nullable DispatchMode mode, long timeout) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode, timeout));
@@ -709,24 +701,24 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												  @Nullable ProtocolErrorHandle actionWhenError) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												  @Nullable ProtocolErrorHandle actionWhenError, String aName) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		return runUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-												  @Nullable DispatchMode mode) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                                              @Nullable DispatchMode mode) {
 		return runUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-												  @Nullable DispatchMode mode, long timeout) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                                              @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p, actionWhenError, aName));
@@ -748,24 +740,24 @@ public final class Task {
 	}
 
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									 @Nullable ProtocolErrorHandle actionWhenError) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError) {
 		executeUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		executeUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-									 @Nullable DispatchMode mode) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                                 @Nullable DispatchMode mode) {
 		executeUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
 	}
 
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
-									 @Nullable DispatchMode mode, long timeout) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                                 @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(func, p, actionWhenError, aName);
 			return;
@@ -789,7 +781,7 @@ public final class Task {
 	}
 
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-							@Nullable ProtocolErrorHandle actionWhenError) {
+	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -814,7 +806,7 @@ public final class Task {
 	}
 
 	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-							@Nullable ProtocolErrorHandle actionWhenError) {
+	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -856,7 +848,7 @@ public final class Task {
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-						   @Nullable ProtocolErrorHandle actionWhenError) {
+	                       @Nullable ProtocolErrorHandle actionWhenError) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError));
@@ -865,7 +857,7 @@ public final class Task {
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
+	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode));
@@ -874,7 +866,7 @@ public final class Task {
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-						   @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
+	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode, timeout));
@@ -891,7 +883,7 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-												  @Nullable ProtocolErrorHandle actionWhenError) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
@@ -900,14 +892,14 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-												  @Nullable ProtocolErrorHandle actionWhenError,
-												  @Nullable DispatchMode mode) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError,
+	                                              @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-												  @Nullable ProtocolErrorHandle actionWhenError,
-												  @Nullable DispatchMode mode, long timeout) {
+	                                              @Nullable ProtocolErrorHandle actionWhenError,
+	                                              @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
@@ -925,16 +917,16 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
-												  @NotNull OutObject<Protocol<?>> outProtocol,
-												  @Nullable ProtocolErrorHandle actionWhenError,
-												  @Nullable DispatchMode mode) {
+	                                              @NotNull OutObject<Protocol<?>> outProtocol,
+	                                              @Nullable ProtocolErrorHandle actionWhenError,
+	                                              @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
-												  @NotNull OutObject<Protocol<?>> outProtocol,
-												  @Nullable ProtocolErrorHandle actionWhenError,
-												  @Nullable DispatchMode mode, long timeout) {
+	                                              @NotNull OutObject<Protocol<?>> outProtocol,
+	                                              @Nullable ProtocolErrorHandle actionWhenError,
+	                                              @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, outProtocol, actionWhenError));
@@ -960,7 +952,7 @@ public final class Task {
 	}
 
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-									 @Nullable ProtocolErrorHandle actionWhenError) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError) {
 		executeUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
@@ -969,13 +961,13 @@ public final class Task {
 	}
 
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
 	}
 
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
-									 long timeout) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
+	                                 long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, from, actionWhenError);
 			return;
@@ -991,13 +983,13 @@ public final class Task {
 	}
 
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
 	}
 
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
-									 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
-									 long timeout) {
+	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
+	                                 long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, outProtocol, actionWhenError);
 			return;
@@ -1053,7 +1045,7 @@ public final class Task {
 	}
 
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
-									  long timeout) {
+	                                  long timeout) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode, timeout));
@@ -1066,12 +1058,12 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
-															 @Nullable DispatchMode mode) {
+	                                                         @Nullable DispatchMode mode) {
 		return runRpcResponseUnsafe(procedure, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
-															 @Nullable DispatchMode mode, long timeout) {
+	                                                         @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure));
@@ -1093,12 +1085,12 @@ public final class Task {
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-															 @Nullable DispatchMode mode) {
+	                                                         @Nullable DispatchMode mode) {
 		return runRpcResponseUnsafe(func, p, mode, defaultTimeout);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-															 @Nullable DispatchMode mode, long timeout) {
+	                                                         @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p));
@@ -1124,7 +1116,7 @@ public final class Task {
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode,
-												long timeout) {
+	                                            long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure);
 			return;
@@ -1144,12 +1136,12 @@ public final class Task {
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												@Nullable DispatchMode mode) {
+	                                            @Nullable DispatchMode mode) {
 		executeRpcResponseUnsafe(func, p, mode, defaultTimeout);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
-												@Nullable DispatchMode mode, long timeout) {
+	                                            @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(func, p);
 			return;
