@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="metagame" ModuleIdAllowRanges="">
+	<import file="../solution.xml"/>
+	<import file="../solution.linkd.xml"/>
+	<import file="../.solution.server.xml"/>
+
+	<project name="WorldDemo" gendir=".." GenTables="client" platform="conf+cs+net">
+		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.Game.Online"/>
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="Demo.Linkd"/>
+			<module ref="Demo.Fight"/>
+		</service>
+	</project>
+
+	<component name="World" genrelativedir="metagame/World" GenTables="client" platform="conf+cs+net" NoRecursiveModule="true">
+		<service name="" handle="client">
+			<module ref="metagame.builtin.World"/>
+		</service>
+	</component>
+
+	<component name="WorldStatic" genrelativedir="metagame/World" platform="conf+cs+net" >
+		<service name="" handle="client">
+			<module ref="metagame.builtin.World.Static"/>
+		</service>
+	</component>
+
+</solution>

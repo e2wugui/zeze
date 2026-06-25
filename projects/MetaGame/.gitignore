@@ -1,0 +1,10 @@
+.gradle/
+build/
+db/
+Gen/
+lib/
+log/
+target/
+zeze_cache_*/
+
+~$*

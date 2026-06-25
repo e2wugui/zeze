@@ -1,0 +1,27 @@
+apply from: '../build.gradle'
+
+dependencies {
+    implementation 'io.netty:netty-codec-http:4.1.93.Final'
+    implementation 'io.netty:netty-transport-native-epoll:4.1.93.Final:linux-x86_64'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src"
+            srcDir "Gen"
+        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["--add-exports", "java.base/sun.security.x509=ALL-UNNAMED"]
+}
+
+task start_server(type: JavaExec) {
+    classpath = configurations.runtimeClasspath
+    classpath += sourceSets.main.runtimeClasspath
+    classpath += files('.')
+    mainClass = 'Zege.Program'
+    allJvmArgs = ['-Dlogname=server']
+}

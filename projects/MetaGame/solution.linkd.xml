@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Linkd" ModuleIdAllowRanges="1001-1100">
+
+	<module name="Linkd" id="1001">
+		<bean name="BAuth">
+			<variable id="1" name="Account"    type="string"/>
+			<variable id="2" name="Token"      type="string"/> security. maybe password
+			<variable id="3" name="AppVersion" type="long"/>
+		</bean>
+
+		<rpc name="Auth" argument="BAuth" handle="server">
+			<enum name="Success" value="0"/>
+			<enum name="Error"   value="1"/>
+		</rpc>
+	</module>
+
+	<project name="linkd" GenDir="linkd/Gen" SrcDir="linkd/src/main/java" platform="java">
+		<service name="LinkdService" handle="server" base="Zeze.Arch.LinkdService">
+			<module ref="Linkd"/>
+		</service>
+
+		<service name="ProviderService" handle="client"  base="Zeze.Arch.LinkdProviderService">
+		</service>
+	</project>
+
+</solution>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Demo" ModuleIdAllowRanges="1-1000">
+	<import file="solution.linkd.xml"/>
+	<import file="solution.xml"/>
+
+	<module name="Login" id="1" hot="true">
+		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
+
+		<bean name="BCreateRole">
+			<variable id="1" name="Name" type="string"/>
+		</bean>
+
+		<bean name="BRole">
+			<variable id="1" name="Id" type="long"/>
+			<variable id="2" name="Name" type="string"/>
+		</bean>
+
+		<bean name="BRoles">
+			<variable id="1" name="RoleList" type="list" value="BRole"/>
+			<variable id="2" name="LastLoginRoleId" type="long"/>
+		</bean>
+
+		<rpc name="CreateRole" argument="BCreateRole" result="BRole" handle="server"/>
+		<rpc name="GetRoleList" result="BRoles" handle="server"/>
+
+		<bean name="BRoleId">
+			<variable id="1" name="Id" type="long"/>
+		</bean>
+
+		<bean name="BAccount">
+			<variable id="1" name="Roles" type="set[long]"/>
+			<variable id="2" name="LastLoginRoleId" type="long"/>
+		</bean>
+		<table name="taccount" key="string" value="BAccount"/>
+		<table name="trole" key="long" value="BRole"/>
+		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
+	</module>
+
+	<module name="Fight" id="4" hot="true">
+		<bean name="BFighter"> 战斗相关属性，用于技能等。
+			<variable id="1" name="Attack" type="float"/>
+			<variable id="2" name="Defence" type="float"/>
+		</bean>
+		<beankey name="BFighterId">
+			<enum name="TypeRole" value="1"/>
+			<enum name="TypeMonster" value="2"/>
+			<enum name="TypePet" value="2"/>
+			...
+
+			<variable id="1" name="Type" type="int"/> 战斗对象类型
+			<variable id="2" name="InstanceId" type="long"/> 战斗对象实例id，根据type含义不一样。
+		</beankey>
+		<table name="tfighters" key="BFighterId" value="BFighter"/> key is fighter id. 战斗属性是计算值，每次登录或改变时重新计算。
+
+		<rpc name="AreYouFight" handle="client"/>
+	</module>
+
+	<!-- 用来封装和扩展Zeze.World，可能需要定义表，但一般不需要定义协议（就是不直接跟客户端交互）。 -->
+	<module name="MyWorld" id="13">
+	</module>
+
+	<!--
+	name 项目名字
+	gendir 代码生成输出目录，默认是当前目录
+	GenTables 选择生成哪些表格（Table），如果为空，那就生成那些没有配置gen属性的table，可以用','分开指定多个名字
+	-->
+	<project name="server" GenDir="server/Gen" SrcDir="server/src/main/java" platform="java" GenTables="">
+		<!--
+		这里引用的模块不该定义协议，定义了也不会被生成，一般为纯逻辑或者数据库模块。
+		<module ref="CommonModule"/>
+		-->
+		<!-- service 生成到 solution 名字空间下 -->
+		<service name="Server" handle="server" base="Zeze.Arch.ProviderService">
+			<module ref="Login"/>
+			<module ref="Fight"/>
+			<module ref="MyWorld"/>
+		</service>
+
+		<ModuleStartOrder>
+		</ModuleStartOrder>
+
+		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectService">
+		</service>
+	</project>
+
+</solution>

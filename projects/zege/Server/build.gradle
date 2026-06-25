@@ -1,0 +1,57 @@
+allprojects {
+    group 'com.zezeno'
+    version '0.0.1-SNAPSHOT'
+    apply plugin: 'java'
+    apply plugin: 'idea'
+
+    repositories {
+        maven { url 'https://repo.huaweicloud.com/repository/maven/' }
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        mavenCentral()
+        mavenLocal()
+    }
+
+    dependencies {
+        implementation "com.zezeno:zeze-java:1.5.1"
+    }
+
+    idea {
+        module {
+            downloadSources = true
+            excludeDirs += files(
+                    'gradle',
+                    'gradlew',
+                    'gradlew.bat',
+            )
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    compileJava {
+        sourceCompatibility = 21
+        targetCompatibility = 21
+        options.encoding = 'utf-8'
+        options.incremental = true
+        options.failOnError = true
+        options.debugOptions.debugLevel = "source,lines,vars"
+        options.compilerArgs += "-parameters"
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task clearJar(type: Delete) {
+    delete 'lib'
+}
+
+task copyJar(type: Sync) {
+    from configurations.runtimeClasspath
+    into 'lib'
+}

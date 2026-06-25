@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze name="MetaGame"
+	ServerId="1"
+	GlobalCacheManagerHostNameOrAddress=""
+	GlobalCacheManagerPort="5002">
+
+	<!--
+	数据库配置。默认数据库的名字为空。
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
+	<DatabaseConf Name="" DatabaseType="RocksDB" DatabaseUrl="db"/>
+	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
+	<DatabaseConf
+		Name=""
+		DatabaseType="MySql"
+		DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
+		/>
+	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
+	-->
+	<DatabaseConf Name="" DatabaseType="RocksDB" DatabaseUrl="db"/>
+
+	<TableConf CacheCapacity="20000"/> <!-- 不指定名字，表示默认的 TableConf -->
+	<!-- TableConf Name="demo_Module1_tflush" CacheCapacity="1000"/ -->
+</zeze>

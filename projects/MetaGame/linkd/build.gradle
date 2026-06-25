@@ -1,0 +1,26 @@
+apply from: '../build.gradle'
+
+dependencies {
+    implementation project(':')
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'Gen'
+        }
+    }
+}
+
+idea {
+    module {
+        excludeDirs += files(
+                'build',
+                'db',
+                'lib',
+                'log',
+                'target',
+                'zeze_cache_1',
+        )
+    }
+}

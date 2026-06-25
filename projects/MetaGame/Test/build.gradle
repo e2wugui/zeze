@@ -1,0 +1,29 @@
+apply from: '../build.gradle'
+
+dependencies {
+    implementation project(':')
+    implementation project(':linkd')
+    implementation project(':server')
+
+    implementation 'junit:junit:4.13.2'
+}
+
+sourceSets {
+    main {
+        java {
+        }
+    }
+}
+
+idea {
+    module {
+        excludeDirs += files(
+                'build',
+                'db',
+                'lib',
+                'log',
+                'target',
+                'zeze_cache_1',
+        )
+    }
+}

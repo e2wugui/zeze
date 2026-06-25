@@ -1,0 +1,12 @@
+.vs/
+autokeys/
+bin/
+Debug/
+obj/
+Release/
+x64/
+
+*.log
+*.pal
+*.user
+~$*

@@ -1,0 +1,4 @@
+rootProject.name = 'metagame'
+include 'linkd'
+include 'server'
+include 'Test'
