@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A8338F88-B98B-4A05-A12B-3F48E9B884C3}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>client_cs</RootNamespace>
+    <AssemblyName>client_cs</AssemblyName>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <LangVersion>8.0</LangVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Gen\zezeboot\link\AbstractModulelink.cs" />
+    <Compile Include="Gen\zezeboot\link\Auth.cs" />
+    <Compile Include="Gen\zezeboot\link\BAuth.cs" />
+    <Compile Include="Gen\zezeboot\login\AbstractModulelogin.cs" />
+    <Compile Include="Gen\zezeboot\login\BAccount.cs" />
+    <Compile Include="Gen\zezeboot\login\BCreateRole.cs" />
+    <Compile Include="Gen\zezeboot\login\BRole.cs" />
+    <Compile Include="Gen\zezeboot\login\BRoleId.cs" />
+    <Compile Include="Gen\zezeboot\login\BRoles.cs" />
+    <Compile Include="Gen\zezeboot\login\CreateRole.cs" />
+    <Compile Include="Gen\zezeboot\login\GetRoleList.cs" />
+    <Compile Include="Gen\zezeboot\login\HelloWorld.cs" />
+    <Compile Include="Gen\zezeboot\login\Kick.cs" />
+    <Compile Include="Gen\zezeboot\login\LoginRole.cs" />
+    <Compile Include="Gen\Zeze\Builtin\LinkdBase\AbstractModuleLinkdBase.cs" />
+    <Compile Include="Gen\Zeze\Builtin\LinkdBase\BReportError.cs" />
+    <Compile Include="Gen\Zeze\Builtin\LinkdBase\ReportError.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="zezeboot\LinkClient.cs" />
+    <Compile Include="zezeboot\link\ModuleLink.cs" />
+    <Compile Include="zezeboot\link\ModuleLinkdBase.cs" />
+    <Compile Include="zezeboot\Log.cs" />
+    <Compile Include="zezeboot\login\ModuleLogin.cs" />
+    <Compile Include="Zeze\AppBase.cs" />
+    <Compile Include="Zeze\Application.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\BLoginToken.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\BQueuePosition.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\BToken.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\PutLoginToken.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\PutQueueFull.cs" />
+    <Compile Include="Zeze\Builtin\LoginQueue\PutQueuePosition.cs" />
+    <Compile Include="Zeze\Config.cs" />
+    <Compile Include="Zeze\IModule.cs" />
+    <Compile Include="Zeze\Net\Acceptor.cs" />
+    <Compile Include="Zeze\Net\AsyncSocket.cs" />
+    <Compile Include="Zeze\Net\AsyncSocketType.cs" />
+    <Compile Include="Zeze\Net\Binary.cs" />
+    <Compile Include="Zeze\Net\Codec.cs" />
+    <Compile Include="Zeze\Net\Connector.cs" />
+    <Compile Include="Zeze\Net\FamilyClass.cs" />
+    <Compile Include="Zeze\Net\Protocol.cs" />
+    <Compile Include="Zeze\Net\ProtocolPool.cs" />
+    <Compile Include="Zeze\Net\Rpc.cs" />
+    <Compile Include="Zeze\Net\RpcTimeoutException.cs" />
+    <Compile Include="Zeze\Net\Service.cs" />
+    <Compile Include="Zeze\Net\ServiceConf.cs" />
+    <Compile Include="Zeze\Net\SocketOptions.cs" />
+    <Compile Include="Zeze\Net\TcpSocket.cs" />
+    <Compile Include="Zeze\Net\WebsocketClient.cs" />
+    <Compile Include="Zeze\Serialize\ByteBuffer.cs" />
+    <Compile Include="Zeze\Serialize\Serializable.cs" />
+    <Compile Include="Zeze\Serialize\SerializeHelper.cs" />
+    <Compile Include="Zeze\Serialize\Vector3.cs" />
+    <Compile Include="Zeze\Services\AbstractLoginQueueClient.cs" />
+    <Compile Include="Zeze\Services\Handshake.cs" />
+    <Compile Include="Zeze\Services\LoginQueueClient.cs" />
+    <Compile Include="Zeze\Services\ToLuaService2.cs" />
+    <Compile Include="Zeze\Transaction\ChangesRecord.cs" />
+    <Compile Include="Zeze\Transaction\Collections\CollApply.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogBean.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogList.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogList1.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogList2.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogMap.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogMap1.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogMap2.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogOne.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogSet.cs" />
+    <Compile Include="Zeze\Transaction\Collections\LogSet1.cs" />
+    <Compile Include="Zeze\Transaction\DispatchMode.cs" />
+    <Compile Include="Zeze\Transaction\Log.cs" />
+    <Compile Include="Zeze\Transaction\TransactionLevel.cs" />
+    <Compile Include="Zeze\Util\AtomicLong.cs" />
+    <Compile Include="Zeze\Util\BeanFactory.cs" />
+    <Compile Include="Zeze\Util\Comparer.cs" />
+    <Compile Include="Zeze\Util\ConfBean.cs" />
+    <Compile Include="Zeze\Util\DispatchModeAttribute.cs" />
+    <Compile Include="Zeze\Util\FixedHash.cs" />
+    <Compile Include="Zeze\Util\Logger.cs" />
+    <Compile Include="Zeze\Util\Mission.cs" />
+    <Compile Include="Zeze\Util\Random.cs" />
+    <Compile Include="Zeze\Util\Reflect.cs" />
+    <Compile Include="Zeze\Util\ResultCode.cs" />
+    <Compile Include="Zeze\Util\Scheduler.cs" />
+    <Compile Include="Zeze\Util\Str.cs" />
+    <Compile Include="Zeze\Util\Time.cs" />
+    <Compile Include="Zeze\Util\UnityHelpers.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- link进程不需要定义ServerId; NoDatabase="true"表示不需要数据库,也不需要事务支持 -->
+<zeze name="link" ServerId="0" NoDatabase="true">
+	<ServiceConf ReceiveBuffer="64k" SendBuffer="64k" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"/> 默认配置
+
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent" ReceiveBuffer="64k" SendBuffer="64k" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"> 连接ServiceManager
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001" IsAutoReconnect="true"/>
+	</ServiceConf>
+
+	<ServiceConf Name="LinkService" ReceiveBuffer="32k" SendBuffer="64k" InputBufferMaxProtocolSize="10m" OutputBufferMaxSize="10m" CompressS2c="1" EncryptType="3" RsaPriKeyFile="rsaprikey.bin"> 监听client连接
+		<Acceptor Ip="" Port="11000"/>
+	</ServiceConf>
+
+	<ServiceConf Name="ProviderService" ReceiveBuffer="4m" SendBuffer="1m" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"> 监听server连接
+		<Acceptor Ip="" Port="21000"/>
+	</ServiceConf>
+</zeze>

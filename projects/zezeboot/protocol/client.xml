@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="zezeboot">
+	<import file="solution.zeze.xml"/>
+	<import file="link.xml"/>
+	<import file="server.xml"/>
+
+	<project name="client" GenDir="client/Gen" SrcDir="client/src/main/java" platform="java" GenTables="None" BuiltinNG="true">
+		<service name="LinkClient" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="link"/>
+			<module ref="login"/>
+		</service>
+	</project>
+
+	<project name="client_cs" GenDir="client_cs/Gen" SrcDir="client_cs/zezeboot" platform="conf+cs" GenTables="None" BuiltinNG="false" IsUnity="true">
+		<service name="LinkClient" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="link"/>
+			<module ref="login"/>
+		</service>
+	</project>
+</solution>

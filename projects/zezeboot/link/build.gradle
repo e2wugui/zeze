@@ -1,0 +1,13 @@
+apply from: '../build.gradle'
+
+dependencies {
+    implementation project(':')
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'Gen'
+        }
+    }
+}

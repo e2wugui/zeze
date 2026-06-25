@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- name是项目名,也是一级包名,建议全小写; ModuleIdAllowRanges是当前文件占用的模块ID范围,其中定义的模块ID必须在此范围内 -->
+<solution name="zezeboot" ModuleIdAllowRanges="10-99">
+	<!-- 定义一个模块,name是模块名,是二级包名,建议全小写; id是模块ID -->
+	<module name="link" id="10">
+		<!-- 定义一个bean,用于protocol,rpc,table; name是类名,通常以"B"开头 -->
+		<bean name="BAuth">
+			<!-- 定义一个字段; id是字段ID,建议从1开始按顺序定义,涉及协议序列化兼容性,所以谨慎修改; name是字段名,也是成员变量名; type是字段类型; 元素后面推荐写字段注释说明,会生成代码注释 -->
+			<variable id="1" name="account" type="string"/> 账号名
+			<variable id="2" name="token"   type="string"/> 用于验证的token或密码
+			<variable id="3" name="version" type="string"/> 用于接入服务器的版本号
+		</bean>
+		<!-- 定义一个RPC; name是RPC名,也用于生成协议ID,所以谨慎修改; argument/result是请求/回复引用的bean,二者都可以省略表示不需要; handle用"server"表示服务器端处理请求,"client"表示客户端处理请求 -->
+		<rpc name="Auth" argument="BAuth" handle="server"/> 认证协议. 客户端连接握手后的首个协议
+	</module>
+
+	<!-- 定义一个工程,name对应目录名,IDEA里的模块,进程名; platform是生成代码的语言; 生成代码的目录是:{gendir}/{project.name}/{scriptdir}和{gendir}/{project.name}/Gen -->
+	<project name="link" GenDir="link/Gen" SrcDir="link/src/main/java" platform="java"> 定义link工程
+		<!-- 定义一个服务用于网络连接; name是类名; handle对应protocol/rpc中的handle; base是所用的基类 -->
+		<service name="LinkService" handle="server" base="Zeze.Arch.LinkdService"> 与客户端连接的服务
+			<!-- 此服务处理的若干模块引用 -->
+			<module ref="link"/>
+		</service>
+
+		<service name="ProviderService" handle="client" base="Zeze.Arch.LinkdProviderService"> 与server工程连接的服务
+		</service>
+	</project>
+</solution>

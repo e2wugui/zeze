@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ProviderModuleBinds>
+	<!-- 定义各模块的绑定方式,绑定即link根据模块ID和客户端连接找到哪个server处理协议 -->
+	<!-- 静态绑定是由link根据一定规则选择绑定; 动态绑定是只由server决定并通知link去绑定; 默认是静态绑定到所有支持该模块的server之一 -->
+
+	<!-- 定义一个模块的特殊静态绑定,name是模块的全名(ModuleFullName); providers里填ServerId列表,用','间隔,留空且加dynamic="true"表示动态绑定 -->
+	<module name="zezeboot.example" providers="1,2,3"/>
+
+	<!-- 定义指定的ServerId列表不会被默认静态绑定,这些server通常有特殊用途(如动态绑定) -->
+	<ProviderNoDefaultModule providers="98,99"/>
+</ProviderModuleBinds>

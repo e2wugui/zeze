@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="zezeboot" ModuleIdAllowRanges="100">
+	<module name="login" id="100"> 登录模块名. 模块名作为包名,建议全小写
+		<!-- 定义整数枚举,生成到模块抽象类中,类型是"static final int" -->
+		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/> 角色名重复的错误码枚举
+
+		<bean name="BRole">
+			<variable id="1" name="roleId"   type="long"/> 角色ID
+			<variable id="2" name="roleName" type="string"/> 角色名
+		</bean>
+
+		<bean name="BRoles">
+			<variable id="1" name="roleList"        type="list[BRole]"/> 已创建的角色列表
+			<variable id="2" name="lastLoginRoleId" type="long"/> 上次登录的角色ID
+		</bean>
+
+		<bean name="BCreateRole">
+			<variable id="1" name="name" type="string"/> 角色名
+		</bean>
+
+		<bean name="BRoleId">
+			<variable id="1" name="roleId" type="long"/> 角色ID
+		</bean>
+
+		<rpc name="GetRoleList" result="BRoles" handle="server"/> 获取角色列表
+		<rpc name="CreateRole" argument="BCreateRole" result="BRole" handle="server"/> 创建角色
+		<rpc name="LoginRole" argument="BRoleId" handle="server"/> 登录角色
+
+		<!-- 类似RPC但没有回复,也不能定义result -->
+		<protocol name="HelloWorld" handle="server"/>
+
+		<bean name="BAccount">
+			<variable id="1" name="Roles" type="set[long]"/>
+			<variable id="2" name="LastLoginRoleId" type="long"/>
+		</bean>
+
+		<protocol name="Kick" handle="client"/>
+
+		<!-- 定义数据库中的表; name是表名; key是主键类型; value是主键映射的bean类型值; 这些都涉及存储兼容性,所以谨慎修改 -->
+		<table gen="server" name="tAccount"  key="string" value="BAccount"/> 账号表
+		<table gen="server" name="tRole"     key="long"   value="BRole"/> 角色表
+		<table gen="server" name="tRoleName" key="string" value="BRoleId"/> 角色名表
+	</module>
+</solution>

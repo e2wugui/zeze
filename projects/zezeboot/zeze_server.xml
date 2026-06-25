@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 每个server进程都需要定义不同的ServerId, 多个server进程配合需要配置GlobalCacheManager的地址和端口 -->
+<zeze name="server" ServerId="1" GlobalCacheManagerHostNameOrAddress="" GlobalCacheManagerPort="5002">
+	<!-- server进程需要配置数据库,Name为空表示默认数据库配置,以下注释是各种数据库的配置模板:
+	<DatabaseConf Name="" DatabaseType="Memory"    DatabaseUrl=""/> 只支持单server,数据不会持久化,通常只用于测试
+	<DatabaseConf Name="" DatabaseType="RocksDB"   DatabaseUrl="db"/> 只支持单server,db是持久化数据的目录名
+	<DatabaseConf Name="" DatabaseType="MySql"     DatabaseUrl="jdbc:mysql://localhost:3306/devtest?user=dev&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"/>
+	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
+	<DatabaseConf Name="" DatabaseType="Dbh2"      DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>
+	<DatabaseConf Name="" DatabaseType="Tikv"      DatabaseUrl="127.0.0.1:2379"/>
+	<DatabaseConf Name="" DatabaseType="Redis"     DatabaseUrl="redis://127.0.0.1:6379/"/>
+	-->
+	<DatabaseConf Name="" DatabaseType="RocksDB"   DatabaseUrl="db"/> 只支持单server,db是持久化数据的目录名
+
+	<!-- 以下是各数据库表的配置; Name是表名,不指定表示默认配置; CacheCapacity是缓存记录对象的最大数量,超过会自动清理,JVM堆空间不足时也会自动清理 -->
+	<TableConf CacheCapacity="20000"/>
+	<!-- TableConf Name="tAccount" CacheCapacity="10000"/ -->
+
+	<!-- 以下定义各服务的运行时连接配置; Name是最终传给Service类的name,不指定表示默认配置(找不到Name的配置时) -->
+	<!-- ReceiveBuffer是TCP底层的接收缓冲区大小(默认由OS决定); SendBuffer是TCP底层的发送缓冲区大小(默认由OS决定) -->
+	<!-- InputBufferMaxProtocolSize是接收单个协议的长度限制(默认2m),超过会输出异常日志并断开连接; OutputBufferMaxSize是框架层堆积发送数据的长度限制,超过会丢弃并输出错误日志(默认2m) -->
+	<!-- 字节大小可用"k",'m','g'结尾作为单位,max表示整数最大值 -->
+	<ServiceConf ReceiveBuffer="64k" SendBuffer="64k" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"/> 默认配置
+
+	<ServiceConf Name="Zeze.Services.ServiceManager.Agent" ReceiveBuffer="64k" SendBuffer="64k" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"> 连接ServiceManager
+		<!-- 定义主动连接的地址和端口; IsAutoReconnect表示是否断开后自动重连 -->
+		<Connector HostNameOrAddress="127.0.0.1" Port="5001" IsAutoReconnect="true"/>
+	</ServiceConf>
+
+	<ServiceConf Name="ProviderClient" ReceiveBuffer="1m" SendBuffer="4m" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"/> 连接link. 不定义Connector,会自动从ServiceManager获取连接目标
+
+	<ServiceConf Name="DirectService" ReceiveBuffer="1m" SendBuffer="1m" InputBufferMaxProtocolSize="max" OutputBufferMaxSize="100m"> server之间互连. 只需定义Acceptor,会自动从ServiceManager获取连接目标
+		<!-- 定义被动监听的地址和端口; Ip为空表示监听所有可绑定的地址 -->
+		<Acceptor Ip="" Port="20001"/>
+	</ServiceConf>
+</zeze>

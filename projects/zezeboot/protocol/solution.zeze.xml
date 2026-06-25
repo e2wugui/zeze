@@ -1,0 +1,2582 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Zeze" ModuleIdAllowRanges="11000-11999">
+	<external bean="Zeze.Arch.Beans.BSend"/>
+	<external bean="Zeze.Arch.Beans.BSendResult"/>
+
+	<external bean="Zeze.Services.ServiceManager.BAllocateIdArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateIdResult"/>
+	<external bean="Zeze.Services.ServiceManager.BOfflineNotify"/>
+	<external bean="Zeze.Services.ServiceManager.BServerLoad"/>
+	<external bean="Zeze.Services.ServiceManager.BServiceInfo"/>
+	<external bean="Zeze.Services.ServiceManager.BServiceInfos"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeInfo"/>
+	<external bean="Zeze.Services.ServiceManager.BEditService"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BUnSubscribeArgument"/>
+	<external bean="Zeze.Services.ServiceManager.BSubscribeResult"/>
+	<externalkey beankey="Zeze.Util.Id128"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateId128Argument"/>
+	<external bean="Zeze.Services.ServiceManager.BAllocateId128Result"/>
+
+	<module name="Builtin" id="11000">
+		<!-- Global With Raft 模块 -->
+		<module name="GlobalCacheManagerWithRaft" id="11001" DefaultTransactionLevel="None">
+			<!-- table -->
+			<bean name="BCacheState" kind="rocks">
+				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
+				<variable id="2" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
+				<variable id="3" name="Share" type="set" value="int"/>
+			</bean>
+
+			<bean name="BAcquiredState" kind="rocks">
+				<variable id="1" name="State" type="int"/>
+			</bean>
+
+			<table name="Global" key="binary" value="BCacheState" kind="rocks" />
+			<table name="Session" key="binary" value="BAcquiredState" kind="rocks" />
+
+			<!-- rpc -->
+			<bean name="BAcquireParam">
+				<variable id="1" name="GlobalKey" type="binary"/>
+				<variable id="2" name="State" type="int"/>
+			</bean>
+
+			<bean name="BReduceParam">
+				<variable id="1" name="GlobalKey" type="binary"/>
+				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="ReduceTid" type="Zeze.Util.Id128"/>
+			</bean>
+
+			<bean name="BLoginParam">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
+				<variable id="3" name="DebugMode" type="bool"/> 调试模式下不检查Release Timeout,方便单步调试
+			</bean>
+
+			<bean name="BAchillesHeel">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="SecureKey" type="string"/>
+				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
+			</bean>
+
+			<bean name="BAchillesHeelConfig">
+				<variable id="1" name="MaxNetPing" type="int"/>
+				<variable id="2" name="ServerProcessTime" type="int"/>
+				<variable id="3" name="ServerReleaseTimeout" type="int"/>
+			</bean>
+
+			<rpc name="Acquire" argument="BAcquireParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Reduce" argument="BReduceParam" result="BReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
+			<rpc name="Login" argument="BLoginParam" result="BAchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="ReLogin" argument="BLoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
+			<rpc name="Cleanup" argument="BAchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
+		</module>
+
+		<!-- Rocks 测试模块 -->
+		<module name="TestRocks" id="11002">
+			<beankey name="BeanKey">
+				<variable id="1" name="Id" type="int"/>
+				<variable id="2" name="Name" type="string"/>
+			</beankey>
+
+			<bean name="BValue" kind="rocks">
+				<variable id="1" name="Int" type="int"/>
+				<variable id="2" name="Bool" type="bool"/>
+				<variable id="3" name="Float" type="float"/>
+				<variable id="4" name="double" type="double"/>
+				<variable id="5" name="String" type="string"/>
+				<variable id="6" name="Binary" type="binary"/>
+				<variable id="7" name="SetInt" type="set" value="int"/>
+				<variable id="8" name="SetBeankey" type="set" value="BeanKey"/>
+				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
+				<variable id="10" name="MapBean" type="map" key="int" value="BValue"/>
+				<variable id="11" name="Beankey" type="BeanKey"/>
+			</bean>
+
+			<table name="tRocks" key="int" value="BValue" kind="rocks"/>
+		</module>
+
+		<module name="Collections" id="11004">
+			<!-- 一个简单的大容量Map，同时所有的分段节点按双向链表组织起来。新增节点放到链表尾部 -->
+			<module name="LinkedMap" id="11005">
+				<bean name="BLinkedMap">
+					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="3" name="Count" type="long" />
+					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
+				</bean>
+				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key: LinkedMap的Name
+
+				<beankey name="BLinkedMapKey">
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
+					<variable id="2" name="ValueId" type="string" /> LinkedMap的Key转成字符串类型
+				</beankey>
+				<bean name="BLinkedMapNodeId">
+					<variable id="1" name="NodeId" type="long" /> KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
+				</bean>
+				<table name="tValueIdToNodeId" key="BLinkedMapKey" value="BLinkedMapNodeId" />
+
+				<bean name="BLinkedMapNodeValue">
+					<variable id="1" name="Id" type="string" /> LinkedMap的Key转成字符串类型
+					<variable id="2" name="Value" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<beankey name="BLinkedMapNodeKey">
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
+					<variable id="2" name="NodeId" type="long" />
+				</beankey>
+				<bean name="BLinkedMapNode"> 一个节点可以存多个KeyValue对，
+					<variable id="1" name="PrevNodeId" type="long" /> 前一个节点ID. 0表示已到达开头。
+					<variable id="2" name="NextNodeId" type="long" /> 后一个节点ID. 0表示已到达结尾。
+					<variable id="3" name="Values" type="list" value="BLinkedMapNodeValue" /> 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
+				</bean>
+				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
+
+				<bean name="BClearJobState">
+					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="3" name="LinkedMapName" type="string" />
+				</bean>
+			</module>
+
+			<!-- 一个简单的大容量单向链表，可按Stack方式使用 -->
+			<module name="Queue" id="11006">
+				<!--
+				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
+				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
+				第一个用户是Table.GC，延迟删除记录。
+				【兼容】
+				单向链表原来只发生在自己的Queue内，使用long NodeId指向下一个节点，查询节点时候总是使用自己的Queue.Name和NodeId构造BQueueNodeKey。
+				现在为了支持在Queue之间splice，需要使用BQueueNodeKey来指示下一个节点。
+				为了兼容旧数据，原来的long类型的变量不能删除，新版需要发现是旧版数据，然后读取并构造出新的BQueueNodeKey。
+				1. Root(BQueue)兼容旧数据规则：
+				if (Root.HeadNodeKey.Name.isEmpty()) {
+					Root.HeadNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.HeadNodeId);
+					Root.TailNodeKey = new BQueueNodeKey(ThisQueue.Name, Root.TailNodeId);
+				}
+				2. Node(BQueueNode) 兼容旧数据规则：
+				if (Node.NextNodeKey.Name.isEmpty()) {
+					Node.NextNodeKey = new BQueueNodeKey(ThisNode.NodeKey.Name, Node.NextNodeId);
+				}
+				3. Splice两个Queue时，指向另一个Queue的NodeKey需要先处理好，即已经是新版的结构。现在的代码刚好符合。
+				-->
+				<bean name="BQueue">
+					<variable id="1" name="HeadNodeId" type="long" /> 废弃，新的遍历寻找使用HeadNodeKey，【但是不能删，兼容需要读取】
+					<variable id="2" name="TailNodeId" type="long" /> 废弃，新的遍历寻找使用TailNodeKey，【但是不能删，兼容需要读取】
+					<variable id="3" name="Count" type="long" />
+					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
+					<variable id="5" name="LoadSerialNo" type="long" /> walk 开始的时候递增
+					<variable id="6" name="HeadNodeKey" type="BQueueNodeKey" />
+					<variable id="7" name="TailNodeKey" type="BQueueNodeKey" />
+				</bean>
+				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
+
+				<bean name="BQueueNodeValue">
+					<variable id="1" name="Timestamp" type="long" />
+					<variable id="2" name="Value" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.Queue::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.Queue::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<beankey name="BQueueNodeKey">
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
+					<variable id="2" name="NodeId" type="long" />
+				</beankey>
+				<bean name="BQueueNode"> 一个节点可以存多个KeyValue对，
+					<variable id="1" name="NextNodeId" type="long" /> 废弃，新的遍历寻找使用NextNodeKey，【但是不能删，兼容需要读取】
+					<variable id="2" name="Values" type="list" value="BQueueNodeValue" />
+					<variable id="3" name="NextNodeKey" type="BQueueNodeKey" /> NodeId为0表示已到达结尾。
+				</bean>
+				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
+			</module>
+
+			<!-- 有向无环图 -->
+			<module name="DAG" id="11017">
+				<bean name="BDAG">
+					<variable id="1" name="NodeSum" type="long" /> 有向图的结点数
+					<variable id="2" name="EdgeSum" type="long" /> 有向图的边数
+					<variable id="3" name="StartNode" type="string" /> 有向图的起点ValueId（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
+					<variable id="4" name="EndNode" type="string" /> 有向图的终点（如果有的话），没有则置空（一般来说，对于任务Task都有起点与终点）
+				</bean>
+				<table name="tDAGs" key="string" value="BDAG" /> Key: 有向图自己的名字
+
+				<beankey name="BDAGNodeKey"> 有向图的结点Key
+					<variable id="1" name="Name" type="string" /> 有向图自己的名字
+					<variable id="2" name="ValueId" type="string" /> 有向图结点的Key转成字符串类型（如：任务的id）
+				</beankey>
+				<bean name="BDAGNode"> 有向图的结点类型（如：一个任务Task）
+					<variable id="1" name="Value" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DAG::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DAG::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<table name="tNode" key="BDAGNodeKey" value="BDAGNode" /> Table: 有向图节点表
+
+				<beankey name="BDAGEdgeKey"> 有向图的边Key
+					<variable id="1" name="Name" type="string" /> 有向图的自己的名字
+					<variable id="2" name="ValueId" type="string" /> 有向图边的Key转成字符串类型
+				</beankey>
+				<bean name="BDAGEdge"> 有向图的边类型（如：任务的连接方式）
+					<variable id="1" name="From" type="BDAGNodeKey" /> 有向图中有向边的起点
+					<variable id="2" name="To" type="BDAGNodeKey" /> 有向图中有向边的终点
+				</bean>
+				<table name="tEdge" key="BDAGEdgeKey" value="BDAGEdge" /> Table: 有向图边表
+			</module> DAG 11017
+
+			<!-- 部门树-->
+			<module name="DepartmentTree" id="11101">
+				<enum name="ErrorChangeRootNotOwner" value="1"/>
+				<enum name="ErrorDepartmentDuplicate" value="2"/>
+				<enum name="ErrorDepartmentNotExist" value="3"/>
+				<enum name="ErrorDeleteDepartmentRemainChildren" value="4"/>
+				<enum name="ErrorDepartmentSameParent" value="5"/>
+				<enum name="ErrorCanNotMoveToChildren" value="6"/>
+				<enum name="ErrorDepartmentParentNotExist" value="7"/>
+				<enum name="ErrorManagePermission" value="8"/>
+				<enum name="ErrorTooManyChildren" value="9"/>
+
+				<bean name="BDepartmentRoot">
+					<variable id="1" name="Root" type="string" /> 群主
+					<variable id="2" name="Managers" type="map[string,dynamic]"> 管理员
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
+					</variable>
+					<variable id="3" name="NextDepartmentId" type="long" /> 部门Id种子
+					<variable id="4" name="Children" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="5" name="Data" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+
+				<table name="tDepartment" key="string" value="BDepartmentRoot" /> 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
+
+				<bean name="BDepartmentTreeNode">
+					<variable id="1" name="ParentDepartment" type="long" /> 0表示第一级部门
+					<variable id="2" name="Children" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="3" name="Name" type="string" />
+					<variable id="4" name="Managers" type="map[string,dynamic]">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
+					</variable>
+					<variable id="5" name="Data" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+
+				<beankey name="BDepartmentKey">
+					<variable id="1" name="Owner" type="string" />
+					<variable id="2" name="DepartmentId" type="long" />
+				</beankey>
+
+				<table name="tDepartmentTree" key="BDepartmentKey" value="BDepartmentTreeNode" />
+			</module>
+
+			<module name="BoolList" id="11034">
+				<beankey name="BKey">
+					<variable id="1" name="Name" type="string" />
+					<variable id="2" name="Index" type="int" />
+				</beankey>
+				<bean name="BValue">
+					<variable id="1" name="Item0" type="long" />
+					<variable id="2" name="Item1" type="long" />
+					<variable id="3" name="Item2" type="long" />
+					<variable id="4" name="Item3" type="long" />
+					<variable id="5" name="Item4" type="long" />
+					<variable id="6" name="Item5" type="long" />
+					<variable id="7" name="Item6" type="long" />
+					<variable id="8" name="Item7" type="long" />
+				</bean>
+				<table name="tBoolList" key="BKey" value="BValue" />
+			</module>
+		</module>
+
+		<!--
+		延迟从Table中删除记录。比如：记录被登记到这个模块7天以后才会被真正删除。
+		-->
+		<module name="DelayRemove" id="11007">
+			<bean name="BTableKey">
+				<variable id="1" name="TableName" type="string" />
+				<variable id="2" name="EncodedKey" type="binary" />
+				<variable id="3" name="EnqueueTime" type="long" />
+			</bean>
+			<bean name="BJob">
+				<variable id="1" name="JobHandleName" type="string" />
+				<variable id="2" name="JobState" type="binary" />
+			</bean>
+			<bean name="BJobs">
+				<variable id="1" name="Jobs" type="map[string, BJob]" />
+			</bean>
+			<table name="tJobs" key="int" value="BJobs" />
+		</module>
+
+		<!--
+		Linkd - Server 之间通讯的协议定义。
+		-->
+		<module name="Provider" id="11008" UseData="true">
+			<!-- gs to link -->
+			<bean name="BModule">
+				<!-- ChoiceType -->
+				<enum name="ChoiceTypeDefault"           value="0"/> 默认是ChoiceTypeRequest
+				<enum name="ChoiceTypeHashAccount"       value="1"/> 按账号名的一致性hash选取
+				<enum name="ChoiceTypeHashRoleId"        value="2"/> 按角色ID的一致性hash选取
+				<enum name="ChoiceTypeFeedFullOneByOne"  value="3"/> 使用全局迭代器选取符合条件的(有效,非过载,非超限,匹配版本)
+				<enum name="ChoiceTypeHashSourceAddress" value="4"/> 按来源IP地址端口的一致性hash选取
+				<enum name="ChoiceTypeLoad"              value="5"/> 从符合条件的(有效,非过载,匹配版本)里面以剩余承载量为权重选取
+				<enum name="ChoiceTypeRequest"           value="6"/> 从符合条件的(有效,非过载,匹配版本)里面以最近5秒请求量反比为权重选取
+
+				<variable name="ChoiceType" id="1" type="int"/>
+				<variable name="Dynamic" id="2" type="bool"/>
+			</bean>
+
+			<bean name="BBind">
+				<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+				<!--
+				模式一，静态绑定，用于启用cache同步的多个gs（gameserver）。
+				此时 lindSids 为空。同一个moduleId可以绑定多个内部服务。客户端第一次访问时，随便选择一个内部服务，以后都用这个。
+				模式二，动态绑定，用于地图服务器，玩家只能在一个地图服务器上，进入退出地图时绑定。
+				lindSids 指定临时绑定该客户端连接到此服务。这个功能可能不需要，保留。
+				*** 同一个moduleId不能既是静态绑定又是动态绑定。
+				-->
+				<variable name="linkSids" id="2" type="set" value="long"/>
+
+				<enum name="ResultSuccess" value="0"/>
+				<enum name="ResultFailed"  value="1"/>
+			</bean>
+
+			<rpc name="Bind"   argument="BBind" handle="client"/>
+			<rpc name="UnBind" argument="BBind" handle="client"/>
+
+			<bean name="BSubscribe">
+				<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+			</bean>
+
+			<rpc name="Subscribe" argument="BSubscribe" handle="client"/> 通知linkd订阅模块的服务列表。
+
+			<bean name="BKick">
+				<enum name="ErrorProtocolUnknown"   value="1"/>
+				<enum name="ErrorDecode"            value="2"/>
+				<enum name="ErrorProtocolException" value="3"/>
+				<enum name="ErrorDuplicateLogin"    value="4"/>
+				<enum name="ErrorSeeDescription"    value="5"/>
+				<enum name="ErrorOnlineSetName"     value="6"/>
+				<enum name="ErrorStopServer"        value="7"/>
+				<enum name="ErrorAuth"        value="8"/>
+
+				<enum name="eControlClose"              value="0"/> 通过ReportError报告给客户端，并关闭链接。
+				<enum name="eControlReportClient"   value="1"/> 通过ReportError报告给客户端，不关闭链接。
+				<enum name="eControlReportLinkd"    value="2"/> Linkd收到自行做些处理。
+
+				<variable name="linksid"  id="1" type="long"/>
+				<variable name="code"     id="2" type="int"/>
+				<variable name="desc"     id="3" type="string"/> for debug
+				<variable name="control" id="4" type="int"/>
+			</bean>
+
+			<protocol name="Kick" argument="BKick" handle="client"/>
+
+			<bean name="BSend" extendable="true">
+				<variable name="linkSids"          id="1" type="list" value="long"/>
+				<variable name="protocolType"      id="2" type="long"/>
+				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
+			</bean>
+
+			<bean name="BSendResult">
+				<variable name="ErrorLinkSids" id="1" type="list" value="long"/>
+			</bean>
+
+			<rpc name="Send" argument="Zeze.Arch.Beans.BSend" result="Zeze.Arch.Beans.BSendResult" TransactionLevel="None" UseData="false" handle="client"/>
+
+			<bean name="BBroadcast">
+				<variable name="protocolType"      id="1" type="long"/>
+				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
+				<variable name="time"              id="3" type="int"/>
+				<variable name="onlySameVersion"   id="4" type="bool"/> 是否仅广播给匹配该provider版本的客户端
+			</bean>
+
+			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
+
+			<bean name="BUserState">
+				<variable name="context"       id="1" type="string"/>
+				<variable name="contextx"      id="2" type="binary"/>
+				<variable name="onlineSetName" id="3" type="string"/>
+			</bean>
+
+			<bean name="BSetUserState">
+				<variable name="linkSid"   id="1" type="long"/>
+				<variable name="userState" id="2" type="BUserState"/>
+			</bean>
+
+			<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
+
+			<bean name="BLoad">
+				<enum name="eWorkFine"  value="0"/>
+				<enum name="eThreshold" value="1"/>
+				<enum name="eOverload"  value="2"/>
+
+				<variable name="Online"                     id="1" type="int"/> 用户数量
+				<variable name="ProposeMaxOnline" id="2" type="int"/> 建议最大用户数量
+				<variable name="OnlineNew"              id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+				<variable name="Overload"                 id="4" type="int"/> 过载保护类型。参见上面的枚举定义。
+				<variable name="MaxOnlineNew"       id="5" type="int"/> 最大最近上线数量。
+			</bean>
+
+			<bean name="BSetDisableChoice">
+				<variable name="DisableChoice" id="1" type="bool"/>
+			</bean>
+			<rpc name="SetDisableChoice" argument="BSetDisableChoice" handle="client"/>
+
+			<!--
+			定义到这里，但是会通过Send包装发送，最终Link在处理Send时并不实际发送给客户端。
+			问题：如果需要探测到客户端，需要真实的发给客户端，但是客户端怎么得到这个协议定义是个问题。【先不考虑支持】
+			-->
+			<protocol name="CheckLinkSession" handle="client"/>
+
+			<!-- link to gs -->
+			<bean name="BDispatch">
+				<variable name="linkSid"       id="1" type="long"/>
+				<variable name="account"       id="2" type="string"/>
+				<variable name="protocolType"  id="3" type="long"/>
+				<variable name="protocolData"  id="4" type="binary"/> 协议打包，不包括 type, size
+				<variable name="context"       id="5" type="string"/> SetUserState
+				<variable name="contextx"      id="6" type="binary"/> SetUserState
+				<variable name="onlineSetName" id="7" type="string"/> SetUserState
+			</bean>
+			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
+
+			<bean name="BLinkBroken">
+				<enum name="REASON_PEER_CLOSED" value="0"/>
+
+				<variable name="account"   id="1" type="string"/>
+				<variable name="linkSid"   id="2" type="long"/>
+				<variable name="reason"    id="3" type="int"/>
+				<variable name="userState" id="4" type="BUserState"/>
+			</bean>
+
+			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
+
+			<bean name="BAnnounceLinkInfo">
+				Linkd，Provider之间连接建立以后，通告自己的信息。保留。
+			</bean>
+			<protocol name="AnnounceLinkInfo" NoProcedure="true" argument="BAnnounceLinkInfo" handle="server"/>
+
+			<!-- gs to link -->
+			<bean name="BAnnounceProviderInfo">
+				<variable name="ServiceNamePrefix"  id="1" type="string"/>
+				<variable name="ServiceIdentity"    id="2" type="string"/>
+				<variable name="ProviderDirectIp"   id="3" type="string"/>
+				<variable name="ProviderDirectPort" id="4" type="int"/>
+				<variable name="AppVersion"         id="5" type="long"/> 4段版本号(a.b.c.d),从高到低依次占16位,a位不兼容,b位向后兼容,c和d前后兼容
+				<variable name="DisableChoice"      id="6" type="bool"/>
+			</bean>
+
+			<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>
+		</module>
+
+		<!-- gs 之间直连的服务: 即时客户端也是服务器 -->
+		<module name="ProviderDirect" id="11009" UseData="true">
+			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
+
+			<bean name="BModuleRedirectArgument">
+				<variable name="ModuleId"     id="1" type="int"/>
+				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
+				<variable name="RedirectType" id="3" type="int"/> 如果是ToServer，ServerId存在HashCode中。
+
+				<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="Params"         id="5" type="binary"/>
+
+				<variable name="ServiceNamePrefix" id="6" type="string"/>
+				<variable name="Version"           id="7" type="int"/> 用于验证请求方和处理方的版本一致
+				<variable name="Key"               id="8" type="int"/> 用于处理请求和回复时作为TaskOneByOne的key
+				<variable name="NoOneByOne"        id="9" type="bool"/> 是否禁用TaskOneByOne处理请求和回复
+			</bean>
+
+			<bean name="BModuleRedirectResult">
+				<variable name="ModuleId" id="1" type="int"/>
+				<variable name="ServerId" id="2" type="int"/> 目标server的id。
+				<!-- 上面两个参数用来调试，不是必要的。 -->
+
+				<!--
+				rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
+				处理结果是否正确，还需要进一步查看 ReturnCode。
+				-->
+				<variable name="Params" id="3" type="binary"/>
+			</bean>
+
+			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
+			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server">
+				<enum name="RedirectTypeWithHash" value="0"/>
+				<enum name="RedirectTypeToServer" value="1"/>
+
+				<enum name="ResultCodeSuccess" value="0"/>
+				<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
+				<enum name="ResultCodeHandleException" value="2"/>
+				<enum name="ResultCodeHandleError" value="3"/>
+				<enum name="ResultCodeHandleVersion" value="4"/>
+
+				<enum name="ResultCodeLinkdTimeout"    value="10"/>
+				<enum name="ResultCodeLinkdNoProvider" value="11"/>
+				<enum name="ResultCodeRequestTimeout"  value="12"/>
+			</rpc>
+
+			<bean name="BModuleRedirectAllRequest">
+				<variable name="ModuleId"                id="1" type="int"/>
+				<variable name="HashCodeConcurrentLevel" id="2" type="int"/> 总的并发分组数量
+				<variable name="HashCodes"               id="3" type="set" value="int"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+				<variable name="SourceProvider"          id="4" type="long"/> linkd 转发的时候填写本地provider的sessionId。
+				<variable name="SessionId"               id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+
+				<variable name="MethodFullName"          id="6" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="Params"                  id="7" type="binary"/>
+
+				<variable name="ServiceNamePrefix"       id="8" type="string"/>
+				<variable name="Version"                 id="9" type="int"/> 用于验证请求方和处理方的版本一致
+			</bean>
+
+			<bean name="BModuleRedirectAllHash">
+				<variable name="ReturnCode" id="1" type="long"/>
+				<variable name="Params"     id="2" type="binary"/>
+			</bean>
+
+			<bean name="BModuleRedirectAllResult">
+				<variable name="ModuleId"       id="1" type="int"/>
+				<variable name="ServerId"       id="2" type="int"/> 目标server的id。
+				<!-- 上面两个参数用来调试，不是必要的。 -->
+				<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
+				<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="SessionId"      id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+				<!--
+				ResultCode == ResultCodeSuccess 时，才使用下面变量的Value，此时表示调用流程正确了。
+				处理结果是否正确，还需要进一步查看Value.ReturnCode。
+				-->
+				<variable name="Hashes"         id="6" type="map" key="int" value="BModuleRedirectAllHash"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+			</bean>
+
+			<!-- 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果 -->
+			<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server"/>
+			<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server"/>
+
+			<bean name="BTransmit">
+				<variable name="ActionName" id="1" type="string"/>
+				<variable name="Roles"      id="2" type="set" value="long"/> 查询目标角色。
+				<variable name="Sender"     id="3" type="long"/> 结果发送给Sender。
+				<variable name="Parameter"  id="4" type="binary"/> encoded bean
+				<variable name="OnlineSetName"  id="5" type="string"/>
+			</bean>
+
+			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
+			<beankey name="BLoginKey">
+				<variable name="Account"     id="1" type="string"/>
+				<variable name="ClientId"      id="2" type="string"/>
+			</beankey>
+			<bean name="BTransmitAccount">
+				<variable name="ActionName"     id="1" type="string"/>
+				<variable name="Parameter"         id="2" type="binary"/> encoded bean
+				<variable name="Targets"              id="3" type="set" value="BLoginKey"/> 查询目标角色。
+				<variable name="SenderAccount"  id="4" type="string"/> 结果发送给Sender。
+				<variable name="SenderClientId"  id="5" type="string"/> 结果发送给Sender。
+			</bean>
+
+			<protocol name="TransmitAccount" argument="BTransmitAccount" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
+
+			<bean name="BProviderInfo">
+				<variable name="Ip"       id="1" type="string"/>
+				<variable name="Port"     id="2" type="int"/>
+				<variable name="ServerId" id="3" type="int"/>
+			</bean>
+
+			<rpc name="AnnounceProviderInfo" argument="BProviderInfo" handle="server,client"/>
+		</module>
+
+		<module name="RedoQueue" id="11010">
+			<bean name="BQueueTask">
+				<variable name="QueueName"  id="1" type="string"/> 队列名称。
+				<variable name="TaskType"   id="2" type="int"/> 任务类型。
+				<variable name="TaskId"     id="3" type="long"/> 任务编号，必须递增。
+				<variable name="TaskParam"  id="4" type="binary"/> 任务参数。
+				<variable name="PrevTaskId" id="5" type="long"/> 上一个任务编号，用来发现错误。
+			</bean>
+
+			<rpc name="RunTask" argument="BQueueTask" result="BTaskId" handle="server"/>
+
+			<bean name="BTaskId">
+				<variable name="TaskId" id="1" type="long"/>
+			</bean>
+
+			<table name="tQueueLastTaskId" key="string" value="BTaskId" />
+		</module>
+
+		<module name="LinkdBase" id="11011" UseData="true">
+			<!-- linkd to client -->
+			<bean name="BReportError">
+				<enum name="FromLink"          value="0"/> code字段见下面Code开头的枚举
+				<enum name="FromProvider"      value="1"/> code字段见BKick里定义的Error开头的枚举
+				<enum name="FromDynamicModule" value="2"/> code字段是moduleId
+
+				<enum name="CodeMuteKick"       value="0"/> 只断客户端连接，不发送消息给客户端，用于重连时确保旧的连接快速断开
+				<enum name="CodeNotAuthed"      value="1"/>
+				<enum name="CodeNoProvider"     value="2"/>
+				<enum name="CodeProviderBusy"   value="3"/>
+				<enum name="CodeProviderBroken" value="4"/> link跟provider断开,跟此provider静态绑定的客户端需要收到此协议执行重新登录流程
+
+				<variable id="1" name="from" type="int"/> FromLink, FromProvider, or FromDynamicModule
+				<variable id="2" name="code" type="int"/>
+				<variable id="3" name="desc" type="string"/>
+			</bean>
+
+			<protocol name="ReportError" argument="BReportError" handle="client,clientscript"/>
+		</module>
+
+		<module name="Game" id="11012">
+			<module name="Online" id="11013" MultiInstance="true">
+				<enum value="0" name="ResultCodeSuccess"/>
+				<enum value="1" name="ResultCodeCreateRoleDuplicateRoleName"/>
+				<enum value="2" name="ResultCodeAccountNotExist"/>
+				<enum value="3" name="ResultCodeRoleNotExist"/>
+				<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
+				<enum value="5" name="ResultCodeOnlineDataNotFound"/>
+				<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
+				<enum value="7" name="ResultCodeNotLogin"/>
+
+				<enum value="0" name="eOffline"/> 离线状态
+				<enum value="1" name="eLinkBroken"/> 刚刚断开连接
+				<enum value="2" name="eLogined"/> 在线状态
+
+				<!-- protocols -->
+				<bean name="BLogin">
+					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="OnlineSetName" type="string"/>
+				</bean>
+				<bean name="BReLogin">
+					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="3" name="OnlineSetName" type="string"/>
+				</bean>
+				<bean name="BReliableNotifyConfirm">
+					<variable id="1" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="2" name="Sync" type="bool"/>
+				</bean>
+				<bean name="BReliableNotify">
+					<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
+					<variable id="2" name="ReliableNotifyIndex" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+				</bean>
+
+				<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
+				<rpc name="ReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
+				<rpc name="Logout" handle="server"/> 登出
+				<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
+				<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
+
+				<bean name="BDelayLogoutCustom"> 用于BTimer.CustomData
+					<variable id="1" name="RoleId" type="long"/>
+					<variable id="2" name="LoginVersion" type="long"/>
+					<variable id="3" name="OnlineSetName" type="string"/>
+				</bean>
+				<!-- tables -->
+				<bean name="BOnlineShared">
+					<variable id="1" name="Account"       type="string"/> 所属账号, 用于登录验证
+					<variable id="2" name="Link"          type="BLink"/> link相关状态, 登录和下线时会更新
+					<variable id="3" name="LoginVersion"  type="long"/> 角色登录(包括重登录)时自增
+					<variable id="4" name="LogoutVersion" type="long"/> 登录和下线前会赋值为LoginVersion
+					<variable id="5" name="UserData"      type="dynamic"> Online的getUserDataShared和setUserDataShared方法能存取
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<bean name="BOnline">
+					<variable id="1" name="ServerId"                   type="int"/> 登录时会赋值当前所在的serverId
+					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/> 登录时清空
+					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/> 登录时赋值为0
+					<variable id="4" name="ReliableNotifyIndex"        type="long"/> 登录时赋值为0,然后每次sendReliableNotify时自增
+					<variable id="5" name="UserData"                   type="dynamic"> Online的getUserData和setUserData方法能存取
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<beankey name="BLink">
+					<variable id="1" name="LinkName" type="string"/> link名, 一般为"地址_端口"
+					<variable id="2" name="LinkSid"  type="long"/> link上的sessionId
+					<variable id="3" name="State" type="int"/> 登录状态, 见上面e开头的枚举定义
+				</beankey>
+
+				<bean name="BNotify">
+					<variable id="1" name="FullEncodedProtocol" type="binary"/>
+				</bean>
+
+				<bean name="BAny">
+					<variable id="1" name="Any" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+
+				<bean name="BLocal">
+					<variable id="1" name="LoginVersion" type="long"/> 角色登录(包括重登录)时复制为tonline.LoginVersion
+					<variable id="2" name="Datas" type="map" key="string" value="BAny"/> Online模块LocalBean相关方法读写自定义数据, 用来保存角色的Online定时器等
+					<variable id="3" name="Link"  type="BLink"/> 角色登录(包括重登录)时复制为tonline.Link
+				</bean>
+
+				<table name="tOnlineShared" key="long" value="BOnlineShared"/> 登录相关状态的大版本共享的持久化表, 表名为"Zeze_Game_Online_tOnlineShared__{onlineSetName}", key是角色ID
+				<table name="tOnline" suffix="@AppMainVersion" key="long" value="BOnline"/> 登录相关状态的大版本隔离的持久化模板表, 表名为"Zeze_Game_Online_tOnline__{onlineSetName}__{appMainVersion}", key是角色ID
+				<table name="tlocal" suffix="@ServerId" key="long" value="BLocal"/> 每个server各自保存不同表的模板表, 表名为"Zeze_Game_Online_tlocal__{onlineSetName}__{serverId}", key是角色ID
+				<table name="tRoleTimers" key="string" value="Zeze.Builtin.Timer.BGameOnlineTimer" memory="true"/> 玩家在线时的定时器, 表名为"Zeze_Game_Online_tRoleTimers__{onlineSetName}", key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<table name="tRoleOfflineTimers" key="long" value="Zeze.Builtin.Timer.BOfflineTimers"/> 角色离线时触发的定时器反向索引, 表名为"Zeze_Game_Online_tRoleOfflineTimers__{onlineSetName}", key是角色ID
+
+				<!-- interface -->
+				<!--
+				* 事件
+				. Login Events
+				. ReLogin Events
+				. Logout Events
+				* 数据修改
+				. AddRole(account, roleId)
+				. RemoveRole(account, roleId)
+				. SetLastLoginRoleId?
+				* 协议发送
+				. SendXXX To Role
+				. SendXXX To Account?
+				. Transmit
+				. SendReliable
+				* 重载：一般不需要。
+				. override ProcessLoginRequest
+				. override ProcessReLoginRequest
+				. override ProcessLogoutRequest
+				-->
+			</module> Online 11013
+
+			<module name="Bag" id="11014">
+				<enum name="ResultCodeFromInvalid"  value="1"/>
+				<enum name="ResultCodeToInvalid"    value="2"/>
+				<enum name="ResultCodeFromNotExist" value="3"/>
+				<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
+
+				<bean name="BMove">
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="PositionFrom" type="int"/>
+					<variable id="3" name="PositionTo" type="int"/>
+					<variable id="4" name="number" type="int"/> -1 表示全部
+				</bean>
+				<bean name="BDestroy">
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="Position" type="int"/>
+				</bean>
+				<!--
+				<bean name="BChanged">
+					<enum name="TagIncrementChange" value="0"/> 增量修改。
+					<enum name="TagRecordRemoved"   value="1"/> 整个记录删除了。
+					<enum name="TagRecordReplace"   value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
+
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="Tag" type="int"/> 处理方式
+					<variable id="3" name="Replaced" type="map" key="int" value="BItem"/> key is position
+					<variable id="4" name="Removed" type="set" value="int"/> key is position
+				</bean>
+				<protocol name="NotifyChanged" argument="BChanged" handle="client"/> 所有的包裹改变都通过这个协议发送。
+				<protocol name="NotifyBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
+				-->
+
+				<rpc name="Move" argument="BMove" handle="server"/>
+				<rpc name="Destroy" argument="BDestroy" handle="server"/>
+
+				<bean name="BItem">
+					<variable id="1" name="Id" type="int"/>
+					<variable id="2" name="Number" type="int"/>
+					<variable id="3" name="Item" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Bag::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Bag::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+
+				<bean name="BBag">
+					<variable id="1" name="Capacity" type="int"/>
+					<variable id="2" name="Items" type="map" key="int" value="BItem"/> key is bag position
+				</bean>
+
+				<table name="tbag" key="string" value="BBag"/> key is bag name
+			</module> Bag 11014
+
+			<module name="Rank" id="11015">
+				<beankey name="BConcurrentKey">
+					<enum name="TimeTypeTotal"     value="0"/> 所有时间
+					<enum name="TimeTypeDay"       value="1"/> 每天：Year为当前时间的年份，Offset为天
+					<enum name="TimeTypeWeek"      value="2"/> 每周：Year为当前时间的年份，Offset为周
+					<enum name="TimeTypeSeason"    value="3"/> 每季：Year为当前时间的年份，Offset为季
+					<enum name="TimeTypeYear"      value="4"/> 每年：Year为当前时间的年份，Offset为0
+					<enum name="TimeTypeCustomize" value="5"/> 自定义：此时Offset是自定义Id，Year为0
+
+					<variable id="1" name="RankType"     type="int"/>
+					<variable id="2" name="ConcurrentId" type="int"/> = hash % ConcurrentLevel
+					<variable id="3" name="TimeType"     type="int"/>
+					<variable id="4" name="Year"         type="int"/>
+					<variable id="5" name="Offset"       type="long"/> 根据TimeType，含义不同
+				</beankey>
+
+				<bean name="BRankValue">
+					<variable id="1" name="RoleId"     type="long"/>
+					<variable id="2" name="Dynamic"      type="dynamic"> 含义由 BConcurrentKey.RankType 决定
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Rank::getSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Rank::createBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				
+				<bean name="BValueLong">
+					<variable id="1" name="Value"     type="long"/>
+				</bean>
+
+				<bean name="BRankList">
+					<variable id="1" name="RankList"  type="list" value="BRankValue"/>
+				</bean>
+
+				<table name="trank" key="BConcurrentKey" value="BRankList"/>
+			</module> Rank 11015
+		</module> Game
+
+		<module name="Online" id="11100">
+			<enum value="0" name="ResultCodeSuccess"/>
+			<enum value="1" name="ResultCodeCreateRoleDuplicateRoleName"/>
+			<enum value="2" name="ResultCodeAccountNotExist"/>
+			<enum value="3" name="ResultCodeRoleNotExist"/>
+			<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
+			<enum value="5" name="ResultCodeOnlineDataNotFound"/>
+			<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
+			<enum value="7" name="ResultCodeNotLogin"/>
+
+			<enum value="0" name="eOffline"/>
+			<enum value="1" name="eLinkBroken"/>
+			<enum value="2" name="eLogined"/>
+
+			<!-- protocols -->
+			<bean name="BLogin">
+				<variable id="1" name="ClientId" type="string" />
+			</bean>
+			<bean name="BReLogin">
+				<variable id="1" name="ClientId" type="string" />
+				<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
+			</bean>
+			<bean name="BReliableNotifyConfirm">
+				<variable id="1" name="ClientId" type="string" />
+				<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
+				<variable id="3" name="Sync" type="bool"/>
+			</bean>
+			<bean name="BReliableNotify">
+				<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
+				<variable id="2" name="ReliableNotifyIndex" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+			</bean>
+
+			<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
+			<rpc name="ReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
+			<rpc name="Logout" handle="server"/> 登出
+			<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
+			<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
+
+			<bean name="BDelayLogoutCustom">
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="ClientId" type="string"/>
+				<variable id="3" name="LoginVersion" type="long"/>
+			</bean>
+			<!-- tables -->
+			<beankey name="BLink">
+				<variable id="1" name="LinkName" type="string"/>
+				<variable id="2" name="LinkSid"  type="long"/>
+				<variable id="3" name="State"  type="int"/>
+			</beankey>
+			<bean name="BOnline">
+				<variable id="1" name="Link" type="BLink"/>
+				<variable id="2" name="LoginVersion" type="long"/>
+				<!-- 下面的定义用来实现可靠的协议通告。 -->
+				<variable id="3" name="ReliableNotifyMark"         type="set" value="string"/>
+				<variable id="4" name="ReliableNotifyIndex"        type="long"/>
+				<variable id="5" name="ReliableNotifyConfirmIndex" type="long"/>
+				<variable id="6" name="ServerId"                   type="int"/>
+				<variable id="7" name="LogoutVersion" type="long"/>
+			</bean>
+			<bean name="BNotify">
+				<variable id="1" name="FullEncodedProtocol" type="binary"/>
+			</bean>
+			<bean name="BOnlines">
+				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId
+				<variable id="2" name="LastLoginVersion" type="long"/> 用来生成 account 登录版本号。每次递增。
+				<variable id="3" name="Account" type="string"/> 所属账号,用于登录验证
+			</bean>
+
+			<table name="tonline"  key="string" value="BOnlines"/>
+
+			<bean name="BAny">
+				<variable id="1" name="Any" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+			<bean name="BLocal">
+				<variable id="1" name="LoginVersion" type="long"/>
+				<variable id="2" name="Datas" type="map" key="string" value="BAny"/>
+			</bean>
+			<bean name="BLocals">
+				<variable id="1" name="Logins" type="map" key="string" value="BLocal"/> key is ClientId
+			</bean>
+			<table name="tlocal" key="string" memory="true" value="BLocals"/>
+		</module> Online 11100
+
+		<module name="Timer" id="11016"> 定时器模块
+			<enum name="eMissfirePolicyNothing" value="0"/> 如果错过指定触发时间, 则忽略并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnce" value="1"/> 如果错过指定触发时间, 则立即触发一次并以当前时间+period重设新的触发时间
+			<enum name="eMissfirePolicyRunOnceOldNext" value="2"/> 如果错过指定触发时间, 则立即触发一次并以之前触发时间+period重设新的触发时间, 用于定点时间触发
+
+			<!--
+			<bean name="BTimerNew"> 重构的定时器结构
+				<variable id="1"  name="timerId"        type="string"/> 可由用户指定或用"@"+Base64编码的自动分配ID, 每个timerId只能同时生效一个定时器
+				<variable id="2"  name="handleClass"    type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名,触发时构造并回调
+				<variable id="3"  name="oneByOneKey"    type="string"/> 触发时所用的OneByOne队列key
+				<variable id="4"  name="cronExpression" type="string"/> 触发时间的cron表达式, 空表示不启用
+				<variable id="5"  name="missfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="6"  name="serverId"       type="int"/> 所属的serverId, 通常只能由该server调度和触发, 如果该server不可用, 其它server可修改所属
+				<variable id="7"  name="period"         type="long"/> 固定的触发周期(毫秒), 小于等于0表示不启用
+				<variable id="8"  name="createTime"     type="long"/> 创建时间(unix毫秒时间戳)
+				<variable id="9"  name="endTime"        type="long"/> 限制触发的最晚时间(unix毫秒时间戳), 只有大于0会限制, 计算下次触发时间发现超过此值时自动取消定时器
+				<variable id="10" name="lastTime"       type="long"/> 上次实际触发的时间(unix毫秒时间戳), 触发后更新, 初始为0
+				<variable id="11" name="nextTime"       type="long"/> 下次计划触发的时间(unix毫秒时间戳), 触发后更新
+				<variable id="12" name="fireCount"      type="long"/> 已经触发次数, 触发前自增
+				<variable id="13" name="leftCount"      type="long"/> 剩余触发次数, 小于0表示不限次数, 否则触发前自减
+				<variable id="14" name="customData"     type="dynamic"> 用户指定的上下文数据, 常见类型有BOfflineRoleCustom,BDelayLogoutCustom
+					<GetSpecialTypeIdFromBean    value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+				<variable id="15" name="serialId"       type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
+				<variable id="16" name="version"        type="long"/> 创建时记下当前timer所属server的版本
+			</bean>
+			<table name="tTimerNew" key="string" value="BTimerNew" /> 准备重构的定时器表,只用这一个表,key是timerId
+			-->
+
+			<bean name="BNodeRoot"> Timer根节点
+				<variable id="1" name="HeadNodeId" type="long"/> 节点双链表的头结点ID, tNodes表的key, 0表示空链表, 总是在头结点插入
+				<variable id="2" name="TailNodeId" type="long"/> 节点双链表的尾结点ID, tNodes表的key, 0表示空链表
+				<variable id="3" name="LoadSerialNo" type="long"/> 每次启动时都递增的序列号, 用来处理跟接管的并发
+				<variable id="4" name="Version" type="long"/> 最高的定时器版本(tIndexs.Version), 用于被接管时判断
+			</bean>
+
+			<table name="tNodeRoot" key="int" value="BNodeRoot" /> key是serverId, 每个server维护处理自己的节点链表
+
+			<bean name="BTimer">
+				<variable id="1" name="TimerName" type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<variable id="2" name="HandleName" type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
+				<variable id="3" name="TimerObj" type="dynamic"> 定时器参数
+					<value bean="BSimpleTimer"/> 固定周期触发的timer
+					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
+				</variable>
+				<variable id="4" name="CustomData" type="dynamic"> 用户指定的上下文数据, 常见类型有BOfflineRoleCustom,BDelayLogoutCustom
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+				<variable id="5" name="ConcurrentFireSerialNo" type="long"/> 触发定时器后自增的序列号, 用来避免并发timer触发
+			</bean>
+
+			<bean name="BSimpleTimer"> 固定周期触发的timer
+				<variable id="1" name="Delay" type="long"/> [已废弃]
+				<variable id="2" name="Period" type="long"/> 触发周期(毫秒), 只有大于0才会周期触发
+				<variable id="3" name="RemainTimes" type="long"/> 剩余触发次数, -1表示不限次数
+				<variable id="4" name="HappenTimes" type="long"/> 已经触发的次数, 触发前自增
+				<variable id="5" name="StartTime" type="long"/> timer的创建时间(unix毫秒时间戳)
+				<variable id="6" name="EndTime" type="long"/> 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+				<variable id="7" name="NextExpectedTime" type="long"/> 下次计划触发的时间(unix毫秒时间戳)
+				<variable id="8" name="ExpectedTime" type="long"/> 上次应该触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="9" name="HappenTime" type="long"/> 上次实际触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="10" name="MissfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="11" name="OneByOneKey" type="string"/> timer触发时所用的OneByOne队列key
+			</bean>
+
+			<bean name="BCronTimer"> 使用cron表达式触发时间的timer
+				<variable id="1" name="CronExpression" type="string"/> timer触发时间的cron表达式
+				<variable id="2" name="NextExpectedTime" type="long"/> 下次计划触发的时间(unix毫秒时间戳)
+				<variable id="3" name="ExpectedTime" type="long"/> 上次应该触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="4" name="HappenTime" type="long"/> 上次实际触发的时间(unix毫秒时间戳), 初始为0
+				<variable id="5" name="RemainTimes" type="long"/> 剩余触发次数, -1表示不限次数
+				<variable id="6" name="EndTime" type="long"/> 限制触发的最后时间(unix毫秒时间戳), 计算下次触发时间发现超过则取消定时器, 只有大于0会限制
+				<variable id="7" name="MissfirePolicy" type="int"/> 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
+				<variable id="8" name="OneByOneKey" type="string"/> timer触发时所用的OneByOne队列key
+				<variable id="9" name="HappenTimes" type="long"/> 已经触发的次数, 触发前自增
+			</bean>
+
+			<bean name="BNode"> 若干个timer打包的节点
+				<variable id="1" name="PrevNodeId" type="long"/> 节点双链表的前一个节点ID, tNodes表的key, 循环指向,不应该无效
+				<variable id="2" name="NextNodeId" type="long"/> 节点双链表的后一个节点ID, tNodes表的key, 循环指向,不应该无效
+				<variable id="3" name="Timers" type="map[string, BTimer]"/> 该节点的所有timer, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID), 数量上限是Zeze.Component.Timer.CountPerNode(50)
+			</bean>
+
+			<table name="tNodes" key="long" value="BNode"/> 节点表, key是节点ID(AutoKey分配)
+
+			<bean name="BIndex"> 一个timer的信息
+				<variable id="1" name="ServerId" type="int"/> 所属的serverId, 被其它timer接管后会更新
+				<variable id="2" name="NodeId" type="long"/> 所属的节点ID
+				<variable id="3" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发时验证是否一致,并在触发后验证是否重置了该定时器
+				<variable id="4" name="Version" type="long"/> 创建时记下当前timer所属server的版本
+			</bean>
+
+			<table name="tIndexs" key="string" value="BIndex" /> timer索引, key是timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+
+			<bean name="BTransmitCronTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="CronTimer" type="BCronTimer"/>
+				<variable id="3" name="HandleClass" type="string"/>
+				<variable id="4" name="CustomClass" type="string"/>
+				<variable id="5" name="CustomBean" type="binary"/>
+				<variable id="6" name="LoginVersion" type="long"/>
+				<variable id="7" name="Hot" type="bool"/>
+			</bean>
+			<bean name="BTransmitSimpleTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="SimpleTimer" type="BSimpleTimer"/>
+				<variable id="3" name="HandleClass" type="string"/>
+				<variable id="4" name="CustomClass" type="string"/>
+				<variable id="5" name="CustomBean" type="binary"/>
+				<variable id="6" name="LoginVersion" type="long"/>
+				<variable id="7" name="Hot" type="bool"/>
+			</bean>
+			<bean name="BTransmitCancelRoleTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="RoleId" type="long"/>
+				<variable id="3" name="LoginVersion" type="long"/>
+			</bean>
+			<bean name="BTransmitCancelAccountTimer">
+				<variable id="1" name="TimerId" type="string"/>
+				<variable id="2" name="Account" type="string"/>
+				<variable id="3" name="ClientId" type="string"/>
+				<variable id="4" name="LoginVersion" type="long"/>
+			</bean>
+
+			<!-- Online Timer -->
+			<bean name="BArchOnlineTimer"> 用于Zeze.Timer.tAccountTimers内存表的value, 只处理账号在线时的定时器
+				<variable id="1" name="Account" type="string"/> 所属的账号名
+				<variable id="2" name="ClientId" type="string"/> 所属的客户端ID
+				<variable id="3" name="TimerObj" type="dynamic"> 定时器参数
+					<value bean="BSimpleTimer"/> 固定周期触发的timer
+					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
+				</variable>
+				<variable id="4" name="LoginVersion" type="long"/> 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
+				<variable id="5" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
+			</bean>
+
+			<bean name="BGameOnlineTimer"> 用于Zeze.Game.Online.tRoleTimers内存表的value, 只处理玩家在线时的定时器
+				<variable id="1" name="RoleId" type="long"/> 所属的角色ID
+				<variable id="2" name="TimerObj" type="dynamic"> 定时器参数
+					<value bean="BSimpleTimer"/> 固定周期触发的timer
+					<value bean="BCronTimer"/> 使用cron表达式触发时间的timer
+				</variable>
+				<variable id="3" name="LoginVersion" type="long"/> 创建时从tlocal.LoginVersion赋值, 用于触发时再与tonline.LoginVersion验证是否一致
+				<variable id="4" name="SerialId" type="long"/> 创建时从AutoKey("Zeze.Component.Timer.SerialId")分配, 用于触发后验证是否重置了该定时器
+			</bean>
+
+			<table name="tAccountTimers" key="string" value="BArchOnlineTimer" memory="true"/> 账号在线时的定时器, key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+
+			<bean name="BOnlineCustom"> 保存真正的用户自定义数据
+				<variable id="1" name="CustomData" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getOnlineSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createOnlineBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+			<bean name="BOnlineTimers"> 这个Bean作为Online.Local.Any存储
+				<variable id="1" name="TimerIds" type="map[string, BOnlineCustom]"/>
+			</bean>
+
+			<!-- Offline Timer -->
+			<bean name="BOfflineAccountCustom">
+				<variable id="1" name="TimerName"    type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<variable id="2" name="Account"      type="string"/> 关联的账号名
+				<variable id="3" name="ClientId"     type="string"/> 关联的客户端ID
+				<variable id="4" name="LoginVersion" type="long" default="-1"/> 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
+				<variable id="5" name="HandleName"   type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
+				<variable id="6" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+			<bean name="BOfflineRoleCustom"> 用于BTimer.CustomData,关联角色的offline timer上下文数据
+				<variable id="1" name="TimerName"    type="string"/> 用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID)
+				<variable id="2" name="RoleId"       type="long"/> 关联的角色ID
+				<variable id="3" name="LoginVersion" type="long" default="-1"/> 创建时从tlocal.LogoutVersion赋值, 用于触发时再与tonline.LogoutVersion验证是否一致
+				<variable id="4" name="HandleName"   type="string"/> 用户实现Zeze.Component.TimerHandle接口的完整类名
+				<variable id="5" name="CustomData"   type="dynamic"> 保存真正的用户自定义数据
+					<GetSpecialTypeIdFromBean value="Zeze.Component.Timer::getSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Component.Timer::createBeanFromSpecialTypeId"/>
+				</variable>
+				<variable id="6" name="OnlineSetName" type="string"/> 客户端名
+			</bean>
+			<bean name="BOfflineTimers"> 记录多个定时器(timerId)的反向索引
+				<variable id="1" name="OfflineTimers" type="map[string, int]"/> key是用户指定的timerId(用户指定的,或"@"+Base64编码的自动分配ID), value是注册定时器的serverId, 容量不能超过Config配置中的offlineTimerLimit
+			</bean>
+
+			<beankey name="BAccountClientId">
+				<variable id="1" name="Account" type="string"/> 账号名
+				<variable id="2" name="ClientId" type="string"/> 客户端ID
+			</beankey>
+			<table name="tAccountOfflineTimers" key="BAccountClientId" value="BOfflineTimers"/> 账号离线时触发的定时器反向索引, key是账号名和客户端ID
+		</module>
+
+		<module name="Statistics" id="11020">
+			<servlet name="Query"/>
+		</module>
+
+		<module name="DbWeb" id="11021">
+			<servlet name="Index" TransactionLevel="None"/>
+			<servlet name="ListTable" TransactionLevel="None"/>
+			<servlet name="GetValue" TransactionLevel="None"/>
+			<servlet name="WalkTable" TransactionLevel="None"/>
+			<servlet name="PutRecord" TransactionLevel="Serializable"/>
+			<servlet name="DeleteRecord" TransactionLevel="Serializable"/>
+			<servlet name="ClearTable" TransactionLevel="None"/>
+		</module>
+
+		<module name="ServiceManagerWithRaft" base="Zeze.Services.ServiceManager.AbstractAgent" id="11022">
+			<bean name="BLogin">
+				<variable id="1" name="SessionName" type="string"/>
+			</bean>
+
+			<rpc name="Login" argument="BLogin" base="Zeze.Raft.RaftRpc" handle="server"/>
+
+			<rpc name="AllocateId" argument="Zeze.Services.ServiceManager.BAllocateIdArgument" result="Zeze.Services.ServiceManager.BAllocateIdResult" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineNotify" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="client"/>
+			<rpc name="OfflineRegister" argument="Zeze.Services.ServiceManager.BOfflineNotify" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="Edit" argument="Zeze.Services.ServiceManager.BEditService" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="SetServerLoad" argument="Zeze.Services.ServiceManager.BServerLoad" base="Zeze.Raft.RaftRpc" handle="server,client"/>
+			<rpc name="Subscribe" argument="Zeze.Services.ServiceManager.BSubscribeArgument" result="Zeze.Services.ServiceManager.BSubscribeResult" base="Zeze.Raft.RaftRpc" handle="server">
+				<enum name="Success" value="0"/>
+				<enum name="DuplicateSubscribe" value="1"/>
+			</rpc>
+			<rpc name="UnSubscribe" argument="Zeze.Services.ServiceManager.BUnSubscribeArgument" base="Zeze.Raft.RaftRpc" handle="server">
+				<enum name="Success" value="0"/>
+				<enum name="NotExist" value="1"/>
+			</rpc>
+			<rpc name="NormalClose" base="Zeze.Raft.RaftRpc" handle="server"/>
+			<rpc name="AllocateId128" argument="Zeze.Services.ServiceManager.BAllocateId128Argument" result="Zeze.Services.ServiceManager.BAllocateId128Result" base="Zeze.Raft.RaftRpc" handle="server"/>
+
+			<!-- autokey -->
+			<bean name="BAutoKey" kind="rocks">
+				<variable id="1" name="Current" type="long"/>
+			</bean>
+			<table name="tAutoKey" key="string" value="BAutoKey" kind="rocks"/>
+
+			<bean name="BId128" kind="rocks">
+				<variable id="1" name="Current" type="Zeze.Util.Id128"/>
+			</bean>
+			<table name="tId128" key="string" value="BId128" kind="rocks"/>
+
+			<!-- session -->
+			<bean name="BOfflineNotifyRocks" kind="rocks">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="NotifyId" type="string"/>
+				<variable id="3" name="NotifySerialId" type="long"/>
+				<variable id="4" name="NotifyContext" type="binary"/>
+			</bean>
+			<bean name="BSession" kind="rocks">
+				<variable id="1" name="SessionId" type="long"/>
+				<variable id="2" name="OfflineRegisterServerId" type="int"/>
+				<variable id="3" name="OfflineRegisterNotifies" type="map[string, BOfflineNotifyRocks]"/>
+				<variable id="4" name="Registers" type="map[BServiceInfoKeyRocks, BServiceInfoRocks]"/>
+				<variable id="5" name="Subscribes" type="map[string, BSubscribeInfoRocks]"/>
+			</bean>
+			<beankey name="BServiceInfoKeyRocks" kind="rocks">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceIdentity" type="string"/>
+			</beankey>
+			<bean name="BServiceInfoRocks" kind="rocks">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceIdentity" type="string"/>
+				<variable id="3" name="PassiveIp" type="string"/>
+				<variable id="4" name="PassivePort" type="int"/>
+				<variable id="5" name="ExtraInfo" type="binary"/>
+				<variable id="6" name="SessionName" type="string"/>
+				<variable id="7" name="Version" type="long"/>
+			</bean>
+			<bean name="BSubscribeInfoRocks" kind="rocks">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="Version" type="long"/>
+			</bean>
+			<table name="tSession" key="string" value="BSession" kind="rocks"/>
+
+			<!-- load observers -->
+			<bean name="BLoadObservers" kind="rocks">
+				<variable name="Observers" id="1" type="set[string]"/> 负载订阅者，subscribeAndSend中订阅。
+			</bean>
+			<table name="tLoadObservers" key="string" value="BLoadObservers" kind="rocks"/>
+
+			<!-- service(server state) -->
+			<bean name="BServiceInfosVersionRocks" kind="rocks">
+				<variable id="1" name="ServiceInfos" type="map[string, BServiceInfoRocks]"/>
+			</bean>
+			<bean name="BServerState" kind="rocks">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="ServiceInfosVersion" type="map[long, BServiceInfosVersionRocks]"/>
+				<variable id="3" name="Simple" type="map[string, BSubscribeInfoRocks]"/>
+				<variable id="5" name="SerialId" type="long"/>
+			</bean>
+			<table name="tServerState" key="string" value="BServerState" kind="rocks"/>
+		</module>
+
+		<module name="RocketMQ" id="11023">
+			<module name="Producer" id="11024">
+				<bean name="BTransactionMessageResult">
+					<variable id="1" name="Result" type="bool"/>
+					<variable id="2" name="Timestamp" type="long"/>
+				</bean>
+				<table name="tSent" key="string" value="BTransactionMessageResult"/>
+			</module>
+		</module>
+
+		<module name="AutoKey" id="11025">
+			<beankey name="BSeedKey">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="KeyName"  type="string"/>
+			</beankey>
+			<bean name="BAutoKey">
+				<variable id="1" name="NextId" type="long"/>
+			</bean>
+			<table name="tAutoKeys" key="BSeedKey" value="BAutoKey" CheckpointWhenCommit="true" />
+		</module>
+
+		<module name="Dbh2" id="11026" DefaultTransactionLevel="None">
+			<module name="Master" id="11027" DefaultTransactionLevel="None">
+				<enum name="eDatabaseNotFound" value="1"/>
+				<enum name="eTableNotFound" value="2"/>
+				<enum name="eTableIsNew" value="3"/>
+				<enum name="eSplittingBucketNotFound" value="4"/>
+				<enum name="eManagerNotFound" value="5"/>
+				<enum name="eSplittingBucketExist" value="6"/>
+				<enum name="eTooFewManager" value="7"/>
+
+				<!--
+				Dbh2发现桶没找到错误时，使用GetBuckets得到完整的信息。
+				因为只LocateBucket最新的桶信息虽然能用，但是出现桶没找到错误时，通常意味着前一个桶的信息也需要更新。
+				不更新旧桶，桶的定位方法可以工作（只依赖桶的KeyFirst），但感觉不好。
+				所以LocateBucket先不用，仅使用GetBuckets。
+				-->
+				<bean name="BLocateBucket">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+					<variable id="3" name="Key" type="binary"/>
+				</bean>
+				<rpc name="LocateBucket" argument="BLocateBucket" result="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
+
+				<bean name="BGetBuckets">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+				</bean>
+				<external bean="Zeze.Dbh2.Master.MasterTable" />
+				<rpc name="GetBuckets" argument="BGetBuckets" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
+
+				<bean name="BCreateDatabase">
+					<variable id="1" name="Database" type="string"/>
+				</bean>
+				<rpc name="CreateDatabase" argument="BCreateDatabase" UseData="true" handle="server"/>
+
+				<bean name="BCreateTable">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+				</bean>
+				<rpc name="CreateTable" argument="BCreateTable" result="Zeze.Dbh2.Master.MasterTable" UseData="true" handle="server"/>
+
+				<!-- 下面是Master跟Dbh2Manager通讯的协议，也包装在MasterAgent中 -->
+				<rpc name="CreateBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="client"/>
+				<rpc name="CreateSplitBucket" argument="Zeze.Builtin.Dbh2.BBucketMeta" result="Zeze.Builtin.Dbh2.BBucketMeta" UseData="true" handle="server"/>
+
+				<bean name="BRegister">
+					<variable id="1" name="Dbh2RaftAcceptorName" type="string"/>
+					<variable id="2" name="Port" type="int"/>
+					<variable id="3" name="BucketCount" type="int"/>
+				</bean>
+
+				<bean name="BDbh2Config">
+					<variable id="1" name="Database" type="string"/>
+					<variable id="2" name="Table" type="string"/>
+					<variable id="3" name="RaftConfig" type="string"/>
+				</bean>
+				<bean name="BRegisterResult">
+					<variable id="1" name="Dbh2Configs" type="list[BDbh2Config]"/>
+				</bean>
+				<rpc name="Register" argument="BRegister" result="BRegisterResult" UseData="true" handle="server"/>
+				<rpc name="SetDbh2Ready" UseData="true" handle="server"/>
+
+				<bean name="BLoad">
+					<variable id="1" name="Load" type="double"/>
+				</bean>
+				<rpc name="ReportLoad" argument="BLoad" UseData="true" handle="server"/>
+
+				<bean name="BBucketCount">
+					<variable id="1" name="Count" type="int"/>
+				</bean>
+				<rpc name="ReportBucketCount" argument="BBucketCount" UseData="true" handle="server"/>
+
+				<bean name="BEndSplit">
+					<variable id="1" name="From" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+					<variable id="2" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+				</bean>
+				<rpc name="EndSplit" argument="BEndSplit" UseData="true" handle="server"/>
+
+				<bean name="BEndMove">
+					<variable id="1" name="To" type="Zeze.Builtin.Dbh2.BBucketMeta"/>
+				</bean>
+				<rpc name="EndMove" argument="BEndMove" UseData="true" handle="server"/>
+
+				<rpc name="CheckFreeManager" result="BBucketCount" UseData="true" handle="server"/>
+
+				<!-- Zeze.Transaction.Database.Operates 实现协议-->
+				<bean name="BSetInUse">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eInstanceAlreadyExists" value="2"/>
+					<enum name="eInsertInstanceError" value="3"/>
+					<enum name="eGlobalNotSame" value="4"/>
+					<enum name="eInsertGlobalError" value="5"/>
+					<enum name="eTooManyInstanceWithoutGlobal" value="6"/>
+
+					<variable id="1" name="LocalId" type="int"/> serverId
+					<variable id="2" name="Global" type="string"/>
+				</bean>
+
+				<bean name="BClearInUse">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eInstanceNotExists" value="2"/>
+
+					<variable id="1" name="LocalId" type="int"/> serverId
+					<variable id="2" name="Global" type="string"/> global config, not use now, reserve for strict check.
+				</bean>
+
+				<bean name="BSaveDataWithSameVersion">
+					<enum name="eSuccess" value="0"/>
+					<enum name="eDefaultError" value="1"/>
+					<enum name="eVersionMismatch" value="2"/>
+					<enum name="eUpdateError" value="3"/>
+
+					<variable id="1" name="Key" type="binary"/>
+					<variable id="2" name="Data" type="binary"/>
+					<variable id="3" name="Version" type="long"/>
+				</bean>
+				<bean name="BSaveDataWithSameVersionResult">
+					<variable id="1" name="Version" type="long"/>
+				</bean>
+
+				<bean name="BGetDataWithVersion">
+					<enum name="eDataNotExists" value="1"/>
+
+					<variable id="1" name="Key" type="binary"/>
+				</bean>
+				<bean name="BGetDataWithVersionResult">
+					<variable id="1" name="Data" type="binary"/>
+					<variable id="2" name="Version" type="long"/>
+				</bean>
+
+				<rpc name="SetInUse" argument="BSetInUse" UseData="true" handle="server"/>
+				<rpc name="ClearInUse" argument="BClearInUse"  UseData="true" handle="server"/>
+				<rpc name="SaveDataWithSameVersion" argument="BSaveDataWithSameVersion" result="BSaveDataWithSameVersionResult" UseData="true" handle="server"/>
+				<rpc name="GetDataWithVersion" argument="BGetDataWithVersion" result="BGetDataWithVersionResult" UseData="true" handle="server"/>
+				<rpc name="TryLock" UseData="true" handle="server">
+					<enum name="eLockNotExists" value="1"/>
+				</rpc>
+				<rpc name="UnLock" UseData="true" handle="server"/>
+
+			</module> master
+
+			<enum name="eBucketNotFound" value="1"/>
+			<enum name="eBucketMismatch" value="2"/>
+			<enum name="eDuplicateTid" value="3"/>
+
+			<bean name="BBucketMeta">
+				<variable id="1" name="DatabaseName" type="string"/>
+				<variable id="2" name="TableName" type="string"/>
+				<variable id="3" name="KeyFirst" type="binary"/>
+				<variable id="4" name="KeyLast" type="binary"/>
+				<variable id="5" name="RaftConfig" type="string"/>
+				<variable id="6" name="Host2Raft" type="map[string, string]"/>
+			</bean>
+
+			<bean name="BSplitPut">
+				<variable id="1" name="fromTransaction" type="bool"/>
+				<variable id="2" name="Puts" type="map[binary, binary]"/> 包含delete，用Binary.Empty表示。
+			</bean>
+			<!-- 桶(raftNode)创建出来的第一条操作，以后分桶时也需要重新设置 -->
+			<rpc name="SetBucketMeta" argument="BBucketMeta" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="SplitPut" argument="BSplitPut" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BGetArgument">
+				<variable id="1" name="Database" type="string"/> 用来纠错
+				<variable id="2" name="Table" type="string"/> 用来纠错
+				<variable id="3" name="Key" type="binary"/>
+			</bean>
+			<bean name="BGetResult">
+				<variable id="1" name="Null" type="bool"/>
+				<variable id="2" name="Value" type="binary"/>
+			</bean>
+			<rpc name="Get" argument="BGetArgument" result="BGetResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BBatch">
+				<variable id="1" name="Puts" type="map[binary, binary]"/>
+				<variable id="2" name="Deletes" type="set[binary]"/>
+				<variable id="3" name="QueryIp" type="string"/>
+				<variable id="4" name="QueryPort" type="int"/>
+				<variable id="5" name="Tid" type="long"/>
+			</bean>
+			<bean name="BPrepareBatch">
+				<variable id="1" name="Master" type="string"/> 用来纠错
+				<variable id="2" name="Database" type="string"/> 用来纠错
+				<variable id="3" name="Table" type="string"/> 用来纠错
+				<variable id="4" name="Batch" type="BBatch"/>
+			</bean>
+			<bean name="BBatchTid">
+				<variable id="1" name="Tid" type="long"/>
+			</bean>
+			<bean name="BRefused">
+				<variable id="1" name="Refused" type="map[string, BBatch]"/>
+			</bean>
+			<!-- 桶正在迁移中造成Batch中部分Key失败，整个事务失败。-->
+			<rpc name="PrepareBatch" argument="BPrepareBatch" result="BRefused" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="CommitBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+			<rpc name="UndoBatch" argument="BBatchTid" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BWalk">
+				<variable id="1" name="ExclusiveStartKey" type="binary"/>
+				<variable id="2" name="ProposeLimit" type="int"/>
+				<variable id="3" name="Desc" type="bool"/>
+				<variable id="4" name="Prefix" type="binary"/>
+			</bean>
+			<bean name="BWalkKeyValue">
+				<variable id="1" name="Key" type="binary"/>
+				<variable id="2" name="Value" type="binary"/>
+			</bean>
+			<bean name="BWalkResult">
+				<variable id="1" name="KeyValues" type="list[BWalkKeyValue]"/>
+				<variable id="2" name="BucketEnd" type="bool"/>
+				<variable id="3" name="BucketRefuse" type="bool"/>
+			</bean>
+			<rpc name="Walk" argument="BWalk" result="BWalkResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<bean name="BWalkKeyResult">
+				<variable id="1" name="Keys" type="list[binary]"/>
+				<variable id="2" name="BucketEnd" type="bool"/>
+				<variable id="3" name="BucketRefuse" type="bool"/>
+			</bean>
+			<rpc name="WalkKey" argument="BWalk" result="BWalkKeyResult" base="Zeze.Raft.RaftRpc" UseData="true" handle="server"/>
+
+			<module name="Commit" id="11028" DefaultTransactionLevel="None">
+				<enum name="eCommitNotExist" value="0"/>
+				<enum name="ePreparing" value="1"/>
+				<enum name="eCommitting" value="2"/>
+
+				<bean name="BTransactionState">
+					<variable id="1" name="State" type="int"/>
+					<variable id="2" name="Buckets" type="list[string]"/>
+				</bean>
+
+				<bean name="BPrepareBatches">
+					<variable id="1" name="Datas" type="map[string, Zeze.Builtin.Dbh2.BPrepareBatch]"/>
+				</bean>
+				<rpc name="Query" argument="Zeze.Builtin.Dbh2.BBatchTid" result="BTransactionState" UseData="true" handle="server"/>
+				<rpc name="Commit" argument="BPrepareBatches" UseData="true" handle="server"/>
+				<protocol name="DummyImportBean" argument="BTransactionState" UseData="true" handle="server"/>
+			</module>
+		</module>
+
+		<module name="Token" id="11029" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BNewTokenArg">
+				<variable id="1" name="context" type="binary"/> token绑定的自定义上下文
+				<variable id="2" name="ttl"     type="long"/> 存活时长(毫秒). 超时会被自动清除token及绑定的所有状态
+			</bean>
+			<bean name="BNewTokenRes">
+				<variable id="1" name="token" type="string"/> 新分配的token. RPC回复成功时有效,否则返回空串. 目前的设计是24个半角字符(大小写字母和数字组合)
+			</bean>
+
+			<bean name="BGetTokenArg">
+				<variable id="1" name="token"    type="string"/> 请求token
+				<variable id="2" name="maxCount" type="long"/> 此值＞0且请求token次数(包括当前请求)≥此值时,服务器会清除此token及绑定的所有状态(当前请求仍然能正常获得)
+			</bean>
+			<bean name="BGetTokenRes">
+				<variable id="1" name="context" type="binary"/> token绑定的自定义上下文. token已失效(状态已清除)时为空
+				<variable id="2" name="count"   type="long"/> 此token已被GetToken访问的次数(包括当前访问). token已失效(状态已清除)时为0
+				<variable id="3" name="time"    type="long"/> 此token已存活时间(毫秒). token已失效(状态已清除)时为负值
+				<variable id="4" name="addr"    type="string"/> 请求分配此token的IP地址
+			</bean>
+
+			<bean name="BTokenStatus">
+				<variable id="1" name="newCount"     type="long"/> 已分配的token数量
+				<variable id="2" name="curCount"     type="long"/> 当前有效的token数量
+				<variable id="3" name="connectCount" type="int"/> 当前的网络连接数量
+				<variable id="4" name="perfLog"      type="string"/> 最近生成的性能日志
+			</bean>
+
+			<rpc name="NewToken" argument="BNewTokenArg" result="BNewTokenRes" handle="server"/> 申请新token
+			<rpc name="GetToken" argument="BGetTokenArg" result="BGetTokenRes" handle="server"/> 获取token状态(也可用于验证和删除token)
+			<rpc name="TokenStatus" result="BTokenStatus" handle="server"/> 获取token服务器的全局状态
+
+			<bean name="BTopic">
+				<variable id="1" name="topic"  type="string"/> 主题
+			</bean>
+
+			<bean name="BPubTopic">
+				<variable id="1" name="topic"     type="string"/> 主题
+				<variable id="2" name="content"   type="binary"/> 内容
+				<variable id="3" name="broadcast" type="bool"/> false:只随机通知一个订阅者; true:通知所有订阅者
+			</bean>
+
+			<rpc      name="SubTopic"    argument="BTopic"    handle="server"/> 订阅topic. 回复的resultCode=0:成功订阅; 1:之前已订阅
+			<rpc      name="UnsubTopic"  argument="BTopic"    handle="server"/> 取消订阅topic. 回复的resultCode=0:成功取消订阅; 1:之前未订阅
+			<rpc      name="PubTopic"    argument="BPubTopic" handle="server"/> 发布topic. 回复的resultCode大于等于0表示已通知订阅者数
+			<protocol name="NotifyTopic" argument="BPubTopic" handle="client"/> 通知订阅者
+		</module>
+
+		<module name="Threading" id="11030" UseData="true" DefaultTransactionLevel="None">
+			<beankey name="BGlobalThreadId">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="ThreadId" type="long"/>
+			</beankey>
+
+			<beankey name="BLockName">
+				<variable id="1" name="GlobalThreadId" type="BGlobalThreadId"/>
+				<variable id="2" name="Name"           type="string"/>
+			</beankey>
+
+			<bean name="BMutex">
+				<variable id="1" name="LockName"  type="BLockName"/>
+				<variable id="2" name="TimeoutMs" type="int"/>
+			</bean>
+
+			<rpc name="MutexTryLock" argument="BMutex" handle="server"/>
+			<rpc name="MutexUnlock"  argument="BMutex" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+
+			<bean name="BKeepAlive">
+				<variable id="1" name="ServerId"    type="int"/>
+				<variable id="2" name="AppSerialId" type="long"/>
+			</bean>
+
+			<!-- 由Client定时发送报告，Server发现AppSerialId发生变化或者超时，释放该ServerId所有的锁。 -->
+			<protocol name="KeepAlive" argument="BKeepAlive" handle="server"/>
+
+			<bean name="BSemaphore">
+				<variable id="1" name="LockName"  type="BLockName"/>
+				<variable id="2" name="Permits"   type="int"/>
+				<variable id="3" name="TimeoutMs" type="int"/>
+			</bean>
+
+			<rpc name="SemaphoreCreate"     argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+			<rpc name="SemaphoreTryAcquire" argument="BSemaphore" handle="server"/>
+			<rpc name="SemaphoreRelease"    argument="BSemaphore" handle="server"/> 这个rpc实际上没有使用参数TimeoutMs
+
+			<enum name="eEnterRead"  value="0"/>
+			<enum name="eEnterWrite" value="1"/>
+			<enum name="eExitRead"   value="2"/>
+			<enum name="eExitWrite"  value="3"/>
+
+			<bean name="BReadWriteLock">
+				<variable id="1" name="LockName"    type="BLockName"/>
+				<variable id="2" name="OperateType" type="int"/> see enum above
+				<variable id="3" name="TimeoutMs"   type="int"/> 部分操作实际上没有使用这个参数
+			</bean>
+
+			<rpc name="ReadWriteLockOperate" argument="BReadWriteLock" handle="server"/>
+		</module>
+
+		<module name="HotDistribute" id="11033" UseData="true" DefaultTransactionLevel="None">
+			<bean name="BVariable">
+				<variable id="1" name="Id" type="int"/>
+				<variable id="2" name="Name" type="string"/>
+				<variable id="3" name="Type" type="string"/>
+				<variable id="4" name="Key" type="string"/>
+				<variable id="5" name="Value" type="string"/>
+			</bean>
+			<bean name="BeanName">
+				<variable id="1" name="Name" type="string"/>
+			</bean>
+			<bean name="BLastVersionBeanInfo">
+				<variable id="1" name="Name" type="string"/>
+				<variable id="2" name="Variables" type="list[BVariable]"/>
+			</bean>
+			<rpc name="GetLastVersionBeanInfo" argument="BeanName" result="BLastVersionBeanInfo" handle="server"/>
+
+			<!--
+			发布更新文件基本操作，支持断点续传，MD5校验
+			-->
+			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
+			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
+			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
+			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
+			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
+			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
+
+			<!-- 作为错误码，同时也作为状态 -->
+			<enum name="eIdle"  value="0"/>
+			<enum name="ePrepare"  value="7"/>
+			<enum name="eTryDistribute"  value="8"/>
+			<enum name="eCommit"  value="9"/>
+			<enum name="eCommit2"  value="10"/>
+			<enum name="eDistributeIdMismatch"  value="11"/>
+			<enum name="eTryRollback"  value="12"/>
+			<enum name="eInstall"  value="13"/>
+
+			<bean name="BOpenFile">
+				<variable id="1" name="FileName" type="string"/>
+			</bean>
+			<bean name="BOpenFileResult">
+				<variable id="1" name="Offset" type="long"/>
+			</bean>
+			<bean name="BAppendFile">
+				<variable id="1" name="FileName" type="string"/>
+				<variable id="2" name="Offset" type="long"/>
+				<variable id="3" name="Chunk" type="binary"/>
+			</bean>
+			<bean name="BAppendFileResult">
+			</bean>
+			<bean name="BCloseFile">
+				<variable id="1" name="FileName" type="string"/>
+				<variable id="2" name="Md5" type="binary"/>
+			</bean>
+			<bean name="BCloseFileResult">
+			</bean>
+			<bean name="BDistributeId">
+				<variable id="1" name="DistributeId" type="long"/>
+			</bean>
+			<bean name="BTryDistribute">
+				<variable id="1" name="DistributeId" type="long"/>
+				<variable id="2" name="AtomicAll" type="bool"/>
+			</bean>
+
+			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
+			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
+			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
+
+			<rpc name="PrepareDistribute" argument="BDistributeId" handle="server"/>
+			<rpc name="TryDistribute" argument="BTryDistribute" handle="server"/>
+			<rpc name="Commit" argument="BDistributeId" handle="server"/>
+			<rpc name="Commit2" argument="BDistributeId" handle="server"/>
+			<rpc name="TryRollback" argument="BDistributeId" handle="server"/>
+		</module>
+
+		<module name="LogService" id="11035" UseData="true"  DefaultTransactionLevel="None">
+			<bean name="BCondition">
+				<enum name="ContainsAll" value="0"/>
+				<enum name="ContainsAny" value="1"/>
+				<enum name="ContainsNone" value="2"/>
+
+				<variable id="1" name="BeginTime" type="long"/>
+				<variable id="2" name="EndTime" type="long"/>
+				<variable id="3" name="Words" type="list[string]"/>
+				<variable id="4" name="ContainsType" type="int"/>
+				<variable id="5" name="Pattern" type="string"/>
+			</bean>
+
+			<bean name="BLog">
+				<variable id="1" name="Time" type="long"/>
+				<variable id="2" name="Log" type="string"/>
+			</bean>
+			<bean name="BResult">
+				<variable id="1" name="Logs" type="list[BLog]"/>
+				<variable id="2" name="Remain" type="bool"/>
+			</bean>
+
+			<bean name="BSession">
+				<variable id="1" name="Id" type="long"/>
+			</bean>
+
+			<bean name="BNewSession">
+				<variable id="1" name="LogName" type="string"/>
+			</bean>
+
+			<bean name="BBrowse">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="OffsetFactor" type="float"/>
+				<variable id="4" name="Reset" type="bool"/>
+				<variable id="5" name="Condition" type="BCondition"/>
+			</bean>
+
+			<bean name="BSearch">
+				<variable id="1" name="Id" type="long"/>
+				<variable id="2" name="Limit" type="int"/>
+				<variable id="3" name="Reset" type="bool"/>
+				<variable id="4" name="Condition" type="BCondition"/>
+			</bean>
+
+			<bean name="BJson">
+				<variable id="1" name="Json" type="string"/>
+			</bean>
+
+			<rpc name="NewSession"  argument="BNewSession" result="BSession" handle="server"/>
+			<rpc name="CloseSession" argument="BSession" handle="server"/>
+			<rpc name="Browse" argument="BBrowse" result="BResult" handle="server"/>
+			<rpc name="Search" argument="BSearch" result="BResult" handle="server"/>
+
+			<rpc name="Query" argument="BJson" result="BJson" handle="server"/>
+
+		</module>
+
+		<module name="Zoker" id="11037" UseData="true" DefaultTransactionLevel="None">
+			<!--
+			只能新建服务，发布成功，整个目录RENAME并且备份旧的版本。
+			Zoker是服务器，但是Zoker主动连接监控平台。
+			-->
+			<enum name="eDuplicateZoker" value="1"/> Zoker名字重复了
+
+			<bean name="BRegister">
+				<variable id="1" name="ZokerName" type="string"/>
+			</bean>
+			<rpc name="Register" argument="BRegister" handle="client"/>
+
+			<!--
+			发布更新文件基本操作，支持断点续传，MD5校验
+			-->
+			<enum name="eOpenError"       value="1"/> 打开文件发生了系统错误
+			<enum name="eAppendOffset" value="2"/> 添加数据时，Offset越界了（超出结尾）
+			<enum name="eCloseError"       value="3"/> 关闭文件发生了系统错误
+			<enum name="eMd5Mismatch"  value="4"/> 关闭文件时，验证md5失败
+			<enum name="eServiceOldExists"  value="5"/> 发布更新服务时，发现备份目录存在
+			<enum name="eMoveOldFail"  value="6"/> 发布更新服务时，备份失败
+			<enum name="eCommitFail"  value="7"/> 发布更新服务时，发布服务失败
+
+			<bean name="BOpenFile">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
+			</bean>
+			<bean name="BOpenFileResult">
+				<variable id="1" name="Offset" type="long"/>
+			</bean>
+			<bean name="BAppendFile">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
+				<variable id="3" name="Offset" type="long"/>
+				<variable id="4" name="Chunk" type="binary"/>
+			</bean>
+			<bean name="BAppendFileResult">
+			</bean>
+			<bean name="BCloseFile">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="FileName" type="string"/>
+				<variable id="3" name="Md5" type="binary"/>
+			</bean>
+			<bean name="BCloseFileResult">
+			</bean>
+			<bean name="BCommitService">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="VersionNo" type="string"/>
+			</bean>
+			<bean name="BCommitServiceResult">
+			</bean>
+
+			<rpc name="OpenFile" argument="BOpenFile" result="BOpenFileResult" handle="server"/>
+			<rpc name="AppendFile" argument="BAppendFile" result="BAppendFileResult"  handle="server"/>
+			<rpc name="CloseFile" argument="BCloseFile" result="BCloseFileResult"  handle="server"/>
+			<rpc name="CommitService" argument="BCommitService" result="BCommitServiceResult"  handle="server"/>
+
+			<!-- 发布，升级高层接口使用文件操作完成，不需要定义rpc -->
+
+			<!-- 服务：查询，启动，关闭 -->
+			<bean name="BService">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="State" type="string"/> Running,Stopped
+				<variable id="3" name="Ps" type="string"/> some ps result ...
+			</bean>
+			<bean name="BListServiceResult">
+				<variable id="1" name="Services" type="list[BService]"/>
+			</bean>
+			<bean name="BStartService">
+				<variable id="1" name="ServiceName" type="string"/>
+			</bean>
+			<bean name="BStopService">
+				<variable id="1" name="ServiceName" type="string"/>
+				<variable id="2" name="Force" type="bool"/> like kill -9
+			</bean>
+			<rpc name="ListService" result="BListServiceResult"  handle="server"/> <!-- 工作目录的第一级子目录既是 -->
+			<rpc name="StartService" argument="BStartService" result="BService"  handle="server"/>
+			<rpc name="StopService" argument="BStopService" result="BService"  handle="server"/>
+
+			<!--
+			service.xml 定义服务一些参数：path,main,argument
+			-->
+			<!--
+			目录安排
+			zoker/services/（程序配置目录）
+			zoker/servicesold/（旧版本的程序配置目录，rename过来的）
+			zoker/logs（日志输出）
+			zoker/datas（本地数据，如数据库，现在linkd,serverd都不需要，保留）（serverd的本地cache数据不是持久数据，不包含这里）
+			例子：
+			zoker/services/linkd
+			zoker/logs/linkd
+			chdir问题：
+			由于java不能改变当前目录，而一般zeze服务都依赖当前目录，启动怎么处理，用一个脚本间接实现？或者使用jni接口改变当前目录？
+			-->
+		</module>
+
+		<module name="Onz" id="11038" UseData="true" DefaultTransactionLevel="None">
+			<enum name="eProcedureNotFound" value="1"/>
+			<enum name="eSagaNotFound" value="2"/>
+			<enum name="eSagaTidExist" value="3"/>
+			<enum name="eOnzTidNotFound" value="4"/>
+			<enum name="eRollback" value="5"/>
+
+			<enum name="eFlushAsync" value="1"/>
+			<enum name="eFlushImmediately" value="2"/>
+			<!-- <enum name="eFlushPeriod" value="3"/> --> 有问题，不实现
+
+			<bean name="BFuncProcedure">
+				<variable id="1" name="OnzTid" type="long"/>
+				<variable id="2" name="FuncName" type="string"/>
+				<variable id="3" name="FuncArgument" type="binary"/>
+				<variable id="4" name="FlushMode" type="int"/>
+				<variable id="5" name="FlushTimeout" type="int"/>
+			</bean>
+
+			<bean name="BFuncProcedureResult">
+				<variable id="1" name="FuncResult" type="binary"/>
+			</bean>
+
+			<!-- 两个rpc参数虽然完全一样，但开启的逻辑操作不同。-->
+			<rpc name="FuncProcedure" argument="BFuncProcedure" result="BFuncProcedureResult" handle="server"/>
+			<rpc name="FuncSaga" argument="BFuncProcedure" result="BFuncProcedureResult" handle="server"/>
+
+			<bean name="BFuncSagaEnd">
+				<variable id="1" name="OnzTid" type="long"/>
+				<variable id="2" name="Cancel" type="bool"/>
+				<variable id="3" name="FuncArgument" type="binary"/>
+			</bean>
+
+			<!-- 保留这个结构，以后可能需要返回结果 -->
+			<bean name="BFuncSagaEndResult">
+			</bean>
+
+			<rpc name="FuncSagaEnd" argument="BFuncSagaEnd" result="BFuncSagaEndResult" handle="server"/>
+
+			<!-- 2段提交相关控制协议 -->
+			<bean name="BCommit">
+				<variable id="1" name="OnzTid" type="long"/>
+			</bean>
+			<rpc name="Commit" argument="BCommit" handle="server"/>
+			<rpc name="Rollback" argument="BCommit" handle="server"/>
+
+			<!-- 2段式Commit阶段可靠性提高结构 -->
+			<enum name="eCommitNotExist" value="0"/>
+			<enum name="ePreparing" value="1"/>
+			<enum name="eCommitting" value="2"/>
+
+			<bean name="BSavedCommits">
+				<variable id="1" name="State" type="int"/>
+				<variable id="2" name="Onzs" type="set[string]"/>
+			</bean>
+
+			<!-- Flush阶段控制协议 -->
+			<bean name="BFlushReady">
+				<variable id="1" name="OnzTid" type="long"/>
+			</bean>
+			<rpc name="FlushReady" argument="BFlushReady" handle="client"/>
+
+			<rpc name="Checkpoint" handle="server"/>
+		</module>
+
+		<module name="HttpSession" id="11018">
+			<bean name="BSessionValue">
+				<variable id="1" name="CreateTime" type="long"/>
+				<variable id="2" name="ExpireTime" type="long"/>
+				<variable id="3" name="Properties" type="map[string, string]"/>
+			</bean>
+			<table name="tSession" key="string" value="BSessionValue"/> key is http sessionid from cookie
+		</module>
+
+		<module name="HistoryModule" id="11031" UseData="true">
+			<beankey name="BTableKey">
+				<variable id="1" name="TableId" type="int"/>
+				<variable id="2" name="KeyEncoded" type="binary"/>
+			</beankey>
+			<bean name="BLogChanges" extendable="true">
+				<variable id="1" name="GlobalSerialId" type="Zeze.Util.Id128"/>
+				<variable id="2" name="ProtocolClassName" type="string"/>
+				<variable id="3" name="ProtocolArgument" type="binary"/>
+				<variable id="4" name="Changes" type="map[BTableKey, binary]"/>
+				<variable id="5" name="Timestamp" type="long"/>
+			</bean>
+			<table name="tHistory" key="Zeze.Util.Id128" value="BLogChanges"/>
+
+			<!-- 查询分析 servlet -->
+			<servlet name="WalkPage" TransactionLevel="None"/>
+		</module>
+
+		<module name="LinksInfo" id="11032" UseData="true">
+			<bean name="BLinkInfo">
+				<variable id="1" name="Ip" type="string"/>
+				<variable id="2" name="Port" type="int"/>
+				<variable id="3" name="Extra" type="binary"/>
+			</bean>
+			<servlet name="LinksTextSingleLine" TransactionLevel="None"/>
+			<servlet name="LinksTextMultiLine" TransactionLevel="None"/>
+		</module>
+
+		<module name="MQ" id="11039" UseData="true">
+			<module name="Master" id="11040" UseData="true">
+				<enum name="ePartition"           value="1"/> 分区数或分区索引无效
+				<enum name="eTopicNotExist"       value="2"/> 找不到指定主题
+				<enum name="eManagerNotFound"     value="3"/> Master处理ReportLoad时找不到所属的Manager上下文
+				<enum name="eTopicExist"          value="4"/> 指定的主题已存在,无法再次CreateMQ
+				<enum name="eConsumerNotFound"    value="5"/> Agent收到PushMessage时找不到所属的MQConsumer上下文
+				<enum name="eCreatePartition"     value="6"/> Master向Manager请求CreatePartition失败
+				<enum name="eTopicHasReserveChar" value="7"/> 指定的主题含有非法字符
+
+				<bean name="BSubscribe">
+					<variable id="1" name="Topic" type="string"/> 主题
+				</bean>
+				<bean name="BMQInfo">
+					<variable id="1" name="Topic" type="string"/> 主题. 只能使用文件名可用的字符
+					<variable id="2" name="Partition" type="int"/> 分区数量. 至少为1
+					<variable id="3" name="Options" type="Zeze.Builtin.MQ.BOptions"/>
+				</bean>
+				<bean name="BMQServer">
+					<variable id="1" name="Host" type="string"/> 地址
+					<variable id="2" name="Port" type="int"/> 端口
+					<variable id="3" name="PartitionIndex" type="int"/> 分区索引. 从0开始
+					<variable id="4" name="Topic" type="string"/> 主题
+				</bean>
+				<bean name="BMQServers">
+					<variable id="1" name="Info" type="BMQInfo"/> 主题信息
+					<variable id="2" name="Servers" type="list[BMQServer]"/> 该主题现有的MQ服务器列表
+					<variable id="3" name="SessionId" type="long"/> 创建或打开的时候，由Master分配的唯一递增会话。
+																	 用于标识Consumer，使得它可以在全局视野中得到唯一的排序视图。
+				</bean>
+				<bean name="BCreatePartition">
+					<variable id="1" name="Topic" type="string"/> 主题
+					<variable id="2" name="PartitionIndexes" type="set[int]"/> 分区索引集合
+				</bean>
+
+				<rpc name="OpenMQ" argument="BSubscribe" result="BMQServers" handle="server"/> 向Master打开现有队列. 指定的主题必须创建过
+				<rpc name="CreateMQ" argument="BMQInfo" result="BMQServers" handle="server"/> 向Master创建新队列. 相同Topic不能重复创建
+				<rpc name="CreatePartition" argument="BCreatePartition" handle="client"/> 创建新队列时Master向Manager发起创建分区
+				<rpc name="Subscribe" argument="BSubscribe" result="BMQServers" handle="server"/> 从Master获取现有队列的信息
+				<rpc name="Register" argument="BMQServer" handle="server"/> Manager向Master注册
+				<bean name="BLoad">
+					<variable id="1" name="Load" type="double"/> 负载指数
+				</bean>
+				<rpc name="ReportLoad" argument="BLoad" handle="server"/> Manager向Master报告自己的负载指数
+			</module>
+
+			<bean name="BOptions">
+				MQ 类型
+				<enum name="Single" value="1"/>
+				<enum name="DoubleWrite" value="2"/>
+				<enum name="Raft3" value="4"/>
+
+				<variable id="1" name="Options" type="int"/>
+			</bean>
+			<bean name="BMessage">
+				<variable id="1" name="Timestamp" type="long"/> 发送时间，用户不用填写
+				<variable id="2" name="Properties" type="map[string, string]"/> 属性，用户自定义
+				<variable id="3" name="Body" type="binary"/> 消息体，用户自定义
+			</bean>
+			<bean name="BSubscribeConsumer">
+				<variable id="1" name="Topic" type="string"/> 主题
+				<variable id="2" name="SessionId" type="long"/>
+			</bean>
+			<bean name="BSendMessage">
+				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
+				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
+				<variable id="3" name="Message" type="BMessage"/> 消息内容
+			</bean>
+			<bean name="BPushMessage">
+				<variable id="1" name="Topic" type="string"/> 主题，用户不用填写
+				<variable id="2" name="PartitionIndex" type="int"/> 分区索引，用户不用填写
+				<variable id="3" name="SessionId" type="long"/> Consumer SessionId，用户不用填写
+				<variable id="4" name="Message" type="BMessage"/> 消息内容
+			</bean>
+			<rpc name="Subscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager订阅某个主题
+			<rpc name="Unsubscribe" argument="BSubscribeConsumer" handle="server"/> 消息消费者向某个Manager取消订阅某个主题
+			<rpc name="SendMessage" argument="BSendMessage" handle="server"/> 消息生产者向某个Manager发送消息
+			<rpc name="PushMessage" argument="BPushMessage" handle="client"/> Manager向消息消费者推送消息
+		</module>
+		<module name="AccountOnline" id="11041" UseData="true">
+			<bean name="BRegister">
+				<var id="1" name="LinkName" type="string"/> 使用ProviderService的配置作为名字。
+			</bean>
+			<bean name="BAccountLink">
+				<var id="1" name="Account" type="string"/>
+				<var id="2" name="LinkName" type="string"/>
+				<var id="3" name="LinkSid" type="long"/>
+			</bean>
+			<bean name="BLogin">
+				<var id="1" name="AccountLink" type="BAccountLink"/>
+				<var id="2" name="KickOld" type="bool"/>
+			</bean>
+			<rpc name="Register" argument="BRegister" handle="server"/> 连上服务器马上发送，登记自己的名字。
+			<rpc name="Login" argument="BLogin" handle="server"/> auth过后，登录，判断唯一。
+			<rpc name="Logout" argument="BAccountLink" handle="server"/> 断线时自动登出。
+			<rpc name="Kick" argument="BAccountLink" handle="client"/> 重复登录并且需要踢掉旧的登录。
+		</module>
+		<module name="LoginQueueServer" id="11042" UseData="true">
+			<bean name="BServerLoad">
+				<var id="1" name="ServerId" type="int"/>
+				<var id="2" name="ServiceIp" type="string"/> LinkdService公开给客户端的Ip或者ProviderIp(Redirect)。
+				<var id="3" name="ServicePort" type="int"/>
+				<var id="4" name="Load" type="Zeze.Builtin.Provider.BLoad"/>
+			</bean>
+			<protocol name="ReportProviderLoad" argument="BServerLoad" handle="server"/>
+			<protocol name="ReportLinkLoad" argument="BServerLoad" handle="server"/>
+			<bean name="BSecret">
+				<var id="1" name="SecretKey" type="binary"/> 16bytes
+				<var id="2" name="SecretIv" type="binary"/> 16bytes
+			</bean>
+			<protocol name="AnnounceSecret" argument="BSecret" handle="client"/>
+		</module>
+		<module name="LoginQueue" id="11043" UseData="true">
+			<bean name="BQueuePosition">
+				<var id="1" name="QueuePosition" type="int"/>
+			</bean>
+			<bean name="BLoginToken">
+				<var id="1" name="Token" type="binary"/>
+				<var id="2" name="LinkIp" type="string"/>
+				<var id="3" name="LinkPort" type="int"/>
+			</bean>
+			<bean name="BToken">
+				<var id="1" name="SerialId" type="long"/>
+				<var id="2" name="ServerId" type="int"/>
+				<var id="3" name="ExpireTime" type="long"/>
+				<var id="4" name="LinkServerId" type="int"/> 一般是负数，从-1往后分配，避免和gs的serverId重复。
+			</bean>
+			<!--
+			客户端收到这条协议之前，显示排队中，数量显示大于10000
+			LoginQueue服务器最多只会广播通知前10000个客户端。
+			客户端收到这条协议，就更新显示的排队数量。排队时，每N秒更新一次。
+			-->
+			<protocol name="PutQueuePosition" argument="BQueuePosition" handle="client"/>
+			<!--
+			客户端收到这条协议表示排队成功。此后可以连接link继续登录。
+			-->
+			<protocol name="PutLoginToken" argument="BLoginToken" handle="client"/>
+			<protocol name="PutQueueFull" handle="client"/>
+		</module>
+		<!--
+		可用id范围 [11044, 11100) [11102, 11999]
+		-->
+
+	</module> Builtin
+
+	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+	<component name="LoginQueueClient" GenDir="src/main/java" SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
+
+	<component name="LoginQueue"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LoginQueue"/>
+		</service>
+	</component>
+
+	<component name="LoginQueueServer"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LoginQueueServer"/>
+		</service>
+	</component>
+
+	<component name="LoginQueueAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="None"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LoginQueueServer"/>
+		</service>
+	</component>
+
+	<component name="AccountOnline"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.AccountOnline"/>
+		</service>
+	</component>
+
+	<component name="AccountOnlineAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services"
+		platform="zeze+java"
+		GenTables="client"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.AccountOnline"/>
+		</service>
+	</component>
+
+	<component name="Master"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ/Master"
+		platform="zeze+java"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.MQ.Master"/>
+		</service>
+	</component>
+
+	<component name="MasterAgent"
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ/Master"
+		platform="zeze+java"
+		GenTables="client"
+		>
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.MQ.Master"/>
+		</service>
+	</component>
+
+	<component name="MQManager" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ"
+		NoRecursiveModule="true"
+		platform="zeze+java"
+		>
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.MQ"/>
+		</service>
+	</component>
+	<component name="MQAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/MQ"
+		NoRecursiveModule="true"
+		platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.MQ"/>
+		</service>
+	</component>
+
+	<component name="LinksInfo" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.LinksInfo"/>
+		</service>
+	</component>
+
+	<component name="HistoryModule" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/History" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.HistoryModule"/>
+		</service>
+	</component>
+
+	<component name="HttpSession" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Netty" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.HttpSession"/>
+		</service>
+	</component>
+
+	<component name="Onz" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Onz" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Onz"/>
+		</service>
+	</component>
+
+	<component name="OnzAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Onz" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Onz"/>
+		</service>
+	</component>
+
+	<component name="Zoker" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Zoker"/>
+		</service>
+	</component>
+
+	<component name="ZokerAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Zoker"/>
+		</service>
+	</component>
+
+	<component name="LogService" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+
+	<component name="LogAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.LogService"/>
+		</service>
+	</component>
+
+	<component name="HotDistribute" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Hot" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.HotDistribute"/>
+		</service>
+	</component>
+
+	<component name="HotAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Hot" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.HotDistribute"/>
+		</service>
+	</component>
+
+	<component name="Threading" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Threading"/>
+		</service>
+	</component>
+
+	<component name="ThreadingServer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Threading"/>
+		</service>
+	</component>
+
+	<component name="Commit" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2.Commit"/>
+		</service>
+	</component>
+
+	<component name="CommitAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2.Commit"/>
+		</service>
+	</component>
+
+	<component name="Master" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2/Master" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2.Master"/>
+		</service>
+	</component>
+
+	<component name="MasterAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2/Master" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2.Master"/>
+		</service>
+	</component>
+
+	<component name="Dbh2" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Dbh2"/>
+		</service>
+	</component>
+
+	<component name="Dbh2Agent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Dbh2"/>
+		</service>
+	</component>
+
+	<component name="AutoKey" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.AutoKey"/>
+		</service>
+	</component>
+
+	<component name="Producer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services/RocketMQ" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.RocketMQ.Producer"/>
+		</service>
+	</component>
+
+	<component name="ServiceManagerWithRaft" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="ServiceManagerAgentWithRaft" EnableBase="true" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.ServiceManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="Timer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Timer"/>
+		</service>
+	</component>
+
+	<component name="Statistics" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.Statistics"/>
+		</service>
+	</component>
+
+	<component name="DbWeb" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server,servlet">
+			<module ref="Zeze.Builtin.DbWeb"/>
+		</service>
+	</component>
+
+	<!-- account online -->
+	<component name="Online" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Online"/>
+		</service>
+	</component>
+
+	<!-- role online -->
+	<component name="Online" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Game.Online"/>
+		</service>
+	</component>
+
+	<component name="Rank" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Game.Rank"/>
+		</service>
+	</component>
+
+	<component name="Bag" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Game.Bag"/>
+		</service>
+	</component>
+
+	<!-- Linkd 服务模块基类，仅用来生成代码 -->
+	<component name="LinkdBase" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.LinkdBase"/>
+		</service>
+	</component>
+
+	<component name="RedoQueueServer" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.RedoQueue"/>
+		</service>
+	</component>
+
+	<!-- Provider之间直连服务 -->
+	<component name="ProviderDirect" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.ProviderDirect"/>
+		</service>
+	</component>
+
+	<!-- Provider 在Linkd上的客户端支持组件 -->
+	<component name="LinkdProvider" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.Provider"/>
+		</service>
+	</component>
+
+	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
+	<component name="ProviderImplement" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Provider"/>
+		</service>
+	</component>
+
+	<component name="DelayRemove" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Component" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.DelayRemove"/>
+		</service>
+	</component>
+
+	<component name="BoolList" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.BoolList"/>
+		</service>
+	</component>
+
+	<component name="Queue" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.Queue"/>
+		</service>
+	</component>
+
+	<component name="LinkedMap" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.LinkedMap"/>
+		</service>
+	</component>
+
+	<component name="DAG" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.DAG"/>
+		</service>
+	</component>
+
+	<component name="DepartmentTree" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Collections.DepartmentTree"/>
+		</service>
+	</component>
+
+	<component name="GlobalCacheManagerWithRaft" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="GlobalCacheManagerWithRaftAgent" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="TestRocks" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.TestRocks"/>
+		</service>
+	</component>
+
+	<component name="Token" 
+		GenDir="src/main/java"
+		SrcDir="src/main/java"
+		PackagePath="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Token"/>
+		</service>
+	</component>
+</solution>

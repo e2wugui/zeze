@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="zezeboot">
+	<!-- 引入若干其它xml定义的模块,通常每个大模块单独定义到一个文件方便管理 -->
+	<import file="server.login.xml"/> 模块ID:100
+
+	<project name="server" GenDir="server/Gen" SrcDir="server/src/main/java" GenTables="server" platform="java"> 定义server工程
+		<service name="ProviderClient" handle="server" base="Zeze.Arch.ProviderService"> 与link工程连接的服务
+			<module ref="login"/>
+		</service>
+
+		<service name="DirectService" handle="server,client" base="Zeze.Arch.ProviderDirectService"> server进程之间连接的服务
+		</service>
+	</project>
+</solution>

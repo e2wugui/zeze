@@ -1,0 +1,75 @@
+allprojects {
+    group = 'com.zezeboot'
+    version = '1.0-SNAPSHOT'
+
+    apply plugin: 'java'
+    apply plugin: 'idea'
+
+    repositories {
+        mavenLocal()
+        maven { url = 'https://repo.huaweicloud.com/repository/maven/' }
+        maven { url = 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        mavenCentral()
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    compileJava {
+        sourceCompatibility = '21'
+        targetCompatibility = '21'
+        options.encoding = 'utf-8'
+        options.incremental = true
+        options.failOnError = true
+        options.debugOptions.debugLevel = 'source,lines,vars'
+        options.compilerArgs += '-parameters'
+    }
+
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+            }
+        }
+    }
+
+    dependencies {
+        // required dependencies
+        implementation "com.zezeno:zeze-java:1.6.3"
+        implementation 'com.lmax:disruptor:4.0.0'
+
+        testImplementation 'junit:junit:4.13.2'
+    }
+
+    test {
+        useJUnit()
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        excludeDirs += files(
+                'autokeys',
+                'build',
+                'db',
+                'gradle',
+                'lib',
+                'log',
+                'target',
+                'zeze_cache_1',
+        )
+    }
+}
+
+tasks.register('clearJar', Delete) {
+    delete 'lib'
+}
+
+tasks.register('copyJar', Sync) {
+    from configurations.runtimeClasspath
+    into 'lib'
+}
