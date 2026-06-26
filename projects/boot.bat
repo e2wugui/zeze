@@ -16,7 +16,9 @@ if exist "%~1" (
 
 set "ProjectsDir=%~dp0"
 set "BootDir=%ProjectsDir%zezeboot\"
+set "GenDir=%ProjectsDir%..\publish\"
 
 xcopy %BootDir% %~1 /E /I /H /Y
+xcopy %GenDir% %~1\gen /E /I /H /Y
 
 call "%~1\tool\change_solution_name.bat" "%~1"

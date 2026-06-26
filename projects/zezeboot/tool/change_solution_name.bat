@@ -4,4 +4,5 @@ pushd %~dp0
 
 luajit.exe change_solution_name.lua %*
 
-pause
+cd ..
+call gen.bat

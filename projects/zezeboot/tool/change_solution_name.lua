@@ -39,34 +39,35 @@ local function convert(s)
 		:gsub("ZEZEBOOT", sn2)
 end
 
-local function modify(fn)
+local modify_n = 0
+local function modify(fn, c)
 	local f = io.open(fn, "rb")
 	local s = f:read "*a"
 	f:close()
 
-	local d = convert(s)
+	local d = c(s)
 	if d ~= s then
 		io.write("modify ", fn, " ... ")
 		f = io.open(fn, "wb")
 		f:write(d)
 		f:close()
 		io.write("OK\n")
+		modify_n = modify_n + 1
 		return true
 	end
 end
 
-local modify_n = 0
 for _, dir in ipairs(modify_dirs) do
 	local f = io.popen('dir /s/b/a "' .. dir[1] .. '\\*' .. dir[2] .. '" 2>nul')
 	local s = f:read "*a"
 	f:close()
 
 	for line in s:gmatch "%C+" do
-		if modify(line) then
-			modify_n = modify_n + 1
-		end
+		modify(line, convert)
 	end
 end
+
+modify("..\\.idea\\vcs.xml", function(s) return s:gsub("/%.%./%.%.", "") end)
 
 local move_n = 0
 for _, dir in ipairs(move_dirs) do
