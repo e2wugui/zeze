@@ -1,4 +1,5 @@
 @echo off
+setlocal
 
 if "%~1"=="" (
     echo 错误：缺少必需参数SolutionName！
@@ -18,4 +19,4 @@ set "BootDir=%ProjectsDir%zezeboot\"
 
 xcopy %BootDir% %~1 /E /I /H /Y
 
-call "%~1\tool\change_solution_name.bat" “%~1”
+call "%~1\tool\change_solution_name.bat" "%~1"

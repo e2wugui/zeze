@@ -19,8 +19,11 @@ local move_dirs = {
 	[[..\server\src\main\java\ZezeBootServer.java]],
 }
 
-io.write "new solution english name: "
-local sn = io.read "*l":gsub("^%s+", ""):gsub("%s+$", "")
+local sn = arg[1]
+if not sn then
+	io.write "new solution english name: "
+	sn = io.read "*l":gsub("^%s+", ""):gsub("%s+$", "")
+end
 if not sn:find "^%a[%w]*$" then
 	error("ERROR: invalid solution name: '" .. sn .. "'")
 end

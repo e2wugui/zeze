@@ -24,3 +24,4 @@ zeze_cache_*/
 ~$*
 
 /rocksdbjni.dll
+!/gradle/wrapper/gradle-wrapper.jar

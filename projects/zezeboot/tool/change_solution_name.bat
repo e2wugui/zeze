@@ -2,6 +2,6 @@
 setlocal
 pushd %~dp0
 
-luajit.exe change_solution_name.lua
+luajit.exe change_solution_name.lua %*
 
 pause
