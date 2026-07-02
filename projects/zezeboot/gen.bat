@@ -2,7 +2,7 @@
 setlocal
 pushd %~dp0
 
-set PATH=%~dp0\gen;%~dp0\..\..\publish;%PATH%
+set PATH=%~dp0\..\..\publish;%PATH%
 
 echo -------- gen link.xml ...
 Gen.exe protocol\link.xml

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using Zeze.Serialize;
 
 namespace Zeze.Gen
 {
@@ -30,7 +29,7 @@ namespace Zeze.Gen
                 var exist = File.ReadAllBytes(FileName);
                 var now = Buffered.ToArray();
                 // 二进制比较，编码不同也认为改变。
-                if (ByteBuffer.Compare(exist, now) != 0)
+                if (CompareBytes(exist, now) != 0)
                 {
                     Program.Print($"  Overwrite File: {FileName}", ConsoleColor.DarkYellow);
                     File.WriteAllBytes(FileName, now);
@@ -41,6 +40,29 @@ namespace Zeze.Gen
                 Program.Print($"        New File: {FileName}", ConsoleColor.Green);
                 File.WriteAllBytes(FileName, Buffered.ToArray());
             }
+        }
+
+        // 二进制比较，替代 Zeze.Serialize.ByteBuffer.Compare。
+        private static int CompareBytes(byte[] left, byte[] right)
+        {
+            if (left == null || right == null)
+            {
+                if (left == right) // both null
+                    return 0;
+                if (left == null) // null is small
+                    return -1;
+                return 1;
+            }
+            if (left.Length != right.Length)
+                return left.Length.CompareTo(right.Length); // shorter is small
+
+            for (int i = 0; i < left.Length; i++)
+            {
+                int c = left[i].CompareTo(right[i]);
+                if (c != 0)
+                    return c;
+            }
+            return 0;
         }
     }
 }

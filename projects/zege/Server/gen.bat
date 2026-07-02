@@ -2,7 +2,7 @@
 setlocal
 pushd %~dp0
 
-..\..\zeze\Gen\bin\Debug\net8.0\Gen.exe solution.xml
-..\..\zeze\Gen\bin\Debug\net8.0\Gen.exe solution.linkd.xml
+..\..\..\publish\Gen.exe solution.xml
+..\..\..\publish\Gen.exe solution.linkd.xml
 
 pause

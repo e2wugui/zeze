@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -39,20 +39,194 @@ namespace Zeze.Gen.luaClient
         }
 
 
-        private string Render(Template template, object model)
+        private string Render(Template template, Dictionary<string, object> model)
         {
-            ScriptObject scriptObject = new ScriptObject();
+            var scriptObject = new ScriptObject();
             if (model != null)
             {
-                ScriptObject script = scriptObject;
-                script.Import(model);
+                // 把整棵 model 树一次性物化成纯 ScriptObject/ScriptArray，模板渲染时只做字典查找，
+                // 完全不经过 .NET 反射——这样 NativeAOT/trim 不会破坏任何成员访问
+                // （之前反射访问 protocol.space、KeyValuePair.value 等都被 trim 破坏成 null）。
+                foreach (var kv in model)
+                    scriptObject[kv.Key] = ToScript(kv.Value, new HashSet<object>());
             }
-            TemplateContext context = template.LexerOptions.Lang == ScriptLang.Liquid ? (TemplateContext) new LiquidTemplateContext() : new TemplateContext();
+            TemplateContext context = template.LexerOptions.Lang == ScriptLang.Liquid ? new LiquidTemplateContext() : new TemplateContext();
             context.LoopLimit = 0;
             context.RecursiveLimit = 0;
-            context.PushGlobal((IScriptObject) scriptObject);
+            context.PushGlobal(scriptObject);
             return template.Render(context);
         }
+
+        /// <summary>
+        /// 把业务对象转成纯 Scriban 数据（ScriptObject/ScriptArray/标量），只暴露 luaclient 模板实际用到的属性。
+        /// 完全显式、不依赖反射：NativeAOT/trim 安全。path 记录当前递归路径以切断对象图循环
+        /// （ModuleSpace.Solution 指回自身、Protocol↔Space、Bean↔Variable 等），物化完即移除以允许跨路径共享。
+        /// </summary>
+        private static object ToScript(object obj, HashSet<object> path)
+        {
+            switch (obj)
+            {
+                case null: return null;
+                case Bean b: return BeanToScript(b, path);
+                case BeanKey bk: return BeanKeyToScript(bk, path);
+                case Variable v: return VariableToScript(v, path);
+                case TypeMap tm: return TypeToScript(tm, path);
+                case TypeList tl: return TypeToScript(tl, path);
+                case TypeSet ts: return TypeToScript(ts, path);
+                case TypeDynamic td: return TypeToScript(td, path);
+                case Types.Type t: return TypeToScript(t, path);
+                case Rpc rpc: return ProtocolToScript(rpc, path);
+                case Protocol p: return ProtocolToScript(p, path);
+                case Module m: return ModuleSpaceToScript(m, path);
+                case Solution s: return ModuleSpaceToScript(s, path);
+                case ModuleSpace ms: return ModuleSpaceToScript(ms, path);
+                case Types.Enum e: return EnumToScript(e);
+                case string:
+                case int:
+                case long:
+                case bool:
+                case double:
+                case float:
+                case byte:
+                case short:
+                case decimal:
+                    return obj;
+                case System.Collections.IDictionary dict:
+                {
+                    var arr = new ScriptArray();
+                    foreach (System.Collections.DictionaryEntry entry in dict)
+                        arr.Add(new ScriptObject { ["key"] = ToScript(entry.Key, path), ["value"] = ToScript(entry.Value, path) });
+                    return arr;
+                }
+                case System.Collections.IEnumerable seq:
+                {
+                    var arr = new ScriptArray();
+                    foreach (var item in seq) arr.Add(ToScript(item, path));
+                    return arr;
+                }
+                default:
+                    return obj.ToString();
+            }
+        }
+
+        private static ScriptObject ModuleSpaceToScript(ModuleSpace ms, HashSet<object> path)
+        {
+            if (!path.Add(ms)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = ms.Name,
+                ["id"] = ms.Id,
+                ["full_name"] = ms.Path(),
+                ["enums"] = ToScript(ms.Enums, path),
+                ["beans"] = ToScript(ms.Beans.Values, path),
+                ["beankeys"] = ToScript(ms.BeanKeys.Values, path),
+                ["protocols"] = ToScript(ms.Protocols.Values, path),
+                ["solution"] = ToScript(ms.Solution, path),
+            };
+            path.Remove(ms);
+            return so;
+        }
+
+        private static ScriptObject BeanToScript(Bean b, HashSet<object> path)
+        {
+            if (!path.Add(b)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = b.Name,
+                ["full_name"] = b.FullName,
+                ["type_id"] = b.TypeId,
+                ["variables"] = ToScript(b.Variables, path),
+                ["enums"] = ToScript(b.Enums, path),
+            };
+            path.Remove(b);
+            return so;
+        }
+
+        private static ScriptObject BeanKeyToScript(BeanKey k, HashSet<object> path)
+        {
+            if (!path.Add(k)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = k.Name,
+                ["full_name"] = k.FullName,
+                ["type_id"] = k.TypeId,
+                ["variables"] = ToScript(k.Variables, path),
+                ["enums"] = ToScript(k.Enums, path),
+            };
+            path.Remove(k);
+            return so;
+        }
+
+        private static ScriptObject VariableToScript(Variable v, HashSet<object> path)
+        {
+            if (!path.Add(v)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = v.Name,
+                ["id"] = v.Id,
+                ["type"] = v.Type,
+                ["variable_type"] = ToScript(v.VariableType, path),
+                ["initial"] = v.Initial,
+            };
+            path.Remove(v);
+            return so;
+        }
+
+        private static ScriptObject TypeToScript(Types.Type t, HashSet<object> path)
+        {
+            if (!path.Add(t)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = t.Name,
+                ["is_bean"] = t.IsBean,
+                ["is_collection"] = t.IsCollection,
+            };
+            switch (t)
+            {
+                case TypeMap m:
+                    so["key_type"] = ToScript(m.KeyType, path);
+                    so["value_type"] = ToScript(m.ValueType, path);
+                    break;
+                case TypeDynamic d:
+                    so["real_beans"] = ToScript(d.RealBeans, path);
+                    break;
+                case TypeCollection c:
+                    so["value_type"] = ToScript(c.ValueType, path);
+                    break;
+            }
+            path.Remove(t);
+            return so;
+        }
+
+        private static ScriptObject ProtocolToScript(Protocol p, HashSet<object> path)
+        {
+            if (!path.Add(p)) return null;
+            var so = new ScriptObject
+            {
+                ["name"] = p.Name,
+                ["full_name"] = p.FullName,
+                ["id"] = p.Id,
+                ["type_id"] = p.TypeId,
+                ["argument_type"] = ToScript(p.ArgumentType, path),
+                ["space"] = ToScript(p.Space, path),
+                ["enums"] = ToScript(p.Enums, path),
+                ["result"] = false,
+                ["result_type"] = null,
+            };
+            if (p is Rpc r)
+            {
+                so["result"] = true;
+                so["result_type"] = ToScript(r.ResultType, path);
+            }
+            path.Remove(p);
+            return so;
+        }
+
+        private static ScriptObject EnumToScript(Types.Enum e) => new ScriptObject
+        {
+            ["name"] = e.Name,
+            ["value"] = e.Value,
+        };
 
         public void Make()
         {
@@ -99,14 +273,14 @@ namespace Zeze.Gen.luaClient
             {
                 string luaMetaTemplateString = GetTemplate("LuaMeta.scriban-txt");
                 Template template = Template.Parse(luaMetaTemplateString);
-                string luaMeta = Render(template, new
+                string luaMeta = Render(template, new Dictionary<string, object>
                 {
-                    modules = allRefModulesList,
-                    beans = Project.AllBeans.Values,
-                    beankeys = Project.AllBeanKeys.Values,
-                    protocols = Project.AllProtocols.Values,
-                    messageNamespace = messageNamespace,
-                    schemaNamespace = schemaNamespace
+                    ["modules"] = allRefModulesList,
+                    ["beans"] = Project.AllBeans.Values,
+                    ["beankeys"] = Project.AllBeanKeys.Values,
+                    ["protocols"] = Project.AllProtocols.Values,
+                    ["message_namespace"] = messageNamespace,
+                    ["schema_namespace"] = schemaNamespace
                 });
 
                 string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
@@ -134,15 +308,15 @@ namespace Zeze.Gen.luaClient
 
                     string fullFileName = module.GetFullPath(genDir) + ".lua";
                     string fullDir = Path.GetDirectoryName(fullFileName);
-                    string luaModule = Render(moduleTemplate, new
+                    string luaModule = Render(moduleTemplate, new Dictionary<string, object>
                     {
-                        module,
-                        beans,
-                        beankeys = beanKeys,
-                        protocols,
-                        messageNamespace = messageNamespace,
-                        schemaNamespace = schemaNamespace,
-                        luaUtilDir = Project.LuaUtilDir
+                        ["module"] = module,
+                        ["beans"] = beans,
+                        ["beankeys"] = beanKeys,
+                        ["protocols"] = protocols,
+                        ["message_namespace"] = messageNamespace,
+                        ["schema_namespace"] = schemaNamespace,
+                        ["lua_util_dir"] = Project.LuaUtilDir
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -169,14 +343,14 @@ namespace Zeze.Gen.luaClient
 
                     string fullFileName = module.GetFullPath(metaDir) + "Meta.lua";
                     string fullDir = Path.GetDirectoryName(fullFileName);
-                    string luaModule = Render(moduleTemplate, new
+                    string luaModule = Render(moduleTemplate, new Dictionary<string, object>
                     {
-                        module,
-                        beans,
-                        beankeys = beanKeys,
-                        protocols,
-                        messageNamespace = messageNamespace,
-                        schemaNamespace = schemaNamespace
+                        ["module"] = module,
+                        ["beans"] = beans,
+                        ["beankeys"] = beanKeys,
+                        ["protocols"] = protocols,
+                        ["message_namespace"] = messageNamespace,
+                        ["schema_namespace"] = schemaNamespace
                     });
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -191,12 +365,12 @@ namespace Zeze.Gen.luaClient
             {
                 string luaRootTemplateString = GetTemplate("LuaRoot.scriban-txt");
                 Template rootTemplate = Template.Parse(luaRootTemplateString);
-                string luaRoot = Render(rootTemplate, new
+                string luaRoot = Render(rootTemplate, new Dictionary<string, object>
                 {
-                    modules = allRefModulesList,
-                    solution = Project.Solution,
-                    messageNamespace = messageNamespace,
-                    schemaNamespace = schemaNamespace
+                    ["modules"] = allRefModulesList,
+                    ["solution"] = Project.Solution,
+                    ["message_namespace"] = messageNamespace,
+                    ["schema_namespace"] = schemaNamespace
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message.lua"));
@@ -211,12 +385,12 @@ namespace Zeze.Gen.luaClient
                 var solutionNames = allRefModulesList.Select(m => m.Solution.Name).ToHashSet();
                 string luaInitTemplateText = GetTemplate("message_init.lua");
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
-                string luaRoot = Render(luaInitTemplate, new
+                string luaRoot = Render(luaInitTemplate, new Dictionary<string, object>
                 {
-                    solutionNames,
-                    messageNamespace = messageNamespace,
-                    schemaNamespace = schemaNamespace,
-                    luaUtilDir = Project.LuaUtilDir
+                    ["solution_names"] = solutionNames,
+                    ["message_namespace"] = messageNamespace,
+                    ["schema_namespace"] = schemaNamespace,
+                    ["lua_util_dir"] = Project.LuaUtilDir
                 });
 
                 using StreamWriter sw = Program.OpenStreamWriter(Path.Combine(genDir, "message_init.lua"));
@@ -246,11 +420,12 @@ namespace Zeze.Gen.luaClient
 
                     if (!fileChunkGen.LoadFile(fullFileName))
                     {
-                        string luaModule = Render(moduleTemplate, new
+                        string luaModule = Render(moduleTemplate, new Dictionary<string, object>
                         {
-                            module, protocols,
-                            messageNamespace = messageNamespace,
-                            schemaNamespace = schemaNamespace
+                            ["module"] = module,
+                            ["protocols"] = protocols,
+                            ["message_namespace"] = messageNamespace,
+                            ["schema_namespace"] = schemaNamespace
                         });
                         FileSystem.CreateDirectory(fullDir);
                         using var sw = Program.OpenStreamWriter(fullFileName);
@@ -266,7 +441,7 @@ namespace Zeze.Gen.luaClient
                     {
                         continue;
                     }
-                    
+
                     var handlerChunk = fileChunkGen.Chunks[2];
                     var generatedHandlers = new HashSet<string>();
 
@@ -280,7 +455,7 @@ namespace Zeze.Gen.luaClient
                         }
                     }
 
-                    fileChunkGen.SaveFile(fullFileName, (writer, chunk) =>
+                    fileChunkGen.SaveFile(fullFileName, (writer, _) =>
                         {
                             writer.WriteLine($"function {module.Name}.RegisterHandlers()");
                             foreach (var protocol in protocols)
@@ -290,7 +465,7 @@ namespace Zeze.Gen.luaClient
                             }
 
                             writer.WriteLine("end");
-                        }, null, (writer, chunk) =>
+                        }, null, (writer, _) =>
                         {
                             foreach (var protocol in protocols)
                             {
@@ -305,20 +480,20 @@ namespace Zeze.Gen.luaClient
                     );
                 }
             }
-            
+
             {
                 string luaInitTemplateText = GetTemplate("ModuleRoot.scriban-txt");
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
                 var modules = allRefModulesList.Where(module => Project.AllProtocols.Values.Intersect(module.Protocols.Values).Any())
                     .ToList();
-                
-                string luaRoot = Render(luaInitTemplate, new
+
+                string luaRoot = Render(luaInitTemplate, new Dictionary<string, object>
                 {
-                    modules = modules,
+                    ["modules"] = modules,
                 });
 
                 var fullFileName = Path.Combine(srcDir, "module.lua");
-                
+
                 FileChunkGen fileChunkGen = new FileChunkGen("--- [[ AUTO GENERATE START ]] ---",
                     "--- [[ AUTO GENERATE END ]] ---");
                 if (!fileChunkGen.LoadFile(fullFileName))
@@ -341,7 +516,7 @@ namespace Zeze.Gen.luaClient
                 }
                 else
                 {
-                    fileChunkGen.SaveFile(fullFileName, (writer, chunk) => writer.Write(luaRoot));
+                    fileChunkGen.SaveFile(fullFileName, (writer, _) => writer.Write(luaRoot));
                 }
             }
         }

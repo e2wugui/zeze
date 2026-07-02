@@ -21,3 +21,8 @@ x64/
 /TypeScript/package-lock.json
 /TypeScript/tsconfig.tsbuildinfo
 /TypeScript/webpack/node_modules
+/confcs/.idea
+/.claude
+/.codegraph
+/ZezeJava/.idea
+/.idea

@@ -91,7 +91,7 @@ namespace Zeze.Gen
             CommonDir = self.GetAttribute("CommonDir").Trim();
             PackagePath = self.GetAttribute("PackagePath").Trim();
             if (string.IsNullOrEmpty(GenDir) || string.IsNullOrEmpty(SrcDir))
-                throw new Exception("Config Need: GenDir & SrcDir.");
+                throw new Exception($"project:{Name} Config Need: GenDir & SrcDir.");
 
             BuiltinNG = self.GetAttribute("BuiltinNG");
             foreach (string target in self.GetAttribute("GenTables").Split(','))

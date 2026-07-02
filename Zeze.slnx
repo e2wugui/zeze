@@ -1,0 +1,13 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="confcs/confcs.csproj" />
+  <Project Path="Gen/Gen.csproj" />
+  <Project Path="TypeScript/TypeScript.njsproj">
+    <Platform Project="AnyCPU" />
+    <Build />
+  </Project>
+</Solution>
