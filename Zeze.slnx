@@ -6,7 +6,7 @@
   </Configurations>
   <Project Path="confcs/confcs.csproj" />
   <Project Path="Gen/Gen.csproj" />
-  <Project Path="TypeScript/TypeScript.njsproj">
+  <Project Path="TypeScript/TypeScript.njsproj" Id="ccd64d44-4dbd-40e7-a722-aad8429bdf7c">
     <Platform Project="AnyCPU" />
     <Build />
   </Project>
