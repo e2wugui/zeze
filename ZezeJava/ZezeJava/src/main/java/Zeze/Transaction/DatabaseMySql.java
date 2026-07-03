@@ -88,6 +88,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 		return new TableMysqlRelational(name);
 	}
 
+	@Override
 	public void dropTable(@NotNull String name) {
 		var table = getTable(name);
 		if (table != null) {

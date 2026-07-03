@@ -216,6 +216,10 @@ public abstract class Database extends ReentrantLock {
 		throw new UnsupportedOperationException();
 	}
 
+	public void dropTable(@NotNull String tableName) throws Exception {
+		throw new UnsupportedOperationException();
+	}
+
 	public interface Table {
 		boolean isNew();
 

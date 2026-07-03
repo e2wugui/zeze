@@ -353,22 +353,21 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 	}
 
-	public boolean dropTable(@NotNull String name) throws RocksDBException {
+	public void dropTable(@NotNull String name) throws RocksDBException {
 		lock();
 		try {
 			var table = tableMap.remove(name);
 			if (table == null)
-				return false;
+				return;
 			var cfh = table.getCfHandle();
 			rocksDb.dropColumnFamily(cfh);
 			rocksDb.destroyColumnFamilyHandle(cfh);
-			return true;
 		} finally {
 			unlock();
 		}
 	}
 
-	public int dropTables(String @NotNull [] names) throws RocksDBException {
+	public int dropTables(String @NotNull [] names) throws Exception {
 		lock();
 		try {
 			var cfhs = new ArrayList<ColumnFamilyHandle>();
@@ -753,7 +752,7 @@ public class RocksDatabase extends ReentrantLock implements Closeable {
 		}
 
 		// 有数据的时候可以直接删除family吧！
-		public void drop() throws RocksDBException {
+		public void drop() throws Exception {
 			dropTable(name);
 		}
 

@@ -331,7 +331,7 @@ public class LogSequence {
 		deletedDirectoryAndCheck(path, 10);
 	}
 
-	void removeExpiredUniqueRequestSet() throws ParseException, RocksDBException {
+	void removeExpiredUniqueRequestSet() throws ParseException, Exception {
 		RaftConfig raftConf = raft.getRaftConfig();
 		long expired = System.currentTimeMillis() - (raftConf.getUniqueRequestExpiredDays() + 1) * 86400_000L;
 

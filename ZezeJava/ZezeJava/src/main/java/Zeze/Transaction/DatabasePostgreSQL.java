@@ -88,6 +88,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		return new TablePostgreSQLRelational(name);
 	}
 
+	@Override
 	public void dropTable(@NotNull String name) {
 		var table = getTable(name);
 		if (table != null) {
