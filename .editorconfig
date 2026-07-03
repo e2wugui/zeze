@@ -1,0 +1,65 @@
+# Zeze 编辑器配置
+# 来源：原 ZezeJava/.idea/{codeStyles/Project.xml, encodings.xml} 迁移。
+# IDEA / Rider / 大多数编辑器默认识别此文件，无需在 Gradle 或 .idea 中额外配置。
+#
+# 未迁移的项（.editorconfig 表达不了或语法易错，按需在 IDEA 手动设置）：
+#   - import 分组布局 (java.*/javax.*/其余/static)：Settings → Editor → Code Style → Java → Imports
+#   - JavaDoc 单行注释不换行 / 续行缩进 (JD_*)：同上 → JavaDoc
+#   - module imports 优先（IDEA 专属，.editorconfig 无对应语义）
+
+root = true
+
+# ── 全局通用规则（所有文件）─────────────────────────────────────────
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = off
+# 此处不设 indent_style，避免误改 cxx/TypeScript/docs 等现有文件的缩进；
+# 未在下方覆盖的文件类型沿用各 IDE 默认。
+
+# ── Java：tab 缩进 + 还原原 .idea Java 代码风格 ────────────────────
+[*.java]
+indent_style = tab
+
+ij_formatter_tags_enabled = true
+ij_java_class_count_to_use_import_on_demand = 20
+ij_java_names_count_to_use_import_on_demand = 10
+ij_java_do_not_wrap_after_single_annotation = true
+ij_java_do_not_wrap_after_single_annotation_in_parameter = true
+ij_java_space_after_type_cast = false
+ij_java_indent_case_from_switch = false
+ij_java_keep_control_statements_in_one_line = false
+ij_java_keep_blank_lines_in_declarations = 1
+ij_java_keep_blank_lines_in_code = 1
+ij_java_keep_blank_lines_before_right_brace = 1
+
+# ── XML（pom.xml、server.xml 等配置）───────────────────────────────
+[*.xml]
+indent_style = space
+indent_size = 4
+
+# ── YAML ────────────────────────────────────────────────────────────
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# ── Gradle (Groovy DSL) ────────────────────────────────────────────
+[*.gradle]
+indent_style = space
+indent_size = 4
+
+# ── properties ──────────────────────────────────────────────────────
+[*.properties]
+indent_style = space
+indent_size = 2
+
+# ── Markdown：保留行尾两空格（软换行），不裁剪空格 ─────────────────
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# ── Makefile：必须使用 tab ──────────────────────────────────────────
+[{Makefile,*.mk}]
+indent_style = tab
