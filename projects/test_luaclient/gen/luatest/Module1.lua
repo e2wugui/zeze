@@ -58,8 +58,8 @@ Module1.Simple.__index = Module1.Simple
 ---@field set10 table<integer>
 ---@field map11 table<long, msg.luatest.Module1.Simple>
 ---@field dynamic14 msg.luatest.Bean1|msg.luatest.Module1.Simple
----@field vector2 msg.{name: "vector2", is_bean: false, is_collection: false}
----@field vector3 msg.{name: "vector3", is_bean: false, is_collection: false}
+---@field vector2 msg.vector2
+---@field vector3 msg.vector3
 ---@field new fun(t: table):msg.luatest.Module1.Value
 Module1.Value = {
     __type_name__ = 'luatest.Module1.Value',

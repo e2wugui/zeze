@@ -88,7 +88,7 @@ meta.structs['vector4'] = {
 require('{{toname(module.full_name ?? module.name)}}').__reg__(meta)
 {{- end }}
 {{- for module in modules }}
-package.loaded['{{toname(module.full_name)}}'] = nil
+package.loaded['{{toname(module.full_name ?? module.name)}}'] = nil
 {{- end }}
 
 return meta

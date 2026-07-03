@@ -2,7 +2,7 @@
 setlocal
 pushd %~dp0
 
-set PATH=%~dp0\publish;%PATH%
+set PATH=%~dp0\Gen\bin\Debug\net10.0;%PATH%
 
 echo -------- Gen component.confcs.client.xml ...
 Gen.exe component.confcs.client.xml

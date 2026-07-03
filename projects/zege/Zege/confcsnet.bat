@@ -4,21 +4,21 @@ pushd %~dp0
 
 set zeze_src_dir=..
 set project_dir=.
-set gen=..\..\..\publish\Gen.exe
+set gen=..\Gen\bin\Debug\net8.0\Gen.exe
 
 REM --------------------------------------------------------------
-REM conf+cs Ïµï¿½Ð»ï¿½Ö§ï¿½Ö´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+REM conf+cs ÏµÁÐ»¯Ö§³Ö´úÂëÊä³ö 
 REM --------------------------------------------------------------
 
 %gen% -c ExportConf -ZezeSrcDir %zeze_src_dir%
 
 REM ---------------------------------------------------------------
-REM conf+cs+net ï¿½ï¿½ï¿½ç£¬Ä£ï¿½é£¬Appï¿½È¿Í»ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Òªï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+REM conf+cs+net ¡¤ÍøÂç£¬Ä£¿é£¬AppµÈ¿Í»§¶Ë¿ò¼ÜÐèÒªµÄ´úÂëÊä³ö 
 REM --------------------------------------------------------------
 
 md %project_dir%\Zeze 2> nul
 
-REM Serializeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ExportConfï¿½ï¿½Ä¿Â¼ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¡ï¿½
+REM SerializeÔÚÉÏÃæµÄExportConfÖÐÄ¿Â¼ÒÑ¾­´´½¨ÁË¡£
 xcopy /Y %zeze_src_dir%\Zeze\Serialize\Vector3.cs %project_dir%\Zeze\Serialize
 
 md %project_dir%\Zeze\Net 2> nul
@@ -66,14 +66,13 @@ xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\LogOne.cs %project_dir%\Zez
 xcopy /Y %zeze_src_dir%\Zeze\Transaction\Collections\CollApply.cs %project_dir%\Zeze\Transaction\Collections\
 
 REM ---------------------------------------------------------------
-REM Zege ï¿½ï¿½Òªï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+REM Zege ÐèÒªµÄ´úÂëÊä³ö
 REM --------------------------------------------------------------
 
 xcopy /Y %zeze_src_dir%\Zeze\Util\Cert.cs %project_dir%\Zeze\Util\
 
-echo 1. ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ USE_CONFCS
-echo 2. ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½NLogï¿½ï¿½ï¿½ë¶¨ï¿½ï¿½ï¿½ HAS_NLOG
-echo    ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½Logï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë¶¨ï¿½ï¿½ï¿½ HAS_MYLOGï¿½ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ Zeze.MyLog.csï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½
-echo    ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼logï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ÎºÎºï¿½
-
+echo 1. ÔÚÏîÄ¿ÖÐ¶¨Òåºê USE_CONFCS
+echo 2. Èç¹ûÏîÄ¿°üºÃNLog£¬Çë¶¨Òåºê HAS_NLOG
+echo    Èç¹ûÏîÄ¿ÓÐ×Ô¼ºµÄLog¹ÜÀí£¬Çë¶¨Òåºê HAS_MYLOG£¬²¢ÐÞ¸Ä Zeze.MyLog.cs£¬ÊµÏÖÏàÓ¦µÄ·½·¨¡£
+echo    Èç¹ûÏîÄ¿½ûÖ¹¿â´úÂë¼ÇÂ¼log£¬²»ÐèÒª¶¨ÒåÈÎºÎºê
 pause
