@@ -36,10 +36,8 @@
                         new ProtocolFormatter(protocol).Make(sw);
                 }
             }
-            foreach (Module mod in Project.AllOrderDefineModules)
-            {
-                new ModuleFormatter(Project, mod, genDir).Make();
-            }
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir).Make());
             new App(Project, genDir).Make();
             /*
             foreach (Service ma in Project.Services.Values)

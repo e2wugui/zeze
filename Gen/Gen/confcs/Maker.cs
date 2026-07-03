@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace Zeze.Gen.confcs
+﻿namespace Zeze.Gen.confcs
 {
     public class Maker
     {
@@ -20,21 +18,21 @@ namespace Zeze.Gen.confcs
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
-            foreach (Types.Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(Project, bean).Make(genCommonDir);
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new cs.BeanKeyFormatter(beanKey).Make(genCommonDir);
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new BeanFormatter(Project, bean).Make(genCommonDir));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new cs.BeanKeyFormatter(beanKey).Make(genCommonDir));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new cs.RpcFormatter(rpc).Make(genCommonDir, true);
                 else
                     new cs.ProtocolFormatter(protocol).Make(genCommonDir, true);
-            }
+            });
 
             // conf+cs 的ModuleFormatter仅生成enum。
-            foreach (Module mod in Project.AllOrderDefineModules)
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
         }
     }
 }

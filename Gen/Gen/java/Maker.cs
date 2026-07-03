@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -21,49 +20,44 @@ namespace Zeze.Gen.java
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
-            // gen common
-            foreach (Bean bean in Project.AllBeans.Values)
-            {
-                new BeanFormatter(bean).Make(genCommonDir, Project);
-            }
-            foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
-            {
-                new BeanKeyFormatter(beanKey).Make(genCommonDir);
-            }
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            // gen common（各实体文件互相独立，并行生成）
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new BeanFormatter(bean).Make(genCommonDir, Project));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genCommonDir));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genCommonDir);
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir);
-            }
+            });
 
             // gen project
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
+            // 收集需要生成类映射的Bean（mod.MappingClassBeans 已在 Compile 期填好、此处只读，串行收集即可）
             var MappingClassBeans = new HashSet<Bean>();
             foreach (Module mod in Project.AllOrderDefineModules)
             {
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
-                // 收集需要生成类映射的Bean。
                 foreach (var bean in mod.MappingClassBeans)
                     MappingClassBeans.Add(bean);
             }
-            foreach (Service ma in Project.Services.Values)
-                new ServiceFormatter(ma, genDir, srcDir).Make();
-            foreach (Table table in Project.AllTables.Values)
+            Program.ParallelEach(Project.Services.Values,
+                ma => new ServiceFormatter(ma, genDir, srcDir).Make());
+            Program.ParallelEach(Project.AllTables.Values, table =>
             {
                 if (Project.GenTables.Contains(table.Gen))
                     new TableFormatter(table, genCommonDir).Make();
-            }
+            });
             new Schemas(Project, genDir).Make();
 
             new App(Project, genDir, srcDir).Make();
 
             if (Project.MappingClass)
             {
-                foreach (var bean in MappingClassBeans)
-                {
-                    new MappingClass(genDir, srcDir, bean).Make();
-                }
+                Program.ParallelEach(MappingClassBeans,
+                    bean => new MappingClass(genDir, srcDir, bean).Make());
             }
         }
     }

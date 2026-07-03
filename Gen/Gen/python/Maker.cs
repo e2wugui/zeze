@@ -32,26 +32,26 @@ namespace Zeze.Gen.python
                 Program.AddGenDir(genDir);
 
             // gen common
-            foreach (Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(bean).Make(genCommonDir, Project);
-            foreach (BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genCommonDir, Project);
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new BeanFormatter(bean).Make(genCommonDir, Project));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genCommonDir, Project));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genCommonDir, Project);
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir, Project);
-            }
+            });
             new App(Project, genCommonDir).Make();
             Program.FlushOutputs();
             GenInit(genCommonDir);
 
             // gen project
-            foreach (Module module in Project.AllOrderDefineModules)
-                new ModuleFormatter(Project, module, genDir, srcDir).Make();
-            foreach (Service service in Project.Services.Values)
-                new ServiceFormatter(service, srcDir).Make();
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                module => new ModuleFormatter(Project, module, genDir, srcDir).Make());
+            Program.ParallelEach(Project.Services.Values,
+                service => new ServiceFormatter(service, srcDir).Make());
         }
 
         public void GenInit(string baseDir)

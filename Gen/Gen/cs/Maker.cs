@@ -23,42 +23,41 @@ namespace Zeze.Gen.cs
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
-            foreach (Types.Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(bean).Make(genCommonDir);
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genCommonDir);
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new BeanFormatter(bean).Make(genCommonDir));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genCommonDir));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genCommonDir);
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir);
-            }
+            });
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
+            // 收集需要生成类映射的Bean（mod.MappingClassBeans 已在 Compile 期填好、此处只读，串行收集即可）
             var MappingClassBeans = new HashSet<Bean>();
             foreach (Module mod in Project.AllOrderDefineModules)
             {
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
-                // 收集需要生成类映射的Bean。
                 foreach (var bean in mod.MappingClassBeans)
                     MappingClassBeans.Add(bean);
             }
-            foreach (Service ma in Project.Services.Values)
-                new ServiceFormatter(ma, genDir, srcDir).Make();
-            foreach (Table table in Project.AllTables.Values)
+            Program.ParallelEach(Project.Services.Values,
+                ma => new ServiceFormatter(ma, genDir, srcDir).Make());
+            Program.ParallelEach(Project.AllTables.Values, table =>
             {
                 if (Project.GenTables.Contains(table.Gen))
                     new TableFormatter(table, genCommonDir).Make();
-            }
+            });
             new Schemas(Project, genDir).Make();
 
             new App(Project, genDir, srcDir).Make();
 
             if (Project.MappingClass)
             {
-                foreach (var bean in MappingClassBeans)
-                {
-                    new MappingClass(genDir, srcDir, bean).Make();
-                }
+                Program.ParallelEach(MappingClassBeans,
+                    bean => new MappingClass(genDir, srcDir, bean).Make());
             }
         }
 
@@ -74,22 +73,22 @@ namespace Zeze.Gen.cs
             var savedGenTables = Project.GenTables;
             Project.GenTables = new();
 
-            foreach (Types.Bean bean in Project.AllBeans.Values)
-                new confcs.BeanFormatter(Project, bean, true).Make(genCommonDir);
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genCommonDir);
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new confcs.BeanFormatter(Project, bean, true).Make(genCommonDir));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genCommonDir));
 
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genCommonDir, true);
                 else
                     new ProtocolFormatter(protocol).Make(genCommonDir, true);
-            }
-            foreach (Module mod in Project.AllOrderDefineModules)
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
-            foreach (Service ma in Project.Services.Values)
-                new ServiceFormatter(ma, genDir, srcDir).Make();
+            });
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
+            Program.ParallelEach(Project.Services.Values,
+                ma => new ServiceFormatter(ma, genDir, srcDir).Make());
             new App(Project, genDir, srcDir, true).Make(true);
 
             Project.GenTables = savedGenTables;

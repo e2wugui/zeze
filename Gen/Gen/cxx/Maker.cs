@@ -23,29 +23,21 @@ namespace Zeze.Gen.cxx
             if (!Project.DisableDeleteGen)
                 Program.AddGenDir(genDir);
 
-            foreach (var bean in Project.AllBeans.Values)
-            {
-                new BeanFormatter(bean).Make(genDir);
-            }
-            foreach (var beanKey in Project.AllBeanKeys.Values)
-            {
-                new BeanKeyFormatter(beanKey).Make(genDir);
-            }
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            Program.ParallelEach(Project.AllBeans.Values,
+                bean => new BeanFormatter(bean).Make(genDir));
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genDir));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genDir);
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
-            }
-            foreach (Module mod in Project.AllOrderDefineModules)
-            {
-                new ModuleFormatter(Project, mod, genDir, srcDir).Make();
-            }
-            foreach (var m in Project.Services.Values)
-            {
-                new ServiceFormatter(m, genDir, srcDir).Make();
-            }
+            });
+            Program.ParallelEach(Project.AllOrderDefineModules,
+                mod => new ModuleFormatter(Project, mod, genDir, srcDir).Make());
+            Program.ParallelEach(Project.Services.Values,
+                m => new ServiceFormatter(m, genDir, srcDir).Make());
             new App(Project, genDir, srcDir).Make();
         }
 

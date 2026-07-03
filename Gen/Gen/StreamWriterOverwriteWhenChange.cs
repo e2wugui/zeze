@@ -20,8 +20,15 @@ namespace Zeze.Gen
             NewLine = "\n";
         }
 
+        private bool _disposed;
+
         protected override void Dispose(bool disposing)
         {
+            // 幂等：using 提前 Dispose 过的 writer，FlushOutputs 再次 Dispose 时直接返回，
+            // 避免重复做 ReadAllBytes+比较（多线程生成时这一步在串行的 FlushOutputs 里会变成瓶颈）。
+            if (_disposed)
+                return;
+            _disposed = true;
             Flush();
 
             if (File.Exists(FileName))

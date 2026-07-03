@@ -129,27 +129,37 @@ namespace Zeze.Gen.Types
 		public string NamePinyin => Program.ToPinyin(Name);
 		protected string _name;
 
-        private bool? isNeedNegativeCheckCache = null; // 防止出现递归死循环。当bean内部只有一个容器，容器.Value有时bean自己时会出现。
-        public override bool IsNeedNegativeCheck
+		// 多线程生成时 IsNeedNegativeCheck 必须在并行 Make 之前串行预算并缓存（见 Program.WarmUpCaches）。
+		// _isNeedNegativeCheckState: 0=未计算, 1=计算中(同时作为环路打断标记), 2=已完成。完成后永久缓存，Make 期间只读、线程安全。
+		private int _isNeedNegativeCheckState;
+		private bool _isNeedNegativeCheck;
+		public override bool IsNeedNegativeCheck
 		{
 			get
 			{
-				if (isNeedNegativeCheckCache != null)
-					return isNeedNegativeCheckCache.Value;
-				isNeedNegativeCheckCache = false;
-                foreach (var v in Variables)
+				switch (_isNeedNegativeCheckState)
+				{
+					case 2: return _isNeedNegativeCheck;
+					case 1: return false; // 计算过程中再次进入自身：打断递归环路
+				}
+				_isNeedNegativeCheckState = 1;
+				bool result = false;
+				foreach (var v in Variables)
 				{
 					if (v.VariableType.IsNeedNegativeCheck)
 					{
-                        isNeedNegativeCheckCache = null;
-                        return true;
-                    }
-                }
-                isNeedNegativeCheckCache = null;
-                return false;
+						result = true;
+						break;
+					}
+				}
+				_isNeedNegativeCheck = result;
+				_isNeedNegativeCheckState = 2;
+				return result;
 			}
 		}
-        public List<Variable> Variables { get; private set; } = new List<Variable>();
+		
+
+		public List<Variable> Variables { get; private set; } = new List<Variable>();
 		public List<Enum> Enums { get; private set; } = new List<Enum>();
 		public string Comment { get; private set; }
 		public virtual string FullName => Space.Path(".", Name);

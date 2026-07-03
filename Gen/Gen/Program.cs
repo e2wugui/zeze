@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Xml;
 using Zeze.Gen.Types;
 using Zeze.Util;
@@ -186,6 +187,10 @@ namespace Zeze.Gen
 
         public static void Main(string[] args)
         {
+            // 进程短、并行工作集中在一开始：把 ThreadPool 最小线程数拉到 CPU 核数，
+            // 避免 Parallel.ForEach 因线程池慢启动（逐步加线程）而退化成近乎串行。
+            System.Threading.ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
+
             BeanTypeIdDuplicateChecker.Add(ConfEmptyBean.TYPEID);
 
             List<string> xmlFileList = new List<string>();
@@ -238,6 +243,10 @@ namespace Zeze.Gen
             foreach (Solution sol in Solutions.Values)
                 CollectDataBeans(sol);
 
+            // 并行 Make 之前，串行预算并缓存所有 bean/beankey 的派生属性（IsNeedNegativeCheck、VariablesIdOrder），
+            // 使其在 Make 期间成为只读、避免并发读写共享的模型状态。
+            WarmUpCaches();
+
             foreach (string file in xmlFileList) // make 参数指定的 Solution
             {
                 if (Solutions.TryGetValue(Path.GetFullPath(file), out var sol))
@@ -284,6 +293,27 @@ namespace Zeze.Gen
                 CollectDataBeans(module);
         }
 
+        /// <summary>
+        /// 并行 Make 前的串行预热：把 bean/beankey 上"懒计算"的派生属性提前算出来并缓存，
+        /// 这样 Make 期间这些属性就是只读的，多个线程并发生成时不会读写竞争。
+        /// 目前包括：Bean.IsNeedNegativeCheck（带环路打断的递归计算）、Bean/BeanKey.VariablesIdOrder。
+        /// </summary>
+        private static void WarmUpCaches()
+        {
+            foreach (var o in NamedObjects.Values)
+            {
+                if (o is Types.Bean b)
+                {
+                    _ = b.IsNeedNegativeCheck;
+                    _ = b.VariablesIdOrder;
+                }
+                else if (o is Types.BeanKey bk)
+                {
+                    _ = bk.VariablesIdOrder;
+                }
+            }
+        }
+
         public static bool isData(Types.Type type)
         {
             return DataBeans.Contains(type);
@@ -296,15 +326,38 @@ namespace Zeze.Gen
 
         public static void Print(object obj, ConsoleColor color)
         {
+            lock (OutputLock)
+            {
+                try
+                {
+                    Console.ForegroundColor = color;
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    Console.WriteLine(obj);
+                }
+                finally
+                {
+                    Console.ResetColor();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 并行执行每个元素的处理，保持"单异常"语义：
+        /// 只有一个内层异常时直接抛出原异常，多个时抛 AggregateException（已 Flatten）。
+        /// 各 Maker 里"逐个实体生成独立文件"的循环统一用这个，替代 foreach。
+        /// </summary>
+        public static void ParallelEach<T>(IEnumerable<T> source, Action<T> body)
+        {
             try
             {
-                Console.ForegroundColor = color;
-                Console.BackgroundColor = ConsoleColor.Black;
-                Console.WriteLine(obj);
+                Parallel.ForEach(source, body);
             }
-            finally
+            catch (AggregateException ae)
             {
-                Console.ResetColor();
+                var flat = ae.Flatten();
+                if (flat.InnerExceptions.Count == 1)
+                    throw flat.InnerExceptions[0];
+                throw flat;
             }
         }
 
@@ -419,6 +472,7 @@ namespace Zeze.Gen
 
         public static StreamWriter OpenWriterNoPath(string baseDir, string fileName, bool overwrite = true)
         {
+            // 这些文件系统调用是幂等或只读的，可并发执行；只有下面的 Outputs 写入需要加锁。
             baseDir = Path.GetFullPath(baseDir);
             FileSystem.CreateDirectory(baseDir);
             string fullFileName = Path.Combine(baseDir, fileName);
@@ -429,7 +483,7 @@ namespace Zeze.Gen
                 return OpenStreamWriter(fullFileName);
             }
             //Program.Print("file skip '" + fullFileName + "'");
-            Outputs.TryAdd(fullFileName, null);
+            lock (OutputLock) { Outputs.TryAdd(fullFileName, null); }
             return null;
         }
 
@@ -437,41 +491,50 @@ namespace Zeze.Gen
         private static HashSet<string> GenDirs { get; } = new();
         private static HashSet<string> OutputsAll { get; } = new();
 
+        // 多线程生成时，保护上面三个共享集合以及控制台输出。
+        // OpenWriterNoPath 内部会调用 OpenStreamWriter，同一线程对同一锁可重入，无死锁。
+        // FlushOutputs 在每个 platform 阶段末尾、所有并行生成结束之后单线程调用，无需加锁。
+        private static readonly object OutputLock = new();
+
         public static StreamWriter OpenStreamWriter(string file, bool overwrite = false)
         {
-            var fullPath = Path.GetFullPath(file);
-            if (!overwrite && OutputsAll.Contains(fullPath))
+            var fullPath = Path.GetFullPath(file); // 纯计算，锁外
+            lock (OutputLock)
             {
-                if (Debug)
-                    Print("Skip: " + fullPath, ConsoleColor.Gray);
-                return null;
-            }
-            if (Outputs.TryGetValue(fullPath, out var oldWriter) && oldWriter != null)
-            {
-                if (!overwrite)
+                if (!overwrite && OutputsAll.Contains(fullPath))
                 {
                     if (Debug)
                         Print("Skip: " + fullPath, ConsoleColor.Gray);
                     return null;
                 }
-                oldWriter.Close();
+                if (Outputs.TryGetValue(fullPath, out var oldWriter) && oldWriter != null)
+                {
+                    if (!overwrite)
+                    {
+                        if (Debug)
+                            Print("Skip: " + fullPath, ConsoleColor.Gray);
+                        return null;
+                    }
+                    oldWriter.Close();
+                }
+                var sw = new StreamWriterOverwriteWhenChange(fullPath);
+                Outputs[fullPath] = sw;
+                return sw;
             }
-            var sw = new StreamWriterOverwriteWhenChange(fullPath);
-            Outputs[fullPath] = sw;
-            return sw;
         }
 
         public static void AddGenDir(string dir, bool createDir = true)
         {
-            var full = Path.GetFullPath(dir);
+            var full = Path.GetFullPath(dir); // 纯计算，锁外
             // gen 目录也是源码，都会加入Project，即使完全没有输出，也应该存在。
+            // CreateDirectory 幂等、IsDirectory 只读，都可并发，放锁外。
             if (createDir)
             {
                 FileSystem.CreateDirectory(full);
                 if (false == FileSystem.IsDirectory(full))
                     throw new Exception($"{dir} Is Not A Directory.");
             }
-            GenDirs.Add(full);
+            lock (OutputLock) { GenDirs.Add(full); }
         }
 
         public static void FlushOutputs()

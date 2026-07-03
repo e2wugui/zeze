@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <!-- NativeAOT 发布为原生单文件可执行程序；仅在 dotnet publish 时生效，不影响普通 build/debug -->
     <PublishAot>true</PublishAot>
+    <!-- 并行生成时多线程同时大量分配（拼字符串），开启 Server GC 让每个 CPU 核有独立堆，避免单堆分配竞争导致并行退化。 -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <!-- 抑制 IL3000：Mvp.Xml 的 XIncludingReader 内部用了 Assembly.Location（单文件 AOT 下返回空），
+         但 Gen 传入 solution.xml 的绝对路径作为 base URI，XInclude 的 href 解析不依赖 Assembly.Location，警告无害。 -->
+    <NoWarn>IL3000</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>$(DefineConstants);TRACE</DefineConstants>

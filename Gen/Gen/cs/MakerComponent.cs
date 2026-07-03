@@ -38,23 +38,23 @@ namespace Zeze.Gen.cs
 
             Directory.CreateDirectory(srcDir);
             Directory.CreateDirectory(genDir);
-            foreach (Types.Bean bean in Project.AllBeans.Values)
+            Program.ParallelEach(Project.AllBeans.Values, bean =>
             {
                 if (bean.IsRocks)
                     new rrcs.BeanFormatter(bean).Make(genDir);
                 else
                     new BeanFormatter(bean).Make(genDir);
-            }
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genDir);
-            foreach (Protocol protocol in Project.AllProtocols.Values)
+            });
+            Program.ParallelEach(Project.AllBeanKeys.Values,
+                beanKey => new BeanKeyFormatter(beanKey).Make(genDir));
+            Program.ParallelEach(Project.AllProtocols.Values, protocol =>
             {
                 if (protocol is Rpc rpc)
                     new RpcFormatter(rpc).Make(genDir);
                 else
                     new ProtocolFormatter(protocol).Make(genDir);
-            }
-            foreach (Table table in Project.AllTables.Values)
+            });
+            Program.ParallelEach(Project.AllTables.Values, table =>
             {
                 if (Project.GenTables.Contains(table.Gen))
                 {
@@ -63,7 +63,7 @@ namespace Zeze.Gen.cs
                         new TableFormatter(table, genDir).Make();
                     }
                 }
-            }
+            });
 
             var ns = "";
             foreach (var dir in Project.PackagePath.Split(new char[] { '/', '\\' }))
