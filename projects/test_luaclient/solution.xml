@@ -24,6 +24,13 @@
 			<variable id="3" name="string3" type="string"/>
 		</bean>
 
+		<!-- 覆盖「变量类型直接是 bean」的场景：ref 的 variable_type 是 Bean，模板据此（is_bean）走
+		     build_index/build_newindex/__reg_beans 分支。ScriptModelBuilder 重构曾在此回归
+		     （case Bean 壳漏 is_bean，丢失 __newindex 和 __reg_beans）。 -->
+		<bean name="BeanVar">
+			<variable id="1" name="ref" type="Simple"/>
+		</bean>
+
 		<bean name="Value">
 			<enum name="Enum1" value="4"/>
 			<variable id="1" name="int1" type="int" AllowNegative="true"/>

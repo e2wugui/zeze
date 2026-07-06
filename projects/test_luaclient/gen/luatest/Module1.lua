@@ -30,6 +30,17 @@ Module1.Key = {
 }
 Module1.Key.__index = Module1.Key
 
+---@class msg.luatest.Module1.BeanVar : msg.Bean
+---@field ref msg.luatest.Module1.Simple
+---@field new fun(t: table):msg.luatest.Module1.BeanVar
+Module1.BeanVar = {
+    __type_name__ = 'luatest.Module1.BeanVar',
+    __type_id__ = '4048650238212899759',
+    new = message_core.bean_new,
+}
+Module1.BeanVar.__index = message_core.build_index(Module1.BeanVar)
+Module1.BeanVar.__newindex = message_core.build_newindex(Module1.BeanVar)
+
 ---@class msg.luatest.Module1.Simple : msg.Bean
 ---@field int1 integer
 ---@field long2 long
@@ -119,6 +130,8 @@ Module1.Rpc1.__newindex = message_core.build_newindex(Module1.Rpc1)
 Module1.eTestEnum = 1
 
 function Module1.__reg__()
+    Module1.BeanVar.__reg_beans = {}
+    Module1.BeanVar.__reg_beans.ref = message_init.luatest.Module1.Simple
     Module1.Protocol1.__reg_beans = {}
     Module1.Protocol1.__reg_beans.argument = message_init.luatest.Module1.Value
     Module1.Rpc1.__reg_beans = {}

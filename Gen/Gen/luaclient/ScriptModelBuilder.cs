@@ -29,7 +29,7 @@ namespace Zeze.Gen.luaClient
         public ScriptModelBuilder(Project project) => _project = project;
 
         /// <summary>Maker 控制流用原始对象，模板数据用其 ScriptObject——按原始对象回查已物化的壳。</summary>
-        public ScriptObject Get(object obj) => _map.TryGetValue(obj, out var so) ? so : null;
+        public ScriptObject Get(object obj) => _map.GetValueOrDefault(obj);
 
         /// <summary>三步：Pass1 建壳 + Pass2 填引用 + 组装顶层 Model。</summary>
         public void Build()
@@ -70,12 +70,15 @@ namespace Zeze.Gen.luaClient
                 switch (obj)
                 {
                     case Bean b:
-                        _map[b] = new ScriptObject { ["name"] = b.Name, ["full_name"] = b.FullName, ["type_id"] = b.TypeId };
+                        // is_bean：Bean 作 variable_type 时（变量类型直接是 bean），模板据此走 build_index/build_newindex 分支。
+                        // Bean.IsBean 恒 true；缺了它会导致含 bean 类型变量的 bean 丢失 __newindex 和 __reg_beans（回归）。
+                        _map[b] = new ScriptObject { ["name"] = b.Name, ["full_name"] = b.FullName, ["type_id"] = b.TypeId, ["is_bean"] = true };
                         Enqueue(pending, b.Variables);
                         Enqueue(pending, b.Enums);
                         break;
                     case BeanKey k:
-                        _map[k] = new ScriptObject { ["name"] = k.Name, ["full_name"] = k.FullName, ["type_id"] = k.TypeId };
+                        // 同 Bean：BeanKey.IsBean 恒 true（Kind=beankey），作 variable_type 时需要 is_bean。
+                        _map[k] = new ScriptObject { ["name"] = k.Name, ["full_name"] = k.FullName, ["type_id"] = k.TypeId, ["is_bean"] = true };
                         Enqueue(pending, k.Variables);
                         Enqueue(pending, k.Enums);
                         break;

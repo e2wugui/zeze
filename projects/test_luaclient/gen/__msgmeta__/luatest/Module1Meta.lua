@@ -20,6 +20,15 @@ Module1.Key = {
     },
 }
 
+Module1.BeanVar = {
+    name = 'luatest.Module1.BeanVar',
+    type_id = '4048650238212899759',
+    metatable = message.luatest.Module1.BeanVar,
+    variables = {
+        ref = { id = 1, type = 'luatest.Module1.Simple', },
+    },
+}
+
 Module1.Simple = {
     name = 'luatest.Module1.Simple',
     type_id = '1',
@@ -72,6 +81,7 @@ Module1.Rpc1 = {
 function Module1.__reg__(meta)
     meta.beans['luatest.Module1.AutoKey'] = Module1.AutoKey
     meta.beans['luatest.Module1.Key'] = Module1.Key
+    meta.beans['luatest.Module1.BeanVar'] = Module1.BeanVar
     meta.beans['luatest.Module1.Simple'] = Module1.Simple
     meta.beans['luatest.Module1.Value'] = Module1.Value
     meta.protocols['luatest.Module1.Protocol1'] = Module1.Protocol1
