@@ -70,12 +70,12 @@ namespace Zeze.Gen.luaClient
                 Template template = Template.Parse(luaMetaTemplateString);
                 var so = new ScriptObject
                 {
-                    ["modules"] = model["modules"],
-                    ["beans"] = model["beans"],
-                    ["beankeys"] = model["beankeys"],
-                    ["protocols"] = model["protocols"],
-                    ["message_namespace"] = messageNamespace,
-                    ["schema_namespace"] = schemaNamespace
+                    {"modules", model["modules"]},
+                    {"beans", model["beans"]},
+                    {"beankeys", model["beankeys"]},
+                    {"protocols", model["protocols"]},
+                    {"message_namespace", messageNamespace},
+                    {"schema_namespace", schemaNamespace}
                 };
                 string luaMeta = Render(template, so);
 
@@ -89,25 +89,27 @@ namespace Zeze.Gen.luaClient
             }
 
 
-            // LuaModule / LuaModuleMeta：按 module 逐个生成，仅模板名/目录/后缀/lua_util_dir 不同，提取公共逻辑
+            // LuaModule / LuaModuleMeta：并行按 module 渲染。Template AST 只读、每个 module 各自独立 TemplateContext，
+            // ScriptModelBuilder.Build 后模型只读，Program.OpenStreamWriter 自带 OutputLock → 线程安全。文件路径按 module 唯一，
+            // 内容只依赖模型，与遍历顺序无关，并行不改变产物。
             void RenderPerModule(string templateName, string baseDir, string suffix, bool withLuaUtilDir)
             {
                 Template template = Template.Parse(GetTemplate(templateName));
-                foreach (var module in refModules)
+                Program.ParallelEach(refModules, module =>
                 {
                     var mso = _modelBuilder.Get(module);
                     string fullFileName = module.GetFullPath(baseDir) + suffix;
                     string fullDir = Path.GetDirectoryName(fullFileName);
                     var so = new ScriptObject
                     {
-                        ["module"] = mso,
-                        ["beans"] = mso["beans"],
-                        ["beankeys"] = mso["beankeys"],
-                        ["protocols"] = mso["protocols"],
-                        ["message_namespace"] = messageNamespace,
-                        ["schema_namespace"] = schemaNamespace,
+                        {"module", mso},
+                        {"beans", mso["beans"]},
+                        {"beankeys", mso["beankeys"]},
+                        {"protocols", mso["protocols"]},
+                        {"message_namespace", messageNamespace},
+                        {"schema_namespace", schemaNamespace},
                     };
-                    if (withLuaUtilDir) so["lua_util_dir"] = Project.LuaUtilDir;
+                    if (withLuaUtilDir) so.Add("lua_util_dir", Project.LuaUtilDir);
                     string luaModule = Render(template, so);
                     if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
@@ -116,7 +118,7 @@ namespace Zeze.Gen.luaClient
                         sw.Write(luaModule);
                         sw.Close();
                     }
-                }
+                });
             }
 
             RenderPerModule("LuaModule.scriban-txt", genDir, ".lua", withLuaUtilDir: true);
@@ -127,10 +129,10 @@ namespace Zeze.Gen.luaClient
                 Template rootTemplate = Template.Parse(luaRootTemplateString);
                 var so = new ScriptObject
                 {
-                    ["modules"] = model["modules"],
-                    ["solution"] = model["solution"],
-                    ["message_namespace"] = messageNamespace,
-                    ["schema_namespace"] = schemaNamespace
+                    {"modules", model["modules"]},
+                    {"solution", model["solution"]},
+                    {"message_namespace", messageNamespace},
+                    {"schema_namespace", schemaNamespace}
                 };
                 string luaRoot = Render(rootTemplate, so);
 
@@ -153,10 +155,10 @@ namespace Zeze.Gen.luaClient
                 Template luaInitTemplate = Template.Parse(luaInitTemplateText);
                 var so = new ScriptObject
                 {
-                    ["solution_names"] = solutionNames,
-                    ["message_namespace"] = messageNamespace,
-                    ["schema_namespace"] = schemaNamespace,
-                    ["lua_util_dir"] = Project.LuaUtilDir
+                    {"solution_names", solutionNames},
+                    {"message_namespace", messageNamespace},
+                    {"schema_namespace", schemaNamespace},
+                    {"lua_util_dir", Project.LuaUtilDir}
                 };
                 string luaRoot = Render(luaInitTemplate, so);
 
@@ -194,10 +196,10 @@ namespace Zeze.Gen.luaClient
                         foreach (var p in protocols) protoArr.Add(_modelBuilder.Get(p));
                         var so = new ScriptObject
                         {
-                            ["module"] = mso,
-                            ["protocols"] = protoArr,
-                            ["message_namespace"] = messageNamespace,
-                            ["schema_namespace"] = schemaNamespace
+                            {"module", mso},
+                            {"protocols", protoArr},
+                            {"message_namespace", messageNamespace},
+                            {"schema_namespace", schemaNamespace}
                         };
                         string luaModule = Render(moduleTemplate, so);
                         FileSystem.CreateDirectory(fullDir);
@@ -265,7 +267,7 @@ namespace Zeze.Gen.luaClient
                         modules.Add(mso);
                 }
 
-                string luaRoot = Render(luaInitTemplate, new ScriptObject { ["modules"] = modules });
+                string luaRoot = Render(luaInitTemplate, new ScriptObject { {"modules", modules} });
 
                 var fullFileName = Path.Combine(srcDir, "module.lua");
 

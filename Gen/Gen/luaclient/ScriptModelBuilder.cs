@@ -13,6 +13,9 @@ namespace Zeze.Gen.luaClient
     ///   Pass2 ResolveAll：填引用字段（查 _map，无递归）；
     ///   BuildTopModel：组装顶层 Model + RefModules。
     /// 同一对象多处引用共享同一 ScriptObject（模板里的 == 比较成立）。
+    /// 性能：ScriptObject 字段一律用 Add(string,object)（collection initializer {{k,v}} 或显式 so.Add），不用索引器 this[k]=v。
+    /// 原因：Scriban 7.x 的索引器 set 走 TrySetValue（CanWrite→TryGetValue + AssertNotReadOnly×2 + new SourceSpan），
+    /// 实测比 Add（直接 Store.Add）慢约 400x，26895 个对象 × 多字段会吃掉 ~2s。
     /// </summary>
     internal sealed class ScriptModelBuilder
     {
@@ -71,53 +74,38 @@ namespace Zeze.Gen.luaClient
                 {
                     case Bean b:
                         // is_bean：Bean 作 variable_type 时（变量类型直接是 bean），模板据此走 build_index/build_newindex 分支。
-                        // Bean.IsBean 恒 true；缺了它会导致含 bean 类型变量的 bean 丢失 __newindex 和 __reg_beans（回归）。
-                        _map[b] = new ScriptObject { ["name"] = b.Name, ["full_name"] = b.FullName, ["type_id"] = b.TypeId, ["is_bean"] = true };
+                        _map[b] = new ScriptObject { {"name", b.Name}, {"full_name", b.FullName}, {"type_id", b.TypeId}, {"is_bean", true} };
                         Enqueue(pending, b.Variables);
                         Enqueue(pending, b.Enums);
                         break;
                     case BeanKey k:
                         // 同 Bean：BeanKey.IsBean 恒 true（Kind=beankey），作 variable_type 时需要 is_bean。
-                        _map[k] = new ScriptObject { ["name"] = k.Name, ["full_name"] = k.FullName, ["type_id"] = k.TypeId, ["is_bean"] = true };
+                        _map[k] = new ScriptObject { {"name", k.Name}, {"full_name", k.FullName}, {"type_id", k.TypeId}, {"is_bean", true} };
                         Enqueue(pending, k.Variables);
                         Enqueue(pending, k.Enums);
                         break;
                     case Variable v:
-                        _map[v] = new ScriptObject
-                            { ["name"] = v.Name, ["id"] = v.Id, ["type"] = v.Type, ["initial"] = v.Initial };
+                        _map[v] = new ScriptObject { {"name", v.Name}, {"id", v.Id}, {"type", v.Type}, {"initial", v.Initial} };
                         pending.Push(v.VariableType);
                         break;
                     case Rpc r:
-                        _map[r] = new ScriptObject
-                        {
-                            ["name"] = r.Name, ["full_name"] = r.FullName, ["id"] = r.Id, ["type_id"] = r.TypeId,
-                            ["result"] = true
-                        };
+                        _map[r] = new ScriptObject { {"name", r.Name}, {"full_name", r.FullName}, {"id", r.Id}, {"type_id", r.TypeId}, {"result", true} };
                         pending.Push(r.ArgumentType);
                         pending.Push(r.ResultType);
                         pending.Push(r.Space);
                         Enqueue(pending, r.Enums);
                         break;
                     case Protocol p:
-                        _map[p] = new ScriptObject
-                        {
-                            ["name"] = p.Name, ["full_name"] = p.FullName, ["id"] = p.Id, ["type_id"] = p.TypeId,
-                            ["result"] = false
-                        };
+                        _map[p] = new ScriptObject { {"name", p.Name}, {"full_name", p.FullName}, {"id", p.Id}, {"type_id", p.TypeId}, {"result", false} };
                         pending.Push(p.ArgumentType);
                         pending.Push(p.Space);
                         Enqueue(pending, p.Enums);
                         break;
                     case Types.Type t:
                     {
-                        // Type 必须建 ScriptObject：NativeAOT(7.x) 下反射 Type 的多层成员（如 value_type.full_name）会被 trim 破坏成 null。
                         // full_name=Name：模板 variable_type.full_name ?? variable_type 取到 full_name(=Name)，
-                        // 等价旧反射版（Type 无 full_name 属性→null，fallback 到 Type.ToString()=Name）。Bean 类型的 variable_type 走上面的 Bean case（full_name=FullName）。
-                        var so = new ScriptObject
-                        {
-                            ["name"] = t.Name, ["is_bean"] = t.IsBean, ["is_collection"] = t.IsCollection,
-                            ["full_name"] = t.Name
-                        };
+                        // 等价旧反射版（Type 无 full_name 属性→null，fallback 到 Type.ToString()=Name）。Bean 类型的 variable_type 走上面的 Bean case。
+                        var so = new ScriptObject { {"name", t.Name}, {"is_bean", t.IsBean}, {"is_collection", t.IsCollection}, {"full_name", t.Name} };
                         _map[t] = so;
                         if (t is TypeMap m) { pending.Push(m.KeyType); pending.Push(m.ValueType); }
                         else if (t is TypeDynamic d) { Enqueue(pending, d.RealBeans.Values); }
@@ -129,8 +117,8 @@ namespace Zeze.Gen.luaClient
                         // 仅 Module 暴露 full_name（= Module.FullName=Path()）；Solution 不暴露——镜像旧反射版：
                         // ModuleSpace 基类没有 full_name 属性，反射为 null（决定 LuaRoot 的 module_names 是否含 solution、
                         // LuaMeta 的 package.loaded[''] 等）。
-                        var so = new ScriptObject { ["name"] = ms.Name, ["id"] = ms.Id };
-                        if (ms is Module) so["full_name"] = ms.Path();
+                        var so = new ScriptObject { {"name", ms.Name}, {"id", ms.Id} };
+                        if (ms is Module) so.Add("full_name", ms.Path());
                         _map[ms] = so;
                         pending.Push(ms.Solution); // 循环引用（Solution.Solution==Solution）由 _map 去重切断
                         Enqueue(pending, ms.Beans.Values);
@@ -140,7 +128,7 @@ namespace Zeze.Gen.luaClient
                         break;
                     }
                     case Types.Enum e:
-                        _map[e] = new ScriptObject { ["name"] = e.Name, ["value"] = e.Value };
+                        _map[e] = new ScriptObject { {"name", e.Name}, {"value", e.Value} };
                         break;
                 }
             }
@@ -153,6 +141,7 @@ namespace Zeze.Gen.luaClient
         }
 
         // ===================== Pass 2：填充引用字段（查 _map，O(1)，无递归） =====================
+        // 用 so.Add：Pass1 只填了标量，引用字段 key 与标量不重叠，Add 安全且比索引器 set 快 ~400x。
         private void ResolveAll()
         {
             foreach (var key in _map.Keys)
@@ -165,44 +154,44 @@ namespace Zeze.Gen.luaClient
             switch (obj)
             {
                 case Bean b:
-                    so["variables"] = ToScript(b.Variables);
-                    so["enums"] = ToScript(b.Enums);
+                    so.Add("variables", ToScript(b.Variables));
+                    so.Add("enums", ToScript(b.Enums));
                     break;
                 case BeanKey k:
-                    so["variables"] = ToScript(k.Variables);
-                    so["enums"] = ToScript(k.Enums);
+                    so.Add("variables", ToScript(k.Variables));
+                    so.Add("enums", ToScript(k.Enums));
                     break;
                 case Variable v:
-                    so["variable_type"] = ToScript(v.VariableType);
+                    so.Add("variable_type", ToScript(v.VariableType));
                     break;
                 case Rpc r:
-                    so["argument_type"] = ToScript(r.ArgumentType);
-                    so["result_type"] = ToScript(r.ResultType);
-                    so["space"] = ToScript(r.Space);
-                    so["enums"] = ToScript(r.Enums);
+                    so.Add("argument_type", ToScript(r.ArgumentType));
+                    so.Add("result_type", ToScript(r.ResultType));
+                    so.Add("space", ToScript(r.Space));
+                    so.Add("enums", ToScript(r.Enums));
                     break;
                 case Protocol p:
-                    so["argument_type"] = ToScript(p.ArgumentType);
-                    so["space"] = ToScript(p.Space);
-                    so["enums"] = ToScript(p.Enums);
+                    so.Add("argument_type", ToScript(p.ArgumentType));
+                    so.Add("space", ToScript(p.Space));
+                    so.Add("enums", ToScript(p.Enums));
                     break;
                 case TypeMap m:
-                    so["key_type"] = ToScript(m.KeyType);
-                    so["value_type"] = ToScript(m.ValueType);
+                    so.Add("key_type", ToScript(m.KeyType));
+                    so.Add("value_type", ToScript(m.ValueType));
                     break;
                 case TypeDynamic d:
-                    so["real_beans"] = ToScript(d.RealBeans);
+                    so.Add("real_beans", ToScript(d.RealBeans));
                     break;
                 case TypeCollection c:
-                    so["value_type"] = ToScript(c.ValueType);
+                    so.Add("value_type", ToScript(c.ValueType));
                     break;
                 case ModuleSpace ms:
                     // 过滤为 ∩AllBeans/AllBeanKeys/AllProtocols 的子集，与 Maker 原 Intersect 语义一致
-                    so["beans"] = IntersectScript(ms.Beans.Values, _project.AllBeans.Values);
-                    so["beankeys"] = IntersectScript(ms.BeanKeys.Values, _project.AllBeanKeys.Values);
-                    so["protocols"] = IntersectScript(ms.Protocols.Values, _project.AllProtocols.Values);
-                    so["enums"] = ToScript(ms.Enums);
-                    so["solution"] = ToScript(ms.Solution);
+                    so.Add("beans", IntersectScript(ms.Beans.Values, _project.AllBeans.Values));
+                    so.Add("beankeys", IntersectScript(ms.BeanKeys.Values, _project.AllBeanKeys.Values));
+                    so.Add("protocols", IntersectScript(ms.Protocols.Values, _project.AllProtocols.Values));
+                    so.Add("enums", ToScript(ms.Enums));
+                    so.Add("solution", ToScript(ms.Solution));
                     break;
             }
         }
@@ -234,15 +223,14 @@ namespace Zeze.Gen.luaClient
                 RefModules.Add(ms);
             }
 
-            // 全部物化为 ScriptObject（NativeAOT 下反射任意成员都可能被 trim）。Solution 不设 full_name
-            // （镜像反射版 Solution 无此属性），LuaRoot 的 module_names = map 'full_name' 会得到 null→循环跳过，与 genold 一致。
+            // Solution 不设 full_name（镜像反射版 Solution 无此属性），LuaRoot 的 module_names = map 'full_name' 会得到 null→循环跳过，与 genold 一致。
             Model = new ScriptObject
             {
-                ["modules"] = modulesArr,
-                ["beans"] = ToScript(_project.AllBeans.Values),
-                ["beankeys"] = ToScript(_project.AllBeanKeys.Values),
-                ["protocols"] = ToScript(_project.AllProtocols.Values),
-                ["solution"] = ToScript(_project.Solution),
+                {"modules", modulesArr},
+                {"beans", ToScript(_project.AllBeans.Values)},
+                {"beankeys", ToScript(_project.AllBeanKeys.Values)},
+                {"protocols", ToScript(_project.AllProtocols.Values)},
+                {"solution", ToScript(_project.Solution)},
             };
         }
 
@@ -267,7 +255,7 @@ namespace Zeze.Gen.luaClient
                 {
                     var arr = new ScriptArray();
                     foreach (DictionaryEntry entry in dict)
-                        arr.Add(new ScriptObject { ["key"] = ToScript(entry.Key), ["value"] = ToScript(entry.Value) });
+                        arr.Add(new ScriptObject { {"key", ToScript(entry.Key)}, {"value", ToScript(entry.Value)} });
                     return arr;
                 }
                 case IEnumerable seq:
