@@ -22,6 +22,10 @@ namespace Zeze.Gen.luaClient
         readonly Project _project;
         readonly Dictionary<object, ScriptObject> _map = new();
         HashSet<ModuleSpace> _refModuleSet;
+        // ResolveAll 期间复用的全量集合（避免每个 module 重建 HashSet(全量)）
+        HashSet<Bean> _allBeansSet;
+        HashSet<BeanKey> _allBeanKeysSet;
+        HashSet<Protocol> _allProtocolsSet;
 
         /// <summary>镜像 Project 结构的顶层模型：modules/beans/beankeys/protocols/solution 分门别类。Make 时直接消费。</summary>
         public ScriptObject Model { get; private set; }
@@ -144,6 +148,10 @@ namespace Zeze.Gen.luaClient
         // 用 so.Add：Pass1 只填了标量，引用字段 key 与标量不重叠，Add 安全且比索引器 set 快 ~400x。
         private void ResolveAll()
         {
+            // 预建全量集合一次，后续 124 个 module 复用，避免每次 IntersectScript 重建 HashSet(全量)
+            _allBeansSet = new HashSet<Bean>(_project.AllBeans.Values);
+            _allBeanKeysSet = new HashSet<BeanKey>(_project.AllBeanKeys.Values);
+            _allProtocolsSet = new HashSet<Protocol>(_project.AllProtocols.Values);
             foreach (var key in _map.Keys)
                 ResolveRef(key);
         }
@@ -187,19 +195,18 @@ namespace Zeze.Gen.luaClient
                     break;
                 case ModuleSpace ms:
                     // 过滤为 ∩AllBeans/AllBeanKeys/AllProtocols 的子集，与 Maker 原 Intersect 语义一致
-                    so.Add("beans", IntersectScript(ms.Beans.Values, _project.AllBeans.Values));
-                    so.Add("beankeys", IntersectScript(ms.BeanKeys.Values, _project.AllBeanKeys.Values));
-                    so.Add("protocols", IntersectScript(ms.Protocols.Values, _project.AllProtocols.Values));
+                    so.Add("beans", IntersectScript(ms.Beans.Values, _allBeansSet));
+                    so.Add("beankeys", IntersectScript(ms.BeanKeys.Values, _allBeanKeysSet));
+                    so.Add("protocols", IntersectScript(ms.Protocols.Values, _allProtocolsSet));
                     so.Add("enums", ToScript(ms.Enums));
                     so.Add("solution", ToScript(ms.Solution));
                     break;
             }
         }
 
-        /// <summary>src ∩ all，命中且已物化的收集成 ScriptArray（保持 src 原顺序）。</summary>
-        private ScriptArray IntersectScript<T>(IEnumerable<T> src, IEnumerable<T> all) where T : class
+        /// <summary>src ∩ allSet，命中且已物化的收集成 ScriptArray（保持 src 原顺序）。allSet 由 ResolveAll 预建复用。</summary>
+        private ScriptArray IntersectScript<T>(IEnumerable<T> src, HashSet<T> allSet) where T : class
         {
-            var allSet = new HashSet<T>(all);
             var arr = new ScriptArray();
             foreach (var x in src)
                 if (allSet.Contains(x) && _map.TryGetValue(x, out var so))
