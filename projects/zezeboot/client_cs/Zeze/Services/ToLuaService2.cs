@@ -1135,7 +1135,6 @@ namespace Zeze.Services.ToLuaService2
                 for (int t; (t = bb.ReadByte()) != 0;)
                 {
                     id += bb.ReadTagSize(t);
-                    t &= ByteBuffer.TAG_MASK;
 
                     bool find = false;
                     // 写的这么恶心是因为给把空协议中的list map创建table，先fix_bug 再看看有没有好方法
@@ -1149,7 +1148,6 @@ namespace Zeze.Services.ToLuaService2
                             if ((t = bb.ReadByte()) == 0)
                                 return;
                             id += bb.ReadTagSize(t);
-                            t &= ByteBuffer.TAG_MASK;
                         }
                         if (variableMeta.Id == id)
                         {
@@ -1157,7 +1155,7 @@ namespace Zeze.Services.ToLuaService2
                             // 这里本来想设置成int，再通过元表来访问，可是lua 5.1有一些问题，如果升级的话再改
                             // 主要是保持协议版本兼容性，否则升级协议还要进行特殊判断，记得把__next__重写
                             Lua.lua_pushstring(luaState, variableMeta.Name); // [table, name]
-                            DecodeVariable(luaState, bb, t, variableMeta.Type, variableMeta); // [table, name, value]
+                            DecodeVariable(luaState, bb, t & ByteBuffer.TAG_MASK, variableMeta.Type, variableMeta); // [table, name, value]
                             Lua.lua_settable(luaState, -3); // [table]
                             break;
                         }
