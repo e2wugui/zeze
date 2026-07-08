@@ -31,9 +31,8 @@ namespace Zeze.Gen.Types
             includes.Add(this);
         }
 
-        internal TypeVector4(SortedDictionary<string, Type> types)
+        internal TypeVector4()
 		{
-			types.Add(Name, this);
 		}
 
 		public override string Name => "vector4";

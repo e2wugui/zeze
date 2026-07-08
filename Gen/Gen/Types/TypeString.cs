@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -82,9 +80,8 @@ namespace Zeze.Gen.Types
 		public override bool IsNeedNegativeCheck => false;
 		public override bool IsJavaPrimitive => false;
 
-		internal TypeString(SortedDictionary<string, Type> types)
+		internal TypeString()
 		{
-			types.Add(Name, this);
 		}
 	}
 }

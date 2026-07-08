@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -29,9 +27,8 @@ namespace Zeze.Gen.Types
 				throw new Exception("set value need a keyable type.");
 		}
 
-		internal TypeSet(SortedDictionary<string, Type> types)
+		internal TypeSet()
 		{
-			types.Add(Name, this);
 		}
 
 		public override string Name => "set";

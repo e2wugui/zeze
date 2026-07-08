@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace Zeze.Gen.Types
 {
@@ -28,12 +27,7 @@ namespace Zeze.Gen.Types
 			//	throw new Exception(Name + " Error : value type is binary.");
 		}
 
-		internal TypeList(SortedDictionary<string, Type> types)
-		{
-			types.Add(Name, this);
-		}
-
-		protected TypeList()
+		internal TypeList()
 		{
 		}
 
@@ -45,9 +39,8 @@ namespace Zeze.Gen.Types
 	{
 		public override string Name => "array";
 
-		internal TypeArray(SortedDictionary<string, Type> types)
+		internal TypeArray()
 		{
-			types.Add(Name, this);
 		}
 
 		protected TypeArray(ModuleSpace space, string key, string value, Variable var) : base (space, key, value, var)

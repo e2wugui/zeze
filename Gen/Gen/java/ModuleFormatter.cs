@@ -261,7 +261,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
         }
 
-        bool defReflect = false; // 是否定义了_reflect变量。
+        bool defReflect; // 是否定义了_reflect变量。
 
         public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
         {

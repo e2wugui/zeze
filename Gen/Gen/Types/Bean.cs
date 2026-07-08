@@ -157,21 +157,21 @@ namespace Zeze.Gen.Types
 				return result;
 			}
 		}
-		
 
-		public List<Variable> Variables { get; private set; } = new List<Variable>();
-		public List<Enum> Enums { get; private set; } = new List<Enum>();
+
+		public List<Variable> Variables { get; } = new List<Variable>();
+		public List<Enum> Enums { get; } = new List<Enum>();
 		public string Comment { get; private set; }
 		public virtual string FullName => Space.Path(".", Name);
 		public virtual string FullCxxName => Space.Path("::", Name);
-		public long TypeId { get; private set; }
+		public long TypeId { get; }
 		public bool Extendable { get; private set; }
 		public bool GenEquals { get; private set; }
-		public string Base { get; private set; }
+		public string Base { get; }
 		public string Interface { get; private set; }
 		public List<string> Derives = new();
-		public string Version { get; private set; }
-		public bool MappingClass { get; private set; }
+		public string Version { get; }
+		public bool MappingClass { get; }
 		public bool UseData { get; private set; }
 		public bool OnlyData { get; private set; }
 		public bool CustomTypeId { get; private set; }
@@ -192,7 +192,7 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		public bool RedirectResult { get; private set; } = false;
+		public bool RedirectResult { get; private set; }
 
 		public static void BeautifulVariableId(XmlElement self)
 		{
@@ -324,7 +324,7 @@ namespace Zeze.Gen.Types
 				str = str.Trim();
 			return str;
 		}
-		
+
 		public static string GetComment(XmlElement self)
 		{
 			var comment = self.GetAttribute("comment").Trim();

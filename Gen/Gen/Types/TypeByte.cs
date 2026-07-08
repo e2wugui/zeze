@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -37,9 +35,8 @@ namespace Zeze.Gen.Types
 
 		public override bool IsNeedNegativeCheck => false;
 
-		internal TypeByte(SortedDictionary<string, Type> types)
+		internal TypeByte()
 		{
-			types.Add(Name, this);
 		}
 
         public override bool IsImmutable => true;

@@ -5,8 +5,8 @@ namespace Zeze.Gen.Types
 {
 	public class TypeMap : Type
 	{
-		public Type KeyType { get; private set; }
-		public Type ValueType { get; private set; }
+		public Type KeyType { get; }
+		public Type ValueType { get; }
 
 		public override void Accept(Visitor visitor)
 		{
@@ -60,9 +60,8 @@ namespace Zeze.Gen.Types
 			//	throw new Exception(Name + " Error : value type is binary.");
 		}
 
-		internal TypeMap(SortedDictionary<string, Type> types)
+		internal TypeMap()
 		{
-			types.Add(Name, this);
 		}
 
         public override bool IsImmutable => false;

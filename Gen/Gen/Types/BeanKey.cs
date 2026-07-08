@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen.Types
@@ -124,7 +123,7 @@ namespace Zeze.Gen.Types
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
         public virtual string FullCxxName => Space.Path("::", Name);
-        
+
 		protected string _name;
 		public override bool IsNeedNegativeCheck
 		{
@@ -140,12 +139,12 @@ namespace Zeze.Gen.Types
 		}
 
 
-		public List<Variable> Variables { get; private set; } = new List<Variable>();
-		public List<Enum> Enums { get; private set; } = new List<Enum>();
+		public List<Variable> Variables { get; } = new List<Variable>();
+		public List<Enum> Enums { get; } = new List<Enum>();
 		public string Comment { get; private set; }
 		public virtual string FullName => Space.Path(".", Name);
-		public long TypeId { get; private set; }
-		
+		public long TypeId { get; }
+
 		private List<Variable> VariablesIdOrder_;
 		public List<Variable> VariablesIdOrder
 		{
@@ -182,7 +181,7 @@ namespace Zeze.Gen.Types
                 }
             }
         }
-        
+
 		public BeanKey()
 		{
 

@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen
 {
     public class Table
     {
-        public ModuleSpace Space { get; private set; }
-        public string Name { get; private set; }
+        public ModuleSpace Space { get; }
+        public string Name { get; }
         public string Suffix { get; private set; }
         public string Key { get; }
         public string Value { get; }
@@ -23,11 +21,11 @@ namespace Zeze.Gen
         public Types.Type KeyType { get; private set; }
         public Types.Type ValueType { get; private set; }
         public string FullName => Space.Path(".", Name);
-        public string Kind { get; private set; } = "";
+        public string Kind { get; }
         public bool IsRocks => Kind.Equals("rocks");
         public int Id { get; private set; }
         public string Comment { get; private set; }
-        public string RelationalMapping { get; private set; } = string.Empty;
+        public string RelationalMapping { get; }
         public int Version { get; private set; }
         public bool IsRelationalMapping => RelationalMapping switch
         {

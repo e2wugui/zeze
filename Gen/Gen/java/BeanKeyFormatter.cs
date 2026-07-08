@@ -94,7 +94,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}    var vars = new java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data>();");
                 foreach (var v in bean.VariablesIdOrder)
                 {
-                    string type = v.Type;
+                    string type;
                     string key = v.Key;
                     string value = v.Value;
 

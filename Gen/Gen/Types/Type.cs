@@ -32,7 +32,7 @@ namespace Zeze.Gen.Types
 		public Variable Variable { get; protected set; }
 
 		/////////////////////////////////////////////////////////////////////////////
-		public static SortedDictionary<string, Type> Types { get; private set; } = new SortedDictionary<string, Type>();
+		public static SortedDictionary<string, Type> Types { get; } = new SortedDictionary<string, Type>();
 
 		public virtual void DetectCircle(HashSet<Type> circle)
         {
@@ -83,35 +83,38 @@ namespace Zeze.Gen.Types
 
 		static Type()
 		{
-			new TypeBool(Types);
-			new TypeByte(Types);
-			new TypeShort(Types);
-			new TypeInt(Types);
-			new TypeLong(Types);
+			// 内置类型在此显式注册（key 取自各类型的 Name），不依赖构造函数副作用。
+			static void Reg(Type t) => Types.Add(t.Name, t);
 
-			new TypeFloat(Types);
-			new TypeDouble(Types);
+			Reg(new TypeBool());
+			Reg(new TypeByte());
+			Reg(new TypeShort());
+			Reg(new TypeInt());
+			Reg(new TypeLong());
 
-			new TypeBinary(Types);
-			new TypeString(Types);
+			Reg(new TypeFloat());
+			Reg(new TypeDouble());
 
-			new TypeMap(Types);
-			new TypeList(Types);
-			new TypeArray(Types);
-			new TypeSet(Types);
+			Reg(new TypeBinary());
+			Reg(new TypeString());
 
-			new TypeDynamic(Types);
+			Reg(new TypeMap());
+			Reg(new TypeList());
+			Reg(new TypeArray());
+			Reg(new TypeSet());
 
-			new TypeQuaternion(Types);
-			new TypeVector2(Types);
-			new TypeVector2Int(Types);
-			new TypeVector3(Types);
-			new TypeVector3Int(Types);
-			new TypeVector4(Types);
+			Reg(new TypeDynamic());
 
-			new TypeDecimal(Types);
+			Reg(new TypeQuaternion());
+			Reg(new TypeVector2());
+			Reg(new TypeVector2Int());
+			Reg(new TypeVector3());
+			Reg(new TypeVector3Int());
+			Reg(new TypeVector4());
 
-			new TypeGTable(Types);
+			Reg(new TypeDecimal());
+
+			Reg(new TypeGTable());
 		}
 	}
 }

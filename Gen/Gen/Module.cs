@@ -12,7 +12,7 @@ namespace Zeze.Gen
 
         public readonly string WebPathBase;
         public readonly string ClassBase;
-        public readonly bool MultiInstance = false;
+        public readonly bool MultiInstance;
 
         public void SetReferenceService(Service service)
         {

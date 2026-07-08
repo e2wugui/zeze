@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -36,9 +34,8 @@ namespace Zeze.Gen.Types
 
         public override string Name => "double";
 
-		internal TypeDouble(SortedDictionary<string, Type> types)
+		internal TypeDouble()
 		{
-			types.Add(Name, this);
 		}
 
         public override bool IsImmutable => true;

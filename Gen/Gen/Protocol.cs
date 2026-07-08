@@ -7,25 +7,25 @@ namespace Zeze.Gen
 {
     public class Protocol
     {
-        public ModuleSpace Space { get; private set; }
-        public string Name { get; private set; }
+        public ModuleSpace Space { get; }
+        public string Name { get; }
 
         public string ShortNameIf(ModuleSpace holder)
         {
             return holder == Space ? Name : FullName;
         }
 
-        public int Id { get; private set; }
+        public int Id { get; }
         public long TypeId => (long)Space.Id << 32 | (Id & 0xffff_ffff);
-        public string Argument { get; private set; }
-        public string Handle { get; private set; }
+        public string Argument { get; }
+        public string Handle { get; }
         public int HandleFlags { get; }
         public TransactionLevel TransactionLevel { get; } = TransactionLevel.Serializable;
-        public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
+        public List<Types.Enum> Enums { get; } = new();
         public string FullName => Space.Path(".", Name);
         public string Comment { get; private set; }
-        public bool UseData { get; private set; } = false;
- 
+        public bool UseData { get; private set; }
+
         // setup in compile
         public Types.Type ArgumentType { get; private set; }
 
@@ -34,7 +34,7 @@ namespace Zeze.Gen
         public const int eNormal = 2;
         public const int eSheddable = 3;
 
-        public int CriticalLevel { get; private set; } = eCriticalPlus;
+        public int CriticalLevel { get; } = eCriticalPlus;
 
         public Protocol(ModuleSpace space, XmlElement self)
         {

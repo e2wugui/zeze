@@ -9,13 +9,13 @@ namespace Zeze.Gen
     {
         public string Name { get; internal set; }
         public string NamePinyin => Program.ToPinyin(Name);
-        public ModuleSpace Parent { get; private set; }
+        public ModuleSpace Parent { get; }
         public Util.Ranges ProtocolIdRanges { get; } = new Util.Ranges();
         public string DefaultTransactionLevel { get; private set; }
-        public bool GenEquals { get; private set; }
+        public bool GenEquals { get; }
         public int Id { get; }
-        public bool UseData { get; private set; }
-        public bool OnlyData { get; private set; }
+        public bool UseData { get; }
+        public bool OnlyData { get; }
 
         public XmlElement Self { get; }
 
@@ -83,18 +83,18 @@ namespace Zeze.Gen
             return Program.OpenWriterNoPath(GetFullPath(baseDir), fileName, overwrite);
         }
 
-        public Dictionary<string, Module> Modules { get; private set; } = new();
-        public SortedDictionary<string, Types.Bean> Beans { get; private set; } = new();
-        public SortedDictionary<string, Types.BeanKey> BeanKeys { get; private set; } = new();
-        public SortedDictionary<string, Protocol> Protocols { get; private set; } = new();
-        public SortedDictionary<string, Table> Tables { get; private set; } = new();
-        public SortedDictionary<string, Servlet> Servlets { get; private set; } = new();
-        public SortedDictionary<string, ServletStream> ServletStreams { get; private set; } = new();
-        public List<Types.Enum> Enums { get; private set; } = new();
+        public Dictionary<string, Module> Modules { get; } = new();
+        public SortedDictionary<string, Types.Bean> Beans { get; } = new();
+        public SortedDictionary<string, Types.BeanKey> BeanKeys { get; } = new();
+        public SortedDictionary<string, Protocol> Protocols { get; } = new();
+        public SortedDictionary<string, Table> Tables { get; } = new();
+        public SortedDictionary<string, Servlet> Servlets { get; } = new();
+        public SortedDictionary<string, ServletStream> ServletStreams { get; } = new();
+        public List<Types.Enum> Enums { get; } = new();
         public HashSet<Types.Bean> MappingClassBeans { get; } = new();
         // 从其他项目引入的协议，这个协议仅仅生成相关代码，但不会注册到Service也不会在Module中生成Handle。
-        public SortedDictionary<string, Protocol> ProtocolsImport { get; private set; } = new();
-        public List<Protocol> ProtocolList { get; private set; } = new();
+        public SortedDictionary<string, Protocol> ProtocolsImport { get; } = new();
+        public List<Protocol> ProtocolList { get; } = new();
 
         public void AddMappingClassBean(Types.Bean bean)
         {

@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -39,9 +37,8 @@ namespace Zeze.Gen.Types
         public override bool IsNeedNegativeCheck => false;
         public override bool IsJavaPrimitive => false;
 
-        internal TypeBinary(SortedDictionary<string, Type> types)
+        internal TypeBinary()
 		{
-			types.Add(Name, this);
 		}
     }
 

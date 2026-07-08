@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml;
 
 namespace Zeze.Gen
 {
     public class Service // Zeze.Net.Service
     {
-        public Project Project { get; private set; }
-        public string Name { get; private set; }
-        public string Handle { get; private set; }
+        public Project Project { get; }
+        public string Name { get; }
+        public string Handle { get; }
         public int HandleFlags { get; }
         public string Base { get; private set; }
 

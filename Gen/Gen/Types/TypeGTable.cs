@@ -1,20 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Gen.Types
 {
     public class TypeGTable : Type
     {
-        public string RowKey { get; private set; }
-        public string ColKey { get; private set; }
+        public string RowKey { get; }
+        public string ColKey { get; }
         public string Value { get; private set; }
 
-        public Type RowKeyType { get; private set; }
-        public Type ColKeyType { get; private set; }
-        public Type ValueType { get; private set; }
+        public Type RowKeyType { get; }
+        public Type ColKeyType { get; }
+        public Type ValueType { get; }
 
         public override string Name => "gtable";
         public override bool IsImmutable => false;
@@ -84,9 +81,8 @@ namespace Zeze.Gen.Types
             //	throw new Exception(Name + " Error : value type is binary.");
         }
 
-        internal TypeGTable(SortedDictionary<string, Type> types)
+        internal TypeGTable()
         {
-            types.Add(Name, this);
         }
     }
 }

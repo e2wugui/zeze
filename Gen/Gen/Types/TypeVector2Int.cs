@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Xml;
 
 namespace Zeze.Gen.Types
 {
@@ -33,9 +31,8 @@ namespace Zeze.Gen.Types
             includes.Add(this);
         }
 
-        internal TypeVector2Int(SortedDictionary<string, Type> types)
+        internal TypeVector2Int()
 		{
-			types.Add(Name, this);
 		}
 
 		public override string Name => "vector2int";

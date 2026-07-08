@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Zeze.Gen.Types;
+﻿using Zeze.Gen.Types;
 
 namespace Zeze.Gen.python
 {

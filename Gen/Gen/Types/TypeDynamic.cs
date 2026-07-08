@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Zeze.Gen.Types
 {
@@ -110,9 +109,8 @@ namespace Zeze.Gen.Types
             }
         }
 
-        internal TypeDynamic(SortedDictionary<string, Type> types)
+        internal TypeDynamic()
         {
-            types.Add(Name, this);
         }
     }
 }

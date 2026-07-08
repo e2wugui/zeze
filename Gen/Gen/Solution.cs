@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Transactions;
 using System.Xml;
-using System.Threading.Tasks;
 
 namespace Zeze.Gen
 {
     public class Solution : ModuleSpace
     {
-        public global::Zeze.Util.Ranges ModuleIdAllowRanges { get; private set; }
-        public global::Zeze.Util.Ranges ModuleIdCurrentRanges { get; private set; } = new global::Zeze.Util.Ranges();
+        public global::Zeze.Util.Ranges ModuleIdAllowRanges { get; }
+        public global::Zeze.Util.Ranges ModuleIdCurrentRanges { get; private set; } = new();
 
-        public SortedDictionary<string, Project> Projects { get; private set; } = new SortedDictionary<string, Project>();
+        public SortedDictionary<string, Project> Projects { get; } = new();
 
         public Solution(XmlElement self) : base(null, self)
         {

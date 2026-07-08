@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 using Zeze.Transaction;
 
@@ -11,8 +7,8 @@ namespace Zeze.Gen
     public class Servlet
     {
         public ModuleSpace Space { get; private set; }
-        public string Name { get; set; }
-        public int MaxContentLength = 8192;
+        public string Name { get; }
+        public readonly int MaxContentLength = 8192;
         public TransactionLevel TransactionLevel { get; } = TransactionLevel.Serializable;
 
         public Servlet(ModuleSpace space, XmlElement self)
@@ -25,9 +21,9 @@ namespace Zeze.Gen
             if (tLength.Length > 0)
                 MaxContentLength = int.Parse(tLength);
 
-            var tlevel = self.GetAttribute("TransactionLevel");
-            if (tlevel.Length > 0)
-                TransactionLevel = (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), tlevel);
+            var tLevel = self.GetAttribute("TransactionLevel");
+            if (tLevel.Length > 0)
+                TransactionLevel = Enum.Parse<TransactionLevel>(tLevel);
 
             space.Add(this);
         }

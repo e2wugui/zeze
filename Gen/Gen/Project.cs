@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.IO;
 using System.Xml;
 using Zeze.Gen.Types;
@@ -9,21 +8,21 @@ namespace Zeze.Gen
 {
     public class Project
     {
-        public string Name { get; private set; }
-        public Solution Solution { get; private set; }
+        public string Name { get; }
+        public Solution Solution { get; }
         public string Platform { get; private set; }
         // << 新增路径配置参数
-        public string GenDir { get; private set; }
-        public string SrcDir { get; private set; }
+        public string GenDir { get; }
+        public string SrcDir { get; }
         public bool DisableDeleteGen { get; private set; }
         public string CommonDir { get; private set; }
-        public string PackagePath { get; private set; }
+        public string PackagePath { get; }
         // 新增路径配置参数 >>
 
         public HashSet<string> GenTables { get; set; } = new HashSet<string>();
-        public SortedDictionary<string, Service> Services { get; private set; } = new SortedDictionary<string, Service>();
-        public bool EnableBase { get; private set; } = false;
-        public bool ClientScript { get; private set; } = false;
+        public SortedDictionary<string, Service> Services { get; } = new SortedDictionary<string, Service>();
+        public bool EnableBase { get; private set; }
+        public bool ClientScript { get; private set; }
 
         // setup when compile
         public List<Module> Modules { get; private set; }
@@ -36,15 +35,15 @@ namespace Zeze.Gen
         public bool BuiltinNotGen => BuiltinNG.Equals("true");
 
         public string ComponentPresentModuleFullName { get; private set; }
-        public string IncludeAllModules { get; private set; } = "false";
+        public string IncludeAllModules { get; } = "false";
         public string MacroEditor { get; private set; }
         public static Project MakingInstance { get; set; }
         public string SolutionName { get; set; }
         public bool MappingClass { get; set; }
-        public bool IsUnity { get; private set; } = false;
-        public bool NoRecursiveModule { get; private set; } = false;
-        public bool RelationalMapping { get; private set; } = false;
-        public bool Hot { get; private set; } = false;
+        public bool IsUnity { get; private set; }
+        public bool NoRecursiveModule { get; }
+        public bool RelationalMapping { get; private set; }
+        public bool Hot { get; private set; }
         public string LuaUtilDir { get; set; }
 
         public List<Module> GetAllOrderdRefModules()
@@ -70,12 +69,12 @@ namespace Zeze.Gen
             HashSet<Module> unique = new HashSet<Module>();
             List<Module> modules = new List<Module>();
             foreach (var m in Solution.Modules.Values)
-            { 
+            {
                 m.Depends(unique, modules, false);
             }
             return modules;
         }
-        
+
         public Project(Solution solution, XmlElement self)
         {
             Solution = solution;

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -8,8 +6,8 @@ namespace Zeze.Gen.Types
 {
 	public class Variable
 	{
-		public Type Bean { get; private set; } // Bean or BeanKey
-		public string Name { get; private set; }
+		public Type Bean { get; } // Bean or BeanKey
+		public string Name { get; }
 		public string NamePinyin => Program.ToPinyin(Name);
 		public string NamePrivate => "_" + Name;
 		public string NameUpper1 => Program.Upper1(Name);
@@ -18,16 +16,16 @@ namespace Zeze.Gen.Types
 		public string Getter => $"{NameGetter}()";
 		public string ReadOnlyGetter => $"{NameGetter}ReadOnly()";
 		public string Setter(string value) { return $"{NameSetter}({value})"; }
-		public int Id { get; private set; }
+		public int Id { get; }
 		public string Type { get; private set; }
 		public string Key { get; private set; }
 		public string Value { get; private set; }
 		public string Initial { get; private set; }
-		public string Comment { get; private set; }
+		public string Comment { get; }
 		public string Validator { get; private set; }
-		public bool AllowNegative { get; private set; } = false;
-		public bool Transient { get; private set; } = false;
-		public string FixSize { get; private set; }
+		public bool AllowNegative { get; private set; }
+		public bool Transient { get; private set; }
+		public string FixSize { get; }
 		public string JavaType { get; private set; }
 
 		public DynamicParams DynamicParams { get; } = new();
@@ -52,7 +50,7 @@ namespace Zeze.Gen.Types
 			if (dbase.Length == 0)
 				throw new Exception($"error type define, no type: '{type}'"); // impossible
 			if (dbase.Length == 1)
-				return dbase[0].Trim(); // ÆÕÍ¨ÀàÐÍ»òÕßÃ»ÓÐÖ¸¶¨»ùÀàµÄdynamic
+				return dbase[0].Trim(); // ï¿½ï¿½Í¨ï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½dynamic
 			if (dbase.Length > 2)
 				throw new Exception($"error type define, too many base: '{type}'");
 
@@ -79,7 +77,7 @@ namespace Zeze.Gen.Types
 			Type = ParseDynamicBase(typeTemplate[0]);
 
 			if (typeTemplate.Length == 1)
-				return; // ·ÇÄ£°åÀàÐÍ¡£
+				return; // ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ï¿½ï¿½Í¡ï¿½
 
 			if (typeTemplate.Length > 2 || false == typeTemplate[1].EndsWith("]"))
 				throw new Exception($"error type define: '{Type}'");
@@ -117,7 +115,7 @@ namespace Zeze.Gen.Types
                 default:
 					throw new Exception($"error type define, too many template params: '{typesaved}'");
 			}
-			// ParseDynamicBase ÉÏÃæµ÷ÓÃÁË¶à´Î£¬Ö»»á³É¹¦Ò»´Î¡£
+			// ParseDynamicBase ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¶ï¿½Î£ï¿½Ö»ï¿½ï¿½É¹ï¿½Ò»ï¿½Î¡ï¿½
 		}
 
 		public static void BeautifulVariableId(XmlElement self, int varId)
@@ -198,7 +196,7 @@ namespace Zeze.Gen.Types
 						throw new Exception("node=" + nodename);
 				}
 			}
-			// ²»ÔÙÖ§³ÖÖ±½ÓÔÚAttributeÖÐ¶¨Òådynamic°üº¬µÄBeanÀàÐÍ¡£XXX ÔõÃ´±¨´í¡£
+			// ï¿½ï¿½ï¿½ï¿½Ö§ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½Attributeï¿½Ð¶ï¿½ï¿½ï¿½dynamicï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Beanï¿½ï¿½ï¿½Í¡ï¿½XXX ï¿½ï¿½Ã´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			//foreach (string b in Value.Split(','))
 			//	dynamicValue.Add(b.Trim());
 		}

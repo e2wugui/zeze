@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -8,12 +5,12 @@ namespace Zeze.Gen.Types
 {
 	public class Enum
 	{
-		public string Name { get; private set; }
+		public string Name { get; }
 		public string NamePinyin => Program.ToPinyin(Name);
 
 		public string Value { get; private set; }
-		public string Comment { get; private set; } = "";
-		public string Type { get; private set; }
+		public string Comment { get; }
+		public string Type { get; }
 
 		public Enum(XmlElement self)
 		{

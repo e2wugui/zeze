@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Gen.Types
 {
@@ -15,9 +12,8 @@ namespace Zeze.Gen.Types
         public override bool IsNeedNegativeCheck => true;
 
 
-        internal TypeDecimal(SortedDictionary<string, Type> types)
+        internal TypeDecimal()
         {
-            types.Add(Name, this);
         }
 
         public override void Accept(Visitor visitor)
