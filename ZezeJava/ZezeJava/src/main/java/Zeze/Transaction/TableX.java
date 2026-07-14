@@ -36,7 +36,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private volatile @Nullable Storage<K, V> storage;
 	private @Nullable Database.Table oldTable;
 	private DatabaseRocksDb.Table localRocksCacheTable;
-	private boolean useRelationalMapping;
+	// private boolean useRelationalMapping;
 
 	@Override
 	public void open(@NotNull Table exist, @NotNull Application app) {
@@ -190,6 +190,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							r.setSoftValue(strongRef);
 						}
 					}
+					if (ZezeCounter.instance != null && storage != null)
+						ZezeCounter.instance.getOrAddTableInfo(getId()).cacheGet().increment();
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				}
 
@@ -735,7 +737,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public final @Nullable Storage<?, ?> open(@NotNull Application app, @NotNull Database database,
-											  @Nullable DatabaseRocksDb.Table localTable) {
+	                                          @Nullable DatabaseRocksDb.Table localTable) {
 		if (cache != null)
 			throw new IllegalStateException("table has opened: " + getName());
 
@@ -840,7 +842,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walk(@Nullable K exclusiveStartKey, int proposeLimit,
-								  @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                              @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -848,7 +850,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-									  @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                  @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -856,7 +858,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKey(@Nullable K exclusiveStartKey, int proposeLimit,
-									 @NotNull TableWalkKey<K> callback) throws Exception {
+	                                 @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -864,7 +866,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-										 @NotNull TableWalkKey<K> callback) throws Exception {
+	                                     @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -956,7 +958,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRaw(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-													  @NotNull TableWalkHandleRaw callback) throws Exception {
+	                                                  @NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -967,7 +969,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-														  @NotNull TableWalkHandleRaw callback) throws Exception {
+	                                                      @NotNull TableWalkHandleRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -978,7 +980,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKey(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-														 @NotNull TableWalkKeyRaw callback) throws Exception {
+	                                                     @NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -989,7 +991,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable ByteBuffer walkDatabaseRawKeyDesc(@Nullable ByteBuffer exclusiveStartKey, int proposeLimit,
-															 @NotNull TableWalkKeyRaw callback) throws Exception {
+	                                                         @NotNull TableWalkKeyRaw callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1035,7 +1037,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabase(@Nullable K exclusiveStartKey, int proposeLimit,
-										  @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                      @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1043,7 +1045,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-											  @NotNull TableWalkHandle<K, V> callback) throws Exception {
+	                                          @NotNull TableWalkHandle<K, V> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1051,7 +1053,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKey(@Nullable K exclusiveStartKey, int proposeLimit,
-											 @NotNull TableWalkKey<K> callback) throws Exception {
+	                                         @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1059,7 +1061,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final @Nullable K walkDatabaseKeyDesc(@Nullable K exclusiveStartKey, int proposeLimit,
-												 @NotNull TableWalkKey<K> callback) throws Exception {
+	                                             @NotNull TableWalkKey<K> callback) throws Exception {
 		var storage = this.storage;
 		if (storage == null)
 			throw new IllegalStateException("storage is in-memory or closed");
@@ -1255,26 +1257,30 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == StateRemoved)
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 				var storage = this.storage;
-				if (r.getState() == StateInvalid && storage != null) {
-					var now = System.currentTimeMillis();
-					var ts = r.getTimestamp();
-					if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
-						if (ZezeCounter.instance != null)
-							ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
-						V strongRef = storage.getDatabaseTable().find(this, key);
-						r.setSoftValue(strongRef); // r.Value still maybe null
-						// 【注意】这个变量不管 OldTable 中是否存在的情况。
-//						r.setExistInBackDatabase(strongRef != null);
-						if (strongRef != null) {
-							rocksCachePut(key, strongRef);
-							strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
-						} else
-							rocksCacheRemove(key);
-						r.setTimestamp(-now); // 用负值表示dirty方式读取的时间戳
-						if (isTraceEnabled)
-							logger.trace("LoadDirty {}", r);
-						return strongRef;
+				if (storage != null) {
+					if (r.getState() == StateInvalid) {
+						var now = System.currentTimeMillis();
+						var ts = r.getTimestamp();
+						if (ts >= 0 || now + ts >= cacheTTL) { // 距上次selectDirty超过cacheTTL则从数据库里加载最新值
+							if (ZezeCounter.instance != null)
+								ZezeCounter.instance.getOrAddTableInfo(getId()).storageGet().increment();
+							V strongRef = storage.getDatabaseTable().find(this, key);
+							r.setSoftValue(strongRef); // r.Value still maybe null
+							// 【注意】这个变量不管 OldTable 中是否存在的情况。
+//							r.setExistInBackDatabase(strongRef != null);
+							if (strongRef != null) {
+								rocksCachePut(key, strongRef);
+								strongRef.initRootInfo(r.createRootInfoIfNeed(tkey), null);
+							} else
+								rocksCacheRemove(key);
+							r.setTimestamp(-now); // 用负值表示dirty方式读取的时间戳
+							if (isTraceEnabled)
+								logger.trace("LoadDirty {}", r);
+							return strongRef;
+						}
 					}
+					if (ZezeCounter.instance != null)
+						ZezeCounter.instance.getOrAddTableInfo(getId()).cacheGet().increment();
 				}
 				return r.loadValue();
 			} finally {
@@ -1300,7 +1306,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return ByteBuffer Encoded Change Log
 	 */
 	public @NotNull ByteBuffer encodeChangeListenerWithSpecialName(@Nullable String specialName, @NotNull Object key,
-																   @NotNull Changes.Record r) {
+	                                                               @NotNull Changes.Record r) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteString(specialName != null ? specialName : getName());
 		bb.WriteByteBuffer(encodeKey(key));

@@ -113,9 +113,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	public static final class TableInfo implements TableCounter {
 		private final @NotNull String tableName;
+		private final LongAdderCounter cacheGet = new LongAdderCounter();
+		private final LongAdderCounter storageGet = new LongAdderCounter();
 		private final LongAdderCounter readLock = new LongAdderCounter();
 		private final LongAdderCounter writeLock = new LongAdderCounter();
-		private final LongAdderCounter storageGet = new LongAdderCounter();
 		// 这两个统计用来观察cache清理的影响
 		private final LongAdderCounter tryReadLock = new LongAdderCounter();
 		private final LongAdderCounter tryWriteLock = new LongAdderCounter();
@@ -126,9 +127,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		private final LongAdderCounter reduceInvalid = new LongAdderCounter();
 		private final LongAdderCounter redo = new LongAdderCounter();
 
+		long cacheGetCount;
+		long storageGetCount;
 		long readLockCount;
 		long writeLockCount;
-		long storageGetCount;
 		long tryReadLockCount;
 		long tryWriteLockCount;
 		long acquireShareCount;
@@ -143,6 +145,16 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 
 		@Override
+		public @NotNull LongAdderCounter cacheGet() {
+			return cacheGet;
+		}
+
+		@Override
+		public @NotNull LongAdderCounter storageGet() {
+			return storageGet;
+		}
+
+		@Override
 		public @NotNull LongAdderCounter readLock() {
 			return readLock;
 		}
@@ -150,11 +162,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		@Override
 		public @NotNull LongAdderCounter writeLock() {
 			return writeLock;
-		}
-
-		@Override
-		public @NotNull LongAdderCounter storageGet() {
-			return storageGet;
 		}
 
 		@Override
@@ -193,9 +200,10 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 		}
 
 		boolean checkpointAndReset() {
+			cacheGetCount = cacheGet.sumThenReset();
+			storageGetCount = storageGet.sumThenReset();
 			readLockCount = readLock.sumThenReset();
 			writeLockCount = writeLock.sumThenReset();
-			storageGetCount = storageGet.sumThenReset();
 			tryReadLockCount = tryReadLock.sumThenReset();
 			tryWriteLockCount = tryWriteLock.sumThenReset();
 			acquireShareCount = acquireShare.sumThenReset();
@@ -204,24 +212,25 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 			reduceInvalidCount = reduceInvalid.sumThenReset();
 			lockCount = readLockCount + writeLockCount;
 			redoCount = redo.sumThenReset();
-			return (readLockCount | writeLockCount | storageGetCount | tryReadLockCount | tryWriteLockCount
-					| acquireShareCount | acquireModifyCount | acquireInvalidCount | reduceInvalidCount
-					| redoCount) != 0;
+			return (cacheGetCount | storageGetCount | readLockCount | writeLockCount | tryReadLockCount
+					| tryWriteLockCount | acquireShareCount | acquireModifyCount | acquireInvalidCount
+					| reduceInvalidCount | redoCount) != 0;
 		}
 
 		public static @NotNull String getLogTitle() {
 			return String.format("%-60s CacheHit AcqShrHit AcqModHit AcqShrCnt AcqModCnt AcqInvCnt ReduceCnt" +
-					" StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
+					" CacGetCnt StoGetCnt LockCount  ReadLock WriteLock TryRdLock TryWtLock RedoCount", "TableName");
 		}
 
 		@Override
 		public @NotNull String toString() {
-			float cacheHit = lockCount != 0 ? (lockCount - storageGetCount) * 100.0f / lockCount : 0;
+			long getCount = cacheGetCount + storageGetCount;
+			float cacheHit = getCount != 0 ? cacheGetCount * 100.0f / getCount : 0;
 			float acquireShareHit = lockCount != 0 ? (lockCount - acquireShareCount) * 100.0f / lockCount : 0;
 			float acquireModifyHit = lockCount != 0 ? (lockCount - acquireModifyCount) * 100.0f / lockCount : 0;
-			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
+			return String.format("%-60s%8.2f%%%9.2f%%%9.2f%%%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d%10d", tableName,
 					cacheHit, acquireShareHit, acquireModifyHit,
-					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount,
+					acquireShareCount, acquireModifyCount, acquireInvalidCount, reduceInvalidCount, cacheGetCount,
 					storageGetCount, lockCount, readLockCount, writeLockCount, tryReadLockCount, tryWriteLockCount,
 					redoCount);
 		}
@@ -349,7 +358,6 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 	private final LongCounter transactionRedoCounter = allocCounter("Transaction.Redo");
 	private final LongCounter transactionRedoAndReleaseLockCounter = allocCounter("Transaction.RedoAndReleaseLock");
 
-
 	public static @NotNull PerfCounter instance() {
 		return Objects.requireNonNull((PerfCounter)ZezeCounter.instance);
 	}
@@ -381,13 +389,13 @@ public final class PerfCounter extends FastLock implements ZezeCounter {
 
 	@Override
 	public @NotNull LabeledCounterCreator allocLabeledCounterCreator(@NotNull String name,
-																	 @NotNull String... labelNames) {
+	                                                                 @NotNull String... labelNames) {
 		return labels -> allocCounter(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 
 	@Override
 	public @NotNull LabeledObserverCreator allocRunTimeObserverCreator(@NotNull String name,
-																	   @NotNull String... labelNames) {
+	                                                                   @NotNull String... labelNames) {
 		return labels -> getRunTimeObserver(labels.length > 0 ? name + "." + String.join(".", labels) : name);
 	}
 

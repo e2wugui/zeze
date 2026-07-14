@@ -407,9 +407,10 @@ public class PrometheusCounter implements ZezeCounter {
 		return fastGetOrAdd(tableCounterMap, tableId, k -> {
 			String tableName = TableKey.tables.get(tableId);
 			String table = tableName != null ? tableName : String.valueOf(tableId);
+			LongCounter cacheGet = database_table_operation.labelValues(table, "cacheGet")::inc;
+			LongCounter storageGet = database_table_operation.labelValues(table, "storageGet")::inc;
 			LongCounter readLock = database_table_operation.labelValues(table, "readLock")::inc;
 			LongCounter writeLock = database_table_operation.labelValues(table, "writeLock")::inc;
-			LongCounter storageGet = database_table_operation.labelValues(table, "storageGet")::inc;
 			LongCounter tryReadLock = database_table_operation.labelValues(table, "tryReadLock")::inc;
 			LongCounter tryWriteLock = database_table_operation.labelValues(table, "tryWriteLock")::inc;
 			LongCounter acquireShare = database_table_operation.labelValues(table, "acquireShare")::inc;
@@ -420,6 +421,16 @@ public class PrometheusCounter implements ZezeCounter {
 
 			return new TableCounter() {
 				@Override
+				public @NotNull LongCounter cacheGet() {
+					return cacheGet;
+				}
+
+				@Override
+				public @NotNull LongCounter storageGet() {
+					return storageGet;
+				}
+
+				@Override
 				public @NotNull LongCounter readLock() {
 					return readLock;
 				}
@@ -427,11 +438,6 @@ public class PrometheusCounter implements ZezeCounter {
 				@Override
 				public @NotNull LongCounter writeLock() {
 					return writeLock;
-				}
-
-				@Override
-				public @NotNull LongCounter storageGet() {
-					return storageGet;
 				}
 
 				@Override

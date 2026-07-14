@@ -372,10 +372,12 @@ public final class Transaction {
 							return Procedure.AbortException;
 
 						case Redo:
+							logger.trace("perform({}): Redo", procedure, e);
 							checkResult = CheckResult.Redo;
 							break;
 
 						case RedoAndReleaseLock:
+							logger.trace("perform({}): RedoAndReleaseLock", procedure, e);
 							checkResult = CheckResult.RedoAndReleaseLock;
 							break;
 
@@ -574,7 +576,8 @@ public final class Transaction {
 	/**
 	 * 只能添加一次。
 	 */
-	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed ra, boolean removeWhileRollback) {
+	void addRecordAccessed(@NotNull Record.RootInfo root, @NotNull RecordAccessed ra,
+	                       @SuppressWarnings("unused") boolean removeWhileRollback) {
 		verifyRunning();
 		ra.initRootInfo(root, null);
 		accessedRecords.put(root.getTableKey(), ra);
@@ -642,7 +645,7 @@ public final class Transaction {
 	}
 
 	private static @NotNull CheckResult _check_(@NotNull Procedure procedure, boolean writeLock,
-												@NotNull RecordAccessed e) {
+	                                            @NotNull RecordAccessed e) {
 		e.atomicTupleRecord.record.enterFairLock();
 		try {
 			if (writeLock) {
@@ -702,7 +705,7 @@ public final class Transaction {
 	}
 
 	private @NotNull CheckResult lockAndCheck(@NotNull Procedure procedure,
-											  @NotNull Map.Entry<TableKey, RecordAccessed> e) {
+	                                          @NotNull Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = getLockey(e.getKey());
 		boolean writeLock = e.getValue().dirty;
 		lockey.enterLock(writeLock);

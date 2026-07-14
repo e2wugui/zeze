@@ -54,11 +54,13 @@ public interface ZezeCounter {
 	}
 
 	interface TableCounter {
+		@NotNull LongCounter cacheGet();
+
+		@NotNull LongCounter storageGet();
+
 		@NotNull LongCounter readLock();
 
 		@NotNull LongCounter writeLock();
-
-		@NotNull LongCounter storageGet();
 
 		// 这两个统计用来观察cache清理的影响
 		@NotNull LongCounter tryReadLock();
