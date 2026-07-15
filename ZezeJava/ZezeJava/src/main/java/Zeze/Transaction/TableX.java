@@ -1289,6 +1289,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	/**
+	 * 直接从后端数据库中查询记录，不经过cache，也不影响cache。
+	 * @param key key
+	 * @return value
+	 */
+	public V selectFromDatabase(@NotNull K key) {
+		var st = storage;
+		if (st == null)
+			throw new IllegalStateException("no database");
+		return st.getDatabaseTable().find(this, key);
+	}
+
 	@Override
 	public final boolean isNew() {
 		var storage = this.storage;
