@@ -72,13 +72,17 @@ public class TestRoleTimer {
 		for (var client : clients)
 			client.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
 		/*/
+		var clientsSize = new AtomicInteger(clients.size());
 		clients.parallelStream().forEach(c -> {
 			try {
 				c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
+				clientsSize.decrementAndGet();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		});
+		while (clientsSize.get() != 0)
+			Thread.sleep(1);
 		// */
 		//for (int i = 0; i < clientCount; ++i) {
 		//	clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
