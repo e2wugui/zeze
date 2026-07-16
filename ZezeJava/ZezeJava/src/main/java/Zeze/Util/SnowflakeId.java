@@ -22,10 +22,14 @@ public final class SnowflakeId extends FastLock {
 		setServerId(serverId);
 	}
 
+	public static long getServerIdMax() {
+		return SERVERID_MAX;
+	}
+
 	public void setServerId(long serverId) {
 		lock();
 		try {
-			if (serverId < 0 || serverId >= SERVERID_MAX)
+			if (serverId < 0 || serverId > SERVERID_MAX)
 				throw new IllegalArgumentException("serverId(" + serverId + ") is out of range[0," + SERVERID_MAX + ']');
 			if (lastTimestamp != 0 && this.serverId != serverId)
 				throw new IllegalArgumentException("can not setServerId(" + serverId + ") after gen()");
