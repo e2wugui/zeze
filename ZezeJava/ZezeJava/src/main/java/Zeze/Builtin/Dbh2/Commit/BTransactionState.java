@@ -10,13 +10,16 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
 
     private int _State;
     private final Zeze.Transaction.Collections.PList1<String> _Buckets;
+    private long _Timestamp;
 
     private static final java.lang.invoke.VarHandle vh_State;
+    private static final java.lang.invoke.VarHandle vh_Timestamp;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
         try {
             vh_State = _l_.findVarHandle(BTransactionState.class, "_State", int.class);
+            vh_Timestamp = _l_.findVarHandle(BTransactionState.class, "_Timestamp", long.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -51,6 +54,26 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         return new Zeze.Transaction.Collections.PList1ReadOnly<>(_Buckets);
     }
 
+    @Override
+    public long getTimestamp() {
+        if (!isManaged())
+            return _Timestamp;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _Timestamp;
+        var log = (Zeze.Transaction.Logs.LogLong)_t_.getLog(objectId() + 3);
+        return log != null ? log.value : _Timestamp;
+    }
+
+    public void setTimestamp(long _v_) {
+        if (!isManaged()) {
+            _Timestamp = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogLong(this, 3, vh_Timestamp, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BTransactionState() {
         _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
@@ -58,16 +81,18 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     }
 
     @SuppressWarnings("deprecation")
-    public BTransactionState(int _State_) {
+    public BTransactionState(int _State_, long _Timestamp_) {
         _State = _State_;
         _Buckets = new Zeze.Transaction.Collections.PList1<>(String.class);
         _Buckets.variableId(2);
+        _Timestamp = _Timestamp_;
     }
 
     @Override
     public void reset() {
         setState(0);
         _Buckets.clear();
+        setTimestamp(0);
         _unknown_ = null;
     }
 
@@ -87,12 +112,14 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         setState(_o_._State);
         _Buckets.clear();
         _Buckets.addAll(_o_._Buckets);
+        setTimestamp(_o_._Timestamp);
         _unknown_ = null;
     }
 
     public void assign(BTransactionState _o_) {
         setState(_o_.getState());
         _Buckets.assign(_o_._Buckets);
+        setTimestamp(_o_.getTimestamp());
         _unknown_ = _o_._unknown_;
     }
 
@@ -144,7 +171,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
             }
             _s_.append(_i1_);
         }
-        _s_.append("]\n");
+        _s_.append("],\n");
+        _s_.append(_i1_).append("Timestamp=").append(getTimestamp()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -197,6 +225,13 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            long _x_ = getTimestamp();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -220,6 +255,10 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setTimestamp(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -235,6 +274,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         if (getState() != _b_.getState())
             return false;
         if (!_Buckets.equals(_b_._Buckets))
+            return false;
+        if (getTimestamp() != _b_.getTimestamp())
             return false;
         return true;
     }
@@ -253,6 +294,8 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
     public boolean negativeCheck() {
         if (getState() < 0)
             return true;
+        if (getTimestamp() < 0)
+            return true;
         return false;
     }
 
@@ -267,6 +310,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
             switch (_v_.getVariableId()) {
                 case 1: _State = _v_.intValue(); break;
                 case 2: _Buckets.followerApply(_v_); break;
+                case 3: _Timestamp = _v_.longValue(); break;
             }
         }
     }
@@ -276,6 +320,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setState(_r_.getInt(_pn_ + "State"));
         Zeze.Serialize.Helper.decodeJsonList(_Buckets, String.class, _r_.getString(_pn_ + "Buckets"));
+        setTimestamp(_r_.getLong(_pn_ + "Timestamp"));
     }
 
     @Override
@@ -283,6 +328,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendInt(_pn_ + "State", getState());
         _s_.appendString(_pn_ + "Buckets", Zeze.Serialize.Helper.encodeJson(_Buckets));
+        _s_.appendLong(_pn_ + "Timestamp", getTimestamp());
     }
 
     @Override
@@ -290,6 +336,7 @@ public final class BTransactionState extends Zeze.Transaction.Bean implements BT
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "State", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "Buckets", "list", "", "string"));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Timestamp", "long", "", ""));
         return _v_;
     }
 
@@ -299,6 +346,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private int _State;
     private java.util.ArrayList<String> _Buckets;
+    private long _Timestamp;
 
     public int getState() {
         return _State;
@@ -318,23 +366,33 @@ public static final class Data extends Zeze.Transaction.Data {
         _Buckets = _v_;
     }
 
+    public long getTimestamp() {
+        return _Timestamp;
+    }
+
+    public void setTimestamp(long _v_) {
+        _Timestamp = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _Buckets = new java.util.ArrayList<>();
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _State_, java.util.ArrayList<String> _Buckets_) {
+    public Data(int _State_, java.util.ArrayList<String> _Buckets_, long _Timestamp_) {
         _State = _State_;
         if (_Buckets_ == null)
             _Buckets_ = new java.util.ArrayList<>();
         _Buckets = _Buckets_;
+        _Timestamp = _Timestamp_;
     }
 
     @Override
     public void reset() {
         _State = 0;
         _Buckets.clear();
+        _Timestamp = 0;
     }
 
     @Override
@@ -353,12 +411,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _State = _o_.getState();
         _Buckets.clear();
         _Buckets.addAll(_o_._Buckets);
+        _Timestamp = _o_.getTimestamp();
     }
 
     public void assign(BTransactionState.Data _o_) {
         _State = _o_._State;
         _Buckets.clear();
         _Buckets.addAll(_o_._Buckets);
+        _Timestamp = _o_._Timestamp;
     }
 
     @Override
@@ -410,7 +470,8 @@ public static final class Data extends Zeze.Transaction.Data {
             }
             _s_.append(_i1_);
         }
-        _s_.append("]\n");
+        _s_.append("],\n");
+        _s_.append(_i1_).append("Timestamp=").append(_Timestamp).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -449,6 +510,13 @@ public static final class Data extends Zeze.Transaction.Data {
                     throw new java.util.ConcurrentModificationException(String.valueOf(_n_));
             }
         }
+        {
+            long _x_ = _Timestamp;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -470,6 +538,10 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            _Timestamp = _o_.ReadLong(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -487,6 +559,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_State != _b_._State)
             return false;
         if (!_Buckets.equals(_b_._Buckets))
+            return false;
+        if (_Timestamp != _b_._Timestamp)
             return false;
         return true;
     }

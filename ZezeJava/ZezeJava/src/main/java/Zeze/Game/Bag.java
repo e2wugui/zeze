@@ -298,7 +298,6 @@ public class Bag {
 	}
 
 	public static class Module extends AbstractBag {
-		private final ConcurrentHashMap<String, Bag> bags = new ConcurrentHashMap<>();
 		public ProviderApp providerApp;
 		public final Application zeze;
 		public volatile IntUnaryOperator funcItemPileMax;
@@ -345,7 +344,7 @@ public class Bag {
 		// 需要在事务内使用。
 		// 使用完不要保存。
 		public Bag open(String bagName) {
-			return bags.computeIfAbsent(bagName, key -> new Bag(this, bagName));
+			return new Bag(this, bagName);
 		}
 
 		public static void register(Bean bean) {

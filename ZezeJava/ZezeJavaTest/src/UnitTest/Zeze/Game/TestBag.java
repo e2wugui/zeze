@@ -21,7 +21,6 @@ public class TestBag {
 
 	@Before
 	public final void testInit() throws Exception {
-		demo.App.getInstance().Stop();
 		demo.App.getInstance().Start();
 		// 设置下可堆叠个数
 		App.Instance.BagModule.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
@@ -32,7 +31,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test1_Add() {
+	public final void test1_Add() throws Exception {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");

@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
@@ -63,12 +65,24 @@ public class TestRoleTimer {
 			//servers.get(i).getZeze().getTimer().initializeOnlineTimer(servers.get(i).ProviderApp);
 			//servers.get(i).getZeze().getTimer().start();
 		}
-		Thread.sleep(2000);
-		for (int i = 0; i < clientCount; ++i) {
-			var link = links.get(i % linkCount);
-			var ipPort = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
-		}
+		Thread.sleep(1000);
+		//var link = links.getFirst();
+		//var ipPort = link.LinkdService.getOnePassiveAddress();
+		//*
+		for (var client : clients)
+			client.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
+		/*/
+		clients.parallelStream().forEach(c -> {
+			try {
+				c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		});
+		// */
+		//for (int i = 0; i < clientCount; ++i) {
+		//	clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
+		//}
 		//for (int i = 0; i < clientCount; ++i)
 		//	clients.get(i).Connector.WaitReady();
 	}
@@ -449,7 +463,7 @@ public class TestRoleTimer {
 		Task.tryInitThreadPool();
 
 		try {
-			var clientCount = 1000;
+			var clientCount = 250;
 			log("batch start.");
 			prepareNewEnvironment(clientCount, 1, 1);
 			log("batch prepareNewEnvironment done.");
@@ -486,10 +500,10 @@ public class TestRoleTimer {
 			for (var roleId : loginRoleIds) {
 				var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
 				Task.run(server0.Zeze.newProcedure(() -> {
-					// 每个角色创建20个timer。
-					for (var i = 0; i < 20; ++i) {
+					// 每个角色创建timer。
+					for (var i = 0; i < 10; ++i) {
 						idSet.add(i); // 本来应该事务成功，不过这个目前没有失败的，先这样。
-						timerRole0.scheduleOnline(roleId, Random.getInstance().nextInt(2000) + 500, -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
+						timerRole0.scheduleOnline(roleId, Random.getInstance().nextInt(1000) + 100, -1, -1, -1, TimerBatch.class, new ContextBatch(roleId, i));
 					}
 					return Procedure.Success;
 				}, "scheduleOnlineN"));

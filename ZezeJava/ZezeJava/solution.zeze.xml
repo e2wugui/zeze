@@ -824,7 +824,7 @@
 						<CreateBeanFromSpecialTypeId value="Zeze.Game.Rank::createBeanFromSpecialTypeId"/>
 					</variable>
 				</bean>
-				
+
 				<bean name="BValueLong">
 					<variable id="1" name="Value"     type="long"/>
 				</bean>
@@ -1471,6 +1471,7 @@
 				<bean name="BTransactionState">
 					<variable id="1" name="State" type="int"/>
 					<variable id="2" name="Buckets" type="list[string]"/>
+					<var id="3" name="Timestamp" type="long"/>
 				</bean>
 
 				<bean name="BPrepareBatches">
@@ -2147,7 +2148,7 @@
 		</service>
 	</component>
 
-	<component name="MQManager" 
+	<component name="MQManager"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/MQ"
@@ -2158,7 +2159,7 @@
 			<module ref="Zeze.Builtin.MQ"/>
 		</service>
 	</component>
-	<component name="MQAgent" 
+	<component name="MQAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/MQ"
@@ -2169,7 +2170,7 @@
 		</service>
 	</component>
 
-	<component name="LinksInfo" 
+	<component name="LinksInfo"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Arch" platform="zeze+java">
@@ -2178,7 +2179,7 @@
 		</service>
 	</component>
 
-	<component name="HistoryModule" 
+	<component name="HistoryModule"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/History" platform="zeze+java">
@@ -2187,7 +2188,7 @@
 		</service>
 	</component>
 
-	<component name="HttpSession" 
+	<component name="HttpSession"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Netty" platform="zeze+java">
@@ -2196,7 +2197,7 @@
 		</service>
 	</component>
 
-	<component name="Onz" 
+	<component name="Onz"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Onz" platform="zeze+java">
@@ -2205,7 +2206,7 @@
 		</service>
 	</component>
 
-	<component name="OnzAgent" 
+	<component name="OnzAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Onz" platform="zeze+java">
@@ -2214,7 +2215,7 @@
 		</service>
 	</component>
 
-	<component name="Zoker" 
+	<component name="Zoker"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2223,7 +2224,7 @@
 		</service>
 	</component>
 
-	<component name="ZokerAgent" 
+	<component name="ZokerAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2232,7 +2233,7 @@
 		</service>
 	</component>
 
-	<component name="LogService" 
+	<component name="LogService"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2241,7 +2242,7 @@
 		</service>
 	</component>
 
-	<component name="LogAgent" 
+	<component name="LogAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2250,7 +2251,7 @@
 		</service>
 	</component>
 
-	<component name="HotDistribute" 
+	<component name="HotDistribute"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Hot" platform="zeze+java">
@@ -2259,7 +2260,7 @@
 		</service>
 	</component>
 
-	<component name="HotAgent" 
+	<component name="HotAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Hot" platform="zeze+java">
@@ -2268,7 +2269,7 @@
 		</service>
 	</component>
 
-	<component name="Threading" 
+	<component name="Threading"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2277,7 +2278,7 @@
 		</service>
 	</component>
 
-	<component name="ThreadingServer" 
+	<component name="ThreadingServer"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2286,7 +2287,7 @@
 		</service>
 	</component>
 
-	<component name="Commit" 
+	<component name="Commit"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2" platform="zeze+java">
@@ -2295,7 +2296,7 @@
 		</service>
 	</component>
 
-	<component name="CommitAgent" 
+	<component name="CommitAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2" platform="zeze+java">
@@ -2304,7 +2305,7 @@
 		</service>
 	</component>
 
-	<component name="Master" 
+	<component name="Master"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2/Master" platform="zeze+java">
@@ -2313,7 +2314,7 @@
 		</service>
 	</component>
 
-	<component name="MasterAgent" 
+	<component name="MasterAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2/Master" platform="zeze+java" GenTables="client">
@@ -2322,7 +2323,7 @@
 		</service>
 	</component>
 
-	<component name="Dbh2" 
+	<component name="Dbh2"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java">
@@ -2331,7 +2332,7 @@
 		</service>
 	</component>
 
-	<component name="Dbh2Agent" 
+	<component name="Dbh2Agent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Dbh2" NoRecursiveModule="true" platform="zeze+java" GenTables="client">
@@ -2340,7 +2341,7 @@
 		</service>
 	</component>
 
-	<component name="AutoKey" 
+	<component name="AutoKey"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2349,7 +2350,7 @@
 		</service>
 	</component>
 
-	<component name="Producer" 
+	<component name="Producer"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services/RocketMQ" platform="zeze+java">
@@ -2358,7 +2359,7 @@
 		</service>
 	</component>
 
-	<component name="ServiceManagerWithRaft" 
+	<component name="ServiceManagerWithRaft"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2367,7 +2368,7 @@
 		</service>
 	</component>
 
-	<component name="ServiceManagerAgentWithRaft" EnableBase="true" 
+	<component name="ServiceManagerAgentWithRaft" EnableBase="true"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
@@ -2376,7 +2377,7 @@
 		</service>
 	</component>
 
-	<component name="Timer" 
+	<component name="Timer"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2385,7 +2386,7 @@
 		</service>
 	</component>
 
-	<component name="Statistics" 
+	<component name="Statistics"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2394,7 +2395,7 @@
 		</service>
 	</component>
 
-	<component name="DbWeb" 
+	<component name="DbWeb"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2404,7 +2405,7 @@
 	</component>
 
 	<!-- account online -->
-	<component name="Online" 
+	<component name="Online"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Arch" platform="zeze+java">
@@ -2414,7 +2415,7 @@
 	</component>
 
 	<!-- role online -->
-	<component name="Online" 
+	<component name="Online"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Game" platform="zeze+java">
@@ -2423,7 +2424,7 @@
 		</service>
 	</component>
 
-	<component name="Rank" 
+	<component name="Rank"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Game" platform="zeze+java">
@@ -2432,7 +2433,7 @@
 		</service>
 	</component>
 
-	<component name="Bag" 
+	<component name="Bag"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Game" platform="zeze+java">
@@ -2442,7 +2443,7 @@
 	</component>
 
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
-	<component name="LinkdBase" 
+	<component name="LinkdBase"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2451,7 +2452,7 @@
 		</service>
 	</component>
 
-	<component name="RedoQueueServer" 
+	<component name="RedoQueueServer"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2461,7 +2462,7 @@
 	</component>
 
 	<!-- Provider之间直连服务 -->
-	<component name="ProviderDirect" 
+	<component name="ProviderDirect"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Arch" platform="zeze+java">
@@ -2471,7 +2472,7 @@
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" 
+	<component name="LinkdProvider"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
@@ -2481,7 +2482,7 @@
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
-	<component name="ProviderImplement" 
+	<component name="ProviderImplement"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Arch" platform="zeze+java">
@@ -2490,7 +2491,7 @@
 		</service>
 	</component>
 
-	<component name="DelayRemove" 
+	<component name="DelayRemove"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Component" platform="zeze+java">
@@ -2499,7 +2500,7 @@
 		</service>
 	</component>
 
-	<component name="BoolList" 
+	<component name="BoolList"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Collections" platform="zeze+java">
@@ -2508,7 +2509,7 @@
 		</service>
 	</component>
 
-	<component name="Queue" 
+	<component name="Queue"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Collections" platform="zeze+java">
@@ -2517,7 +2518,7 @@
 		</service>
 	</component>
 
-	<component name="LinkedMap" 
+	<component name="LinkedMap"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Collections" platform="zeze+java">
@@ -2526,7 +2527,7 @@
 		</service>
 	</component>
 
-	<component name="DAG" 
+	<component name="DAG"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Collections" platform="zeze+java">
@@ -2535,7 +2536,7 @@
 		</service>
 	</component>
 
-	<component name="DepartmentTree" 
+	<component name="DepartmentTree"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Collections" platform="zeze+java">
@@ -2544,7 +2545,7 @@
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaft" 
+	<component name="GlobalCacheManagerWithRaft"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2553,7 +2554,7 @@
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaftAgent" 
+	<component name="GlobalCacheManagerWithRaftAgent"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java" GenTables="client">
@@ -2562,7 +2563,7 @@
 		</service>
 	</component>
 
-	<component name="TestRocks" 
+	<component name="TestRocks"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">
@@ -2571,7 +2572,7 @@
 		</service>
 	</component>
 
-	<component name="Token" 
+	<component name="Token"
 		GenDir="src/main/java"
 		SrcDir="src/main/java"
 		PackagePath="Zeze/Services" platform="zeze+java">

@@ -239,6 +239,7 @@ public class CommitRocks {
 
 	public static BTransactionState.Data buildTransactionState(BPrepareBatches.Data batches) {
 		var bState = new BTransactionState.Data();
+		bState.setTimestamp(System.currentTimeMillis());
 		for (var e : batches.getDatas().entrySet()) {
 			bState.getBuckets().add(e.getKey());
 		}
@@ -247,6 +248,7 @@ public class CommitRocks {
 
 	private void saveCommitPoint(byte[] tidBytes, BTransactionState.Data bState, int state) throws RocksDBException {
 		bState.setState(state);
+		bState.setTimestamp(System.currentTimeMillis());
 		var bb = ByteBuffer.Allocate();
 		bState.encode(bb);
 		var bbIndex = ByteBuffer.Allocate(5);

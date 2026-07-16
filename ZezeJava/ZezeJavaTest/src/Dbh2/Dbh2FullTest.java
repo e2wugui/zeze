@@ -133,6 +133,7 @@ public class Dbh2FullTest {
 				table1.replace(trans, key1, value);
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
+			// todo 这个超时需要大于dbh2服务器主动查询并undo。设置成这个值得原因忘了，需要确认。应该可以改小。
 			Thread.sleep(13000);
 		} finally {
 			master.stop();
