@@ -15,6 +15,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
+import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
@@ -203,7 +204,7 @@ public class CommitRocks {
 		if (System.currentTimeMillis() - prepareTime > manager.getDbh2Config().getPrepareMaxTime()) {
 			undo(tid, state);
 			removeCommitIndex(tidBytes);
-			throw new RuntimeException("max prepare time exceed.");
+			throw new RuntimeException(Str.format("max prepare time exceed. time={}", manager.getDbh2Config().getPrepareMaxTime()));
 		}
 		return tid;
 	}

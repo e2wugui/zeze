@@ -12,8 +12,8 @@
 
 	<ServiceManagerConf raftXml="servicemanager.raft.xml"/>
 
-	<CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
 	<!--
+	<CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="9000" BucketMaxTime="10000"/>
 	数据库配置。默认数据库的名字为空。
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 	<DatabaseConf Name="" DatabaseType="Dbh2" DatabaseUrl="dbh2://127.0.0.1:10999/dbh2_unittest"/>

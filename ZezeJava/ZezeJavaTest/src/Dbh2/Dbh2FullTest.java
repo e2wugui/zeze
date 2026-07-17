@@ -135,7 +135,9 @@ public class Dbh2FullTest {
 			}
 			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
 			// BucketMaxTime
-			Thread.sleep(4000);
+			// 由于raft选举，第一服务可用时间比较长，这个超时需要很长，这个回查测试先不做了。
+			// 需要时，去掉这个注释，然后在测试log中查找" query"以及"timeout undo"。验证回查。
+			// Thread.sleep(110_000);
 		} finally {
 			master.stop();
 			for (var manager : managers)
