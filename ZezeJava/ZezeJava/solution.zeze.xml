@@ -1471,7 +1471,7 @@
 				<bean name="BTransactionState">
 					<variable id="1" name="State" type="int"/>
 					<variable id="2" name="Buckets" type="list[string]"/>
-					<var id="3" name="Timestamp" type="long"/>
+					<!-- <var id="3" name="Timestamp" type="long"/> -->
 				</bean>
 
 				<bean name="BPrepareBatches">

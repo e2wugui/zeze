@@ -83,15 +83,15 @@ public class Dbh2Config implements Config.ICustomize {
 		if (!attr.isBlank())
 			prepareMaxTime = Long.parseLong(attr);
 
-		if (prepareMaxTime - rpcTimeout < 2000)
-			prepareMaxTime = rpcTimeout + 2000;
+		if (prepareMaxTime - rpcTimeout < 1000)
+			prepareMaxTime = rpcTimeout + 1000;
 
 		attr = self.getAttribute("BucketMaxTime");
 		if (!attr.isBlank())
 			bucketMaxTime = Long.parseLong(attr);
 
-		if (bucketMaxTime - prepareMaxTime < 2000)
-			bucketMaxTime = prepareMaxTime + 2000;
+		if (bucketMaxTime - prepareMaxTime < 1000)
+			bucketMaxTime = prepareMaxTime + 1000;
 
 		attr = self.getAttribute("ServerFastErrorPeriod");
 		if (!attr.isBlank())

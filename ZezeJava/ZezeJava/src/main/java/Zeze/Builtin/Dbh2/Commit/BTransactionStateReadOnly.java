@@ -18,5 +18,4 @@ public interface BTransactionStateReadOnly {
 
     int getState();
     Zeze.Transaction.Collections.PList1ReadOnly<String> getBucketsReadOnly();
-    long getTimestamp();
 }
