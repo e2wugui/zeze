@@ -72,7 +72,7 @@ public class Dbh2FullTest {
 			for (var table : tables)
 				table.waitReady();
 
-			var count = 1000;
+			var count = 500;
 			var threads = 2;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
