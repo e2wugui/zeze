@@ -7,7 +7,7 @@ public final class SocketOptions {
 	private @Nullable Boolean noDelay; // 不指定的话由系统提供默认值
 	private @Nullable Integer sendBuffer; // 不指定的话由系统提供默认值
 	private @Nullable Integer receiveBuffer; // 不指定的话由系统提供默认值
-	private int backlog = 128; // 只有 ServerSocket 使用
+	private int backlog = 4096; // 只有 ServerSocket 使用
 
 	// 应用选项
 	private int inputBufferMaxProtocolSize = 2 * 1024 * 1024; // 最大协议包的大小。协议需要完整收到才解析和处理，所以需要缓存。这是个安全选项。防止出现攻击占用大量内存。

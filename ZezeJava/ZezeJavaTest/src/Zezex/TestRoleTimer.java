@@ -68,7 +68,7 @@ public class TestRoleTimer {
 		Thread.sleep(1000);
 		//var link = links.getFirst();
 		//var ipPort = link.LinkdService.getOnePassiveAddress();
-		//*
+		/*
 		for (var client : clients)
 			client.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
 		/*/
