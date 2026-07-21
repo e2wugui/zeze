@@ -350,7 +350,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         setReset(_r_.getBoolean(_pn_ + "Reset"));
         _p_.add("Condition");
         _Condition.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -361,7 +361,7 @@ public final class BSearch extends Zeze.Transaction.Bean implements BSearchReadO
         _s_.appendBoolean(_pn_ + "Reset", isReset());
         _p_.add("Condition");
         _Condition.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

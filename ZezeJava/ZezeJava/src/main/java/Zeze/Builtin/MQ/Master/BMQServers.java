@@ -334,7 +334,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("Info");
         _Info.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         Zeze.Serialize.Helper.decodeJsonList(_Servers, Zeze.Builtin.MQ.Master.BMQServer.class, _r_.getString(_pn_ + "Servers"));
         setSessionId(_r_.getLong(_pn_ + "SessionId"));
@@ -344,7 +344,7 @@ public final class BMQServers extends Zeze.Transaction.Bean implements BMQServer
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("Info");
         _Info.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Servers", Zeze.Serialize.Helper.encodeJson(_Servers));
         _s_.appendLong(_pn_ + "SessionId", getSessionId());

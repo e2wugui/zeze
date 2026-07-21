@@ -48,7 +48,7 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
         var _v_ = new Zeze.Builtin.Game.Rank.BConcurrentKey();
         _p_.add("__key");
         _v_.decodeResultSet(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         return _v_;
     }
 
@@ -57,7 +57,7 @@ public final class trank extends TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Z
         var _p_ = new java.util.ArrayList<String>();
         _p_.add("__key");
         _v_.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

@@ -379,7 +379,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
             setTable("");
         _p_.add("Batch");
         _Batch.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -390,7 +390,7 @@ public final class BPrepareBatch extends Zeze.Transaction.Bean implements BPrepa
         _s_.appendString(_pn_ + "Table", getTable());
         _p_.add("Batch");
         _Batch.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

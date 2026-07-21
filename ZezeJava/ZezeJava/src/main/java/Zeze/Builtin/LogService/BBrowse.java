@@ -393,7 +393,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         setReset(_r_.getBoolean(_pn_ + "Reset"));
         _p_.add("Condition");
         _Condition.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -405,7 +405,7 @@ public final class BBrowse extends Zeze.Transaction.Bean implements BBrowseReadO
         _s_.appendBoolean(_pn_ + "Reset", isReset());
         _p_.add("Condition");
         _Condition.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

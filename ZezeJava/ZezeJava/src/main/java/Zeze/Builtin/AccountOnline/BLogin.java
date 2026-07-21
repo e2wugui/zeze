@@ -258,7 +258,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("AccountLink");
         _AccountLink.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setKickOld(_r_.getBoolean(_pn_ + "KickOld"));
     }
@@ -267,7 +267,7 @@ public final class BLogin extends Zeze.Transaction.Bean implements BLoginReadOnl
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("AccountLink");
         _AccountLink.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendBoolean(_pn_ + "KickOld", isKickOld());
     }

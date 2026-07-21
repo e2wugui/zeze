@@ -469,7 +469,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
             setTimerId("");
         _p_.add("CronTimer");
         _CronTimer.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         setHandleClass(_r_.getString(_pn_ + "HandleClass"));
         if (getHandleClass() == null)
             setHandleClass("");
@@ -487,7 +487,7 @@ public final class BTransmitCronTimer extends Zeze.Transaction.Bean implements B
         _s_.appendString(_pn_ + "TimerId", getTimerId());
         _p_.add("CronTimer");
         _CronTimer.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendString(_pn_ + "HandleClass", getHandleClass());
         _s_.appendString(_pn_ + "CustomClass", getCustomClass());
         _s_.appendBinary(_pn_ + "CustomBean", getCustomBean());

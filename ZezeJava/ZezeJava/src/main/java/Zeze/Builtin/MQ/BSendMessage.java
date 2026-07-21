@@ -312,7 +312,7 @@ public final class BSendMessage extends Zeze.Transaction.Bean implements BSendMe
         setPartitionIndex(_r_.getInt(_pn_ + "PartitionIndex"));
         _p_.add("Message");
         _Message.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -322,7 +322,7 @@ public final class BSendMessage extends Zeze.Transaction.Bean implements BSendMe
         _s_.appendInt(_pn_ + "PartitionIndex", getPartitionIndex());
         _p_.add("Message");
         _Message.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

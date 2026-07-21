@@ -289,7 +289,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         setState(_r_.getInt(_pn_ + "State"));
         _p_.add("ReduceTid");
         getReduceTid().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -299,7 +299,7 @@ public final class BReduceParam extends Zeze.Transaction.Bean implements BReduce
         _s_.appendInt(_pn_ + "State", getState());
         _p_.add("ReduceTid");
         getReduceTid().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

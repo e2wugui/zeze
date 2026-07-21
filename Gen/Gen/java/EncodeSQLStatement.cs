@@ -126,14 +126,14 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}{NamePrivate}.encodeSQLStatement(_p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(BeanKey type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}{Getter}.encodeSQLStatement(_p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeDynamic type)
@@ -146,42 +146,42 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeQuaternion({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeVector2 type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeVector2Int type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector2Int({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeVector3 type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeVector3Int type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector3Int({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeVector4 type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.encodeVector4({Getter}, _p_, {bb});");
-            sw.WriteLine($"{prefix}_p_.remove(_p_.size() - 1);");
+            sw.WriteLine($"{prefix}_p_.removeLast();");
         }
 
         public void Visit(TypeGTable type)

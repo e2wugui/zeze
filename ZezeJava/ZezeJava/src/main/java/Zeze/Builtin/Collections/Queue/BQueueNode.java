@@ -322,7 +322,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         Zeze.Serialize.Helper.decodeJsonList(_Values, Zeze.Builtin.Collections.Queue.BQueueNodeValue.class, _r_.getString(_pn_ + "Values"));
         _p_.add("NextNodeKey");
         getNextNodeKey().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -332,7 +332,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean implements BQueueNod
         _s_.appendString(_pn_ + "Values", Zeze.Serialize.Helper.encodeJson(_Values));
         _p_.add("NextNodeKey");
         getNextNodeKey().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

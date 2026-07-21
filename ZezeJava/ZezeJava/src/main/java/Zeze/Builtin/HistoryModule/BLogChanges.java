@@ -430,7 +430,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("GlobalSerialId");
         getGlobalSerialId().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setProtocolClassName(_r_.getString(_pn_ + "ProtocolClassName"));
         if (getProtocolClassName() == null)
@@ -444,7 +444,7 @@ public class BLogChanges extends Zeze.Transaction.Bean implements BLogChangesRea
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("GlobalSerialId");
         getGlobalSerialId().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "ProtocolClassName", getProtocolClassName());
         _s_.appendBinary(_pn_ + "ProtocolArgument", getProtocolArgument());

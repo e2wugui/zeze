@@ -494,7 +494,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("Link");
         getLink().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
         Zeze.Serialize.Helper.decodeJsonSet(_ReliableNotifyMark, String.class, _r_.getString(_pn_ + "ReliableNotifyMark"));
@@ -508,7 +508,7 @@ public final class BOnline extends Zeze.Transaction.Bean implements BOnlineReadO
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("Link");
         getLink().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
         _s_.appendString(_pn_ + "ReliableNotifyMark", Zeze.Serialize.Helper.encodeJson(_ReliableNotifyMark));

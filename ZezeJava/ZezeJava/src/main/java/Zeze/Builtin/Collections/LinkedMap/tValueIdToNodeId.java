@@ -48,7 +48,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
         var _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
         _p_.add("__key");
         _v_.decodeResultSet(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         return _v_;
     }
 
@@ -57,7 +57,7 @@ public final class tValueIdToNodeId extends TableX<Zeze.Builtin.Collections.Link
         var _p_ = new java.util.ArrayList<String>();
         _p_.add("__key");
         _v_.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

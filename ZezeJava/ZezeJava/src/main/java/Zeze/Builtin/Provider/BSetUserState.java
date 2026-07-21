@@ -260,7 +260,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         setLinkSid(_r_.getLong(_pn_ + "linkSid"));
         _p_.add("userState");
         _userState.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -269,7 +269,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean implements BSetUs
         _s_.appendLong(_pn_ + "linkSid", getLinkSid());
         _p_.add("userState");
         _userState.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

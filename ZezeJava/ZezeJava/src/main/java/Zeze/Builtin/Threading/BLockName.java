@@ -155,7 +155,7 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("GlobalThreadId");
         _GlobalThreadId.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _Name = _r_.getString(_pn_ + "Name");
         if (_Name == null)
@@ -166,7 +166,7 @@ public final class BLockName implements Zeze.Transaction.BeanKey, Comparable<BLo
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("GlobalThreadId");
         _GlobalThreadId.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "Name", _Name);
     }

@@ -357,7 +357,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         setSessionId(_r_.getLong(_pn_ + "SessionId"));
         _p_.add("Message");
         _Message.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -368,7 +368,7 @@ public final class BPushMessage extends Zeze.Transaction.Bean implements BPushMe
         _s_.appendLong(_pn_ + "SessionId", getSessionId());
         _p_.add("Message");
         _Message.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

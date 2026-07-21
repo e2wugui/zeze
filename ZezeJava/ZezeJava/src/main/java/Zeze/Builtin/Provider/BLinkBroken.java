@@ -357,7 +357,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         setReason(_r_.getInt(_pn_ + "reason"));
         _p_.add("userState");
         _userState.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -368,7 +368,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean implements BLinkBro
         _s_.appendInt(_pn_ + "reason", getReason());
         _p_.add("userState");
         _userState.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

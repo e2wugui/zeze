@@ -260,7 +260,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
         _p_.add("LockName");
         getLockName().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         setTimeoutMs(_r_.getInt(_pn_ + "TimeoutMs"));
     }
@@ -269,7 +269,7 @@ public final class BMutex extends Zeze.Transaction.Bean implements BMutexReadOnl
     public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
         _p_.add("LockName");
         getLockName().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendInt(_pn_ + "TimeoutMs", getTimeoutMs());
     }

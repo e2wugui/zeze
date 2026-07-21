@@ -389,7 +389,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
             setAccount("");
         _p_.add("Link");
         getLink().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         setLoginVersion(_r_.getLong(_pn_ + "LoginVersion"));
         setLogoutVersion(_r_.getLong(_pn_ + "LogoutVersion"));
         Zeze.Serialize.Helper.decodeJsonDynamic(_UserData, _r_.getString(_pn_ + "UserData"));
@@ -401,7 +401,7 @@ public final class BOnlineShared extends Zeze.Transaction.Bean implements BOnlin
         _s_.appendString(_pn_ + "Account", getAccount());
         _p_.add("Link");
         getLink().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
         _s_.appendLong(_pn_ + "LogoutVersion", getLogoutVersion());
         _s_.appendString(_pn_ + "UserData", Zeze.Serialize.Helper.encodeJson(_UserData));

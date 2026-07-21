@@ -312,7 +312,7 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
         setPartition(_r_.getInt(_pn_ + "Partition"));
         _p_.add("Options");
         _Options.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -322,7 +322,7 @@ public final class BMQInfo extends Zeze.Transaction.Bean implements BMQInfoReadO
         _s_.appendInt(_pn_ + "Partition", getPartition());
         _p_.add("Options");
         _Options.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

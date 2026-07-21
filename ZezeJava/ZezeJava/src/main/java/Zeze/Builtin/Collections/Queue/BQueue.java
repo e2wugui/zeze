@@ -493,10 +493,10 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         setLoadSerialNo(_r_.getLong(_pn_ + "LoadSerialNo"));
         _p_.add("HeadNodeKey");
         getHeadNodeKey().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("TailNodeKey");
         getTailNodeKey().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -509,10 +509,10 @@ public final class BQueue extends Zeze.Transaction.Bean implements BQueueReadOnl
         _s_.appendLong(_pn_ + "LoadSerialNo", getLoadSerialNo());
         _p_.add("HeadNodeKey");
         getHeadNodeKey().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
         _p_.add("TailNodeKey");
         getTailNodeKey().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

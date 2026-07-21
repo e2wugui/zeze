@@ -323,7 +323,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         Zeze.Serialize.Helper.decodeJsonMap(this, "Datas", _Datas, _r_.getString(_pn_ + "Datas"));
         _p_.add("Link");
         getLink().decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -333,7 +333,7 @@ public final class BLocal extends Zeze.Transaction.Bean implements BLocalReadOnl
         _s_.appendString(_pn_ + "Datas", Zeze.Serialize.Helper.encodeJson(_Datas));
         _p_.add("Link");
         getLink().encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override

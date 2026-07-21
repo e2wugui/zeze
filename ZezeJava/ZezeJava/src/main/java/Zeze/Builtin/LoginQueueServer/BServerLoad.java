@@ -357,7 +357,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
         setServicePort(_r_.getInt(_pn_ + "ServicePort"));
         _p_.add("Load");
         _Load.decodeResultSet(_p_, _r_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
@@ -368,7 +368,7 @@ public final class BServerLoad extends Zeze.Transaction.Bean implements BServerL
         _s_.appendInt(_pn_ + "ServicePort", getServicePort());
         _p_.add("Load");
         _Load.encodeSQLStatement(_p_, _s_);
-        _p_.remove(_p_.size() - 1);
+        _p_.removeLast();
     }
 
     @Override
