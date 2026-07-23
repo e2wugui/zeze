@@ -916,7 +916,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 						var reduce = e.getValue();
 						if (reduce.isTimeout()) { // 等待失败不再看作成功。
 							cacheHolder.setError();
-							logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
+							logger.warn("reduce timeout {} AcquireState={} CacheState={} arg={}",
 									rpc.getSender(), StateModify, cs, reduce.Argument);
 						} else {
 							switch (reduce.Result.state) {
