@@ -174,7 +174,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				throw new GoBackZeze("Acquire In Releasing");
 			trans.throwAbort("Acquire In Releasing", null);
 		}
-		agent.verifyFastFail();
+		if (getZeze().getConfig().getEnableGlobalFastFail())
+			agent.verifyFastFail();
 		try {
 			agent.waitLoginSuccess();
 		} catch (Throwable e) { // abort need catch all. will re throw another exception.

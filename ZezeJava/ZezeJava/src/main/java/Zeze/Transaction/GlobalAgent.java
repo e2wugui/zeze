@@ -197,7 +197,8 @@ public final class GlobalAgent extends ReentrantLock implements IGlobalAgent {
 				throw new GoBackZeze("Acquire In Releasing");
 			trans.throwAbort("Acquire In Releasing", null);
 		}
-		agent.verifyFastFail();
+		if (getZeze().getConfig().getEnableGlobalFastFail())
+			agent.verifyFastFail();
 		var socket = agent.connect();
 		// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 		// 一个请求异常不关闭连接，尝试继续工作。

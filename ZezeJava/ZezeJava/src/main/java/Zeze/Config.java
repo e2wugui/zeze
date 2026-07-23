@@ -108,6 +108,15 @@ public final class Config {
 	private long appVersion;
 	private @NotNull String history = "";
 	private int checkpointTransactionPeriod = 30_0000;
+	private boolean enableGlobalFastFail = false;
+
+	public boolean getEnableGlobalFastFail() {
+		return enableGlobalFastFail;
+	}
+
+	public void setEnableGlobalFastFail(boolean b) {
+		enableGlobalFastFail = b;
+	}
 
 	public int getCheckpointTransactionPeriod() {
 		return checkpointTransactionPeriod;
@@ -531,6 +540,10 @@ public final class Config {
 		attr = self.getAttribute("CheckpointTransactionPeriod");
 		if (!attr.isBlank())
 			checkpointTransactionPeriod = Integer.parseInt(attr);
+
+		attr = self.getAttribute("EnableGlobalFastFail");
+		if (!attr.isBlank())
+			enableGlobalFastFail = Boolean.parseBoolean(attr);
 
 		attr = self.getAttribute("ServerId");
 		if (!attr.isBlank())
