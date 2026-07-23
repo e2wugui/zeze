@@ -13,7 +13,8 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 public class GlobalCacheManagerPerf extends ReentrantLock {
-	private static final int ACQUIRE_STATE_COUNT = 3;
+	private static final @NotNull String[] ACQUIRE_STATE_NAMES = {"Invalid", "Share  ", "Modify "};
+	private static final int ACQUIRE_STATE_COUNT = ACQUIRE_STATE_NAMES.length;
 	private static final @NotNull Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 
 	private final @NotNull String perfName;
@@ -125,7 +126,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			var sb = new StringBuilder().append("SerialIds = ").append(serialIds).append('\n');
 			for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
 				long count = totalAcquireCounts0[i];
-				sb.append("Acquires[").append(i).append("] = ").append(count);
+				sb.append("Acquires.").append(ACQUIRE_STATE_NAMES[i]).append(" = ").append(count);
 				if (count > 0) {
 					sb.append(", ").append(totalAcquireTimes[i].sumThenReset() / count / 1_000).append(" us/acquire, max: ")
 							.append(maxAcquireTimes[i].getAndSet(0) / 1_000_000).append(" ms");
@@ -135,7 +136,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 				totalAcquireResults[i].clear();
 				sb.append('\n');
 			}
-			sb.append("Reduces = ").append(totalReduceCountSum);
+			sb.append("Reduces          = ").append(totalReduceCountSum);
 			if (totalReduceCountSum > 0) {
 				sb.append(", ").append(totalReduceTime.sumThenReset() / totalReduceCountSum / 1_000)
 						.append(" us/reduce, max: ").append(maxReduceTime.getAndSet(0) / 1_000_000).append(" ms");
