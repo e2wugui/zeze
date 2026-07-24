@@ -100,7 +100,6 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 
 	@Override
 	public Entry<K, V> pollFirstEntry() {
-		var tree = new TreeMap<>();
 		return null;
 	}
 
