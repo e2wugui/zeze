@@ -29,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public final class Task {
+	static final @NotNull Logger logger = LogManager.getLogger(Task.class);
 	// 通常不建议开,事务并发量太大时并发冲突可能很高导致频繁redo
 	private static final boolean USE_VIRTUAL_THREAD = PropertiesHelper.getBool("useVirtualThread", true);
 	private static final boolean USE_UNLIMITED_VIRTUAL_THREAD = USE_VIRTUAL_THREAD
@@ -49,7 +50,6 @@ public final class Task {
 	@SuppressWarnings("CanBeFinal")
 	public static volatile long defaultTimeout = 120_000; // 2 minutes
 
-	static final @NotNull Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
 	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -67,7 +67,15 @@ public final class Task {
 	}
 
 	public static boolean inJUnitTest() {
-		return System.getProperty("sun.java.command").split(" ")[0].endsWith(".JUnitStarter");
+		for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+			if (element.getClassName().startsWith("org.junit.") ||
+				element.getClassName().startsWith("junit.")) {
+				logger.info("inJUnitTest = true");
+				return true;
+			}
+		}
+		return false;
+		//return System.getProperty("sun.java.command").split(" ")[0].endsWith(".JUnitStarter");
 	}
 
 	public static @NotNull TaskOneByOneByKey getOneByOne() {

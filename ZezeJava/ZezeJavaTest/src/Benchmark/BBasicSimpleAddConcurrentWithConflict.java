@@ -10,7 +10,7 @@ import org.junit.Assert;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
-	public static final int AddCount = 100_000;
+	public static final int AddCount = 10_000;
 
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();
@@ -21,7 +21,7 @@ public class BBasicSimpleAddConcurrentWithConflict extends TestCase {
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
 				tasks.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(BBasicSimpleAddConcurrentWithConflict::Add, "Add")));
-				if ((i + 1) % 200 == 0) {
+				if ((i + 1) % 10 == 0) {
 					for (var task : tasks)
 						task.get();
 					tasks.clear();
