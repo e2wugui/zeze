@@ -5,20 +5,22 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.pcollections.Empty;
 
+import java.util.AbstractCollection;
+import java.util.AbstractSet;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TreeMap;
 
-public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
+public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
+	implements NavigableMap<K, V>, Iterable<Map.Entry<K, V>> {
 	@NotNull org.pcollections.PSortedMap<K, V> map = Empty.sortedMap();
 
 	public final @NotNull org.pcollections.PSortedMap<K, V> getMap() {
@@ -45,7 +47,7 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 
 	@Override
 	public @NotNull Iterator<Entry<K, V>> iterator() {
-		return null;
+		return entrySet().iterator();
 	}
 
 	@Override
@@ -110,32 +112,32 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 
 	@Override
 	public NavigableMap<K, V> descendingMap() {
-		return null;
+		return getMap().descendingMap();
 	}
 
 	@Override
 	public NavigableSet<K> navigableKeySet() {
-		return null;
+		return getMap().navigableKeySet();
 	}
 
 	@Override
 	public NavigableSet<K> descendingKeySet() {
-		return null;
+		return getMap().descendingKeySet();
 	}
 
 	@Override
 	public NavigableMap<K, V> subMap(K fromKey, boolean fromInclusive, K toKey, boolean toInclusive) {
-		return null;
+		return getMap().subMap(fromKey, fromInclusive, toKey, toInclusive);
 	}
 
 	@Override
 	public NavigableMap<K, V> headMap(K toKey, boolean inclusive) {
-		return null;
+		return getMap().headMap(toKey, inclusive);
 	}
 
 	@Override
 	public NavigableMap<K, V> tailMap(K fromKey, boolean inclusive) {
-		return null;
+		return getMap().tailMap(fromKey, inclusive);
 	}
 
 	@Override
@@ -144,18 +146,18 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 	}
 
 	@Override
-	public SortedMap<K, V> subMap(K fromKey, K toKey) {
-		return null;
+	public @NonNull SortedMap<K, V> subMap(K fromKey, K toKey) {
+		return getMap().subMap(fromKey, toKey);
 	}
 
 	@Override
-	public SortedMap<K, V> headMap(K toKey) {
-		return null;
+	public @NonNull SortedMap<K, V> headMap(K toKey) {
+		return getMap().headMap(toKey);
 	}
 
 	@Override
-	public SortedMap<K, V> tailMap(K fromKey) {
-		return null;
+	public @NonNull SortedMap<K, V> tailMap(K fromKey) {
+		return getMap().tailMap(fromKey);
 	}
 
 	@Override
@@ -199,6 +201,8 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 	@Override
 	public abstract V remove(Object key);
 
+	public abstract boolean remove(@NotNull Map.Entry<K, V> item);
+
 	@Override
 	public abstract void putAll(@NotNull Map<? extends K, ? extends V> m);
 
@@ -206,17 +210,99 @@ public abstract class SortedPMap<K extends Comparable<K>, V> extends Collection 
 	public abstract void clear();
 
 	@Override
-	public Set<K> keySet() {
-		return Set.of();
+	public @NonNull Set<K> keySet() {
+		return new AbstractSet<>() {
+			@Override
+			public @NonNull Iterator<K> iterator() {
+				return new Iterator<>() {
+					private final Iterator<Entry<K, V>> it = entrySet().iterator();
+
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public K next() {
+						return it.next().getKey();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				return getMap().size();
+			}
+		};
 	}
 
 	@Override
-	public java.util.Collection<V> values() {
-		return List.of();
+	public java.util.@NonNull Collection<V> values() {
+		return new AbstractCollection<>() {
+			@Override
+			public @NonNull Iterator<V> iterator() {
+				return new Iterator<>() {
+					private final Iterator<Entry<K, V>> it = entrySet().iterator();
+
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public V next() {
+						return it.next().getValue();
+					}
+
+					@Override
+					public void remove() {
+						it.remove();
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				return getMap().size();
+			}
+		};
 	}
 
 	@Override
-	public Set<Entry<K, V>> entrySet() {
-		return Set.of();
+	public @NonNull Set<Entry<K, V>> entrySet() {
+		return new AbstractSet<>() {
+			@Override
+			public @NonNull Iterator<Entry<K, V>> iterator() {
+				return new Iterator<>() {
+					private final Iterator<Map.Entry<K, V>> it = getMap().entrySet().iterator();
+					private Map.Entry<K, V> next;
+
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
+
+					@Override
+					public Entry<K, V> next() {
+						return next = it.next();
+					}
+
+					@Override
+					public void remove() {
+						PSortedMap.this.remove(next.getKey());
+					}
+				};
+			}
+
+			@Override
+			public int size() {
+				return getMap().size();
+			}
+		};
 	}
 }

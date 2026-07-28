@@ -32,6 +32,6 @@ public abstract class LogSortedMap<K extends Comparable<K>, V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void commit() {
-		((SortedPMap<K, V>)getThis()).map = value;
+		((PSortedMap<K, V>)getThis()).map = value;
 	}
 }

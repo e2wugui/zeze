@@ -73,7 +73,7 @@ public abstract class Bean implements Serializable {
 		return rootInfo != null;
 	}
 
-	public final void initRootInfoWithRedo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfoWithRedo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
@@ -82,7 +82,7 @@ public abstract class Bean implements Serializable {
 		initChildrenRootInfoWithRedo(rootInfo);
 	}
 
-	public final void initRootInfo(@NotNull Record.RootInfo rootInfo, @Nullable Bean parent) {
+	public final void initRootInfo(Record.RootInfo rootInfo, @Nullable Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
