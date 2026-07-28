@@ -102,12 +102,18 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 	@Override
 	public Entry<K, V> pollFirstEntry() {
-		return null;
+		var first = getMap().firstEntry();
+		if (first != null)
+			remove(first.getKey());
+		return first;
 	}
 
 	@Override
 	public Entry<K, V> pollLastEntry() {
-		return null;
+		var last = getMap().lastEntry();
+		if (last != null)
+			remove(last.getKey());
+		return last;
 	}
 
 	@Override
