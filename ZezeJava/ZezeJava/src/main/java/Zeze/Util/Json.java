@@ -276,6 +276,10 @@ public final class Json implements Cloneable {
 					final String fieldName = field.getName();
 					if (fieldName.startsWith("this$")) // closure field
 						continue;
+					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
+					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
+					if (fn == null)
+						continue;
 					Class<?> fieldClass = ensureNotNull(field.getType());
 					Creator<?> fieldCtor = null;
 					KeyReader keyReader = null;
@@ -339,10 +343,7 @@ public final class Json implements Cloneable {
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
 					}
-					final BiFunction<Class<?>, Field, String> fieldNameFilter = json.fieldNameFilter;
-					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
-					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
-							keyReader, field));
+					put(j++, new FieldMeta(type, (int)offset, fn, fieldClass, fieldCtor, keyReader, field));
 				}
 			}
 		}
