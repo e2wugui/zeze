@@ -68,6 +68,10 @@ namespace Zeze.Util
                     return $"Zeze.Transaction.Collections.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
                 if (def == typeof(LogMap2<,>))
                     return $"Zeze.Transaction.Collections.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(LogSortedMap1<,>))
+                    return $"Zeze.Transaction.Collections.LogSortedMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+                if (def == typeof(LogSortedMap2<,>))
+                    return $"Zeze.Transaction.Collections.LogSortedMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
                 if (def == typeof(LogSet1<>))
                     return $"Zeze.Transaction.Collections.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
                 if (def == typeof(LogList1<>))

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Zeze.Transaction.Collections
 {
@@ -75,6 +75,33 @@ namespace Zeze.Transaction.Collections
             where V : Util.ConfBean, new()
         {
             var log = (LogMap2<K, V>)_log;
+
+            foreach (var pair in log.Replaced)
+                _map[pair.Key] = pair.Value;
+            foreach (var key in log.Removed)
+                _map.Remove(key);
+
+            // apply changed
+            foreach (var e in log.ChangedWithKey)
+            {
+                if (_map.TryGetValue(e.Key, out var value))
+                    value.FollowerApply(e.Value);
+            }
+        }
+
+        public static void ApplyMap1<K, V>(SortedDictionary<K, V> _map, Log _log)
+        {
+            var log = (LogSortedMap1<K, V>)_log;
+            foreach (var pair in log.Replaced)
+                _map[pair.Key] = pair.Value;
+            foreach (var key in log.Removed)
+                _map.Remove(key);
+        }
+
+        public static void ApplyMap2<K, V>(SortedDictionary<K, V> _map, Log _log)
+            where V : Util.ConfBean, new()
+        {
+            var log = (LogSortedMap2<K, V>)_log;
 
             foreach (var pair in log.Replaced)
                 _map[pair.Key] = pair.Value;
