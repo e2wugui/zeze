@@ -161,6 +161,13 @@ namespace Zeze.Gen.cs
                 var version = tmap.ValueType.IsNormalBeanOrRocks ? "2<" : "1<";
                 return $"LogMap{version}{key}, {value}>";
             }
+            else if (type is Types.TypeSortedMap tsmap)
+            {
+                string key = rrcs.TypeName.GetName(tsmap.KeyType);
+                string value = rrcs.TypeName.GetName(tsmap.ValueType);
+                var version = tsmap.ValueType.IsNormalBeanOrRocks ? "2<" : "1<";
+                return $"LogSortedMap{version}{key}, {value}>";
+            }
             throw new System.Exception();
         }
     }
