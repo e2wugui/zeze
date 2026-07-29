@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Xml;
 
@@ -23,6 +23,7 @@ namespace Zeze.Gen.Types
 
         public override void Depends(HashSet<Type> includes, string parent)
         {
+            includes.Add(this);
         }
     }
 }

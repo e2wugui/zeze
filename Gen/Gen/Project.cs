@@ -217,15 +217,6 @@ namespace Zeze.Gen
                 {
                     protocol.Depends(depends, parent);
                 }
-
-                foreach (Protocol protocol in AllProtocols.Values)
-                {
-                    if (protocol.ArgumentType != null)
-                        depends.Add(protocol.ArgumentType);
-                    if (protocol is Rpc rpc && rpc.ResultType != null)
-                        depends.Add(rpc.ResultType);
-                }
-
                 if (false == Platform.Equals("simplecs"))
                 {
                     foreach (Table table in AllTables.Values)
