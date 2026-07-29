@@ -217,17 +217,17 @@ namespace Zeze.Gen
                 {
                     protocol.Depends(depends, parent);
                 }
+                foreach (Protocol protocol in AllProtocols.Values)
+                {
+                    if (protocol.ArgumentType != null)
+                        depends.Add(protocol.ArgumentType);
+                }
                 if (false == Platform.Equals("simplecs"))
                 {
-                    foreach (Protocol protocol in AllProtocols.Values)
+                    foreach (Table table in AllTables.Values)
                     {
-                        if (protocol.ArgumentType != null)
-                            depends.Add(protocol.ArgumentType);
+                        table.Depends(depends, parent);
                     }
-                }
-                foreach (Table table in AllTables.Values)
-                {
-                    table.Depends(depends, parent);
                 }
                 // 加入模块中定义的所有bean和beankey。
                 foreach (Module mod in AllOrderDefineModules)
