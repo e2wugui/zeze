@@ -87,6 +87,11 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.LeaderApplyNoRecursive(vlog); break;");
         }
 
+        public void Visit(Types.TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.LeaderApplyNoRecursive(vlog); break;");
+        }
+
         public void Visit(Types.Bean type)
         {
             // leader apply not need 

@@ -113,6 +113,11 @@ namespace Zeze.Gen.cs
             WriteCollectionLog(type);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            WriteCollectionLog(type);
+        }
+
         public void Visit(TypeFloat type)
         {
             WriteLogValue(type);

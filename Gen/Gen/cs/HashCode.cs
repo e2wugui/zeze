@@ -120,6 +120,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}_h_ = _h_ * _p_ + {varname}.GetHashCode();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine($"{prefix}_h_ = _h_ * _p_ + {varname}.GetHashCode();");
+        }
+
         public void Visit(TypeFloat type)
         {
             sw.WriteLine($"{prefix}_h_ = _h_ * _p_ + {varname}.GetHashCode();");

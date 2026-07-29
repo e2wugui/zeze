@@ -81,6 +81,17 @@ namespace Zeze.Gen.rrcs
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            // rrcs 暂不提供 SortedMap 特化（运行时未实现 CollSortedMap），
+            // 回退到 TypeMap 的实现：使用 CollMap，行为上等同于普通 Map。
+            // 序列化 tag 仍是 MAP，跟其他语言互通没问题。
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
+            name = "Zeze.Raft.RocksRaft.CollMap" + (type.ValueType.IsNormalBeanOrRocks ? "2<" : "1<") + key + ", " + value + ">";
+            nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
+        }
+
         public void Visit(Bean type)
         {
             name = type.Space.Path(".", type.Name);

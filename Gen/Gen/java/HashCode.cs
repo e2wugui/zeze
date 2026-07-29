@@ -121,6 +121,11 @@ namespace Zeze.Gen.java
             text = var.NamePrivate + ".hashCode()";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            text = var.NamePrivate + ".hashCode()";
+        }
+
         public void Visit(Bean type)
         {
             text = var.NamePrivate + ".hashCode()";

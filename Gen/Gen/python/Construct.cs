@@ -128,6 +128,11 @@ namespace Zeze.Gen.python
             sw.Write("{}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.Write("{}");
+        }
+
         public void Visit(Bean type)
         {
             sw.Write($"{TypeName.GetName(type)}({variable.Initial})");

@@ -88,6 +88,11 @@ namespace Zeze.Gen.java
             DefineNew(type);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            DefineNew(type);
+        }
+
         public void Visit(Bean type)
         {
             DefineNew(type);

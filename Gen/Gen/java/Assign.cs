@@ -213,6 +213,48 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}{var.NamePrivate}.assign(_o_.{var.NamePrivate});");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (type.ValueType.IsNormalBean)
+            {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+                if (isData)
+                {
+                    if (string.IsNullOrEmpty(type.Variable.JavaType))
+                    {
+                        sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet()) {");
+                        type.ValueType.Accept(new Define("_v_", sw, prefix + "    "));
+                        sw.WriteLine(prefix + "    _v_.assign(_e_.getValue());");
+                        sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _v_);");
+                        sw.WriteLine(prefix + "}");
+                    }
+                    else
+                    {
+                        sw.WriteLine(prefix + "_o_." + var.NamePrivate + ".foreach((k, v) -> {");
+                        type.ValueType.Accept(new Define("_v_", sw, prefix + "    "));
+                        sw.WriteLine(prefix + "    _v_.assign(v);");
+                        sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(k, _v_);");
+                        sw.WriteLine(prefix + "});");
+                    }
+                }
+                else
+                {
+                    sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet())");
+                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _e_.getValue().copy());");
+                }
+            }
+            else if (isData)
+            {
+                sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+                if (!string.IsNullOrEmpty(type.Variable.JavaType))
+                    sw.WriteLine($"{prefix}_o_.{var.NamePrivate}.putAllTo({var.NamePrivate});");
+                else
+                    sw.WriteLine($"{prefix}{var.NamePrivate}.putAll(_o_.{var.NamePrivate});");
+            }
+            else
+                sw.WriteLine($"{prefix}{var.NamePrivate}.assign(_o_.{var.NamePrivate});");
+        }
+
         public void Visit(Bean type)
         {
             if (isData)

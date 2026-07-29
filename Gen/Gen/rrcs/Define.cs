@@ -88,6 +88,11 @@ namespace Zeze.Gen.rrcs
             DefineNew(type);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            DefineNew(type);
+        }
+
         public void Visit(TypeFloat type)
         {
             DefineStack(type);

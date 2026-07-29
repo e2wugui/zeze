@@ -208,6 +208,15 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            var typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
+
         public void Visit(TypeFloat type)
         {
             WriteProperty(type);

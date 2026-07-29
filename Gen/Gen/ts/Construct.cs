@@ -114,6 +114,11 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + "this." + variable.Name + " = new " + TypeName.GetName(type) + "();");
+        }
+
         public void Visit(TypeFloat type)
         {
             Initial();

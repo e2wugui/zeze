@@ -258,6 +258,42 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + (sep != 0 ? $"_s_.append(\"}}{sep}\\n\");" : "_s_.append(\"}\\n\");"));
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}={{\");");
+            sw.WriteLine(prefix + $"if (!{NamePrivate}.isEmpty()) {{");
+            sw.WriteLine(prefix + "    _s_.append('\\n');");
+            sw.WriteLine(prefix + "    int _n_ = 0;");
+            if (!isData || string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                sw.WriteLine(prefix + $"    for (var _e_ : {NamePrivate}.entrySet()) {{");
+                // sw.WriteLine(prefix + "        _s_.append(_i2_).append("(\\n");");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
+                type.KeyType.Accept(new Tostring(sw, null, "Key", "_e_.getKey()", prefix + "        ", ',', isData));
+                type.ValueType.Accept(new Tostring(sw, null, "Value", "_e_.getValue()", prefix + "        ", ',', isData));
+                // sw.WriteLine(prefix + "        _s_.append(_i2_).append(")\\n");");
+            }
+            else
+            {
+                sw.WriteLine(prefix + $"    for (var _i_ = {NamePrivate}.iterator(); _i_.moveToNext(); ) {{");
+                // sw.WriteLine(prefix + "        _s_.append(_i2_).append("(\\n");");
+                sw.WriteLine(prefix + "        if (++_n_ > 1000) {");
+                sw.WriteLine(prefix + $"            _s_.append(_i2_).append(\"...[\").append({NamePrivate}.size()).append(\"]\\n\");");
+                sw.WriteLine(prefix + "            break;");
+                sw.WriteLine(prefix + "        }");
+                type.KeyType.Accept(new Tostring(sw, null, "Key", "_i_.key()", prefix + "        ", ',', isData));
+                type.ValueType.Accept(new Tostring(sw, null, "Value", "_i_.value()", prefix + "        ", ',', isData));
+                // sw.WriteLine(prefix + "        _s_.append(_i2_).append(")\\n");");
+            }
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    _s_.append(_i1_);");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + (sep != 0 ? $"_s_.append(\"}}{sep}\\n\");" : "_s_.append(\"}\\n\");"));
+        }
+
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine($"{prefix}_s_.append(_i{(var != null ? 1 : 2)}_).append(\"{varname}=\");");

@@ -330,6 +330,27 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}    " + bufName + ".skip_unknown_field_or_raise(_t_, \"Map\")");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            var kt = type.KeyType;
+            var vt = type.ValueType;
+            sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
+            sw.WriteLine($"{prefix}_x_.clear()");
+            sw.WriteLine($"{prefix}if (_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)}:");
+            sw.WriteLine($"{prefix}    _t_ = " + bufName + ".read_byte()");
+            sw.WriteLine($"{prefix}    _s_ = _t_ >> ByteBuffer.TAG_SHIFT");
+            sw.WriteLine($"{prefix}    _n_ = {bufName}.read_uint()");
+            sw.WriteLine($"{prefix}    while _n_ > 0:");
+            sw.WriteLine($"{prefix}        _k_ = " + DecodeElement(kt, "_s_", var.Name));
+            sw.WriteLine($"{prefix}        _v_ = " + DecodeElement(vt, "_t_", var.Name));
+            sw.WriteLine($"{prefix}        _x_[_k_] = _v_");
+            sw.WriteLine($"{prefix}        _n_ -= 1");
+            sw.WriteLine($"{prefix}else:");
+            sw.WriteLine($"{prefix}    " + bufName + ".skip_unknown_field_or_raise(_t_, \"Map\")");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(id > 0

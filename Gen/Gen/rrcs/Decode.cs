@@ -303,6 +303,28 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.KeyType;
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "_x_.Clear();");
+            sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
+            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--)");
+            sw.WriteLine(prefix + "    {");
+            sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
+            sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
+            sw.WriteLine(prefix + "        _x_.Add(_k_, _v_);");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine(prefix + "else");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

@@ -88,6 +88,11 @@ namespace Zeze.Gen.cxx
             WriteProperty(type, true);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            WriteProperty(type, true);
+        }
+
         public void Visit(Bean type)
         {
             WriteProperty(type, true);

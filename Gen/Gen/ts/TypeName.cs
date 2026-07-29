@@ -83,6 +83,13 @@ namespace Zeze.Gen.ts
             name = "Map<" + key + ", " + value + ">";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
+            name = "Map<" + key + ", " + value + ">";
+        }
+
         public void Visit(Bean type)
         {
             name = type.FullName.Replace(".", "_");

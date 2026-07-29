@@ -98,6 +98,11 @@ namespace Zeze.Gen.cs
             throw new NotImplementedException();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Visit(TypeFloat type)
         {
             text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";

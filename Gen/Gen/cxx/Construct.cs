@@ -188,6 +188,10 @@ namespace Zeze.Gen.cxx
         {
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+        }
+
         public void Visit(Bean type)
         {
             var value = variable.Initial;

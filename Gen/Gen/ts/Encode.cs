@@ -336,6 +336,38 @@ namespace Zeze.Gen.ts
             sw.WriteLine(prefix + "}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.KeyType;
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "const _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "const _n_ = _x_.size;");
+            sw.WriteLine(prefix + "if (_n_ !== 0) {");
+            sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
+            sw.WriteLine(prefix + "    _x_.forEach((_v_, _k_) => {");
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
+            {
+                vt.Accept(new Encode("_k_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(kt, prefix + "        ", "_k_");
+            }
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
+            {
+                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(vt, prefix + "        ", "_v_");
+            }
+            sw.WriteLine(prefix + "    });");
+            sw.WriteLine(prefix + "}");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

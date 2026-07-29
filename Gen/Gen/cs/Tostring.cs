@@ -189,6 +189,26 @@ namespace Zeze.Gen.cs
             sw.WriteLine(".Append(Environment.NewLine);");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
+            sw.WriteLine($"{prefix}level += {INDENT_SIZE};");
+            sw.WriteLine(prefix + $"foreach (var _kv_ in {var})");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    sb.Append(Zeze.Util.Str.Indent(level)).Append('(').Append(Environment.NewLine);");
+            sw.WriteLine(prefix + "    var Key = _kv_.Key;");
+            type.KeyType.Accept(new Tostring(sw, "Key", prefix + "    ", ','));
+            sw.WriteLine(prefix + "    var Value = _kv_.Value;");
+            type.ValueType.Accept(new Tostring(sw, "Value", prefix + "    ", ','));
+            sw.WriteLine(prefix + "    sb.Append(Zeze.Util.Str.Indent(level)).Append(')').Append(Environment.NewLine);");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine($"{prefix}level -= {INDENT_SIZE};");
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(']')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append('=').Append(Environment.NewLine);");

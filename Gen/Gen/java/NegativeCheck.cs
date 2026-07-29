@@ -139,6 +139,16 @@ namespace Zeze.Gen.java
             }
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (type.IsNeedNegativeCheck)
+            {
+                sw.WriteLine(prefix + "for (var _v_ : " + NamePrivate + ".values()) {");
+                type.ValueType.Accept(new NegativeCheck(sw, null, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "}");
+            }
+        }
+
         public void Visit(Bean type)
         {
             if (type.IsNeedNegativeCheck)

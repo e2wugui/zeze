@@ -103,6 +103,18 @@ namespace Zeze.Gen.rrjava
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';
         }
 
+        public virtual void Visit(TypeSortedMap type)
+        {
+            // 与 CollMap 并行的 SortedMap 实现：底层用 org.pcollections.PSortedMap。
+            // 运行时类：Zeze.Raft.RocksRaft.CollSortedMap1/2 + LogSortedMap1/2。
+            string key = BoxingName.GetBoxingName(type.KeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+            nameRaw = "Zeze.Raft.RocksRaft.CollSortedMap";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBeanOrRocks ? '2' : '1');
+            name = nameOmitted + '<' + key + ", " + value + '>';
+            nameCollectionImplement = "org.pcollections.PSortedMap<" + key + ", " + value + '>';
+        }
+
         public virtual void Visit(Bean type)
         {
             name = type.FullName;

@@ -151,6 +151,15 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}{variable.NamePrivate}ReadOnly = new {readonlyTypeName}({variable.NamePrivate});");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            // SortedDictionary 没有 VariableId 属性，也没有 CollMapReadOnly 配套，
+            // 直接 new 一个空实例即可。readonly 视图通过 Property 直接以字段暴露（SortedDictionary
+            // 本身实现 IReadOnlyDictionary<K,V>）。
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine($"{prefix}{variable.NamePrivate} = new {typeName}();");
+        }
+
         public void Visit(TypeFloat type)
         {
             Initial();

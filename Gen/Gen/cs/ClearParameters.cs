@@ -102,6 +102,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}{variable.NameUpper1}.Clear();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine($"{prefix}{variable.NameUpper1}.Clear();");
+        }
+
         public void Visit(Bean type)
         {
             var value = variable.Initial;

@@ -82,6 +82,11 @@ namespace Zeze.Gen.cxx
             DefineStack(type);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            DefineStack(type);
+        }
+
         public void Visit(Bean type)
         {
             DefineStack(type);

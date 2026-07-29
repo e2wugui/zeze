@@ -73,6 +73,11 @@ namespace Zeze.Gen.cxx
             Name = "Zeze::ByteBuffer::MAP";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            Name = "Zeze::ByteBuffer::MAP";
+        }
+
         public void Visit(Bean type)
         {
             Name = "Zeze::ByteBuffer::BEAN";

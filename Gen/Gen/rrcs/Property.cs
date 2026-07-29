@@ -180,6 +180,12 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            sw.WriteLine();
+        }
+
         public void Visit(TypeFloat type)
         {
             WriteProperty(type);

@@ -321,6 +321,25 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}        raise Exception(f\"ConcurrentModification: {{_n_}}\")");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Type kt = type.KeyType;
+            Type vt = type.ValueType;
+            sw.WriteLine($"{prefix}_x_ = self.{var.Name}");
+            sw.WriteLine($"{prefix}_n_ = len(_x_)");
+            sw.WriteLine($"{prefix}if _n_ != 0:");
+            sw.WriteLine($"{prefix}    _i_ = {bufName}.write_tag(_i_, {id}, {TypeTagName.GetName(type)})");
+            sw.WriteLine($"{prefix}    {bufName}.write_map_type(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ")");
+            sw.WriteLine($"{prefix}    for _k_, _v_ in _x_.items():");
+            EncodeElement(kt, prefix + "        ", "_k_");
+            EncodeElement(vt, prefix + "        ", "_v_");
+            sw.WriteLine($"{prefix}        _n_ -= 1");
+            sw.WriteLine($"{prefix}    if _n_ != 0:");
+            sw.WriteLine($"{prefix}        raise Exception(f\"ConcurrentModification: {{_n_}}\")");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

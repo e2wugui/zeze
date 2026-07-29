@@ -124,6 +124,12 @@ namespace Zeze.Gen.confcs
             sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            string typeName = TypeName.GetName(type);
+            sw.WriteLine($"{prefix}{variable.NameUpper1} = new {typeName}();");
+        }
+
         public void Visit(TypeFloat type)
         {
             Initial();

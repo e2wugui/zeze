@@ -152,6 +152,11 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + varName + $" = new {TypeName.GetNameOmitted(type)}<>();");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + varName + $" = new {TypeName.GetName(type)}({variable.Initial});");

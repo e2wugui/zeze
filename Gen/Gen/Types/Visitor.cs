@@ -14,6 +14,7 @@ namespace Zeze.Gen.Types
         public void Visit(TypeList type);    // 序列化类型: 4
         public void Visit(TypeSet type);     // 序列化类型: 4
         public void Visit(TypeMap type);     // 序列化类型: 5
+        public void Visit(TypeSortedMap type); // 序列化类型: 5，与 TypeMap 相同（Java运行时PSortedMap使用相同的MAP tag）
         public void Visit(Bean type);        // 序列化类型: 6
         public void Visit(BeanKey type);     // 序列化类型: 6
         public void Visit(TypeDynamic type); // 序列化类型: 7

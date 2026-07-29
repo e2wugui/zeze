@@ -116,6 +116,11 @@ namespace Zeze.Gen.python
             text = $"hash_dict(self.{var.Name})";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            text = $"hash_dict(self.{var.Name})";
+        }
+
         public void Visit(Bean type)
         {
             text = $"self.{var.Name}.__hash__()";

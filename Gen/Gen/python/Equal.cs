@@ -139,6 +139,11 @@ namespace Zeze.Gen.python
             CommonEquals();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            CommonEquals();
+        }
+
         public void Visit(Bean type)
         {
             CommonEquals();

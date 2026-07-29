@@ -122,6 +122,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}_s_.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}_s_.appendString({ParaneName}\"{ColumnName}\", Zeze.Serialize.Helper.encodeJson({NamePrivate}));");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");

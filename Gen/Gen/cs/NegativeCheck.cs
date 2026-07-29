@@ -119,6 +119,17 @@ namespace Zeze.Gen.cs
             }
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (type.IsNeedNegativeCheck)
+            {
+                sw.WriteLine(prefix + "foreach (var _v_ in " + varname + ".Values)");
+                sw.WriteLine(prefix + "{");
+                type.ValueType.Accept(new NegativeCheck(sw, "_v_", prefix + "    "));
+                sw.WriteLine(prefix + "}");
+            }
+        }
+
         public void Visit(TypeFloat type)
         {
         }

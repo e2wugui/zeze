@@ -96,6 +96,16 @@ namespace Zeze.Gen.java
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';
         }
 
+        public virtual void Visit(TypeSortedMap type)
+        {
+            string key = BoxingName.GetBoxingName(type.KeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+            nameRaw = "Zeze.Transaction.Collections.PSortedMap";
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            name = nameOmitted + '<' + key + ", " + value + '>';
+            nameCollectionImplement = "org.pcollections.PSortedMap<" + key + ", " + value + '>';
+        }
+
         public virtual void Visit(Bean type)
         {
             name = type.FullName;

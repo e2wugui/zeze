@@ -84,6 +84,12 @@ namespace Zeze.Gen.confcs
                 Visit(dynamicType);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (type.ValueType is TypeDynamic dynamicType)
+                Visit(dynamicType);
+        }
+
         public void Visit(TypeFloat type)
         {
         }

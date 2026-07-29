@@ -92,6 +92,13 @@ namespace Zeze.Gen.python
                 : $"{prefix}assign_dict(self.{var.Name}, other.{var.Name})");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(type.ValueType.IsNormalBean
+                ? $"{prefix}assign_copy_dict(self.{var.Name}, other.{var.Name})"
+                : $"{prefix}assign_dict(self.{var.Name}, other.{var.Name})");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine($"{prefix}self.{var.Name}.assign(other.{var.Name})");

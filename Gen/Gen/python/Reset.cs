@@ -94,6 +94,11 @@ namespace Zeze.Gen.python
             sw.WriteLine($"{prefix}self.{var.Name}.clear()");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine($"{prefix}self.{var.Name}.clear()");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine($"{prefix}self.{var.Name}.reset()");

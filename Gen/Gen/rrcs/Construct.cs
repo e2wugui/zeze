@@ -128,6 +128,12 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetName(type)}() {{ VariableId = {variable.Id} }};");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            // rrcs 暂未实现 CollSortedMap，回退到 CollMap 行为。
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetName(type)}() {{ VariableId = {variable.Id} }};");
+        }
+
         public void Visit(TypeFloat type)
         {
             Initial();

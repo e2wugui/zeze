@@ -190,6 +190,19 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(sep != 0 ? $".append(\"]{sep}\\n\");" : ".append(\"]\\n\");");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"_s_.append(_i1_).append(\"{varname}=[\\n\");");
+            sw.WriteLine(prefix + $"for (var _kv_ : {getter}.entrySet()) {{");
+            // sw.WriteLine(prefix + "    _s_.append(_i2_).append(\"(\\n\");");
+            type.KeyType.Accept(new Tostring(sw, "Key", "_kv_.getKey()", prefix + "    ", ',', true));
+            type.ValueType.Accept(new Tostring(sw, "Value", "_kv_.getValue()", prefix + "    ", ',', true));
+            // sw.WriteLine(prefix + "    _s_.append(_i2_).append(\")\\n\");");
+            sw.WriteLine(prefix + "}");
+            sw.Write(prefix + "_s_.append(_i1_)");
+            sw.WriteLine(sep != 0 ? $".append(\"]{sep}\\n\");" : ".append(\"]\\n\");");
+        }
+
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"_s_.append(_i{(subItem ? 2 : 1)}_).append(\"{varname}=\");");

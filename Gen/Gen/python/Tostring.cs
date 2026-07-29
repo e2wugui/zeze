@@ -194,6 +194,24 @@ namespace Zeze.Gen.python
             sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine($"{prefix}sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append(\"{varName}={{\")");
+            sw.WriteLine($"{prefix}if len({getter}) > 0:");
+            sw.WriteLine($"{prefix}    sb.append('\\n')");
+            sw.WriteLine($"{prefix}    level += {INDENT_SIZE}");
+            sw.WriteLine($"{prefix}    for _k_, _v_ in {getter}:");
+            // sw.WriteLine(prefix + "        sb.append(indent(level)).append('(').append('\\n')");
+            type.KeyType.Accept(new Tostring(sw, "Key", "_k_", prefix + "        ", ','));
+            type.ValueType.Accept(new Tostring(sw, "Value", "_v_", prefix + "        ", ','));
+            // sw.WriteLine(prefix + "        sb.append(indent(level)).append(')').append('\\n')");
+            sw.WriteLine($"{prefix}    level -= {INDENT_SIZE}");
+            sw.WriteLine($"{prefix}    sb.append(indent(level))");
+            sw.WriteLine($"{prefix}sb.append('}}')");
+            sw.WriteLine(sep != 0 ? $"{prefix}sb.append(\"{sep}\\n\")" : $"{prefix}sb.append('\\n')");
+        }
+
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine($"{prefix}sb.append(indent(level))");

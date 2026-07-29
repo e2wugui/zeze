@@ -103,6 +103,15 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), " + copyif + ");");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            string copyif = type.ValueType.IsNormalBean ? "e.getValue().copy()" : "e.getValue()";
+
+            sw.WriteLine(prefix + "for (var e : other." + var.NamePrivate + ".entrySet())");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(e.getKey(), " + copyif + ");");
+        }
+
         public void Visit(TypeFloat type)
         {
             sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");

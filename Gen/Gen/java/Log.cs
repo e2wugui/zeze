@@ -138,6 +138,11 @@ namespace Zeze.Gen.java
             WriteCollectionLog(type);
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            WriteCollectionLog(type);
+        }
+
         public void Visit(BeanKey type)
         {
             string valueName = TypeName.GetName(type);

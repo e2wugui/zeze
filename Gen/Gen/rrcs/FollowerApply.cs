@@ -91,6 +91,11 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
         }
 
+        public void Visit(Types.TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");
+        }
+
         public void Visit(Types.Bean type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.FollowerApply(vlog); break;");

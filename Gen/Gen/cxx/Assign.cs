@@ -120,6 +120,11 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + $"{var.NameUpper1} = other.{var.NameUpper1};");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"{var.NameUpper1} = other.{var.NameUpper1};");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");

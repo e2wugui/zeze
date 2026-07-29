@@ -83,6 +83,14 @@ namespace Zeze.Gen.confcs
             nameCollectionImplement = name;
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
+            name = $"System.Collections.Generic.SortedDictionary<{key}, {value}>";
+            nameCollectionImplement = name;
+        }
+
         public void Visit(Bean type)
         {
             name = type.FullName;

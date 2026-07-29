@@ -148,6 +148,11 @@ namespace Zeze.Gen.java
             text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";
+        }
+
         public void Visit(Bean type)
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".equals(" + another + "." + var.NamePrivate + ")";

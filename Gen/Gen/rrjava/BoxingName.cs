@@ -61,5 +61,10 @@ namespace Zeze.Gen.rrjava
 		{
 			throw new NotImplementedException();
 		}
+
+		public override void Visit(TypeSortedMap type)
+		{
+			throw new NotImplementedException();
+		}
     }
 }

@@ -99,6 +99,11 @@ namespace Zeze.Gen.ts
             Value = "null";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            Value = "null";
+        }
+
         public void Visit(TypeDynamic type)
         {
             Value = "null";

@@ -217,6 +217,20 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            var valueName = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var keyName = TypeName.GetName(type.KeyType);
+            var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            // SortedDictionary 已经实现 IReadOnlyDictionary<K,V>，直接以字段暴露即可，
+            // 不需要 CollMapReadOnly 那种 {NamePrivate}ReadOnly 包装字段。
+            sw.WriteLine($"{prefix}System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {beanNameReadOnly}.{var.NameUpper1} => {var.NamePrivate};");
+            sw.WriteLine();
+        }
+
         public void Visit(TypeFloat type)
         {
             WriteProperty(type);

@@ -384,6 +384,48 @@ namespace Zeze.Gen.javadata
             sw.WriteLine(prefix + "}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Type kt = type.KeyType;
+            Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x_ = " + NamePrivate + ';');
+            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "    _i_ = " + bufName + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufName + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
+            if (string.IsNullOrEmpty(type.Variable.JavaType))
+            {
+                sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
+                if (Decode.IsOldStyleEncodeDecodeType(kt))
+                    vt.Accept(new Encode(null, "_e_.getKey()", 0, bufName, sw, prefix + "        "));
+                else
+                    EncodeElement(kt, prefix + "        ", "_e_.getKey()");
+                if (Decode.IsOldStyleEncodeDecodeType(vt))
+                    vt.Accept(new Encode(null, "_e_.getValue()", 0, bufName, sw, prefix + "        "));
+                else
+                    EncodeElement(vt, prefix + "        ", "_e_.getValue()");
+            }
+            else
+            {
+                sw.WriteLine(prefix + "    for (var _j_ = _x_.iterator(); _j_.moveToNext(); ) {");
+                if (Decode.IsOldStyleEncodeDecodeType(kt))
+                    vt.Accept(new Encode(null, "_j_.key()", 0, bufName, sw, prefix + "        "));
+                else
+                    EncodeElement(kt, prefix + "        ", "_j_.key()");
+                if (Decode.IsOldStyleEncodeDecodeType(vt))
+                    vt.Accept(new Encode(null, "_j_.value()", 0, bufName, sw, prefix + "        "));
+                else
+                    EncodeElement(vt, prefix + "        ", "_j_.value()");
+            }
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new java.util.ConcurrentModificationException(String.valueOf(_n_));");
+            sw.WriteLine(prefix + "}");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

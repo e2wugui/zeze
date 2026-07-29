@@ -99,6 +99,7 @@ namespace Zeze.Gen.Types
 			Reg(new TypeString());
 
 			Reg(new TypeMap());
+			Reg(new TypeSortedMap());
 			Reg(new TypeList());
 			Reg(new TypeArray());
 			Reg(new TypeSet());

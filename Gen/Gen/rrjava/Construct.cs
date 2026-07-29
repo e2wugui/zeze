@@ -136,6 +136,12 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {TypeName.GetSimpleName(type)}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
+            sw.WriteLine(prefix + variable.NamePrivate + $".variableId({variable.Id});");
+        }
+
         public void Visit(TypeFloat type)
         {
             Initial();

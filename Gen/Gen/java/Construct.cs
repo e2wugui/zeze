@@ -174,6 +174,24 @@ namespace Zeze.Gen.java
             */
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            string typeName = TypeName.GetNameOmitted(type) + "<>";
+            if (type.ValueType is TypeDynamic)
+                sw.WriteLine(prefix + varName + $" = new {typeName}(meta2{varName});");
+            else
+                sw.WriteLine(prefix + varName + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
+            sw.WriteLine(prefix + varName + $".variableId({variable.Id});");
+            /*
+            var key = TypeName.GetName(type.KeyType);
+            var value = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(type.ValueType)}>";
+            sw.WriteLine($"{prefix}{varName}ReadOnly = new {readonlyTypeName}({varName});");
+            */
+        }
+
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);

@@ -73,6 +73,11 @@ namespace Zeze.Gen.rrcs
             Name = "ByteBuffer.MAP";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            Name = "ByteBuffer.MAP";
+        }
+
         public void Visit(Bean type)
         {
             Name = "ByteBuffer.BEAN";

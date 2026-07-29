@@ -161,6 +161,18 @@ namespace Zeze.Gen.javadata
             }
         }
 
+        public virtual void Visit(TypeSortedMap type)
+        {
+            // SortedMap 默认采用 java.util.TreeMap（红黑树，按 key 自然顺序排序）。
+            // 不再支持 IntHashMap / LongHashMap 这些特化（它们是无序的，跟 SortedMap 语义矛盾）。
+            string key = BoxingName.GetBoxingName(type.KeyType);
+            string value = BoxingName.GetBoxingName(type.ValueType);
+            nameRaw = "java.util.TreeMap";
+            nameOmitted = nameRaw;
+            name = nameRaw + '<' + key + ", " + value + '>';
+            nameCollectionImplement = name;
+        }
+
         public virtual void Visit(Bean type)
         {
             name = type.OnlyData ? type.FullName : type.FullName + ".Data";

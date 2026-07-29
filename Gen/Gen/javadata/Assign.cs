@@ -196,6 +196,34 @@ namespace Zeze.Gen.javadata
                 sw.WriteLine(prefix + var.NamePrivate + ".putAll(_o_." + var.NamePrivate + ");");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+            if (type.ValueType.IsNormalBean)
+            {
+                if (transBean)
+                {
+                    sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet()) {");
+                    type.ValueType.Accept(new Define("_v_", sw, prefix + "    "));
+                    sw.WriteLine(prefix + "    _v_.assign(_e_.getValue());");
+                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _v_);");
+                    sw.WriteLine(prefix + "}");
+                }
+                else if (string.IsNullOrEmpty(type.Variable.JavaType))
+                {
+                    sw.WriteLine(prefix + "for (var _e_ : _o_." + var.NamePrivate + ".entrySet())");
+                    sw.WriteLine(prefix + "    " + var.NamePrivate + ".put(_e_.getKey(), _e_.getValue().copy());");
+                }
+                else
+                {
+                    sw.WriteLine(prefix + "_o_." + var.NamePrivate + ".foreach((k, v) -> "
+                                 + var.NamePrivate + ".put(k, v.copy()));");
+                }
+            }
+            else
+                sw.WriteLine(prefix + var.NamePrivate + ".putAll(_o_." + var.NamePrivate + ");");
+        }
+
         public void Visit(Bean type)
         {
             if (transBean && !type.OnlyData)

@@ -166,6 +166,12 @@ namespace Zeze.Gen.java
             sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {NamePrivate}, {bb}.getString({ParaneName}\"{ColumnName}\"));");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            ensureParentsName();
+            sw.WriteLine($"{prefix}Zeze.Serialize.Helper.decodeJsonMap(this, \"{var.Name}\", {NamePrivate}, {bb}.getString({ParaneName}\"{ColumnName}\"));");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine($"{prefix}_p_.add(\"{ColumnName}\");");

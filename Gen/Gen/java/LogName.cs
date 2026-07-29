@@ -72,6 +72,11 @@ namespace Zeze.Gen.java
             throw new NotImplementedException();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Visit(Bean type)
         {
             throw new NotImplementedException();

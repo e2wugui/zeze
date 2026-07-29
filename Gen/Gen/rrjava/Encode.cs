@@ -287,6 +287,27 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.KeyType;
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "int _n_ = _x_.size();");
+            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
+            sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
+            EncodeElement(kt, prefix + "        ", "_e_.getKey()");
+            EncodeElement(vt, prefix + "        ", "_e_.getValue()");
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new java.util.ConcurrentModificationException(String.valueOf(_n_));");
+            sw.WriteLine(prefix + "}");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

@@ -96,6 +96,12 @@ namespace Zeze.Gen.confcs
             sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.NameUpper1}, vlog); break;");
         }
 
+        public void Visit(Types.TypeSortedMap type)
+        {
+            var v = type.ValueType.IsNormalBean ? "2" : "1";
+            sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyMap{v}({var.NameUpper1}, vlog); break;");
+        }
+
         public void Visit(Types.Bean type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: Zeze.Transaction.Collections.CollApply.ApplyOne<{type.FullName}>(ref {var.NameUpper1}, vlog); break;");

@@ -132,6 +132,11 @@ namespace Zeze.Gen.cs
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
+        }
+
         public void Visit(Bean type)
         {
             text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";

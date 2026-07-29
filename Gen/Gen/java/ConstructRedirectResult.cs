@@ -109,6 +109,17 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + varName + $" = new {typeName}();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (type.ValueType is TypeDynamic)
+                throw new System.Exception("RedirectResult not support dynamic.");
+            if (type.KeyType is TypeDynamic)
+                throw new System.Exception("RedirectResult not support dynamic.");
+
+            string typeName = $"java.util.HashMap<{BoxingName.GetBoxingName(type.KeyType)}, {BoxingName.GetBoxingName(type.ValueType)}>";
+            sw.WriteLine(prefix + varName + $" = new {typeName}();");
+        }
+
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);

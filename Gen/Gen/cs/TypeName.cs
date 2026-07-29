@@ -81,6 +81,18 @@ namespace Zeze.Gen.cs
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            // 【注意】这里直接采用 BCL 的 SortedDictionary<K,V>，不走 CollMap 事务包装。
+            // 原因：cs 运行时目前没有 CollSortedMap，用户明确要求 SortedMap 使用 SortedDictionary。
+            // 副作用：变量失去事务性跟踪（VariableId、ChangeLog），需要事务语义的话，
+            // 后续在 Zeze.Transaction.Collections 下增加 CollSortedMap 包装类，并恢复 Construct/Property 模式。
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
+            name = "System.Collections.Generic.SortedDictionary<" + key + ", " + value + ">";
+            nameCollectionImplement = name;
+        }
+
         public void Visit(Bean type)
         {
             name = type.FullName;

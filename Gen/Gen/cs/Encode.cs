@@ -336,6 +336,35 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Types.Type kt = type.KeyType;
+            Types.Type vt = type.ValueType;
+            sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+            sw.WriteLine(prefix + "int _n_ = _x_?.Count ?? 0;");
+            sw.WriteLine(prefix + "if (_n_ != 0)");
+            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
+            sw.WriteLine(prefix + "    foreach (var _e_ in _x_)");
+            sw.WriteLine(prefix + "    {");
+            if (Decode.IsOldStyleEncodeDecodeType(kt))
+                vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        ", varUpperName1, id));
+            else
+                EncodeElement(kt, prefix + "        ", "_e_.Key");
+            if (Decode.IsOldStyleEncodeDecodeType(vt))
+                vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        ", varUpperName1, id));
+            else
+                EncodeElement(vt, prefix + "        ", "_e_.Value");
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw new System.Exception(_n_.ToString());");
+            sw.WriteLine(prefix + "}");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

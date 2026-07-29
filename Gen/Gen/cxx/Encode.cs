@@ -255,6 +255,27 @@ namespace Zeze.Gen.cxx
             sw.WriteLine(prefix + "}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            if (id <= 0)
+                throw new Exception("invalid variable.id");
+            Type kt = type.KeyType;
+            Type vt = type.ValueType;
+            sw.WriteLine(prefix + "const auto& _x_ = " + var.NameUpper1 + ';');
+            sw.WriteLine(prefix + "auto _n_ = _x_.size();");
+            sw.WriteLine(prefix + "if (_n_ != 0) {");
+            sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+            sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
+            sw.WriteLine(prefix + "    for (auto it = _x_.begin(); it != _x_.end(); ++it) {");
+            kt.Accept(new Encode(null, "it->first", 0, bufname, sw, prefix + "        "));
+            vt.Accept(new Encode(null, "it->second", 0, bufname, sw, prefix + "        "));
+            sw.WriteLine(prefix + "        _n_--;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    if (_n_ != 0)");
+            sw.WriteLine(prefix + "        throw std::runtime_error(\"concurrent modify.\");");
+            sw.WriteLine(prefix + "}");
+        }
+
         public void Visit(Bean type)
         {
             if (id > 0)

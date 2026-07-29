@@ -104,6 +104,11 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + var.NamePrivate + ".clear();");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + var.NamePrivate + ".clear();");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + var.NamePrivate + ".reset();");

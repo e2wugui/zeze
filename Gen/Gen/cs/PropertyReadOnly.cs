@@ -112,6 +112,15 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"{prefix}public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            var valueName = type.ValueType.IsNormalBean
+                ? TypeName.GetName(type.ValueType) + "ReadOnly"
+                : TypeName.GetName(type.ValueType);
+            var keyName = TypeName.GetName(type.KeyType);
+            sw.WriteLine($"{prefix}public System.Collections.Generic.IReadOnlyDictionary<{keyName},{valueName}> {var.NameUpper1} {{ get; }}");
+        }
+
         public void Visit(TypeFloat type)
         {
             WriteProperty(type);

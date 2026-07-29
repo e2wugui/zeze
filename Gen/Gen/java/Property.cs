@@ -267,6 +267,24 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+
+            var k = BoxingName.GetBoxingName(type.KeyType);
+            var v = BoxingName.GetBoxingName(type.ValueType);
+            var t = type.ValueType.IsNormalBean ? "PSortedMap2ReadOnly" : "PSortedMap1ReadOnly";
+            var tx = type.ValueType.IsNormalBean ? $"{t}<{k}, {v}, {v}ReadOnly>" : $"{t}<{k}, {v}>";
+            sw.WriteLine($"{prefix}@Override");
+            sw.WriteLine($"{prefix}public Zeze.Transaction.Collections.{tx} {var.ReadOnlyGetter} {{");
+            sw.WriteLine($"{prefix}    return new Zeze.Transaction.Collections.{t}<>({var.NamePrivate});");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+        }
+
         public void Visit(Bean type)
         {
             var typeName = TypeName.GetName(type);

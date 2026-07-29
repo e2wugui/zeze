@@ -113,6 +113,16 @@ namespace Zeze.Gen.cxx
             nameCollectionImplement = "std::map<" + key + ", " + value + '>';
         }
 
+        public virtual void Visit(TypeSortedMap type)
+        {
+            string key = GetName(type.KeyType);
+            string value = GetName(type.ValueType);
+            nameRaw = "std::map";
+            nameOmitted = nameRaw;
+            name = "const " + nameRaw + '<' + key + ", " + value + ">&";
+            nameCollectionImplement = "std::map<" + key + ", " + value + '>';
+        }
+
         public virtual void Visit(Bean type)
         {
             name = type.FullCxxName;

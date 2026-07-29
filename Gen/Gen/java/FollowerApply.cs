@@ -104,6 +104,11 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(_v_); break;");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(_v_); break;");
+        }
+
         public void Visit(Bean type)
         {
             sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate}.followerApply(_v_); break;");

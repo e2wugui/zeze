@@ -103,6 +103,15 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    " + var.NameUpper1 + ".Add(e.Key, " + copyif + ");");
         }
 
+        public void Visit(TypeSortedMap type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + ".Clear();");
+            string copyif = type.ValueType.IsNormalBean ? "e.Value.Copy()" : "e.Value";
+
+            sw.WriteLine(prefix + "foreach (var e in other." + var.NameUpper1 + ")");
+            sw.WriteLine(prefix + "    " + var.NameUpper1 + ".Add(e.Key, " + copyif + ");");
+        }
+
         public void Visit(TypeFloat type)
         {
             sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");

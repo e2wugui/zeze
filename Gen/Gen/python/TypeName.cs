@@ -78,6 +78,11 @@ namespace Zeze.Gen.python
             name = "dict";
         }
 
+        public virtual void Visit(TypeSortedMap type)
+        {
+            name = "dict";
+        }
+
         public virtual void Visit(Bean type)
         {
             name = type.FullName;
