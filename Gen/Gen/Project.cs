@@ -217,42 +217,47 @@ namespace Zeze.Gen
                 {
                     protocol.Depends(depends, parent);
                 }
+
                 foreach (Protocol protocol in AllProtocols.Values)
                 {
                     if (protocol.ArgumentType != null)
                         depends.Add(protocol.ArgumentType);
                 }
+
                 if (false == Platform.Equals("simplecs"))
                 {
                     foreach (Table table in AllTables.Values)
                     {
                         table.Depends(depends, parent);
                     }
-                }
-                // 加入模块中定义的所有bean和beankey。
-                foreach (Module mod in AllOrderDefineModules)
-                {
-                    var parent1 = parent != null ? parent + ".Module(" + mod.FullName + ')' : null;
-                    if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
-                        continue;
-                    foreach (var b in mod.BeanKeys.Values)
-                        b.Depends(depends, parent1);
-                    foreach (var b in mod.Beans.Values)
+                    // 加入模块中定义的所有bean和beankey。
+                    foreach (Module mod in AllOrderDefineModules)
                     {
-                        b.Depends(depends, parent1);
-                        if (b.OnlyData)
-                            depends.Add(b); // OnlyData的Bean都生成,不根据依赖了
+                        var parent1 = parent != null ? parent + ".Module(" + mod.FullName + ')' : null;
+                        if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
+                            continue;
+                        foreach (var b in mod.BeanKeys.Values)
+                            b.Depends(depends, parent1);
+                        foreach (var b in mod.Beans.Values)
+                        {
+                            b.Depends(depends, parent1);
+                            if (b.OnlyData)
+                                depends.Add(b); // OnlyData的Bean都生成,不根据依赖了
+                        }
                     }
                 }
+
                 // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
                 foreach (string n in Program.Refs(Self, "bean"))
                 {
                     Program.GetNamedObject<Types.Bean>(n).Depends(depends, parent);
                 }
+
                 foreach (string n in Program.Refs(Self, "beankey"))
                 {
                     Program.GetNamedObject<Types.BeanKey>(n).Depends(depends, parent);
                 }
+
                 foreach (Types.Type type in depends)
                 {
                     if (type.IsBean || type.IsRocks)
