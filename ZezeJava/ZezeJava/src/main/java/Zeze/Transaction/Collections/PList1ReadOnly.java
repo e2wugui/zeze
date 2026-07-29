@@ -55,7 +55,7 @@ public class PList1ReadOnly<V> implements Iterable<V> {
 	@Override
 	public @NotNull Iterator<V> iterator() {
 		return new Iterator<>() {
-			private final Iterator<V> it = list.iterator();
+			private final @NotNull Iterator<V> it = list.iterator();
 
 			@Override
 			public boolean hasNext() {

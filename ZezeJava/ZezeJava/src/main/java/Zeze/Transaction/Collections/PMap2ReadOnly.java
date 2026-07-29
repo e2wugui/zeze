@@ -9,7 +9,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map.Entry<K, VReadOnly>> {
 	private final @NotNull PMap2<K, V> map;
@@ -48,9 +47,9 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<K> iterator() {
+			public @NotNull Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -79,9 +78,9 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	public @NotNull java.util.Collection<VReadOnly> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NonNull Iterator<VReadOnly> iterator() {
+			public @NotNull Iterator<VReadOnly> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, VReadOnly>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -108,23 +107,39 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	}
 
 	private static class ReadOnlyEntry<K, V, VReadOnly> implements Map.Entry<K, VReadOnly> {
-		private final Map.Entry<K, V> e;
+		private final @NotNull Map.Entry<K, V> e;
 
-		ReadOnlyEntry(Map.Entry<K, V> e) { this.e = e; }
+		ReadOnlyEntry(@NotNull Map.Entry<K, V> e) {
+			this.e = e;
+		}
 
-		@Override public K getKey() { return e.getKey(); }
+		@Override
+		public K getKey() {
+			return e.getKey();
+		}
 
 		@SuppressWarnings("unchecked")
-		@Override public VReadOnly getValue() { return (VReadOnly)e.getValue(); }
+		@Override
+		public VReadOnly getValue() {
+			return (VReadOnly)e.getValue();
+		}
 
-		@Override public VReadOnly setValue(VReadOnly value) {
+		@Override
+		public VReadOnly setValue(VReadOnly value) {
 			throw new UnsupportedOperationException();
 		}
 
-		@Override public int hashCode() { return e.hashCode(); }
-		@Override public boolean equals(Object o) {
-			if (this == o) return true;
-			if (!(o instanceof Map.Entry<?, ?> that)) return false;
+		@Override
+		public int hashCode() {
+			return e.hashCode();
+		}
+
+		@Override
+		public boolean equals(@Nullable Object o) {
+			if (this == o)
+				return true;
+			if (!(o instanceof Map.Entry<?, ?> that))
+				return false;
 			return e.getKey().equals(that.getKey()) && e.getValue().equals(that.getValue());
 		}
 	}
@@ -132,9 +147,9 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 	public @NotNull Set<Map.Entry<K, VReadOnly>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
+			public @NotNull Iterator<Map.Entry<K, VReadOnly>> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -142,7 +157,7 @@ public class PMap2ReadOnly<K, V extends Bean, VReadOnly> implements Iterable<Map
 					}
 
 					@Override
-					public Map.Entry<K, VReadOnly> next() {
+					public @NotNull Map.Entry<K, VReadOnly> next() {
 						return new ReadOnlyEntry<>(it.next());
 					}
 

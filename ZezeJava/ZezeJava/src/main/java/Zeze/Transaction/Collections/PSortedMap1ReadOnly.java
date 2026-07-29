@@ -12,7 +12,6 @@ import java.util.SortedMap;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable<Map.Entry<K, V>> {
 	private final @NotNull PSortedMap1<K, V> map;
@@ -142,9 +141,9 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<K> iterator() {
+			public @NotNull Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -173,9 +172,9 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	public @NotNull java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NonNull Iterator<V> iterator() {
+			public @NotNull Iterator<V> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -204,11 +203,11 @@ public class PSortedMap1ReadOnly<K extends Comparable<K>, V> implements Iterable
 	public @NotNull Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<Map.Entry<K, V>> iterator() {
+			public @NotNull Iterator<Map.Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					// PSortedMap.entrySet() 返回的迭代器 remove() 是可变的，这里包一层禁掉。
 					// next() 返回的 Entry 来自 pcollections，本身就是 immutable 的。
-					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {

@@ -10,7 +10,6 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 import org.pcollections.Empty;
 
 public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
@@ -80,7 +79,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<K> iterator() {
+			public @NotNull Iterator<K> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -112,7 +111,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	public @NotNull java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NonNull Iterator<V> iterator() {
+			public @NotNull Iterator<V> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Entry<K, V>> it = entrySet().iterator();
 
@@ -144,7 +143,7 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 	public @NotNull Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<Entry<K, V>> iterator() {
+			public @NotNull Iterator<Entry<K, V>> iterator() {
 				return new Iterator<>() {
 					private final Iterator<Map.Entry<K, V>> it = getMap().entrySet().iterator();
 					private Map.Entry<K, V> next;

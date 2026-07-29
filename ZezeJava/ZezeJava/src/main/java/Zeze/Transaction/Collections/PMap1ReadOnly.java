@@ -8,7 +8,6 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	private final @NotNull PMap1<K, V> map;
@@ -44,9 +43,9 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	public @NotNull Set<K> keySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<K> iterator() {
+			public @NotNull Iterator<K> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -75,9 +74,9 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	public @NotNull java.util.Collection<V> values() {
 		return new AbstractCollection<>() {
 			@Override
-			public @NonNull Iterator<V> iterator() {
+			public @NotNull Iterator<V> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {
@@ -106,9 +105,9 @@ public class PMap1ReadOnly<K, V> implements Iterable<Map.Entry<K, V>> {
 	public @NotNull Set<Map.Entry<K, V>> entrySet() {
 		return new AbstractSet<>() {
 			@Override
-			public @NonNull Iterator<Map.Entry<K, V>> iterator() {
+			public @NotNull Iterator<Map.Entry<K, V>> iterator() {
 				return new Iterator<>() {
-					private final Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+					private final @NotNull Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 
 					@Override
 					public boolean hasNext() {

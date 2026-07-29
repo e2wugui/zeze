@@ -61,7 +61,7 @@ public class PList2ReadOnly<V extends Bean, VReadOnly> implements Iterable<VRead
 	@Override
 	public @NotNull Iterator<VReadOnly> iterator() {
 		return new Iterator<>() {
-			private final Iterator<V> it = list.iterator();
+			private final @NotNull Iterator<V> it = list.iterator();
 
 			@Override
 			public boolean hasNext() {
