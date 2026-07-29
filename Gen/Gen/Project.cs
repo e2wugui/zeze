@@ -217,6 +217,14 @@ namespace Zeze.Gen
                 {
                     protocol.Depends(depends, parent);
                 }
+                if (false == Platform.Equals("simplecs"))
+                {
+                    foreach (Protocol protocol in AllProtocols.Values)
+                    {
+                        if (protocol.ArgumentType != null)
+                            depends.Add(protocol.ArgumentType);
+                    }
+                }
                 foreach (Table table in AllTables.Values)
                 {
                     table.Depends(depends, parent);
