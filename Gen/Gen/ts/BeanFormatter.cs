@@ -79,6 +79,8 @@ namespace Zeze.Gen.ts
                     GenDynamicSpecialMethod(sw, v, d, false);
                 else if (v.VariableType is TypeMap map && map.ValueType is TypeDynamic dy1)
                     GenDynamicSpecialMethod(sw, v, dy1, true);
+                else if (v.VariableType is TypeSortedMap smap && smap.ValueType is TypeDynamic dy3)
+                    GenDynamicSpecialMethod(sw, v, dy3, true);
                 else if (v.VariableType is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, v, dy2, true);
             }

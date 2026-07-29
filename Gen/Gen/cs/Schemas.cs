@@ -99,6 +99,11 @@ namespace Zeze.Gen.cs
                     sw.WriteLine($"                    KeyName = \"{GetFullName(map.KeyType)}\",");
                     sw.WriteLine($"                    ValueName = \"{GetFullName(map.ValueType)}\",");
                 }
+                else if (v.VariableType is Types.TypeSortedMap smap)
+                {
+                    sw.WriteLine($"                    KeyName = \"{GetFullName(smap.KeyType)}\",");
+                    sw.WriteLine($"                    ValueName = \"{GetFullName(smap.ValueType)}\",");
+                }
                 sw.WriteLine($"                }});");
             }
             sw.WriteLine($"                base.AddBean(bean);");

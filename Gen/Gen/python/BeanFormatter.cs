@@ -93,6 +93,30 @@ namespace Zeze.Gen.python
                         }
                         break;
                     }
+                    case TypeSortedMap smap:
+                    {
+                        switch (smap.KeyType)
+                        {
+                            case Bean b1:
+                                r.Add(b1.FullName);
+                                break;
+                            case TypeDynamic dyn1:
+                                foreach (var b2 in dyn1.RealBeans.Values)
+                                    r.Add(b2.FullName);
+                                break;
+                        }
+                        switch (smap.ValueType)
+                        {
+                            case Bean b1:
+                                r.Add(b1.FullName);
+                                break;
+                            case TypeDynamic dyn1:
+                                foreach (var b2 in dyn1.RealBeans.Values)
+                                    r.Add(b2.FullName);
+                                break;
+                        }
+                        break;
+                    }
                 }
             }
             return r;

@@ -49,6 +49,7 @@ namespace Zeze.Gen.rrcs
                 Type vt = v.VariableType;
                 string ro = vt is TypeCollection
                     || vt is TypeMap
+                    || vt is TypeSortedMap
                     || vt is Bean
                     || vt is TypeDynamic
                     ? "readonly " : "";

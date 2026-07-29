@@ -54,6 +54,7 @@ namespace Zeze.Gen.rrjava
                 Type vt = v.VariableType;
                 string final = vt is TypeCollection
                                || vt is TypeMap
+                               || vt is TypeSortedMap
                                || vt is Bean
                                || vt is TypeDynamic
                     ? "final " : "";

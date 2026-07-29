@@ -134,6 +134,12 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(map.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
                     sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(map.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
                 }
+                else if (vt is TypeSortedMap smap)
+                {
+                    sw.WriteLine();
+                    sw.WriteLine($"{prefix}private static final Zeze.Transaction.Collections.Meta2<{BoxingName.GetBoxingName(smap.KeyType)}, Zeze.Transaction.DynamicBean> meta2{var.NamePrivate}");
+                    sw.WriteLine($"{prefix}        = Zeze.Transaction.Collections.Meta2.createDynamicMapMeta({BoxingName.GetBoxingName(smap.KeyType)}.class, {GetAndCreateDynamicBean(bean.Name, var.Id, type)});");
+                }
             }
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.DynamicBean newDynamicBean_{var.NameUpper1}() {{");
@@ -244,6 +250,8 @@ namespace Zeze.Gen.java
                     GenDynamicSpecialMethod(sw, "    ", v, dy0, false);
                 else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
                     GenDynamicSpecialMethod(sw, "    ", v, dy1, true);
+                else if (vt is TypeSortedMap smap && smap.ValueType is TypeDynamic dy3)
+                    GenDynamicSpecialMethod(sw, "    ", v, dy3, true);
                 else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
                     GenDynamicSpecialMethod(sw, "    ", v, dy2, true);
                 else
@@ -318,6 +326,11 @@ namespace Zeze.Gen.java
                         {
                             key = Variable.GetTypeFullName(map.KeyType);
                             value = Variable.GetTypeFullName(map.ValueType);
+                        }
+                        else if (vType is TypeSortedMap smap)
+                        {
+                            key = Variable.GetTypeFullName(smap.KeyType);
+                            value = Variable.GetTypeFullName(smap.ValueType);
                         }
                         else if (vType is TypeList list)
                         {

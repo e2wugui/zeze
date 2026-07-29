@@ -108,6 +108,11 @@ namespace Zeze.Gen.java
                             key = Variable.GetTypeFullName(map.KeyType);
                             value = Variable.GetTypeFullName(map.ValueType);
                         }
+                        else if (vType is TypeSortedMap smap)
+                        {
+                            key = Variable.GetTypeFullName(smap.KeyType);
+                            value = Variable.GetTypeFullName(smap.ValueType);
+                        }
                         else if (vType is TypeList list)
                         {
                             value = Variable.GetTypeFullName(list.ValueType);

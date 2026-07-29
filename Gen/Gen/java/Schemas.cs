@@ -103,6 +103,11 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"            var.keyName = \"{GetFullName(map.KeyType)}\";");
                     sw.WriteLine($"            var.valueName = \"{GetFullName(map.ValueType)}\";");
                 }
+                else if (v.VariableType is Types.TypeSortedMap smap)
+                {
+                    sw.WriteLine($"            var.keyName = \"{GetFullName(smap.KeyType)}\";");
+                    sw.WriteLine($"            var.valueName = \"{GetFullName(smap.ValueType)}\";");
+                }
                 else if (v.VariableType is TypeDynamic dynamic)
                 {
                     foreach (var real in dynamic.RealBeans)

@@ -112,6 +112,7 @@ namespace Zeze.Gen.luaClient
                         var so = new ScriptObject { {"name", t.Name}, {"is_bean", t.IsBean}, {"is_collection", t.IsCollection}, {"full_name", t.Name} };
                         _map[t] = so;
                         if (t is TypeMap m) { pending.Push(m.KeyType); pending.Push(m.ValueType); }
+                        else if (t is TypeSortedMap sm) { pending.Push(sm.KeyType); pending.Push(sm.ValueType); }
                         else if (t is TypeDynamic d) { Enqueue(pending, d.RealBeans.Values); }
                         else if (t is TypeCollection c) { pending.Push(c.ValueType); }
                         break;
@@ -186,6 +187,10 @@ namespace Zeze.Gen.luaClient
                 case TypeMap m:
                     so.Add("key_type", ToScript(m.KeyType));
                     so.Add("value_type", ToScript(m.ValueType));
+                    break;
+                case TypeSortedMap sm:
+                    so.Add("key_type", ToScript(sm.KeyType));
+                    so.Add("value_type", ToScript(sm.ValueType));
                     break;
                 case TypeDynamic d:
                     so.Add("real_beans", ToScript(d.RealBeans));
