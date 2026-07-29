@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -358,6 +358,9 @@ namespace Zeze.Gen
                     break;
                 case "conf+cs":
                     new confcs.Maker(this).Make();
+                    break;
+                case "simplecs":
+                    new confcs.Maker(this).MakeSimple();
                     break;
                 case "conf+cs+net":
                     {
