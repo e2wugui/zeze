@@ -185,6 +185,9 @@ namespace Zeze.Gen
 
         public void Make()
         {
+            if (Platform.Length == 0)
+                Platform = "java";
+
             MakingInstance = this;
             AllOrderDefineModules = IncludeAllModules.Equals("true") ? GetSolutionAllModules() : GetAllOrderdRefModules();
 
@@ -276,9 +279,6 @@ namespace Zeze.Gen
                 AllBeanKeys[b.FullName] = b;
                 b.DetectCircle(new HashSet<Types.Type>());
             }
-
-            if (Platform.Length == 0)
-                Platform = "cs";
 
             // 设置Module被哪个Service引用。必须在Make前设置。换 Project 会覆盖调引用。
             foreach (Service service in Services.Values)
