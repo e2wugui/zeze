@@ -23,7 +23,7 @@ namespace Zeze.Gen.Types
 
         public override void Depends(HashSet<Type> includes, string parent)
         {
-            includes.Add(this);
+            //includes.Add(this);
         }
     }
 }
