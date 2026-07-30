@@ -89,6 +89,8 @@ public:
     std::string JsonObject;
     std::string JsonArray;
     int64_t RelationalMappingAlter;
+    std::map<int, int> Sortedmap1;
+    std::map<int, demo::Module1::BSimple> Sortedmap2;
     int64_t Version;
     std::vector<int64_t> LongList;
 

@@ -194,6 +194,8 @@ void BValue::Assign(const BValue& other) {
     JsonObject = other.JsonObject;
     JsonArray = other.JsonArray;
     RelationalMappingAlter = other.RelationalMappingAlter;
+    Sortedmap1 = other.Sortedmap1;
+    Sortedmap2 = other.Sortedmap2;
     Version = other.Version;
     LongList = other.LongList;
 }
@@ -703,6 +705,36 @@ void BValue::Encode(Zeze::ByteBuffer& _o_) const {
         }
     }
     {
+        const auto& _x_ = Sortedmap1;
+        auto _n_ = _x_.size();
+        if (_n_ != 0) {
+            _i_ = _o_.WriteTag(_i_, 47, Zeze::ByteBuffer::MAP);
+            _o_.WriteMapType(_n_, Zeze::ByteBuffer::INTEGER, Zeze::ByteBuffer::INTEGER);
+            for (auto it = _x_.begin(); it != _x_.end(); ++it) {
+                _o_.WriteInt(it->first);
+                _o_.WriteInt(it->second);
+                _n_--;
+            }
+            if (_n_ != 0)
+                throw std::runtime_error("concurrent modify.");
+        }
+    }
+    {
+        const auto& _x_ = Sortedmap2;
+        auto _n_ = _x_.size();
+        if (_n_ != 0) {
+            _i_ = _o_.WriteTag(_i_, 48, Zeze::ByteBuffer::MAP);
+            _o_.WriteMapType(_n_, Zeze::ByteBuffer::INTEGER, Zeze::ByteBuffer::BEAN);
+            for (auto it = _x_.begin(); it != _x_.end(); ++it) {
+                _o_.WriteInt(it->first);
+                it->second.Encode(_o_);
+                _n_--;
+            }
+            if (_n_ != 0)
+                throw std::runtime_error("concurrent modify.");
+        }
+    }
+    {
         auto _x_ = Version;
         if (_x_ != 0) {
             _i_ = _o_.WriteTag(_i_, 50, Zeze::ByteBuffer::INTEGER);
@@ -1142,6 +1174,38 @@ void BValue::Decode(Zeze::ByteBuffer& _o_) {
     }
     if (_i_ == 46) {
         RelationalMappingAlter = _o_.ReadLong(_t_);
+        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+    }
+    if (_i_ == 47) {
+        auto& _x_ = Sortedmap1;
+        _x_.clear();
+        if ((_t_ & Zeze::ByteBuffer::TAG_MASK) == Zeze::ByteBuffer::MAP) {
+            int _s_ = (_t_ = _o_.ReadByte()) >> Zeze::ByteBuffer::TAG_SHIFT;
+            for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                int _k_;
+                _k_ = _o_.ReadInt();
+                int _v_;
+                _v_ = _o_.ReadInt();
+                _x_[_k_] = _v_;
+            }
+        } else
+            _o_.SkipUnknownFieldOrThrow(_t_, "Map");
+        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+    }
+    if (_i_ == 48) {
+        auto& _x_ = Sortedmap2;
+        _x_.clear();
+        if ((_t_ & Zeze::ByteBuffer::TAG_MASK) == Zeze::ByteBuffer::MAP) {
+            int _s_ = (_t_ = _o_.ReadByte()) >> Zeze::ByteBuffer::TAG_SHIFT;
+            for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
+                int _k_;
+                _k_ = _o_.ReadInt();
+                demo::Module1::BSimple _v_;
+                _v_.Decode(_o_);
+                _x_[_k_] = _v_;
+            }
+        } else
+            _o_.SkipUnknownFieldOrThrow(_t_, "Map");
         _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
     }
     while ((_t_ & 0xff) > 1 && _i_ < 50) {

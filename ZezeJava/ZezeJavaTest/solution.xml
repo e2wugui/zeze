@@ -140,6 +140,8 @@
 			<variable id="44" name="jsonObject" type="string" value="JSON_OBJECT"/>
 			<variable id="45" name="jsonArray" type="string" value="JSON_ARRAY"/>
 			<variable id="46" name="relationalMappingAlter" type="long"/>
+            <variable id="47" name="sortedmap1" type="sortedmap[int, int]"/>
+            <variable id="48" name="sortedmap2" type="sortedmap[int, BSimple]"/>
 
 			<variable id="50" name="version" type="long"/>
 
