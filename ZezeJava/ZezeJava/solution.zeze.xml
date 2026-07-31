@@ -2053,6 +2053,10 @@
 		</module>
 
 		<module name="SafeBatch" id="11044">
+                    <bean name="BAppInstanceId">
+                        <var id="1" name="AppInstanceId" type="string"/>
+                    </bean>
+
 			<bean name="BBatchTable" UseData="true">
                         <var id="1" name="TableName" type="string"/>
                         <var id="2" name="LastTableKey" type="binary"/>

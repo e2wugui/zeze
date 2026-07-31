@@ -1,10 +1,11 @@
 package Zeze.Component;
 
 import Zeze.Application;
+import Zeze.Builtin.SafeBatch.BAppInstanceId;
 import Zeze.Builtin.SafeBatch.BBatchTable;
+import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
@@ -22,13 +23,14 @@ import java.util.concurrent.Future;
 public class SafeBatch extends AbstractSafeBatch {
 	private final @NotNull Application zeze;
 	private final ConcurrentHashMap<String, Future<?>> running = new ConcurrentHashMap<>();
+	private final HotHandle<ITableJob> hotHandle = new HotHandle<>();
 
 	/**
 	 * 开始表格遍历批处理。
 	 *
 	 * @param table table
 	 * @param jobHandle jobHandleClass
-	 * @param oneByOneKey oneByOneKey
+	 * @param oneByOneKey oneByOneKey，null表示其他执行模式
 	 * @return jobId
 	 */
 	public String startTableBatch(TableX<?, ?> table, ITableJob jobHandle, Object oneByOneKey) {
@@ -46,7 +48,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public String startTableBatch(TableX<?, ?> table, ITableJob jobHandle, Object oneByOneKey, long delay, long checkPeriod, int limit) {
-		var timerId = zeze.getTimer().schedule(delay, checkPeriod, handleClass, bean); // todo timerHandleClass 最重要的是怎么拿到Zeze。
+		var timerId = zeze.getTimer().schedule(delay, checkPeriod,
+			TableBatchTimerHandle.class, new BAppInstanceId(zeze.getInstanceId()));
 		var batch = _tSafeBatchTable.getOrAdd(timerId);
 		batch.setTableName(table.getName());
 		batch.setProposeLimit(limit);
@@ -56,11 +59,64 @@ public class SafeBatch extends AbstractSafeBatch {
 			jobHandle.encodeOneByOneKey(buffer, oneByOneKey);
 			batch.setOneByOneKey(new Binary(buffer));
 		}
-		Transaction.whileCommit(() -> {
-			running.computeIfAbsent(timerId, (key) ->
-				Task.runUnsafe(new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData()), "TableBatchWorker_" + timerId));
-		});
+		Transaction.whileCommit(() -> running.computeIfAbsent(timerId, (key) -> {
+			var worker = new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData());
+			var future = Task.runUnsafe(worker, "TableBatchWorker_" + timerId);
+			worker.setFuture(future);
+			return future;
+			}));
 		return timerId;
+	}
+
+	public void start() throws Exception {
+		startTableBatch(_tSafeBatchTable, new TableBatchLoadHandle(), null, 0, 100, 100);
+	}
+
+	public void stop() throws Exception {
+
+	}
+
+	public static class TableBatchTimerHandle implements TimerHandle {
+		@Override
+		public void onTimer(@NotNull TimerContext context) throws Exception {
+			var custom = (BAppInstanceId)context.customData;
+			if (null != custom) {
+				var zeze = Application.getAppInstance(custom.getAppInstanceId());
+				if (null != zeze) {
+					zeze.getSafeBatch().checkTableBatch(context.timerId, zeze.getSafeBatch()._tSafeBatchTable.get(context.timerId));
+				}
+			}
+		}
+	}
+
+	public static class TableBatchLoadHandle implements ITableJob {
+		@Override
+		public long runJob(SafeBatch safeBatch, Object _key, Object _value) throws Exception {
+			var key = (String)_key;
+			var value = (BBatchTable)_value;
+			safeBatch.checkTableBatch(key, value);
+			return 0;
+		}
+	}
+
+	void checkTableBatch(String timerId, BBatchTable batch) throws Exception {
+		if (null == batch) {
+			_stopTableBatch(timerId);
+			return;
+		}
+
+		if (running.containsKey(timerId)) {
+			return; // already running
+		}
+
+		var jobHandle = hotHandle.findHandle(zeze, batch.getJobClass());
+		var oneByOneKey = jobHandle.decodeOneByOneKey(ByteBuffer.Wrap(batch.getOneByOneKey()));
+		Transaction.whileCommit(() -> running.computeIfAbsent(timerId, (key) -> {
+			var worker = new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData());
+			var future = Task.runUnsafe(worker, "TableBatchWorker_" + timerId);
+			worker.setFuture(future);
+			return future;
+		}));
 	}
 
 	private long _stopTableBatch(String jobId) {
@@ -88,10 +144,11 @@ public class SafeBatch extends AbstractSafeBatch {
 		private final TableX<?, ?> table;
 		private final ITableJob jobHandle;
 		private final Object oneByOneKey;
-		private Object lastKey;
+		private Comparable<?> lastKey;
 		private final ArrayList<Future<?>> futures = new ArrayList<>();
+		private Future<?> futureSelf;
 
-		TableBatchWorker(String timerId, ITableJob jobHandle, Object oneByOneKey, BBatchTable.Data context) {
+		public TableBatchWorker(String timerId, ITableJob jobHandle, Object oneByOneKey, BBatchTable.Data context) {
 			this.timerId = timerId;
 			this.jobHandle = jobHandle;
 			this.oneByOneKey = oneByOneKey;
@@ -99,11 +156,21 @@ public class SafeBatch extends AbstractSafeBatch {
 			this.table = (TableX<?, ?>)zeze.getTable(context.getTableName());
 		}
 
+		public void setFuture(Future<?> future) {
+			this.futureSelf = future;
+		}
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
 		@Override
 		public void run() throws Exception {
-			lastKey = table.walkDatabase(lastKey, Math.abs(context.getProposeLimit()), (TableWalkHandle<?, ?>)this);
-			if (null == lastKey)
-				stopTableBatch(timerId);
+			// isDone 不必要。
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+				lastKey = ((TableX)table).walkDatabase(lastKey, Math.abs(context.getProposeLimit()), this);
+				if (null == lastKey) {
+					stopTableBatch(timerId);
+					return;
+				}
+			}
 		}
 
 		@Override
@@ -124,7 +191,15 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		@Override
 		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
-			var proc = zeze.newProcedure(() -> jobHandle.runJob(key, value),"TableBatchJob_" + timerId);
+			var proc = zeze.newProcedure(() -> {
+				var result = jobHandle.runJob(SafeBatch.this, key, value);
+				if (0 == result) {
+					var batch = _tSafeBatchTable.get(timerId);
+					if (null != batch)
+						batch.setLastTableKey(new Binary(table.encodeKey(key)));
+				}
+				return result;
+			},"TableBatchJob_" + timerId);
 
 			if (null != oneByOneKey) {
 				// one by one 执行。
@@ -186,7 +261,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	public interface ITableJob {
-		long runJob(Object key, Object value);
+		long runJob(SafeBatch safeBatch, Object key, Object value) throws Exception;
 		default Object decodeOneByOneKey(ByteBuffer buffer) {
 			return null;
 		}
@@ -194,8 +269,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 	}
 	public interface ISortedMapJob {
-		Iterator<Map.Entry<?, ?>> lowerBound(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer mapKey);
-		long runJob(Map.Entry<?, ?> entry);
+		Iterator<Map.Entry<?, ?>> lowerBound(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer mapKey) throws Exception;
+		long runJob(SafeBatch safeBatch, Map.Entry<?, ?> entry);
 		default Object decodeOneByOneKey(ByteBuffer buffer) {
 			return null;
 		}
