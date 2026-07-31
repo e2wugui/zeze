@@ -14,7 +14,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	protected final @NotNull Meta2<K, V> meta;
 
 	public PSortedMap1(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
-		meta = Meta2.getMap1Meta(keyClass, valueClass);
+		meta = Meta2.getSortedMap1Meta(keyClass, valueClass);
 	}
 
 	public PSortedMap1(@NotNull Meta2<K, V> meta) {
@@ -37,7 +37,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.put(key, value);
 		}
 		var exist = map.get(key);
@@ -62,7 +62,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.putAll(m);
 		} else
 			map = map.plusAll(m);
@@ -73,7 +73,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	public @Nullable V remove(@NotNull Object key) {
 		if (isManaged()) {
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove((K)key);
 		}
 		//noinspection SuspiciousMethodCalls
@@ -89,7 +89,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			return mapLog.remove(k, v);
 		}
 		V exist = map.get(k);
@@ -107,7 +107,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 		} else
 			map = Empty.sortedMap();
@@ -130,7 +130,7 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogSortedMap1<K, V>)Transaction.getCurrentVerifyWrite(this).logGetOrAdd(
-				parent().objectId() + variableId(), this::createLogBean);
+					parent().objectId() + variableId(), this::createLogBean);
 			mapLog.clear();
 			mapLog.putAll(items);
 		} else

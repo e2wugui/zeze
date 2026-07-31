@@ -22,6 +22,10 @@ public final class Meta2<K, V> {
 	private static final long map2HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogMap2<");
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map1Metas = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> map2Metas = new ConcurrentHashMap<>();
+	private static final long sortedMap1HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogSortedMap1<");
+	private static final long sortedMap2HeadHash = Bean.hash64("Zeze.Transaction.Collections.LogSortedMap2<");
+	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> sortedMap1Metas = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Class<?>, ConcurrentHashMap<Class<?>, Meta2<?, ?>>> sortedMap2Metas = new ConcurrentHashMap<>();
 
 	public final int logTypeId;
 	public final int keyEncodeType;
@@ -36,7 +40,7 @@ public final class Meta2<K, V> {
 	public final @NotNull String name; // 主要用于分析查错
 
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
-				  MethodHandle valueFactory) {
+	              MethodHandle valueFactory) {
 		logTypeId = Bean.hashLog(headHash, keyClass, valueClass);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncodeType = keyCodecFuncs.encodeType;
@@ -53,7 +57,7 @@ public final class Meta2<K, V> {
 	}
 
 	private Meta2(@NotNull String headStr, long headHash, @NotNull Class<K> keyClass, @NotNull Class<V> valueClass,
-				  @NotNull Supplier<V> ctor) {
+	              @NotNull Supplier<V> ctor) {
 		this(headStr, headHash, keyClass, valueClass, toMethodHandle(ctor));
 	}
 
@@ -70,8 +74,9 @@ public final class Meta2<K, V> {
 				Bean.class.isAssignableFrom(valueClass) ? Reflect.getDefaultConstructor(valueClass) : null);
 	}
 
-	private Meta2(@NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get, @NotNull LongFunction<Bean> create) {
-		logTypeId = Bean.hashLog(map2HeadHash, keyClass, DynamicBean.class);
+	private Meta2(long headHash, @NotNull Class<K> keyClass, @NotNull ToLongFunction<Bean> get,
+	              @NotNull LongFunction<Bean> create) {
+		logTypeId = Bean.hashLog(headHash, keyClass, DynamicBean.class);
 		var keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		keyEncodeType = keyCodecFuncs.encodeType;
 		keyEncoder = keyCodecFuncs.encoder;
@@ -97,7 +102,7 @@ public final class Meta2<K, V> {
 
 	@SuppressWarnings("unchecked")
 	public static <K, V extends Bean> @NotNull Meta2<K, V> getMap2Meta(@NotNull Class<K> keyClass,
-																	   @NotNull Class<V> valueClass) {
+	                                                                   @NotNull Class<V> valueClass) {
 		var map = map2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
 		var r = map.get(valueClass);
 		if (r != null)
@@ -107,14 +112,47 @@ public final class Meta2<K, V> {
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createMap2Meta(@NotNull Class<K> keyClass,
-																		  @NotNull Class<V> valueClass,
-																		  @NotNull Supplier<V> valueCtor) {
+	                                                                      @NotNull Class<V> valueClass,
+	                                                                      @NotNull Supplier<V> valueCtor) {
 		return new Meta2<>("LogMap2:", map2HeadHash, keyClass, valueClass, valueCtor);
 	}
 
 	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicMapMeta(@NotNull Class<K> keyClass,
-																				@NotNull ToLongFunction<Bean> get,
-																				@NotNull LongFunction<Bean> create) {
-		return new Meta2<>(keyClass, get, create);
+	                                                                            @NotNull ToLongFunction<Bean> get,
+	                                                                            @NotNull LongFunction<Bean> create) {
+		return new Meta2<>(map2HeadHash, keyClass, get, create);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <K, V> @NotNull Meta2<K, V> getSortedMap1Meta(@NotNull Class<K> keyClass, @NotNull Class<V> valueClass) {
+		var map = sortedMap1Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
+		var r = map.get(valueClass);
+		if (r != null)
+			return (Meta2<K, V>)r;
+		return (Meta2<K, V>)map.computeIfAbsent(valueClass,
+				vc -> new Meta2<>("LogSortedMap1:", sortedMap1HeadHash, keyClass, (Class<V>)vc));
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <K, V extends Bean> @NotNull Meta2<K, V> getSortedMap2Meta(@NotNull Class<K> keyClass,
+	                                                                         @NotNull Class<V> valueClass) {
+		var map = sortedMap2Metas.computeIfAbsent(keyClass, __ -> new ConcurrentHashMap<>());
+		var r = map.get(valueClass);
+		if (r != null)
+			return (Meta2<K, V>)r;
+		return (Meta2<K, V>)map.computeIfAbsent(valueClass,
+				vc -> new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, (Class<V>)vc));
+	}
+
+	public static <K, V extends Bean> @NotNull Meta2<K, V> createSortedMap2Meta(@NotNull Class<K> keyClass,
+	                                                                            @NotNull Class<V> valueClass,
+	                                                                            @NotNull Supplier<V> valueCtor) {
+		return new Meta2<>("LogSortedMap2:", sortedMap2HeadHash, keyClass, valueClass, valueCtor);
+	}
+
+	public static <K, V extends Bean> @NotNull Meta2<K, V> createDynamicSortedMapMeta(@NotNull Class<K> keyClass,
+	                                                                                  @NotNull ToLongFunction<Bean> get,
+	                                                                                  @NotNull LongFunction<Bean> create) {
+		return new Meta2<>(sortedMap2HeadHash, keyClass, get, create);
 	}
 }

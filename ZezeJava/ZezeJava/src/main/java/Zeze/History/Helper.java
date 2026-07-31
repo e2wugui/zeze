@@ -122,6 +122,7 @@ public class Helper {
 						dependsList(beanClass, v, v.getValue(), result);
 						break;
 					case "map":
+					case "sortedmap":
 						dependsMap(beanClass, v, v.getKey(), v.getValue(), result);
 						break;
 					case "set":
@@ -143,7 +144,7 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsList(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String valueType,
-								   @NotNull DependsResult result) throws Exception {
+	                               @NotNull DependsResult result) throws Exception {
 		var valueClass = getBuiltinBoxingClass(valueType);
 		if (valueClass != null) {
 			if (valueClass == DynamicBean.class) {
@@ -166,7 +167,7 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
-								  @NotNull String valueType, @NotNull DependsResult result) throws Exception {
+	                              @NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
 			keyClass = Class.forName(keyType); // must be BeanKey.
@@ -196,11 +197,11 @@ public class Helper {
 
 	@SuppressWarnings("unchecked")
 	public static void dependsGTable(@NotNull Class<?> beanClass,
-									 @NotNull BVariable.Data v,
-									 @NotNull String key1Type,
-									 @NotNull String key2Type,
-									 @NotNull String valueType,
-									 @NotNull DependsResult result) throws Exception {
+	                                 @NotNull BVariable.Data v,
+	                                 @NotNull String key1Type,
+	                                 @NotNull String key2Type,
+	                                 @NotNull String valueType,
+	                                 @NotNull DependsResult result) throws Exception {
 		var key1Class = getBuiltinBoxingClass(key1Type);
 		if (key1Class == null) {
 			key1Class = Class.forName(key1Type); // must be BeanKey.
