@@ -17,6 +17,8 @@ import Zeze.Transaction.Collections.LogMap2;
 import Zeze.Transaction.Collections.LogSet1;
 import Zeze.Transaction.Collections.LogOne;
 import Zeze.Transaction.Collections.LogBean;
+import Zeze.Transaction.Collections.LogSortedMap1;
+import Zeze.Transaction.Collections.LogSortedMap2;
 import Zeze.Transaction.Collections.Meta1;
 import Zeze.Transaction.Collections.Meta2;
 import Zeze.Transaction.DynamicBean;
@@ -61,7 +63,13 @@ public class Helper {
 		public final HashSet<Meta2<?, ?>> map1Metas = new HashSet<>();
 		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
-	}
+
+		public final HashSet<KV<Class<?>, Class<?>>> sortedMap1 = new HashSet<>();
+		public final HashSet<KV<Class<?>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
+		public final HashMap<KV<Class<?>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
+			sortedMap2Dynamic = new HashMap<>();
+		public final HashSet<Meta2<?, ?>> sortedMap1Metas = new HashSet<>();
+		public final HashSet<Meta2<?, ? extends Bean>> sortedMap2Metas = new HashSet<>();	}
 
 	public static void registerAllTableLogs(@NotNull Application zeze) throws Exception {
 		var result = new DependsResult();
@@ -98,7 +106,17 @@ public class Helper {
 			registerLogMap2Meta(meta);
 		for (var set1Class : result.set1)
 			registerLogSet1(set1Class);
-		registerLogs();
+
+		for (var kv : result.sortedMap1)
+			registerLogSortedMap1(kv.getKey(), kv.getValue());
+		for (var kv : result.sortedMap2)
+			registerLogSortedMap2(kv.getKey(), kv.getValue());
+		for (var e : result.sortedMap2Dynamic.entrySet())
+			registerLogSortedMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
+		for (var meta : result.sortedMap1Metas)
+			registerLogSortedMap1Meta(meta);
+		for (var meta : result.sortedMap2Metas)
+			registerLogSortedMap2Meta(meta);		registerLogs();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -122,8 +140,9 @@ public class Helper {
 						dependsList(beanClass, v, v.getValue(), result);
 						break;
 					case "map":
-					case "sortedmap":
 						dependsMap(beanClass, v, v.getKey(), v.getValue(), result);
+					case "sortedmap":
+						dependsSortedMap(beanClass, v, v.getKey(), v.getValue(), result);
 						break;
 					case "set":
 						dependsSet(v.getValue(), result);
@@ -166,6 +185,36 @@ public class Helper {
 	}
 
 	@SuppressWarnings("unchecked")
+	public static void dependsSortedMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
+	                                    @NotNull String valueType, @NotNull DependsResult result) throws Exception {
+		var keyClass = getBuiltinBoxingClass(keyType);
+		if (keyClass == null) {
+			keyClass = Class.forName(keyType); // must be BeanKey.
+			dependsBean(keyClass, result);
+		}
+		var valueClass = getBuiltinBoxingClass(valueType);
+		var is2 = valueClass == null;
+		if (is2) {
+			valueClass = Class.forName(valueType); // bean or beanKey
+			dependsBean(valueClass, result);
+			result.sortedMap2.add(KV.create(keyClass, (Class<? extends Bean>)valueClass));
+		} else if (valueClass == DynamicBean.class) {
+			result.sortedMap2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
+				try {
+					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
+						+ Character.toUpperCase(v.getName().charAt(0))
+						+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+					return KV.create(db.getGetBean(), db.getCreateBean());
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			});
+		} else {
+			result.sortedMap1.add(KV.create(keyClass, valueClass));
+		}
+	}
+
+	@SuppressWarnings("unchecked")
 	public static void dependsMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
 	                              @NotNull String valueType, @NotNull DependsResult result) throws Exception {
 		var keyClass = getBuiltinBoxingClass(keyType);
@@ -183,8 +232,8 @@ public class Helper {
 			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-							+ Character.toUpperCase(v.getName().charAt(0))
-							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+						+ Character.toUpperCase(v.getName().charAt(0))
+						+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
@@ -324,6 +373,31 @@ public class Helper {
 
 	public static <V extends Bean> void registerLogOne(@NotNull Class<V> beanClass) {
 		Log.register(varId -> new LogOne<>(varId, beanClass));
+	}
+
+	public static <K extends Comparable<K>, V> void registerLogSortedMap1(Class<K> keyClass, Class<V> valueClass) {
+		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(),
+			Meta2.getSortedMap1Meta(keyClass, valueClass)));
+	}
+
+	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2(Class<K> keyClass, Class<V>
+		valueClass) {
+		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(),
+			Meta2.getSortedMap2Meta(keyClass, valueClass)));
+	}
+
+	public static <K extends Comparable<K>> void registerLogSortedMap2Dynamic(Class<K> keyClass,
+	                                                                          ToLongFunction<Bean> get, LongFunction<Bean> create) {
+		var meta = Meta2.createDynamicSortedMapMeta(keyClass, get, create);
+		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
+	}
+
+	public static <K extends Comparable<K>, V> void registerLogSortedMap1Meta(Meta2<K, V> meta) {
+		Log.register(varId -> new LogSortedMap1<>(null, varId, null, Empty.sortedMap(), meta));
+	}
+
+	public static <K extends Comparable<K>, V extends Bean> void registerLogSortedMap2Meta(Meta2<K, V> meta) {
+		Log.register(varId -> new LogSortedMap2<>(null, varId, null, Empty.sortedMap(), meta));
 	}
 
 	public static void registerLogs() {

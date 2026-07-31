@@ -18,6 +18,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
+import demo.Module1.BSimple;
 import org.apache.logging.log4j.Level;
 import org.junit.Assert;
 
@@ -137,6 +138,7 @@ public final class Tasks {
 		taskFactorys.add(new TaskFactory(Table1List9AddOrRemove::new, 100));
 		taskFactorys.add(new TaskFactory(tflushInt1Trade::new, 100));
 		taskFactorys.add(new TaskFactory(tflushInt1TradeConcurrentVerify::new, 100));
+		taskFactorys.add(new TaskFactory(tContainerLog::new, 50));
 
 		taskFactorys.sort(Comparator.comparingInt(a -> a.Weight));
 		for (var task : taskFactorys)
@@ -165,6 +167,19 @@ public final class Tasks {
 			} catch (Exception e) {
 				Simulate.logger.error("verify exception:", e);
 			}
+		}
+	}
+
+	static class tContainerLog extends Task {
+		@Override
+		long process() {
+			var key = Keys.iterator().next();
+			var value = App.demo_Module1.getTable1().getOrAdd(key);
+			value.getMap15().put(0L, Random.getInstance().nextLong()); // map<long, long>
+			value.getMap41().put(0L, new BSimple()); // map<long, BSimple>
+			value.getSortedmap1().put(1, Random.getInstance().nextInt());
+			value.getSortedmap2().put(1, new BSimple());
+			return 0;
 		}
 	}
 
