@@ -17,6 +17,18 @@ export default defineConfig({
 			},
 			sidebar: [
 				{
+					label: '🚀 快速上手',
+					autogenerate: { directory: 'zezedoc/quickstart' },
+				},
+				{
+					label: '📖 使用指南',
+					autogenerate: { directory: 'zezedoc/manual' },
+				},
+				{
+					label: '📚 参考',
+					autogenerate: { directory: 'zezedoc/reference' },
+				},
+				{
 					label: '入门指南',
 					autogenerate: { directory: 'getting-started' },
 				},
