@@ -47,7 +47,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每批遍历的Job数量，负数表示并发执行（同时oneByOneKey要为null）。
 	 * @return jobId
 	 */
-	public String startTableBatch(TableX<?, ?> table, ITableJob jobHandle, Object oneByOneKey, long delay, long checkPeriod, int limit) {
+	public String startTableBatch(TableX<?, ?> table, ITableJob jobHandle,
+								  Object oneByOneKey, long delay, long checkPeriod, int limit) {
 		var timerId = zeze.getTimer().schedule(delay, checkPeriod,
 			TableBatchTimerHandle.class, new BAppInstanceId(zeze.getInstanceId()));
 		var batch = _tSafeBatchTable.getOrAdd(timerId);
@@ -73,7 +74,10 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	public void stop() throws Exception {
-
+		for (var run : running.values()) {
+			run.cancel(true);
+		}
+		running.clear();
 	}
 
 	public static class TableBatchTimerHandle implements TimerHandle {
@@ -83,7 +87,8 @@ public class SafeBatch extends AbstractSafeBatch {
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					zeze.getSafeBatch().checkTableBatch(context.timerId, zeze.getSafeBatch()._tSafeBatchTable.get(context.timerId));
+					zeze.getSafeBatch().checkTableBatch(context.timerId,
+						zeze.getSafeBatch()._tSafeBatchTable.get(context.timerId));
 				}
 			}
 		}
