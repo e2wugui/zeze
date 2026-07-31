@@ -10,7 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -67,7 +66,6 @@ import org.jetbrains.annotations.UnmodifiableView;
 public final class Application extends ReentrantLock {
 	static final @NotNull Logger logger = LogManager.getLogger(Application.class);
 
-	private final @NotNull String instanceId = UUID.randomUUID().toString();
 	private final @NotNull String projectName;
 	private final @NotNull Config conf;
 	private final HashMap<String, Database> databases = new HashMap<>();
@@ -123,17 +121,11 @@ public final class Application extends ReentrantLock {
 
 	private Future<?> checkpointFuture;
 
-	private static ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
-
-	// 每个Application实例的Id。
-	// 当运行的时候需要持久化，然后又读取出来并且通过它得到实例。
-	public @NotNull String getInstanceId() {
-		return instanceId;
-	}
+	private static final ConcurrentHashMap<String, Application> instances = new ConcurrentHashMap<>();
 
 	// 根据实例Id得到Application实例。
-	public static @Nullable Application getAppInstance(@NotNull String instanceId) {
-		return instances.get(instanceId);
+	public static @Nullable Application getAppInstance(@NotNull String projectName) {
+		return instances.get(projectName);
 	}
 
 	public @NotNull ProcedureLockWatcher getProcedureLockWatcher() {
@@ -742,8 +734,8 @@ public final class Application extends ReentrantLock {
 			} else
 				startState = StartState.eStarted;
 
-			if (null != instances.putIfAbsent(getInstanceId(), this))
-				throw new RuntimeException("Instance ID " + getInstanceId() + " already exists");
+			if (null != instances.putIfAbsent(getProjectName(), this))
+				logger.warn("Project {} already exists", getProjectName());
 		} finally {
 			unlock();
 		}
@@ -752,7 +744,7 @@ public final class Application extends ReentrantLock {
 	public void stop() throws Exception {
 		lock();
 		try {
-			instances.remove(getInstanceId());
+			instances.remove(getProjectName());
 
 			if (null != checkpointFuture) {
 				checkpointFuture.get();

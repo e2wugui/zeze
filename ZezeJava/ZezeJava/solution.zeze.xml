@@ -2057,24 +2057,15 @@
                         <var id="1" name="AppInstanceId" type="string"/>
                     </bean>
 
-			<bean name="BBatchTable" UseData="true">
-                        <var id="1" name="TableName" type="string"/>
-                        <var id="2" name="LastTableKey" type="binary"/>
-                        <var id="3" name="ProposeLimit" type="int"/>
-                        <var id="4" name="JobClass" type="string"/>
-                        <var id="5" name="OneByOneKey" type="binary"/>
-			</bean>
-			<table name="tSafeBatchTable" key="string" value="BBatchTable"/>
-
-			<bean name="BBatchSortedMap" UseData="true">
+			<bean name="BBatch" UseData="true">
                         <var id="1" name="TableName" type="string"/>
                         <var id="2" name="RecordKey" type="binary"/>
-                        <var id="3" name="LastMapKey" type="binary"/>
+                        <var id="3" name="LastTableKey" type="binary"/>
                         <var id="4" name="ProposeLimit" type="int"/>
                         <var id="5" name="JobClass" type="string"/>
                         <var id="6" name="OneByOneKey" type="binary"/>
- 			</bean>
-			<table name="tSafeBatchSortedMap" key="string" value="BBatchSortedMap"/>
+			</bean>
+			<table name="tSafeBatch" key="string" value="BBatch"/>
 		</module>
 
 		<!--

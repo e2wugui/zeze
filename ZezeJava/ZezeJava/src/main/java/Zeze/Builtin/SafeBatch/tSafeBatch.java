@@ -6,14 +6,14 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
-public final class tSafeBatchSortedMap extends TableX<String, Zeze.Builtin.SafeBatch.BBatchSortedMap>
-        implements TableReadOnly<String, Zeze.Builtin.SafeBatch.BBatchSortedMap, Zeze.Builtin.SafeBatch.BBatchSortedMapReadOnly> {
-    public tSafeBatchSortedMap() {
-        super(-2134918459, "Zeze_Builtin_SafeBatch_tSafeBatchSortedMap");
+public final class tSafeBatch extends TableX<String, Zeze.Builtin.SafeBatch.BBatch>
+        implements TableReadOnly<String, Zeze.Builtin.SafeBatch.BBatch, Zeze.Builtin.SafeBatch.BBatchReadOnly> {
+    public tSafeBatch() {
+        super(-617324740, "Zeze_Builtin_SafeBatch_tSafeBatch");
     }
 
-    public tSafeBatchSortedMap(String _s_) {
-        super(-2134918459, "Zeze_Builtin_SafeBatch_tSafeBatchSortedMap", _s_);
+    public tSafeBatch(String _s_) {
+        super(-617324740, "Zeze_Builtin_SafeBatch_tSafeBatch", _s_);
     }
 
     @Override
@@ -22,13 +22,13 @@ public final class tSafeBatchSortedMap extends TableX<String, Zeze.Builtin.SafeB
     }
 
     @Override
-    public Class<Zeze.Builtin.SafeBatch.BBatchSortedMap> getValueClass() {
-        return Zeze.Builtin.SafeBatch.BBatchSortedMap.class;
+    public Class<Zeze.Builtin.SafeBatch.BBatch> getValueClass() {
+        return Zeze.Builtin.SafeBatch.BBatch.class;
     }
 
     public static final int VAR_TableName = 1;
     public static final int VAR_RecordKey = 2;
-    public static final int VAR_LastMapKey = 3;
+    public static final int VAR_LastTableKey = 3;
     public static final int VAR_ProposeLimit = 4;
     public static final int VAR_JobClass = 5;
     public static final int VAR_OneByOneKey = 6;
@@ -62,12 +62,12 @@ public final class tSafeBatchSortedMap extends TableX<String, Zeze.Builtin.SafeB
     }
 
     @Override
-    public Zeze.Builtin.SafeBatch.BBatchSortedMap newValue() {
-        return new Zeze.Builtin.SafeBatch.BBatchSortedMap();
+    public Zeze.Builtin.SafeBatch.BBatch newValue() {
+        return new Zeze.Builtin.SafeBatch.BBatch();
     }
 
     @Override
-    public Zeze.Builtin.SafeBatch.BBatchSortedMapReadOnly getReadOnly(String _k_) {
+    public Zeze.Builtin.SafeBatch.BBatchReadOnly getReadOnly(String _k_) {
         return get(_k_);
     }
 }

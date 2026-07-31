@@ -16,8 +16,7 @@ public abstract class AbstractSafeBatch implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
-    protected final Zeze.Builtin.SafeBatch.tSafeBatchSortedMap _tSafeBatchSortedMap = new Zeze.Builtin.SafeBatch.tSafeBatchSortedMap();
-    protected final Zeze.Builtin.SafeBatch.tSafeBatchTable _tSafeBatchTable = new Zeze.Builtin.SafeBatch.tSafeBatchTable();
+    protected final Zeze.Builtin.SafeBatch.tSafeBatch _tSafeBatch = new Zeze.Builtin.SafeBatch.tSafeBatch();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
@@ -26,13 +25,11 @@ public abstract class AbstractSafeBatch implements Zeze.IModule {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
-        zeze.addTable(zeze.getConfig().getTableConf(_tSafeBatchSortedMap.getName()).getDatabaseName(), _tSafeBatchSortedMap);
-        zeze.addTable(zeze.getConfig().getTableConf(_tSafeBatchTable.getName()).getDatabaseName(), _tSafeBatchTable);
+        zeze.addTable(zeze.getConfig().getTableConf(_tSafeBatch.getName()).getDatabaseName(), _tSafeBatch);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
-        zeze.removeTable(zeze.getConfig().getTableConf(_tSafeBatchSortedMap.getName()).getDatabaseName(), _tSafeBatchSortedMap);
-        zeze.removeTable(zeze.getConfig().getTableConf(_tSafeBatchTable.getName()).getDatabaseName(), _tSafeBatchTable);
+        zeze.removeTable(zeze.getConfig().getTableConf(_tSafeBatch.getName()).getDatabaseName(), _tSafeBatch);
     }
 
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

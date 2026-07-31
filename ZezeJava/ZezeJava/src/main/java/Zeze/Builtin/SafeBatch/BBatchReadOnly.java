@@ -1,14 +1,14 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.SafeBatch;
 
-public interface BBatchTableReadOnly {
+public interface BBatchReadOnly {
     long typeId();
     int preAllocSize();
     void encode(Zeze.Serialize.ByteBuffer _o_);
     void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);
     boolean negativeCheck();
-    BBatchTable copy();
-    BBatchTable.Data toData();
+    BBatch copy();
+    BBatch.Data toData();
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
@@ -17,6 +17,7 @@ public interface BBatchTableReadOnly {
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
     String getTableName();
+    Zeze.Net.Binary getRecordKey();
     Zeze.Net.Binary getLastTableKey();
     int getProposeLimit();
     String getJobClass();
