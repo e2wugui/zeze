@@ -1032,7 +1032,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			return count;
+			return callback.endWalk(count);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -1108,6 +1108,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
+			callback.endWalk(0);
 			return lastKey.value;
 		}
 

@@ -956,7 +956,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			return count;
+			return callback.endWalk(count);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
@@ -1032,6 +1032,7 @@ public final class DatabaseMySql extends DatabaseJdbc implements DatabaseRelatio
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
+			callback.endWalk(0);
 			return lastKey.value;
 		}
 

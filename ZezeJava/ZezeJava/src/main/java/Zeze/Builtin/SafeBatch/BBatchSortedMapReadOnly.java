@@ -8,6 +8,7 @@ public interface BBatchSortedMapReadOnly {
     void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);
     boolean negativeCheck();
     BBatchSortedMap copy();
+    BBatchSortedMap.Data toData();
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
@@ -20,6 +21,5 @@ public interface BBatchSortedMapReadOnly {
     Zeze.Net.Binary getLastMapKey();
     int getProposeLimit();
     String getJobClass();
-    long getTimerPeriod();
     Zeze.Net.Binary getOneByOneKey();
 }

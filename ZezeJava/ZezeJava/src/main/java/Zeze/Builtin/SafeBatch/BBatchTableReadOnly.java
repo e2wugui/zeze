@@ -8,6 +8,7 @@ public interface BBatchTableReadOnly {
     void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_);
     boolean negativeCheck();
     BBatchTable copy();
+    BBatchTable.Data toData();
     void buildString(StringBuilder _s_, int _l_);
     long objectId();
     int variableId();
@@ -19,6 +20,5 @@ public interface BBatchTableReadOnly {
     Zeze.Net.Binary getLastTableKey();
     int getProposeLimit();
     String getJobClass();
-    long getTimerPeriod();
     Zeze.Net.Binary getOneByOneKey();
 }

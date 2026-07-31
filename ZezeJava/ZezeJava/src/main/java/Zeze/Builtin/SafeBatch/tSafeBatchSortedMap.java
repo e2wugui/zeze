@@ -5,17 +5,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-/*
-                    public interface ISortedMapJob {
-                        Map.Entry<?, ?> getEntry(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer mapKey);
-                        void runJob(Map.Entry<?, ?> entry);
-                        default Object decodeOneByOneKey(ByteBuffer key) {
-                            return null;
-                        }
-                        default void encodeOneByOneKey(ByteBuffer buffer, Object key) {
-                        }
-                    }
-*/
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tSafeBatchSortedMap extends TableX<String, Zeze.Builtin.SafeBatch.BBatchSortedMap>
         implements TableReadOnly<String, Zeze.Builtin.SafeBatch.BBatchSortedMap, Zeze.Builtin.SafeBatch.BBatchSortedMapReadOnly> {
@@ -42,8 +31,7 @@ public final class tSafeBatchSortedMap extends TableX<String, Zeze.Builtin.SafeB
     public static final int VAR_LastMapKey = 3;
     public static final int VAR_ProposeLimit = 4;
     public static final int VAR_JobClass = 5;
-    public static final int VAR_TimerPeriod = 6;
-    public static final int VAR_OneByOneKey = 7;
+    public static final int VAR_OneByOneKey = 6;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

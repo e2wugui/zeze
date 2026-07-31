@@ -5,16 +5,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.TableReadOnly;
 
-/*
-                    public interface ITableJob {
-                        void runJob(TableX<?, ?> table, ByteBuffer key, ByteBuffer value);
-                        default Object decodeOneByOneKey(ByteBuffer key) {
-                            return null;
-                        }
-                        default void encodeOneByOneKey(ByteBuffer buffer, Object key) {
-                        }
-                    }
-*/
 @SuppressWarnings({"DuplicateBranchesInSwitch", "NullableProblems", "RedundantSuppression"})
 public final class tSafeBatchTable extends TableX<String, Zeze.Builtin.SafeBatch.BBatchTable>
         implements TableReadOnly<String, Zeze.Builtin.SafeBatch.BBatchTable, Zeze.Builtin.SafeBatch.BBatchTableReadOnly> {
@@ -40,8 +30,7 @@ public final class tSafeBatchTable extends TableX<String, Zeze.Builtin.SafeBatch
     public static final int VAR_LastTableKey = 2;
     public static final int VAR_ProposeLimit = 3;
     public static final int VAR_JobClass = 4;
-    public static final int VAR_TimerPeriod = 5;
-    public static final int VAR_OneByOneKey = 6;
+    public static final int VAR_OneByOneKey = 5;
 
     @Override
     public String decodeKey(ByteBuffer _os_) {

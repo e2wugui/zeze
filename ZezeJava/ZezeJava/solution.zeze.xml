@@ -2053,50 +2053,23 @@
 		</module>
 
 		<module name="SafeBatch" id="11044">
-			<bean name="BBatchTable">
+			<bean name="BBatchTable" UseData="true">
                         <var id="1" name="TableName" type="string"/>
                         <var id="2" name="LastTableKey" type="binary"/>
                         <var id="3" name="ProposeLimit" type="int"/>
                         <var id="4" name="JobClass" type="string"/>
-                        <var id="5" name="TimerPeriod" type="long"/>
-                        <var id="6" name="OneByOneKey" type="binary"/>
+                        <var id="5" name="OneByOneKey" type="binary"/>
 			</bean>
-
-                    <!--
-                    public interface ITableJob {
-                        void runJob(TableX<?, ?> table, ByteBuffer key, ByteBuffer value);
-                        default Object decodeOneByOneKey(ByteBuffer key) {
-                            return null;
-                        }
-                        default void encodeOneByOneKey(ByteBuffer buffer, Object key) {
-                        }
-                    }
-                    -->
-
 			<table name="tSafeBatchTable" key="string" value="BBatchTable"/>
 
-			<bean name="BBatchSortedMap">
+			<bean name="BBatchSortedMap" UseData="true">
                         <var id="1" name="TableName" type="string"/>
                         <var id="2" name="RecordKey" type="binary"/>
                         <var id="3" name="LastMapKey" type="binary"/>
                         <var id="4" name="ProposeLimit" type="int"/>
                         <var id="5" name="JobClass" type="string"/>
-                        <var id="6" name="TimerPeriod" type="long"/>
-                        <var id="7" name="OneByOneKey" type="binary"/>
+                        <var id="6" name="OneByOneKey" type="binary"/>
  			</bean>
-
-                    <!--
-                    public interface ISortedMapJob {
-                        Map.Entry<?, ?> getEntry(TableX<?, ?> table, ByteBuffer tableKey, ByteBuffer mapKey);
-                        void runJob(Map.Entry<?, ?> entry);
-                        default Object decodeOneByOneKey(ByteBuffer key) {
-                            return null;
-                        }
-                        default void encodeOneByOneKey(ByteBuffer buffer, Object key) {
-                        }
-                    }
-                    -->
-
 			<table name="tSafeBatchSortedMap" key="string" value="BBatchSortedMap"/>
 		</module>
 

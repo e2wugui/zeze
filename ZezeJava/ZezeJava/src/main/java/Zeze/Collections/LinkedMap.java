@@ -447,21 +447,21 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 		long count = 0L;
 		var root = module._tLinkedMaps.selectDirty(name);
 		if (null == root)
-			return count;
+			return func.endWalk(count);
 
 		var nodeId = root.getHeadNodeId();
 		while (nodeId != 0) {
 			var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
 			if (null == node)
-				return count; // error
+				return func.endWalk(count); // error
 			for (var value : node.getValues()) {
 				++count;
 				if (!func.handle(value.getId(), (V)value.getValue().getBean()))
-					return count;
+					return func.endWalk(count);
 			}
 			nodeId = node.getNextNodeId();
 		}
-		return count;
+		return func.endWalk(count);
 	}
 
 	// inner

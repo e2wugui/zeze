@@ -107,7 +107,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public final @Nullable Storage<K, V> getStorage() {
+	final @Nullable Storage<K, V> getStorage() {
 		return storage;
 	}
 
@@ -1115,7 +1115,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					break;
 			}
 		}
-		return count;
+		return callback.endWalk(count);
 	}
 
 	private @Nullable V cacheCopy(@NotNull Record1<K, V> r) {
