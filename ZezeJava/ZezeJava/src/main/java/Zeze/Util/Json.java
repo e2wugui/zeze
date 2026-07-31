@@ -61,7 +61,7 @@ public final class Json implements Cloneable {
 		public final @Nullable Type[] paramTypes;
 
 		public FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
-						 @Nullable KeyReader keyReader, @NotNull Field field) {
+		                 @Nullable KeyReader keyReader, @NotNull Field field) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
 			this.type = type;
@@ -82,12 +82,12 @@ public final class Json implements Cloneable {
 
 	public interface Parser<T> {
 		@Nullable T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable FieldMeta fieldMeta,
-						  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
+		                  @Nullable T obj, @Nullable Object parent) throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
 		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta,
-								   @Nullable FieldMeta fieldMeta, @Nullable Object obj,
-								   @Nullable Object parent) throws ReflectiveOperationException {
+		                           @Nullable FieldMeta fieldMeta, @Nullable Object obj,
+		                           @Nullable Object parent) throws ReflectiveOperationException {
 			return parse(reader, (ClassMeta<T>)classMeta, fieldMeta, (T)obj, parent);
 		}
 	}
@@ -323,14 +323,17 @@ public final class Json implements Cloneable {
 							if (keyReader == null) {
 								Class<?> keyClass = (Class<?>)subTypes[0];
 								if (isAbstract(keyClass)) {
-									throw new IllegalStateException("unsupported abstract key class for field: "
-											+ fieldName + " in " + klass.getName());
+									keyReader = (jr, b) -> {
+										throw new IllegalStateException("unsupported abstract key class(" + keyClass
+												+ ") for field: " + fieldName + " in " + klass.getName());
+									};
+								} else {
+									Creator<?> keyCtor = getDefCtor(keyClass);
+									keyReader = (jr, b) -> {
+										String keyStr = JsonReader.parseStringKey(jr, b);
+										return ensureNotNull(new JsonReader().buf(keyStr).parse(json, keyCtor.create()));
+									};
 								}
-								Creator<?> keyCtor = getDefCtor(keyClass);
-								keyReader = (jr, b) -> {
-									String keyStr = JsonReader.parseStringKey(jr, b);
-									return ensureNotNull(new JsonReader().buf(keyStr).parse(json, keyCtor.create()));
-								};
 							}
 						} else {
 							type = TYPE_MAP_FLAG + TYPE_OBJECT;

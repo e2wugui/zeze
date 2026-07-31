@@ -309,4 +309,21 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 			}
 		};
 	}
+
+	@Override
+	public int hashCode() {
+		return getMap().hashCode();
+	}
+
+	@Override
+	public boolean equals(@Nullable Object o) {
+		return o instanceof PSortedMap && getMap().equals(((PSortedMap<?, ?>)o).getMap());
+	}
+
+	@Override
+	public @NotNull String toString() {
+		var sb = new StringBuilder();
+		ByteBuffer.BuildString(sb, getMap());
+		return sb.toString();
+	}
 }
