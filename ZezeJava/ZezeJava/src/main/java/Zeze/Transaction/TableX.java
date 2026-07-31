@@ -107,7 +107,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	final @Nullable Storage<K, V> getStorage() {
+	public final @Nullable Storage<K, V> getStorage() {
 		return storage;
 	}
 
