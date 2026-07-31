@@ -28,7 +28,7 @@ public final class tSafeBatch extends TableX<String, Zeze.Builtin.SafeBatch.BBat
 
     public static final int VAR_TableName = 1;
     public static final int VAR_RecordKey = 2;
-    public static final int VAR_LastTableKey = 3;
+    public static final int VAR_LastKey = 3;
     public static final int VAR_ProposeLimit = 4;
     public static final int VAR_JobClass = 5;
     public static final int VAR_OneByOneKey = 6;

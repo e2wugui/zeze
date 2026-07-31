@@ -2,7 +2,7 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BAppInstanceId;
-import Zeze.Builtin.SafeBatch.BBatchTable;
+import Zeze.Builtin.SafeBatch.BBatch;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -37,7 +37,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 		// 遍历内存中的SortedMap时需要实现。
 		default NavigableMap<?, ?> tailMap(@Nullable TableX<?, ?> table,
-										   @Nullable ByteBuffer tableKey, @Nullable ByteBuffer mapKey) throws Exception {
+										   @Nullable ByteBuffer tableKey,
+										   @Nullable Comparable<?> mapKey) throws Exception {
 			return null;
 		}
 	}
@@ -65,28 +66,11 @@ public class SafeBatch extends AbstractSafeBatch {
 	 */
 	public String startWalkTable(TableX<?, ?> table, WalkJobHandle jobHandle,
 	                             Object oneByOneKey, long checkPeriod, int limit) {
-		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod,
-			TableBatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
-		var batch = _tSafeBatchTable.getOrAdd(timerId);
-		batch.setTableName(table.getName());
-		batch.setProposeLimit(limit);
-		batch.setJobClass(jobHandle.getClass().getName());
-		if (null != oneByOneKey) {
-			var buffer = ByteBuffer.Allocate();
-			jobHandle.encodeOneByOneKey(buffer, oneByOneKey);
-			batch.setOneByOneKey(new Binary(buffer));
-		}
-		Transaction.whileCommit(() -> running.computeIfAbsent(timerId, (key) -> {
-			var worker = new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData());
-			var future = Task.runUnsafe(worker, "TableBatchWorker_" + timerId);
-			worker.setFuture(future);
-			return future;
-			}));
-		return timerId;
+		return _saveAndStart(table, null, jobHandle, oneByOneKey, checkPeriod, limit);
 	}
 
 	public void start() throws Exception {
-		startWalkTable(_tSafeBatchTable, new TableLoadHandle(), null, 100, 100);
+		startWalkTable(_tSafeBatch, new TableLoadHandle(), null, 100, 100);
 	}
 
 	public void stop() throws Exception {
@@ -107,7 +91,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
 					zeze.getSafeBatch().checkTableBatch(context.timerId,
-						zeze.getSafeBatch()._tSafeBatchTable.get(context.timerId));
+						zeze.getSafeBatch()._tSafeBatch.get(context.timerId));
 				}
 			}
 		}
@@ -117,13 +101,25 @@ public class SafeBatch extends AbstractSafeBatch {
 		@Override
 		public long runJob(SafeBatch safeBatch, Object _key, Object _value) throws Exception {
 			var key = (String)_key;
-			var value = (BBatchTable)_value;
+			var value = (BBatch)_value;
 			safeBatch.checkTableBatch(key, value);
 			return 0;
 		}
 	}
 
-	void checkTableBatch(String timerId, BBatchTable batch) throws Exception {
+	private void _startWorker(@NotNull String timerId, @NotNull WalkJobHandle jobHandle,
+							  @Nullable Object oneByOneKey, @NotNull BBatch batch) {
+		running.computeIfAbsent(timerId, (key) -> {
+			var worker = (batch.getRecordKey().size() == 0)
+				? new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData())
+				: new SortedMapWorker(timerId, jobHandle, oneByOneKey, batch.toData());
+			var future = Task.runUnsafe(worker, "BatchWorker_" + timerId);
+			worker.setFuture(future);
+			return future;
+		});
+	}
+
+	void checkTableBatch(String timerId, BBatch batch) throws Exception {
 		if (null == batch) {
 			_stopTableBatch(timerId);
 			return;
@@ -135,17 +131,12 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		var jobHandle = hotWalkJobHandles.findHandle(zeze, batch.getJobClass());
 		var oneByOneKey = jobHandle.decodeOneByOneKey(ByteBuffer.Wrap(batch.getOneByOneKey()));
-		Transaction.whileCommit(() -> running.computeIfAbsent(timerId, (key) -> {
-			var worker = new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData());
-			var future = Task.runUnsafe(worker, "TableBatchWorker_" + timerId);
-			worker.setFuture(future);
-			return future;
-		}));
+		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, oneByOneKey, batch));
 	}
 
 	private long _stopTableBatch(String jobId) {
 		zeze.getTimer().cancel(jobId);
-		_tSafeBatchTable.remove(jobId);
+		_tSafeBatch.remove(jobId);
 		Transaction.whileCommit(() -> {
 			var job = running.remove(jobId);
 			if (null != job) {
@@ -168,48 +159,18 @@ public class SafeBatch extends AbstractSafeBatch {
 		zeze.newProcedure(() -> _stopTableBatch(jobId), "stopBatch_" + jobId).call();
 	}
 
-	private class TableBatchWorker implements Action0, TableWalkHandle<Object, Object> {
-		private final String timerId;
-		private final BBatchTable.Data context;
-		private final TableX<?, ?> table;
-		private final WalkJobHandle jobHandle;
-		private final Object oneByOneKey;
-		private Comparable<?> lastKey;
-		private final ArrayList<Future<?>> futures = new ArrayList<>();
-		private Future<?> futureSelf;
+	private abstract class Worker implements Action0, TableWalkHandle<Object, Object> {
+		protected final String timerId;
+		protected final WalkJobHandle jobHandle;
+		protected final Object oneByOneKey;
+		protected final TableX<?, ?> table;
+		protected final int limit;
 
-		public TableBatchWorker(String timerId, WalkJobHandle jobHandle, Object oneByOneKey, BBatchTable.Data context) {
-			this.timerId = timerId;
-			this.jobHandle = jobHandle;
-			this.oneByOneKey = oneByOneKey;
-			this.context = context;
-			this.table = (TableX<?, ?>)zeze.getTable(context.getTableName());
-		}
+		protected Future<?> futureSelf;
+		protected final ArrayList<Future<?>> futures = new ArrayList<>();
 
 		public void setFuture(Future<?> future) {
 			this.futureSelf = future;
-		}
-
-		@SuppressWarnings({"unchecked", "rawtypes"})
-		@Override
-		public void run() throws Exception {
-			// isDone 不必要。
-			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
-				lastKey = ((TableX)table).walkDatabase(lastKey, Math.abs(context.getProposeLimit()), this);
-				if (null == lastKey) {
-					stopTableBatch(timerId);
-					return;
-				}
-				// 一批执行完保存一次lastKey。
-				// 这种方式没有每事务保存严谨。
-				// 够用了。
-				zeze.newProcedure(() -> {
-					var batch = _tSafeBatchTable.get(timerId);
-					if (null != batch)
-						batch.setLastTableKey(new Binary(table.encodeKey(lastKey)));
-					return 0;
-				}, "").call();
-			}
 		}
 
 		@Override
@@ -219,7 +180,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				var future = new TaskCompletionSource<Boolean>();
 				zeze.getTaskOneByOneByKey().Execute(oneByOneKey, () -> future.setResult(true));
 				future.await();
-			} else if (context.getProposeLimit() < 0){
+			} else if (limit < 0){
 				// 并发执行模式，全部等待。
 				for (var future : futures)
 					future.get();
@@ -231,7 +192,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		@Override
 		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
 			var proc = zeze.newProcedure(() -> jobHandle.runJob(SafeBatch.this, key, value),
-				"TableBatchJob_" + timerId);
+				"BatchJob_" + timerId);
 
 			if (null != oneByOneKey) {
 				// one by one 执行。
@@ -239,15 +200,62 @@ public class SafeBatch extends AbstractSafeBatch {
 				return true;
 			}
 
-			if (context.getProposeLimit() > 0) {
+			if (limit > 0) {
 				// 立即当前线程执行。
-				proc.call();
+				futures.add(Task.runUnsafe(proc));
 				return true;
 			}
+
 			// 并发执行。
 			futures.add(Task.runUnsafe(proc));
-
 			return true;
+		}
+
+		public void saveLastKey(Comparable<?> lastKey) {
+			// 一批执行完保存一次lastKey。
+			// 这种方式没有每事务保存严谨。
+			// 够用了。
+			zeze.newProcedure(() -> {
+				var batch = _tSafeBatch.get(timerId);
+				if (null != batch)
+					batch.setLastKey(new Binary(table.encodeKey(lastKey)));
+				return 0;
+			}, "").call();
+		}
+
+		public Worker(TableX<?, ?> table, int limit, String timerId, WalkJobHandle jobHandle, Object oneByOneKey) {
+			this.timerId = timerId;
+			this.jobHandle = jobHandle;
+			this.oneByOneKey = oneByOneKey;
+			this.table = table;
+			this.limit = limit;
+		}
+	}
+
+	private class TableBatchWorker extends Worker {
+		private final BBatch.Data batch;
+		private Comparable<?> lastKey;
+
+		public TableBatchWorker(String timerId, WalkJobHandle jobHandle, Object oneByOneKey, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle, oneByOneKey);
+			this.batch = batch;
+			var lastKeyBin = batch.getLastKey();
+			lastKey = lastKeyBin.size() != 0 ? table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+		}
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		@Override
+		public void run() throws Exception {
+			// isDone 不必要。
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+				assert table != null;
+				lastKey = ((TableX)table).walkDatabase(lastKey, Math.abs(batch.getProposeLimit()), this);
+				if (null == lastKey) {
+					stopTableBatch(timerId);
+					return;
+				}
+				saveLastKey(lastKey);
+			}
 		}
 	}
 	/**
@@ -259,8 +267,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param oneByOneKey oneByOneKey
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable ByteBuffer key,
-	                                 @NotNull WalkSortedMapJob jobHandle, @Nullable Object oneByOneKey) throws Exception {
+	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable Comparable<?> key,
+	                                 @NotNull WalkJobHandle jobHandle, @Nullable Object oneByOneKey) throws Exception {
 		return startWalkSortedMap(table, key, jobHandle, oneByOneKey, 60_000, 100);
 	}
 
@@ -275,19 +283,26 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable ByteBuffer key,
-									 @NotNull WalkSortedMapJob jobHandle, @Nullable Object oneByOneKey,
+	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable Comparable<?> key,
+									 @NotNull WalkJobHandle jobHandle, @Nullable Object oneByOneKey,
 									 long checkPeriod, int limit) throws Exception {
 		if (null == table || null == key) {
 			var tail = jobHandle.tailMap(null, null, null);
-			runJob(tail, tail.size());
-			return null;
+			new SortedMapWorker(jobHandle, oneByOneKey, tail.size()).runJobs(tail, false);
+			return "";
 		}
+		return _saveAndStart(table, key, jobHandle, oneByOneKey, checkPeriod, limit);
+	}
+
+	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
+								 @NotNull WalkJobHandle jobHandle, @Nullable Object oneByOneKey,
+								 long checkPeriod, int limit) {
 		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod,
-			SortedMapBatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
-		var batch = _tSafeBatchSortedMap.getOrAdd(timerId);
+			TableBatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
+		var batch = _tSafeBatch.getOrAdd(timerId);
 		batch.setTableName(table.getName());
-		batch.setRecordKey(new Binary(table.encodeKey(key)));
+		if (null != key)
+			batch.setRecordKey(new Binary(table.encodeKey(key)));
 		batch.setProposeLimit(limit);
 		batch.setJobClass(jobHandle.getClass().getName());
 		if (null != oneByOneKey) {
@@ -295,36 +310,51 @@ public class SafeBatch extends AbstractSafeBatch {
 			jobHandle.encodeOneByOneKey(buffer, oneByOneKey);
 			batch.setOneByOneKey(new Binary(buffer));
 		}
-		Transaction.whileCommit(() -> running.computeIfAbsent(timerId, (key) -> {
-			var worker = new TableBatchWorker(timerId, jobHandle, oneByOneKey, batch.toData());
-			var future = Task.runUnsafe(worker, "TableBatchWorker_" + timerId);
-			worker.setFuture(future);
-			return future;
-		}));
+		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, oneByOneKey, batch));
 		return timerId;
 	}
 
-	public static class SortedMapBatchTimerHandle implements TimerHandle {
+	public class SortedMapWorker extends Worker {
+		private final BBatch.Data batch;
+		private Comparable<?> lastKey;
+
+		public SortedMapWorker(String timerId, WalkJobHandle jobHandle, Object oneByOneKey, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle, oneByOneKey);
+			var lastKeyBin = batch.getLastKey();
+			lastKey = lastKeyBin.size() != 0 ? table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+			this.batch = batch;
+		}
+
+		public SortedMapWorker(WalkJobHandle jobHandle, Object oneByOneKey, int limit) {
+			super(null, limit, "", jobHandle, oneByOneKey);
+			this.batch = null;
+		}
+
 		@Override
-		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var custom = (BAppInstanceId)context.customData;
-			if (null != custom) {
-				var zeze = Application.getAppInstance(custom.getAppInstanceId());
-				if (null != zeze) {
-					zeze.getSafeBatch().checkTableBatch(context.timerId,
-						zeze.getSafeBatch()._tSafeBatchTable.get(context.timerId));
+		public void run() throws Exception {
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+				var tail = jobHandle.tailMap(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
+				lastKey = runJobs(tail, true);
+				if (null == lastKey) {
+					stopTableBatch(timerId);
+					return;
 				}
+				saveLastKey(lastKey);
 			}
 		}
-	}
 
-	public static class SortedMapLoadHandle implements WalkJobHandle {
-		@Override
-		public long runJob(SafeBatch safeBatch, Object _key, Object _value) throws Exception {
-			var key = (String)_key;
-			var value = (BBatchTable)_value;
-			safeBatch.checkTableBatch(key, value);
-			return 0;
+		public Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail, boolean wait) throws Exception {
+			var it = tail.entrySet().iterator();
+			var _limit = Math.abs(limit);
+			Object key = null;
+			for (; _limit > 0 && it.hasNext(); --_limit) {
+				var e = it.next();
+				handle(e.getKey(), e.getValue());
+				key = e.getKey();
+			}
+			if (wait)
+				endWalk(limit);
+			return (Comparable<?>)key;
 		}
 	}
 

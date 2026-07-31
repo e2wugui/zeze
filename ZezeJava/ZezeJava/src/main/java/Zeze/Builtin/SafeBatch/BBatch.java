@@ -10,14 +10,14 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
 
     private String _TableName;
     private Zeze.Net.Binary _RecordKey;
-    private Zeze.Net.Binary _LastTableKey;
+    private Zeze.Net.Binary _LastKey;
     private int _ProposeLimit;
     private String _JobClass;
     private Zeze.Net.Binary _OneByOneKey;
 
     private static final java.lang.invoke.VarHandle vh_TableName;
     private static final java.lang.invoke.VarHandle vh_RecordKey;
-    private static final java.lang.invoke.VarHandle vh_LastTableKey;
+    private static final java.lang.invoke.VarHandle vh_LastKey;
     private static final java.lang.invoke.VarHandle vh_ProposeLimit;
     private static final java.lang.invoke.VarHandle vh_JobClass;
     private static final java.lang.invoke.VarHandle vh_OneByOneKey;
@@ -27,7 +27,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         try {
             vh_TableName = _l_.findVarHandle(BBatch.class, "_TableName", String.class);
             vh_RecordKey = _l_.findVarHandle(BBatch.class, "_RecordKey", Zeze.Net.Binary.class);
-            vh_LastTableKey = _l_.findVarHandle(BBatch.class, "_LastTableKey", Zeze.Net.Binary.class);
+            vh_LastKey = _l_.findVarHandle(BBatch.class, "_LastKey", Zeze.Net.Binary.class);
             vh_ProposeLimit = _l_.findVarHandle(BBatch.class, "_ProposeLimit", int.class);
             vh_JobClass = _l_.findVarHandle(BBatch.class, "_JobClass", String.class);
             vh_OneByOneKey = _l_.findVarHandle(BBatch.class, "_OneByOneKey", Zeze.Net.Binary.class);
@@ -81,25 +81,25 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @Override
-    public Zeze.Net.Binary getLastTableKey() {
+    public Zeze.Net.Binary getLastKey() {
         if (!isManaged())
-            return _LastTableKey;
+            return _LastKey;
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (_t_ == null)
-            return _LastTableKey;
+            return _LastKey;
         var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _LastTableKey;
+        return log != null ? log.value : _LastKey;
     }
 
-    public void setLastTableKey(Zeze.Net.Binary _v_) {
+    public void setLastKey(Zeze.Net.Binary _v_) {
         if (_v_ == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _LastTableKey = _v_;
+            _LastKey = _v_;
             return;
         }
         var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_LastTableKey, _v_));
+        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_LastKey, _v_));
     }
 
     @Override
@@ -170,22 +170,22 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public BBatch() {
         _TableName = "";
         _RecordKey = Zeze.Net.Binary.Empty;
-        _LastTableKey = Zeze.Net.Binary.Empty;
+        _LastKey = Zeze.Net.Binary.Empty;
         _JobClass = "";
         _OneByOneKey = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public BBatch(String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastTableKey_, int _ProposeLimit_, String _JobClass_, Zeze.Net.Binary _OneByOneKey_) {
+    public BBatch(String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, Zeze.Net.Binary _OneByOneKey_) {
         if (_TableName_ == null)
             _TableName_ = "";
         _TableName = _TableName_;
         if (_RecordKey_ == null)
             _RecordKey_ = Zeze.Net.Binary.Empty;
         _RecordKey = _RecordKey_;
-        if (_LastTableKey_ == null)
-            _LastTableKey_ = Zeze.Net.Binary.Empty;
-        _LastTableKey = _LastTableKey_;
+        if (_LastKey_ == null)
+            _LastKey_ = Zeze.Net.Binary.Empty;
+        _LastKey = _LastKey_;
         _ProposeLimit = _ProposeLimit_;
         if (_JobClass_ == null)
             _JobClass_ = "";
@@ -199,7 +199,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public void reset() {
         setTableName("");
         setRecordKey(Zeze.Net.Binary.Empty);
-        setLastTableKey(Zeze.Net.Binary.Empty);
+        setLastKey(Zeze.Net.Binary.Empty);
         setProposeLimit(0);
         setJobClass("");
         setOneByOneKey(Zeze.Net.Binary.Empty);
@@ -221,7 +221,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public void assign(BBatch.Data _o_) {
         setTableName(_o_._TableName);
         setRecordKey(_o_._RecordKey);
-        setLastTableKey(_o_._LastTableKey);
+        setLastKey(_o_._LastKey);
         setProposeLimit(_o_._ProposeLimit);
         setJobClass(_o_._JobClass);
         setOneByOneKey(_o_._OneByOneKey);
@@ -231,7 +231,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     public void assign(BBatch _o_) {
         setTableName(_o_.getTableName());
         setRecordKey(_o_.getRecordKey());
-        setLastTableKey(_o_.getLastTableKey());
+        setLastKey(_o_.getLastKey());
         setProposeLimit(_o_.getProposeLimit());
         setJobClass(_o_.getJobClass());
         setOneByOneKey(_o_.getOneByOneKey());
@@ -273,7 +273,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _s_.append("Zeze.Builtin.SafeBatch.BBatch: {\n");
         _s_.append(_i1_).append("TableName=").append(getTableName()).append(",\n");
         _s_.append(_i1_).append("RecordKey=").append(getRecordKey()).append(",\n");
-        _s_.append(_i1_).append("LastTableKey=").append(getLastTableKey()).append(",\n");
+        _s_.append(_i1_).append("LastKey=").append(getLastKey()).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(getProposeLimit()).append(",\n");
         _s_.append(_i1_).append("JobClass=").append(getJobClass()).append(",\n");
         _s_.append(_i1_).append("OneByOneKey=").append(getOneByOneKey()).append('\n');
@@ -323,7 +323,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             }
         }
         {
-            var _x_ = getLastTableKey();
+            var _x_ = getLastKey();
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -368,7 +368,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setLastTableKey(_o_.ReadBinary(_t_));
+            setLastKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -399,7 +399,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             return false;
         if (!getRecordKey().equals(_b_.getRecordKey()))
             return false;
-        if (!getLastTableKey().equals(_b_.getLastTableKey()))
+        if (!getLastKey().equals(_b_.getLastKey()))
             return false;
         if (getProposeLimit() != _b_.getProposeLimit())
             return false;
@@ -428,7 +428,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             switch (_v_.getVariableId()) {
                 case 1: _TableName = _v_.stringValue(); break;
                 case 2: _RecordKey = _v_.binaryValue(); break;
-                case 3: _LastTableKey = _v_.binaryValue(); break;
+                case 3: _LastKey = _v_.binaryValue(); break;
                 case 4: _ProposeLimit = _v_.intValue(); break;
                 case 5: _JobClass = _v_.stringValue(); break;
                 case 6: _OneByOneKey = _v_.binaryValue(); break;
@@ -443,7 +443,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         if (getTableName() == null)
             setTableName("");
         setRecordKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "RecordKey")));
-        setLastTableKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "LastTableKey")));
+        setLastKey(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "LastKey")));
         setProposeLimit(_r_.getInt(_pn_ + "ProposeLimit"));
         setJobClass(_r_.getString(_pn_ + "JobClass"));
         if (getJobClass() == null)
@@ -456,7 +456,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
         _s_.appendString(_pn_ + "TableName", getTableName());
         _s_.appendBinary(_pn_ + "RecordKey", getRecordKey());
-        _s_.appendBinary(_pn_ + "LastTableKey", getLastTableKey());
+        _s_.appendBinary(_pn_ + "LastKey", getLastKey());
         _s_.appendInt(_pn_ + "ProposeLimit", getProposeLimit());
         _s_.appendString(_pn_ + "JobClass", getJobClass());
         _s_.appendBinary(_pn_ + "OneByOneKey", getOneByOneKey());
@@ -467,7 +467,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         var _v_ = super.variables();
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "TableName", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "RecordKey", "binary", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LastTableKey", "binary", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "LastKey", "binary", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ProposeLimit", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "JobClass", "string", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "OneByOneKey", "binary", "", ""));
@@ -480,7 +480,7 @@ public static final class Data extends Zeze.Transaction.Data {
 
     private String _TableName;
     private Zeze.Net.Binary _RecordKey;
-    private Zeze.Net.Binary _LastTableKey;
+    private Zeze.Net.Binary _LastKey;
     private int _ProposeLimit;
     private String _JobClass;
     private Zeze.Net.Binary _OneByOneKey;
@@ -505,14 +505,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _RecordKey = _v_;
     }
 
-    public Zeze.Net.Binary getLastTableKey() {
-        return _LastTableKey;
+    public Zeze.Net.Binary getLastKey() {
+        return _LastKey;
     }
 
-    public void setLastTableKey(Zeze.Net.Binary _v_) {
+    public void setLastKey(Zeze.Net.Binary _v_) {
         if (_v_ == null)
             throw new IllegalArgumentException();
-        _LastTableKey = _v_;
+        _LastKey = _v_;
     }
 
     public int getProposeLimit() {
@@ -547,22 +547,22 @@ public static final class Data extends Zeze.Transaction.Data {
     public Data() {
         _TableName = "";
         _RecordKey = Zeze.Net.Binary.Empty;
-        _LastTableKey = Zeze.Net.Binary.Empty;
+        _LastKey = Zeze.Net.Binary.Empty;
         _JobClass = "";
         _OneByOneKey = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastTableKey_, int _ProposeLimit_, String _JobClass_, Zeze.Net.Binary _OneByOneKey_) {
+    public Data(String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, Zeze.Net.Binary _OneByOneKey_) {
         if (_TableName_ == null)
             _TableName_ = "";
         _TableName = _TableName_;
         if (_RecordKey_ == null)
             _RecordKey_ = Zeze.Net.Binary.Empty;
         _RecordKey = _RecordKey_;
-        if (_LastTableKey_ == null)
-            _LastTableKey_ = Zeze.Net.Binary.Empty;
-        _LastTableKey = _LastTableKey_;
+        if (_LastKey_ == null)
+            _LastKey_ = Zeze.Net.Binary.Empty;
+        _LastKey = _LastKey_;
         _ProposeLimit = _ProposeLimit_;
         if (_JobClass_ == null)
             _JobClass_ = "";
@@ -576,7 +576,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void reset() {
         _TableName = "";
         _RecordKey = Zeze.Net.Binary.Empty;
-        _LastTableKey = Zeze.Net.Binary.Empty;
+        _LastKey = Zeze.Net.Binary.Empty;
         _ProposeLimit = 0;
         _JobClass = "";
         _OneByOneKey = Zeze.Net.Binary.Empty;
@@ -597,7 +597,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BBatch _o_) {
         _TableName = _o_.getTableName();
         _RecordKey = _o_.getRecordKey();
-        _LastTableKey = _o_.getLastTableKey();
+        _LastKey = _o_.getLastKey();
         _ProposeLimit = _o_.getProposeLimit();
         _JobClass = _o_.getJobClass();
         _OneByOneKey = _o_.getOneByOneKey();
@@ -606,7 +606,7 @@ public static final class Data extends Zeze.Transaction.Data {
     public void assign(BBatch.Data _o_) {
         _TableName = _o_._TableName;
         _RecordKey = _o_._RecordKey;
-        _LastTableKey = _o_._LastTableKey;
+        _LastKey = _o_._LastKey;
         _ProposeLimit = _o_._ProposeLimit;
         _JobClass = _o_._JobClass;
         _OneByOneKey = _o_._OneByOneKey;
@@ -648,7 +648,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append("Zeze.Builtin.SafeBatch.BBatch: {\n");
         _s_.append(_i1_).append("TableName=").append(_TableName).append(",\n");
         _s_.append(_i1_).append("RecordKey=").append(_RecordKey).append(",\n");
-        _s_.append(_i1_).append("LastTableKey=").append(_LastTableKey).append(",\n");
+        _s_.append(_i1_).append("LastKey=").append(_LastKey).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(_ProposeLimit).append(",\n");
         _s_.append(_i1_).append("JobClass=").append(_JobClass).append(",\n");
         _s_.append(_i1_).append("OneByOneKey=").append(_OneByOneKey).append('\n');
@@ -683,7 +683,7 @@ public static final class Data extends Zeze.Transaction.Data {
             }
         }
         {
-            var _x_ = _LastTableKey;
+            var _x_ = _LastKey;
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -726,7 +726,7 @@ public static final class Data extends Zeze.Transaction.Data {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            _LastTableKey = _o_.ReadBinary(_t_);
+            _LastKey = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -759,7 +759,7 @@ public static final class Data extends Zeze.Transaction.Data {
             return false;
         if (!_RecordKey.equals(_b_._RecordKey))
             return false;
-        if (!_LastTableKey.equals(_b_._LastTableKey))
+        if (!_LastKey.equals(_b_._LastKey))
             return false;
         if (_ProposeLimit != _b_._ProposeLimit)
             return false;

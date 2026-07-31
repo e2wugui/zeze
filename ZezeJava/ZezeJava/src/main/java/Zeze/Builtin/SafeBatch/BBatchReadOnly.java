@@ -18,7 +18,7 @@ public interface BBatchReadOnly {
 
     String getTableName();
     Zeze.Net.Binary getRecordKey();
-    Zeze.Net.Binary getLastTableKey();
+    Zeze.Net.Binary getLastKey();
     int getProposeLimit();
     String getJobClass();
     Zeze.Net.Binary getOneByOneKey();
