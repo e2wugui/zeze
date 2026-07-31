@@ -64,13 +64,15 @@ public class Helper {
 		public final HashSet<Meta2<?, ? extends Bean>> map2Metas = new HashSet<>();
 		public final HashSet<Class<?>> set1 = new HashSet<>();
 
-		public final HashSet<KV<Class<?>, Class<?>>> sortedMap1 = new HashSet<>();
-		public final HashSet<KV<Class<?>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
-		public final HashMap<KV<Class<?>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
-			sortedMap2Dynamic = new HashMap<>();
-		public final HashSet<Meta2<?, ?>> sortedMap1Metas = new HashSet<>();
-		public final HashSet<Meta2<?, ? extends Bean>> sortedMap2Metas = new HashSet<>();	}
+		public final HashSet<KV<Class<? extends Comparable<?>>, Class<?>>> sortedMap1 = new HashSet<>();
+		public final HashSet<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>> sortedMap2 = new HashSet<>();
+		public final HashMap<KV<Class<? extends Comparable<?>>, Class<? extends Bean>>, KV<ToLongFunction<Bean>, LongFunction<Bean>>>
+				sortedMap2Dynamic = new HashMap<>();
+		public final HashSet<Meta2<? extends Comparable<?>, ?>> sortedMap1Metas = new HashSet<>();
+		public final HashSet<Meta2<? extends Comparable<?>, ? extends Bean>> sortedMap2Metas = new HashSet<>();
+	}
 
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static void registerAllTableLogs(@NotNull Application zeze) throws Exception {
 		var result = new DependsResult();
 		for (var db : zeze.getDatabases().values()) {
@@ -108,15 +110,18 @@ public class Helper {
 			registerLogSet1(set1Class);
 
 		for (var kv : result.sortedMap1)
-			registerLogSortedMap1(kv.getKey(), kv.getValue());
+			registerLogSortedMap1((Class<? extends Comparable>)kv.getKey(), kv.getValue());
 		for (var kv : result.sortedMap2)
-			registerLogSortedMap2(kv.getKey(), kv.getValue());
-		for (var e : result.sortedMap2Dynamic.entrySet())
-			registerLogSortedMap2Dynamic(e.getKey().getKey(), e.getValue().getKey(), e.getValue().getValue());
+			registerLogSortedMap2((Class<? extends Comparable>)kv.getKey(), kv.getValue());
+		for (var e : result.sortedMap2Dynamic.entrySet()) {
+			registerLogSortedMap2Dynamic((Class<? extends Comparable>)e.getKey().getKey(),
+					e.getValue().getKey(), e.getValue().getValue());
+		}
 		for (var meta : result.sortedMap1Metas)
-			registerLogSortedMap1Meta(meta);
+			registerLogSortedMap1Meta((Meta2<? extends Comparable, ?>)meta);
 		for (var meta : result.sortedMap2Metas)
-			registerLogSortedMap2Meta(meta);		registerLogs();
+			registerLogSortedMap2Meta((Meta2<? extends Comparable, ? extends Bean>)meta);
+		registerLogs();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -141,6 +146,7 @@ public class Helper {
 						break;
 					case "map":
 						dependsMap(beanClass, v, v.getKey(), v.getValue(), result);
+						break;
 					case "sortedmap":
 						dependsSortedMap(beanClass, v, v.getKey(), v.getValue(), result);
 						break;
@@ -187,9 +193,9 @@ public class Helper {
 	@SuppressWarnings("unchecked")
 	public static void dependsSortedMap(@NotNull Class<?> beanClass, @NotNull BVariable.Data v, @NotNull String keyType,
 	                                    @NotNull String valueType, @NotNull DependsResult result) throws Exception {
-		var keyClass = getBuiltinBoxingClass(keyType);
+		var keyClass = (Class<? extends Comparable<?>>)getBuiltinBoxingClass(keyType);
 		if (keyClass == null) {
-			keyClass = Class.forName(keyType); // must be BeanKey.
+			keyClass = (Class<? extends Comparable<?>>)Class.forName(keyType); // must be BeanKey.
 			dependsBean(keyClass, result);
 		}
 		var valueClass = getBuiltinBoxingClass(valueType);
@@ -202,8 +208,8 @@ public class Helper {
 			result.sortedMap2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-						+ Character.toUpperCase(v.getName().charAt(0))
-						+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+							+ Character.toUpperCase(v.getName().charAt(0))
+							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
@@ -232,8 +238,8 @@ public class Helper {
 			result.map2Dynamic.computeIfAbsent(KV.create(keyClass, (Class<? extends Bean>)valueClass), (key) -> {
 				try {
 					var db = (DynamicBean)beanClass.getMethod("newDynamicBean_"
-						+ Character.toUpperCase(v.getName().charAt(0))
-						+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
+							+ Character.toUpperCase(v.getName().charAt(0))
+							+ v.getName().substring(1), (Class<?>[])null).invoke(null, (Object[])null);
 					return KV.create(db.getGetBean(), db.getCreateBean());
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
