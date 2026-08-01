@@ -55,8 +55,10 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	/**
-	 * 开始表格遍历批处理。
-	 *
+	 * 开始表格遍历批处理。对每一个记录通过jobHandle回调进行处理。每个记录的处理在独立的存储过程中。遍历时分批处理。支持多种执行模式：
+	 * 1. one by one 需要提供oneByOneKey，一般是roleId或者account。
+	 * 2. 顺序在walk线程中执行事务。
+	 * 3. 并发执行jobHandle。
 	 * @param table table
 	 * @param jobHandle jobHandleClass
 	 * @param oneByOneKey oneByOneKey，null表示其他执行模式，见下面的limit。
@@ -273,8 +275,16 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	/**
-	 * 开始SortedMap遍历批处理。
-	 *
+	 * 开始SortedMap遍历批处理。对每一个记录通过jobHandle回调进行处理。每个记录的处理在独立的存储过程中。遍历时分批处理。支持多种执行模式：
+	 * 1. one by one 需要提供oneByOneKey，一般是roleId或者account。
+	 * 2. 顺序在walk线程中执行事务。
+	 * 3. 并发执行jobHandle。
+	 * walk的sortedmap来源分为两种：
+	 * 1. table.record 里面的某个字段，此时参数table,key指向这个记录。
+	 * 2. 内存中的任意NavigableMap。此时table,key为null。
+	 * 实现须知：WalkJobHandle.tailMapOutofTransaction 是在事务外调用的。所以返回的NavigableMap需要支持并发读取。
+	 * 如果NavigableMap是记录中的字段，此时使用selectDirty得到记录并返回map。如果NavigableMap是自己的内存数据，
+	 * 需要支持多线程读取安全。建议使用org.pcollections.PSortedMap。
 	 * @param table table
 	 * @param key 记录的key
 	 * @param jobHandle jobHandleClass
