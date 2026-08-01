@@ -78,7 +78,10 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	public void start() throws Exception {
-		startWalkTable(_tSafeBatch, new TableLoadHandle(), null, 100, 100);
+		zeze.newProcedure(() -> {
+			startWalkTable(_tSafeBatch, new TableLoadHandle(), null, 100, 100);
+			return 0;
+		}, "startSafeBatch").call();
 	}
 
 	public void stop() throws Exception {

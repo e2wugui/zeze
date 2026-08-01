@@ -723,8 +723,6 @@ public final class Application extends ReentrantLock {
 				delayRemove.start();
 				if (timer != null)
 					timer.loadCustomClassAnd();
-				if (safeBatch != null)
-					safeBatch.start();
 				if (deadlockBreaker != null)
 					deadlockBreaker.start();
 				if (onz != null)
