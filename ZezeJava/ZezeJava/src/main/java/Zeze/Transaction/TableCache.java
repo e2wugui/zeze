@@ -78,10 +78,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		long cw = 0;
 		for (var k : dataMap.keySet()) {
 			if (!callback.handle(k))
-				return cw;
+				return callback.endWalk(cw);
 			++cw;
 		}
-		return cw;
+		return callback.endWalk(cw);
 	}
 
 	private int getLruInitialCapacity() {

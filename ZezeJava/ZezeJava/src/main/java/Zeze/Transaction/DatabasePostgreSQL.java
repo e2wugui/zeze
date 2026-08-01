@@ -870,7 +870,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		long walk(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback,
 				  @NotNull String orderBy) throws Exception {
 			if (dropped)
-				return 0;
+				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
 			var count = 0L;
@@ -883,14 +883,14 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			return count;
+			return callback.endWalk(count);
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
 		long walkKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback,
 					 @NotNull String orderBy) throws Exception {
 			if (dropped)
-				return 0;
+				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + name + orderBy;
 			var count = 0L;
@@ -903,7 +903,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			return count;
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -934,8 +934,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		@Nullable K walk(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 						 @NotNull TableWalkHandle<K, V> callback,
 						 @NotNull String orderBy, boolean asc) throws Exception {
-			if (dropped || proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0) {
+				callback.endWalk(0);
 				return null;
+			}
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
@@ -953,14 +955,17 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
+			callback.endWalk(proposeLimit);
 			return lastKey.value;
 		}
 
 		private <K extends Comparable<K>, V extends Bean>
 		@Nullable K walkKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 							@NotNull TableWalkKey<K> callback, @NotNull String orderBy, boolean asc) throws Exception {
-			if (dropped || proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0) {
+				callback.endWalk(0);
 				return null;
+			}
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
@@ -979,6 +984,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
+			callback.endWalk(proposeLimit);
 			return lastKey.value;
 		}
 
@@ -1014,7 +1020,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback,
 						  @NotNull String orderBy) throws Exception {
 			if (dropped)
-				return 0;
+				return callback.endWalk(0);
 
 			var s = "SELECT * FROM " + name + orderBy;
 			var parents = new ArrayList<String>();
@@ -1039,7 +1045,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback,
 							 @NotNull String orderBy) throws Exception {
 			if (dropped)
-				return 0;
+				return callback.endWalk(0);
 
 			var s = "SELECT " + table.getRelationalTable().currentKeyColumns + " FROM " + getName() + orderBy;
 			var count = 0L;
@@ -1052,7 +1058,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			return count;
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -1083,8 +1089,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		@Nullable K walkDatabase(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 								 @NotNull TableWalkHandle<K, V> callback,
 								 @NotNull String orderBy, boolean asc) throws Exception {
-			if (dropped || proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0) {
+				callback.endWalk(0);
 				return null;
+			}
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
@@ -1108,7 +1116,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
-			callback.endWalk(0);
+			callback.endWalk(proposeLimit);
 			return lastKey.value;
 		}
 
@@ -1116,8 +1124,10 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 		@Nullable K walkDatabaseKey(@NotNull TableX<K, V> table, @Nullable K exclusiveStartKey, int proposeLimit,
 									@NotNull TableWalkKey<K> callback,
 									@NotNull String orderBy, boolean asc) throws Exception {
-			if (dropped || proposeLimit <= 0)
+			if (dropped || proposeLimit <= 0) {
+				callback.endWalk(0);
 				return null;
+			}
 
 			var st = new SQLStatement();
 			var keyWhere = buildKeyWhere(table, st, exclusiveStartKey, asc);
@@ -1138,6 +1148,7 @@ public final class DatabasePostgreSQL extends DatabaseJdbc implements DatabaseRe
 			} catch (SQLException e) {
 				Task.forceThrow(e);
 			}
+			callback.endWalk(proposeLimit);
 			return lastKey.value;
 		}
 

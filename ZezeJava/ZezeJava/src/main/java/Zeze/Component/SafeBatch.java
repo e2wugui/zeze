@@ -36,9 +36,9 @@ public class SafeBatch extends AbstractSafeBatch {
 		default void encodeOneByOneKey(ByteBuffer buffer, Object key) {
 		}
 		// 遍历内存中的SortedMap时需要实现。
-		default NavigableMap<?, ?> tailMap(@Nullable TableX<?, ?> table,
-										   @Nullable ByteBuffer tableKey,
-										   @Nullable Comparable<?> mapKey) throws Exception {
+		default NavigableMap<?, ?> tailMapOutofTransaction(@Nullable TableX<?, ?> table,
+		                                                   @Nullable ByteBuffer tableKey,
+		                                                   @Nullable Comparable<?> mapKey) throws Exception {
 			return null;
 		}
 	}
@@ -201,8 +201,8 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 
 			if (limit > 0) {
-				// 立即当前线程执行。
-				futures.add(Task.runUnsafe(proc));
+				// 其他线程并发执行，不等待。
+				proc.call();
 				return true;
 			}
 
@@ -287,8 +287,18 @@ public class SafeBatch extends AbstractSafeBatch {
 									 @NotNull WalkJobHandle jobHandle, @Nullable Object oneByOneKey,
 									 long checkPeriod, int limit) throws Exception {
 		if (null == table || null == key) {
-			var tail = jobHandle.tailMap(null, null, null);
-			new SortedMapWorker(jobHandle, oneByOneKey, tail.size()).runJobs(tail, false);
+			// 遍历内存中的map
+			if (Transaction.getCurrent() != null) {
+				// 事务内，启动另外线程执行。
+				final var okay = (null == oneByOneKey) ? 0 : oneByOneKey;
+				Task.getOneByOne().Execute(okay, () -> {
+					var tail = jobHandle.tailMapOutofTransaction(null, null, null);
+					new SortedMapWorker(jobHandle, okay, tail.size()).runJobs(tail, true);
+				}, "");
+			} else {
+				var tail = jobHandle.tailMapOutofTransaction(null, null, null);
+				new SortedMapWorker(jobHandle, oneByOneKey, tail.size()).runJobs(tail, false);
+			}
 			return "";
 		}
 		return _saveAndStart(table, key, jobHandle, oneByOneKey, checkPeriod, limit);
@@ -333,7 +343,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		@Override
 		public void run() throws Exception {
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
-				var tail = jobHandle.tailMap(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
+				var tail = jobHandle.tailMapOutofTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
 				lastKey = runJobs(tail, true);
 				if (null == lastKey) {
 					stopTableBatch(timerId);

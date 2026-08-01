@@ -440,7 +440,8 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			return walk((key, value) -> invokeCallback(table, key, value, callback));
+			var count = walk((key, value) -> invokeCallback(table, key, value, callback));
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -449,7 +450,8 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			return walkDesc((key, value) -> invokeCallback(table, key, value, callback));
+			var count = walkDesc((key, value) -> invokeCallback(table, key, value, callback));
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -458,7 +460,8 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			return walkKey(key -> invokeCallback(table, key, callback));
+			var count = walkKey(key -> invokeCallback(table, key, callback));
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -467,7 +470,8 @@ public abstract class Database extends ReentrantLock {
 			if (Zeze.Transaction.Transaction.getCurrent() != null)
 				throw new IllegalStateException("must be called without transaction");
 
-			return walkKeyDesc(key -> invokeCallback(table, key, callback));
+			var count = walkKeyDesc(key -> invokeCallback(table, key, callback));
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -480,7 +484,7 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walk(encodedExclusiveStartKey, proposeLimit,
 					(key, value) -> invokeCallback(table, key, value, callback));
-
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -494,7 +498,7 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkDesc(encodedExclusiveStartKey, proposeLimit,
 					(key, value) -> invokeCallback(table, key, value, callback));
-
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -508,7 +512,7 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> invokeCallback(table, key, callback));
-
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -522,40 +526,44 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> invokeCallback(table, key, callback));
-
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabase(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
-			return walk((key, value) -> {
+			var count = walk((key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
+			return callback.endWalk(count);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseDesc(@NotNull TableX<K, V> table, @NotNull TableWalkHandle<K, V> callback) throws Exception {
-			return walkDesc((key, value) -> {
+			var count = walkDesc((key, value) -> {
 				K k = table.decodeKey(key);
 				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
+			return callback.endWalk(count);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKey(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
-			return walkKey(key -> callback.handle(table.decodeKey(key)));
+			var count = walkKey(key -> callback.handle(table.decodeKey(key)));
+			return callback.endWalk(count);
 		}
 
 		@Override
 		public <K extends Comparable<K>, V extends Bean>
 		long walkDatabaseKeyDesc(@NotNull TableX<K, V> table, @NotNull TableWalkKey<K> callback) throws Exception {
-			return walkKeyDesc(key -> callback.handle(table.decodeKey(key)));
+			var count = walkKeyDesc(key -> callback.handle(table.decodeKey(key)));
+			return callback.endWalk(count);
 		}
 
 		@Override
@@ -568,6 +576,7 @@ public abstract class Database extends ReentrantLock {
 				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -581,6 +590,7 @@ public abstract class Database extends ReentrantLock {
 				V v = table.decodeValue(value);
 				return callback.handle(k, v);
 			});
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -591,6 +601,7 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKey(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 
@@ -601,6 +612,7 @@ public abstract class Database extends ReentrantLock {
 			var encodedExclusiveStartKey = exclusiveStartKey != null ? table.encodeKey(exclusiveStartKey) : null;
 			var lastKey = walkKeyDesc(encodedExclusiveStartKey, proposeLimit,
 					key -> callback.handle(table.decodeKey(key)));
+			callback.endWalk(proposeLimit);
 			return lastKey != null ? table.decodeKey(lastKey) : null;
 		}
 	}
