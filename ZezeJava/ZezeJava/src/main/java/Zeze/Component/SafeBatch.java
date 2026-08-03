@@ -3,9 +3,11 @@ package Zeze.Component;
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BAppInstanceId;
 import Zeze.Builtin.SafeBatch.BBatch;
+import Zeze.Builtin.SafeBatch.BBatchReadOnly;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TableReadOnly;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
@@ -53,15 +55,20 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param table table
 	 * @param jobHandle jobHandle
 	 * @param checkPeriod 任务运行监控Timer的间隔
-	 * @param limit 每批遍历的Job数量，负数表示并发执行（同时oneByOneKey要为null）。
+	 * @param limit 每批遍历的Job数量，必须大于0.
 	 * @return jobId
 	 */
 	public String startWalkTable(TableX<?, ?> table, WalkJobHandle jobHandle, long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
-		if (limit == 0)
+		if (limit <= 0)
 			throw new IllegalStateException("limit is 0");
 		return _saveAndStart(table, null, jobHandle, checkPeriod, limit);
+	}
+
+	// 返回内部管理表格，用于查询当前的walk任务。
+	public TableReadOnly<String, BBatch, BBatchReadOnly> getTable() {
+		return _tSafeBatch;
 	}
 
 	public void start() throws Exception {
@@ -188,7 +195,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			// 当前记录处理失败，中断批执行，下一次再次尝试。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
-				if (0 == result) {
+				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
 					var batch = _tSafeBatch.get(timerId);
 					if (null != batch)
@@ -227,7 +234,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			// isDone 不必要。
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				assert table != null;
-				lastKey = ((TableX)table).walkDatabase(lastKey, Math.abs(batch.getProposeLimit()), this);
+				lastKey = ((TableX)table).walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
 					stopTableBatch(timerId);
 					return;
@@ -267,7 +274,7 @@ public class SafeBatch extends AbstractSafeBatch {
 									 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) throws Exception {
 		if (stopped)
 			throw new IllegalStateException("stopped");
-		if (limit == 0)
+		if (limit <= 0)
 			throw new IllegalStateException("limit is 0");
 		if (null == table || null == key) {
 			// 遍历内存中的map，另起一个线程管理jobs任务。
@@ -275,6 +282,9 @@ public class SafeBatch extends AbstractSafeBatch {
 				var tail = jobHandle.tailMapExclusiveOutofTransaction(null, null, null);
 				new SortedMapWorker(jobHandle, tail.size()).runJobs(tail);
 			}, "SortedMapWorker");
+			// 遍历内存中的sortedmap，无法持久化，因为重启内存中的数据可能不再与原来的含义相同。
+			// 所以这种情况下，并不会创建持久化timer，和保存lastKey。
+			// 这里随便返回一个空串，避免外面null失败。
 			return "";
 		}
 		return _saveAndStart(table, key, jobHandle, checkPeriod, limit);
@@ -328,7 +338,7 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		public Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail) throws Exception {
 			var it = tail.entrySet().iterator();
-			var _limit = Math.abs(limit);
+			var _limit = limit;
 			Object key = null;
 			for (; _limit > 0 && it.hasNext(); --_limit) {
 				var e = it.next();
