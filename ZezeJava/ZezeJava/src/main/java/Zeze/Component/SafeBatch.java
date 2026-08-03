@@ -102,7 +102,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					zeze.getSafeBatch().checkTableBatch(context.timerId,
+					zeze.getSafeBatch().checkBatch(context.timerId,
 						zeze.getSafeBatch()._tSafeBatch.get(context.timerId));
 				}
 			}
@@ -114,7 +114,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		public long runJob(SafeBatch safeBatch, Object _key, Object _value) throws Exception {
 			var key = (String)_key;
 			var value = (BBatch)_value;
-			safeBatch.checkTableBatch(key, value);
+			safeBatch.checkBatch(key, value);
 			return 0;
 		}
 	}
@@ -133,7 +133,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 	}
 
-	void checkTableBatch(String timerId, BBatch batch) throws Exception {
+	void checkBatch(String timerId, BBatch batch) throws Exception {
 		if (stopped)
 			return; // stopping skip.
 
