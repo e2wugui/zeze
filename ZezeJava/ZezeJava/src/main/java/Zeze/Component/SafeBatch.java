@@ -270,8 +270,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		if (limit == 0)
 			throw new IllegalStateException("limit is 0");
 		if (null == table || null == key) {
-			// 遍历内存中的map
-			// 事务内，另起一个线程管理jobs任务。这里本来想用onebyone避免太多并发任务，但是这样与内部的runJobs.proc会死锁。
+			// 遍历内存中的map，另起一个线程管理jobs任务。
 			Task.run(() -> {
 				var tail = jobHandle.tailMapExclusiveOutofTransaction(null, null, null);
 				new SortedMapWorker(jobHandle, tail.size()).runJobs(tail);
