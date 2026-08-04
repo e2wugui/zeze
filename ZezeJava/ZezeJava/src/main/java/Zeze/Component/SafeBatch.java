@@ -132,7 +132,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			return; // stopping skip.
 
 		if (null == batch) {
-			_stopTableBatch(timerId);
+			_stopBatch(timerId);
 			return;
 		}
 
@@ -148,7 +148,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 	}
 
-	private long _stopTableBatch(String jobId) {
+	private long _stopBatch(String jobId) {
 		zeze.getTimer().cancel(jobId);
 		_tSafeBatch.remove(jobId);
 		Transaction.whileCommit(() -> {
@@ -169,12 +169,12 @@ public class SafeBatch extends AbstractSafeBatch {
 		return 0;
 	}
 
-	public void stopTableBatch(String jobId) {
+	public void stopBatch(String jobId) {
 		if (Transaction.getCurrent() != null) {
-			_stopTableBatch(jobId);
+			_stopBatch(jobId);
 			return;
 		}
-		zeze.newProcedure(() -> _stopTableBatch(jobId), "stopBatch_" + jobId).call();
+		zeze.newProcedure(() -> _stopBatch(jobId), "stopBatch_" + jobId).call();
 	}
 
 	private abstract class Worker implements Action0, TableWalkHandle<Object, Object> {
@@ -236,7 +236,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				assert table != null;
 				lastKey = ((TableX)table).walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
-					stopTableBatch(timerId);
+					stopBatch(timerId);
 					return;
 				}
 			}
@@ -330,7 +330,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				var tail = jobHandle.tailMapExclusiveOutofTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
 				lastKey = runJobs(tail);
 				if (null == lastKey) {
-					stopTableBatch(timerId);
+					stopBatch(timerId);
 					return;
 				}
 			}
