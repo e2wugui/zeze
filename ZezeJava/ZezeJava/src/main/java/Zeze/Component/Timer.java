@@ -35,6 +35,7 @@ import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.AnnounceServers;
 import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -185,6 +186,34 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	@NotNull TimerHandle findTimerHandle(@NotNull String handleClassName) {
 		return hotHandle.findHandle(zeze, handleClassName);
+	}
+
+	/**
+	 * 事务内，得到可以直接修改的custom bean引用。
+	 *
+	 * @param timerId timerId
+	 * @return custom bean
+	 */
+	public Bean getTimerCustomBean(@NotNull String timerId) {
+		var bIndex = _tIndexs.get(timerId);
+		if (null == bIndex)
+			return null;
+		if (bIndex.getServerId() != zeze.getConfig().getServerId())
+			return null; // 只能本server修改
+
+		var bNode = _tNodes.get(bIndex.getNodeId());
+		if (null == bNode)
+			return null;
+
+		var bTimer = bNode.getTimers().get(timerId);
+		if (bTimer == null)
+			return null;
+
+		var bean = bTimer.getCustomData().getBean();
+		if (bean instanceof EmptyBean)
+			return null; // no custom
+
+		return bean;
 	}
 
 	/////////////////////////////////////////////////////////////////////////

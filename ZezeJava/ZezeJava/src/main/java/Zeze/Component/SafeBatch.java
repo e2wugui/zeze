@@ -1,7 +1,6 @@
 package Zeze.Component;
 
 import Zeze.Application;
-import Zeze.Builtin.SafeBatch.BAppInstanceId;
 import Zeze.Builtin.SafeBatch.BBatch;
 import Zeze.Builtin.SafeBatch.BBatchReadOnly;
 import Zeze.Hot.HotHandle;
@@ -66,16 +65,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		return _saveAndStart(table, null, jobHandle, checkPeriod, limit);
 	}
 
-	// 返回内部管理表格，用于查询当前的walk任务。
-	public TableReadOnly<String, BBatch, BBatchReadOnly> getTable() {
-		return _tSafeBatch;
-	}
-
 	public void start() throws Exception {
-		zeze.newProcedure(() -> {
-			startWalkTable(_tSafeBatch, new TableLoadHandle(), 100, 100);
-			return 0;
-		}, "startSafeBatch").call();
 	}
 
 	public void stop() throws Exception {
@@ -92,24 +82,13 @@ public class SafeBatch extends AbstractSafeBatch {
 	public static class BatchTimerHandle implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
-			var custom = (BAppInstanceId)context.customData;
+			var custom = (BBatch)context.customData;
 			if (null != custom) {
 				var zeze = Application.getAppInstance(custom.getAppInstanceId());
 				if (null != zeze) {
-					zeze.getSafeBatch().checkBatch(context.timerId,
-						zeze.getSafeBatch()._tSafeBatch.get(context.timerId));
+					zeze.getSafeBatch().checkBatch(context.timerId, custom);
 				}
 			}
-		}
-	}
-
-	public static class TableLoadHandle implements WalkJobHandle {
-		@Override
-		public long runJob(SafeBatch safeBatch, Object _key, Object _value) throws Exception {
-			var key = (String)_key;
-			var value = (BBatch)_value;
-			safeBatch.checkBatch(key, value);
-			return 0;
 		}
 	}
 
@@ -150,7 +129,6 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	private long _stopBatch(String jobId) {
 		zeze.getTimer().cancel(jobId);
-		_tSafeBatch.remove(jobId);
 		Transaction.whileCommit(() -> {
 			// 这里不用 CAS 删除：本 jobId 的 future 此时一定是当前提交 stop 时那个，
 			// 不会被其他路径覆盖；重启总是分配新的 timerId，不会复用本 jobId。
@@ -197,7 +175,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
-					var batch = _tSafeBatch.get(timerId);
+					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch)
 						batch.setLastKey(new Binary(table.encodeKey(key)));
 				}
@@ -277,14 +255,15 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
 								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) {
-		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod,
-			BatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
-		var batch = _tSafeBatch.getOrAdd(timerId);
+		var batch = new BBatch();
+		batch.setAppInstanceId(zeze.getProjectName());
 		batch.setTableName(table.getName());
 		if (null != key)
 			batch.setRecordKey(new Binary(table.encodeKey(key)));
 		batch.setProposeLimit(limit);
 		batch.setJobClass(jobHandle.getClass().getName());
+
+		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod, BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 		return timerId;
 	}

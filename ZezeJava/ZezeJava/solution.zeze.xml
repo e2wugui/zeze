@@ -2053,19 +2053,14 @@
 		</module>
 
 		<module name="SafeBatch" id="11044">
-                    <bean name="BAppInstanceId">
-                        <var id="1" name="AppInstanceId" type="string"/>
-                    </bean>
-
 			<bean name="BBatch" UseData="true">
-                        <var id="1" name="TableName" type="string"/>
-                        <var id="2" name="RecordKey" type="binary"/>
-                        <var id="3" name="LastKey" type="binary"/>
-                        <var id="4" name="ProposeLimit" type="int"/>
-                        <var id="5" name="JobClass" type="string"/>
-                        <var id="6" name="OneByOneKey" type="binary"/>
+                        <var id="1" name="AppInstanceId" type="string"/>
+                        <var id="2" name="TableName" type="string"/>
+                        <var id="3" name="RecordKey" type="binary"/>
+                        <var id="4" name="LastKey" type="binary"/>
+                        <var id="5" name="ProposeLimit" type="int"/>
+                        <var id="6" name="JobClass" type="string"/>
 			</bean>
-			<table name="tSafeBatch" key="string" value="BBatch"/>
 		</module>
 
 		<!--

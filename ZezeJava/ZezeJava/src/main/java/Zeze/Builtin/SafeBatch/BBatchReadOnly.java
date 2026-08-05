@@ -16,10 +16,10 @@ public interface BBatchReadOnly {
     boolean isManaged();
     java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables();
 
+    String getAppInstanceId();
     String getTableName();
     Zeze.Net.Binary getRecordKey();
     Zeze.Net.Binary getLastKey();
     int getProposeLimit();
     String getJobClass();
-    Zeze.Net.Binary getOneByOneKey();
 }
