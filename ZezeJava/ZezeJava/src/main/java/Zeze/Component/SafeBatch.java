@@ -33,9 +33,9 @@ public class SafeBatch extends AbstractSafeBatch {
 		long runJob(SafeBatch safeBatch, Object key, Object value) throws Exception;
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
-		default NavigableMap<?, ?> tailMapExclusiveOutofTransaction(@Nullable TableX<?, ?> table,
-		                                                            @Nullable ByteBuffer tableKey,
-		                                                            @Nullable Comparable<?> mapKey) throws Exception {
+		default NavigableMap<?, ?> tailMapExclusiveOutTransaction(@Nullable TableX<?, ?> table,
+		                                                          @Nullable ByteBuffer tableKey,
+		                                                          @Nullable Comparable<?> mapKey) throws Exception {
 			return null;
 		}
 	}
@@ -89,7 +89,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		running.clear();
 	}
 
-	public static class TableBatchTimerHandle implements TimerHandle {
+	public static class BatchTimerHandle implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
 			var custom = (BAppInstanceId)context.customData;
@@ -250,19 +250,15 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable Comparable<?> key,
+	public String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
 	                                 @NotNull WalkJobHandle jobHandle) throws Exception {
 		return startWalkSortedMap(table, key, jobHandle, 60_000, 100);
 	}
 
 	/**
 	 * 开始SortedMap遍历批处理。对每一个记录通过jobHandle回调进行处理。每个记录的处理在独立的存储过程中。遍历时分批处理：
-	 * walk的sortedmap来源分为两种：
-	 * 1. table.record 里面的某个字段，此时参数table,key指向这个记录。
-	 * 2. 内存中的任意NavigableMap。此时table,key为null。
-	 * 实现须知：WalkJobHandle.tailMapExclusiveOutofTransaction 是在事务外调用的。所以返回的NavigableMap需要支持并发读取。
-	 * 如果NavigableMap是记录中的字段，此时使用selectDirty得到记录并返回map。如果NavigableMap是自己的内存数据，
-	 * 需要支持多线程读取安全。建议使用org.pcollections.PSortedMap。
+	 * 内部回调WalkJobHandle.tailMapExclusiveOutTransaction得到table.record里面的某个sortedmap字段的tailMap。
+	 * 使用selectDirty得到记录并返回map
 	 * @param table table
 	 * @param key 记录的key
 	 * @param jobHandle jobHandle
@@ -270,30 +266,19 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@Nullable TableX<?, ?> table, @Nullable Comparable<?> key,
+	public String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
 									 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) throws Exception {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
 			throw new IllegalStateException("limit is 0");
-		if (null == table || null == key) {
-			// 遍历内存中的map，另起一个线程管理jobs任务。
-			Task.run(() -> {
-				var tail = jobHandle.tailMapExclusiveOutofTransaction(null, null, null);
-				new SortedMapWorker(jobHandle, tail.size()).runJobs(tail);
-			}, "SortedMapWorker");
-			// 遍历内存中的sortedmap，无法持久化，因为重启内存中的数据可能不再与原来的含义相同。
-			// 所以这种情况下，并不会创建持久化timer，和保存lastKey。
-			// 这里随便返回一个空串，避免外面null失败。
-			return "";
-		}
 		return _saveAndStart(table, key, jobHandle, checkPeriod, limit);
 	}
 
 	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
 								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) {
 		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod,
-			TableBatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
+			BatchTimerHandle.class, new BAppInstanceId(zeze.getProjectName()));
 		var batch = _tSafeBatch.getOrAdd(timerId);
 		batch.setTableName(table.getName());
 		if (null != key)
@@ -315,11 +300,6 @@ public class SafeBatch extends AbstractSafeBatch {
 			this.batch = batch;
 		}
 
-		public SortedMapWorker(WalkJobHandle jobHandle, int limit) {
-			super(null, limit, "", jobHandle);
-			this.batch = null;
-		}
-
 		@Override
 		public void run() throws Exception {
 			while (null == futureSelf) {
@@ -327,7 +307,7 @@ public class SafeBatch extends AbstractSafeBatch {
 				Thread.onSpinWait();
 			}
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
-				var tail = jobHandle.tailMapExclusiveOutofTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
+				var tail = jobHandle.tailMapExclusiveOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
 				lastKey = runJobs(tail);
 				if (null == lastKey) {
 					stopBatch(timerId);
@@ -336,7 +316,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 		}
 
-		public Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail) throws Exception {
+		private Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail) throws Exception {
 			var it = tail.entrySet().iterator();
 			var _limit = limit;
 			Object key = null;
