@@ -2,11 +2,9 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BBatch;
-import Zeze.Builtin.SafeBatch.BBatchReadOnly;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.TableReadOnly;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
