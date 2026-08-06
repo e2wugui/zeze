@@ -15,6 +15,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
+import Zeze.Builtin.Game.Rank.BRankListReadOnly;
 import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Collections.BeanFactory;
@@ -96,7 +97,7 @@ public class Rank extends AbstractRank {
 	}
 
 	@Override
-	public void Initialize(AppBase app) {
+	public void Initialize(@NotNull AppBase app) {
 		if (app != this.app)
 			throw new IllegalArgumentException();
 		RegisterZezeTables(app.getZeze());
@@ -265,7 +266,7 @@ public class Rank extends AbstractRank {
 				tempVar.getDynamic().setBean(value);
 				rank.getRankList().add(i, tempVar);
 				if (rank.getRankList().size() > maxCount) {
-					rank.getRankList().remove(rank.getRankList().size() - 1);
+					rank.getRankList().removeLast();
 				}
 				return RedirectFuture.finish(0L);
 			}
@@ -315,7 +316,7 @@ public class Rank extends AbstractRank {
 
 	public static class RankTotal extends ReentrantLock {
 		private long BuildTime;
-		private BRankList TableValue;
+		private BRankListReadOnly TableValue;
 		private final BConcurrentKey keyHint;
 
 		public RankTotal(BConcurrentKey keyHint) {
@@ -334,7 +335,7 @@ public class Rank extends AbstractRank {
 			BuildTime = value;
 		}
 
-		public final BRankList getTableValue() {
+		public final BRankListReadOnly getTableValue() {
 			return TableValue;
 		}
 
@@ -376,7 +377,7 @@ public class Rank extends AbstractRank {
 
 		// 判断是否在版内，并且得到排名位置。
 		var position = 0;
-		for (var r : total.getTableValue().getRankList()) {
+		for (var r : total.getTableValue().getRankListReadOnly()) {
 			position++;
 			if (r.getRoleId() == roleId) {
 				return position;
@@ -392,8 +393,8 @@ public class Rank extends AbstractRank {
 		if (pos > 0)
 			return pos;
 
-		var list = total.value.getTableValue().getRankList();
-		var bean = list.get(list.size() - 1).getDynamic().getBean();
+		var list = total.value.getTableValue().getRankListReadOnly();
+		var bean = list.get(list.size() - 1).getDynamicReadOnly().getBean();
 		if (bean.typeId() != BValueLong.TYPEID)
 			throw new RuntimeException("only value long has guess.");
 		var lastRankScore = list.isEmpty() ? 0 : ((BValueLong)bean).getValue();
