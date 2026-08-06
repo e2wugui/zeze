@@ -32,7 +32,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		long runJob(SafeBatch safeBatch, Object key, Object value) throws Exception;
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
-		default NavigableMap<?, ?> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
+		default @Nullable NavigableMap<?, ?> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
 		                                                          @NotNull ByteBuffer tableKey,
 		                                                          @Nullable Comparable<?> mapKey) throws Exception {
 			return null;
@@ -40,7 +40,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		// 遍历List需要实现。
 		// 根据table,tableKey定位到记录中的某个List。
 		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
-		default List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
+		default @Nullable List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
 			return null;
 		}
 	}
