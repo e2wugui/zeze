@@ -10,6 +10,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+
 import Zeze.Application;
 import Zeze.Hot.HotGuard;
 import Zeze.IModule;
@@ -58,8 +60,12 @@ public final class Task {
 	@SuppressWarnings("CanBeFinal")
 	public static @Nullable ILogAction logAction = Task::DefaultLogAction;
 
+	private static volatile int systemOneByOneConcurrency;
+	private static final AtomicLong systemExecuteCount = new AtomicLong();
+
 	static {
 		ShutdownHook.init();
+		setSystemOneByOneConcurrency(Runtime.getRuntime().availableProcessors() / 2);
 	}
 
 	public static boolean isVirtualThreadEnabled() {
@@ -80,6 +86,46 @@ public final class Task {
 
 	public static @NotNull TaskOneByOneByKey getOneByOne() {
 		return oneByOne;
+	}
+
+	/**
+	 * 设置系统队列数量。
+	 * 默认是Runtime.getRuntime().availableProcessors() / 2。
+	 *
+	 * @param n concurrency
+	 */
+	public static void setSystemOneByOneConcurrency(int n) {
+		if (n < 1)
+			n = 1;
+		systemOneByOneConcurrency = n;
+	}
+
+	public static int getSystemOneByOneConcurrency() {
+		return systemOneByOneConcurrency;
+	}
+
+	private static String nextSystemOneByOneConcurrencyName() {
+		return "SystemOneByOne_" + (systemExecuteCount.incrementAndGet() % systemOneByOneConcurrency);
+	}
+
+	/**
+	 * 执行一个系统任务。
+	 * 放入系统队列，挨个执行。系统队列有systemOneByOneConcurrency个。
+	 *
+	 * @param action0 action
+	 */
+	public static void executeSystemOneByOne(Action0 action0) {
+		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), action0);
+	}
+
+	/**
+	 * 执行一个系统任务。
+	 * 放入系统队列，挨个执行。系统队列有systemOneByOneConcurrency个。
+	 *
+	 * @param proc proc
+	 */
+	public static void executeSystemOneByOne(Procedure proc) {
+		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), proc);
 	}
 
 	public static ExecutorService getThreadPool() {
