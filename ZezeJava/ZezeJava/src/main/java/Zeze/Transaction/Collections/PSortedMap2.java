@@ -41,6 +41,11 @@ public class PSortedMap2<K extends Comparable<K>, V extends Bean> extends PSorte
 		return meta;
 	}
 
+	@Override
+	public void encodeKey(@NotNull ByteBuffer bb, K key) {
+		meta.keyEncoder.accept(bb, key);
+	}
+
 	@SuppressWarnings("unchecked")
 	public @NotNull V createValue() {
 		try {

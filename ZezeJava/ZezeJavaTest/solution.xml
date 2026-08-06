@@ -195,6 +195,8 @@
 	<module name="Module2" id="2">
 		<bean name="BValue">
 			<variable id="1" default="1" name="s" type="int"/> com aa
+			<variable id="2" name="plist" type="list[int]"/> com aa
+			<variable id="3" name="psortedmap" type="sortedmap[int, int]"/> com aa
 		</bean>
 	</module>
 

@@ -6,6 +6,7 @@ import Zeze.Application;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;
+import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderService;
 import Zeze.Collections.BoolList;
 import Zeze.Collections.LinkedMap;
@@ -128,6 +129,7 @@ public class App extends Zeze.AppBase {
 		Zeze.endStart();
 		startService(); // 启动网络
 
+		providerApp.startLast(ProviderModuleBinds.load(""), modules);
 		ShutdownHook.add(this, this::Stop);
 	}
 

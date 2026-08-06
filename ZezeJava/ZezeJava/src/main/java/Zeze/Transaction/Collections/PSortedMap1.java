@@ -26,6 +26,11 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
+	public void encodeKey(@NotNull ByteBuffer bb, K key) {
+		meta.keyEncoder.accept(bb, key);
+	}
+
+	@Override
 	public @Nullable V put(@NotNull K key, @NotNull V value) {
 		//noinspection ConstantValue
 		if (key == null)

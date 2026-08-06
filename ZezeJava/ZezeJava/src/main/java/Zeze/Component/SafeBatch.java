@@ -25,6 +25,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	private final HotHandle<WalkJobHandle> hotWalkJobHandles = new HotHandle<>();
 	private volatile boolean stopped = false;
 
+	@FunctionalInterface
 	public interface WalkJobHandle {
 		// 每个记录回调一次。
 		// 在存储过程中回调。
@@ -41,6 +42,9 @@ public class SafeBatch extends AbstractSafeBatch {
 		// 根据table,tableKey定位到记录中的某个List。
 		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
 		default @Nullable List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
+			return null;
+		}
+		default ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull Comparable<?> mapKey) throws Exception {
 			return null;
 		}
 	}
@@ -182,29 +186,6 @@ public class SafeBatch extends AbstractSafeBatch {
 			this.futureSelf = future;
 		}
 
-		@Override
-		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
-			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
-			// 当前记录处理失败，中断批执行，下一次再次尝试。
-			return 0 == zeze.newProcedure(() -> {
-				var result = jobHandle.runJob(SafeBatch.this, key, value);
-				if (0 == result && !timerId.isEmpty()) {
-					// 每次记录处理都保存一次lastKey。
-					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
-					if (null != batch) {
-						if (batch.getWorker() == eWorkerList) {
-							var bb = ByteBuffer.Allocate();
-							bb.WriteInt((Integer)key);
-							batch.setLastKey(new Binary(bb));
-						} else {
-							batch.setLastKey(new Binary(table.encodeKey(key)));
-						}
-					}
-				}
-				return result;
-			}, "SafeBatchJob_" + timerId).call();
-		}
-
 		public Worker(TableX<?, ?> table, int limit, String timerId, WalkJobHandle jobHandle) {
 			this.timerId = timerId;
 			this.jobHandle = jobHandle;
@@ -222,6 +203,23 @@ public class SafeBatch extends AbstractSafeBatch {
 			this.batch = batch;
 			var lastKeyBin = batch.getLastKey();
 			lastKey = lastKeyBin.size() != 0 ? table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+		}
+
+		@Override
+		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
+			// 当前记录处理失败，中断批执行，下一次再次尝试。
+			return 0 == zeze.newProcedure(() -> {
+				var result = jobHandle.runJob(SafeBatch.this, key, value);
+				if (0 == result && !timerId.isEmpty()) {
+					// 每次记录处理都保存一次lastKey。
+					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					if (null != batch) {
+						batch.setLastKey(new Binary(table.encodeKey(key)));
+					}
+				}
+				return result;
+			}, "SafeBatchTable_" + timerId).call();
 		}
 
 		@SuppressWarnings({"unchecked", "rawtypes"})
@@ -338,6 +336,25 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 
 		@Override
+		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
+			// 当前记录处理失败，中断批执行，下一次再次尝试。
+			return 0 == zeze.newProcedure(() -> {
+				var result = jobHandle.runJob(SafeBatch.this, key, value);
+				if (0 == result && !timerId.isEmpty()) {
+					// 每次记录处理都保存一次lastKey。
+					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					if (null != batch) {
+						var bb = jobHandle.encodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), (Comparable<?>)key);
+						if (null != bb)
+							batch.setLastKey(new Binary(bb));
+					}
+				}
+				return result;
+			}, "SafeBatchSortedMap_" + timerId).call();
+		}
+
+		@Override
 		public void run() throws Exception {
 			while (null == futureSelf) {
 				// busy wait, see _startWorker...setFuture
@@ -379,6 +396,24 @@ public class SafeBatch extends AbstractSafeBatch {
 			var lastKeyBin = batch.getLastKey();
 			next = lastKeyBin.size() != 0 ? ByteBuffer.Wrap(lastKeyBin).ReadInt() : 0;
 			this.batch = batch;
+		}
+
+		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
+			// 当前记录处理失败，中断批执行，下一次再次尝试。
+			return 0 == zeze.newProcedure(() -> {
+				var result = jobHandle.runJob(SafeBatch.this, key, value);
+				if (0 == result && !timerId.isEmpty()) {
+					// 每次记录处理都保存一次lastKey。
+					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
+					if (null != batch) {
+						var bb = ByteBuffer.Allocate();
+						bb.WriteInt((Integer)key);
+						batch.setLastKey(new Binary(bb));
+					}
+				}
+				return result;
+			}, "SafeBatchList_" + timerId).call();
 		}
 
 		@Override

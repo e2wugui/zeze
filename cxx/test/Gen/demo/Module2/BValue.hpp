@@ -9,6 +9,8 @@ public:
     static const int64_t TYPEID = 3672513970861237847LL;
 
     int S; // com aa
+    std::vector<int> Plist; // com aa
+    std::map<int, int> Psortedmap; // com aa
 
     BValue();
     BValue(int S_);
