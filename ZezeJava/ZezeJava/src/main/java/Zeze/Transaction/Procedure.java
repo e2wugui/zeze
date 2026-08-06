@@ -193,7 +193,7 @@ public class Procedure {
 			// 回滚当前存储过程，不中断事务，外层存储过程判断结果自己决定是否继续。
 			return e instanceof TaskCanceledException ? CancelException : Exception;
 		} finally {
-			currentT.getProcedureStack().remove(currentT.getProcedureStack().size() - 1);
+			currentT.getProcedureStack().removeLast();
 		}
 	}
 

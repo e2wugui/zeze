@@ -14,6 +14,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     private Zeze.Net.Binary _LastKey;
     private int _ProposeLimit;
     private String _JobClass;
+    private int _Worker;
 
     private static final java.lang.invoke.VarHandle vh_AppInstanceId;
     private static final java.lang.invoke.VarHandle vh_TableName;
@@ -21,6 +22,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     private static final java.lang.invoke.VarHandle vh_LastKey;
     private static final java.lang.invoke.VarHandle vh_ProposeLimit;
     private static final java.lang.invoke.VarHandle vh_JobClass;
+    private static final java.lang.invoke.VarHandle vh_Worker;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -31,6 +33,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             vh_LastKey = _l_.findVarHandle(BBatch.class, "_LastKey", Zeze.Net.Binary.class);
             vh_ProposeLimit = _l_.findVarHandle(BBatch.class, "_ProposeLimit", int.class);
             vh_JobClass = _l_.findVarHandle(BBatch.class, "_JobClass", String.class);
+            vh_Worker = _l_.findVarHandle(BBatch.class, "_Worker", int.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -166,6 +169,26 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 6, vh_JobClass, _v_));
     }
 
+    @Override
+    public int getWorker() {
+        if (!isManaged())
+            return _Worker;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _Worker;
+        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 7);
+        return log != null ? log.value : _Worker;
+    }
+
+    public void setWorker(int _v_) {
+        if (!isManaged()) {
+            _Worker = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 7, vh_Worker, _v_));
+    }
+
     @SuppressWarnings("deprecation")
     public BBatch() {
         _AppInstanceId = "";
@@ -176,7 +199,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
     }
 
     @SuppressWarnings("deprecation")
-    public BBatch(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_) {
+    public BBatch(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, int _Worker_) {
         if (_AppInstanceId_ == null)
             _AppInstanceId_ = "";
         _AppInstanceId = _AppInstanceId_;
@@ -193,6 +216,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         if (_JobClass_ == null)
             _JobClass_ = "";
         _JobClass = _JobClass_;
+        _Worker = _Worker_;
     }
 
     @Override
@@ -203,6 +227,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setLastKey(Zeze.Net.Binary.Empty);
         setProposeLimit(0);
         setJobClass("");
+        setWorker(0);
         _unknown_ = null;
     }
 
@@ -225,6 +250,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setLastKey(_o_._LastKey);
         setProposeLimit(_o_._ProposeLimit);
         setJobClass(_o_._JobClass);
+        setWorker(_o_._Worker);
         _unknown_ = null;
     }
 
@@ -235,6 +261,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setLastKey(_o_.getLastKey());
         setProposeLimit(_o_.getProposeLimit());
         setJobClass(_o_.getJobClass());
+        setWorker(_o_.getWorker());
         _unknown_ = _o_._unknown_;
     }
 
@@ -276,7 +303,8 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _s_.append(_i1_).append("RecordKey=").append(getRecordKey()).append(",\n");
         _s_.append(_i1_).append("LastKey=").append(getLastKey()).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(getProposeLimit()).append(",\n");
-        _s_.append(_i1_).append("JobClass=").append(getJobClass()).append('\n');
+        _s_.append(_i1_).append("JobClass=").append(getJobClass()).append(",\n");
+        _s_.append(_i1_).append("Worker=").append(getWorker()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -350,6 +378,13 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
                 _o_.WriteString(_x_);
             }
         }
+        {
+            int _x_ = getWorker();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -383,6 +418,10 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             setJobClass(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 7) {
+            setWorker(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -407,12 +446,16 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
             return false;
         if (!getJobClass().equals(_b_.getJobClass()))
             return false;
+        if (getWorker() != _b_.getWorker())
+            return false;
         return true;
     }
 
     @Override
     public boolean negativeCheck() {
         if (getProposeLimit() < 0)
+            return true;
+        if (getWorker() < 0)
             return true;
         return false;
     }
@@ -432,6 +475,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
                 case 4: _LastKey = _v_.binaryValue(); break;
                 case 5: _ProposeLimit = _v_.intValue(); break;
                 case 6: _JobClass = _v_.stringValue(); break;
+                case 7: _Worker = _v_.intValue(); break;
             }
         }
     }
@@ -451,6 +495,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         setJobClass(_r_.getString(_pn_ + "JobClass"));
         if (getJobClass() == null)
             setJobClass("");
+        setWorker(_r_.getInt(_pn_ + "Worker"));
     }
 
     @Override
@@ -462,6 +507,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _s_.appendBinary(_pn_ + "LastKey", getLastKey());
         _s_.appendInt(_pn_ + "ProposeLimit", getProposeLimit());
         _s_.appendString(_pn_ + "JobClass", getJobClass());
+        _s_.appendInt(_pn_ + "Worker", getWorker());
     }
 
     @Override
@@ -473,6 +519,7 @@ public final class BBatch extends Zeze.Transaction.Bean implements BBatchReadOnl
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "LastKey", "binary", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(5, "ProposeLimit", "int", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(6, "JobClass", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(7, "Worker", "int", "", ""));
         return _v_;
     }
 
@@ -486,6 +533,7 @@ public static final class Data extends Zeze.Transaction.Data {
     private Zeze.Net.Binary _LastKey;
     private int _ProposeLimit;
     private String _JobClass;
+    private int _Worker;
 
     public String getAppInstanceId() {
         return _AppInstanceId;
@@ -545,6 +593,14 @@ public static final class Data extends Zeze.Transaction.Data {
         _JobClass = _v_;
     }
 
+    public int getWorker() {
+        return _Worker;
+    }
+
+    public void setWorker(int _v_) {
+        _Worker = _v_;
+    }
+
     @SuppressWarnings("deprecation")
     public Data() {
         _AppInstanceId = "";
@@ -555,7 +611,7 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @SuppressWarnings("deprecation")
-    public Data(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_) {
+    public Data(String _AppInstanceId_, String _TableName_, Zeze.Net.Binary _RecordKey_, Zeze.Net.Binary _LastKey_, int _ProposeLimit_, String _JobClass_, int _Worker_) {
         if (_AppInstanceId_ == null)
             _AppInstanceId_ = "";
         _AppInstanceId = _AppInstanceId_;
@@ -572,6 +628,7 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_JobClass_ == null)
             _JobClass_ = "";
         _JobClass = _JobClass_;
+        _Worker = _Worker_;
     }
 
     @Override
@@ -582,6 +639,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _LastKey = Zeze.Net.Binary.Empty;
         _ProposeLimit = 0;
         _JobClass = "";
+        _Worker = 0;
     }
 
     @Override
@@ -603,6 +661,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _LastKey = _o_.getLastKey();
         _ProposeLimit = _o_.getProposeLimit();
         _JobClass = _o_.getJobClass();
+        _Worker = _o_.getWorker();
     }
 
     public void assign(BBatch.Data _o_) {
@@ -612,6 +671,7 @@ public static final class Data extends Zeze.Transaction.Data {
         _LastKey = _o_._LastKey;
         _ProposeLimit = _o_._ProposeLimit;
         _JobClass = _o_._JobClass;
+        _Worker = _o_._Worker;
     }
 
     @Override
@@ -653,7 +713,8 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append(_i1_).append("RecordKey=").append(_RecordKey).append(",\n");
         _s_.append(_i1_).append("LastKey=").append(_LastKey).append(",\n");
         _s_.append(_i1_).append("ProposeLimit=").append(_ProposeLimit).append(",\n");
-        _s_.append(_i1_).append("JobClass=").append(_JobClass).append('\n');
+        _s_.append(_i1_).append("JobClass=").append(_JobClass).append(",\n");
+        _s_.append(_i1_).append("Worker=").append(_Worker).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -712,6 +773,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            int _x_ = _Worker;
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -743,6 +811,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _JobClass = _o_.ReadString(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 7) {
+            _Worker = _o_.ReadInt(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -768,6 +840,8 @@ public static final class Data extends Zeze.Transaction.Data {
         if (_ProposeLimit != _b_._ProposeLimit)
             return false;
         if (!_JobClass.equals(_b_._JobClass))
+            return false;
+        if (_Worker != _b_._Worker)
             return false;
         return true;
     }

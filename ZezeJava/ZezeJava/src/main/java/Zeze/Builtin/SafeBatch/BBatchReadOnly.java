@@ -22,4 +22,5 @@ public interface BBatchReadOnly {
     Zeze.Net.Binary getLastKey();
     int getProposeLimit();
     String getJobClass();
+    int getWorker();
 }

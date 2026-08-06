@@ -16,6 +16,10 @@ public abstract class AbstractSafeBatch implements Zeze.IModule {
     @Override public void unlock() { __thisLock.unlock(); }
     @Override public java.util.concurrent.locks.Lock getLock() { return __thisLock; }
 
+    public static final int eWorkerTable = 0;
+    public static final int eWorkerSortedMap = 1;
+    public static final int eWorkerList = 2;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 

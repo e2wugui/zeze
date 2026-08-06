@@ -2053,6 +2053,10 @@
 		</module>
 
 		<module name="SafeBatch" id="11044">
+                    <enum name="eWorkerTable" value="0"/>
+                    <enum name="eWorkerSortedMap" value="1"/>
+                    <enum name="eWorkerList" value="2"/>
+
 			<bean name="BBatch" UseData="true">
                         <var id="1" name="AppInstanceId" type="string"/>
                         <var id="2" name="TableName" type="string"/>
@@ -2060,6 +2064,7 @@
                         <var id="4" name="LastKey" type="binary"/>
                         <var id="5" name="ProposeLimit" type="int"/>
                         <var id="6" name="JobClass" type="string"/>
+                        <var id="7" name="Worker" type="int"/>
 			</bean>
 		</module>
 

@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import Zeze.Application;
 import Zeze.Builtin.SafeBatch.BBatch;
+import Zeze.Builtin.SafeBatch.BBatchReadOnly;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.NavigableMap;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
@@ -30,11 +32,22 @@ public class SafeBatch extends AbstractSafeBatch {
 		long runJob(SafeBatch safeBatch, Object key, Object value) throws Exception;
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
-		default NavigableMap<?, ?> tailMapExclusiveOutTransaction(@Nullable TableX<?, ?> table,
-		                                                          @Nullable ByteBuffer tableKey,
+		default NavigableMap<?, ?> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
+		                                                          @NotNull ByteBuffer tableKey,
 		                                                          @Nullable Comparable<?> mapKey) throws Exception {
 			return null;
 		}
+		// 遍历List需要实现。
+		// 根据table,tableKey定位到记录中的某个List。
+		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
+		default List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
+			return null;
+		}
+	}
+
+	// 查询批处理状态。
+	BBatchReadOnly getBatch(@NotNull String jobId) {
+		return (BBatchReadOnly)zeze.getTimer().getTimerCustomBean(jobId);
 	}
 	/**
 	 * 开始表格遍历批处理。
@@ -60,7 +73,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
 			throw new IllegalStateException("limit is 0");
-		return _saveAndStart(table, null, jobHandle, checkPeriod, limit);
+		return _saveAndStart(table, null, jobHandle, checkPeriod, limit, eWorkerTable);
 	}
 
 	public void start() throws Exception {
@@ -94,9 +107,13 @@ public class SafeBatch extends AbstractSafeBatch {
 							  @NotNull BBatch batch) {
 		if (!stopped) {
 			running.computeIfAbsent(timerId, (key) -> {
-				var worker = (batch.getRecordKey().size() == 0)
-					? new TableBatchWorker(timerId, jobHandle, batch.toData())
-					: new SortedMapWorker(timerId, jobHandle, batch.toData());
+				Worker worker = switch (batch.getWorker()) {
+					case eWorkerTable -> new TableBatchWorker(timerId, jobHandle, batch.toData());
+					case eWorkerSortedMap -> new SortedMapWorker(timerId, jobHandle, batch.toData());
+					case eWorkerList -> new ListWorker(timerId, jobHandle, batch.toData());
+					default -> throw new IllegalStateException("invalid worker type.");
+				};
+				;
 				var future = Task.runUnsafe(worker, "BatchWorker_" + timerId);
 				worker.setFuture(future);
 				return future;
@@ -174,8 +191,15 @@ public class SafeBatch extends AbstractSafeBatch {
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
-					if (null != batch)
-						batch.setLastKey(new Binary(table.encodeKey(key)));
+					if (null != batch) {
+						if (batch.getWorker() == eWorkerList) {
+							var bb = ByteBuffer.Allocate();
+							bb.WriteInt((Integer)key);
+							batch.setLastKey(new Binary(bb));
+						} else {
+							batch.setLastKey(new Binary(table.encodeKey(key)));
+						}
+					}
 				}
 				return result;
 			}, "SafeBatchJob_" + timerId).call();
@@ -212,12 +236,13 @@ public class SafeBatch extends AbstractSafeBatch {
 				assert table != null;
 				lastKey = ((TableX)table).walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
-					stopBatch(timerId);
-					return;
+					break;
 				}
 			}
+			stopBatch(timerId);
 		}
 	}
+
 	/**
 	 * 开始SortedMap遍历批处理。
 	 *
@@ -248,11 +273,45 @@ public class SafeBatch extends AbstractSafeBatch {
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
 			throw new IllegalStateException("limit is 0");
-		return _saveAndStart(table, key, jobHandle, checkPeriod, limit);
+		return _saveAndStart(table, key, jobHandle, checkPeriod, limit, eWorkerSortedMap);
+	}
+
+	/**
+	 * 开始List遍历批处理。
+	 *
+	 * @param table table
+	 * @param key 记录的key
+	 * @param jobHandle jobHandle
+	 * @return jobId
+	 */
+	public String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+								@NotNull WalkJobHandle jobHandle) throws Exception {
+		return startWalkList(table, key, jobHandle, 60_000, 100);
+	}
+
+	/**
+	 * 开始List遍历批处理。对每一个记录通过jobHandle回调进行处理。每个记录的处理在独立的存储过程中。遍历时分批处理：
+	 * 内部回调WalkJobHandle.getList得到table.record里面的某个List字段的。
+	 * 使用selectDirty得到记录并返回list.
+	 * @param table table
+	 * @param key 记录的key
+	 * @param jobHandle jobHandle
+	 * @param checkPeriod 任务运行监控Timer间隔
+	 * @param limit 每次创建的Job
+	 * @return jobId
+	 */
+	public String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+	                            @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) {
+		if (stopped)
+			throw new IllegalStateException("stopped");
+		if (limit <= 0)
+			throw new IllegalStateException("limit is 0");
+		return _saveAndStart(table, key, jobHandle, checkPeriod, limit, eWorkerList);
 	}
 
 	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
-								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) {
+								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit,
+								 int workerType) {
 		var batch = new BBatch();
 		batch.setAppInstanceId(zeze.getProjectName());
 		batch.setTableName(table.getName());
@@ -260,6 +319,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			batch.setRecordKey(new Binary(table.encodeKey(key)));
 		batch.setProposeLimit(limit);
 		batch.setJobClass(jobHandle.getClass().getName());
+		batch.setWorker(workerType);
 
 		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod, BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
@@ -285,12 +345,15 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				var tail = jobHandle.tailMapExclusiveOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
+				if (null == tail) {
+					break;
+				}
 				lastKey = runJobs(tail);
 				if (null == lastKey) {
-					stopBatch(timerId);
-					return;
+					break;
 				}
 			}
+			stopBatch(timerId);
 		}
 
 		private Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail) throws Exception {
@@ -299,10 +362,52 @@ public class SafeBatch extends AbstractSafeBatch {
 			Object key = null;
 			for (; _limit > 0 && it.hasNext(); --_limit) {
 				var e = it.next();
-				handle(e.getKey(), e.getValue());
+				if (!handle(e.getKey(), e.getValue()))
+					break;
 				key = e.getKey();
 			}
 			return it.hasNext() ? (Comparable<?>)key : null;
+		}
+	}
+
+	public class ListWorker extends Worker {
+		private final BBatch.Data batch;
+		private int next;
+
+		public ListWorker(String timerId, WalkJobHandle jobHandle, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle);
+			var lastKeyBin = batch.getLastKey();
+			next = lastKeyBin.size() != 0 ? ByteBuffer.Wrap(lastKeyBin).ReadInt() : 0;
+			this.batch = batch;
+		}
+
+		@Override
+		public void run() throws Exception {
+			while (null == futureSelf) {
+				// busy wait, see _startWorker...setFuture
+				Thread.onSpinWait();
+			}
+			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
+				var list = jobHandle.getListOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
+				if (null == list) {
+					break;
+				}
+				next = runJobs(list);
+				if (next < 0) {
+					break;
+				}
+			}
+			stopBatch(timerId);
+		}
+
+		private int runJobs(@NotNull List<?> list) throws Exception {
+			var i = next;
+			for (var _limit = limit; i < list.size() && _limit > 0; ++i, --_limit) {
+				var e = list.get(i);
+				if (!handle(i + 1, e)) // 马上推进一个，当前handle的e必须处理。
+					break;
+			}
+			return i < list.size() ? i : -1;
 		}
 	}
 
