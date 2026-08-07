@@ -174,7 +174,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		zeze.newProcedure(() -> _stopBatch(jobId), "stopBatch_" + jobId).call();
 	}
 
-	private abstract class Worker implements Action0, TableWalkHandle<Object, Object> {
+	private abstract static class Worker implements Action0, TableWalkHandle<Object, Object> {
 		protected final String timerId;
 		protected final WalkJobHandle jobHandle;
 		protected final TableX<?, ?> table;
