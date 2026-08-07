@@ -26,8 +26,10 @@ public class PSortedMap1<K extends Comparable<K>, V> extends PSortedMap<K, V> {
 	}
 
 	@Override
-	public void encodeKey(@NotNull ByteBuffer bb, K key) {
+	public ByteBuffer encodeKey(K key) {
+		var bb = ByteBuffer.Allocate();
 		meta.keyEncoder.accept(bb, key);
+		return bb;
 	}
 
 	@Override

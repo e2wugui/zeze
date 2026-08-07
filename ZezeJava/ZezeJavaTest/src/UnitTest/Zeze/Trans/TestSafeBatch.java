@@ -82,9 +82,7 @@ public class TestSafeBatch {
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value)
 				return null;
-			var bb = ByteBuffer.Allocate();
-			value.getPsortedmap().encodeKey(bb, (Integer)mapKey);
-			return bb;
+			return value.getPsortedmap().encodeKey((Integer)mapKey);
 		}
 
 		@Override
