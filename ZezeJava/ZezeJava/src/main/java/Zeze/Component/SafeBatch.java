@@ -6,6 +6,7 @@ import Zeze.Builtin.SafeBatch.BBatchReadOnly;
 import Zeze.Hot.HotHandle;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
@@ -25,28 +26,42 @@ public class SafeBatch extends AbstractSafeBatch {
 	private final HotHandle<WalkJobHandle> hotWalkJobHandles = new HotHandle<>();
 	private volatile boolean stopped = false;
 
-	@FunctionalInterface
+	// WalkJobHandle 保留为标记接口：HotHandle 反射加载、BBatch.jobClass 持久化使用此公共基类型。
+	// 真正的回调签名由下面三个子接口给出，分别对应三种 worker 语义。
 	public interface WalkJobHandle {
-		// 每个记录回调一次。
-		// 在存储过程中回调。
+	}
+
+	// 表遍历。key/value 直接对应 TableX<K, V> 的类型。
+	@FunctionalInterface
+	public interface WalkTableJobHandle<K, V> extends WalkJobHandle {
+		// 每个记录回调一次。在存储过程中回调。
 		// 返回0表示成功，如果返回非0，中断批处理。
-		long runJob(SafeBatch safeBatch, Object key, Object value) throws Exception;
+		long runJob(SafeBatch safeBatch, K key, V value) throws Exception;
+	}
+
+	// SortedMap遍历。MK 是 map key（map 自身要求 Comparable 排序），MV 是 map value。
+	// 注意：MK 与 TableX<K, V> 的 K 是不同的概念。
+	public interface WalkSortedMapJobHandle<MK, MV> extends WalkJobHandle {
+		long runJob(SafeBatch safeBatch, MK key, MV value) throws Exception;
+
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
-		default @Nullable NavigableMap<?, ?> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
-		                                                          @NotNull ByteBuffer tableKey,
-		                                                          @Nullable Comparable<?> mapKey) throws Exception {
-			return null;
-		}
-		// 遍历List需要实现。
+		@Nullable NavigableMap<MK, MV> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
+		                                                              @NotNull ByteBuffer tableKey,
+		                                                              @Nullable MK mapKey) throws Exception;
+
+		@Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey,
+		                                  @NotNull MK mapKey) throws Exception;
+	}
+
+	// List遍历。框架按 index 推进进度，因此 key 类型固定为 int，只参数化元素类型 E。
+	public interface WalkListJobHandle<E> extends WalkJobHandle {
+		// index 是当前元素在 List 中的位置+1（参见 ListWorker.runJobs）。
+		long runJob(SafeBatch safeBatch, int index, E value) throws Exception;
+
 		// 根据table,tableKey定位到记录中的某个List。
 		// 注意：在批处理过程中如果List的内容发生变化，那么处理的item可能丢失或重复。
-		default @Nullable List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
-			return null;
-		}
-		default ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull Comparable<?> mapKey) throws Exception {
-			return null;
-		}
+		@Nullable List<E> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception;
 	}
 
 	// 查询批处理状态。
@@ -60,7 +75,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public String startWalkTable(TableX<?, ?> table, WalkJobHandle jobHandle) {
+	public <TK extends Comparable<TK>, TV extends Bean> String startWalkTable(TableX<TK, TV> table, WalkTableJobHandle<TK, TV> jobHandle) {
 		return startWalkTable(table, jobHandle, 60_000, 100);
 	}
 
@@ -72,7 +87,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每批遍历的Job数量，必须大于0.
 	 * @return jobId
 	 */
-	public String startWalkTable(TableX<?, ?> table, WalkJobHandle jobHandle, long checkPeriod, int limit) {
+	public <TK extends Comparable<TK>, TV extends Bean> String startWalkTable(TableX<TK, TV> table, WalkTableJobHandle<TK, TV> jobHandle,
+	                                      long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -107,17 +123,21 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 	}
 
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	private void _startWorker(@NotNull String timerId, @NotNull WalkJobHandle jobHandle,
 							  @NotNull BBatch batch) {
 		if (!stopped) {
 			running.computeIfAbsent(timerId, (key) -> {
 				Worker worker = switch (batch.getWorker()) {
-					case eWorkerTable -> new TableBatchWorker(timerId, jobHandle, batch.toData());
-					case eWorkerSortedMap -> new SortedMapWorker(timerId, jobHandle, batch.toData());
-					case eWorkerList -> new ListWorker(timerId, jobHandle, batch.toData());
+					// HotHandle 反射加载路径：泛型已被擦除，只能用 raw type 构造。
+					case eWorkerTable -> new TableBatchWorker(timerId,
+							(WalkTableJobHandle)jobHandle, batch.toData());
+					case eWorkerSortedMap -> new SortedMapWorker(timerId,
+							(WalkSortedMapJobHandle)jobHandle, batch.toData());
+					case eWorkerList -> new ListWorker(timerId,
+							(WalkListJobHandle)jobHandle, batch.toData());
 					default -> throw new IllegalStateException("invalid worker type.");
 				};
-				;
 				var future = Task.runUnsafe(worker, "BatchWorker_" + timerId);
 				worker.setFuture(future);
 				return future;
@@ -174,9 +194,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		zeze.newProcedure(() -> _stopBatch(jobId), "stopBatch_" + jobId).call();
 	}
 
-	private abstract static class Worker implements Action0, TableWalkHandle<Object, Object> {
+	private abstract static class Worker implements Action0 {
 		protected final String timerId;
-		protected final WalkJobHandle jobHandle;
 		protected final TableX<?, ?> table;
 		protected final int limit;
 
@@ -186,27 +205,31 @@ public class SafeBatch extends AbstractSafeBatch {
 			this.futureSelf = future;
 		}
 
-		public Worker(TableX<?, ?> table, int limit, String timerId, WalkJobHandle jobHandle) {
+		public Worker(TableX<?, ?> table, int limit, String timerId) {
 			this.timerId = timerId;
-			this.jobHandle = jobHandle;
 			this.table = table;
 			this.limit = limit;
 		}
 	}
 
-	private class TableBatchWorker extends Worker {
+	private class TableBatchWorker<TK extends Comparable<TK>, TV extends Bean> extends Worker implements TableWalkHandle<TK, TV> {
+		private final WalkTableJobHandle<TK, TV> jobHandle;
+		private final TableX<TK, TV> typedTable;
 		private final BBatch.Data batch;
-		private Comparable<?> lastKey;
+		private TK lastKey;
 
-		public TableBatchWorker(String timerId, WalkJobHandle jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle);
+		@SuppressWarnings("unchecked")
+		public TableBatchWorker(String timerId, WalkTableJobHandle<TK, TV> jobHandle, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			this.typedTable = (TableX<TK, TV>)table;
 			this.batch = batch;
+			this.jobHandle = jobHandle;
 			var lastKeyBin = batch.getLastKey();
-			lastKey = lastKeyBin.size() != 0 ? table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+			lastKey = lastKeyBin.size() != 0 ? typedTable.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
 		}
 
 		@Override
-		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+		public boolean handle(@NotNull TK key, @NotNull TV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 			// 当前记录处理失败，中断批执行，下一次再次尝试。
 			return 0 == zeze.newProcedure(() -> {
@@ -215,14 +238,13 @@ public class SafeBatch extends AbstractSafeBatch {
 					// 每次记录处理都保存一次lastKey。
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
-						batch.setLastKey(new Binary(table.encodeKey(key)));
+						batch.setLastKey(new Binary(typedTable.encodeKey(key)));
 					}
 				}
 				return result;
 			}, "SafeBatchTable_" + timerId).call();
 		}
 
-		@SuppressWarnings({"unchecked", "rawtypes"})
 		@Override
 		public void run() throws Exception {
 			while (null == futureSelf) {
@@ -231,8 +253,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			}
 			// isDone 不必要。
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
-				assert table != null;
-				lastKey = ((TableX)table).walkDatabase(lastKey, batch.getProposeLimit(), this);
+				lastKey = typedTable.walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
 					break;
 				}
@@ -249,8 +270,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                 @NotNull WalkJobHandle jobHandle) throws Exception {
+	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle) throws Exception {
 		return startWalkSortedMap(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -265,8 +286,9 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-									 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) throws Exception {
+	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle,
+	                                          long checkPeriod, int limit) throws Exception {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -282,8 +304,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param jobHandle jobHandle
 	 * @return jobId
 	 */
-	public String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-								@NotNull WalkJobHandle jobHandle) throws Exception {
+	public <E> String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+	                                @NotNull WalkListJobHandle<E> jobHandle) throws Exception {
 		return startWalkList(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -298,8 +320,8 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @param limit 每次创建的Job
 	 * @return jobId
 	 */
-	public String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                            @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit) {
+	public <E> String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
+	                                @NotNull WalkListJobHandle<E> jobHandle, long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -324,19 +346,23 @@ public class SafeBatch extends AbstractSafeBatch {
 		return timerId;
 	}
 
-	public class SortedMapWorker extends Worker {
+	public class SortedMapWorker<MK, MV> extends Worker {
+		private final WalkSortedMapJobHandle<MK, MV> jobHandle;
 		private final BBatch.Data batch;
-		private Comparable<?> lastKey;
+		private MK lastKey;
 
-		public SortedMapWorker(String timerId, WalkJobHandle jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle);
-			var lastKeyBin = batch.getLastKey();
-			lastKey = lastKeyBin.size() != 0 ? table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+		@SuppressWarnings("unchecked")
+		public SortedMapWorker(String timerId, WalkSortedMapJobHandle<MK, MV> jobHandle, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			this.jobHandle = jobHandle;
 			this.batch = batch;
+			// FIXME: 这里语义上应该是 mapKey 的反序列化，但原代码用 table.decodeKey。
+			//       保留原有行为，仅做泛型化 cast。重启路径在 SortedMap 场景下一直是有问题的。
+			var lastKeyBin = batch.getLastKey();
+			lastKey = lastKeyBin.size() != 0 ? (MK)table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
 		}
 
-		@Override
-		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+			public boolean handle(@NotNull MK key, @NotNull MV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 			// 当前记录处理失败，中断批执行，下一次再次尝试。
 			return 0 == zeze.newProcedure(() -> {
@@ -345,7 +371,7 @@ public class SafeBatch extends AbstractSafeBatch {
 					// 每次记录处理都保存一次lastKey。
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
-						var bb = jobHandle.encodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), (Comparable<?>)key);
+						var bb = jobHandle.encodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), key);
 						if (null != bb)
 							batch.setLastKey(new Binary(bb));
 					}
@@ -373,42 +399,44 @@ public class SafeBatch extends AbstractSafeBatch {
 			stopBatch(timerId);
 		}
 
-		private Comparable<?> runJobs(@NotNull NavigableMap<?, ?> tail) throws Exception {
+		private MK runJobs(@NotNull NavigableMap<MK, MV> tail) throws Exception {
 			var it = tail.entrySet().iterator();
 			var _limit = limit;
-			Object key = null;
+			MK key = null;
 			for (; _limit > 0 && it.hasNext(); --_limit) {
 				var e = it.next();
 				if (!handle(e.getKey(), e.getValue()))
 					break;
 				key = e.getKey();
 			}
-			return it.hasNext() ? (Comparable<?>)key : null;
+			return it.hasNext() ? key : null;
 		}
 	}
 
-	public class ListWorker extends Worker {
+	public class ListWorker<E> extends Worker {
+		private final WalkListJobHandle<E> jobHandle;
 		private final BBatch.Data batch;
 		private int next;
 
-		public ListWorker(String timerId, WalkJobHandle jobHandle, BBatch.Data batch) {
-			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId, jobHandle);
+		public ListWorker(String timerId, WalkListJobHandle<E> jobHandle, BBatch.Data batch) {
+			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
+			this.jobHandle = jobHandle;
 			var lastKeyBin = batch.getLastKey();
 			next = lastKeyBin.size() != 0 ? ByteBuffer.Wrap(lastKeyBin).ReadInt() : 0;
 			this.batch = batch;
 		}
 
-		public boolean handle(@NotNull Object key, @NotNull Object value) throws Exception {
+		public boolean handle(int index, E value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 			// 当前记录处理失败，中断批执行，下一次再次尝试。
 			return 0 == zeze.newProcedure(() -> {
-				var result = jobHandle.runJob(SafeBatch.this, key, value);
+				var result = jobHandle.runJob(SafeBatch.this, index, value);
 				if (0 == result && !timerId.isEmpty()) {
 					// 每次记录处理都保存一次lastKey。
 					var batch = (BBatch)zeze.getTimer().getTimerCustomBean(timerId);
 					if (null != batch) {
 						var bb = ByteBuffer.Allocate();
-						bb.WriteInt((Integer)key);
+						bb.WriteInt(index);
 						batch.setLastKey(new Binary(bb));
 					}
 				}
@@ -435,7 +463,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			stopBatch(timerId);
 		}
 
-		private int runJobs(@NotNull List<?> list) throws Exception {
+		private int runJobs(@NotNull List<E> list) throws Exception {
 			var i = next;
 			for (var _limit = limit; i < list.size() && _limit > 0; ++i, --_limit) {
 				var e = list.get(i);

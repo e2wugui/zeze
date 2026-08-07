@@ -46,7 +46,7 @@ public class TestSafeBatch {
 			App.getInstance().getZeze().getSafeBatch().startWalkTable(
 				App.getInstance().demo_Module1.getTable5(),
 				(safeBatch, key, value) -> {
-					System.out.println("SafeBatch: " + key + ", " + ((demo.Module2.BValue)value).getS());
+					System.out.println("SafeBatch: " + key + ", " + value.getS());
 					return 0;
 				}, 1000, 1);
 			return 0;
@@ -70,24 +70,26 @@ public class TestSafeBatch {
 		System.out.println("startWalkTable ... end.");
 	}
 
-	public static class WalkSortedMap implements SafeBatch.WalkJobHandle {
+	public static class WalkSortedMap implements SafeBatch.WalkSortedMapJobHandle<Integer, Integer> {
 		@Override
-		public long runJob(SafeBatch safeBatch, Object key, Object value) {
+		public long runJob(SafeBatch safeBatch, Integer key, Integer value) {
 			System.out.println("SafeBatch_SortedMap: " + key + ", " + value);
 			return 0;
 		}
 
-		public ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull Comparable<?> mapKey) {
+		@Override
+		public @Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey,
+		                                        @NotNull Integer mapKey) {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value)
 				return null;
-			return value.getPsortedmap().encodeKey((Integer)mapKey);
+			return value.getPsortedmap().encodeKey(mapKey);
 		}
 
 		@Override
-		public @Nullable NavigableMap<?, ?> tailMapExclusiveOutTransaction(
-			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @Nullable Comparable<?> mapKey) throws Exception {
+		public @Nullable NavigableMap<Integer, Integer> tailMapExclusiveOutTransaction(
+			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @Nullable Integer mapKey) throws Exception {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			System.out.println("tailMapExclusiveOutTransaction: " + mapKey);
@@ -99,19 +101,20 @@ public class TestSafeBatch {
 				return value.getPsortedmap();
 			}
 
-			return value.getPsortedmap().tailMap((Integer)mapKey, false);
+			return value.getPsortedmap().tailMap(mapKey, false);
 		}
 	}
 
-	public static class WalkList implements SafeBatch.WalkJobHandle {
+	public static class WalkList implements SafeBatch.WalkListJobHandle<Integer> {
 		@Override
-		public long runJob(SafeBatch safeBatch, Object key, Object value) {
-			System.out.println("SafeBatch_List: " + key + ", " + value);
+		public long runJob(SafeBatch safeBatch, int index, Integer value) {
+			System.out.println("SafeBatch_List: " + index + ", " + value);
 			return 0;
 		}
 
 		@Override
-		public java.util.List<?> getListOutTransaction(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
+		public @Nullable java.util.List<Integer> getListOutTransaction(@NotNull TableX<?, ?> table,
+		                                                              @NotNull ByteBuffer tableKey) throws Exception {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
 			if (null == value) {
