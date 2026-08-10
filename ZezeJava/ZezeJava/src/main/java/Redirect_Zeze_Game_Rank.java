@@ -22,7 +22,13 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setMethodFullName("Zeze.Game.Rank:removeRank");
             _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-            keyHint.encode(_b_);
+            var _m_ = 0L;
+            if (keyHint == null)
+                _m_ += 0x1L;
+            _b_.WriteULong(_m_);
+            if (keyHint != null) {
+                keyHint.encode(_b_);
+            }
             _b_.WriteLong(roleId);
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
@@ -36,8 +42,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                     _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
                     return Zeze.Transaction.Procedure.Success;
                 }
-                var _param_ = _rpc_.Result.getParams();
-                _f_.setResult(_param_.size() > 0 ? Zeze.Serialize.ByteBuffer.Wrap(_param_).ReadLong() : null);
+                _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
@@ -67,10 +72,20 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
             _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
             _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
             var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-            keyHint.encode(_b_);
+            var _m_ = 0L;
+            if (keyHint == null)
+                _m_ += 0x1L;
+            if (value == null)
+                _m_ += 0x4L;
+            _b_.WriteULong(_m_);
+            if (keyHint != null) {
+                keyHint.encode(_b_);
+            }
             _b_.WriteLong(roleId);
-            _b_.WriteLong(value.typeId());
-            value.encode(_b_);
+            if (value != null) {
+                _b_.WriteLong(value.typeId());
+                value.encode(_b_);
+            }
             _a_.setParams(new Zeze.Net.Binary(_b_));
 
             if (!_p_.Send(_t_, _rpc_ -> {
@@ -83,8 +98,7 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                     _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, "resultCode=" + _c_));
                     return Zeze.Transaction.Procedure.Success;
                 }
-                var _param_ = _rpc_.Result.getParams();
-                _f_.setResult(_param_.size() > 0 ? Zeze.Serialize.ByteBuffer.Wrap(_param_).ReadLong() : null);
+                _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());
                 return Zeze.Transaction.Procedure.Success;
             }, 30000)) {
                 _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.SERVER_NOT_FOUND, "not found hash=" + hash));
@@ -102,22 +116,42 @@ public class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
         _app_.getZeze().redirect.handles.put("Zeze.Game.Rank:removeRank", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
-                var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
+                Zeze.Builtin.Game.Rank.BConcurrentKey keyHint;
                 long roleId;
                 var _b_ = _params_.Wrap();
-                keyHint.decode(_b_);
-                roleId = _b_.ReadLong();
+                var _m_ = _b_.ReadULong();
+                if ((_m_ & 0x1L) == 0) {
+                    keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
+                    keyHint.decode(_b_);
+                } else
+                    keyHint = null;
+                if ((_m_ & 0x2L) == 0) {
+                    roleId = _b_.ReadLong();
+                } else
+                    roleId = 0;
                 return super.removeRank(_hash_, keyHint, roleId);
             }, null, 0));
         _app_.getZeze().redirect.handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
-                var keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
+                Zeze.Builtin.Game.Rank.BConcurrentKey keyHint;
                 long roleId;
+                Zeze.Transaction.Bean value;
                 var _b_ = _params_.Wrap();
-                keyHint.decode(_b_);
-                roleId = _b_.ReadLong();
-                var value = beanFactory.createBeanFromSpecialTypeId(_b_.ReadLong());
-                value.decode(_b_);
+                var _m_ = _b_.ReadULong();
+                if ((_m_ & 0x1L) == 0) {
+                    keyHint = new Zeze.Builtin.Game.Rank.BConcurrentKey();
+                    keyHint.decode(_b_);
+                } else
+                    keyHint = null;
+                if ((_m_ & 0x2L) == 0) {
+                    roleId = _b_.ReadLong();
+                } else
+                    roleId = 0;
+                if ((_m_ & 0x4L) == 0) {
+                    value = beanFactory.createBeanFromSpecialTypeId(_b_.ReadLong());
+                    value.decode(_b_);
+                } else
+                    value = null;
                 return super.updateRank(_hash_, keyHint, roleId, value);
             }, null, 0));
     }

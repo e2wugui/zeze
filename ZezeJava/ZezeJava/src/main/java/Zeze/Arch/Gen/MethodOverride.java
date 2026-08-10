@@ -28,6 +28,7 @@ final class MethodOverride {
 	final TransactionLevel transactionLevel;
 	final Parameter[] allParameters;
 	final Parameter hashOrServerIdParameter;
+	final Parameter redirectKeyParameter;
 	final String keyHashCode;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
@@ -66,6 +67,7 @@ final class MethodOverride {
 		}
 		oneByOne = annotation instanceof RedirectToServer ? ((RedirectToServer)annotation).oneByOne()
 				: (annotation instanceof RedirectHash && ((RedirectHash)annotation).oneByOne());
+		Parameter redirectKeyParameter0 = null;
 		String keyHashCode0 = null;
 		for (var param : allParameters) {
 			var keyAnn = param.getAnnotation(RedirectKey.class);
@@ -90,12 +92,14 @@ final class MethodOverride {
 						}
 					} else
 						keyHashCode0 = param.getName() + ".hashCode()";
+					redirectKeyParameter0 = param;
 				} else {
 					throw new IllegalStateException("ModuleRedirect: RedirectKey is used more than once: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
 			}
 		}
+		redirectKeyParameter = redirectKeyParameter0;
 		keyHashCode = keyHashCode0 != null ? keyHashCode0 : "Long.hashCode(_t_.getSessionId())";
 
 		inputParameters.addAll(Arrays.asList(allParameters));

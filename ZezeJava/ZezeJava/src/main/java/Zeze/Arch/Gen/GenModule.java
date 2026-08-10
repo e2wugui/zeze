@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -43,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
 public final class GenModule extends ReentrantLock {
 	public static final String REDIRECT_PREFIX = "Redirect_";
 	public static final GenModule instance = new GenModule();
+	private static final Pattern genericPat = Pattern.compile("<.+>");
 
 	/**
 	 * 源代码跟目录。
@@ -98,8 +100,9 @@ public final class GenModule extends ReentrantLock {
 		}
 	}
 
+	@SuppressWarnings("JavaPrintToLogpoint")
 	public @NotNull IModule @Nullable [] createRedirectModules(@NotNull AppBase userApp,
-															   @NotNull Class<?> @NotNull [] moduleClasses) {
+	                                                           @NotNull Class<?> @NotNull [] moduleClasses) {
 		lock();
 		try {
 			int i = 0, n = moduleClasses.length;
@@ -191,7 +194,7 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	private static String genModuleCode(@NotNull String genClassName, @NotNull Class<?> moduleClass,
-										@NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
+	                                    @NotNull List<MethodOverride> overrides, @NotNull AppBase userApp) throws Exception {
 		var sb = new StringBuilderCs();
 		sb.appendLine("// auto-generated @" + "formatter:off");
 		sb.appendLine();
@@ -269,7 +272,7 @@ public final class GenModule extends ReentrantLock {
 					sb.appendLine("{}_a_.setVersion({});", prefix, version);
 				if (!m.inputParameters.isEmpty()) {
 					sb.appendLine("{}var _b_ = Zeze.Serialize.ByteBuffer.Allocate();", prefix);
-					Gen.instance.genEncode(sb, prefix, "_b_", m.inputParameters);
+					Gen.instance.genEncode(sb, prefix, "_b_", "_m_", "", m.inputParameters, m.redirectKeyParameter);
 					sb.appendLine("{}_a_.setParams(new Zeze.Net.Binary(_b_));", prefix);
 				}
 				sb.appendLine();
@@ -286,27 +289,26 @@ public final class GenModule extends ReentrantLock {
 					sb.appendLine("{}        _f_.setException(new Zeze.Arch.RedirectException(Zeze.Arch.RedirectException.REMOTE_EXECUTION, \"resultCode=\" + _c_));", prefix);
 					sb.appendLine("{}        return Zeze.Transaction.Procedure.Success;", prefix);
 					sb.appendLine("{}    }", prefix);
-					if (m.resultType == Long.class) {
-						sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
-						sb.appendLine("{}    _f_.setResult(_param_.size() > 0 ? Zeze.Serialize.ByteBuffer.Wrap(_param_).ReadLong() : null);", prefix);
-					} else if (m.resultType == String.class)
-						sb.appendLine("{}    _f_.setResult(Zeze.Util.Str.fromBinary(_rpc_.Result.getParams()));", prefix);
+					if (m.resultType == Long.class)
+						sb.appendLine("{}    _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.getParams()).ReadLong());", prefix);
+					else if (m.resultType == String.class)
+						sb.appendLine("{}    _f_.setResult(_rpc_.Result.isNullParam() ? null : Zeze.Util.Str.fromBinary(_rpc_.Result.getParams()));", prefix);
 					else if (m.resultType == Binary.class)
-						sb.appendLine("{}    _f_.setResult(_rpc_.Result.getParams());", prefix);
+						sb.appendLine("{}    _f_.setResult(_rpc_.Result.isNullParam() ? null : _rpc_.Result.getParams());", prefix);
 					else {
-						sb.appendLine("{}    var _r_ = new {}();", prefix, m.resultTypeName);
+						sb.appendLine("{}    {} _r_;", prefix, m.resultTypeName);
+						sb.appendLine("{}    if (_rpc_.Result.isNullParam())", prefix);
+						sb.appendLine("{}        _r_ = null;", prefix);
+						sb.appendLine("{}    else {", prefix);
 						if (Serializable.class.isAssignableFrom(m.resultClass)) {
-							sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
-							sb.appendLine("{}    if (_param_.size() > 0)", prefix);
-							sb.appendLine("{}        _r_.decode(_param_.Wrap());", prefix);
-						} else if (!m.resultFields.isEmpty()) {
-							sb.appendLine("{}    var _param_ = _rpc_.Result.getParams();", prefix);
-							sb.appendLine("{}    if (_param_.size() > 0) {", prefix);
-							sb.appendLine("{}        var _bb_ = _param_.Wrap();", prefix);
-							for (var field : m.resultFields)
-								Gen.instance.genDecode(sb, prefix + "        ", "_bb_", field.getType(), field.getGenericType(), "_r_." + field.getName());
-							sb.appendLine("{}    }", prefix);
+							sb.appendLine("{}        _r_ = new {}();", prefix, genericPat.matcher(m.resultTypeName).replaceAll("<>"));
+							sb.appendLine("{}        _r_.decode(_rpc_.Result.getParams().Wrap());", prefix);
+						} else {
+							sb.appendLine("{}        var _bb_ = _rpc_.Result.getParams().Wrap();", prefix);
+							sb.appendLine("{}        _r_ = new {}();", prefix, genericPat.matcher(m.resultTypeName).replaceAll("<>"));
+							Gen.instance.genDecode(sb, prefix + "        ", "_bb_", "_mm_", "_r_.", m.resultFields);
 						}
+						sb.appendLine("{}    }", prefix);
 						sb.appendLine("{}    _f_.setResult(_r_);", prefix);
 					}
 					sb.appendLine("{}    return Zeze.Transaction.Procedure.Success;", prefix);
@@ -339,7 +341,7 @@ public final class GenModule extends ReentrantLock {
 				}
 				if (genLocal)
 					sbHandles.appendLine("                var _b_ = _params_.Wrap();");
-				Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
+				Gen.instance.genDecode(sbHandles, "                ", "_b_", "_m_", "", m.inputParameters);
 				var normalCall = m.getNormalCallString();
 				var sep = normalCall.isEmpty() ? "" : ", ";
 				if (returnName.equals("void")) {
@@ -369,8 +371,7 @@ public final class GenModule extends ReentrantLock {
 					sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
 					sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 					sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-					for (var field : m.resultFields)
-						Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+					Gen.instance.genEncode(sbHandles, "                ", "_b_", "_m_", "_r_.", m.resultFields, null);
 					sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
 					sbHandles.appendLine("            }, {}));", version);
 				} else
@@ -420,7 +421,7 @@ public final class GenModule extends ReentrantLock {
 	}
 
 	private static void genRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-									   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
+	                                   int moduleId, String moduleFullName, MethodOverride m) throws Exception {
 		sb.append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			if (m.resultFields.isEmpty())
@@ -430,8 +431,7 @@ public final class GenModule extends ReentrantLock {
 				sb.appendLine("            var _r_ = new {}();", m.resultTypeName);
 				sb.appendLine("            if (_params_ != null) {");
 				sb.appendLine("                var _b_ = _params_.Wrap();");
-				for (var field : m.resultFields)
-					Gen.instance.genDecode(sb, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+				Gen.instance.genDecode(sb, "                ", "_b_", "_m_", "_r_.", m.resultFields);
 				sb.appendLine("            }");
 				sb.appendLine("            return _r_;");
 				sb.appendLine("        });");
@@ -450,7 +450,7 @@ public final class GenModule extends ReentrantLock {
 			sb.appendLine("        _a_.setVersion({});", version);
 		if (!m.inputParameters.isEmpty()) {
 			sb.appendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-			Gen.instance.genEncode(sb, "        ", "_b_", m.inputParameters);
+			Gen.instance.genEncode(sb, "        ", "_b_", "_m_", "", m.inputParameters, m.redirectKeyParameter);
 			sb.appendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
 		}
 		if (m.resultType != null)
@@ -469,7 +469,7 @@ public final class GenModule extends ReentrantLock {
 				var p = m.inputParameters.get(i);
 				Gen.instance.genLocalVariable(sbHandles, "                ", p);
 			}
-			Gen.instance.genDecode(sbHandles, "                ", "_b_", m.inputParameters);
+			Gen.instance.genDecode(sbHandles, "                ", "_b_", "_m_", "", m.inputParameters);
 		}
 
 		var normalCall = m.getNormalCallString();
@@ -487,8 +487,7 @@ public final class GenModule extends ReentrantLock {
 			sbHandles.appendLine("                    return Zeze.Net.Binary.Empty;");
 			sbHandles.appendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 			sbHandles.appendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
-			for (var field : m.resultFields)
-				Gen.instance.genEncode(sbHandles, "                ", "_b_", field.getType(), field.getGenericType(), "_r_." + field.getName());
+			Gen.instance.genEncode(sbHandles, "                ", "_b_", "_m_", "_r_.", m.resultFields, null);
 			sbHandles.appendLine("                return new Zeze.Net.Binary(_b_);");
 			sbHandles.appendLine("            }, {}));", version);
 		} else

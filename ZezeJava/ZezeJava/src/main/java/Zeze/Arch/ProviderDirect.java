@@ -85,7 +85,8 @@ public class ProviderDirect extends AbstractProviderDirect {
 					if (re != null)
 						rpc.Result.setParams(re.apply(r));
 					// rpc 成功了，具体handle结果还需要看ReturnCode。
-				}
+				} else
+					rpc.Result.setNullParam(true);
 				rpc.SendResultCode(Procedure.Success);
 			}).onFail(e -> {
 				logger.error("call failed:", e);
@@ -117,7 +118,7 @@ public class ProviderDirect extends AbstractProviderDirect {
 	}
 
 	private void sendResultForAsync(@NotNull ModuleRedirectAllRequest p, int hash, @NotNull RedirectResult result,
-									@NotNull RedirectHandle handle) throws Exception {
+	                                @NotNull RedirectHandle handle) throws Exception {
 		var pa = p.Argument;
 		var res = new ModuleRedirectAllResult();
 		var resArg = res.Argument;

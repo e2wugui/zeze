@@ -2,7 +2,7 @@
 package Zeze.Builtin.ProviderDirect;
 
 // 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发
-public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data, Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data> {
+public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BModuleRedirectArgument, Zeze.Builtin.ProviderDirect.BModuleRedirectResult> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 1107993902;
     public static final long TypeId_ = Zeze.Net.Protocol.makeTypeId(ModuleId_, ProtocolId_); // 47284402955566
@@ -35,12 +35,12 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Builtin.ProviderDirect.BMo
     public static final int ResultCodeRequestTimeout = 12;
 
     public ModuleRedirect() {
-        Argument = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data();
-        Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data();
+        Argument = new Zeze.Builtin.ProviderDirect.BModuleRedirectArgument();
+        Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
     }
 
-    public ModuleRedirect(Zeze.Builtin.ProviderDirect.BModuleRedirectArgument.Data arg) {
+    public ModuleRedirect(Zeze.Builtin.ProviderDirect.BModuleRedirectArgument arg) {
         Argument = arg;
-        Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data();
+        Result = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
     }
 }

@@ -172,5 +172,9 @@ public class ModuleRedirectRank extends TestCase {
 				assertEquals(0, ctx.getAllResults().size());
 			}
 		});
+
+		rank.TestToServerBeanResult(30, true).await().onSuccess(TestCase::assertNull).onFail(r -> TestCase.fail(r.getMessage()));
+		rank.TestToServerBeanResult(30, null).await().onSuccess(TestCase::assertNull).onFail(r -> TestCase.fail(r.getMessage()));
+		rank.TestToServerBeanResult(30, false).await().onSuccess(TestCase::assertNotNull).onFail(r -> TestCase.fail(r.getMessage()));
 	}
 }

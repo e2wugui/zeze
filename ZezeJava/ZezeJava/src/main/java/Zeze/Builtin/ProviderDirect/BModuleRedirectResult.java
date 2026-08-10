@@ -4,326 +4,14 @@ package Zeze.Builtin.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 
-@SuppressWarnings({"EqualsAndHashcode", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "SuspiciousNameCombination", "SwitchStatementWithTooFewBranches", "UnnecessarilyQualifiedInnerClassAccess", "UnusedAssignment"})
-public final class BModuleRedirectResult extends Zeze.Transaction.Bean implements BModuleRedirectResultReadOnly {
+@SuppressWarnings({"EqualsAndHashcode", "ForLoopReplaceableByForEach", "NullableProblems", "RedundantIfStatement", "RedundantSuppression", "UnusedAssignment"})
+public final class BModuleRedirectResult extends Zeze.Transaction.Data {
     public static final long TYPEID = 6325051164605397555L;
 
     private int _ModuleId;
     private int _ServerId; // 目标server的id。
     private Zeze.Net.Binary _Params;
-
-    private static final java.lang.invoke.VarHandle vh_ModuleId;
-    private static final java.lang.invoke.VarHandle vh_ServerId;
-    private static final java.lang.invoke.VarHandle vh_Params;
-
-    static {
-        var _l_ = java.lang.invoke.MethodHandles.lookup();
-        try {
-            vh_ModuleId = _l_.findVarHandle(BModuleRedirectResult.class, "_ModuleId", int.class);
-            vh_ServerId = _l_.findVarHandle(BModuleRedirectResult.class, "_ServerId", int.class);
-            vh_Params = _l_.findVarHandle(BModuleRedirectResult.class, "_Params", Zeze.Net.Binary.class);
-        } catch (ReflectiveOperationException _e_) {
-            throw Zeze.Util.Task.forceThrow(_e_);
-        }
-    }
-
-    @Override
-    public int getModuleId() {
-        if (!isManaged())
-            return _ModuleId;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _ModuleId;
-        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 1);
-        return log != null ? log.value : _ModuleId;
-    }
-
-    public void setModuleId(int _v_) {
-        if (!isManaged()) {
-            _ModuleId = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 1, vh_ModuleId, _v_));
-    }
-
-    @Override
-    public int getServerId() {
-        if (!isManaged())
-            return _ServerId;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _ServerId;
-        var log = (Zeze.Transaction.Logs.LogInt)_t_.getLog(objectId() + 2);
-        return log != null ? log.value : _ServerId;
-    }
-
-    public void setServerId(int _v_) {
-        if (!isManaged()) {
-            _ServerId = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogInt(this, 2, vh_ServerId, _v_));
-    }
-
-    @Override
-    public Zeze.Net.Binary getParams() {
-        if (!isManaged())
-            return _Params;
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
-        if (_t_ == null)
-            return _Params;
-        var log = (Zeze.Transaction.Logs.LogBinary)_t_.getLog(objectId() + 3);
-        return log != null ? log.value : _Params;
-    }
-
-    public void setParams(Zeze.Net.Binary _v_) {
-        if (_v_ == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _Params = _v_;
-            return;
-        }
-        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
-        _t_.putLog(new Zeze.Transaction.Logs.LogBinary(this, 3, vh_Params, _v_));
-    }
-
-    @SuppressWarnings("deprecation")
-    public BModuleRedirectResult() {
-        _Params = Zeze.Net.Binary.Empty;
-    }
-
-    @SuppressWarnings("deprecation")
-    public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
-        _ModuleId = _ModuleId_;
-        _ServerId = _ServerId_;
-        if (_Params_ == null)
-            _Params_ = Zeze.Net.Binary.Empty;
-        _Params = _Params_;
-    }
-
-    @Override
-    public void reset() {
-        setModuleId(0);
-        setServerId(0);
-        setParams(Zeze.Net.Binary.Empty);
-        _unknown_ = null;
-    }
-
-    @Override
-    public Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data toData() {
-        var _d_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data();
-        _d_.assign(this);
-        return _d_;
-    }
-
-    @Override
-    public void assign(Zeze.Transaction.Data _o_) {
-        assign((Zeze.Builtin.ProviderDirect.BModuleRedirectResult.Data)_o_);
-    }
-
-    public void assign(BModuleRedirectResult.Data _o_) {
-        setModuleId(_o_._ModuleId);
-        setServerId(_o_._ServerId);
-        setParams(_o_._Params);
-        _unknown_ = null;
-    }
-
-    public void assign(BModuleRedirectResult _o_) {
-        setModuleId(_o_.getModuleId());
-        setServerId(_o_.getServerId());
-        setParams(_o_.getParams());
-        _unknown_ = _o_._unknown_;
-    }
-
-    public BModuleRedirectResult copyIfManaged() {
-        return isManaged() ? copy() : this;
-    }
-
-    @Override
-    public BModuleRedirectResult copy() {
-        var _c_ = new BModuleRedirectResult();
-        _c_.assign(this);
-        return _c_;
-    }
-
-    public static void swap(BModuleRedirectResult _a_, BModuleRedirectResult _b_) {
-        var _s_ = _a_.copy();
-        _a_.assign(_b_);
-        _b_.assign(_s_);
-    }
-
-    @Override
-    public long typeId() {
-        return TYPEID;
-    }
-
-    @Override
-    public String toString() {
-        var _s_ = new StringBuilder();
-        buildString(_s_, 0);
-        return _s_.toString();
-    }
-
-    @Override
-    public void buildString(StringBuilder _s_, int _l_) {
-        var _i1_ = Zeze.Util.Str.indent(_l_ + 4);
-        _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {\n");
-        _s_.append(_i1_).append("ModuleId=").append(getModuleId()).append(",\n");
-        _s_.append(_i1_).append("ServerId=").append(getServerId()).append(",\n");
-        _s_.append(_i1_).append("Params=").append(getParams()).append('\n');
-        _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
-    }
-
-    private static int _PRE_ALLOC_SIZE_ = 16;
-
-    @Override
-    public int preAllocSize() {
-        return _PRE_ALLOC_SIZE_;
-    }
-
-    @Override
-    public void preAllocSize(int _s_) {
-        _PRE_ALLOC_SIZE_ = _s_;
-    }
-
-    private byte[] _unknown_;
-
-    public byte[] unknown() {
-        return _unknown_;
-    }
-
-    public void clearUnknown() {
-        _unknown_ = null;
-    }
-
-    @Override
-    public void encode(ByteBuffer _o_) {
-        ByteBuffer _u_ = null;
-        var _ua_ = _unknown_;
-        var _ui_ = _ua_ != null ? (_u_ = ByteBuffer.Wrap(_ua_)).readUnknownIndex() : Long.MAX_VALUE;
-        int _i_ = 0;
-        {
-            int _x_ = getModuleId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
-        {
-            int _x_ = getServerId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
-        {
-            var _x_ = getParams();
-            if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
-                _o_.WriteBinary(_x_);
-            }
-        }
-        _o_.writeAllUnknownFields(_i_, _ui_, _u_);
-        _o_.WriteByte(0);
-    }
-
-    @Override
-    public void decode(IByteBuffer _o_) {
-        ByteBuffer _u_ = null;
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            setModuleId(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            setServerId(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setParams(_o_.ReadBinary(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        //noinspection ConstantValue
-        _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
-    }
-
-    @Override
-    public boolean equals(Object _o_) {
-        if (_o_ == this)
-            return true;
-        if (!(_o_ instanceof BModuleRedirectResult))
-            return false;
-        //noinspection PatternVariableCanBeUsed
-        var _b_ = (BModuleRedirectResult)_o_;
-        if (getModuleId() != _b_.getModuleId())
-            return false;
-        if (getServerId() != _b_.getServerId())
-            return false;
-        if (!getParams().equals(_b_.getParams()))
-            return false;
-        return true;
-    }
-
-    @Override
-    public boolean negativeCheck() {
-        if (getModuleId() < 0)
-            return true;
-        if (getServerId() < 0)
-            return true;
-        return false;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public void followerApply(Zeze.Transaction.Log _l_) {
-        var _vs_ = ((Zeze.Transaction.Collections.LogBean)_l_).getVariables();
-        if (_vs_ == null)
-            return;
-        for (var _i_ = _vs_.iterator(); _i_.moveToNext(); ) {
-            var _v_ = _i_.value();
-            switch (_v_.getVariableId()) {
-                case 1: _ModuleId = _v_.intValue(); break;
-                case 2: _ServerId = _v_.intValue(); break;
-                case 3: _Params = _v_.binaryValue(); break;
-            }
-        }
-    }
-
-    @Override
-    public void decodeResultSet(java.util.ArrayList<String> _p_, java.sql.ResultSet _r_) throws java.sql.SQLException {
-        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        setModuleId(_r_.getInt(_pn_ + "ModuleId"));
-        setServerId(_r_.getInt(_pn_ + "ServerId"));
-        setParams(new Zeze.Net.Binary(_r_.getBytes(_pn_ + "Params")));
-    }
-
-    @Override
-    public void encodeSQLStatement(java.util.ArrayList<String> _p_, Zeze.Serialize.SQLStatement _s_) {
-        var _pn_ = Zeze.Transaction.Bean.parentsToName(_p_);
-        _s_.appendInt(_pn_ + "ModuleId", getModuleId());
-        _s_.appendInt(_pn_ + "ServerId", getServerId());
-        _s_.appendBinary(_pn_ + "Params", getParams());
-    }
-
-    @Override
-    public java.util.ArrayList<Zeze.Builtin.HotDistribute.BVariable.Data> variables() {
-        var _v_ = super.variables();
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "ModuleId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "ServerId", "int", "", ""));
-        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "Params", "binary", "", ""));
-        return _v_;
-    }
-
-@SuppressWarnings("ForLoopReplaceableByForEach")
-public static final class Data extends Zeze.Transaction.Data {
-    public static final long TYPEID = 6325051164605397555L;
-
-    private int _ModuleId;
-    private int _ServerId; // 目标server的id。
-    private Zeze.Net.Binary _Params;
+    private boolean _NullParam; // 为了区分null和空的Binary/String,需要额外一个bool字段
 
     public int getModuleId() {
         return _ModuleId;
@@ -351,18 +39,27 @@ public static final class Data extends Zeze.Transaction.Data {
         _Params = _v_;
     }
 
+    public boolean isNullParam() {
+        return _NullParam;
+    }
+
+    public void setNullParam(boolean _v_) {
+        _NullParam = _v_;
+    }
+
     @SuppressWarnings("deprecation")
-    public Data() {
+    public BModuleRedirectResult() {
         _Params = Zeze.Net.Binary.Empty;
     }
 
     @SuppressWarnings("deprecation")
-    public Data(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
+    public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_, boolean _NullParam_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
         if (_Params_ == null)
             _Params_ = Zeze.Net.Binary.Empty;
         _Params = _Params_;
+        _NullParam = _NullParam_;
     }
 
     @Override
@@ -370,40 +67,34 @@ public static final class Data extends Zeze.Transaction.Data {
         _ModuleId = 0;
         _ServerId = 0;
         _Params = Zeze.Net.Binary.Empty;
+        _NullParam = false;
     }
 
     @Override
-    public Zeze.Builtin.ProviderDirect.BModuleRedirectResult toBean() {
-        var _b_ = new Zeze.Builtin.ProviderDirect.BModuleRedirectResult();
-        _b_.assign(this);
-        return _b_;
+    public Zeze.Transaction.Bean toBean() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void assign(Zeze.Transaction.Bean _o_) {
-        assign((BModuleRedirectResult)_o_);
+        throw new UnsupportedOperationException();
     }
 
     public void assign(BModuleRedirectResult _o_) {
-        _ModuleId = _o_.getModuleId();
-        _ServerId = _o_.getServerId();
-        _Params = _o_.getParams();
-    }
-
-    public void assign(BModuleRedirectResult.Data _o_) {
         _ModuleId = _o_._ModuleId;
         _ServerId = _o_._ServerId;
         _Params = _o_._Params;
+        _NullParam = _o_._NullParam;
     }
 
     @Override
-    public BModuleRedirectResult.Data copy() {
-        var _c_ = new BModuleRedirectResult.Data();
+    public BModuleRedirectResult copy() {
+        var _c_ = new BModuleRedirectResult();
         _c_.assign(this);
         return _c_;
     }
 
-    public static void swap(BModuleRedirectResult.Data _a_, BModuleRedirectResult.Data _b_) {
+    public static void swap(BModuleRedirectResult _a_, BModuleRedirectResult _b_) {
         var _s_ = _a_.copy();
         _a_.assign(_b_);
         _b_.assign(_s_);
@@ -415,8 +106,8 @@ public static final class Data extends Zeze.Transaction.Data {
     }
 
     @Override
-    public BModuleRedirectResult.Data clone() {
-        return (BModuleRedirectResult.Data)super.clone();
+    public BModuleRedirectResult clone() {
+        return (BModuleRedirectResult)super.clone();
     }
 
     @Override
@@ -432,9 +123,12 @@ public static final class Data extends Zeze.Transaction.Data {
         _s_.append("Zeze.Builtin.ProviderDirect.BModuleRedirectResult: {\n");
         _s_.append(_i1_).append("ModuleId=").append(_ModuleId).append(",\n");
         _s_.append(_i1_).append("ServerId=").append(_ServerId).append(",\n");
-        _s_.append(_i1_).append("Params=").append(_Params).append('\n');
+        _s_.append(_i1_).append("Params=").append(_Params).append(",\n");
+        _s_.append(_i1_).append("NullParam=").append(_NullParam).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
+
+    private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
     public int preAllocSize() {
@@ -470,6 +164,13 @@ public static final class Data extends Zeze.Transaction.Data {
                 _o_.WriteBinary(_x_);
             }
         }
+        {
+            boolean _x_ = _NullParam;
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -489,6 +190,10 @@ public static final class Data extends Zeze.Transaction.Data {
             _Params = _o_.ReadBinary(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            _NullParam = _o_.ReadBool(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -499,17 +204,18 @@ public static final class Data extends Zeze.Transaction.Data {
     public boolean equals(Object _o_) {
         if (_o_ == this)
             return true;
-        if (!(_o_ instanceof BModuleRedirectResult.Data))
+        if (!(_o_ instanceof BModuleRedirectResult))
             return false;
         //noinspection PatternVariableCanBeUsed
-        var _b_ = (BModuleRedirectResult.Data)_o_;
-        if (_ModuleId != _b_._ModuleId)
+        var _b_ = (BModuleRedirectResult)_o_;
+        if (getModuleId() != _b_.getModuleId())
             return false;
-        if (_ServerId != _b_._ServerId)
+        if (getServerId() != _b_.getServerId())
             return false;
-        if (!_Params.equals(_b_._Params))
+        if (!getParams().equals(_b_.getParams()))
+            return false;
+        if (isNullParam() != _b_.isNullParam())
             return false;
         return true;
     }
-}
 }

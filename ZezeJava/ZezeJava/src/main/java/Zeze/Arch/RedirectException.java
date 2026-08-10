@@ -33,4 +33,10 @@ public class RedirectException extends RuntimeException {
 	public int getCode() {
 		return code;
 	}
+
+	@Override
+	public String toString() {
+		String message = getLocalizedMessage();
+		return getClass().getName() + ": code=" + code + (message != null ? ", message=" + message : "");
+	}
 }

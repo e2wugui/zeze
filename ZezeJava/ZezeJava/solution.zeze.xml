@@ -483,7 +483,7 @@
 		<module name="ProviderDirect" id="11009" UseData="true">
 			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
 
-			<bean name="BModuleRedirectArgument">
+			<bean name="BModuleRedirectArgument" UseData="only">
 				<variable name="ModuleId"     id="1" type="int"/>
 				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
 				<variable name="RedirectType" id="3" type="int"/> 如果是ToServer，ServerId存在HashCode中。
@@ -497,7 +497,7 @@
 				<variable name="NoOneByOne"        id="9" type="bool"/> 是否禁用TaskOneByOne处理请求和回复
 			</bean>
 
-			<bean name="BModuleRedirectResult">
+			<bean name="BModuleRedirectResult" UseData="only">
 				<variable name="ModuleId" id="1" type="int"/>
 				<variable name="ServerId" id="2" type="int"/> 目标server的id。
 				<!-- 上面两个参数用来调试，不是必要的。 -->
@@ -506,11 +506,12 @@
 				rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
 				处理结果是否正确，还需要进一步查看 ReturnCode。
 				-->
-				<variable name="Params" id="3" type="binary"/>
+				<variable name="Params"    id="3" type="binary"/>
+				<variable name="NullParam" id="4" type="bool"/> 为了区分null和空的Binary/String,需要额外一个bool字段
 			</bean>
 
 			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
-			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server">
+			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" UseData="only" handle="server">
 				<enum name="RedirectTypeWithHash" value="0"/>
 				<enum name="RedirectTypeToServer" value="1"/>
 

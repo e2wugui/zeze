@@ -21,8 +21,14 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         _a_.setMethodFullName("Zeze.Game.Online:redirectRemoveLocal");
         _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
+        var _m_ = 0L;
+        if (instanceName == null)
+            _m_ += 0x2L;
+        _b_.WriteULong(_m_);
         _b_.WriteLong(roleId);
-        _b_.WriteString(instanceName);
+        if (instanceName != null) {
+            _b_.WriteString(instanceName);
+        }
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         _p_.Send(_t_, null);
@@ -38,8 +44,15 @@ public class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
                 long roleId;
                 String instanceName;
                 var _b_ = _params_.Wrap();
-                roleId = _b_.ReadLong();
-                instanceName = _b_.ReadString();
+                var _m_ = _b_.ReadULong();
+                if ((_m_ & 0x1L) == 0) {
+                    roleId = _b_.ReadLong();
+                } else
+                    roleId = 0;
+                if ((_m_ & 0x2L) == 0) {
+                    instanceName = _b_.ReadString();
+                } else
+                    instanceName = null;
                 super.redirectRemoveLocal(_hash_, roleId, instanceName);
                 return null;
             }, null, 0));

@@ -21,7 +21,13 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         _a_.setMethodFullName("Zeze.Arch.Online:redirectRemoveLocal");
         _a_.setServiceNamePrefix(_redirect_.providerApp.serverServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
-        _b_.WriteString(account);
+        var _m_ = 0L;
+        if (account == null)
+            _m_ += 0x1L;
+        _b_.WriteULong(_m_);
+        if (account != null) {
+            _b_.WriteString(account);
+        }
         _a_.setParams(new Zeze.Net.Binary(_b_));
 
         _p_.Send(_t_, null);
@@ -36,7 +42,11 @@ public class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
             Zeze.Transaction.TransactionLevel.None, (_hash_, _params_) -> {
                 String account;
                 var _b_ = _params_.Wrap();
-                account = _b_.ReadString();
+                var _m_ = _b_.ReadULong();
+                if ((_m_ & 0x1L) == 0) {
+                    account = _b_.ReadString();
+                } else
+                    account = null;
                 super.redirectRemoveLocal(_hash_, account);
                 return null;
             }, null, 0));

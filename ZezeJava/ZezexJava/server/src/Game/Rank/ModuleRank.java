@@ -1,13 +1,8 @@
 package Game.Rank;
 
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 import Game.App;
-import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
@@ -25,6 +20,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 基本排行榜，实现了按long value从大到小进榜。
@@ -34,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 @SuppressWarnings({"MethodMayBeStatic", "RedundantSuppression"})
 public class ModuleRank extends AbstractModule implements IModuleRank {
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
+
 	public final void Start(App app) {
 	}
 
@@ -85,7 +82,7 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@Override
 	@RedirectAll(version = 3) // 广播请求并获取所有回复结果
 	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Exception { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
-		System.out.println("TestToAll hash=" + hash + ", in=" + in);
+		logger.info("TestToAll hash={}, in={}", hash, in);
 		switch (hash) {
 		case 0: // local sync
 		case 1: // remote sync
@@ -130,14 +127,14 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	}
 
 	@RedirectToServer(timeout = 1000) // 返回结果可以是Bean类型,其中如果有setResultCode(long)方法则会自动设置成resultCode
-	public RedirectFuture<BBeanResult> TestToServerBeanResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
-		return RedirectFuture.finish(new BBeanResult());
+	public RedirectFuture<@Nullable BBeanResult> TestToServerBeanResult(int serverId, @Nullable Boolean nullRes) { // 可以没有自定义输入参数,但必须至少有serverId参数
+		return RedirectFuture.finish(nullRes == null || nullRes ? null : new BBeanResult());
 	}
 
 	public static class GenericResult<T extends Serializable> {
 		public long resultCode;
-		public T ser;
-		public java.io.Serializable obj;
+		public T ser; // 只要有可能不为null,就必须构造GenericResult时创建这个抽象类型的字段,这样才能反序列化,因为序列化Zeze的Serializable字段不含实际类型
+		public java.io.Serializable obj; // 而java序列化允许构造时以null初始化
 	}
 
 	@RedirectHash(timeout = 2000)

@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import Zeze.Util.Action1;
+import Zeze.Util.Action2;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
@@ -117,6 +118,10 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 
 	public @NotNull RedirectFuture<R> then(@NotNull Action1<@Nullable R> onResult) {
 		return onSuccess(onResult).onFail(__ -> onResult.run(null));
+	}
+
+	public @NotNull RedirectFuture<R> then(@NotNull Action2<@Nullable R, @Nullable RedirectException> onResult) {
+		return onSuccess(r -> onResult.run(r, null)).onFail(r -> onResult.run(null, r));
 	}
 
 	@Override
