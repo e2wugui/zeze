@@ -138,6 +138,8 @@ public class App {
 		clearDbTable(app.demo_Module1.getTflush());
 		clearDbTable(app.demo_Module1.getTableCoverHistory());
 		//noinspection DataFlowIssue
+		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_Timer_tNodeRoot"));
+		//noinspection DataFlowIssue
 		clearDbTable((TableX<?, ?>)app.getZeze().getTable("Zeze_Builtin_DelayRemove_tJobs"));
 		clearDbTable(app.getZeze().getHistoryModule().getHistoryTable()); // 必须在最后清空
 	}

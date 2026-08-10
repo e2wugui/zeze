@@ -100,8 +100,8 @@ public final class Simulate {
 			Tasks.prepare();
 			++BatchNumber;
 			logger.fatal("Run {}", BatchNumber);
-			if (Apps.get(0).app.Zeze.getConfig().isHistory())
-				Apps.get(0).clearTables();
+			if (Apps.getFirst().app.Zeze.getConfig().isHistory())
+				Apps.getFirst().clearTables();
 			for (var app : Apps) {
 				if (!app.app.Zeze.getConfig().isHistory())
 					logger.info("app {} history disable.", app.app.Zeze.getConfig().getServerId());
@@ -127,9 +127,9 @@ public final class Simulate {
 			logger.fatal("Verify {}", BatchNumber);
 			for (var app : Apps)
 				app.app.Zeze.checkpointRun();
-			if (Apps.get(0).app.Zeze.getConfig().isHistory())
-				Zeze.History.Verify.run(Apps.get(0).app.Zeze); // 只需要验证一个App，History只有一份。
-			Thread.sleep(4000);
+			if (Apps.getFirst().app.Zeze.getConfig().isHistory())
+				Zeze.History.Verify.run(Apps.getFirst().app.Zeze); // 只需要验证一个App，History只有一份。
+			//Thread.sleep(4000);
 			Tasks.verify();
 			Task.defaultTimeout = taskDefTimeout;
 			logger.fatal("Done!!!!!!");

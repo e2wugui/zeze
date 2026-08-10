@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Component.SafeBatch;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TableX;
