@@ -87,20 +87,14 @@ public class TestSafeBatch {
 		}
 
 		@Override
-		public @Nullable NavigableMap<Integer, Integer> tailMapExclusiveOutTransaction(
-			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @Nullable Integer mapKey) throws Exception {
+		public @Nullable NavigableMap<Integer, Integer> getSortedMapOutTransaction(
+			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
 			var tt = (demo.Module1.Table5) table;
 			var value = tt.selectDirty(tt.decodeKey(tableKey));
-			System.out.println("tailMapExclusiveOutTransaction: " + mapKey);
 			if (null == value) {
 				return null;
 			}
-
-			if (null == mapKey) {
-				return value.getPsortedmap();
-			}
-
-			return value.getPsortedmap().tailMap(mapKey, false);
+			return value.getPsortedmap();
 		}
 	}
 

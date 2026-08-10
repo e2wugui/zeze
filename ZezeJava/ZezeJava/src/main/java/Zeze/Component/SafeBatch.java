@@ -46,9 +46,8 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		// 遍历内存中的SortedMap时需要实现。
 		// 返回的NavigableMap的值必须>mapKey。也就是使用tailMap(mapKey, false)得到它。
-		@Nullable NavigableMap<MK, MV> tailMapExclusiveOutTransaction(@NotNull TableX<?, ?> table,
-		                                                              @NotNull ByteBuffer tableKey,
-		                                                              @Nullable MK mapKey) throws Exception;
+		@Nullable NavigableMap<MK, MV> getSortedMapOutTransaction(@NotNull TableX<?, ?> table,
+																  @NotNull ByteBuffer tableKey) throws Exception;
 
 		@Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey,
 		                                  @NotNull MK mapKey) throws Exception;
@@ -277,7 +276,7 @@ public class SafeBatch extends AbstractSafeBatch {
 
 	/**
 	 * 开始SortedMap遍历批处理。对每一个记录通过jobHandle回调进行处理。每个记录的处理在独立的存储过程中。遍历时分批处理：
-	 * 内部回调WalkJobHandle.tailMapExclusiveOutTransaction得到table.record里面的某个sortedmap字段的tailMap。
+	 * 内部回调WalkJobHandle.getSortedMapOutTransaction得到table.record里面的某个sortedmap。
 	 * 使用selectDirty得到记录并返回map
 	 * @param table table
 	 * @param key 记录的key
@@ -387,9 +386,12 @@ public class SafeBatch extends AbstractSafeBatch {
 				Thread.onSpinWait();
 			}
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
-				var tail = jobHandle.tailMapExclusiveOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()), lastKey);
+				var tail = jobHandle.getSortedMapOutTransaction(table, ByteBuffer.Wrap(batch.getRecordKey()));
 				if (null == tail) {
 					break;
+				}
+				if (null != lastKey) {
+					tail = tail.tailMap(lastKey, false);
 				}
 				lastKey = runJobs(tail);
 				if (null == lastKey) {
