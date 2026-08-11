@@ -939,6 +939,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 									   long endTime, @NotNull String oneByOneKey) {
 		if (delay < 0)
 			throw new IllegalArgumentException("delay(" + delay + ") < 0");
+		if (period <= 0)
+			throw new IllegalArgumentException("period <= 0");
+
 		var now = System.currentTimeMillis();
 		// simpleTimer.setDelay(delay);
 		simpleTimer.setPeriod(period);
