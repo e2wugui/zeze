@@ -765,8 +765,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 需要在事务内调用。
 	 */
 	public void cancel(@Nullable String timerId) {
-		if (timerId == null)
+		if (timerId == null) {
+			logger.warn("Timer cancel(null).");
 			return; // 忽略没有初始化的timerId。
+		}
 		/*
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
@@ -943,6 +945,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			throw new IllegalArgumentException("period <= 0");
 
 		var now = System.currentTimeMillis();
+		if (delay > Long.MAX_VALUE - now)
+			throw new IllegalArgumentException("delay overflow.");
+
 		// simpleTimer.setDelay(delay);
 		simpleTimer.setPeriod(period);
 		simpleTimer.setRemainTimes(times);
