@@ -941,9 +941,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 									   long endTime, @NotNull String oneByOneKey) {
 		if (delay < 0)
 			throw new IllegalArgumentException("delay(" + delay + ") < 0");
-		if (period <= 0)
-			throw new IllegalArgumentException("period <= 0");
-
 		var now = System.currentTimeMillis();
 		if (delay > Long.MAX_VALUE - now)
 			throw new IllegalArgumentException("delay overflow.");
@@ -1367,7 +1364,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 					case eMissfirePolicyNothing:
 						// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
-						simpleTimer.setNextExpectedTime(now + simpleTimer.getPeriod());
+						var period = simpleTimer.getPeriod();
+						simpleTimer.setNextExpectedTime(period > 0 ? now + period : now);
 						//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
 						break;
 
