@@ -407,9 +407,9 @@ public class SafeBatch extends AbstractSafeBatch {
 			MK key = null;
 			for (; _limit > 0 && it.hasNext(); --_limit) {
 				var e = it.next();
-				if (!handle(e.getKey(), e.getValue()))
-					break;
 				key = e.getKey();
+				if (!handle(e.getKey(), e.getValue()))
+					break; // handle 失败，跳过这一个。
 			}
 			return it.hasNext() ? key : null;
 		}
@@ -467,9 +467,10 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		private int runJobs(@NotNull List<E> list) throws Exception {
 			var i = next;
-			for (var _limit = limit; i < list.size() && _limit > 0; ++i, --_limit) {
+			for (var _limit = limit; i < list.size() && _limit > 0; --_limit) {
 				var e = list.get(i);
-				if (!handle(i + 1, e)) // 马上推进一个，当前handle的e必须处理。
+				++i; // 马上推进一个，当前handle的e必须处理。
+				if (!handle(i, e))
 					break;
 			}
 			return i < list.size() ? i : -1;
