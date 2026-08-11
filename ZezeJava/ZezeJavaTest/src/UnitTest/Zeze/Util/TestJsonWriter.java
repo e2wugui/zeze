@@ -3,9 +3,11 @@ package UnitTest.Zeze.Util;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import junit.framework.TestCase;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class TestJsonWriter extends TestCase {
+@SuppressWarnings("JavaPrintToLogpoint")
+public class TestJsonWriter {
 	final JsonWriter jw = new JsonWriter();
 	final JsonReader Json = new JsonReader();
 	int count;
@@ -172,6 +174,7 @@ public class TestJsonWriter extends TestCase {
 		System.out.println("testDoubleRandom OK!");
 	}
 
+	@Test
 	public void testAll() {
 		try {
 			testLong(0);
@@ -251,7 +254,7 @@ public class TestJsonWriter extends TestCase {
 		} catch (Exception e) {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
-			fail(e.getMessage());
+			Assert.fail(e.getMessage());
 		}
 	}
 
