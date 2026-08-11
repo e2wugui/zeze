@@ -766,7 +766,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 */
 	public void cancel(@Nullable String timerId) {
 		if (timerId == null) {
-			logger.warn("Timer cancel(null).");
+			logger.warn("Timer cancel(null).", new Exception());
 			return; // 忽略没有初始化的timerId。
 		}
 		/*
