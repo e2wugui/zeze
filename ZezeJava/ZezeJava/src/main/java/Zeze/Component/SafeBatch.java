@@ -11,6 +11,7 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action0;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,8 +50,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		@Nullable NavigableMap<MK, MV> getSortedMapOutTransaction(@NotNull TableX<?, ?> table,
 																  @NotNull ByteBuffer tableKey) throws Exception;
 
-		@Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey,
-		                                  @NotNull MK mapKey) throws Exception;
+		@Nullable ByteBuffer encodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull MK mapKey);
+		@NotNull MK decodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull ByteBuffer bb);
 	}
 
 	// List遍历。框架按 index 推进进度，因此 key 类型固定为 int，只参数化元素类型 E。
@@ -64,7 +65,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	// 查询批处理状态。
-	BBatchReadOnly getBatch(@NotNull String jobId) {
+	public BBatchReadOnly getBatch(@NotNull String jobId) {
 		return (BBatchReadOnly)zeze.getTimer().getTimerCustomBean(jobId);
 	}
 	/**
@@ -230,7 +231,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		@Override
 		public boolean handle(@NotNull TK key, @NotNull TV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
-			// 当前记录处理失败，中断批执行，下一次再次尝试。
+			// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
@@ -331,6 +332,16 @@ public class SafeBatch extends AbstractSafeBatch {
 	private String _saveAndStart(@NotNull TableX<?, ?> table, @Nullable Comparable<?> key,
 								 @NotNull WalkJobHandle jobHandle, long checkPeriod, int limit,
 								 int workerType) {
+		if (Transaction.getCurrent() == null) {
+			var jobId = new OutObject<String>();
+			if (0 != zeze.newProcedure(() -> {
+				jobId.value = _saveAndStart(table, key, jobHandle, checkPeriod, limit, workerType);
+				return 0;
+			}, "SafeBatchStart").call())
+				throw new RuntimeException("SafeBatchStart _saveAndStart return non zero.");
+			return jobId.value;
+		}
+
 		var batch = new BBatch();
 		batch.setAppInstanceId(zeze.getProjectName());
 		batch.setTableName(table.getName());
@@ -355,15 +366,15 @@ public class SafeBatch extends AbstractSafeBatch {
 			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
 			this.jobHandle = jobHandle;
 			this.batch = batch;
-			// FIXME: 这里语义上应该是 mapKey 的反序列化，但原代码用 table.decodeKey。
-			//       保留原有行为，仅做泛型化 cast。重启路径在 SortedMap 场景下一直是有问题的。
 			var lastKeyBin = batch.getLastKey();
-			lastKey = lastKeyBin.size() != 0 ? (MK)table.decodeKey(ByteBuffer.Wrap(lastKeyBin)) : null;
+			lastKey = lastKeyBin.size() != 0
+				? jobHandle.decodeMapKey(table, ByteBuffer.Wrap(batch.getRecordKey()), ByteBuffer.Wrap(lastKeyBin))
+				: null;
 		}
 
-			public boolean handle(@NotNull MK key, @NotNull MV value) throws Exception {
+		public boolean handle(@NotNull MK key, @NotNull MV value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
-			// 当前记录处理失败，中断批执行，下一次再次尝试。
+				// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, key, value);
 				if (0 == result && !timerId.isEmpty()) {
@@ -430,7 +441,7 @@ public class SafeBatch extends AbstractSafeBatch {
 
 		public boolean handle(int index, E value) throws Exception {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
-			// 当前记录处理失败，中断批执行，下一次再次尝试。
+			// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
 				var result = jobHandle.runJob(SafeBatch.this, index, value);
 				if (0 == result && !timerId.isEmpty()) {
@@ -469,7 +480,7 @@ public class SafeBatch extends AbstractSafeBatch {
 			var i = next;
 			for (var _limit = limit; i < list.size() && _limit > 0; --_limit) {
 				var e = list.get(i);
-				++i; // 马上推进一个，当前handle的e必须处理。
+				++i; // 马上推进一个，当前handle的e必须处理，处理失败则跳过。
 				if (!handle(i, e))
 					break;
 			}

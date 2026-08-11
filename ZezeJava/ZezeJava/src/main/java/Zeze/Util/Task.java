@@ -114,8 +114,8 @@ public final class Task {
 	 *
 	 * @param action0 action
 	 */
-	public static void executeSystemOneByOne(Action0 action0) {
-		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), action0);
+	public static void executeSystemOneByOne(Action0 action0, String name) {
+		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), action0, name);
 	}
 
 	/**

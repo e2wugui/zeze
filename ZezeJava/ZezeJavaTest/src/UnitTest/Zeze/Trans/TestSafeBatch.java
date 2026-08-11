@@ -87,6 +87,15 @@ public class TestSafeBatch {
 		}
 
 		@Override
+		public @NotNull Integer decodeMapKey(@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey, @NotNull ByteBuffer bb) {
+			var tt = (demo.Module1.Table5) table;
+			var value = tt.selectDirty(tt.decodeKey(tableKey));
+			if (null == value)
+				throw new RuntimeException("record not found: " + table.getName() + " " + tableKey);
+			return value.getPsortedmap().decodeKey(bb);
+		}
+
+		@Override
 		public @Nullable NavigableMap<Integer, Integer> getSortedMapOutTransaction(
 			@NotNull TableX<?, ?> table, @NotNull ByteBuffer tableKey) throws Exception {
 			var tt = (demo.Module1.Table5) table;

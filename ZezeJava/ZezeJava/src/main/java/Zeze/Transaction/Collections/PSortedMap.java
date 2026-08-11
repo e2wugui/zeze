@@ -45,6 +45,8 @@ public abstract class PSortedMap<K extends Comparable<K>, V> extends Collection
 
 	public abstract ByteBuffer encodeKey(K key);
 
+	public abstract K decodeKey(@NotNull ByteBuffer bb);
+
 	@Override
 	public @NotNull Iterator<Entry<K, V>> iterator() {
 		return entrySet().iterator();
