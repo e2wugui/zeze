@@ -867,7 +867,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	@RedirectToServer
-	protected void redirectCancel(int serverId, @NotNull String timerId) {
+	protected void redirectCancel(int serverId, String timerId) {
 		// redirect 现在仅取消future，总是尝试，不检查其他参数。
 		cancelFuture(timerId);
 	}

@@ -361,7 +361,6 @@ public class SafeBatch extends AbstractSafeBatch {
 		private final BBatch.Data batch;
 		private MK lastKey;
 
-		@SuppressWarnings("unchecked")
 		public SortedMapWorker(String timerId, WalkSortedMapJobHandle<MK, MV> jobHandle, BBatch.Data batch) {
 			super((TableX<?, ?>)zeze.getTable(batch.getTableName()), batch.getProposeLimit(), timerId);
 			this.jobHandle = jobHandle;

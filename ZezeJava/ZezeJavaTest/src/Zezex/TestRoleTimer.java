@@ -82,7 +82,7 @@ public class TestRoleTimer {
 			}
 		});
 		while (clientsSize.get() != 0)
-			Thread.sleep(1);
+			Thread.onSpinWait();
 		// */
 		//for (int i = 0; i < clientCount; ++i) {
 		//	clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
@@ -109,6 +109,7 @@ public class TestRoleTimer {
 
 	private static void testContent(TimerContext context) {
 		TestBean bean = (TestBean)context.customData;
+		Assert.assertNotNull(bean);
 		if (bean.checkLiving())
 			bean.addValue();
 		System.out.println(">> Name: " + context.timerName
@@ -120,7 +121,7 @@ public class TestRoleTimer {
 
 	public static class TestOnlineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NotNull TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -129,7 +130,7 @@ public class TestRoleTimer {
 
 	public static class NullCustomDataHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NotNull TimerContext context) {
 			timerFuture.setResult(true);
 		}
 	}
@@ -146,7 +147,7 @@ public class TestRoleTimer {
 			var client1 = clients.get(1);
 			var link0 = links.get(0);
 			var link1 = links.get(1);
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
 			log("测试 Role Online Timer ");
@@ -223,7 +224,7 @@ public class TestRoleTimer {
 			var client1 = clients.get(1);
 			var link0 = links.get(0);
 			var link1 = links.get(1);
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
 			log("测试 Role Online Timer ");
@@ -285,7 +286,7 @@ public class TestRoleTimer {
 
 	public static class TestOfflineTimerHandle implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NotNull TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -444,7 +445,7 @@ public class TestRoleTimer {
 		Assert.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
-		return get.Result.getRoleList().get(0);
+		return get.Result.getRoleList().getFirst();
 	}
 
 	private static void sleep(long gap, int times) {
@@ -497,7 +498,7 @@ public class TestRoleTimer {
 			// ---- 当getRole出现超时时，这里的size居然是0，一个都没有登录成功！ ---
 			log("batch login " + loginRoleIds.size() + " complete.");
 
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 			var timerRole0 = timer0.getRoleTimer();
 
