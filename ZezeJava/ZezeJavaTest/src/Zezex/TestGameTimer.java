@@ -263,7 +263,7 @@ public class TestGameTimer {
 		}
 
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NotNull TimerContext context) {
 			testContent(context);
 		}
 	}

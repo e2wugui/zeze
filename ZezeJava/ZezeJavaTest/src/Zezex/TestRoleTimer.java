@@ -277,7 +277,7 @@ public class TestRoleTimer {
 			log("测试三通过");
 
 			logout(client1, roleId);
-			sleep(200, 5);
+			sleep(100, 2);
 		} finally {
 			stopAll();
 		}
@@ -375,7 +375,7 @@ public class TestRoleTimer {
 			var roleId = role != null ? role.getId() : createRole(client0, "new_role1");
 			login(client0, roleId);
 
-			sleep(200, 1);
+			sleep(100, 1);
 
 			// 角色下线时注册定时器
 			logout(client0, roleId);
@@ -393,9 +393,9 @@ public class TestRoleTimer {
 			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 
-			sleep(200, 1);
+			sleep(100, 1);
 			logout(client1, roleId);
-			sleep(200, 1);
+			sleep(100, 1);
 		} finally {
 			stopAll();
 		}
@@ -454,7 +454,7 @@ public class TestRoleTimer {
 				System.out.println("-- sleep " + i);
 			}
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 	}
 
