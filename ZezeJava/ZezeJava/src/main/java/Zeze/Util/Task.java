@@ -75,7 +75,7 @@ public final class Task {
 	public static boolean inJUnitTest() {
 		for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
 			if (element.getClassName().startsWith("org.junit.") ||
-				element.getClassName().startsWith("junit.")) {
+					element.getClassName().startsWith("junit.")) {
 				logger.info("inJUnitTest = true");
 				return true;
 			}
@@ -204,9 +204,8 @@ public final class Task {
 	// 固定数量的线程池, 普通优先级, 自动优先使用支持虚拟线程(不限制数量), 用于处理普通任务
 	public static @NotNull ExecutorService newFixedThreadPool(int threadCount, @NotNull String threadNamePrefix) {
 		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
-			var es = Executors.newVirtualThreadPerTaskExecutor();
 			logger.info("newFixedThreadPool({},{}) use unlimited virtual thread pool", threadCount, threadNamePrefix);
-			return es;
+			return Executors.newThreadPerTaskExecutor(new ThreadFactoryWithName(threadNamePrefix));
 		}
 		return Executors.newFixedThreadPool(threadCount,
 				new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY, USE_VIRTUAL_THREAD));
@@ -214,10 +213,9 @@ public final class Task {
 
 	// 关键线程池, 不使用虚拟线程时设为普通优先级+2, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
 	public static @NotNull ExecutorService newCriticalThreadPool(@NotNull String threadNamePrefix) {
-		if (USE_VIRTUAL_THREAD) {
-			var es = Executors.newVirtualThreadPerTaskExecutor();
+		if (USE_UNLIMITED_VIRTUAL_THREAD && isVirtualThreadEnabled()) {
 			logger.info("newCriticalThreadPool({}) use unlimited virtual thread pool", threadNamePrefix);
-			return es;
+			return Executors.newThreadPerTaskExecutor(new ThreadFactoryWithName(threadNamePrefix));
 		}
 		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix, Thread.NORM_PRIORITY + 2));
 	}
