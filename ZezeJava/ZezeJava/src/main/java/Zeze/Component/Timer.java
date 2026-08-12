@@ -192,7 +192,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				beanFactory.unregisterWatch(this::tryRecordHotModule);
 			}
 
-			UnRegisterZezeTables(this.zeze);
+			// UnRegisterZezeTables(this.zeze); // 构造的时候注册的，在stop这里注销的话，两者不匹配。
 			started = false;
 		} finally {
 			unlock();
@@ -1399,8 +1399,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					switch (cronTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
-						Task.run(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-								timer.getConcurrentFireSerialNo(), true), "Timer.missfireCron");
+						Transaction.whileCommit(() ->
+							Task.run(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
+								timer.getConcurrentFireSerialNo(), true), "Timer.missfireCron"));
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:

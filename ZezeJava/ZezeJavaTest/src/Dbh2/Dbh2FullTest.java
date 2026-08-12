@@ -90,8 +90,6 @@ public class Dbh2FullTest {
 			// testFull();
 			var table1 = tables.getFirst();
 			var table2 = tables.get(1);
-			table1.waitReady();
-			table2.waitReady();
 
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});

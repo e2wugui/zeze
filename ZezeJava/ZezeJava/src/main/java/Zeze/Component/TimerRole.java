@@ -255,8 +255,10 @@ public class TimerRole {
 				}
 				online.transmitEmbed(roleId, eTransmitSimpleTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)),
 						false);
+				logger.info("scheduleOnlineHot(Simple): not online but transmit {} {}", roleId, timerId);
+				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			logger.info("scheduleOnlineHot(Simple): not online {} {}", roleId, timerId);
+			throw new IllegalStateException("scheduleOnlineHot(Simple) not online " + roleId + ", " + timerId);
 		} else {
 			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
 					online.providerApp.zeze.getTimer().timerSerialId.nextId());
@@ -455,9 +457,10 @@ public class TimerRole {
 				}
 				online.transmitEmbed(roleId, eTransmitCronTimer, List.of(roleId), new Binary(ByteBuffer.encode(p)),
 						false);
+				logger.info("scheduleOnlineHot(Cron): not online but transmit {} {}", roleId, timerId);
+				return; // 登录在其他机器上，转发过去注册OnlineTimer，不管结果了。
 			}
-			logger.info("scheduleOnlineHot(Cron): not online {} {}", roleId, timerId);
-			return;
+			throw new IllegalStateException("scheduleOnlineHot(Cron) not online " + roleId + ", " + timerId);
 		}
 
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,

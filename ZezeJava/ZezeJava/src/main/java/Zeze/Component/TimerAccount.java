@@ -757,6 +757,8 @@ public class TimerAccount {
 				context.account = account;
 				context.clientId = clientId;
 				context.customData = offlineCustom.getCustomData().getBean();
+				if (context.customData instanceof EmptyBean)
+					context.customData = null;
 				timer.findTimerHandle(offlineCustom.getHandleName()).onTimer(context);
 			} else {
 				var timerId = offlineCustom.getTimerName();
