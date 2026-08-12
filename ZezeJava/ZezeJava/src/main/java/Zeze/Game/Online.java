@@ -1533,7 +1533,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, long typeId,
 								   @NotNull Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
+		providerApp.zeze.runTaskOneByOneByKey(Long.hashCode(roleId) ^ listenerName.hashCode(), "Online.sendReliableNotify." + listenerName, () -> {
 			var online = getLoginOnline(roleId);
 			if (online == null)
 				return Procedure.Success;
@@ -1669,7 +1669,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			}
 			var socket = providerApp.providerDirectService.GetSocket(ps.getSessionId());
 			if (socket == null) {
-				assert groupLocal != null;
+				if (groupLocal == null)
+					groupLocal = new RoleOnServer();
 				groupLocal.roles.addAll(group.roles);
 				continue;
 			}
@@ -1903,13 +1904,15 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	private long ProcessLoginRequestOnlineSet(@NotNull Login rpc) {
 		var done = new OutObject<>(false);
-		while (!done.value) {
+		for (var i = 0; i < 3 && !done.value; ++i) {
 			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
 					"ProcessLoginRequest"));
 			if (r != 0)
 				return r;
 		}
-		return 0;
+		if (done.value)
+			return 0; // 正常完成。
+		return Procedure.LogicError;
 	}
 
 	private long ProcessLoginRequest(@NotNull Login rpc, @NotNull OutObject<Boolean> done) throws Exception {
@@ -2177,7 +2180,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (roleId == null)
 			return errorCode(ResultCodeNotLogin);
 		var online = getLoginOnline(roleId);
-		if (online != null)
+		if (online == null)
 			return errorCode(ResultCodeNotLogin);
 
 		session.sendResponseWhileCommit(rpc); // 同步前提交。

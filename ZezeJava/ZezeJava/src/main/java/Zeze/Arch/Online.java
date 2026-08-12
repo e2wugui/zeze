@@ -191,6 +191,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
+		instance = this;
 	}
 
 	public void start() {
@@ -865,8 +866,11 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private void processErrorSids(LongList errorSids, LinkRoles group) {
 		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
-			var loginKey = group.accounts.get(idx);
-			return idx >= 0 ? sendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid) : 0;
+			if (idx >= 0) {
+				var loginKey = group.accounts.get(idx);
+				return sendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid);
+			}
+			return 0;
 		}, "Online.triggerLinkBroken2")));
 	}
 
@@ -1433,7 +1437,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
-				assert groupLocal != null;
+				if (groupLocal == null)
+					groupLocal = new RoleOnServer();
 				groupLocal.addAll(group.accounts);
 				continue;
 			}
