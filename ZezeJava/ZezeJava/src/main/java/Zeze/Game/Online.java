@@ -313,7 +313,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	protected @NotNull Online createOnlineSet(@NotNull AppBase app, @NotNull String name) throws Exception {
 		if (name.isEmpty())
 			throw new IllegalArgumentException("empty name");
-		if (this != defaultInstance)
+		if (this != getProviderWithOnline().getOnline())
 			throw new IllegalStateException("must be called by default online");
 		var online = new Online(app, name);
 		online.Initialize(app);
@@ -337,7 +337,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	public void start() {
 		// default online 负责启动所有的online set。
-		if (defaultInstance == this) {
+		if (getProviderWithOnline().getOnline() == this) {
 			providerApp.builtinModules.put(this.getFullName(), this);
 			getProviderWithOnline().foreachOnline(online -> {
 				if (online != this)
@@ -409,7 +409,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	public void startAfter() {
 		// default online 负责所有的online set。
-		if (defaultInstance == this) {
+		if (getProviderWithOnline().getOnline() == this) {
 			getProviderWithOnline().foreachOnline(online -> {
 				try {
 					online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true));
@@ -426,7 +426,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 */
 	public void stopBefore() {
 		// default online 负责所有的online set。
-		if (defaultInstance == this) {
+		if (getProviderWithOnline().getOnline() == this) {
 			providerApp.providerService.setDisableChoiceFromLinks(true);
 			getProviderWithOnline().foreachOnline(online -> {
 				try {
@@ -447,7 +447,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 
 		// default online 负责停止所有的online set。
-		if (defaultInstance == this) {
+		if (getProviderWithOnline().getOnline() == this) {
 			getProviderWithOnline().foreachOnline(online -> {
 				if (online != this)
 					online.stop();
@@ -1854,9 +1854,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	@RedirectToServer
 	@TransactionLevelAnnotation(Level = TransactionLevel.None)
 	protected void redirectRemoveLocal(int serverId, long roleId, @Nullable String instanceName) {
-		if (defaultInstance != null) {
-			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultInstance。
-			var onlineSet = defaultInstance.getOnline(instanceName);
+		var defaultOnline = getProviderWithOnline().getOnline();
+		if (defaultOnline != null) {
+			// 能收到redirect的肯定是defaultOnline，这里为了保险期间和代码更清楚，直接使用defaultOnline。
+			var onlineSet = defaultOnline.getOnline(instanceName);
 			if (onlineSet != null)
 				providerApp.zeze.newProcedure(() -> onlineSet.tryRemoveLocal(roleId, false),
 						"Online.redirectRemoveLocal").call();
@@ -1866,10 +1867,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private void tryRedirectRemoveLocal(String instanceName, int serverId, long roleId) {
 		if (providerApp.zeze.getConfig().getServerId() != serverId
 				&& providerApp.providerDirectService.providerByServerId.containsKey(serverId)) {
-			if (this == defaultInstance)
-				redirectRemoveLocal(serverId, roleId, instanceName);
-			else if (defaultInstance != null)
-				defaultInstance.redirectRemoveLocal(serverId, roleId, instanceName);
+			var defaultOnline = getProviderWithOnline().getOnline();
+			if (defaultOnline != null)
+				defaultOnline.redirectRemoveLocal(serverId, roleId, instanceName);
 		}
 	}
 
