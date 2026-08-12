@@ -72,7 +72,7 @@ public class Dbh2FullTest {
 			for (var table : tables)
 				table.waitReady();
 
-			var count = 500;
+			var count = 3000;
 			var threads = 2;
 			var futures = new ArrayList<Future<?>>();
 			var b = new Zeze.Util.Benchmark();
@@ -86,100 +86,15 @@ public class Dbh2FullTest {
 			for (var future : futures)
 				future.get();
 			b.report("Bench Dbh2 Full Transaction", count * threads);
-		} finally {
-			master.stop();
-			for (var manager : managers)
-				manager.stop();
-			if (database != null)
-				database.close();
-			dbh2AgentManager.stop();
-		}
-	}
 
-	@Test
-	public void testCommitServerQueryVerify() throws Exception {
-		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
-
-		Task.tryInitThreadPool();
-
-		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
-		var managers = new ArrayList<Dbh2Manager>();
-		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
-		assert serviceManager != null;
-		serviceManager.start();
-		serviceManager.waitReady();
-
-		Database database = null;
-		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
-		try {
-			master.start();
-			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
-			for (var manager : managers)
-				manager.start();
-			dbh2AgentManager.start();
-
-			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
-			var table1 = (Database.AbstractKVTable)database.openTable("table1", Bean.hash32("table1"));
-			table1.waitReady();
-
-			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
-			var key1 = ByteBuffer.Wrap(new byte[]{1});
-			var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
-			try (var _trans = database.beginTransaction()) {
-				var trans = (Database.Dbh2Transaction)_trans;
-				table1.replace(trans, key, value);
-				table1.replace(trans, key1, value);
-				trans.commitBreakAfterPrepareForDebugOnly();
-			}
-			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
-			// BucketMaxTime
-			// 由于raft选举，第一服务可用时间比较长，这个超时需要很长，这个回查测试先不做了。
-			// 需要时，去掉这个注释，然后在测试log中查找" query"以及"timeout undo"。验证回查。
-			// Thread.sleep(110_000);
-		} finally {
-			master.stop();
-			for (var manager : managers)
-				manager.stop();
-			if (null != database)
-				database.close();
-			dbh2AgentManager.stop();
-		}
-	}
-
-	@Test
-	public void testFull() throws Exception {
-		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
-
-		Task.tryInitThreadPool();
-
-		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
-		var managers = new ArrayList<Dbh2Manager>();
-		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
-		assert serviceManager != null;
-		serviceManager.start();
-		serviceManager.waitReady();
-		Database database = null;
-		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
-		try {
-			master.start();
-			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
-			for (var manager : managers)
-				manager.start();
-			dbh2AgentManager.start();
-
-			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
-			var table1 = (Database.AbstractKVTable)database.openTable("table1", Bean.hash32("table1"));
-			var table2 = (Database.AbstractKVTable)database.openTable("table2", Bean.hash32("table2"));
+			// testFull();
+			var table1 = tables.getFirst();
+			var table2 = tables.get(1);
 			table1.waitReady();
 			table2.waitReady();
 
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});
-			var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
 
 			try (var trans = database.beginTransaction()) {
 				table1.replace(trans, key, value);
@@ -206,11 +121,24 @@ public class Dbh2FullTest {
 				Assert.assertNotNull(valueFindKey1);
 				Assert.assertEquals(valueFindKey1, value);
 			}
+
+			// testCommitServerQueryVerify()
+			try (var _trans = database.beginTransaction()) {
+				var trans = (Database.Dbh2Transaction)_trans;
+				table1.replace(trans, key, value);
+				table1.replace(trans, key1, value);
+				trans.commitBreakAfterPrepareForDebugOnly();
+			}
+			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
+			// BucketMaxTime
+			// 由于raft选举，第一服务可用时间比较长，这个超时需要很长，这个回查测试先不做了。
+			// 需要时，去掉这个注释，然后在测试log中查找" query"以及"timeout undo"。验证回查。
+			// Thread.sleep(110_000);
 		} finally {
 			master.stop();
 			for (var manager : managers)
 				manager.stop();
-			if (null != database)
+			if (database != null)
 				database.close();
 			dbh2AgentManager.stop();
 		}
