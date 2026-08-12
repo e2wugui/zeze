@@ -12,6 +12,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import Zeze.AppBase;
+import Zeze.Application;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.BAny;
@@ -191,7 +192,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		providerApp = zeze.redirect.providerApp;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
-		instance = this;
 	}
 
 	public void start() {
@@ -232,7 +232,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		var hotManager = providerApp.zeze.getHotManager();
 		if (null != hotManager)
 			hotManager.removeHotUpgrade(this);
-		instance = null;
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
 	}
@@ -496,7 +495,26 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return Procedure.Success;
 	}
 
-	static @Nullable Online instance;
+	/**
+	 * 通过 projectName 查找当前 JVM 内的 Online 实例。
+	 * 用于 Timer 持久化数据（如 BDelayLogoutCustom）在进程重启后恢复 Online 上下文，
+	 * 替代以前依赖 static Online instance 的方式。
+	 */
+	public static @Nullable Online findOnline(@NotNull String projectName) {
+		var app = Application.getAppInstance(projectName);
+		if (app == null) {
+			logger.warn("findOnline: Application not found. projectName={}", projectName);
+			return null;
+		}
+		var pApp = app.getProviderApp();
+		if (pApp == null)
+			return null;
+		if (!(pApp.providerImplement instanceof ProviderWithOnline pwo)) {
+			logger.warn("findOnline: providerImplement is not ProviderWithOnline. projectName={}", projectName);
+			return null;
+		}
+		return pwo.getOnline();
+	}
 
 	public static class DelayLogout implements TimerHandle {
 		@Override
@@ -506,11 +524,12 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 
 		public static void logout(@NotNull BDelayLogoutCustom custom) throws Exception {
-			if (instance != null) {
-				var ret = instance.tryLogout(custom);
-				if (ret != 0)
-					Online.logger.error("tryLogout fail. {}", ret);
-			}
+			var online = Online.findOnline(custom.getProjectName());
+			if (online == null)
+				return; // 应用未启动或已停止：等下一次 tick 或忽略
+			var ret = online.tryLogout(custom);
+			if (ret != 0)
+				Online.logger.error("tryLogout fail. ret={}, projectName={}", ret, custom.getProjectName());
 		}
 	}
 
@@ -539,7 +558,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 
 		// shorter use
-		DelayLogout.logout(new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion()));
+		DelayLogout.logout(new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion(),
+				providerApp.zeze.getProjectName()));
 		return 0;
 	}
 
@@ -570,7 +590,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		// shorter use
 		var zeze = providerApp.zeze;
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId, loginOnline.getLoginVersion()));
+		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(account, clientId,
+				loginOnline.getLoginVersion(), zeze.getProjectName()));
 		return 0;
 	}
 

@@ -99,9 +99,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
-	private boolean freshStopModuleLocal;
+	private volatile boolean freshStopModuleLocal;
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic;
+	private volatile boolean freshStopModuleDynamic;
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
