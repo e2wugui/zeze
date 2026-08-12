@@ -821,15 +821,23 @@ public class TimerAccount {
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleCronNext(@NotNull String timerId, long delay, @NotNull TimerHandle handle) {
-		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
-				Task.scheduleUnsafe(delay, () -> fireCron(timerId, handle, false))));
+		Transaction.whileCommit(() -> {
+			var exist = online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireCron(timerId, handle, false)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void scheduleCronNextHot(@NotNull String timerId, long delay,
 									 @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireCron(timerId, timer.findTimerHandle(handleClass.getName()), true))));
+		Transaction.whileCommit(() -> {
+			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireCron(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void fireCron(@NotNull String timerId, @Nullable TimerHandle handle, boolean hot) {
@@ -905,15 +913,23 @@ public class TimerAccount {
 
 	// 调度 Simple 定时器到ThreadPool中。
 	private void scheduleSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
-		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
-				Task.scheduleUnsafe(delay, () -> fireSimple(timerId, handle, false))));
+		Transaction.whileCommit(() -> {
+			var exist = online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireSimple(timerId, handle, false)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void scheduleSimpleHot(@NotNull String timerId, long delay,
 								   @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))));
+		Transaction.whileCommit(() -> {
+			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireSimple(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	// Timer发生，执行回调。

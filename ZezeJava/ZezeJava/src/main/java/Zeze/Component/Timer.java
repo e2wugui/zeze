@@ -940,7 +940,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+				var exist = timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
@@ -948,6 +948,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
 				}));
+				if (null != exist)
+					exist.cancel(false);
 			}
 		});
 	}
@@ -1090,7 +1092,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								  long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+				var exist = timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
@@ -1098,6 +1100,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 								() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
 				}));
+				if (null != exist)
+					exist.cancel(false);
 			}
 		});
 	}

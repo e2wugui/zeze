@@ -263,7 +263,7 @@ public class TimerRole {
 			var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
 					online.providerApp.zeze.getTimer().timerSerialId.nextId());
 			onlineTimer.getTimerObj().setBean(simpleTimer);
-			online._tRoleTimers().put(timerId, onlineTimer);
+			online._tRoleTimers().insert(timerId, onlineTimer);
 			logger.debug("add online hot simple timer: timerId={}, roleId={}, handle={}",
 					timerId, roleId, handleClass.getName());
 
@@ -827,15 +827,23 @@ public class TimerRole {
 
 	// 再次调度 cron 定时器，真正安装到ThreadPool中。
 	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @NotNull TimerHandle handle) {
-		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
-				Task.scheduleUnsafe(delay, () -> fireOnlineCron(timerId, handle, false))));
+		Transaction.whileCommit(() -> {
+			var exist = online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireOnlineCron(timerId, handle, false)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void scheduleOnlineCronNextHot(@NotNull String timerId, long delay,
 										   @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true))));
+		Transaction.whileCommit(() -> {
+			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void fireOnlineCron(@NotNull String timerId, @NotNull TimerHandle handle, boolean hot) {
@@ -911,15 +919,23 @@ public class TimerRole {
 
 	// 调度 Simple 定时器到ThreadPool中。
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @NotNull TimerHandle handle) {
-		Transaction.whileCommit(() -> online.providerApp.zeze.getTimer().timerFutures.put(timerId,
-				Task.scheduleUnsafe(delay, () -> fireOnlineSimple(timerId, handle, false))));
+		Transaction.whileCommit(() -> {
+			var exist = online.providerApp.zeze.getTimer().timerFutures.put(timerId,
+				Task.scheduleUnsafe(delay, () -> fireOnlineSimple(timerId, handle, false)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void scheduleOnlineSimpleHot(@NotNull String timerId, long delay,
 										 @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = online.providerApp.zeze.getTimer();
-		Transaction.whileCommit(() -> timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-				() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))));
+		Transaction.whileCommit(() -> {
+			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
+				() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			if (null != exist)
+				exist.cancel(false);
+		});
 	}
 
 	private void fireOnlineSimple(@NotNull String timerId, @NotNull TimerHandle handle, boolean hot) {
