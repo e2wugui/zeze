@@ -18,8 +18,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.NavigableMap;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SafeBatch extends AbstractSafeBatch {
 	private final @NotNull Application zeze;
@@ -97,6 +101,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	}
 
 	public void start() throws Exception {
+		stopped = false;
 	}
 
 	public void stop() throws Exception {
@@ -105,7 +110,11 @@ public class SafeBatch extends AbstractSafeBatch {
 			run.cancel(false);
 		}
 		for (var run : running.values()) {
-			run.get();
+			try {
+				run.get(1, TimeUnit.SECONDS);
+			} catch (Exception ignored) {
+				// ignored
+			}
 		}
 		running.clear();
 	}
@@ -255,10 +264,10 @@ public class SafeBatch extends AbstractSafeBatch {
 			while (!futureSelf.isCancelled() && !futureSelf.isDone()) {
 				lastKey = typedTable.walkDatabase(lastKey, batch.getProposeLimit(), this);
 				if (null == lastKey) {
+					stopBatch(timerId);
 					break;
 				}
 			}
-			stopBatch(timerId);
 		}
 	}
 
@@ -405,10 +414,10 @@ public class SafeBatch extends AbstractSafeBatch {
 				}
 				lastKey = runJobs(tail);
 				if (null == lastKey) {
+					stopBatch(timerId);
 					break;
 				}
 			}
-			stopBatch(timerId);
 		}
 
 		private MK runJobs(@NotNull NavigableMap<MK, MV> tail) throws Exception {
@@ -469,10 +478,10 @@ public class SafeBatch extends AbstractSafeBatch {
 				}
 				next = runJobs(list);
 				if (next < 0) {
+					stopBatch(timerId);
 					break;
 				}
 			}
-			stopBatch(timerId);
 		}
 
 		private int runJobs(@NotNull List<E> list) throws Exception {

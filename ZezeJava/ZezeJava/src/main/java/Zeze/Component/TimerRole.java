@@ -215,7 +215,7 @@ public class TimerRole {
 		var onlineTimer = new BGameOnlineTimer(roleId, loginVersion,
 				online.providerApp.zeze.getTimer().timerSerialId.nextId());
 		onlineTimer.getTimerObj().setBean(simpleTimer);
-		online._tRoleTimers().put(timerId, onlineTimer);
+		online._tRoleTimers().insert(timerId, onlineTimer);
 		logger.debug("add online simple timer: timerId={}, roleId={}, handle={}",
 				timerId, roleId, handleClass.getName());
 
@@ -226,7 +226,7 @@ public class TimerRole {
 			timerLocal.getCustomData().setBean(customData);
 		}
 		var handle = online.providerApp.zeze.getTimer().findTimerHandle(handleClass.getName());
-		scheduleOnlineSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handle);
+		scheduleOnlineSimple(timerId, Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1), handle);
 	}
 
 	private void scheduleOnlineHot(long roleId, @NotNull String timerId, @NotNull BSimpleTimer simpleTimer,
@@ -271,7 +271,7 @@ public class TimerRole {
 				Timer.register(customData);
 				timerLocal.getCustomData().setBean(customData);
 			}
-			scheduleOnlineSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
+			scheduleOnlineSimpleHot(timerId, Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					handleClass);
 		}
 	}
@@ -689,6 +689,7 @@ public class TimerRole {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
 			if (timer.cronEquals(index, timerId, cron, times, endTime, missfirePolicy, OfflineHandle.class, custom,
@@ -775,7 +776,7 @@ public class TimerRole {
 	private long onLoginEvent(@NotNull Object sender, @NotNull EventDispatcher.EventArgument arg) {
 		var roleId = ((LoginArgument)arg).roleId;
 		var offlineTimers = online._tRoleOfflineTimers().get(roleId);
-		if (offlineTimers != null) { //TODO: fix offlineTimers is null
+		if (offlineTimers != null) {
 			var timer = online.providerApp.zeze.getTimer();
 			for (var timerId : offlineTimers.getOfflineTimers().keySet())
 				timer.cancel(timerId);
@@ -866,7 +867,7 @@ public class TimerRole {
 			}
 			var hasNext = Timer.nextCronTimer(cronTimer, false);
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
-					cronTimer.getHappenTime(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
+					cronTimer.getHappenTimes(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 			context.roleId = roleId;
 			var serialSaved = bTimer.getSerialId();
 			var r = Task.call(online.providerApp.zeze.newProcedure(() -> {

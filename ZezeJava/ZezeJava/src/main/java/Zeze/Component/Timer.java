@@ -4,7 +4,9 @@ import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -134,7 +136,6 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 		try {
 			if (started)
 				return;
-			started = true;
 			var hotManager = zeze.getHotManager();
 			if (hotManager != null) {
 				hotManager.addHotBeanFactory(this);
@@ -142,6 +143,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			}
 			// Task.run(this::loadTimer, "Timer.loadTimer");
 			loadTimer();
+			started = true;
 		} finally {
 			unlock();
 		}
@@ -166,12 +168,24 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 停止Timer服务。
 	 */
-	public void stop() {
+	public void stop() throws Exception {
 		lock();
 		try {
 			if (!started)
 				return;
-			started = false;
+
+			// 停止当前正在调度的timer。
+			for (var future : timerFutures.values())
+				future.cancel(false);
+			for (var future : timerFutures.values()) {
+				try {
+					future.get(1, TimeUnit.SECONDS);
+				} catch (Exception ignored) {
+					// ignored
+				}
+			}
+			timerFutures.clear();
+
 			var hotManager = zeze.getHotManager();
 			if (hotManager != null) {
 				hotManager.removeHotBeanFactory(this);
@@ -179,6 +193,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			}
 
 			UnRegisterZezeTables(this.zeze);
+			started = false;
 		} finally {
 			unlock();
 		}
@@ -370,7 +385,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				}
 
 				scheduleSimple(serialId, serverId, timerId,
-						simpleTimer.getNextExpectedTime() - System.currentTimeMillis(),
+						Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 						0, false, simpleTimer.getOneByOneKey());
 				return;
 			}
@@ -1190,7 +1205,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 			// continue period
 			scheduleCronNext(timerSerialId, serverId, timerId,
-					cronTimer.getNextExpectedTime() - System.currentTimeMillis(),
+					Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, cronTimer.getOneByOneKey());
 			return 0;
 		}, "Timer.fireCron")) != 0) {
@@ -1358,8 +1373,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					switch (simpleTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
-						Task.run(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-								timer.getConcurrentFireSerialNo(), true), "Timer.missfireSimple");
+						Transaction.whileCommit(() ->
+							Task.run(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
+								timer.getConcurrentFireSerialNo(), true), "Timer.missfireSimple"));
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:
@@ -1375,7 +1391,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 					}
 				}
 				scheduleSimple(index.getSerialId(), serverId, timer.getTimerName(),
-						simpleTimer.getNextExpectedTime() - now, timer.getConcurrentFireSerialNo(),
+						Math.max(simpleTimer.getNextExpectedTime() - now, 1), timer.getConcurrentFireSerialNo(),
 						true, simpleTimer.getOneByOneKey());
 			} else {
 				var cronTimer = (BCronTimer)timer.getTimerObj().getBean();

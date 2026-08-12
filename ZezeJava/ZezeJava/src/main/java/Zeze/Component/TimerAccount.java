@@ -147,6 +147,8 @@ public class TimerAccount {
 									   long delay, long period, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
 									   @NotNull String oneByOneKey) {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 
@@ -171,6 +173,8 @@ public class TimerAccount {
 										  long delay, long period, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var bTimer = online.providerApp.zeze.getTimer().tAccountTimers().get(timerId);
 		if (bTimer != null)
 			return false;
@@ -192,6 +196,8 @@ public class TimerAccount {
 									   @NotNull String cron, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
 									   @NotNull String oneByOneKey) throws ParseException {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
@@ -214,6 +220,8 @@ public class TimerAccount {
 										  @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) throws ParseException {
+		if (timerId.startsWith("@"))
+			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		if (online.providerApp.zeze.getTimer().tAccountTimers().get(timerId) != null)
 			return false;
 
@@ -306,7 +314,7 @@ public class TimerAccount {
 			timerLocal.getCustomData().setBean(customData);
 		}
 		var iHandle = online.providerApp.zeze.getTimer().findTimerHandle(handleClass.getName());
-		scheduleSimple(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), iHandle);
+		scheduleSimple(timerId, Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1), iHandle);
 		return timerId;
 	}
 
@@ -330,7 +338,7 @@ public class TimerAccount {
 				p.setHandleClass(handleClass.getName());
 				p.setSimpleTimer(simpleTimer);
 				p.setLoginVersion(onlineVersion);
-				p.setHot(false);
+				p.setHot(true);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
@@ -355,7 +363,7 @@ public class TimerAccount {
 			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
 		}
-		scheduleSimpleHot(timerId, simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
+		scheduleSimpleHot(timerId, Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClass);
 		return timerId;
 	}
 
@@ -464,7 +472,7 @@ public class TimerAccount {
 				p.setCronTimer(cronTimer);
 				p.setHandleClass(handleClass.getName());
 				p.setLoginVersion(onlineVersion);
-				p.setHot(false);
+				p.setHot(true);
 				if (customData != null) {
 					p.setCustomClass(customData.getClass().getName());
 					p.setCustomBean(new Binary(ByteBuffer.encode(customData)));
@@ -707,6 +715,7 @@ public class TimerAccount {
 		if (customData != null) {
 			Timer.register(customData);
 			custom.getCustomData().setBean(customData);
+			timer.tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (index != null) {
 			if (timer.cronEquals(index, timerId, cron, times, endTime, missfirePolicy, OfflineHandle.class, custom,
@@ -743,7 +752,7 @@ public class TimerAccount {
 			var clientId = offlineCustom.getClientId();
 			// 检查版本号，不正确的登录版本号表示过期的timer，取消掉即可。
 			var timer = context.timer;
-			var loginVersion = context.timer.getAccountTimer().online.getLoginVersion(account, clientId);
+			var loginVersion = context.timer.getAccountTimer().online.getLogoutVersion(account, clientId);
 			if (loginVersion != null && loginVersion == offlineCustom.getLoginVersion()) {
 				context.account = account;
 				context.clientId = clientId;
@@ -854,7 +863,7 @@ public class TimerAccount {
 			var cronTimer = bTimer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			var hasNext = Timer.nextCronTimer(cronTimer, false);
 			var context = new TimerContext(timer, timerId, handle.getClass().getName(), customData,
-					cronTimer.getHappenTime(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
+					cronTimer.getHappenTimes(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 			context.account = bTimer.getAccount();
 			context.clientId = bTimer.getClientId();
 			var serialSaved = bTimer.getSerialId();
