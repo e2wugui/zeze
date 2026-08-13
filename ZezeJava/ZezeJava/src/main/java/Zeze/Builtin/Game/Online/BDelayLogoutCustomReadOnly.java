@@ -19,4 +19,5 @@ public interface BDelayLogoutCustomReadOnly {
     long getRoleId();
     long getLoginVersion();
     String getOnlineSetName();
+    String getProjectName();
 }

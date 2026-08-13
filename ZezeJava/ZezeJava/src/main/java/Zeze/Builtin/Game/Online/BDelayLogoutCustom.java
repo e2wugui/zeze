@@ -12,10 +12,12 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
     private long _RoleId;
     private long _LoginVersion;
     private String _OnlineSetName;
+    private String _ProjectName; // 用于重启后通过 Application.getAppInstance 查找 Online 实例
 
     private static final java.lang.invoke.VarHandle vh_RoleId;
     private static final java.lang.invoke.VarHandle vh_LoginVersion;
     private static final java.lang.invoke.VarHandle vh_OnlineSetName;
+    private static final java.lang.invoke.VarHandle vh_ProjectName;
 
     static {
         var _l_ = java.lang.invoke.MethodHandles.lookup();
@@ -23,6 +25,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
             vh_RoleId = _l_.findVarHandle(BDelayLogoutCustom.class, "_RoleId", long.class);
             vh_LoginVersion = _l_.findVarHandle(BDelayLogoutCustom.class, "_LoginVersion", long.class);
             vh_OnlineSetName = _l_.findVarHandle(BDelayLogoutCustom.class, "_OnlineSetName", String.class);
+            vh_ProjectName = _l_.findVarHandle(BDelayLogoutCustom.class, "_ProjectName", String.class);
         } catch (ReflectiveOperationException _e_) {
             throw Zeze.Util.Task.forceThrow(_e_);
         }
@@ -90,18 +93,44 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 3, vh_OnlineSetName, _v_));
     }
 
-    @SuppressWarnings("deprecation")
-    public BDelayLogoutCustom() {
-        _OnlineSetName = "";
+    @Override
+    public String getProjectName() {
+        if (!isManaged())
+            return _ProjectName;
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
+        if (_t_ == null)
+            return _ProjectName;
+        var log = (Zeze.Transaction.Logs.LogString)_t_.getLog(objectId() + 4);
+        return log != null ? log.stringValue() : _ProjectName;
+    }
+
+    public void setProjectName(String _v_) {
+        if (_v_ == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ProjectName = _v_;
+            return;
+        }
+        var _t_ = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
+        _t_.putLog(new Zeze.Transaction.Logs.LogString(this, 4, vh_ProjectName, _v_));
     }
 
     @SuppressWarnings("deprecation")
-    public BDelayLogoutCustom(long _RoleId_, long _LoginVersion_, String _OnlineSetName_) {
+    public BDelayLogoutCustom() {
+        _OnlineSetName = "";
+        _ProjectName = "";
+    }
+
+    @SuppressWarnings("deprecation")
+    public BDelayLogoutCustom(long _RoleId_, long _LoginVersion_, String _OnlineSetName_, String _ProjectName_) {
         _RoleId = _RoleId_;
         _LoginVersion = _LoginVersion_;
         if (_OnlineSetName_ == null)
             _OnlineSetName_ = "";
         _OnlineSetName = _OnlineSetName_;
+        if (_ProjectName_ == null)
+            _ProjectName_ = "";
+        _ProjectName = _ProjectName_;
     }
 
     @Override
@@ -109,6 +138,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         setRoleId(0);
         setLoginVersion(0);
         setOnlineSetName("");
+        setProjectName("");
         _unknown_ = null;
     }
 
@@ -116,6 +146,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         setRoleId(_o_.getRoleId());
         setLoginVersion(_o_.getLoginVersion());
         setOnlineSetName(_o_.getOnlineSetName());
+        setProjectName(_o_.getProjectName());
         _unknown_ = _o_._unknown_;
     }
 
@@ -154,7 +185,8 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _s_.append("Zeze.Builtin.Game.Online.BDelayLogoutCustom: {\n");
         _s_.append(_i1_).append("RoleId=").append(getRoleId()).append(",\n");
         _s_.append(_i1_).append("LoginVersion=").append(getLoginVersion()).append(",\n");
-        _s_.append(_i1_).append("OnlineSetName=").append(getOnlineSetName()).append('\n');
+        _s_.append(_i1_).append("OnlineSetName=").append(getOnlineSetName()).append(",\n");
+        _s_.append(_i1_).append("ProjectName=").append(getProjectName()).append('\n');
         _s_.append(Zeze.Util.Str.indent(_l_)).append('}');
     }
 
@@ -207,6 +239,13 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
                 _o_.WriteString(_x_);
             }
         }
+        {
+            String _x_ = getProjectName();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
         _o_.writeAllUnknownFields(_i_, _ui_, _u_);
         _o_.WriteByte(0);
     }
@@ -228,6 +267,10 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
             setOnlineSetName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setProjectName(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         //noinspection ConstantValue
         _unknown_ = _o_.readAllUnknownFields(_i_, _t_, _u_);
     }
@@ -245,6 +288,8 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         if (getLoginVersion() != _b_.getLoginVersion())
             return false;
         if (!getOnlineSetName().equals(_b_.getOnlineSetName()))
+            return false;
+        if (!getProjectName().equals(_b_.getProjectName()))
             return false;
         return true;
     }
@@ -270,6 +315,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
                 case 1: _RoleId = _v_.longValue(); break;
                 case 2: _LoginVersion = _v_.longValue(); break;
                 case 3: _OnlineSetName = _v_.stringValue(); break;
+                case 4: _ProjectName = _v_.stringValue(); break;
             }
         }
     }
@@ -282,6 +328,9 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         setOnlineSetName(_r_.getString(_pn_ + "OnlineSetName"));
         if (getOnlineSetName() == null)
             setOnlineSetName("");
+        setProjectName(_r_.getString(_pn_ + "ProjectName"));
+        if (getProjectName() == null)
+            setProjectName("");
     }
 
     @Override
@@ -290,6 +339,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _s_.appendLong(_pn_ + "RoleId", getRoleId());
         _s_.appendLong(_pn_ + "LoginVersion", getLoginVersion());
         _s_.appendString(_pn_ + "OnlineSetName", getOnlineSetName());
+        _s_.appendString(_pn_ + "ProjectName", getProjectName());
     }
 
     @Override
@@ -298,6 +348,7 @@ public final class BDelayLogoutCustom extends Zeze.Transaction.Bean implements B
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(1, "RoleId", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(2, "LoginVersion", "long", "", ""));
         _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(3, "OnlineSetName", "string", "", ""));
+        _v_.add(new Zeze.Builtin.HotDistribute.BVariable.Data(4, "ProjectName", "string", "", ""));
         return _v_;
     }
 }

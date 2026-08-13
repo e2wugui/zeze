@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import Zeze.AppBase;
+import Zeze.Application;
 import Zeze.Arch.Beans.BSend;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
@@ -85,7 +86,6 @@ import org.jetbrains.annotations.Nullable;
 public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory {
 	protected static final @NotNull Logger logger = LogManager.getLogger(Online.class);
 	protected static final BeanFactory beanFactory = new BeanFactory();
-	protected static @Nullable Online defaultInstance; // 默认Online实例,stop后会置null
 
 	public final @NotNull ProviderApp providerApp;
 	private final AtomicLong loginTimes = new AtomicLong();
@@ -282,7 +282,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		linkBrokenEvents = new EventDispatcher(zeze, "Online.LinkBroken");
 
 		providerApp = zeze.redirect.providerApp;
-		defaultInstance = this;
 		RegisterProtocols(providerApp.providerService);
 		RegisterZezeTables(providerApp.zeze);
 		timerRole = new TimerRole(this);
@@ -452,7 +451,6 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				if (online != this)
 					online.stop();
 			});
-			defaultInstance = null;
 		}
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
@@ -814,28 +812,49 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return Procedure.Success;
 	}
 
+	/**
+	 * 通过 projectName 查找当前 JVM 内的默认 Online 实例。
+	 * 用于 Timer 持久化数据（如 BDelayLogoutCustom）在进程重启后恢复 Online 上下文，
+	 * 替代以前依赖 static Online defaultInstance 的方式。
+	 */
+	public static @Nullable Online findOnline(@NotNull String projectName) {
+		var app = Application.getAppInstance(projectName);
+		if (app == null) {
+			logger.warn("findOnline: Application not found. projectName={}", projectName);
+			return null;
+		}
+		var pApp = app.getProviderApp();
+		if (pApp == null)
+			return null;
+		if (!(pApp.providerImplement instanceof ProviderWithOnline pwo)) {
+			logger.warn("findOnline: providerImplement is not ProviderWithOnline. projectName={}", projectName);
+			return null;
+		}
+		return pwo.getOnline();
+	}
+
 	public static class DelayLogout implements TimerHandle {
 		@Override
 		public void onTimer(@NotNull TimerContext context) throws Exception {
+			assert context.customData != null;
 			logout((BDelayLogoutCustom)context.customData);
 		}
 
 		public static void logout(BDelayLogoutCustom custom) throws Exception {
-			if (defaultInstance != null) {
-				// 这里虽然调用instanceDefaultOnline，但里面执行会根据context里面OnlineSetName访问的不同的Online数据
-				// 也许这里改成 getOnlineSet(name).tryLogout，tryLogout 就直接访问自身数据比较好。
-				// 能工作，先这样了。
-				var onlineSet = defaultInstance.getOnline(custom.getOnlineSetName());
-				if (onlineSet != null) {
-					var ret = onlineSet.tryLogout(custom);
-					logger.log(ret == 0 ? Level.INFO : Level.ERROR,
-							"DelayLogout({}): roleId={}, loginVersion={}, tryLogout={}",
-							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion(), ret);
-				} else {
-					logger.log(Level.ERROR, "DelayLogout({}): roleId={}, loginVersion={}, not found OnlineSetName",
-							custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion());
-				}
+			var defaultOnline = Online.findOnline(custom.getProjectName());
+			if (defaultOnline == null)
+				return; // 应用未启动或已停止：忽略
+			// defaultOnline 负责根据 OnlineSetName 路由到具体的 OnlineSet
+			var onlineSet = defaultOnline.getOnline(custom.getOnlineSetName());
+			if (onlineSet == null) {
+				logger.log(Level.ERROR, "DelayLogout({}): roleId={}, loginVersion={}, not found OnlineSetName",
+						custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion());
+				return;
 			}
+			var ret = onlineSet.tryLogout(custom);
+			logger.log(ret == 0 ? Level.INFO : Level.ERROR,
+					"DelayLogout({}): roleId={}, loginVersion={}, tryLogout={}",
+					custom.getOnlineSetName(), custom.getRoleId(), custom.getLoginVersion(), ret);
 		}
 	}
 
@@ -921,7 +940,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
 		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
-				multiInstanceName));
+				multiInstanceName, zeze.getProjectName()));
 		return 0;
 	}
 
