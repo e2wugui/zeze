@@ -16,9 +16,6 @@ public final class AccountTimers {
 	private final @NotNull TimerAccount timerAccount;
 	private final @NotNull String account;
 	private final @NotNull String clientId;
-	private final @NotNull TimerScope online = new OnlineScope();
-	private final @NotNull TimerScope onlineHot = new OnlineHotScope();
-	private final @NotNull TimerScope offline = new OfflineScope();
 
 	AccountTimers(@NotNull TimerAccount timerAccount, @NotNull String account, @NotNull String clientId) {
 		this.timerAccount = timerAccount;
@@ -39,7 +36,7 @@ public final class AccountTimers {
 	 * 不允许热更新模块调用。
 	 */
 	public @NotNull TimerScope online() {
-		return online;
+		return new OnlineScope();
 	}
 
 	/**
@@ -47,14 +44,14 @@ public final class AccountTimers {
 	 * 支持热更新模块调用。
 	 */
 	public @NotNull TimerScope onlineHot() {
-		return onlineHot;
+		return new OnlineHotScope();
 	}
 
 	/**
 	 * 离线定时器：账号不在线时也能触发。
 	 */
 	public @NotNull TimerScope offline() {
-		return offline;
+		return new OfflineScope();
 	}
 
 	/**

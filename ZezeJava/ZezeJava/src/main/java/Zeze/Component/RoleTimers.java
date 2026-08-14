@@ -15,9 +15,6 @@ import org.jetbrains.annotations.Nullable;
 public final class RoleTimers {
 	private final @NotNull TimerRole timerRole;
 	private final long roleId;
-	private final @NotNull TimerScope online = new OnlineScope();
-	private final @NotNull TimerScope onlineHot = new OnlineHotScope();
-	private final @NotNull TimerScope offline = new OfflineScope();
 
 	RoleTimers(@NotNull TimerRole timerRole, long roleId) {
 		this.timerRole = timerRole;
@@ -33,7 +30,7 @@ public final class RoleTimers {
 	 * 不允许热更新模块调用。
 	 */
 	public @NotNull TimerScope online() {
-		return online;
+		return new OnlineScope();
 	}
 
 	/**
@@ -41,14 +38,14 @@ public final class RoleTimers {
 	 * 支持热更新模块调用。
 	 */
 	public @NotNull TimerScope onlineHot() {
-		return onlineHot;
+		return new OnlineHotScope();
 	}
 
 	/**
 	 * 离线定时器：角色不在线时也能触发。
 	 */
 	public @NotNull TimerScope offline() {
-		return offline;
+		return new OfflineScope();
 	}
 
 	/**
