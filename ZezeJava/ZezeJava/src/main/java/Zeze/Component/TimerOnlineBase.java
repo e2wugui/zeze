@@ -385,7 +385,7 @@ abstract class TimerOnlineBase<I> {
 							customData = null;
 					}
 				}
-				hasNextFlag = BCronTimerBuilder.nextCronTimer(cronTimer, false);
+				hasNextFlag = CronTimerSpec.nextCronTimer(cronTimer, false);
 				var context = new TimerContext(timer(), timerId, handle.getClass().getName(), customData,
 						cronTimer.getHappenTimes(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 				fillContext(id, context);
@@ -418,7 +418,7 @@ abstract class TimerOnlineBase<I> {
 			@Override
 			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
-				BSimpleTimerBuilder.beforeCallSimpleTimer(simpleTimer, false);
+				SimpleTimerSpec.beforeCallSimpleTimer(simpleTimer, false);
 				return Task.call(zeze().newProcedure(() -> {
 					Bean customData = null;
 					var localBean = getLocalTimers(id);

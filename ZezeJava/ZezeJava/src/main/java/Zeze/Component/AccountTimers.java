@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import java.text.ParseException;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * 通过 {@link Timer#accounts(String, String)} 获取。
  *
  * <pre>{@code
- * timer.accounts(account, clientId).online().schedule(BSimpleTimerBuilder.ofDelay(1000), MyHandle.class, custom);
+ * timer.accounts(account, clientId).online().schedule(TimerSpec.ofDelay(1000), MyHandle.class, custom);
  * }</pre>
  */
 public final class AccountTimers {
@@ -67,39 +66,20 @@ public final class AccountTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			timerAccount.zeze().verifyCallerCold(
 					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerAccount.scheduleOnlineImpl(account, clientId, builder, handleClass, customData);
+			return timerAccount.scheduleOnlineImpl(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			timerAccount.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerAccount.scheduleOnlineImpl(account, clientId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			timerAccount.zeze().verifyCallerCold(
 					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			timerAccount.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, builder, handleClass, customData);
+			return timerAccount.scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, customData);
 		}
 
 		@Override
@@ -110,31 +90,16 @@ public final class AccountTimers {
 
 	private final class OnlineHotScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			return timerAccount.scheduleOnlineHot(account, clientId, builder, handleClass, customData);
+			return timerAccount.scheduleOnlineHot(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			return timerAccount.scheduleOnlineHot(account, clientId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			return timerAccount.scheduleOnlineNamedHot(account, clientId, timerId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			return timerAccount.scheduleOnlineNamedHot(account, clientId, timerId, builder, handleClass, customData);
+			return timerAccount.scheduleOnlineNamedHot(account, clientId, timerId, spec, handleClass, customData);
 		}
 
 		@Override
@@ -145,31 +110,16 @@ public final class AccountTimers {
 
 	private final class OfflineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			return timerAccount.scheduleOffline(account, clientId, builder, handleClass, customData);
+			return timerAccount.scheduleOffline(account, clientId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			return timerAccount.scheduleOffline(account, clientId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			return timerAccount.scheduleOfflineNamed(timerId, account, clientId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			return timerAccount.scheduleOfflineNamed(timerId, account, clientId, builder, handleClass, customData);
+			return timerAccount.scheduleOfflineNamed(timerId, account, clientId, spec, handleClass, customData);
 		}
 
 		@Override

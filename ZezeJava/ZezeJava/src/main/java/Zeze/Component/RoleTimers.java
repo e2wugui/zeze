@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import java.text.ParseException;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * 通过 {@link Timer#roles(long)} 或 {@link Timer#roles(String, long)} 获取。
  *
  * <pre>{@code
- * timer.roles(roleId).online().schedule(BSimpleTimerBuilder.ofDelay(1000), MyHandle.class, custom);
+ * timer.roles(roleId).online().schedule(TimerSpec.ofDelay(1000), MyHandle.class, custom);
  * }</pre>
  */
 public final class RoleTimers {
@@ -61,39 +60,20 @@ public final class RoleTimers {
 
 	private final class OnlineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 			timerRole.zeze().verifyCallerCold(
 					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerRole.scheduleOnlineImpl(roleId, builder, handleClass, customData);
+			return timerRole.scheduleOnlineImpl(roleId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			timerRole.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerRole.scheduleOnlineImpl(roleId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
 			timerRole.zeze().verifyCallerCold(
 					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerRole.scheduleOnlineNamedImpl(roleId, timerId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			timerRole.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-			return timerRole.scheduleOnlineNamedImpl(roleId, timerId, builder, handleClass, customData);
+			return timerRole.scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, customData);
 		}
 
 		@Override
@@ -104,31 +84,16 @@ public final class RoleTimers {
 
 	private final class OnlineHotScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			return timerRole.scheduleOnlineHot(roleId, builder, handleClass, customData);
+			return timerRole.scheduleOnlineHot(roleId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			return timerRole.scheduleOnlineHot(roleId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			return timerRole.scheduleOnlineNamedHot(roleId, timerId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			return timerRole.scheduleOnlineNamedHot(roleId, timerId, builder, handleClass, customData);
+			return timerRole.scheduleOnlineNamedHot(roleId, timerId, spec, handleClass, customData);
 		}
 
 		@Override
@@ -139,31 +104,16 @@ public final class RoleTimers {
 
 	private final class OfflineScope implements TimerScope {
 		@Override
-		public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
+		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			return timerRole.scheduleOffline(roleId, builder, handleClass, customData);
+			return timerRole.scheduleOffline(roleId, spec, handleClass, customData);
 		}
 
 		@Override
-		public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-			return timerRole.scheduleOffline(roleId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
+		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			return timerRole.scheduleOfflineNamed(timerId, roleId, builder, handleClass, customData);
-		}
-
-		@Override
-		public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-									 @NotNull Class<? extends TimerHandle> handleClass,
-									 @Nullable Bean customData) throws ParseException {
-			return timerRole.scheduleOfflineNamed(timerId, roleId, builder, handleClass, customData);
+			return timerRole.scheduleOfflineNamed(timerId, roleId, spec, handleClass, customData);
 		}
 
 		@Override

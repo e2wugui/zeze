@@ -51,7 +51,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class Timer extends AbstractTimer implements HotBeanFactory {
+public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	static final Logger logger = LogManager.getLogger(Timer.class);
 	private static int CountPerNode = Reflect.inDebugMode ? 1 : 3; // 调试状态下减少timer之间的影响,以免频繁redo
 	private static final BeanFactory beanFactory = new BeanFactory();
@@ -244,12 +244,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).period(period), handleClass, customData);
+		return schedule(TimerSpec.ofDelay(delay).period(period), handleClass, customData);
 	}
 
 	/**
@@ -260,12 +260,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).times(1), handleClass, customData);
+		return schedule(TimerSpec.ofDelay(delay).times(1), handleClass, customData);
 	}
 
 	/**
@@ -278,12 +278,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times,
 	                                @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).period(period).times(times), handleClass, customData);
+		return schedule(TimerSpec.ofDelay(delay).period(period).times(times), handleClass, customData);
 	}
 
 	/**
@@ -297,12 +297,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime,
 	                                @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime),
+		return schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime),
 				handleClass, customData);
 	}
 
@@ -318,27 +318,27 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass    Timer处理Class
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
 	                                @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+		return schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #schedule(BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(long delay, long period, long times, long endTime, int missfirePolicy,
 	                                @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 	                                @NotNull String oneByOneKey) {
-		return schedule(BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+		return schedule(TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	// 直接传递BSimpleTimer（由BSimpleTimerBuilder.build()生成）。暂时不开放了。
+	// 直接传递BSimpleTimer（由SimpleTimerSpec.build()生成）。暂时不开放了。
 	private @NotNull String schedule(@NotNull BSimpleTimer simpleTimer,
 	                                 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		var timeId = '@' + timerIdAutoKey.nextString();
@@ -418,13 +418,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
-	 * @deprecated 使用 {@link BCronTimerBuilder#ofMonth(int, int, int, int)} + {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link CronTimerSpec#ofMonth(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleMonth(int monthDay, int hour, int minute, int second,
 	                                     @NotNull Class<? extends TimerHandle> handleClass,
 	                                     @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofMonth(monthDay, hour, minute, second), handleClass, customData);
+		return schedule(TimerSpec.ofMonth(monthDay, hour, minute, second), handleClass, customData);
 	}
 
 	/**
@@ -439,13 +439,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
-	 * @deprecated 使用 {@link BCronTimerBuilder#ofWeek(int, int, int, int)} + {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link CronTimerSpec#ofWeek(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleWeek(int weekDay, int hour, int minute, int second,
 	                                    @NotNull Class<? extends TimerHandle> handleClass,
 	                                    @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofWeek(weekDay, hour, minute, second), handleClass, customData);
+		return schedule(TimerSpec.ofWeek(weekDay, hour, minute, second), handleClass, customData);
 	}
 
 	/**
@@ -459,13 +459,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
-	 * @deprecated 使用 {@link BCronTimerBuilder#ofDay(int, int, int)} + {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link CronTimerSpec#ofDay(int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleDay(int hour, int minute, int second,
 	                                   @NotNull Class<? extends TimerHandle> handleClass,
 	                                   @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofDay(hour, minute, second), handleClass, customData);
+		return schedule(TimerSpec.ofDay(hour, minute, second), handleClass, customData);
 	}
 
 	/**
@@ -477,13 +477,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException CronTimer表达式解析异常
-	 * @deprecated 使用 {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression,
 	                                @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofCron(cronExpression), handleClass, customData);
+		return schedule(TimerSpec.ofCron(cronExpression), handleClass, customData);
 	}
 
 	/**
@@ -497,13 +497,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime,
 	                                @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofCron(cronExpression).times(times).endTime(endTime),
+		return schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime),
 				handleClass, customData);
 	}
 
@@ -519,28 +519,28 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData     自定义数据
 	 * @return 自动生成的timerId
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
 	                                @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData) throws ParseException {
-		return schedule(BCronTimerBuilder.ofCron(cronExpression).times(times).endTime(endTime)
+		return schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #schedule(BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String schedule(@NotNull String cronExpression, long times, long endTime, int missfirePolicy,
 	                                @NotNull Class<? extends TimerHandle> handleClass,
 	                                @Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
-		return schedule(BCronTimerBuilder.ofCron(cronExpression).times(times).endTime(endTime)
+		return schedule(TimerSpec.ofCron(cronExpression).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
-	// 直接传递BCronTimer（由BCronTimerBuilder.build()生成）。暂时不开放了。
+	// 直接传递BCronTimer（由CronTimerSpec.build()生成）。暂时不开放了。
 	private @NotNull String schedule(@NotNull BCronTimer cronTimer,
 	                                 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		var timerId = '@' + timerIdAutoKey.nextString();
@@ -616,12 +616,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay,
 	                             @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return scheduleNamed(timerId, BSimpleTimerBuilder.ofDelay(delay), handleClass, customData);
+		return scheduleNamed(timerId, TimerSpec.ofDelay(delay), handleClass, customData);
 	}
 
 	/**
@@ -634,12 +634,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period,
 	                             @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return scheduleNamed(timerId, BSimpleTimerBuilder.ofDelay(delay).period(period), handleClass, customData);
+		return scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period), handleClass, customData);
 	}
 
 	/**
@@ -653,12 +653,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times,
 	                             @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return scheduleNamed(timerId, BSimpleTimerBuilder.ofDelay(delay).period(period).times(times),
+		return scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times),
 				handleClass, customData);
 	}
 
@@ -675,13 +675,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
-	 * @deprecated 使用 {@link #scheduleNamed(String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData) {
-		return scheduleNamed(timerId, BSimpleTimerBuilder.ofDelay(delay).period(period).times(times)
+		return scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
@@ -689,13 +689,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @deprecated 使用 {@link #scheduleNamed(String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, long delay, long period, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData, @NotNull String oneByOneKey) {
-		return scheduleNamed(timerId, BSimpleTimerBuilder.ofDelay(delay).period(period).times(times)
+		return scheduleNamed(timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
@@ -709,13 +709,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #scheduleNamed(String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron,
 	                             @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerId, BCronTimerBuilder.ofCron(cron), handleClass, customData);
+		return scheduleNamed(timerId, TimerSpec.ofCron(cron), handleClass, customData);
 	}
 
 	/**
@@ -730,13 +730,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #scheduleNamed(String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerId, BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime),
+		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
 
@@ -753,13 +753,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
 	 * @throws ParseException cron解析异常
-	 * @deprecated 使用 {@link #scheduleNamed(String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData) throws ParseException {
-		return scheduleNamed(timerId, BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime)
+		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
@@ -767,48 +767,36 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 调度一个有名的Timer。
 	 * 需要在事务内调用。
 	 *
-	 * @deprecated 使用 {@link #scheduleNamed(String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 	                             @Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
-		return scheduleNamed(timerId, BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime)
+		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	/////////////////////////////////////////////////////////////////
-	// Builder 入口
-	// 推荐使用Builder描述调度参数，避免超长的参数列表。
+	// Spec 入口
+	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
 
 	/**
 	 * 调度一个Timer。
 	 * 需要在事务内使用。
 	 *
-	 * @param builder     simple timer参数构造器
+	 * @param spec        Timer调度参数
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
 	 */
-	public @NotNull String schedule(@NotNull BSimpleTimerBuilder builder,
-	                                @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
-		return schedule(builder.build(), handleClass, customData);
-	}
-
-	/**
-	 * 调度一个根据Cron表达式描述的Timer。
-	 * 需要在事务内使用。
-	 *
-	 * @param builder     cron timer参数构造器
-	 * @param handleClass Timer处理Class
-	 * @param customData  自定义数据
-	 * @return 自动生成的timerId
-	 * @throws ParseException cron解析异常
-	 */
-	public @NotNull String schedule(@NotNull BCronTimerBuilder builder,
-	                                @NotNull Class<? extends TimerHandle> handleClass,
-	                                @Nullable Bean customData) throws ParseException {
-		return schedule(builder.build(), handleClass, customData);
+	@Override
+	public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
+									@Nullable Bean customData) {
+		return switch (spec) {
+			case SimpleTimerSpec s -> schedule(s.build(), handleClass, customData);
+			case CronTimerSpec c -> schedule(c.build(), handleClass, customData);
+		};
 	}
 
 	/**
@@ -816,54 +804,32 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	 * 需要在事务内调用。
 	 *
 	 * @param timerId     名字, 如果同名timer已被其它server调度则直接返回false
-	 * @param builder     simple timer参数构造器
+	 * @param spec        Timer调度参数
 	 * @param handleClass Timer处理Class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
 	 */
-	public boolean scheduleNamed(@NotNull String timerId, @NotNull BSimpleTimerBuilder builder,
-	                             @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+	@Override
+	public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
+								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var index = _tIndexs.get(timerId);
 		if (index != null) {
 			if (index.getServerId() != zeze.getConfig().getServerId())
 				return false; // 已经被其它gs调度
-			cancel(timerId); // 先取消,下面再重建
-		}
-		schedule(timerId, builder.build(), handleClass, customData);
-		return true;
-	}
-
-	/**
-	 * 调度一个有名的Timer。
-	 * 需要在事务内调用。
-	 *
-	 * @param timerId     名字, 如果同名timer已被其它server调度则直接返回false
-	 * @param builder     cron timer参数构造器
-	 * @param handleClass Timer处理Class
-	 * @param customData  自定义数据
-	 * @return 调度是否成功
-	 * @throws ParseException cron解析异常
-	 */
-	public boolean scheduleNamed(@NotNull String timerId, @NotNull BCronTimerBuilder builder,
-	                             @NotNull Class<? extends TimerHandle> handleClass,
-	                             @Nullable Bean customData) throws ParseException {
-		if (timerId.startsWith("@"))
-			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		var index = _tIndexs.get(timerId);
-		if (index != null) {
-			if (index.getServerId() != zeze.getConfig().getServerId())
-				return false; // 已经被其它gs调度
-			if (cronEquals(index, timerId, builder, handleClass, customData))
+			if (spec instanceof CronTimerSpec c && cronEquals(index, timerId, c, handleClass, customData))
 				return true;
 			cancel(timerId); // 先取消,下面再重建
 		}
-		schedule(timerId, builder.build(), handleClass, customData);
+		switch (spec) {
+		case SimpleTimerSpec s -> schedule(timerId, s.build(), handleClass, customData);
+		case CronTimerSpec c -> schedule(timerId, c.build(), handleClass, customData);
+		}
 		return true;
 	}
 
-	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull BCronTimerBuilder builder,
+	public boolean cronEquals(@NotNull BIndex index, @NotNull String timerId, @NotNull CronTimerSpec spec,
 	                          @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		if (timerFutures.containsKey(timerId)) { // 在调度中
 			var root = _tNodeRoot.get(zeze.getConfig().getServerId());
@@ -876,7 +842,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 							&& timer.getCustomData().getBean().equals(customData)) {
 						var timerObj = timer.getTimerObj().getBean();
 						if (timerObj instanceof BCronTimer cronTimer) {
-							return builder.matches(cronTimer);
+							return spec.matches(cronTimer);
 						}
 					}
 				}
@@ -888,11 +854,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 	/**
 	 * 取消一个具体的Timer实例。
 	 * 需要在事务内调用。
+	 *
+	 * @return 是否真的取消了已存在的timer
 	 */
-	public void cancel(@Nullable String timerId) {
+	@Override
+	public boolean cancel(@Nullable String timerId) {
 		if (timerId == null) {
 			logger.warn("Timer cancel(null).", new Exception());
-			return; // 忽略没有初始化的timerId。
+			return false; // 忽略没有初始化的timerId。
 		}
 		/*
 		try {
@@ -929,8 +898,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 				}
 			}
 			cancel(serverId, timerId, nodeId, node, handle);
-		} else // 定时器数据已经不存在了,尝试移除future
-			Transaction.whileCommit(() -> cancelFuture(timerId));
+			return true;
+		}
+		// 定时器数据已经不存在了,尝试移除future
+		Transaction.whileCommit(() -> cancelFuture(timerId));
+		return false;
 	}
 
 	@NotNull tAccountTimers tAccountTimers() {
@@ -1116,7 +1088,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var handle = findTimerHandle(timer.getHandleName());
 			var simpleTimer = timer.getTimerObj_Zeze_Builtin_Timer_BSimpleTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				BSimpleTimerBuilder.beforeCallSimpleTimer(simpleTimer, missfire);
+				SimpleTimerSpec.beforeCallSimpleTimer(simpleTimer, missfire);
 				var context = new TimerContext(this, timer, simpleTimer.getHappenTimes(),
 						simpleTimer.getExpectedTime(), simpleTimer.getNextExpectedTime());
 
@@ -1216,7 +1188,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 			var handle = findTimerHandle(timer.getHandleName());
 			var cronTimer = timer.getTimerObj_Zeze_Builtin_Timer_BCronTimer();
 			if (concurrentSerialNo == timer.getConcurrentFireSerialNo()) {
-				var hasNext = BCronTimerBuilder.nextCronTimer(cronTimer, missfire);
+				var hasNext = CronTimerSpec.nextCronTimer(cronTimer, missfire);
 				var context = new TimerContext(this, timer, cronTimer.getHappenTimes(),
 						cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 
@@ -1450,7 +1422,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory {
 
 					case eMissfirePolicyNothing:
 						// 计算下一次（未来）发生的时间。
-						cronTimer.setNextExpectedTime(BCronTimerBuilder.cronNextTime(cronTimer.getCronExpression(), now));
+						cronTimer.setNextExpectedTime(CronTimerSpec.cronNextTime(cronTimer.getCronExpression(), now));
 						//TODO: 考虑nextExpectedTime超过endTime的情况要不要取消
 						break;
 

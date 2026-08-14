@@ -187,18 +187,18 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// 本进程内的有名字定时器，名字仅在本进程内唯一。
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   long delay, long period, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData) {
 		return scheduleOnlineNamed(account, clientId, timerId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -208,12 +208,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnlineNamed(account, clientId, timerId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -221,12 +221,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
 				customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -234,12 +234,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -247,11 +247,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 									   @NotNull Class<? extends TimerHandle> handle,
 									   @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineNamed(account, clientId, timerId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime), handle, customData);
+				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -261,12 +261,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnlineNamed(account, clientId, timerId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handle,
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handle,
 				customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -274,11 +274,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
+				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineNamedHot(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
@@ -286,7 +286,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) throws ParseException {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
 	}
 
@@ -294,18 +294,18 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// Online Timer
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnline(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) {
 		return scheduleOnline(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnline(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, long delay, long period,
@@ -314,12 +314,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnline(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
@@ -327,12 +327,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		return scheduleOnlineHot(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime), handleClass,
 				customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
@@ -340,23 +340,23 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData, @NotNull String oneByOneKey) {
 		return scheduleOnlineHot(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnline(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData) throws ParseException {
 		return scheduleOnline(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime), handle, customData);
+				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnline(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -366,12 +366,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnline(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handle,
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handle,
 				customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -379,11 +379,11 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) throws ParseException {
 		return scheduleOnlineHot(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
+				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOnlineHot(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -392,131 +392,107 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 											 @Nullable Bean customData,
 											 @NotNull String oneByOneKey) throws ParseException {
 		return scheduleOnlineHot(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
 	}
 
 	// ///////////////////////////////////////////////////////////////
-	// Builder 入口
-	// 推荐使用Builder描述调度参数，避免超长的参数列表。
+	// Spec 入口
+	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
 
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
-										  @NotNull BSimpleTimerBuilder builder,
+										  @NotNull TimerSpec spec,
+										  @NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOnline(account, clientId, spec, handleClass, null);
+	}
+
+	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
+										  @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-		return scheduleOnlineImpl(account, clientId, builder, handleClass, customData);
+		return scheduleOnlineImpl(account, clientId, spec, handleClass, customData);
 	}
 
 	@NotNull String scheduleOnlineImpl(@NotNull String account, @NotNull String clientId,
-									   @NotNull BSimpleTimerBuilder builder,
+									   @NotNull TimerSpec spec,
 									   @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
-		scheduleOnline(false, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
-		return timerId;
-	}
-
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
-										  @NotNull BCronTimerBuilder builder,
-										  @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws ParseException {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-		return scheduleOnlineImpl(account, clientId, builder, handleClass, customData);
-	}
-
-	@NotNull String scheduleOnlineImpl(@NotNull String account, @NotNull String clientId,
-									   @NotNull BCronTimerBuilder builder,
-									   @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData) throws ParseException {
-		var timerId = newAutoTimerId();
-		scheduleOnline(false, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
+		var id = new BAccountClientId(account, clientId);
+		switch (spec) {
+		case SimpleTimerSpec s -> scheduleOnline(false, id, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(false, id, timerId, c.build(), handleClass, customData, false);
+		}
 		return timerId;
 	}
 
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
-											 @NotNull BSimpleTimerBuilder builder,
+											 @NotNull TimerSpec spec,
+											 @NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOnlineHot(account, clientId, spec, handleClass, null);
+	}
+
+	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
+											 @NotNull TimerSpec spec,
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
-		scheduleOnline(true, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
+		var id = new BAccountClientId(account, clientId);
+		switch (spec) {
+		case SimpleTimerSpec s -> scheduleOnline(true, id, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(true, id, timerId, c.build(), handleClass, customData, false);
+		}
 		return timerId;
 	}
 
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
-											 @NotNull BCronTimerBuilder builder,
-											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) throws ParseException {
-		var timerId = newAutoTimerId();
-		scheduleOnline(true, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
-		return timerId;
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId,
+									   @NotNull String timerId, @NotNull TimerSpec spec,
+									   @NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOnlineNamed(account, clientId, timerId, spec, handleClass, null);
 	}
 
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									   @NotNull BSimpleTimerBuilder builder,
+	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId,
+									   @NotNull String timerId, @NotNull TimerSpec spec,
 									   @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-		return scheduleOnlineNamedImpl(account, clientId, timerId, builder, handleClass, customData);
+		return scheduleOnlineNamedImpl(account, clientId, timerId, spec, handleClass, customData);
 	}
 
-	boolean scheduleOnlineNamedImpl(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									@NotNull BSimpleTimerBuilder builder,
+	boolean scheduleOnlineNamedImpl(@NotNull String account, @NotNull String clientId,
+									@NotNull String timerId, @NotNull TimerSpec spec,
 									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
 		if (!checkNamedTimerId(timerId))
 			return false;
-		scheduleOnline(false, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
+		var id = new BAccountClientId(account, clientId);
+		switch (spec) {
+		case SimpleTimerSpec s -> scheduleOnline(false, id, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(false, id, timerId, c.build(), handleClass, customData, false);
+		}
 		return true;
 	}
 
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									   @NotNull BCronTimerBuilder builder,
-									   @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData) throws ParseException {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
-		return scheduleOnlineNamedImpl(account, clientId, timerId, builder, handleClass, customData);
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId,
+										  @NotNull String timerId, @NotNull TimerSpec spec,
+										  @NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOnlineNamedHot(account, clientId, timerId, spec, handleClass, null);
 	}
 
-	boolean scheduleOnlineNamedImpl(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-									@NotNull BCronTimerBuilder builder,
-									@NotNull Class<? extends TimerHandle> handleClass,
-									@Nullable Bean customData) throws ParseException {
-		if (!checkNamedTimerId(timerId))
-			return false;
-		scheduleOnline(false, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
-		return true;
-	}
-
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										  @NotNull BSimpleTimerBuilder builder,
+	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId,
+										  @NotNull String timerId, @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
 		if (!checkNamedTimerId(timerId))
 			return false;
-		scheduleOnline(true, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
-		return true;
-	}
-
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
-										  @NotNull BCronTimerBuilder builder,
-										  @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws ParseException {
-		if (!checkNamedTimerId(timerId))
-			return false;
-		scheduleOnline(true, new BAccountClientId(account, clientId), timerId, builder.build(), handleClass,
-				customData, false);
+		var id = new BAccountClientId(account, clientId);
+		switch (spec) {
+		case SimpleTimerSpec s -> scheduleOnline(true, id, timerId, s.build(), handleClass, customData, false);
+		case CronTimerSpec c -> scheduleOnline(true, id, timerId, c.build(), handleClass, customData, false);
+		}
 		return true;
 	}
 
@@ -547,19 +523,19 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// Offline Timer
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										long delay, long period, long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -567,12 +543,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										@NotNull String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-								 @NotNull BSimpleTimerBuilder builder,
+								 @NotNull SimpleTimerSpec builder,
 								 @NotNull Class<? extends TimerHandle> handleClass,
 								 @Nullable Bean customData) {
 		Reflect.checkDefaultConstructor(handleClass);
@@ -605,7 +581,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOffline(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
@@ -613,12 +589,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) {
 		return scheduleOffline(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOffline(String, String, BSimpleTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
@@ -626,12 +602,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										   @NotNull String oneByOneKey) {
 		return scheduleOffline(account, clientId,
-				BSimpleTimerBuilder.ofDelay(delay).period(period).times(times).endTime(endTime)
+				TimerSpec.ofDelay(delay).period(period).times(times).endTime(endTime)
 						.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -639,12 +615,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) throws ParseException {
 		return scheduleOfflineNamed(timerId, account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
 				handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOfflineNamed(String, String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
@@ -652,14 +628,14 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										@NotNull String oneByOneKey) throws ParseException {
 		return scheduleOfflineNamed(timerId, account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	private void scheduleOffline(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-								 @NotNull BCronTimerBuilder builder,
+								 @NotNull CronTimerSpec builder,
 								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-								 @Nullable BIndex index) throws ParseException {
+								 @Nullable BIndex index) {
 		Reflect.checkDefaultConstructor(handleClass);
 		var logoutVersion = online.getLogoutVersion(account, clientId);
 		if (logoutVersion == null) {
@@ -695,7 +671,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOffline(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -703,12 +679,12 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										   @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData) throws ParseException {
 		return scheduleOffline(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
 				handleClass, customData);
 	}
 
 	/**
-	 * @deprecated 使用 {@link #scheduleOffline(String, String, BCronTimerBuilder, Class, Bean)} 替代
+	 * @deprecated 使用 {@link #scheduleOffline(String, String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
@@ -716,59 +692,55 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										   @NotNull String oneByOneKey) throws ParseException {
 		return scheduleOffline(account, clientId,
-				BCronTimerBuilder.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
+				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
 
 	// ///////////////////////////////////////////////////////////////
-	// Offline Builder 入口
+	// Offline Spec 入口
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
-										   @NotNull BSimpleTimerBuilder builder,
-										   @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData) {
-		var timerId = newAutoTimerId();
-		scheduleOffline(timerId, account, clientId, builder, handleClass, customData);
-		return timerId;
+										   @NotNull TimerSpec spec,
+										   @NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOffline(account, clientId, spec, handleClass, null);
 	}
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
-										   @NotNull BCronTimerBuilder builder,
+										   @NotNull TimerSpec spec,
 										   @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData) throws ParseException {
+										   @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
-		scheduleOffline(timerId, account, clientId, builder, handleClass, customData, null);
+		switch (spec) {
+		case SimpleTimerSpec s -> scheduleOffline(timerId, account, clientId, s, handleClass, customData);
+		case CronTimerSpec c -> scheduleOffline(timerId, account, clientId, c, handleClass, customData, null);
+		}
 		return timerId;
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull BSimpleTimerBuilder builder,
+										@NotNull TimerSpec spec,
+										@NotNull Class<? extends TimerHandle> handleClass) {
+		return scheduleOfflineNamed(timerId, account, clientId, spec, handleClass, null);
+	}
+
+	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
+										@NotNull TimerSpec spec,
 										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var zeze = online.providerApp.zeze;
 		var index = zeze.getTimer().tIndexs().get(timerId);
-		if (index != null) {
-			if (index.getServerId() != zeze.getConfig().getServerId())
-				return false; // 已经被其它gs调度
-			cancel(timerId, account, clientId); // 先取消,下面再重建
-		}
-		scheduleOffline(timerId, account, clientId, builder, handleClass, customData);
-		return true;
-	}
-
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull BCronTimerBuilder builder,
-										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
-		if (timerId.startsWith("@"))
-			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		var zeze = online.providerApp.zeze;
-		var index = zeze.getTimer().tIndexs().get(timerId);
 		if (index != null && index.getServerId() != zeze.getConfig().getServerId())
 			return false; // 已经被其它gs调度
-		scheduleOffline(timerId, account, clientId, builder, handleClass, customData, index);
+		switch (spec) {
+		case SimpleTimerSpec s -> {
+			if (index != null)
+				cancel(timerId, account, clientId); // 先取消,下面再重建
+			scheduleOffline(timerId, account, clientId, s, handleClass, customData);
+		}
+		case CronTimerSpec c -> scheduleOffline(timerId, account, clientId, c, handleClass, customData, index);
+		}
 		return true;
 	}
 

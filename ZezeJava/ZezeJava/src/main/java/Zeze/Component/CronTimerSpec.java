@@ -7,57 +7,34 @@ import org.apache.logging.log4j.core.util.CronExpression;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * BCronTimer 的参数构造器，同时持有 BCronTimer 的运行时推进逻辑（cron 解析与下次触发时间计算）。
+ * BCronTimer 的调度参数描述，同时持有 BCronTimer 的运行时推进逻辑（cron 解析与下次触发时间计算）。
  * 生成的 bean 类无法持有手写逻辑，本类是其唯一的手写伴生类。
+ * cron表达式在构造时立即解析校验，非法表达式直接抛出 IllegalArgumentException。
  * 本类只是调度参数的描述，build() 时才捕获当前时间并生成真正可调度的 bean。
  * 注意：不要缓存复用 build() 的产物，每次调度都应重新 build（schedule 入口内部自动完成）。
  *
  * <pre>
- * var timerId = timer.schedule(BCronTimerBuilder.ofCron("0 0 4 * * ?")
+ * var timerId = timer.schedule(TimerSpec.ofCron("0 0 4 * * ?")
  *         .times(-1), MyHandle.class, customData);
  * </pre>
  */
-public final class BCronTimerBuilder {
+public final class CronTimerSpec implements TimerSpec {
 	private final @NotNull String cronExpression;
+	private final @NotNull CronExpression cron;
 	private long times = -1;
 	private long endTime = -1;
 	private int missfirePolicy = Timer.eMissfirePolicyNothing;
 	private @NotNull String oneByOneKey = "";
 
-	private BCronTimerBuilder(@NotNull String cronExpression) {
+	CronTimerSpec(@NotNull String cronExpression) {
 		if (cronExpression.isEmpty())
 			throw new IllegalArgumentException("cronExpression is empty");
+		try {
+			this.cron = new CronExpression(cronExpression);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException("invalid cron expression: " + cronExpression, e);
+		}
 		this.cronExpression = cronExpression;
-	}
-
-	/**
-	 * 直接使用cron表达式构造。
-	 *
-	 * @param cronExpression cron表达式, 不能为空
-	 */
-	public static @NotNull BCronTimerBuilder ofCron(@NotNull String cronExpression) {
-		return new BCronTimerBuilder(cronExpression);
-	}
-
-	/**
-	 * 每月第monthDay天的hour:minute:second触发。
-	 */
-	public static @NotNull BCronTimerBuilder ofMonth(int monthDay, int hour, int minute, int second) {
-		return new BCronTimerBuilder(second + " " + minute + " " + hour + " " + monthDay + " * ?");
-	}
-
-	/**
-	 * 每周第weekDay天的hour:minute:second触发。
-	 */
-	public static @NotNull BCronTimerBuilder ofWeek(int weekDay, int hour, int minute, int second) {
-		return new BCronTimerBuilder(second + " " + minute + " " + hour + " * * " + weekDay);
-	}
-
-	/**
-	 * 每天的hour:minute:second触发。
-	 */
-	public static @NotNull BCronTimerBuilder ofDay(int hour, int minute, int second) {
-		return new BCronTimerBuilder(second + " " + minute + " " + hour + " * * ?");
 	}
 
 	public @NotNull String getCronExpression() {
@@ -83,7 +60,7 @@ public final class BCronTimerBuilder {
 	/**
 	 * @param times 限制触发次数, -1表示不限次数, 不允许0
 	 */
-	public @NotNull BCronTimerBuilder times(long times) {
+	public @NotNull CronTimerSpec times(long times) {
 		if (times == 0)
 			throw new IllegalArgumentException("times must not be 0");
 		this.times = times;
@@ -93,7 +70,7 @@ public final class BCronTimerBuilder {
 	/**
 	 * @param endTime 限制触发的最后时间(unix毫秒时间戳), 只有大于0会限制
 	 */
-	public @NotNull BCronTimerBuilder endTime(long endTime) {
+	public @NotNull CronTimerSpec endTime(long endTime) {
 		this.endTime = endTime;
 		return this;
 	}
@@ -101,25 +78,24 @@ public final class BCronTimerBuilder {
 	/**
 	 * @param missfirePolicy 错过指定触发时间的处理方式, 见Timer模块定义的eMissfirePolicy开头枚举
 	 */
-	public @NotNull BCronTimerBuilder missfirePolicy(int missfirePolicy) {
+	public @NotNull CronTimerSpec missfirePolicy(int missfirePolicy) {
 		this.missfirePolicy = missfirePolicy;
 		return this;
 	}
 
-	public @NotNull BCronTimerBuilder oneByOneKey(@NotNull String oneByOneKey) {
+	public @NotNull CronTimerSpec oneByOneKey(@NotNull String oneByOneKey) {
 		this.oneByOneKey = oneByOneKey;
 		return this;
 	}
 
 	/**
 	 * 生成可调度的bean。调用时捕获当前时间, 产物不要缓存复用。
-	 *
-	 * @throws ParseException cron表达式解析异常
 	 */
-	public @NotNull BCronTimer build() throws ParseException {
+	public @NotNull BCronTimer build() {
 		var cronTimer = new BCronTimer();
 		cronTimer.setCronExpression(cronExpression);
-		cronTimer.setNextExpectedTime(cronNextTime(cronExpression, System.currentTimeMillis()));
+		var now = System.currentTimeMillis();
+		cronTimer.setNextExpectedTime(cron.getNextValidTimeAfter(new Date(now)).getTime());
 		cronTimer.setRemainTimes(times);
 		cronTimer.setEndTime(endTime);
 		cronTimer.setOneByOneKey(oneByOneKey);
