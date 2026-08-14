@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import java.text.ParseException;
 import java.util.List;
 import Zeze.Arch.LocalRemoveEventArgument;
 import Zeze.Arch.LoginArgument;
@@ -245,7 +244,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   @NotNull String cron, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle,
-									   @Nullable Bean customData) throws ParseException {
+									   @Nullable Bean customData) {
 		return scheduleOnlineNamed(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}
@@ -257,7 +256,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 									   @NotNull String cron, long times, long endTime,
 									   @NotNull Class<? extends TimerHandle> handle, @Nullable Bean customData,
-									   @NotNull String oneByOneKey) throws ParseException {
+									   @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnlineNamed(account, clientId, timerId,
@@ -272,7 +271,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws ParseException {
+										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
 	}
@@ -284,7 +283,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId, @NotNull String timerId,
 										  @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) throws ParseException {
+										  @NotNull String oneByOneKey) {
 		return scheduleOnlineNamedHot(account, clientId, timerId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
@@ -350,7 +349,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	@Deprecated
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
-										  @Nullable Bean customData) throws ParseException {
+										  @Nullable Bean customData) {
 		return scheduleOnline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handle, customData);
 	}
@@ -362,7 +361,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										  long times, long endTime, @NotNull Class<? extends TimerHandle> handle,
 										  @Nullable Bean customData,
-										  @NotNull String oneByOneKey) throws ParseException {
+										  @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnline(account, clientId,
@@ -377,7 +376,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 											 long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) throws ParseException {
+											 @Nullable Bean customData) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime), handleClass, customData);
 	}
@@ -390,7 +389,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 											 long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData,
-											 @NotNull String oneByOneKey) throws ParseException {
+											 @NotNull String oneByOneKey) {
 		return scheduleOnlineHot(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).oneByOneKey(oneByOneKey), handleClass,
 				customData);
@@ -399,12 +398,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	// ///////////////////////////////////////////////////////////////
 	// Spec 入口
 	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
-
-	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
-										  @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnline(account, clientId, spec, handleClass, null);
-	}
 
 	public @NotNull String scheduleOnline(@NotNull String account, @NotNull String clientId,
 										  @NotNull TimerSpec spec,
@@ -430,12 +423,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 
 	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
 											 @NotNull TimerSpec spec,
-											 @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineHot(account, clientId, spec, handleClass, null);
-	}
-
-	public @NotNull String scheduleOnlineHot(@NotNull String account, @NotNull String clientId,
-											 @NotNull TimerSpec spec,
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
@@ -445,12 +432,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		case CronTimerSpec c -> scheduleOnline(true, id, timerId, c.build(), handleClass, customData, false);
 		}
 		return timerId;
-	}
-
-	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId,
-									   @NotNull String timerId, @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineNamed(account, clientId, timerId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOnlineNamed(@NotNull String account, @NotNull String clientId,
@@ -474,12 +455,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		case CronTimerSpec c -> scheduleOnline(false, id, timerId, c.build(), handleClass, customData, false);
 		}
 		return true;
-	}
-
-	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId,
-										  @NotNull String timerId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineNamedHot(account, clientId, timerId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOnlineNamedHot(@NotNull String account, @NotNull String clientId,
@@ -613,7 +588,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										@NotNull String cron, long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
+										@Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
 				handleClass, customData);
@@ -626,7 +601,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
 										@NotNull String cron, long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										@NotNull String oneByOneKey) throws ParseException {
+										@NotNull String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
@@ -677,7 +652,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										   long times, long endTime, int missfirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData) throws ParseException {
+										   @Nullable Bean customData) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy),
 				handleClass, customData);
@@ -690,7 +665,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId, @NotNull String cron,
 										   long times, long endTime, int missfirePolicy,
 										   @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										   @NotNull String oneByOneKey) throws ParseException {
+										   @NotNull String oneByOneKey) {
 		return scheduleOffline(account, clientId,
 				TimerSpec.ofCron(cron).times(times).endTime(endTime).missfirePolicy(missfirePolicy)
 						.oneByOneKey(oneByOneKey), handleClass, customData);
@@ -698,12 +673,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 
 	// ///////////////////////////////////////////////////////////////
 	// Offline Spec 入口
-
-	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
-										   @NotNull TimerSpec spec,
-										   @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOffline(account, clientId, spec, handleClass, null);
-	}
 
 	public @NotNull String scheduleOffline(@NotNull String account, @NotNull String clientId,
 										   @NotNull TimerSpec spec,
@@ -715,12 +684,6 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 		case CronTimerSpec c -> scheduleOffline(timerId, account, clientId, c, handleClass, customData, null);
 		}
 		return timerId;
-	}
-
-	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,
-										@NotNull TimerSpec spec,
-										@NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOfflineNamed(timerId, account, clientId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, @NotNull String account, @NotNull String clientId,

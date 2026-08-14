@@ -1,6 +1,5 @@
 package Zeze.Component;
 
-import java.text.ParseException;
 import java.util.List;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
@@ -102,7 +101,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Override
 	@Nullable Long getSharedLoginVersion(@NotNull Long roleId) {
 		var shared = online.getLoginOnlineShared(roleId);
-		return shared != null ? Long.valueOf(shared.getLoginVersion()) : null;
+		return shared != null ? shared.getLoginVersion() : null;
 	}
 
 	@Override
@@ -237,7 +236,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull String cron, long times,
 									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData) throws ParseException {
+									   @Nullable Bean customData) {
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -248,7 +247,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull String cron, long times,
 									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-									   @Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
+									   @Nullable Bean customData, @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
@@ -261,7 +260,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull String cron, long times,
 										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws ParseException {
+										  @Nullable Bean customData) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times)
 				.endTime(endTime), handleClass, customData);
 	}
@@ -273,7 +272,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull String cron, long times,
 										  long endTime, @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData,
-										  @NotNull String oneByOneKey) throws ParseException {
+										  @NotNull String oneByOneKey) {
 		return scheduleOnlineNamedHot(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -333,7 +332,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass,
-										  @Nullable Bean customData) throws ParseException {
+										  @Nullable Bean customData) {
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -344,7 +343,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
-										  @NotNull String oneByOneKey) throws ParseException {
+										  @NotNull String oneByOneKey) {
 		online.providerApp.zeze.verifyCallerCold(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
@@ -357,7 +356,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public @NotNull String scheduleOnlineHot(long roleId, @NotNull String cron, long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
-											 @Nullable Bean customData) throws ParseException {
+											 @Nullable Bean customData) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -369,7 +368,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public @NotNull String scheduleOnlineHot(long roleId, @NotNull String cron, long times, long endTime,
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData,
-											 @NotNull String oneByOneKey) throws ParseException {
+											 @NotNull String oneByOneKey) {
 		return scheduleOnlineHot(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -377,11 +376,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	// ///////////////////////////////////////////////////////////////
 	// Spec 入口
 	// 推荐使用TimerSpec描述调度参数，避免超长的参数列表。
-
-	public @NotNull String scheduleOnline(long roleId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnline(roleId, spec, handleClass, null);
-	}
 
 	public @NotNull String scheduleOnline(long roleId, @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
@@ -403,11 +397,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	}
 
 	public @NotNull String scheduleOnlineHot(long roleId, @NotNull TimerSpec spec,
-											 @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineHot(roleId, spec, handleClass, null);
-	}
-
-	public @NotNull String scheduleOnlineHot(long roleId, @NotNull TimerSpec spec,
 											 @NotNull Class<? extends TimerHandle> handleClass,
 											 @Nullable Bean customData) {
 		var timerId = newAutoTimerId();
@@ -416,11 +405,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		case CronTimerSpec c -> scheduleOnline(true, roleId, timerId, c.build(), handleClass, customData, false);
 		}
 		return timerId;
-	}
-
-	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
-									   @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineNamed(roleId, timerId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
@@ -441,11 +425,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		case CronTimerSpec c -> scheduleOnline(false, roleId, timerId, c.build(), handleClass, customData, false);
 		}
 		return true;
-	}
-
-	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
-										  @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOnlineNamedHot(roleId, timerId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
@@ -599,7 +578,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull String cron,
 										long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass,
-										@Nullable Bean customData) throws ParseException {
+										@Nullable Bean customData) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
@@ -612,7 +591,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 										long times, long endTime, int missfirePolicy,
 										@NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData,
-										@NotNull String oneByOneKey) throws ParseException {
+										@NotNull String oneByOneKey) {
 		return scheduleOfflineNamed(timerId, roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -660,7 +639,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
 										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData) throws ParseException {
+										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
@@ -672,7 +651,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
 										   int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
 										   @Nullable Bean customData,
-										   @NotNull String oneByOneKey) throws ParseException {
+										   @NotNull String oneByOneKey) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -683,18 +662,13 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	@Deprecated
 	public @NotNull String scheduleOffline(long roleId, @NotNull String cron, long times, long endTime,
 										   @NotNull Class<? extends TimerHandle> handleClass,
-										   @Nullable Bean customData) throws ParseException {
+										   @Nullable Bean customData) {
 		return scheduleOffline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
 
 	// ///////////////////////////////////////////////////////////////
 	// Offline Spec 入口
-
-	public @NotNull String scheduleOffline(long roleId, @NotNull TimerSpec spec,
-										   @NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOffline(roleId, spec, handleClass, null);
-	}
 
 	public @NotNull String scheduleOffline(long roleId, @NotNull TimerSpec spec,
 										   @NotNull Class<? extends TimerHandle> handleClass,
@@ -705,11 +679,6 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		case CronTimerSpec c -> scheduleOffline(timerId, roleId, c, handleClass, customData, null);
 		}
 		return timerId;
-	}
-
-	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull TimerSpec spec,
-										@NotNull Class<? extends TimerHandle> handleClass) {
-		return scheduleOfflineNamed(timerId, roleId, spec, handleClass, null);
 	}
 
 	public boolean scheduleOfflineNamed(@NotNull String timerId, long roleId, @NotNull TimerSpec spec,
