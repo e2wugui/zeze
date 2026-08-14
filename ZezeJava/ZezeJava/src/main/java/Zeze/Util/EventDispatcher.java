@@ -58,7 +58,6 @@ public class EventDispatcher {
 			case RunEmbed -> runEmbedEvents;
 			case RunProcedure -> runProcedureEvents;
 			case RunThread -> runThreadEvents;
-			default -> throw new IllegalArgumentException("Unknown mode=" + mode);
 		};
 	}
 
@@ -80,7 +79,8 @@ public class EventDispatcher {
 	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
 	 */
 	public @NotNull Canceler add(@NotNull Mode mode, @NotNull EventHandle handle_) {
-		zeze.verifyCallerCold(StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		var events = getQueue(mode);
 		var handle = new HandleClass(handle_);
 		events.offer(handle);

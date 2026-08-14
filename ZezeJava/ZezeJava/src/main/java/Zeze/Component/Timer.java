@@ -417,13 +417,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @throws ParseException CronTimer表达式解析异常
 	 * @deprecated 使用 {@link CronTimerSpec#ofMonth(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleMonth(int monthDay, int hour, int minute, int second,
 	                                     @NotNull Class<? extends TimerHandle> handleClass,
-	                                     @Nullable Bean customData) throws ParseException {
+	                                     @Nullable Bean customData) {
 		return schedule(TimerSpec.ofMonth(monthDay, hour, minute, second), handleClass, customData);
 	}
 
@@ -438,13 +437,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @throws ParseException CronTimer表达式解析异常
 	 * @deprecated 使用 {@link CronTimerSpec#ofWeek(int, int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleWeek(int weekDay, int hour, int minute, int second,
 	                                    @NotNull Class<? extends TimerHandle> handleClass,
-	                                    @Nullable Bean customData) throws ParseException {
+	                                    @Nullable Bean customData) {
 		return schedule(TimerSpec.ofWeek(weekDay, hour, minute, second), handleClass, customData);
 	}
 
@@ -458,13 +456,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 自动生成的timerId
-	 * @throws ParseException CronTimer表达式解析异常
 	 * @deprecated 使用 {@link CronTimerSpec#ofDay(int, int, int)} + {@link #schedule(TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public @NotNull String scheduleDay(int hour, int minute, int second,
 	                                   @NotNull Class<? extends TimerHandle> handleClass,
-	                                   @Nullable Bean customData) throws ParseException {
+	                                   @Nullable Bean customData) {
 		return schedule(TimerSpec.ofDay(hour, minute, second), handleClass, customData);
 	}
 
@@ -708,13 +705,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @throws ParseException cron解析异常
 	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron,
 	                             @NotNull Class<? extends TimerHandle> handleClass,
-	                             @Nullable Bean customData) throws ParseException {
+	                             @Nullable Bean customData) {
 		return scheduleNamed(timerId, TimerSpec.ofCron(cron), handleClass, customData);
 	}
 
@@ -729,13 +725,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass 回调class
 	 * @param customData  自定义数据
 	 * @return 调度是否成功
-	 * @throws ParseException cron解析异常
 	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             @NotNull Class<? extends TimerHandle> handleClass,
-	                             @Nullable Bean customData) throws ParseException {
+	                             @Nullable Bean customData) {
 		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime),
 				handleClass, customData);
 	}
@@ -752,13 +747,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * @param handleClass    回调class
 	 * @param customData     自定义数据
 	 * @return 调度是否成功
-	 * @throws ParseException cron解析异常
 	 * @deprecated 使用 {@link #scheduleNamed(String, TimerSpec, Class, Bean)} 替代
 	 */
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-	                             @Nullable Bean customData) throws ParseException {
+	                             @Nullable Bean customData) {
 		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy), handleClass, customData);
 	}
@@ -772,7 +766,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	@Deprecated
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull String cron, long times, long endTime,
 	                             int missfirePolicy, @NotNull Class<? extends TimerHandle> handleClass,
-	                             @Nullable Bean customData, @NotNull String oneByOneKey) throws ParseException {
+	                             @Nullable Bean customData, @NotNull String oneByOneKey) {
 		return scheduleNamed(timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.missfirePolicy(missfirePolicy).oneByOneKey(oneByOneKey), handleClass, customData);
 	}

@@ -1,5 +1,6 @@
 package Zeze.Component;
 
+import Zeze.Application;
 import Zeze.Transaction.Bean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,8 +60,9 @@ public final class RoleTimers {
 		@Override
 		public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 										@Nullable Bean customData) {
-			timerRole.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+			var zeze = timerRole.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 			return timerRole.scheduleOnlineImpl(roleId, spec, handleClass, customData);
 		}
 
@@ -68,8 +70,9 @@ public final class RoleTimers {
 		public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 									 @NotNull Class<? extends TimerHandle> handleClass,
 									 @Nullable Bean customData) {
-			timerRole.zeze().verifyCallerCold(
-					StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+			var zeze = timerRole.zeze();
+			if (zeze.isHotVerifyEnabled())
+				zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 			return timerRole.scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, customData);
 		}
 

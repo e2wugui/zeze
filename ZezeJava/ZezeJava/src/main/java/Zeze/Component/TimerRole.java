@@ -1,6 +1,7 @@
 package Zeze.Component;
 
 import java.util.List;
+import Zeze.Application;
 import Zeze.Builtin.Timer.BGameOnlineTimer;
 import Zeze.Builtin.Timer.BIndex;
 import Zeze.Builtin.Timer.BOfflineRoleCustom;
@@ -202,8 +203,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, long delay, long period, long times,
 									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData, @NotNull String oneByOneKey) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -248,8 +250,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull String cron, long times,
 									   long endTime, @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData, @NotNull String oneByOneKey) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamed(roleId, timerId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -298,8 +301,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public @NotNull String scheduleOnline(long roleId, long delay, long period, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofDelay(delay).period(period).times(times)
 				.endTime(endTime).oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -344,8 +348,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public @NotNull String scheduleOnline(long roleId, @NotNull String cron, long times, long endTime,
 										  @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData,
 										  @NotNull String oneByOneKey) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnline(roleId, TimerSpec.ofCron(cron).times(times).endTime(endTime)
 				.oneByOneKey(oneByOneKey), handleClass, customData);
 	}
@@ -380,8 +385,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public @NotNull String scheduleOnline(long roleId, @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineImpl(roleId, spec, handleClass, customData);
 	}
 
@@ -410,8 +416,9 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamed(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
 									   @NotNull Class<? extends TimerHandle> handleClass,
 									   @Nullable Bean customData) {
-		online.providerApp.zeze.verifyCallerCold(
-				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass());
+		var zeze = online.providerApp.zeze;
+		if (zeze.isHotVerifyEnabled())
+			zeze.verifyCallerCold(Application.CALLER_WALKER.getCallerClass());
 		return scheduleOnlineNamedImpl(roleId, timerId, spec, handleClass, customData);
 	}
 

@@ -140,6 +140,22 @@ public final class Application extends ReentrantLock {
 		return onz;
 	}
 
+	/**
+	 * 复用的caller遍历器，仅用于verifyCallerCold的调用方获取调用者class。
+	 * getCallerClass()必须在公开入口方法的直接方法体内调用，不能经由框架方法转发，
+	 * 否则得到的caller是Zeze内部类，校验失去意义。
+	 */
+	public static final StackWalker CALLER_WALKER =
+			StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+
+	/**
+	 * 是否配置了热更新模块。没有热更时调用者校验没有约束对象，调用方应先检查本方法，
+	 * 避免无谓的走栈开销。
+	 */
+	public boolean isHotVerifyEnabled() {
+		return hotManager != null;
+	}
+
 	// verifyCallerNotHot(jdk.internal.reflect.Reflection.getCallerClass());
 	// caller必须外部调用得到。
 	public void verifyCallerCold(@NotNull Class<?> caller) {
