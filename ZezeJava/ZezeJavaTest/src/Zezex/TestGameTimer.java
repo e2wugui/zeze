@@ -14,6 +14,7 @@ import UnitTest.Zeze.Component.TestBean;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
 import Zeze.Net.Protocol;
 import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Procedure;
@@ -105,7 +106,7 @@ public class TestGameTimer {
 						data.get(input.Bytes, input.WriteIndex, n);
 						input.WriteIndex += n;
 						if (last) {
-							var sc = Protocol.decode(clients.get(0).ClientService, input);
+							var sc = Protocol.decode(clients.getFirst().ClientService, input);
 							logger.info("Sc Web {}", sc != null ? sc.Argument : null);
 							input.Compact();
 						}
@@ -177,7 +178,7 @@ public class TestGameTimer {
 		}
 
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NotNull TimerContext context) {
 			testContent(context);
 		}
 	}
@@ -194,7 +195,7 @@ public class TestGameTimer {
 			var client1 = clients.get(1);
 //			var link0 = links.get(0);
 //			var link1 = links.get(1);
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 //			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
 //			var timer1 = server1.getZeze().getTimer();
@@ -211,7 +212,9 @@ public class TestGameTimer {
 
 			TestBean bean = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
+				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
+				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1).period(1).times(5).endTime(System.currentTimeMillis() + 2000),
+					TestRoleTimer.TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			sleep(100, 6);
@@ -227,13 +230,19 @@ public class TestGameTimer {
 
 			TestBean namedBean = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, namedBean);
+				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, namedBean);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
+					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 2000),
+					TestOnlineTimerHandle.class, namedBean);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
 			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean1);
+				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean1);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
+					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 5000),
+					TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			sleep(100, 10);
@@ -244,7 +253,10 @@ public class TestGameTimer {
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 10, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean2);
+				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 10, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean2);
+				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
+					TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
+					TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			sleep(100, 11);
@@ -282,7 +294,7 @@ public class TestGameTimer {
 			var client1 = clients.get(1);
 //			var link0 = links.get(0);
 //			var link1 = links.get(1);
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 //			var server1 = servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
 //			var timer1 = server1.getZeze().getTimer();
@@ -304,7 +316,9 @@ public class TestGameTimer {
 
 			TestBean bean = new TestBean();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				timerRole0.scheduleOffline(roleId, 100, 100, 10, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
+				//timerRole0.scheduleOffline(roleId, 100, 100, 10, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
+				timerRole0.scheduleOffline(roleId, TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
+					TestOfflineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "test1").call());
 
@@ -370,7 +384,7 @@ public class TestGameTimer {
 		Assert.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
-		return get.Result.getRoleList().get(0);
+		return get.Result.getRoleList().getFirst();
 	}
 
 	private static void sleep(long gap, int times) {

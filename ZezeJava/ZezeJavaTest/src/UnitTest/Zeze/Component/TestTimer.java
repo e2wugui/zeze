@@ -2,6 +2,7 @@ package UnitTest.Zeze.Component;
 
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
 import Zeze.Transaction.Procedure;
 import demo.App;
 import org.junit.After;
@@ -80,7 +81,8 @@ public class TestTimer {
 
 		// Test schedule timer
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
+			//timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
+			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle1.class);
 			return Procedure.Success;
 		}, "test_CommonSchedule").call());
 
@@ -96,7 +98,8 @@ public class TestTimer {
 		TestBean testBean1 = new TestBean();
 
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
+			//timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
+			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
 		}, "test_ScheduleWithCustomBean").call());
 
@@ -111,7 +114,8 @@ public class TestTimer {
 		// Test canceling schedule
 		TestBean testBean2 = new TestBean();
 		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
-			timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
+			//timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
+			timer.schedule(TimerSpec.ofDelay(1).period(200), TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
 		}, "test_CancelSchedule").call());
 
