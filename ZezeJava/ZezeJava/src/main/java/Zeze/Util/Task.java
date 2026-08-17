@@ -293,6 +293,10 @@ public final class Task {
 	}
 
 	public static void call(@NotNull Action0 action, @Nullable String name) {
+		callActionCore(action, name);
+	}
+
+	static void callActionCore(@NotNull Action0 action, @Nullable String name) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
 			action.run();
@@ -321,28 +325,26 @@ public final class Task {
 		}
 	}
 
-	public static void run(@NotNull Action0 action, @Nullable String name) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(action, name));
+	// 事务感知执行：mode != Direct 且当前在运行中的事务内时，延迟到事务提交后执行(runWhileCommit)，否则立即执行。
+	// mode 为 null 时等同 Normal（非 Direct），即总是检查事务。
+	static void runTxnAware(@Nullable DispatchMode mode, @NotNull Runnable action) {
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(action);
 		else
-			executeUnsafe(action, name);
+			action.run();
+	}
+
+	public static void run(@NotNull Action0 action, @Nullable String name) {
+		runTxnAware(null, () -> executeUnsafeActionCore(action, name, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(action, name, mode));
-		else
-			executeUnsafe(action, name, mode);
+		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, defaultTimeout));
 	}
 
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(action, name, mode, timeout));
-		else
-			executeUnsafe(action, name, mode, timeout);
+		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, timeout));
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
@@ -357,6 +359,11 @@ public final class Task {
 
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                           @Nullable DispatchMode mode, long timeout) {
+		return runUnsafeActionCore(action, name, mode, timeout);
+	}
+
+	static @NotNull Future<?> runUnsafeActionCore(@NotNull Action0 action, @Nullable String name,
+	                                              @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			var future = new TaskCompletionSource<Long>();
@@ -405,6 +412,11 @@ public final class Task {
 
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                 @Nullable DispatchMode mode, long timeout) {
+		executeUnsafeActionCore(action, name, mode, timeout);
+	}
+
+	static void executeUnsafeActionCore(@NotNull Action0 action, @Nullable String name,
+	                                    @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try {
@@ -440,26 +452,22 @@ public final class Task {
 	}
 
 	public static void schedule(long initialDelay, @NotNull Action0 action) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, action));
-		else
-			scheduleUnsafe(initialDelay, action);
+		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, defaultTimeout));
 	}
 
 	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, action, timeout));
-		else
-			scheduleUnsafe(initialDelay, action, timeout);
+		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, timeout));
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
-		return scheduleUnsafe(initialDelay, action, defaultTimeout);
+		return scheduleActionCore(initialDelay, action, defaultTimeout);
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
+		return scheduleActionCore(initialDelay, action, timeout);
+	}
+
+	static @NotNull ScheduledFuture<?> scheduleActionCore(long initialDelay, @NotNull Action0 action, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
@@ -475,10 +483,14 @@ public final class Task {
 	}
 
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
-		return scheduleUnsafe(initialDelay, func, defaultTimeout);
+		return scheduleFunc0Core(initialDelay, func, defaultTimeout);
 	}
 
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
+		return scheduleFunc0Core(initialDelay, func, timeout);
+	}
+
+	static <R> @NotNull Future<R> scheduleFunc0Core(long initialDelay, @NotNull Func0<R> func, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
@@ -499,19 +511,11 @@ public final class Task {
 	}
 
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, period, action));
-		else
-			scheduleAtUnsafe(hour, minute, period, action);
+		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, defaultTimeout));
 	}
 
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, period, action, timeout));
-		else
-			scheduleAtUnsafe(hour, minute, period, action, timeout);
+		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, timeout));
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
@@ -520,11 +524,16 @@ public final class Task {
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action) {
-		return scheduleAtUnsafe(hour, minute, period, action, defaultTimeout);
+		return scheduleAtCore(hour, minute, period, action, defaultTimeout);
 	}
 
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action, long timeout) {
+		return scheduleAtCore(hour, minute, period, action, timeout);
+	}
+
+	static @NotNull ScheduledFuture<?> scheduleAtCore(int hour, int minute, long period,
+	                                                  @NotNull Action0 action, long timeout) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -534,32 +543,29 @@ public final class Task {
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		if (period > 0)
-			return scheduleUnsafe(delay, period, action, timeout);
-		return scheduleUnsafe(delay, action, timeout);
+			return schedulePeriodCore(delay, period, action, timeout);
+		return scheduleActionCore(delay, action, timeout);
 	}
 
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action));
-		else
-			scheduleUnsafe(initialDelay, period, action);
+		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, defaultTimeout));
 	}
 
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action, timeout));
-		else
-			scheduleUnsafe(initialDelay, period, action, timeout);
+		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, timeout));
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
-		return scheduleUnsafe(initialDelay, period, action, defaultTimeout);
+		return schedulePeriodCore(initialDelay, period, action, defaultTimeout);
 	}
 
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
 	                                                     long timeout) {
+		return schedulePeriodCore(initialDelay, period, action, timeout);
+	}
+
+	static @NotNull TimerFuture<?> schedulePeriodCore(long initialDelay, long period, @NotNull Action0 action,
+	                                                  long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -665,6 +671,11 @@ public final class Task {
 
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                        @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
+		return callFuncCore(func, p, actionWhenError, aName);
+	}
+
+	static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	                         @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -703,49 +714,29 @@ public final class Task {
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(func, p));
-		else
-			executeUnsafe(func, p);
+		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, null, null, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError));
-		else
-			executeUnsafe(func, p, actionWhenError);
+		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName));
-		else
-			executeUnsafe(func, p, actionWhenError, aName);
+		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode));
-		else
-			executeUnsafe(func, p, actionWhenError, aName, mode);
+		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
 	}
 
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode, long timeout) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(func, p, actionWhenError, aName, mode, timeout));
-		else
-			executeUnsafe(func, p, actionWhenError, aName, mode, timeout);
+		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout));
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
@@ -771,6 +762,12 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                              @Nullable DispatchMode mode, long timeout) {
+		return runUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout);
+	}
+
+	static @NotNull Future<Long> runUnsafeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	                                               @Nullable ProtocolErrorHandle actionWhenError,
+	                                               @Nullable String aName, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(func, p, actionWhenError, aName));
@@ -810,6 +807,12 @@ public final class Task {
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                 @Nullable DispatchMode mode, long timeout) {
+		executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout);
+	}
+
+	static void executeUnsafeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
+	                                  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(func, p, actionWhenError, aName);
 			return;
@@ -834,6 +837,11 @@ public final class Task {
 
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                        @Nullable ProtocolErrorHandle actionWhenError) {
+		return callProcCore(procedure, from, actionWhenError);
+	}
+
+	static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	                         @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -859,6 +867,11 @@ public final class Task {
 
 	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                        @Nullable ProtocolErrorHandle actionWhenError) {
+		return callProcOutCore(procedure, outProtocol, actionWhenError);
+	}
+
+	static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	                            @Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
 			// 日志在call里面记录。因为要支持嵌套。
@@ -884,46 +897,26 @@ public final class Task {
 	}
 
 	public static void run(@NotNull Procedure procedure) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(procedure));
-		else
-			executeUnsafe(procedure);
+		runTxnAware(null, () -> executeUnsafeProcCore(procedure, null, null, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(procedure, from));
-		else
-			executeUnsafe(procedure, from);
+		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, null, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError));
-		else
-			executeUnsafe(procedure, from, actionWhenError);
+		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode));
-		else
-			executeUnsafe(procedure, from, actionWhenError, mode);
+		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
 	}
 
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeUnsafe(procedure, from, actionWhenError, mode, timeout));
-		else
-			executeUnsafe(procedure, from, actionWhenError, mode, timeout);
+		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, timeout));
 	}
 
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
@@ -952,6 +945,12 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode, long timeout) {
+		return runUnsafeProcCore(procedure, from, actionWhenError, mode, timeout);
+	}
+
+	static @NotNull Future<Long> runUnsafeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	                                               @Nullable ProtocolErrorHandle actionWhenError,
+	                                               @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, from, actionWhenError));
@@ -979,6 +978,13 @@ public final class Task {
 	                                              @NotNull OutObject<Protocol<?>> outProtocol,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode, long timeout) {
+		return runUnsafeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
+	}
+
+	static @NotNull Future<Long> runUnsafeProcOutCore(@NotNull Procedure procedure,
+	                                                  @NotNull OutObject<Protocol<?>> outProtocol,
+	                                                  @Nullable ProtocolErrorHandle actionWhenError,
+	                                                  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
 			future.setResult(call(procedure, outProtocol, actionWhenError));
@@ -1020,6 +1026,12 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
+		executeUnsafeProcCore(procedure, from, actionWhenError, mode, timeout);
+	}
+
+	static void executeUnsafeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
+	                                  long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, from, actionWhenError);
 			return;
@@ -1042,6 +1054,12 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
+		executeUnsafeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
+	}
+
+	static void executeUnsafeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	                                     @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
+	                                     long timeout) {
 		if (mode == DispatchMode.Direct) {
 			call(procedure, outProtocol, actionWhenError);
 			return;
@@ -1056,156 +1074,85 @@ public final class Task {
 		});
 	}
 
+	// RpcResponse 族与普通族（call 核参数为 null 时）完全等价，这里直接委托普通族。
 	public static void runRpcResponse(@NotNull Procedure procedure) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure));
-		else
-			executeRpcResponseUnsafe(procedure);
+		run(procedure);
 	}
 
 	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure, mode));
-		else
-			executeRpcResponseUnsafe(procedure, mode);
+		run(procedure, null, null, mode);
 	}
 
 	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode, long timeout) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(procedure, mode, timeout));
-		else
-			executeRpcResponseUnsafe(procedure, mode, timeout);
+		run(procedure, null, null, mode, timeout);
 	}
 
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p));
-		else
-			executeRpcResponseUnsafe(func, p);
+		run(func, p);
 	}
 
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode));
-		else
-			executeRpcResponseUnsafe(func, p, mode);
+		run(func, p, null, null, mode);
 	}
 
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
 	                                  long timeout) {
-		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
-			t.runWhileCommit(() -> executeRpcResponseUnsafe(func, p, mode, timeout));
-		else
-			executeRpcResponseUnsafe(func, p, mode, timeout);
+		run(func, p, null, null, mode, timeout);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
-		return runRpcResponseUnsafe(procedure, DispatchMode.Normal);
+		return runUnsafe(procedure);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
 	                                                         @Nullable DispatchMode mode) {
-		return runRpcResponseUnsafe(procedure, mode, defaultTimeout);
+		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
 	                                                         @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			var future = new TaskCompletionSource<Long>();
-			future.setResult(call(procedure));
-			return future;
-		}
-
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return call(procedure);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-				return Procedure.Exception;
-			}
-		});
+		return runUnsafe(procedure, (Protocol<?>)null, null, mode, timeout);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		return runRpcResponseUnsafe(func, p, DispatchMode.Normal);
+		return runUnsafe(func, p);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                                         @Nullable DispatchMode mode) {
-		return runRpcResponseUnsafe(func, p, mode, defaultTimeout);
+		return runUnsafe(func, p, null, null, mode);
 	}
 
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                                         @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			var future = new TaskCompletionSource<Long>();
-			future.setResult(call(func, p));
-			return future;
-		}
-
-		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return call(func, p);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", p != null ? p.getClass().getName() : null, e);
-				return Procedure.Exception;
-			}
-		});
+		return runUnsafe(func, p, null, null, mode, timeout);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure) {
-		executeRpcResponseUnsafe(procedure, DispatchMode.Normal);
+		executeUnsafe(procedure);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		executeRpcResponseUnsafe(procedure, mode, defaultTimeout);
+		executeUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode,
 	                                            long timeout) {
-		if (mode == DispatchMode.Direct) {
-			call(procedure);
-			return;
-		}
-
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				call(procedure);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", procedure, e);
-			}
-		});
+		executeUnsafe(procedure, (Protocol<?>)null, null, mode, timeout);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		executeRpcResponseUnsafe(func, p, DispatchMode.Normal);
+		executeUnsafe(func, p);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                            @Nullable DispatchMode mode) {
-		executeRpcResponseUnsafe(func, p, mode, defaultTimeout);
+		executeUnsafe(func, p, null, null, mode);
 	}
 
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                            @Nullable DispatchMode mode, long timeout) {
-		if (mode == DispatchMode.Direct) {
-			call(func, p);
-			return;
-		}
-
-		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> { // rpcResponseThreadPool
-			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				call(func, p);
-			} catch (Throwable e) { // logger.error
-				logger.error("{} exception:", p != null ? p.getClass().getName() : null, e);
-			}
-		});
+		executeUnsafe(func, p, null, null, mode, timeout);
 	}
 
 	public static void waitAll(@NotNull Collection<Future<?>> tasks) {
