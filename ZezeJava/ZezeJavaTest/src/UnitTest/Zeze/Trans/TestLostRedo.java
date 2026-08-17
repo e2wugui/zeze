@@ -7,7 +7,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import demo.Module1.BValue;
 import org.junit.After;
@@ -33,7 +33,7 @@ public class TestLostRedo {
 		App.Instance.Zeze.newProcedure(TestLostRedo::clear, "clear").call();
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
-			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::write, "write")));
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::write, "write")).runUnsafe());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();
@@ -73,7 +73,7 @@ public class TestLostRedo {
 		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
-			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")));
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")).runUnsafe());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();
@@ -111,7 +111,7 @@ public class TestLostRedo {
 		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < count; ++i) {
-			futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")));
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")).runUnsafe());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();

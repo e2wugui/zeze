@@ -5,10 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SQLStatement;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRelationalMapping;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -79,8 +78,8 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		Simulate.getInstance().RunningTasks.add(task.IsProcedure()
-				? Task.runUnsafe(app.Zeze.newProcedure(task, name), DispatchMode.Normal)
-				: Task.runUnsafe(task::call, name, DispatchMode.Normal));
+				? TaskSpec.ofProcedure(app.Zeze.newProcedure(task, name)).runUnsafe()
+				: TaskSpec.ofAction(task::call).name(name).runUnsafe());
 		}
 
 	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {

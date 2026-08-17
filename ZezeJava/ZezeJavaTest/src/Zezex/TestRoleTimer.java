@@ -26,6 +26,7 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -503,13 +504,13 @@ public class TestRoleTimer {
 			for (var loginI = 0; loginI < clientCount; ++loginI) {
 				var client = clients.get(loginI);
 				int finalLoginI = loginI;
-				loginFutures.add(Task.runUnsafe(() -> {
+				loginFutures.add(TaskSpec.ofAction(() -> {
 					auth(client.onLinkConnectedFuture.get(), client, "account" + finalLoginI);
 					var role = getRole(client);
 					var roleId = null != role ? role.getId() : createRole(client, "role" + finalLoginI);
 					login(client, roleId);
 					loginRoleIds.add(roleId);
-				}, "login"));
+				}).name("login").runUnsafe());
 
 				// 为了防止Task把线程全部占完，造成线程饥饿，这里每150个任务就等待完成一次。
 				if ((loginI + 1) % 150 == 0) {
@@ -529,7 +530,7 @@ public class TestRoleTimer {
 
 			for (var roleId : loginRoleIds) {
 				var idSet = batchContext.computeIfAbsent(roleId, (k) -> new ConcurrentHashSet<>());
-				Task.run(server0.Zeze.newProcedure(() -> {
+				TaskSpec.ofProcedure(server0.Zeze.newProcedure(() -> {
 					// 每个角色创建timer。
 					for (var i = 0; i < 10; ++i) {
 						idSet.add(i); // 本来应该事务成功，不过这个目前没有失败的，先这样。
@@ -539,7 +540,7 @@ public class TestRoleTimer {
 							TimerBatch.class, new ContextBatch(roleId, i));
 					}
 					return Procedure.Success;
-				}, "scheduleOnlineN"));
+				}, "scheduleOnlineN")).run();
 			}
 			if (!loginRoleIds.isEmpty())
 				batchFuture.await();

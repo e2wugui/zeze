@@ -11,6 +11,7 @@ import Zeze.Dbh2.Dbh2Manager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.junit.Assert;
 import org.junit.Test;
 import Zeze.Transaction.Database.AbstractKVTable;
@@ -26,7 +27,7 @@ public class Dbh2FullTest {
 	}
 
 	private static Future<?> startBench(int keyStart, int keyEnd, Database database, AbstractKVTable table, ByteBuffer value) {
-		return Task.runUnsafe(() -> {
+		return TaskSpec.ofAction(() -> {
 			for (int i = keyStart; i < keyEnd; ++i) {
 				try (var trans = database.beginTransaction()) {
 					var key = ByteBuffer.Allocate();
@@ -35,7 +36,7 @@ public class Dbh2FullTest {
 					trans.commit();
 				}
 			}
-		}, "");
+		}).name("").runUnsafe();
 	}
 
 	@Test

@@ -1,10 +1,9 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,7 +41,7 @@ public class TestProcedureRedo {
 		}, "TestProcedureRedoFirst").call();
 
 		var outLong2 = new OutLong();
-		var ftask1 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(() -> {
+		var ftask1 = TaskSpec.ofProcedure(App.getInstance().Zeze.newProcedure(() -> {
 
 			counter += 1;
 			System.out.println("task1 counter " + counter);
@@ -58,9 +57,9 @@ public class TestProcedureRedo {
 			});
 			return Procedure.Success;
 
-		}, "TestProcedureRedoTask1"), DispatchMode.Normal);
+		}, "TestProcedureRedoTask1")).runUnsafe();
 
-		var ftask2 = Task.runUnsafe(App.getInstance().Zeze.newProcedure(() -> {
+		var ftask2 = TaskSpec.ofProcedure(App.getInstance().Zeze.newProcedure(() -> {
 
 			Thread.sleep(100);
 			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
@@ -74,7 +73,7 @@ public class TestProcedureRedo {
 			Transaction.whileCommit(() -> System.out.println("task2 suss"));
 			return Procedure.Success;
 
-		}, "TestProcedureRedoTask2"), DispatchMode.Normal);
+		}, "TestProcedureRedoTask2")).runUnsafe();
 
 		ftask2.get();
 		ftask1.get();

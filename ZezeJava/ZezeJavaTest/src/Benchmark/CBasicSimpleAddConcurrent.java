@@ -2,7 +2,6 @@ package Benchmark;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Util.PerfCounter;
 import demo.App;
 import junit.framework.TestCase;
@@ -25,7 +24,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
 				final int c = i % ConcurrentLevel;
-				tasks.add(Zeze.Util.Task.runUnsafe(App.Instance.Zeze.newProcedure(() -> Add(c), "Add"), DispatchMode.Normal));
+				tasks.add(Zeze.Util.TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> Add(c), "Add")).runUnsafe());
 				if ((i+1) % 200 == 0) {
 					for (var task : tasks)
 						task.get();

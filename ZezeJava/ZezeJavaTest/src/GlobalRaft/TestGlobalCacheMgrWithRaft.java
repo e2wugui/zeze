@@ -12,12 +12,12 @@ import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaft;
 import Zeze.Services.ServiceManagerServer;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -221,7 +221,7 @@ public class TestGlobalCacheMgrWithRaft {
 			globalRafts[2].Start();
 		}));
 
-		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
+		TaskSpec.ofAction(this::RandomTriggerFailActions).name("RandomTriggerFailActions").run();
 
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = ExpectCount.get();
@@ -281,15 +281,15 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicInteger finalCount1 = new AtomicInteger();
 		AtomicInteger finalCount2 = new AtomicInteger();
 
-		task2[0] = Zeze.Util.Task.runUnsafe(App1.Zeze.newProcedure(() -> {
+		task2[0] = TaskSpec.ofProcedure(App1.Zeze.newProcedure(() -> {
 			finalCount1.set(TestConcurrency(App1, count, 1));
 			return Procedure.Success;
-		}, testName), DispatchMode.Normal);
+		}, testName)).runUnsafe();
 
-		task2[1] = Zeze.Util.Task.runUnsafe(App2.Zeze.newProcedure(() -> {
+		task2[1] = TaskSpec.ofProcedure(App2.Zeze.newProcedure(() -> {
 			finalCount2.set(TestConcurrency(App2, count, 2));
 			return Procedure.Success;
-		}, testName), DispatchMode.Normal);
+		}, testName)).runUnsafe();
 
 		try {
 			task2[0].get();
@@ -308,13 +308,13 @@ public class TestGlobalCacheMgrWithRaft {
 	private static int TestConcurrency(App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; i++) {
-			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
+			tasks[i] = TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
 				v.setInt_1(v.getInt_1() + 1);
 
 				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt_1(), System.currentTimeMillis());
 				return Procedure.Success;
-			}, "doConcurrency" + appId), DispatchMode.Normal);
+			}, "doConcurrency" + appId)).runUnsafe();
 
 //			app.Zeze.NewProcedure(() -> {
 //				var v = app.demo_Module1.getTable1().getOrAdd(99L);

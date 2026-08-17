@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Services.ServiceManager.EditService;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
@@ -102,8 +101,8 @@ public class TestGlobal extends TestCase {
 			@SuppressWarnings("unchecked")
 			Future<Long>[] task2 = new Future[2];
 			int count = 2000;
-			task2[0] = Zeze.Util.Task.runUnsafe(() -> (long)ConcurrentAdd(app1, count, 1), null);
-			task2[1] = Zeze.Util.Task.runUnsafe(() -> (long)ConcurrentAdd(app2, count, 2), null);
+			task2[0] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app1, count, 1)).runUnsafe();
+			task2[1] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app2, count, 2)).runUnsafe();
 			long success0 = 0;
 			long success1 = 0;
 			try {
@@ -138,14 +137,14 @@ public class TestGlobal extends TestCase {
 		@SuppressWarnings("unchecked")
 		Future<Long>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
-			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.newProcedure(() -> {
+			tasks[i] = Zeze.Util.TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> {
 				BValue b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt_1(b.getInt_1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
 				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);
 				return Procedure.Success;
-			}, "ConcurrentAdd" + appId), DispatchMode.Normal);
+			}, "ConcurrentAdd" + appId)).runUnsafe();
 		}
 		int success = 0;
 		for (Future<Long> task : tasks) {

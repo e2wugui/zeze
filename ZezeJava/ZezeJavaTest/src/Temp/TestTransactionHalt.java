@@ -11,7 +11,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +30,7 @@ public class TestTransactionHalt {
 		r3.setInt_1(r3.getInt_1() + 1);
 		Transaction.whileCommit(() -> {
 			counter.increment();
-			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
+			TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add")).run();
 		});
 		return 0L;
 	}
@@ -93,13 +93,13 @@ public class TestTransactionHalt {
 			};
 		}
 		for (int i = 0; i < PROC_CONC; i++)
-			Task.run(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add"));
+			TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(TestTransactionHalt::add, "add")).run();
 
-		Task.scheduleUnsafe(1000, () -> {
+		TaskSpec.ofAction(() -> {
 			System.out.println("transactions: " + counter.sum());
 			LogManager.shutdown();
 			Runtime.getRuntime().halt(0);
-		});
+		}).scheduleUnsafe(1000);
 
 		Thread.sleep(Integer.MAX_VALUE);
 	}

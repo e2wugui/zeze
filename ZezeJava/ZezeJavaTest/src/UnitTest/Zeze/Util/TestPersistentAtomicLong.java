@@ -1,10 +1,10 @@
 package UnitTest.Zeze.Util;
 
-import Zeze.Transaction.DispatchMode;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,8 +18,8 @@ public class TestPersistentAtomicLong extends TestCase {
 		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
 		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
 		var jobs = new ArrayList<Future<?>>();
-		jobs.add(Task.runUnsafe(() -> Alloc(p1), "Alloc1", DispatchMode.Normal));
-		jobs.add(Task.runUnsafe(() -> Alloc(p2), "Alloc2", DispatchMode.Normal));
+		jobs.add(TaskSpec.ofAction(() -> Alloc(p1)).name("Alloc1").runUnsafe());
+		jobs.add(TaskSpec.ofAction(() -> Alloc(p2)).name("Alloc2").runUnsafe());
 		Task.waitAll(jobs);
 	}
 

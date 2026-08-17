@@ -1,7 +1,6 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import demo.App;
 import org.junit.After;
@@ -25,13 +24,12 @@ public class TestTransactionLevelSerializable {
 	@Test
 	public final void Test2() {
 		App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::init, "test_init").call();
-		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
+		Zeze.Util.TaskSpec.ofAction(this::verify_task).name("verify_task").run();
 		try {
 			Future<?>[] tasks = new Future[20000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.runUnsafe(
-						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade"),
-						DispatchMode.Normal);
+				tasks[i] = Zeze.Util.TaskSpec.ofProcedure(
+						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade")).runUnsafe();
 			}
 			Zeze.Util.Task.waitAll(tasks);
 		} finally {

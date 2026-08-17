@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TaskOneByOneByKey2;
 import org.junit.Test;
 
@@ -132,10 +133,10 @@ public class TestTaskOneByOne {
 		var taskAwaiter = new CountDownLatch(exeCount);
 		for (int i = 0; i < concurrency; i++)
 			runCyclicBarrier(oo, taskCounter, taskAwaiter);
-		var f = Task.scheduleUnsafe(60_000, () -> {
+		var f = TaskSpec.ofAction(() -> {
 			System.out.println("taskIds: " + taskIds);
 			System.out.println("dump:\n" + oo);
-		});
+		}).scheduleUnsafe(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
 		b.report("TestTaskOneByOne.testCyclicBarrier", exeCount);
@@ -169,10 +170,10 @@ public class TestTaskOneByOne {
 		var taskAwaiter = new CountDownLatch(exeCount);
 		for (int i = 0; i < concurrency; i++)
 			runCyclicBarrier(oo, taskCounter, taskAwaiter);
-		var f = Task.scheduleUnsafe(60_000, () -> {
+		var f = TaskSpec.ofAction(() -> {
 			System.out.println("taskIds: " + taskIds);
 			System.out.println("dump:\n" + oo);
-		});
+		}).scheduleUnsafe(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
 		b.report("TestTaskOneByOne.testCyclicBarrier2", exeCount);

@@ -8,7 +8,7 @@ import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Collections.PSet1;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.StableRandom;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.Bean1;
 import demo.Module1.BFood;
 import demo.Module1.BItem;
@@ -80,7 +80,7 @@ public class CoverHistory {
 	public Future<?> submitTasks(int i) {
 		var seed = randSeed.nextLong();
 		//logger.info("submitTasks: seed={}", s);
-		return Task.runUnsafe(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob"));
+		return TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")).runUnsafe();
 	}
 
 	public static StableRandom getRandom() {

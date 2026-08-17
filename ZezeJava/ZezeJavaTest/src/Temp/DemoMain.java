@@ -8,6 +8,7 @@ import Zeze.Component.AutoKey;
 import Zeze.Transaction.Bean;
 import Zeze.Util.StableRandom;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,11 +68,11 @@ public class DemoMain {
 		for (int i = 0; i < 100; i += 3) {
 			var s = seed++;
 			var seed2 = s ^ i;
-			futures.add(Task.runUnsafe(() -> {
+			futures.add(TaskSpec.ofAction(() -> {
 				var r = StableRandom.local();
 				r.setSeed(seed2);
 				System.out.println(r.nextLong(65536));
-			}, "runUnsafe"));
+			}).name("runUnsafe").runUnsafe());
 		}
 		for (var future : futures)
 			future.get();

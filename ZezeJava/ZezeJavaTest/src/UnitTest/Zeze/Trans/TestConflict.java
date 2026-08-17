@@ -2,7 +2,6 @@ package UnitTest.Zeze.Trans;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
-import Zeze.Transaction.DispatchMode;
 import demo.Module1.BValue;
 import org.junit.After;
 import org.junit.Assert;
@@ -29,9 +28,8 @@ public class TestConflict {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcRemove, "ProcRemove").call());
 		var tasks = new ArrayList<Future<?>>();
 		for (int i = 0; i < 2000; ++i) {
-			tasks.add(Zeze.Util.Task.runUnsafe(
-					demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcAdd, "ProcAdd"),
-					DispatchMode.Normal));
+			tasks.add(Zeze.Util.TaskSpec.ofProcedure(
+					demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcAdd, "ProcAdd")).runUnsafe());
 			if ((i + 1) % 200 == 0) {
 				for (Future<?> task : tasks)
 					task.get();

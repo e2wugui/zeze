@@ -4,7 +4,7 @@ import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import Zeze.Transaction.TableX;
 import Zeze.Util.OutInt;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import demo.Bean1;
 import org.junit.Assert;
@@ -33,49 +33,49 @@ public class TestMemoryTable {
 	public static void test(boolean checkpoint1, boolean checkpoint2) throws Exception {
 		var ref = new SoftReference<>(new OutInt(1234));
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get0"));
+		}, "get0")).call();
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.tMemorySize().put(123L, new Bean1(1));
 			App.Instance.demo_Module1.tMemorySize().put(456L, new Bean1(2));
 //			App.Instance.demo_Module1.getTable5().put(123L, new BValue(1));
 			return 0L;
-		}, "put"));
+		}, "put")).call();
 
 		Assert.assertEquals(2, App.Instance.demo_Module1.tMemorySize().getCacheSize());
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get1"));
+		}, "get1")).call();
 
 		if (checkpoint1)
 			App.Instance.Zeze.checkpointRun();
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get2"));
+		}, "get2")).call();
 
 		callNewLruHot(App.Instance.demo_Module1.tMemorySize());
 		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
 		//Thread.sleep(12000); // wait cache clean
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get3"));
+		}, "get3")).call();
 
 		try {
 			//noinspection MismatchedQueryAndUpdateOfCollection
@@ -88,38 +88,38 @@ public class TestMemoryTable {
 
 		Assert.assertNull(ref.get());
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNotNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get4"));
+		}, "get4")).call();
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.tMemorySize().remove(123L);
 			App.Instance.demo_Module1.tMemorySize().remove(456L);
 //			App.Instance.demo_Module1.getTable5().remove(123L);
 			return 0L;
-		}, "remove"));
+		}, "remove")).call();
 
 		Assert.assertEquals(0, App.Instance.demo_Module1.tMemorySize().getCacheSize());
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get5"));
+		}, "get5")).call();
 
 		if (checkpoint2)
 			App.Instance.Zeze.checkpointRun();
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get6"));
+		}, "get6")).call();
 
 		callNewLruHot(App.Instance.demo_Module1.tMemorySize());
 		App.Instance.demo_Module1.tMemorySize().getCache().cleanNow();
@@ -127,11 +127,11 @@ public class TestMemoryTable {
 
 		Assert.assertEquals(0, App.Instance.demo_Module1.tMemorySize().getCacheSize());
 
-		Task.call(App.Instance.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(123L));
 			Assert.assertNull(App.Instance.demo_Module1.tMemorySize().get(456L));
 //			System.out.println(App.Instance.demo_Module1.getTable5().get(123L));
 			return 0L;
-		}, "get7"));
+		}, "get7")).call();
 	}
 }

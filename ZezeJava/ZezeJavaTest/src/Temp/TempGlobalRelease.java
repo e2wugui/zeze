@@ -6,7 +6,7 @@ import java.util.concurrent.Future;
 import Zeze.Services.Daemon;
 import Zeze.Transaction.GlobalAgentBase;
 import Zeze.Util.Benchmark;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 
 public class TempGlobalRelease {
@@ -22,10 +22,10 @@ public class TempGlobalRelease {
 				var prepareFutures = new ArrayList<Future<?>>();
 				for (var i = 0; i < eRecordCountPerTable; ++i) {
 					var key = (long)i;
-					prepareFutures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(() -> {
+					prepareFutures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 						App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(1L);
 						return 0;
-					}, "prepare data")));
+					}, "prepare data")).runUnsafe());
 				}
 				for (var future : prepareFutures)
 					future.get();

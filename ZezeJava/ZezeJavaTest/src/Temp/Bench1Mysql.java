@@ -28,7 +28,7 @@ public class Bench1Mysql {
 			for (int i = 0; i < threads; ++i) {
 				var startKey = i * count;
 				var endKey = startKey + count;
-				futures.add(Zeze.Util.Task.runUnsafe(() -> {
+				futures.add(Zeze.Util.TaskSpec.ofAction(() -> {
 					var b = new Zeze.Util.Benchmark();
 					try (var conn = dataSource.getConnection()) {
 						conn.setAutoCommit(true);
@@ -42,7 +42,7 @@ public class Bench1Mysql {
 						}
 					}
 					b.report("mysql replace bench", count);
-				}, "mysql replace"));
+				}).name("mysql replace").runUnsafe());
 			}
 			for (var future : futures)
 				future.get();

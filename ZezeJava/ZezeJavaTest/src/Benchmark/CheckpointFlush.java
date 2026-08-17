@@ -5,7 +5,7 @@ import java.util.concurrent.Future;
 import Zeze.Config;
 import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Util.PerfCounter;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.Test;
 
@@ -45,10 +45,10 @@ public class CheckpointFlush {
 			var futures = new ArrayList<Future<?>>();
 			for (int i = 0; i < count; ++i) {
 				long key = i;
-				futures.add(Task.runUnsafe(App.Instance.Zeze.newProcedure(() -> {
+				futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 					App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(key);
 					return 0;
-				}, "modify")));
+				}, "modify")).runUnsafe());
 				if ((i+1) % 100 == 0) {
 					for (var task : futures)
 						task.get();
