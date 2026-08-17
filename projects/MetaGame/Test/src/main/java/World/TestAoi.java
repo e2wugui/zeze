@@ -18,7 +18,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Vector3;
 import Zeze.Transaction.Data;
 import Zeze.Util.Benchmark;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import metagame.World.Mmo.AoiSimple;
 import metagame.World.Cube;
 import metagame.World.CubeIndex;
@@ -133,7 +133,7 @@ public class TestAoi {
 
 				aoi.enter(entity);
 
-				players.add(Task.runUnsafe(() -> {
+				players.add(TaskSpec.ofAction(() -> {
 					while (testRunning) {
 						var rLock = globalRWLock.readLock();
 						try {
@@ -148,7 +148,7 @@ public class TestAoi {
 							rLock.unlock();
 						}
 					}
-				}, ""));
+				}).name("").runUnsafe());
 			}
 		}
 

@@ -13,7 +13,7 @@ import Zeze.Collections.LinkedMap;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.rocksdb.RocksDBException;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,8 +61,8 @@ public class TaskImpl {
 			task.setTaskState(TaskModule.eTaskDone);
 			if (task.isAutoFinish()) {
 				// 自动完成任务在新的事务中执行，可能发生包裹满而失败。
-				Task.run(module.getOnline().getProviderApp().zeze.newProcedure(
-						() -> finishTask(module, roleId, task.getTaskId()), "autoFinishTask"));
+				TaskSpec.ofProcedure(module.getOnline().getProviderApp().zeze.newProcedure(
+						() -> finishTask(module, roleId, task.getTaskId()), "autoFinishTask")).run();
 				return; // done;
 			}
 		}

@@ -63,8 +63,8 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 	@Override
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-		Zeze.Util.Task.run(Demo.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
-				"CalculateFighter"), null, null, DispatchMode.Normal);
+		Zeze.Util.TaskSpec.ofProcedure(Demo.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
+				"CalculateFighter")).run();
 	}
 
 	@Override

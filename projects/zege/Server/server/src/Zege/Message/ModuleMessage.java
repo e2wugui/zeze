@@ -59,7 +59,7 @@ public class ModuleMessage extends AbstractModule {
     @Override
     @TransactionLevelAnnotation(Level=TransactionLevel.None)
     protected long ProcessSendDepartmentMessageRequest(Zege.Message.SendDepartmentMessage r) throws Exception {
-        var ret = Zeze.Util.Task.call(App.Zeze.newProcedure(() -> saveDepartmentMessage(r), "saveDepartmentMessage"));
+        var ret = Zeze.Util.TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> saveDepartmentMessage(r), "saveDepartmentMessage")).call();
         if (ret != 0)
             return ret;
 
