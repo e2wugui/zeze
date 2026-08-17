@@ -161,7 +161,7 @@ public class TestRoleTimer {
 			var timerRole0 = timer0.getRoleTimer();
 			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, -1, -1, -1, NullCustomDataHandle.class, null);
-				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1), NullCustomDataHandle.class);
+				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1), NullCustomDataHandle.class, null);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			timerFuture.get();
