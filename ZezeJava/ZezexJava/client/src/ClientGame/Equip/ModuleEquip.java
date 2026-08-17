@@ -3,7 +3,7 @@ package ClientGame.Equip;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.IModule;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 public class ModuleEquip extends AbstractModule {
 	final AtomicInteger sendHot = new AtomicInteger();
@@ -40,9 +40,9 @@ public class ModuleEquip extends AbstractModule {
 	Future<?> timerSendHotAdd;
 
 	public void startTimer() {
-		timerSendHot = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHot);
-		timerSendHotRemove = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotRemove);
-		timerSendHotAdd = Task.scheduleUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000, this::testSendHotAdd);
+		timerSendHot = TaskSpec.ofAction(this::testSendHot).scheduleWithPeriodUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
+		timerSendHotRemove = TaskSpec.ofAction(this::testSendHotRemove).scheduleWithPeriodUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
+		timerSendHotAdd = TaskSpec.ofAction(this::testSendHotAdd).scheduleWithPeriodUnsafe(Zeze.Util.Random.getInstance().nextLong(5000), 5000);
 	}
 
 	public void reportLogin(long roleId) {

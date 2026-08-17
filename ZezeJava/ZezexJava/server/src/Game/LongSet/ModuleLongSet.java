@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 import Zeze.Component.AutoKey;
 import Zeze.Hot.HotService;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -133,10 +134,10 @@ public class ModuleLongSet extends AbstractModule implements IModuleLongSet {
 				final var breakNow = new Zeze.Util.OutObject<Boolean>();
 				breakNow.value = false;
 
-				if (0L != Zeze.Util.Task.call(App.Zeze.newProcedure(() -> {
+				if (0L != TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 					breakNow.value = func1.test(e);
 					return 0L;
-				}, "_foreach.callback")))
+				}, "_foreach.callback")).call())
 					break;
 
 				if (breakNow.value)

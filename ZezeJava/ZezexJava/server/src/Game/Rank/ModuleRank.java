@@ -17,7 +17,7 @@ import Zeze.Serialize.IByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -68,14 +68,14 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 	@RedirectHash(version = 2) // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
-		Task.run(App.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 			TestHashResult result = new TestHashResult();
 			result.setHash(hash);
 			result.setOut(in);
 			result.setServerId(App.Zeze.getConfig().getServerId());
 			f.setResult(result); // 异步完成
 			return Procedure.Success;
-		}, "TestHashAsync"), null, null, DispatchMode.Normal);
+		}, "TestHashAsync")).run();
 		return f;
 	}
 
@@ -95,12 +95,12 @@ public class ModuleRank extends AbstractModule implements IModuleRank {
 		case 4: // local async
 		case 5: // remote async
 			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在future.asyncResult()时回复结果
-			Task.run(App.Zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 				var result1 = new TestToAllResult();
 				result1.out = in;
 				future.asyncResult(result1);
 				return Procedure.Success;
-			}, "TestToAllAsync"), null, null, DispatchMode.Normal);
+			}, "TestToAllAsync")).run();
 			return future;
 		}
 		throw new UnsupportedOperationException();

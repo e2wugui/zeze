@@ -2,6 +2,7 @@ package Game.Buf;
 
 import Game.*;
 import Game.Fight.IModuleFight;
+import Zeze.Util.TaskSpec;
 
 public class Bufs implements IBufs {
 	private final long RoleId;
@@ -53,7 +54,7 @@ public class Bufs implements IBufs {
 		// config: conflict 等
 		bean.getBufs().put(buf.getId(), buf.getBean());
 
-		Zeze.Util.Task.schedule(buf.getContinueTime(), () -> detach(buf.getId()));
+		TaskSpec.ofAction(() -> detach(buf.getId())).schedule(buf.getContinueTime());
 		// context 可以缓存，demo就不考虑了。
 		var context = App.Instance.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 		var fight = context.getService();

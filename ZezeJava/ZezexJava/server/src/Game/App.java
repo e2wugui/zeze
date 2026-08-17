@@ -18,7 +18,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
 public final class App extends Zeze.AppBase {
@@ -112,11 +112,11 @@ public final class App extends Zeze.AppBase {
 		ProviderApp.startLast(ProviderModuleBinds.load(), modules);
 
 		counterColdTimer = 0;
-		Task.call(Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
 			coldTimerId = Zeze.getTimer().schedule(2000, 2000, ColdTimer.class, new BKick());
 			//logger.info("XYZ Schedule={}", coldTimerId);
 			return 0;
-		}, "coldTimer"));
+		}, "coldTimer")).call();
 	}
 
 	String coldTimerId;
@@ -137,11 +137,11 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Exception {
-		Task.call(Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
 			//logger.info("XYZ Stop cancel={}", coldTimerId);
 			Zeze.getTimer().cancel(coldTimerId);
 			return 0;
-		}, "cancelColdTimer"));
+		}, "cancelColdTimer")).call();
 
 		if (Provider != null)
 			Provider.stop();

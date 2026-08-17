@@ -4,7 +4,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Arch.*;
 import Zeze.Util.Str;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,7 +57,7 @@ public final class ModuleLinkd extends AbstractModule {
 		res.Argument.setAccount("Response");
 		res.Send(p.getSender());
 		if (null == timer) {
-			timer = Task.scheduleUnsafe(1000, 1000, this::sendSc);
+			timer = TaskSpec.ofAction(this::sendSc).scheduleWithPeriodUnsafe(1000, 1000);
 			clientId = p.getSender().getSessionId();
 		}
 		return 0;

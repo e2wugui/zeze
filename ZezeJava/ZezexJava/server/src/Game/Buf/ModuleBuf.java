@@ -8,7 +8,7 @@ import Zeze.Hot.HotService;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Transaction.Collections.LogMap2;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -48,21 +48,21 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 		counterHotTimer = 0;
 		_tbufs.getChangeListenerMap().addListener(new BufChangeListener("Game.Buf.Bufs"));
 		var rand = Zeze.Util.Random.getInstance();
-		timerIdHot = Task.scheduleUnsafe(
-				rand.nextLong(3000) + 1000,
-				rand.nextLong(3000) + 1000,
+		timerIdHot = TaskSpec.ofAction(
 				() -> {
 					var module = App.Zeze.getHotManager().getModuleContext("Game.Equip", IModuleEquip.class);
 					var service = module.getService();
 					oldAccess = service.hotHelloWorld(oldAccess);
-				});
+				}).scheduleWithPeriodUnsafe(
+				rand.nextLong(3000) + 1000,
+				rand.nextLong(3000) + 1000);
 
-		Task.call(App.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 			hotTimerId = App.Zeze.getTimer().schedule(
 					rand.nextLong(3000) + 1000, rand.nextLong(3000) + 1000,
 					HotTimer.class, new BBuf());
 			return 0;
-		}, "hotTimer"));
+		}, "hotTimer")).call();
 	}
 
 	int oldAccess = 0;
@@ -84,10 +84,10 @@ public class ModuleBuf extends AbstractModule implements IModuleBuf {
 			timerIdHot.cancel(true);
 			timerIdHot = null;
 		}
-		Task.call(App.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 			App.Zeze.getTimer().cancel(hotTimerId);
 			return 0;
-		}, "hotTimer"));
+		}, "hotTimer")).call();
 	}
 
 	public final void Stop(App app) {

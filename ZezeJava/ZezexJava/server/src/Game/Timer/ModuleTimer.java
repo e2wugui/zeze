@@ -11,7 +11,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -26,7 +26,7 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	public void Start(Game.App app) throws Exception {
 		NodeIdGenerator = app.Zeze.getAutoKey("Game.Timer.NodeIdGenerator");
 		TimerIdGenerator = app.Zeze.getAutoKey("Game.Timer.TimerIdGenerator");
-		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
+		TaskSpec.ofAction(this::LoadTimerLocal).name("LoadTimerLocal").run();
 	}
 
 	public void Stop(Game.App app) throws Exception {
@@ -161,21 +161,23 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 
 	private void ScheduleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
 		if (period > 0) {
-			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, period, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			TimersLocal.put(timerId, TaskSpec.ofAction(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
+					.scheduleWithPeriodUnsafe(delay, period));
 		} else {
-			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			TimersLocal.put(timerId, TaskSpec.ofFunc0(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
+					.scheduleUnsafe(delay));
 		}
 	}
 
 	private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
 		var handle = TimerHandles.get(name);
 		if (handle != null) {
-			Task.call(App.Zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 				handle.run(timerId, name);
 				return 0L;
-			}, "TriggerTimerLocal"));
+			}, "TriggerTimerLocal")).call();
 		}
-		Task.call(App.Zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index != null) {
 				var node = _tNodes.get(index.getNodeId());
@@ -194,21 +196,21 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 				}
 			}
 			return 0L;
-		}, "AfterTriggerTimerLocal"));
+		}, "AfterTriggerTimerLocal")).call();
 		return 0L;
 	}
 
 	private long LoadTimerLocal() {
 		var serverId = App.Zeze.getConfig().getServerId();
 		final var out = new OutObject<BNodeRoot>();
-		Task.call(App.Zeze.newProcedure(() ->
+		TaskSpec.ofProcedure(App.Zeze.newProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
 			out.value = root.copy();
 			return 0L;
-		}, "LoadTimerLocal"));
+		}, "LoadTimerLocal")).call();
 		var root = out.value;
 
 		return LoadTimerLocal(root.getHeadNodeId(), root.getHeadNodeId(), serverId);
@@ -226,7 +228,7 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 		final var first = new OutLong();
 		final var last = new OutLong();
 
-		var result = Task.call(App.Zeze.newProcedure(() ->
+		var result = TaskSpec.ofProcedure(App.Zeze.newProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (src == null || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -254,7 +256,7 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 			src.setHeadNodeId(0L);
 			src.setTailNodeId(0L);
 			return 0L;
-		}, "SpliceAndLoadTimerLocal"));
+		}, "SpliceAndLoadTimerLocal")).call();
 
 		if (result == 0L) {
 			return LoadTimerLocal(first.value, last.value, serverId);
@@ -272,11 +274,11 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 			for (var timer : node.getTimers().values()) {
 				ScheduleLocal(serverId, timer.getTimerId(), first, timer.getDelay(), timer.getPeriod(), timer.getName());
 				if (serverId != App.Zeze.getConfig().getServerId()) {
-					Task.call(App.Zeze.newProcedure(() -> {
+					TaskSpec.ofProcedure(App.Zeze.newProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;
-					}, "SetTimerServerIdWhenLoadTimerLocal"));
+					}, "SetTimerServerIdWhenLoadTimerLocal")).call();
 				}
 			}
 

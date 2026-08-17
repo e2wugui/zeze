@@ -9,6 +9,7 @@ import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -74,8 +75,8 @@ public final class ModuleFight extends AbstractModule implements IModuleFight {
 	@Override
 	public void StartCalculateFighter(long roleId) {
 		BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-		Zeze.Util.Task.run(Game.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
-				"CalculateFighter"), null, null, DispatchMode.Normal);
+		TaskSpec.ofProcedure(Game.App.getInstance().Zeze.newProcedure(() -> CalculateFighter(fighterId),
+				"CalculateFighter")).run();
 	}
 
 	@Override

@@ -13,7 +13,7 @@ import Zeze.Services.ReloadClassServer;
 import Zeze.Services.RunClassServer;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -90,7 +90,7 @@ public final class App extends Zeze.AppBase {
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
 
-		Task.schedule(2000, 2000, HotReloadTest::print);
+		TaskSpec.ofAction(HotReloadTest::print).scheduleWithPeriod(2000, 2000);
 	}
 
 	public void Stop() throws Exception {
