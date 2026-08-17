@@ -292,6 +292,8 @@ public final class Task {
 		return new ThreadDiagnosable.Critical(critical);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void call(@NotNull Action0 action, @Nullable String name) {
 		callActionCore(action, name);
 	}
@@ -310,6 +312,8 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable String name) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		try {
@@ -335,28 +339,40 @@ public final class Task {
 			action.run();
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name) {
 		runTxnAware(null, () -> executeUnsafeActionCore(action, name, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
 		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, timeout));
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name) {
 		return runUnsafe(action, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                           @Nullable DispatchMode mode) {
 		return runUnsafe(action, name, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                           @Nullable DispatchMode mode, long timeout) {
 		return runUnsafeActionCore(action, name, mode, timeout);
@@ -401,15 +417,21 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name) {
 		executeUnsafe(action, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                 @Nullable DispatchMode mode) {
 		executeUnsafe(action, name, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                 @Nullable DispatchMode mode, long timeout) {
 		executeUnsafeActionCore(action, name, mode, timeout);
@@ -451,18 +473,26 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action) {
 		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
 		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, timeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
 		return scheduleActionCore(initialDelay, action, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
 		return scheduleActionCore(initialDelay, action, timeout);
 	}
@@ -482,10 +512,14 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
 		return scheduleFunc0Core(initialDelay, func, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
 		return scheduleFunc0Core(initialDelay, func, timeout);
 	}
@@ -506,27 +540,39 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void scheduleAt(int hour, int minute, @NotNull Action0 action) {
 		scheduleAt(hour, minute, -1, action);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
 		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
 		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, timeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, @NotNull Action0 action) {
 		return scheduleAtUnsafe(hour, minute, -1, action);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action) {
 		return scheduleAtCore(hour, minute, period, action, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action, long timeout) {
 		return scheduleAtCore(hour, minute, period, action, timeout);
@@ -547,18 +593,26 @@ public final class Task {
 		return scheduleActionCore(delay, action, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
 		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
 		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, timeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
 		return schedulePeriodCore(initialDelay, period, action, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
 	                                                     long timeout) {
 		return schedulePeriodCore(initialDelay, period, action, timeout);
@@ -651,10 +705,14 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return call(func, p, null, null);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		return call(func, p, actionWhenError, null);
@@ -669,6 +727,8 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                        @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		return callFuncCore(func, p, actionWhenError, aName);
@@ -713,52 +773,72 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, null, null, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
 		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode) {
 		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode, long timeout) {
 		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return runUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		return runUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                              @Nullable DispatchMode mode) {
 		return runUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                              @Nullable DispatchMode mode, long timeout) {
@@ -784,26 +864,36 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		executeUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError) {
 		executeUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, String aName) {
 		executeUnsafe(func, p, actionWhenError, aName, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                 @Nullable DispatchMode mode) {
 		executeUnsafe(func, p, actionWhenError, aName, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                 @Nullable DispatchMode mode, long timeout) {
@@ -827,14 +917,20 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull Procedure procedure) {
 		return call(procedure, (Protocol<?>)null, null);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		return call(procedure, from, null);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		return callProcCore(procedure, from, actionWhenError);
@@ -865,6 +961,8 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static long call(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                        @Nullable ProtocolErrorHandle actionWhenError) {
 		return callProcOutCore(procedure, outProtocol, actionWhenError);
@@ -896,52 +994,74 @@ public final class Task {
 		}
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Procedure procedure) {
 		runTxnAware(null, () -> executeUnsafeProcCore(procedure, null, null, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, null, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
 		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
 		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, timeout));
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure) {
 		return runUnsafe(procedure, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		return runUnsafe(procedure, from, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                              @Nullable ProtocolErrorHandle actionWhenError) {
 		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode, long timeout) {
@@ -967,6 +1087,8 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
 	                                              @NotNull OutObject<Protocol<?>> outProtocol,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
@@ -974,6 +1096,8 @@ public final class Task {
 		return runUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure,
 	                                              @NotNull OutObject<Protocol<?>> outProtocol,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
@@ -1001,28 +1125,40 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure) {
 		executeUnsafe(procedure, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
 		executeUnsafe(procedure, from, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                 @Nullable ProtocolErrorHandle actionWhenError) {
 		executeUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, from, actionWhenError, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
@@ -1046,11 +1182,15 @@ public final class Task {
 		});
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, outProtocol, actionWhenError, mode, defaultTimeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
@@ -1075,81 +1215,117 @@ public final class Task {
 	}
 
 	// RpcResponse 族与普通族（call 核参数为 null 时）完全等价，这里直接委托普通族。
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull Procedure procedure) {
 		run(procedure);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		run(procedure, null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull Procedure procedure, @Nullable DispatchMode mode, long timeout) {
 		run(procedure, null, null, mode, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		run(func, p);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode) {
 		run(func, p, null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void runRpcResponse(@NotNull FuncLong func, @Nullable Protocol<?> p, @Nullable DispatchMode mode,
 	                                  long timeout) {
 		run(func, p, null, null, mode, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure) {
 		return runUnsafe(procedure);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
 	                                                         @Nullable DispatchMode mode) {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull Procedure procedure,
 	                                                         @Nullable DispatchMode mode, long timeout) {
 		return runUnsafe(procedure, (Protocol<?>)null, null, mode, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		return runUnsafe(func, p);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                                         @Nullable DispatchMode mode) {
 		return runUnsafe(func, p, null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static @NotNull Future<Long> runRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                                         @Nullable DispatchMode mode, long timeout) {
 		return runUnsafe(func, p, null, null, mode, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure) {
 		executeUnsafe(procedure);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeUnsafe(procedure, (Protocol<?>)null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull Procedure procedure, @Nullable DispatchMode mode,
 	                                            long timeout) {
 		executeUnsafe(procedure, (Protocol<?>)null, null, mode, timeout);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p) {
 		executeUnsafe(func, p);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                            @Nullable DispatchMode mode) {
 		executeUnsafe(func, p, null, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	@Deprecated
 	public static void executeRpcResponseUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                            @Nullable DispatchMode mode, long timeout) {
 		executeUnsafe(func, p, null, null, mode, timeout);
