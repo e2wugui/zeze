@@ -29,6 +29,7 @@ import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -124,7 +125,7 @@ public class Test {
 		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
 		client.start();
 
-		Task.run(() -> {
+		TaskSpec.ofAction(() -> {
 			for (byte[] tmp = new byte[100]; ; ) {
 				try {
 					//noinspection ResultOfMethodCallIgnored
@@ -149,7 +150,7 @@ public class Test {
 					logger.error("Test._Run", ex);
 				}
 			}
-		}, "DumpWorker", DispatchMode.Normal);
+		}).name("DumpWorker").run();
 		try {
 			runTrace();
 		} finally {
@@ -319,7 +320,8 @@ public class Test {
 		{
 			var leader = getLeader();
 			leader.raft.getServer().stop();
-			Task.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax(), leader.raft.getServer()::start);
+			TaskSpec.ofAction(leader.raft.getServer()::start)
+					.schedule(leader.raft.getRaftConfig().getElectionTimeoutMax());
 		}
 		testConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
@@ -348,7 +350,7 @@ public class Test {
 			var leader = getLeader();
 			var StartDelay = leader.raft.getRaftConfig().getElectionTimeoutMax();
 			leader.stopRaft();
-			Task.schedule(StartDelay, leader::startRaft);
+			TaskSpec.ofAction(leader::startRaft).schedule(StartDelay);
 		}
 		testConcurrent("TestLeaderNodeRestartRaft", 1);
 
@@ -366,7 +368,7 @@ public class Test {
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		snapshotTimer = Task.scheduleUnsafe(60 * 1000, 60 * 1000, this::randomSnapshotTimer);
+		snapshotTimer = TaskSpec.ofAction(this::randomSnapshotTimer).scheduleWithPeriodUnsafe(60 * 1000, 60 * 1000);
 
 		setLogLevel(Level.INFO);
 
@@ -438,7 +440,7 @@ public class Test {
 			}
 		}));
 		// Start Background FailActions
-		Task.run(this::randomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
+		TaskSpec.ofAction(this::randomTriggerFailActions).name("RandomTriggerFailActions").run();
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = expectCount.get();
 		while (true) {

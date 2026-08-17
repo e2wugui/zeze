@@ -55,6 +55,7 @@ import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -860,10 +861,10 @@ public final class Application extends ReentrantLock {
 		lock();
 		try {
 			if (startState == StartState.eStarted && checkpointFuture == null)
-				checkpointFuture = Task.runUnsafe(() -> {
+				checkpointFuture = TaskSpec.ofAction(() -> {
 					checkpoint.runOnce();
 					checkpointFuture = null;
-				}, "CheckpointRunThread");
+				}).name("CheckpointRunThread").runUnsafe();
 		} finally {
 			unlock();
 		}

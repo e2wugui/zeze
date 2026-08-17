@@ -15,6 +15,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeAdaptedFund;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -151,7 +152,7 @@ public class AutoKey extends ReentrantLock {
 	 */
 	public boolean setSeed(long seed) {
 		try {
-			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				if (seed > bAutoKey.getNextId()) {
@@ -159,7 +160,7 @@ public class AutoKey extends ReentrantLock {
 					return 0;
 				}
 				return Procedure.LogicError;
-			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
+			}, "AutoKey.setSeed")).mode(DispatchMode.Critical).runUnsafe().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -173,12 +174,12 @@ public class AutoKey extends ReentrantLock {
 	@Deprecated // 仅用于测试
 	public boolean resetSeedUnsafe() {
 		try {
-			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				bAutoKey.setNextId(0);
 				return 0;
-			}, "AutoKey.setSeed"), DispatchMode.Critical).get();
+			}, "AutoKey.setSeed")).mode(DispatchMode.Critical).runUnsafe().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -194,7 +195,7 @@ public class AutoKey extends ReentrantLock {
 		if (delta <= 0)
 			return false;
 		try {
-			return Procedure.Success == Task.runUnsafe(module.zeze.newProcedure(() -> {
+			return Procedure.Success == TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				var newSeed = bAutoKey.getNextId() + delta;
@@ -204,7 +205,7 @@ public class AutoKey extends ReentrantLock {
 				}
 				// 溢出
 				return Procedure.LogicError;
-			}, "AutoKey.increaseSeed"), DispatchMode.Critical).get();
+			}, "AutoKey.increaseSeed")).mode(DispatchMode.Critical).runUnsafe().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -219,12 +220,12 @@ public class AutoKey extends ReentrantLock {
 		long ret;
 		try {
 			var result = new OutLong();
-			ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+			ret = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 				var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				result.value = bAutoKey.getNextId();
 				return 0;
-			}, "AutoKey.getSeed"), DispatchMode.Critical).get();
+			}, "AutoKey.getSeed")).mode(DispatchMode.Critical).runUnsafe().get();
 			if (ret == Procedure.Success)
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
@@ -250,7 +251,7 @@ public class AutoKey extends ReentrantLock {
 				long ret;
 				try {
 					var newRange = new OutObject<Range>();
-					ret = Task.runUnsafe(module.zeze.newProcedure(() -> {
+					ret = TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 						Transaction.whileCommit(fund::next);
 
 						var seedKey = new BSeedKey(module.zeze.getConfig().getServerId(), name);
@@ -260,7 +261,7 @@ public class AutoKey extends ReentrantLock {
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;
-					}, "AutoKey.allocateSeeds"), DispatchMode.Critical).get();
+					}, "AutoKey.allocateSeeds")).mode(DispatchMode.Critical).runUnsafe().get();
 					if (ret == Procedure.Success) {
 						range = newRange.value;
 						continue;

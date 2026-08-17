@@ -12,6 +12,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeThrottle;
 import Zeze.Util.TimeThrottleCounter;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +66,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
-		this.allocateTimer = Task.scheduleUnsafe(1000L, 1000L, this::allocateTimer);
+		this.allocateTimer = TaskSpec.ofAction(this::allocateTimer).scheduleWithPeriodUnsafe(1000L, 1000L);
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 

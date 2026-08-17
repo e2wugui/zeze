@@ -27,7 +27,7 @@ import Zeze.Util.Json;
 import Zeze.Util.JsonWriter;
 import Zeze.Util.OutLong;
 import Zeze.Util.Str;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -259,11 +259,11 @@ public class DbWeb extends AbstractDbWeb {
 				keys.add(k);
 				return keys.size() < DELETE_BATCH_COUNT;
 			});
-			Task.call(zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				for (var key : keys)
 					table.remove(key);
 				return Procedure.Success;
-			}, "DbWeb.clearTable"));
+			}, "DbWeb.clearTable")).call();
 			if (batchCallback != null && !batchCallback.test(lastKey))
 				break;
 		} while (lastKey != null);

@@ -20,6 +20,7 @@ import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -259,8 +260,8 @@ public class ProviderService extends HandshakeClient {
 		if (p instanceof Dispatch d) {
 			//noinspection DataFlowIssue
 			getZeze().getTaskOneByOneByKey().Execute(d.Argument.getAccount(),
-					() -> Task.call(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p),
-							p, Protocol::trySendResultCode), factoryHandle.Mode);
+					() -> TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p))
+							.protocol(p).errorHandle(Protocol::trySendResultCode).call(), factoryHandle.Mode);
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}

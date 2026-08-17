@@ -25,7 +25,7 @@ import Zeze.Serialize.Serializable;
 import Zeze.Util.FastLock;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -200,7 +200,7 @@ public class Daemon {
 				pendingsLock.lock();
 				try {
 					if (timer == null) {
-						timer = Task.scheduleUnsafe(1000, 1000, () -> {
+						timer = TaskSpec.ofAction(() -> {
 							var now = System.currentTimeMillis();
 							for (var pending : pendings) {
 								if (now - pending.sendTime > 1000) {
@@ -208,7 +208,7 @@ public class Daemon {
 									pending.socket.send(pending.packet);
 								}
 							}
-						});
+						}).scheduleWithPeriodUnsafe(1000, 1000);
 						//noinspection DataFlowIssue
 						ShutdownHook.add(() -> timer.cancel(false));
 					}

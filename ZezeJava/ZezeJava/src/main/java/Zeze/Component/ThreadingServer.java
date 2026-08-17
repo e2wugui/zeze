@@ -19,7 +19,7 @@ import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManagerServer;
 import Zeze.Util.Action1;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,7 +42,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	public ThreadingServer(Service service, ServiceManagerServer.Conf conf) {
 		this.service = service;
 		this.conf = conf;
-		this.timeoutReleaseTask = Task.scheduleUnsafe(60_000, 60_000, this::timeoutRelease);
+		this.timeoutReleaseTask = TaskSpec.ofAction(this::timeoutRelease).scheduleWithPeriodUnsafe(60_000, 60_000);
 	}
 
 	public void close() {

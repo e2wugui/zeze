@@ -16,9 +16,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Func2;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Str;
-import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -52,7 +52,7 @@ public class CommitRocks {
 			logger.error("first try.", ex);
 		}
 		// 1 minute?
-		redoTimer = Task.scheduleUnsafe(60000, 60000, this::redoTimer);
+		redoTimer = TaskSpec.ofAction(this::redoTimer).scheduleWithPeriodUnsafe(60000, 60000);
 	}
 
 	private void redoTimer() throws RocksDBException {

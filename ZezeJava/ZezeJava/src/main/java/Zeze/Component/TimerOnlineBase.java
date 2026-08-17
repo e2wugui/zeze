@@ -14,7 +14,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -312,7 +312,7 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
 			var exist = timer().timerFutures.put(timerId,
-					Task.scheduleUnsafe(delay, () -> fireOnlineSimple(timerId, handle, false)));
+					TaskSpec.ofAction(() -> fireOnlineSimple(timerId, handle, false)).scheduleUnsafe(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -322,8 +322,9 @@ abstract class TimerOnlineBase<I> {
 										 @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = timer();
 		Transaction.whileCommit(() -> {
-			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-					() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			var exist = timer.timerFutures.put(timerId, TaskSpec
+					.ofAction(() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))
+					.scheduleUnsafe(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -350,7 +351,7 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
 			var exist = timer().timerFutures.put(timerId,
-					Task.scheduleUnsafe(delay, () -> fireOnlineCron(timerId, handle, false)));
+					TaskSpec.ofAction(() -> fireOnlineCron(timerId, handle, false)).scheduleUnsafe(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -360,8 +361,9 @@ abstract class TimerOnlineBase<I> {
 										   @NotNull Class<? extends TimerHandle> handleClass) {
 		var timer = timer();
 		Transaction.whileCommit(() -> {
-			var exist = timer.timerFutures.put(timerId, Task.scheduleUnsafe(delay,
-					() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true)));
+			var exist = timer.timerFutures.put(timerId, TaskSpec
+					.ofAction(() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true))
+					.scheduleUnsafe(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -389,10 +391,10 @@ abstract class TimerOnlineBase<I> {
 				var context = new TimerContext(timer(), timerId, handle.getClass().getName(), customData,
 						cronTimer.getHappenTimes(), cronTimer.getExpectedTime(), cronTimer.getNextExpectedTime());
 				fillContext(id, context);
-				return Task.call(zeze().newProcedure(() -> {
+				return TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 					handle.onTimer(context);
 					return Procedure.Success;
-				}, name() + ".fireOnlineCron.inner"));
+				}, name() + ".fireOnlineCron.inner")).call();
 			}
 
 			@Override
@@ -419,7 +421,7 @@ abstract class TimerOnlineBase<I> {
 			public long execute(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle) {
 				var simpleTimer = (BSimpleTimer)bTimer.getTimerObj();
 				SimpleTimerSpec.beforeCallSimpleTimer(simpleTimer, false);
-				return Task.call(zeze().newProcedure(() -> {
+				return TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 					Bean customData = null;
 					var localBean = getLocalTimers(id);
 					if (localBean != null) {
@@ -437,7 +439,7 @@ abstract class TimerOnlineBase<I> {
 					handle.onTimer(context);
 					simpleTimer.setNextExpectedTime(context.nextExpectedTimeMills);
 					return Procedure.Success;
-				}, name() + ".fireOnlineSimple.inner"));
+				}, name() + ".fireOnlineSimple.inner")).call();
 			}
 
 			@Override
@@ -470,7 +472,7 @@ abstract class TimerOnlineBase<I> {
 							@NotNull String kind, @NotNull FireKind<I> fireKind) {
 		var timer = timer();
 		var procSuffix = handle != null ? "." + handle.getClass().getName() : "";
-		var ret = Task.call(zeze().newProcedure(() -> {
+		var ret = TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 			if (handle == null) {
 				cancelOnlineLocal(timerId);
 				return 0;
@@ -511,14 +513,14 @@ abstract class TimerOnlineBase<I> {
 			else
 				cancelOnlineLocal(timerId);
 			return 0;
-		}, name() + ".fireOnline" + kind + procSuffix));
+		}, name() + ".fireOnline" + kind + procSuffix)).call();
 		// 上面的存储过程几乎处理了所有错误，正常情况下总是返回0（成功），下面这个作为最终保护。
 		if (ret != 0) {
-			Task.call(zeze().newProcedure(() -> {
+			TaskSpec.ofProcedure(zeze().newProcedure(() -> {
 				logger.info("cancel online {} timer for ret={}: {}", kind.toLowerCase(), ret, timerId);
 				cancelOnlineLocal(timerId);
 				return 0;
-			}, name() + " finally cancel impossible!"));
+			}, name() + " finally cancel impossible!")).call();
 		}
 	}
 }

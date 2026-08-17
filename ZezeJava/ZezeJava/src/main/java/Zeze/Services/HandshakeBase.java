@@ -23,7 +23,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Cert;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -313,11 +313,11 @@ public class HandshakeBase extends Service {
 			cHandShake.Argument.compressC2s = clientCompress(arg.compressC2s);
 			cHandShake.Send(so);
 
-			ctx.timeoutTask = Task.scheduleUnsafe(5000, () -> {
+			ctx.timeoutTask = TaskSpec.ofAction(() -> {
 				if (null != dhContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));
 				}
-			});
+			}).scheduleUnsafe(5000);
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			so.close(ex);
 		}

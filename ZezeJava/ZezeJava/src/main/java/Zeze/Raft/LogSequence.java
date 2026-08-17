@@ -22,6 +22,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDB;
@@ -196,7 +197,7 @@ public class LogSequence {
 		}
 
 		// 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
-		Task.run(() -> {
+		TaskSpec.ofAction(() -> {
 			try {
 				try (var it = newLogsIterator()) {
 					it.seekToFirst();
@@ -226,7 +227,7 @@ public class LogSequence {
 				removeLogBeforeFuture.setResult(false);
 				removeLogBeforeFuture = null;
 			}
-		}, "RemoveLogBefore" + index, DispatchMode.Normal);
+		}).name("RemoveLogBefore" + index).run();
 	}
 
 	/*
@@ -635,7 +636,7 @@ public class LogSequence {
 			applyFuture = new TaskCompletionSource<>();
 			Raft.executeImportantTask(() -> {
 				try {
-					applyFuture.setResult(Task.call(this::backgroundApply, "BackgroundApply") == 0); // 如果有人等待。
+					applyFuture.setResult(TaskSpec.ofFunc(this::backgroundApply).name("BackgroundApply").call() == 0); // 如果有人等待。
 				} finally {
 					applyFuture = null; // 允许再次启动，不需要等待了。
 				}
@@ -704,7 +705,7 @@ public class LogSequence {
 				rafts.put(writeOptions,
 						lastSnapshotIndexKey, 0, lastSnapshotIndexKey.length,
 						bb.Bytes, bb.ReadIndex, bb.size());
-				Task.run(this::snapshot, "Snapshot", DispatchMode.Normal);
+				TaskSpec.ofAction(this::snapshot).name("Snapshot").run();
 			}
 		}
 		// else disable

@@ -34,6 +34,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -162,7 +163,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
 					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-			Task.schedule(5000, 5000, this::achillesHeelDaemon);
+			TaskSpec.ofAction(this::achillesHeelDaemon).scheduleWithPeriod(5000, 5000);
 		} finally {
 			unlock();
 		}
@@ -246,13 +247,13 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
-		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
+		TaskSpec.ofAction(() -> { // delay 5 mins
 			for (var k : session.acquired.keySet()) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 				release(session, k, false);
 			}
 			rpc.SendResultCode(0);
-		});
+		}).schedule(5 * 60 * 1000);
 
 		return 0;
 	}
@@ -719,7 +720,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 				// 2. sender是share, 而且reducePending的size是0
 				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 				if (!cs.share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
-					Task.executeUnsafe(() -> {
+					TaskSpec.ofAction(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 						// 应该也会等待所有任务结束（包括错误）。
 						var freshAcquire = false;
@@ -760,7 +761,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						} finally {
 							cs.unlock();
 						}
-					}, "GlobalCacheManager.AcquireModify.WaitReduce", DispatchMode.Normal);
+					}).name("GlobalCacheManager.AcquireModify.WaitReduce").executeUnsafe();
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
 					cs.await(); //await 等通知

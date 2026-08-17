@@ -13,6 +13,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,7 +103,7 @@ public class BenchClient {
 			}
 			var lastReportTime = new OutLong(System.currentTimeMillis());
 			var lastReportCount = new OutLong();
-			var reportTimer = Task.scheduleUnsafe(2000, 2000, () -> {
+			var reportTimer = TaskSpec.ofAction(() -> {
 				var now = System.currentTimeMillis();
 				var elapse = (now - lastReportTime.value) / 1000.0f;
 				lastReportTime.value = now;
@@ -111,7 +112,7 @@ public class BenchClient {
 				lastReportCount.value = countNow;
 
 				System.out.println("transaction/s: " + diff / elapse);
-			});
+			}).scheduleWithPeriodUnsafe(2000, 2000);
 
 			var inputReader = new BufferedReader(new InputStreamReader(System.in));
 			while (true) {
@@ -133,7 +134,7 @@ public class BenchClient {
 								  ArrayList<Zeze.Transaction.Database.AbstractKVTable> tables,
 								  AtomicLong transCounter) {
 
-		return Task.runUnsafe(() -> {
+		return TaskSpec.ofAction(() -> {
 			while (Boolean.TRUE.equals(running.value)) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try {
@@ -147,7 +148,7 @@ public class BenchClient {
 					logger.error("", ex);
 				}
 			}
-		}, "table get thread");
+		}).name("table get thread").runUnsafe();
 	}
 
 	public static class TableKey {
@@ -199,7 +200,7 @@ public class BenchClient {
 						   int valueSize,
 						   AtomicLong transCounter) {
 		var value = ByteBuffer.Wrap(Zeze.Util.Random.nextBinary(valueSize));
-		return Task.runUnsafe(() -> {
+		return TaskSpec.ofAction(() -> {
 			while (Boolean.TRUE.equals(running.value)) {
 				// 限制所有key的范围，防止服务器占用太大硬盘。
 				try (var trans = database.beginTransaction()) {
@@ -217,6 +218,6 @@ public class BenchClient {
 					logger.error("", ex);
 				}
 			}
-		}, "table put thread");
+		}).name("table put thread").runUnsafe();
 	}
 }

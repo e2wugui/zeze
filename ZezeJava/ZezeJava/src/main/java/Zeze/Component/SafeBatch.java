@@ -12,7 +12,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action0;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -147,7 +147,7 @@ public class SafeBatch extends AbstractSafeBatch {
 							(WalkListJobHandle)jobHandle, batch.toData());
 					default -> throw new IllegalStateException("invalid worker type.");
 				};
-				var future = Task.runUnsafe(worker, "BatchWorker_" + timerId);
+				var future = TaskSpec.ofAction(worker).name("BatchWorker_" + timerId).runUnsafe();
 				worker.setFuture(future);
 				return future;
 			});

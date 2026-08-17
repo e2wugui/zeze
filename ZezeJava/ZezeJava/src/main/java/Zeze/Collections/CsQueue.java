@@ -6,7 +6,7 @@ import Zeze.Services.ServiceManager.BOfflineNotify;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.OutLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 /**
  * Concurrent Server Queue.
@@ -28,12 +28,12 @@ public class CsQueue<V extends Bean> {
 		this.queue = module._open(name + "@" + serverId, valueClass, nodeSize);
 
 		var out = new OutLong();
-		Task.call(module.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 			var root = queue.getOrAddRoot();
 			root.setLastNodeId(root.getLoadSerialNo() + 1);
 			out.value = root.getLoadSerialNo();
 			return 0;
-		}, "increaseLoadSerialNo"));
+		}, "increaseLoadSerialNo")).call();
 		var offlineNotify = new BOfflineNotify();
 		offlineNotify.serverId = module.zeze.getConfig().getServerId();
 		offlineNotify.notifySerialId = out.value;
@@ -60,7 +60,7 @@ public class CsQueue<V extends Bean> {
 		if (serverId == module.zeze.getConfig().getServerId())
 			return; // skip self
 
-		Task.call(module.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(module.zeze.newProcedure(() -> {
 			// 接管别的服务器的队列时。
 			var srcName = name + "@" + serverId;
 			var src = Queue.compatible(module._tQueues.get(srcName), srcName);
@@ -91,7 +91,7 @@ public class CsQueue<V extends Bean> {
 			src.setHeadNodeKey(nullKey);
 			src.setTailNodeKey(nullKey);
 			return 0L;
-		}, "CsQueue.splice"));
+		}, "CsQueue.splice")).call();
 	}
 
 	public String getName() {

@@ -21,6 +21,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
@@ -454,11 +455,12 @@ public class HttpExchange {
 				return Procedure.Success;
 			}, "fireBeginStream");
 			if (handler.Mode == DispatchMode.Direct)
-				Task.call(p);
+				TaskSpec.ofProcedure(p).call();
 			else
 				server.task11Executor.Execute(context.channel().id(), p, null, handler.Mode);
 		} else if (handler.Mode == DispatchMode.Direct) {
-			Task.call(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]), "fireBeginStream");
+			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
+					.name("fireBeginStream").call();
 		} else {
 			server.task11Executor.Execute(context.channel().id(),
 					() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
@@ -477,7 +479,7 @@ public class HttpExchange {
 				return Procedure.Success;
 			}, "fireStreamContentHandle");
 			if (handler.Mode == DispatchMode.Direct)
-				Task.call(p);
+				TaskSpec.ofProcedure(p).call();
 			else {
 				c.retain();
 				server.task11Executor.Execute(context.channel().id(), () -> {
@@ -489,7 +491,7 @@ public class HttpExchange {
 				}, p.getActionName(), handler.Mode);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
-			Task.call(() -> handle.onStreamContent(this, c), "fireStreamContentHandle");
+			TaskSpec.ofAction(() -> handle.onStreamContent(this, c)).name("fireStreamContentHandle").call();
 		} else {
 			c.retain();
 			server.task11Executor.Execute(context.channel().id(), () -> {
@@ -529,7 +531,7 @@ public class HttpExchange {
 			}, "fireEndStreamHandle");
 			if (handler.Mode == DispatchMode.Direct) {
 				try {
-					Task.call(p);
+					TaskSpec.ofProcedure(p).call();
 				} finally {
 					if (detached == 0)
 						close(null);
@@ -545,7 +547,7 @@ public class HttpExchange {
 				}, p.getActionName(), handler.Mode);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
-			Task.call(this::invokeEndStream, "fireEndStreamHandle");
+			TaskSpec.ofAction(this::invokeEndStream).name("fireEndStreamHandle").call();
 		} else {
 			server.task11Executor.Execute(context.channel().id(), this::invokeEndStream,
 					"fireEndStreamHandle", handler.Mode);
@@ -562,7 +564,7 @@ public class HttpExchange {
 				return Procedure.Success;
 			}, "fireWebSocket");
 			if (handler.Mode == DispatchMode.Direct)
-				Task.call(p);
+				TaskSpec.ofProcedure(p).call();
 			else {
 				frame.retain();
 				server.task11Executor.Execute(context.channel().id(), () -> {
@@ -574,7 +576,7 @@ public class HttpExchange {
 				}, p.getActionName(), handler.Mode);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
-			Task.call(() -> fireWebSocket0(frame), "fireWebSocket");
+			TaskSpec.ofAction(() -> fireWebSocket0(frame)).name("fireWebSocket").call();
 		} else {
 			frame.retain();
 			server.task11Executor.Execute(context.channel().id(), () -> {

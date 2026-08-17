@@ -39,6 +39,7 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
@@ -136,7 +137,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
 					gcmConfig.serverReleaseTimeout);
-			Task.schedule(5000, 5000, this::achillesHeelDaemon);
+			TaskSpec.ofAction(this::achillesHeelDaemon).scheduleWithPeriod(5000, 5000);
 		} finally {
 			unlock();
 		}
@@ -221,14 +222,14 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
-		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
+		TaskSpec.ofAction(() -> { // delay 5 mins
 			var allReleaseFuture = new CountDownFuture();
 			for (var k : session.acquired.keySet()) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 				releaseAsync(session, k, allReleaseFuture.createOne());
 			}
 			allReleaseFuture.then(__ -> rpc.SendResultCode(0));
-		});
+		}).schedule(5 * 60 * 1000);
 
 		return 0;
 	}

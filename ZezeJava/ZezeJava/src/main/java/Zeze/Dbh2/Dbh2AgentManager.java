@@ -23,7 +23,7 @@ import Zeze.Util.Action2;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.ShutdownHook;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
@@ -57,11 +57,10 @@ public class Dbh2AgentManager extends ReentrantLock {
 			if (null != refreshMasterTableTask)
 				return;
 
-			refreshMasterTableTask = Task.scheduleUnsafe(200,
-					() -> {
+			refreshMasterTableTask = TaskSpec.ofAction(() -> {
 						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
 						refreshMasterTableTask = null;
-					});
+					}).scheduleUnsafe(200);
 		} finally {
 			unlock();
 		}

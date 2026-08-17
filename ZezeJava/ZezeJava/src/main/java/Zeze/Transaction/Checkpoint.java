@@ -12,6 +12,7 @@ import Zeze.Onz.OnzProcedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.FastLock;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +44,7 @@ public final class Checkpoint {
 		this.mode = mode;
 		if (dbs != null)
 			add(dbs);
-		checkpointThread = new Thread(() -> Task.call(this::run, "Checkpoint.Run"), "Checkpoint-" + serverId);
+		checkpointThread = new Thread(() -> TaskSpec.ofAction(this::run).name("Checkpoint.Run").call(), "Checkpoint-" + serverId);
 		checkpointThread.setDaemon(true);
 		checkpointThread.setPriority(Thread.NORM_PRIORITY + 2);
 		checkpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("uncaught exception", e));

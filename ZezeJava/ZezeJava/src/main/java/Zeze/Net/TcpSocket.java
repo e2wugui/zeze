@@ -20,6 +20,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.Constant;
 import Zeze.Util.Action0;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TimeThrottle;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -755,7 +756,7 @@ public final class TcpSocket extends AsyncSocket implements SelectorHandle, Clos
 			closePending = true;
 			if (addInterestOps(SelectionKey.OP_WRITE))
 				selector.wakeup();
-			Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
+			TaskSpec.ofAction(this::realClose).schedule(120 * 1000); // 最多给2分钟清空输出队列。
 		} else
 			realClose();
 		return true;

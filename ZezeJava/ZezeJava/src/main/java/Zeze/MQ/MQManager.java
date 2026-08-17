@@ -12,7 +12,7 @@ import Zeze.Raft.ProxyServer;
 import Zeze.Util.KV;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -77,7 +77,7 @@ public class MQManager extends AbstractMQManager {
         masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
         proxyServer.start();
 
-        loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);
+        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleWithPeriodUnsafe(120_000, 120_000);
     }
 
     public void stop() throws Exception {

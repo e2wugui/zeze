@@ -13,7 +13,7 @@ import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import Zeze.Util.Random;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 /**
  * 每个ServerId分配一个独立的GC队列。Server之间不会争抢。如果一个Server一直没有起来，那么它的GC就一直不会执行。
@@ -64,7 +64,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
-		timer = Task.scheduleUnsafe(delay, period, this::onTimer);
+		timer = TaskSpec.ofAction(this::onTimer).scheduleWithPeriodUnsafe(delay, period);
 		jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey");
 	}
 
@@ -133,10 +133,10 @@ public class DelayRemove extends AbstractDelayRemove {
 	}
 
 	private void startJob(String jobId, BJob job) {
-		Task.run(() -> {
+		TaskSpec.ofAction(() -> {
 			var handle = jobHandles.get(job.getJobHandleName());
 			handle.process(this, jobId, job.getJobState());
-		}, "DelayRemove.startJob");
+		}).name("DelayRemove.startJob").run();
 	}
 
 	public void stop() {

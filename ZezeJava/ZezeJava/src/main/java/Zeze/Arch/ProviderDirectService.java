@@ -20,6 +20,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -295,12 +296,14 @@ public class ProviderDirectService extends HandshakeBoth {
 			var r = (ModuleRedirect)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne()) {
-				Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
-						r.Argument.getMethodFullName(), factoryHandle.Mode);
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+						.errorHandle(Protocol::trySendResultCode)
+						.name(r.Argument.getMethodFullName()).mode(factoryHandle.Mode).executeUnsafe();
 			} else {
 				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
-						() -> Task.call(() -> p.handle(this, factoryHandle), p,
-								Protocol::trySendResultCode, r.Argument.getMethodFullName()),
+						() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+								.errorHandle(Protocol::trySendResultCode)
+								.name(r.Argument.getMethodFullName()).call(),
 						factoryHandle.Mode);
 			}
 			return;
@@ -308,13 +311,15 @@ public class ProviderDirectService extends HandshakeBoth {
 		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
 			var r = (ModuleRedirectAllResult)p;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-			Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode,
-					r.Argument.getMethodFullName(), factoryHandle.Mode);
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+					.errorHandle(Protocol::trySendResultCode)
+					.name(r.Argument.getMethodFullName()).mode(factoryHandle.Mode).executeUnsafe();
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Task.executeUnsafe(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode, null,
-				factoryHandle.Mode);
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+				.errorHandle(Protocol::trySendResultCode)
+				.mode(factoryHandle.Mode).executeUnsafe();
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 
@@ -325,16 +330,17 @@ public class ProviderDirectService extends HandshakeBoth {
 			var r = (ModuleRedirect)rpc;
 			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 			if (r.Argument.isNoOneByOne())
-				Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+				TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc)
+						.mode(factoryHandle.Mode).executeUnsafe();
 			else {
 				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
-						() -> Task.call(() -> responseHandle.handle(rpc), rpc), factoryHandle.Mode);
+						() -> TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).call(), factoryHandle.Mode);
 			}
 			return;
 		}
 
 		// no procedure.
-		Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
 		//super.dispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 

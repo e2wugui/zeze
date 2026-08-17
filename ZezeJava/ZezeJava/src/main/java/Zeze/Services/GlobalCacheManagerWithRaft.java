@@ -28,7 +28,6 @@ import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.RocksRaft.TableTemplate;
 import Zeze.Raft.RocksRaft.Transaction;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Id128;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
@@ -36,6 +35,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -122,7 +122,7 @@ public class GlobalCacheManagerWithRaft
 
 		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 		achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing, this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-		Task.schedule(5000, 5000, this::achillesHeelDaemon);
+		TaskSpec.ofAction(this::achillesHeelDaemon).scheduleWithPeriod(5000, 5000);
 	}
 
 	private void achillesHeelDaemon() {
@@ -541,7 +541,7 @@ public class GlobalCacheManagerWithRaft
 			// 2. sender是share, 而且reducePending是空的
 			var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 			if (cs.getShare().size() != 0 && (!senderIsShare || !reducePending.isEmpty())) {
-				Task.executeUnsafe(() -> {
+				TaskSpec.ofAction(() -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 					// 应该也会等待所有任务结束（包括错误）。
 					var freshAcquire = false;
@@ -594,7 +594,7 @@ public class GlobalCacheManagerWithRaft
 					} finally {
 						lockey.exit();
 					}
-				}, "GlobalCacheManagerWithRaft.AcquireModify.WaitReduce", DispatchMode.Normal);
+				}).name("GlobalCacheManagerWithRaft.AcquireModify.WaitReduce").executeUnsafe();
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateModify, cs);
 				lockey.await();
@@ -789,14 +789,14 @@ public class GlobalCacheManagerWithRaft
 		// 还有更多的防止出错的手段吗？
 
 		// XXX verify danger
-		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
+		TaskSpec.ofAction(() -> { // delay 5 mins
 			var SenderAcquired = serverAcquiredTemplate.openTable(session.serverId);
 			SenderAcquired.walkKey(key -> {
 				release(session, key);
 				return true; // continue release;
 			});
 			rpc.SendResultCode(0);
-		});
+		}).schedule(5 * 60 * 1000);
 
 		return 0;
 	}

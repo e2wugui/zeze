@@ -14,8 +14,8 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
-import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -148,14 +148,14 @@ public class Server extends HandshakeBoth {
 		public void OnSocketHandshakeDone(AsyncSocket so) {
 			super.OnSocketHandshakeDone(so);
 			Raft raft = ((Server)getService()).getRaft();
-			Raft.executeImportantTask(() -> Task.call(() -> {
+			Raft.executeImportantTask(() -> TaskSpec.ofAction(() -> {
 				raft.lock();
 				try {
 					raft.getLogSequence().trySendAppendEntries(this, null);
 				} finally {
 					raft.unlock();
 				}
-			}, "Start TrySendAppendEntries"));
+			}).name("Start TrySendAppendEntries").call());
 		}
 	}
 
@@ -188,7 +188,7 @@ public class Server extends HandshakeBoth {
 		if (isImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			try {
-				Raft.executeImportantTask(() -> Task.call(() -> responseHandle.handle(p), p));
+				Raft.executeImportantTask(() -> TaskSpec.ofFunc(() -> responseHandle.handle(p)).protocol(p).call());
 			} catch (RejectedExecutionException e) {
 				logger.debug("RejectedExecutionException for {}", p);
 			}
@@ -204,7 +204,7 @@ public class Server extends HandshakeBoth {
 	}
 
 	public long processRequest(Protocol<?> p, ProtocolFactoryHandle<?> factoryHandle) {
-		return Task.call(() -> {
+		return TaskSpec.ofFunc(() -> {
 			if (raft.waitLeaderReady()) {
 				UniqueRequestState state = raft.getLogSequence().tryGetRequestState(p);
 				if (state != null) {
@@ -224,7 +224,7 @@ public class Server extends HandshakeBoth {
 			}
 			trySendLeaderIs(p.getSender());
 			return 0L;
-		}, p, Protocol::trySendResultCode);
+		}).protocol(p).errorHandle(Protocol::trySendResultCode).call();
 	}
 
 	/**
@@ -244,7 +244,7 @@ public class Server extends HandshakeBoth {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
 			Raft.executeImportantTask(() ->
-					Task.call(() -> p.handle(this, factoryHandle), p, null));
+					TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).call());
 			return;
 		}
 
@@ -303,7 +303,7 @@ public class Server extends HandshakeBoth {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。
-		Task.executeUnsafe(() -> {
+		TaskSpec.ofAction(() -> {
 			raft.lock();
 			try {
 				if (raft.isReadyLeader()) {
@@ -316,6 +316,6 @@ public class Server extends HandshakeBoth {
 			} finally {
 				raft.unlock();
 			}
-		}, "Raft.LeaderIs.Me", DispatchMode.Normal);
+		}).name("Raft.LeaderIs.Me").executeUnsafe();
 	}
 }

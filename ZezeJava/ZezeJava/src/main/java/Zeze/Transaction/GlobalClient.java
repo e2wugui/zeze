@@ -11,6 +11,7 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -92,7 +93,7 @@ public final class GlobalClient extends Service {
 	public void dispatchProtocol(@NotNull Protocol<?> p,
 								 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), p));
+		Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).call());
 	}
 
 	@Override

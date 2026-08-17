@@ -32,6 +32,7 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskCompletionSourceX;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -377,7 +378,7 @@ public final class Agent {
 		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// ugly
-		resendTask = Task.scheduleUnsafe(1000, 1000, this::resend);
+		resendTask = TaskSpec.ofAction(this::resend).scheduleWithPeriodUnsafe(1000, 1000);
 	}
 
 	private Connector getRandomConnector(Connector except) {
@@ -583,10 +584,10 @@ public final class Agent {
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
-				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
+				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else
-				Task.executeUnsafe(() -> p.handle(this, factoryHandle),
-						p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+						.errorHandle(Protocol::trySendResultCode).mode(factoryHandle.Mode).executeUnsafe();
 		}
 	}
 

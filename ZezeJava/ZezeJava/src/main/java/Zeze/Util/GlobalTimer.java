@@ -21,10 +21,10 @@ public final class GlobalTimer {
 
 		vhCurMs.setOpaque(System.currentTimeMillis());
 		vhCurSec.setOpaque(System.nanoTime() / 1_000_000_000);
-		Task.scheduleUnsafe(1000, 1000, () -> {
+		TaskSpec.ofAction(() -> {
 			vhCurMs.setOpaque(System.currentTimeMillis());
 			vhCurSec.setOpaque(System.nanoTime() / 1_000_000_000);
-		});
+		}).scheduleWithPeriodUnsafe(1000, 1000);
 	}
 
 	// 精度只有1秒

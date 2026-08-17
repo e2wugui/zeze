@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Transaction.Bean;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 public class Onz extends AbstractOnz {
 	public static final String eServiceName = "Onz";
@@ -117,7 +117,7 @@ public class Onz extends AbstractOnz {
 			return errorCode(eProcedureNotFound);
 		var buffer = ByteBuffer.Wrap(r.Argument.getFuncArgument().bytesUnsafe());
 		var procedure = stub.newProcedure(r, r.Argument, buffer);
-		return Task.call(zeze.newProcedure(procedure, procedure.getName()));
+		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 	}
 
 	@Override
@@ -131,7 +131,7 @@ public class Onz extends AbstractOnz {
 		if (null != sagas.putIfAbsent(r.Argument.getOnzTid(), (OnzSaga)procedure))
 			return errorCode(eSagaTidExist);
 
-		return Task.call(zeze.newProcedure(procedure, procedure.getName()));
+		return TaskSpec.ofProcedure(zeze.newProcedure(procedure, procedure.getName())).call();
 	}
 
 	@Override
@@ -144,7 +144,7 @@ public class Onz extends AbstractOnz {
 		if (r.Argument.isCancel()) {
 			var stub = (OnzSagaStub<?, ?, ?>)context.getStub();
 			var cancelArgument = stub.decodeCancelArgument(r.Argument.getFuncArgument());
-			var rc = Task.call(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName()));
+			var rc = TaskSpec.ofProcedure(zeze.newProcedure(() -> stub.end(context, cancelArgument), context.getName())).call();
 			if (rc != 0)
 				return rc;
 		}

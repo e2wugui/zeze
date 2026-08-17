@@ -34,6 +34,7 @@ import Zeze.Util.FuncLong;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -106,7 +107,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
-					prepareQueue.add(() -> Task.call(func, p));
+					prepareQueue.add(() -> TaskSpec.ofFunc(func).protocol(p).call());
 					return;
 				}
 			} finally {
@@ -117,7 +118,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
-				raft.executeUserTask(() -> Task.call(func, p));
+				raft.executeUserTask(() -> TaskSpec.ofFunc(func).protocol(p).call());
 			}
 		}
 	}
@@ -447,14 +448,9 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
-				Task.getCriticalThreadPool().execute(() -> Task.call(() -> p.handle(this, factoryHandle), "InternalRequest"));
+				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else {
-				raft.executeUserTask(() -> Task.executeUnsafe(
-						() -> p.handle(this, factoryHandle),
-						p,
-						null,
-						null,
-						DispatchMode.Normal));
+				raft.executeUserTask(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).executeUnsafe());
 			}
 		}
 
@@ -690,8 +686,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		server.setupPrepareQueue();
 
 		// 设置一个超时，每秒放行一次。
-		Task.scheduleUnsafe(1000,
-				() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove)));
+		TaskSpec.ofAction(() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove))).scheduleUnsafe(1000);
 
 		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。

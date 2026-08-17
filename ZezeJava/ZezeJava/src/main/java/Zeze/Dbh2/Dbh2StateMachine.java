@@ -15,7 +15,7 @@ import Zeze.Raft.Raft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -170,7 +170,7 @@ public class Dbh2StateMachine extends Zeze.Raft.StateMachine {
 		if (null == timer) {
 			var period = getRaft().getRaftConfig().getAppendEntriesTimeout() + 200;
 			var delay = Random.getInstance().nextLong(period);
-			timer = Task.scheduleUnsafe(delay, period, this::onTimer);
+			timer = TaskSpec.ofAction(this::onTimer).scheduleWithPeriodUnsafe(delay, period);
 		}
 
 		if (null == commitAgent)

@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
@@ -215,7 +216,7 @@ public class Connector extends ReentrantLock {
 				return;
 
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-			reconnectTask = Task.scheduleUnsafe(reConnectDelay, this::start);
+			reconnectTask = TaskSpec.ofAction(this::start).scheduleUnsafe(reConnectDelay);
 		} finally {
 			unlock();
 		}

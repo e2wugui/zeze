@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import Zeze.Util.Factory;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -55,13 +55,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		dataMap = new ConcurrentHashMap<>(getCacheInitialCapacity());
 		newLruHot();
 		var newLruHotPeriod = table.getTableConf().getCacheNewLruHotPeriod();
-		timerNewHot = Task.scheduleUnsafe(newLruHotPeriod, newLruHotPeriod, () -> {
+		timerNewHot = TaskSpec.ofAction(() -> {
 			// 访问很少的时候不创建新的热点。这个选项没什么意思。
 			if (lruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
 				newLruHot();
-		});
+		}).scheduleWithPeriodUnsafe(newLruHotPeriod, newLruHotPeriod);
 		var cleanPeriod = this.table.getTableConf().getCacheCleanPeriod();
-		timerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::cleanNow);
+		timerClean = TaskSpec.ofAction(this::cleanNow).scheduleWithPeriodUnsafe(cleanPeriod, cleanPeriod);
 	}
 
 	final @NotNull ConcurrentHashMap<K, Record1<K, V>> getDataMap() {

@@ -16,7 +16,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
 import Zeze.Util.LongHashMap;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -264,7 +264,7 @@ public class RedirectBase {
 
 		var future = new RedirectFuture<T>();
 		// 由于返回的future暴露出来,很可能await同步等待,所以这里不能whileCommit时执行,否则会死锁等待
-		Task.executeUnsafe(providerApp.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			try {
 				func.call().onSuccess(future::setResult).onFail(future::setException);
 			} catch (Exception e) {
@@ -272,7 +272,7 @@ public class RedirectBase {
 				throw e;
 			}
 			return Procedure.Success;
-		}, actionName, level), DispatchMode.Normal);
+		}, actionName, level)).executeUnsafe();
 		return future;
 	}
 
@@ -292,9 +292,9 @@ public class RedirectBase {
 		}
 
 		// 由于此方法用于loop-back的redirect,所以这里不能whileCommit时执行,否则会死锁等待
-		Task.executeUnsafe(providerApp.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, actionName, level), DispatchMode.Normal);
+		}, actionName, level)).executeUnsafe();
 	}
 }

@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Protocol;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -45,7 +46,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			maxAcquireTimes[i] = new AtomicLong();
 			totalAcquireResults[i] = new ConcurrentSkipListMap<>();
 		}
-		Task.schedule(1000, 1000, this::report);
+		TaskSpec.ofAction(this::report).scheduleWithPeriod(1000, 1000);
 	}
 
 	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {

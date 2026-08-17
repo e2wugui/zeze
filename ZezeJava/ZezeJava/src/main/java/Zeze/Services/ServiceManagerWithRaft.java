@@ -26,6 +26,7 @@ import Zeze.Util.KV;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -99,7 +100,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
 				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-				Task.call(procedure::call, rpc);
+				TaskSpec.ofFunc(procedure::call).protocol(rpc).call();
 			} finally {
 				unlock();
 			}
@@ -116,7 +117,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 				}
 				var procedure = new Procedure(rocks, func);
-				Task.call(procedure::call, p, Protocol::SendResultCode);
+				TaskSpec.ofFunc(procedure::call).protocol(p).errorHandle(Protocol::SendResultCode).call();
 			} finally {
 				unlock();
 			}
@@ -160,22 +161,21 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 			this.sessionId = sessionId;
 
 			if (conf.keepAlivePeriod > 0) {
-				keepAliveTimerTask = Task.scheduleUnsafe(
+				keepAliveTimerTask = TaskSpec.ofAction(() -> {
+					AsyncSocket s = null;
+					try {
+						s = rocks.getRaft().getServer().GetSocket(sessionId);
+						var r = new KeepAlive();
+						r.SendAndWaitCheckResultCode(s);
+					} catch (Throwable ex) { // logger.error
+						if (s != null)
+							s.close(ex);
+						else
+							logger.error("ServiceManager.KeepAlive", ex);
+					}
+				}).scheduleWithPeriodUnsafe(
 						Random.getInstance().nextInt(conf.keepAlivePeriod),
-						conf.keepAlivePeriod,
-						() -> {
-							AsyncSocket s = null;
-							try {
-								s = rocks.getRaft().getServer().GetSocket(sessionId);
-								var r = new KeepAlive();
-								r.SendAndWaitCheckResultCode(s);
-							} catch (Throwable ex) { // logger.error
-								if (s != null)
-									s.close(ex);
-								else
-									logger.error("ServiceManager.KeepAlive", ex);
-							}
-						});
+						conf.keepAlivePeriod);
 			} else
 				keepAliveTimerTask = null;
 		}
@@ -211,10 +211,11 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				var serverId = session.getOfflineRegisterServerId();
 				if (serverId >= 0) {
 					if (!offlineNotifyFutures.containsKey(serverId))
-						offlineNotifyFutures.put(serverId, Task.scheduleUnsafe(eOfflineNotifyDelay,
-								() -> offlineNotify(session, true)));
+						offlineNotifyFutures.put(serverId, TaskSpec
+								.ofAction(() -> offlineNotify(session, true))
+								.scheduleUnsafe(eOfflineNotifyDelay));
 				} else {
-					Task.run(() -> offlineNotify(session, false), "offlineNotifyImmediately");
+					TaskSpec.ofAction(() -> offlineNotify(session, false)).name("offlineNotifyImmediately").run();
 				}
 			}
 			tableSession.remove(name);

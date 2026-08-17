@@ -13,7 +13,7 @@ import Zeze.Builtin.Threading.SemaphoreTryAcquire;
 import Zeze.IModule;
 import Zeze.Net.Service;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -32,7 +32,7 @@ public class Threading extends AbstractThreading {
 		this.appSerialId = PersistentAtomicLong.getOrAdd(service.getName() + "." + serverId).next();
 
 		keepAlive(); // first keepAlive
-		keepAliveTask = Task.scheduleUnsafe(10_000, 10_000, this::keepAlive);
+		keepAliveTask = TaskSpec.ofAction(this::keepAlive).scheduleWithPeriodUnsafe(10_000, 10_000);
 	}
 
 	public void close() {

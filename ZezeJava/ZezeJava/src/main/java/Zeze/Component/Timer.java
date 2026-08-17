@@ -44,7 +44,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.OutLong;
 import Zeze.Util.Reflect;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -1031,10 +1031,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				_tNodes.delayRemove(nodeId);
 			}
 			if (handle != null && bTimer != null) {
-				Task.call(zeze.newProcedure(() -> {
+				TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 					handle.onTimerCancel(bTimer);
 					return 0;
-				}, "Timer.fireTimerCancel"));
+				}, "Timer.fireTimerCancel")).call();
 			}
 		}
 	}
@@ -1043,14 +1043,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	                            long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				var exist = timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
 						zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
 								() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
-				}));
+				}).scheduleUnsafe(delay));
 				if (null != exist)
 					exist.cancel(false);
 			}
@@ -1059,7 +1059,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void fireSimple(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                        boolean missfire) {
-		if (Task.call(zeze.newProcedure(() -> {
+		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
@@ -1090,10 +1090,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
 				var serialSaved = index.getSerialId();
-				var ret = Task.call(zeze.newProcedure(() -> {
+				var ret = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
-				}, "Timer.fireSimpleUser." + timer.getHandleName()));
+				}, "Timer.fireSimpleUser." + timer.getHandleName())).call();
 
 				var indexNew = _tIndexs.get(timerId);
 				if (indexNew == null || indexNew.getSerialId() != serialSaved)
@@ -1120,11 +1120,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, simpleTimer.getOneByOneKey());
 			return 0;
-		}, "Timer.fireSimple")) != 0) {
-			Task.call(zeze.newProcedure(() -> {
+		}, "Timer.fireSimple")).call() != 0) {
+			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				cancel(timerId);
 				return 0;
-			}, "Timer.cancelTimer"));
+			}, "Timer.cancelTimer")).call();
 		}
 	}
 
@@ -1143,14 +1143,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	                              long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
 			if (!putIfAbsent || !timerFutures.containsKey(timerId)) {
-				var exist = timerFutures.put(timerId, Task.scheduleUnsafe(delay, () -> {
+				var exist = timerFutures.put(timerId, TaskSpec.ofAction(() -> {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
 						zeze.getTaskOneByOneByKey().Execute(oneByOneKey,
 								() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false));
 					}
-				}));
+				}).scheduleUnsafe(delay));
 				if (null != exist)
 					exist.cancel(false);
 			}
@@ -1159,7 +1159,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	private void fireCron(long timerSerialId, int serverId, @NotNull String timerId, long concurrentSerialNo,
 	                      boolean missfire) {
-		if (Task.call(zeze.newProcedure(() -> {
+		if (TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index == null
 					|| index.getServerId() != zeze.getConfig().getServerId() // 不是拥有者，取消本地调度，应该是不大可能发生的。
@@ -1190,10 +1190,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				// 这个系列号保证触发用户回调只会发生一次。这个并发问题不取消定时器，继续尝试调度（去争抢执行权）。
 				// 定时器的调度生命期由其他地方保证最终一致。如果保证发生了错误，将一致并发争抢执行权。
 				var serialSaved = index.getSerialId();
-				var ret = Task.call(zeze.newProcedure(() -> {
+				var ret = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 					handle.onTimer(context);
 					return 0;
-				}, "Timer.fireCronUser." + timer.getHandleName()));
+				}, "Timer.fireCronUser." + timer.getHandleName())).call();
 
 				var indexNew = _tIndexs.get(timerId);
 				if (indexNew == null || indexNew.getSerialId() != serialSaved)
@@ -1218,24 +1218,24 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1),
 					concurrentSerialNo + 1, false, cronTimer.getOneByOneKey());
 			return 0;
-		}, "Timer.fireCron")) != 0) {
-			Task.call(zeze.newProcedure(() -> {
+		}, "Timer.fireCron")).call() != 0) {
+			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				cancel(timerId);
 				return 0;
-			}, "Timer.cancelTimer"));
+			}, "Timer.cancelTimer")).call();
 		}
 	}
 
 	private void loadTimer() throws Exception {
 		var serverId = zeze.getConfig().getServerId();
 		var outRoot = new BNodeRoot();
-		var r = Task.call(zeze.newProcedure(() -> {
+		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
 			root.setLoadSerialNo(root.getLoadSerialNo() + 1);
 			outRoot.assign(root);
 			return 0;
-		}, "Timer.loadTimerLocal"));
+		}, "Timer.loadTimerLocal")).call();
 		if (r == Procedure.Success) {
 			var offlineNotify = new BOfflineNotify();
 			offlineNotify.serverId = serverId;
@@ -1279,7 +1279,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 		var first = new OutLong();
 		var last = new OutLong();
-		var r = Task.call(zeze.newProcedure(() -> {
+		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			// 当接管别的服务器的定时器时，有可能那台服务器有新的CustomData，这个时候重新加载一次。
 			var src = _tNodeRoot.get(serverId);
 			long srcHeadNodeId, srcTailNodeId;
@@ -1314,7 +1314,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			first.value = srcHeadNodeId;
 			last.value = headNodeId;
 			return 0;
-		}, "Timer.spliceAndLoadTimerLocal"));
+		}, "Timer.spliceAndLoadTimerLocal")).call();
 
 		if (r == 0)
 			loadTimer(first.value, last.value); // 这里应该使用本地接管者的ServerId。
@@ -1332,10 +1332,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			if (!idSet.add(nodeId)) // 检测并避免死循环
 				break;
 			// skip error. 使用node返回的值决定是否继续循环。
-			var r = Task.call(zeze.newProcedure(() -> {
+			var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				loadTimer(node, last);
 				return 0;
-			}, "Timer.loadTimer"));
+			}, "Timer.loadTimer")).call();
 			if (r != Procedure.Success) {
 				logger.error("loadTimer failed: r={}, nodeId={}", r, nodeId);
 				try {
@@ -1384,8 +1384,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Transaction.whileCommit(() ->
-								Task.run(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-										timer.getConcurrentFireSerialNo(), true), "Timer.missfireSimple"));
+								TaskSpec.ofAction(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
+										timer.getConcurrentFireSerialNo(), true)).name("Timer.missfireSimple").run());
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:
@@ -1410,8 +1410,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					case eMissfirePolicyRunOnce:
 					case eMissfirePolicyRunOnceOldNext:
 						Transaction.whileCommit(() ->
-								Task.run(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-										timer.getConcurrentFireSerialNo(), true), "Timer.missfireCron"));
+								TaskSpec.ofAction(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
+										timer.getConcurrentFireSerialNo(), true)).name("Timer.missfireCron").run());
 						continue; // loop done, continue
 
 					case eMissfirePolicyNothing:

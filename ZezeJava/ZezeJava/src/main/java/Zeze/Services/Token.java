@@ -51,6 +51,7 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ThreadFactoryWithName;
 import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
@@ -536,8 +537,8 @@ public final class Token extends AbstractToken {
 			}
 			service.start();
 
-			cleanTokenMapFuture = Task.scheduleUnsafe(1000, 1000, this::cleanTokenMap);
-			cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
+			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).scheduleWithPeriodUnsafe(1000, 1000);
+			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtUnsafe(3, 14);
 			return this;
 		} finally {
 			unlock();
@@ -622,7 +623,7 @@ public final class Token extends AbstractToken {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
 			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
-			cleanTokenMapTableFuture = Task.scheduleAtUnsafe(3, 14, this::cleanTokenMapTable);
+			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtUnsafe(3, 14);
 		}
 	}
 

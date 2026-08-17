@@ -11,7 +11,7 @@ import Zeze.Builtin.MQ.BSendMessage;
 import Zeze.Builtin.MQ.PushMessage;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.OutLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.Nullable;
 
 public class MQSingle extends ReentrantLock {
@@ -87,7 +87,7 @@ public class MQSingle extends ReentrantLock {
 		lock();
 		try {
 			if (highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
-				messageFillFuture = Task.runUnsafe(this::pullMessage, "pullMessage");
+				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").runUnsafe();
 		} finally {
 			unlock();
 		}

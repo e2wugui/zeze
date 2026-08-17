@@ -6,8 +6,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeClient;
-import Zeze.Transaction.DispatchMode;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
 public final class AgentClient extends HandshakeClient {
@@ -42,7 +41,7 @@ public final class AgentClient extends HandshakeClient {
 			socket = so; // 下面这行可能导致等待future的其它线程开始执行,所以先给socket赋值
 		super.OnHandshakeDone(so);
 		if (firstConnected) {
-			Task.executeUnsafe(agent::onConnected, "ServiceManager.AgentClient.OnHandshakeDone", DispatchMode.Normal);
+			TaskSpec.ofAction(agent::onConnected).name("ServiceManager.AgentClient.OnHandshakeDone").executeUnsafe();
 		} else {
 			Agent.logger.error("Has Connected.");
 		}
@@ -68,8 +67,8 @@ public final class AgentClient extends HandshakeClient {
 	public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		Task.executeUnsafe(() -> p.handle(this, factoryHandle),
-				p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+		TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+				.protocol(p).errorHandle(Protocol::trySendResultCode).mode(factoryHandle.Mode).executeUnsafe();
 	}
 
 	@Override
@@ -77,6 +76,6 @@ public final class AgentClient extends HandshakeClient {
 															@NotNull ProtocolFactoryHandle<?> factoryHandle)
 			throws Exception {
 		// 不支持事务
-		Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+		TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
 	}
 }

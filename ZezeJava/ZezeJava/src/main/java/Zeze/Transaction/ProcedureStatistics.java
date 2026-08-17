@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import Zeze.Util.PerfCounter;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TimerFuture;
 import Zeze.Util.ZezeCounter;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +13,7 @@ public final class ProcedureStatistics {
 	public static @NotNull TimerFuture<?> watch(@NotNull String procedureName, long reachPerSecond,
 												@NotNull Runnable handle) {
 		var watcher = new Watcher(procedureName, reachPerSecond, handle);
-		return Task.scheduleUnsafe(Watcher.CheckPeriod, Watcher.CheckPeriod, watcher::check);
+		return TaskSpec.ofAction(watcher::check).scheduleWithPeriodUnsafe(Watcher.CheckPeriod, Watcher.CheckPeriod);
 	}
 
 	static final class Watcher {

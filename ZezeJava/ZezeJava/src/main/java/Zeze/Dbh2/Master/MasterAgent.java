@@ -21,7 +21,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action3;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 public class MasterAgent extends AbstractMasterAgent {
 	public static final String eServiceName = "Zeze.Dbh2.Master.Agent";
@@ -171,11 +171,11 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				Task.schedule(30_000, () -> endMoveWithRetryAsync(to));
+				TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(30_000);
 			}
 			return 0;
 		})) {
-			Task.schedule(30_000, () -> endMoveWithRetryAsync(to));
+			TaskSpec.ofAction(() -> endMoveWithRetryAsync(to)).schedule(30_000);
 		}
 	}
 
@@ -185,11 +185,11 @@ public class MasterAgent extends AbstractMasterAgent {
 		r.Argument.setTo(to);
 		if (!r.Send(service.GetSocket(), (p) -> {
 			if (p.getResultCode() != 0) {
-				Task.schedule(30_000, () -> endSplitWithRetryAsync(from, to));
+				TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(30_000);
 			}
 			return 0;
 		})) {
-			Task.schedule(30_000, () -> endSplitWithRetryAsync(from, to));
+			TaskSpec.ofAction(() -> endSplitWithRetryAsync(from, to)).schedule(30_000);
 		}
 	}
 

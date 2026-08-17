@@ -96,11 +96,11 @@ public class EventDispatcher {
 				var classNameOrHandle = handle.classNameOrHandle;
 				if (classNameOrHandle instanceof EventHandle) {
 					var actionName = "EventDispatch." + name + ".runAsync." + classNameOrHandle.getClass().getName();
-					Task.run(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName));
+					TaskSpec.ofProcedure(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).run();
 				} else {
 					var className = (String)classNameOrHandle;
 					var actionName = "EventDispatch." + name + ".runAsync." + className;
-					Task.run(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName));
+					TaskSpec.ofProcedure(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName)).run();
 				}
 			}
 		} else {
@@ -137,11 +137,11 @@ public class EventDispatcher {
 			var classNameOrHandle = handle.classNameOrHandle;
 			if (classNameOrHandle instanceof EventHandle) {
 				var actionName = "EventDispatcher." + name + ".triggerProcedure." + classNameOrHandle.getClass().getName();
-				Task.call(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName));
+				TaskSpec.ofProcedure(app.newProcedure(() -> ((EventHandle)classNameOrHandle).invoke(sender, arg), actionName)).call();
 			} else {
 				var className = (String)classNameOrHandle;
 				var actionName = "EventDispatcher." + name + ".triggerProcedure." + className;
-				Task.call(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName));
+				TaskSpec.ofProcedure(app.newProcedure(() -> zeze.getHotHandle().findHandle(zeze, className).invoke(sender, arg), actionName)).call();
 			}
 		}
 	}

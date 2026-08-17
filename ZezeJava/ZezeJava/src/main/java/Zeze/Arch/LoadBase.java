@@ -7,7 +7,7 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.LoginQueueAgent;
 import Zeze.Services.ServiceManager.BServerLoad;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class LoadBase {
@@ -47,7 +47,7 @@ public abstract class LoadBase {
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
 			timerTask.cancel(false);
-		timerTask = Task.scheduleUnsafe(timeoutDelaySeconds * 1000L, this::onTimerTask);
+		timerTask = TaskSpec.ofAction(this::onTimerTask).scheduleUnsafe(timeoutDelaySeconds * 1000L);
 	}
 
 	public final void stop() throws Exception {

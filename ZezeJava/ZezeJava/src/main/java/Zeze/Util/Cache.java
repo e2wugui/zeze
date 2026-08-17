@@ -44,7 +44,7 @@ public class Cache extends ReentrantLock {
 		db = RocksDB.open(name);
 		lru = new ConcurrentLruLike<>(name, lruCapacity);
 		// 每天6:30尝试删除旧的项。
-		Task.scheduleAt(6, 30, this::tryRemove);
+		TaskSpec.ofAction(this::tryRemove).scheduleAt(6, 30);
 	}
 
 	public void close() throws IOException {

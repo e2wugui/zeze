@@ -63,7 +63,6 @@ import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
@@ -74,8 +73,8 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -136,7 +135,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private void startLocalCheck() {
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
-		verifyLocalTimer = Task.scheduleUnsafe(localCheckPeriod, this::verifyLocal);
+		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleUnsafe(localCheckPeriod);
 	}
 
 	private void onHotModuleStop(HotModule hot) {
@@ -1315,11 +1314,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void processErrorSids(LongList errorSids, LinkRoles group) {
-		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
+		errorSids.foreach(linkSid -> TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			// 补发的linkBroken没有account上下文
 			return idx >= 0 ? sendError("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
-		}, "Online.triggerLinkBroken2")));
+		}, "Online.triggerLinkBroken2")).run());
 	}
 
 	private static long getTypeId(@NotNull Binary fullEncodedProtocol) {
@@ -1412,16 +1411,16 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_a"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_a")).run();
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_b"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_b")).run();
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -1430,8 +1429,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			Task.run(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken0_c"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken0_c")).run();
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1601,8 +1600,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				Task.call(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
-						"Online.transmit: " + actionName));
+				TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> handle.call(sender, target, parameter),
+						"Online.transmit: " + actionName)).call();
 			}
 		}
 	}
@@ -1717,10 +1716,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		} else
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
-		Task.run(providerApp.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			transmitEmbed(sender, actionName, roleIds, bb != null ? new Binary(bb) : null, true);
 			return Procedure.Success;
-		}, "Online.transmit"), null, null, DispatchMode.Normal);
+		}, "Online.transmit")).run();
 	}
 
 	public void transmitWhileCommit(long sender, @NotNull String actionName, long roleId) {
@@ -1924,8 +1923,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	private long ProcessLoginRequestOnlineSet(@NotNull Login rpc) {
 		var done = new OutObject<>(false);
 		for (var i = 0; i < 3 && !done.value; ++i) {
-			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
-					"ProcessLoginRequest"));
+			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done),
+					"ProcessLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}
@@ -2021,8 +2020,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	protected long ProcessReLoginRequestOnlineSet(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
-			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
-					"ProcessReLoginRequest"));
+			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done),
+					"ProcessReLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}

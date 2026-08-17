@@ -11,7 +11,7 @@ import java.util.Comparator;
 import Zeze.Util.KV;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Util.OutInt;
@@ -64,7 +64,8 @@ public class Log4jFileManager extends ReentrantLock {
 			files.add(Log4jFile.of(active, loadIndex(active, logConf.logActive + ".index")));
 		}
 		var period = 300_000L;
-		buildIndexTimer = Task.scheduleUnsafe(Random.getInstance().nextLong(period), period, this::buildIndex);
+		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
+				.scheduleWithPeriodUnsafe(Random.getInstance().nextLong(period), period);
 		removeOldLinkFiles();
 	}
 

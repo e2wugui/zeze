@@ -61,7 +61,7 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongList;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -225,7 +225,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private void startLocalCheck() {
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
-		verifyLocalTimer = Task.scheduleUnsafe(localCheckPeriod, this::verifyLocal);
+		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleUnsafe(localCheckPeriod);
 	}
 
 	public void stop() {
@@ -885,14 +885,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	}
 
 	private void processErrorSids(LongList errorSids, LinkRoles group) {
-		errorSids.foreach(linkSid -> Task.run(providerApp.zeze.newProcedure(() -> {
+		errorSids.foreach(linkSid -> TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			if (idx >= 0) {
 				var loginKey = group.accounts.get(idx);
 				return sendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid);
 			}
 			return 0;
-		}, "Online.triggerLinkBroken2")));
+		}, "Online.triggerLinkBroken2")).run());
 	}
 
 	private static long getTypeId(@NotNull Binary fullEncodedProtocol) {
@@ -998,15 +998,15 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect({}): not found connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		// 后面保存connector.socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -1014,8 +1014,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect({}): closed connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			Task.run(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
-					"Online.triggerLinkBroken1"));
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		var send = new Send(new BSend(typeId, fullEncodedProtocol));
@@ -1483,10 +1483,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 		var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.encode(parameter));
 		// 发送协议请求在另外的事务中执行。
-		Task.run(providerApp.zeze.newProcedure(() -> {
+		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			transmitInProcedure(account, clientId, actionName, targets, binaryParam);
 			return Procedure.Success;
-		}, "Online.transmit"));
+		}, "Online.transmit")).run();
 	}
 
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
@@ -1629,7 +1629,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	protected long ProcessLoginRequest(@NotNull Login rpc) throws Exception {
 		var done = new OutObject<>(false);
 		while (!done.value) {
-			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest"));
+			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessLoginRequest(rpc, done), "ProcessLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}
@@ -1706,7 +1706,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	protected long ProcessReLoginRequest(@NotNull ReLogin rpc) {
 		var done = new OutObject<>(false);
 		while (!done.value) {
-			var r = Task.call(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest"));
+			var r = TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> ProcessReLoginRequest(rpc, done), "ProcessReLoginRequest")).call();
 			if (r != 0)
 				return r;
 		}

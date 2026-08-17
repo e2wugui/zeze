@@ -36,6 +36,7 @@ import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -274,22 +275,21 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			serviceManager = sm;
 			sessionId = sid;
 			if (serviceManager.conf.keepAlivePeriod > 0) {
-				keepAliveTimerTask = Task.scheduleUnsafe(
+				keepAliveTimerTask = TaskSpec.ofAction(() -> {
+					AsyncSocket s = null;
+					try {
+						s = serviceManager.server.GetSocket(sessionId);
+						var r = new KeepAlive();
+						r.SendAndWaitCheckResultCode(s);
+					} catch (Throwable ex) { // resource close. logger.error
+						if (s != null)
+							s.close(ex);
+						else
+							logger.error("ServiceManager.KeepAlive", ex);
+					}
+				}).scheduleWithPeriodUnsafe(
 						Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
-						serviceManager.conf.keepAlivePeriod,
-						() -> {
-							AsyncSocket s = null;
-							try {
-								s = serviceManager.server.GetSocket(sessionId);
-								var r = new KeepAlive();
-								r.SendAndWaitCheckResultCode(s);
-							} catch (Throwable ex) { // resource close. logger.error
-								if (s != null)
-									s.close(ex);
-								else
-									logger.error("ServiceManager.KeepAlive", ex);
-							}
-						});
+						serviceManager.conf.keepAlivePeriod);
 			} else
 				keepAliveTimerTask = null;
 		}
@@ -322,12 +322,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				try {
 					if (!serviceManager.offlineNotifyFutures.containsKey(offlineRegisterServerId))
 						serviceManager.offlineNotifyFutures.put(offlineRegisterServerId,
-								Task.scheduleUnsafe(eOfflineNotifyDelay, () -> offlineNotify(true)));
+							TaskSpec.ofAction(() -> offlineNotify(true)).scheduleUnsafe(eOfflineNotifyDelay));
 				} finally {
 					serviceManager.unlock();
 				}
 			} else {
-				Task.run(() -> offlineNotify(false), "offlineNotifyImmediately");
+				TaskSpec.ofAction(() -> offlineNotify(false)).name("offlineNotifyImmediately").run();
 			}
 		}
 
@@ -597,7 +597,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var ctx = announceContextMap.computeIfAbsent(notifyId, k -> {
 				logger.info("processAnnounceServers: new context notifyId={}", k);
 				var c = new AnnounceContext(k);
-				Task.scheduleUnsafe(5000, () -> checkAnnounceContextTask(c));
+				TaskSpec.ofAction(() -> checkAnnounceContextTask(c)).scheduleUnsafe(5000);
 				return c;
 			});
 			var curMs = System.nanoTime() / 1_000_000;
@@ -632,7 +632,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				var watchState = it.value();
 				if (watchState.beginMs != -1 && curMs - watchState.beginMs < Session.eOfflineNotifyDelay) {
 					// 还有需要等待的(没announce过且没通知offline过的),继续下次调度
-					Task.scheduleUnsafe(5000, () -> checkAnnounceContextTask(ctx));
+					TaskSpec.ofAction(() -> checkAnnounceContextTask(ctx)).scheduleUnsafe(5000);
 					return;
 				}
 			}
@@ -656,7 +656,8 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			for (int i = 0, n = offlineServerIds.size(); i < n; i++) {
 				int offlineServerId = offlineServerIds.get(i);
 				long offlineSerialId = offlineSerialIds.get(i);
-				Task.run(() -> notifyOffline(ctx, offlineServerId, offlineSerialId), "notifyOffline"); // 并行通知多个离线的serverId
+				TaskSpec.ofAction(() -> notifyOffline(ctx, offlineServerId, offlineSerialId))
+						.name("notifyOffline").run(); // 并行通知多个离线的serverId
 			}
 		} else
 			logger.info("checkAnnounceContextTask: no offline server for notifyId={}", ctx.notifyId);
@@ -857,10 +858,12 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
-				Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode);
+				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+						.protocol(p).errorHandle(Protocol::trySendResultCode).call();
 			} else {
 				oneByOneByKey.Execute(p.getSender(),
-						() -> Task.call(() -> p.handle(this, factoryHandle), p, Protocol::trySendResultCode),
+						() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+								.protocol(p).errorHandle(Protocol::trySendResultCode).call(),
 						factoryHandle.Mode);
 			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
@@ -869,15 +872,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
-					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+					.protocol(p).errorHandle(Protocol::trySendResultCode).mode(factoryHandle.Mode).executeUnsafe();
 		}
 
 		@Override
 		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+			TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
 		}
 		*/
 	}

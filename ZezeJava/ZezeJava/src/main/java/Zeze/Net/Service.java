@@ -33,6 +33,7 @@ import Zeze.Util.OutObject;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -462,10 +463,11 @@ public class Service extends ReentrantLock {
 		// 但为了更具适应性，就是有人重载了下面的dispatchProtocol，然后没有处理事务，直接派发到这里，
 		// 这里还是处理了存储过程的创建。但这里处理的存储过程没有redo时重置协议参数的能力。
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
-			Task.executeRpcResponseUnsafe(zeze.newProcedure(() -> responseHandle.handle(rpc),
-					rpc.getClass().getName() + ":Response", factoryHandle.Level), factoryHandle.Mode);
+			TaskSpec.ofProcedure(zeze.newProcedure(() -> responseHandle.handle(rpc),
+					rpc.getClass().getName() + ":Response", factoryHandle.Level))
+					.mode(factoryHandle.Mode).executeUnsafe();
 		} else
-			Task.executeRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+			TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
 	}
 
 	public boolean isHandshakeProtocol(long typeId) {
@@ -515,10 +517,12 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			var protocolClassName = p.getClass().getName();
 			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
-			Task.executeUnsafe(proc, p, Protocol::trySendResultCode, factoryHandle.Mode);
+			TaskSpec.ofProcedure(proc).from(p).errorHandle(Protocol::trySendResultCode)
+					.mode(factoryHandle.Mode).executeUnsafe();
 		} else {
-			Task.executeUnsafe(() -> p.handle(this, factoryHandle),
-					p, Protocol::trySendResultCode, null, factoryHandle.Mode);
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+					.protocol(p).errorHandle(Protocol::trySendResultCode)
+					.mode(factoryHandle.Mode).executeUnsafe();
 		}
 	}
 
@@ -527,7 +531,7 @@ public class Service extends ReentrantLock {
 		if (isHandshakeProtocol(typeId)) {
 			// handshake protocol call direct in io-thread.
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
-			Task.call(() -> p.handle(this, factoryHandle), "Service.handleHandshakeProtocol");
+			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("Service.handleHandshakeProtocol").call();
 			return;
 		}
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
@@ -550,7 +554,8 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
-			Task.executeUnsafe(proc, outProtocol, Protocol::trySendResultCode, factoryHandle.Mode);
+			TaskSpec.ofProcedure(proc).outProtocol(outProtocol).errorHandle(Protocol::trySendResultCode)
+					.mode(factoryHandle.Mode).executeUnsafe();
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 其他协议或者rpc，马上在io线程继续派发。
@@ -577,8 +582,9 @@ public class Service extends ReentrantLock {
 			return true;
 		overflowSizeHandle.getAndAdd(this, (long)length);
 		if ((int)overflowCountHandle.getAndAdd(this, 1) == 0) {
-			Task.scheduleUnsafe(1000, () -> logger.error("Send overflow(>{}): {} dropped {}/{}",
-					maxSize, this, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0)));
+			TaskSpec.ofAction(() -> logger.error("Send overflow(>{}): {} dropped {}/{}",
+					maxSize, this, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0)))
+					.scheduleUnsafe(1000);
 		}
 		return false;
 	}
@@ -736,7 +742,7 @@ public class Service extends ReentrantLock {
 			if (manualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
 				context.setService(this);
-				Task.schedule(timeout, () -> tryRemoveManualContext(sessionId, true));
+				TaskSpec.ofAction(() -> tryRemoveManualContext(sessionId, true)).schedule(timeout);
 				return sessionId;
 			}
 		}
@@ -864,8 +870,8 @@ public class Service extends ReentrantLock {
 			if (keepCheckTimer == null) {
 				var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
 				if (period > 0) {
-					keepCheckTimer = Task.scheduleUnsafe(
-							Random.getInstance().nextLong(period) + 1, period, this::checkKeepAlive);
+					keepCheckTimer = TaskSpec.ofAction(this::checkKeepAlive).scheduleWithPeriodUnsafe(
+							Random.getInstance().nextLong(period) + 1, period);
 				}
 			}
 		} finally {

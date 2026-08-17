@@ -19,6 +19,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -36,12 +37,12 @@ public class LinkdService extends HandshakeServer {
 
 		if (getSocketOptions().getOverBandwidth() != null) {
 			var lastSendSize = new OutLong();
-			Task.scheduleUnsafe(1000, 1000, () -> {
+			TaskSpec.ofAction(() -> {
 				updateRecvSendSize();
 				long sendSize = getSendSize();
 				curSendSpeed = sendSize - lastSendSize.value;
 				lastSendSize.value = sendSize;
-			});
+			}).scheduleWithPeriodUnsafe(1000, 1000);
 		}
 	}
 
@@ -108,11 +109,11 @@ public class LinkdService extends HandshakeServer {
 			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
 			// 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
 			if (closeLink) {
-				Task.schedule(2000, () -> {
+				TaskSpec.ofAction(() -> {
 					var so = GetSocket(linkSid);
 					if (so != null)
 						so.closeGracefully();
-				});
+				}).schedule(2000);
 			}
 		}
 	}

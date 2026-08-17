@@ -6,8 +6,8 @@ import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
-import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -91,7 +91,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 		if (Reflect.inDebugMode)
 			timeout += 10 * 60 * 1000; // 调试状态下RPC超时放宽到至少10分钟,方便调试时不容易超时
 
-		Task.schedule(timeout, () -> {
+		TaskSpec.ofAction(() -> {
 			Rpc<TArgument, TResult> context = service.removeRpcContext(sessionId);
 			if (context == null) // 一般来说，此时结果已经返回。
 				return;
@@ -109,7 +109,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 				if (factoryHandle != null)
 					service.dispatchRpcResponse(context, context.responseHandle, factoryHandle);
 			}
-		});
+		}).schedule(timeout);
 	}
 
 	/**

@@ -22,6 +22,7 @@ import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -191,7 +192,7 @@ public class Dbh2Manager {
 		masterAgent.setDbh2Ready();
 		proxyServer.start();
 
-		loadMonitorTimer = Task.scheduleUnsafe(120_000, 120_000, this::loadMonitor);
+		loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleWithPeriodUnsafe(120_000, 120_000);
 	}
 
 	private void loadMonitor() throws Exception {

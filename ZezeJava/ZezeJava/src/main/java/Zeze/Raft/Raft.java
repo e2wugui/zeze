@@ -33,6 +33,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -383,7 +384,7 @@ public final class Raft {
 			logger.info("Raft {} ShutdownHook end", getName());
 		});
 
-		timerTask = Task.scheduleUnsafe(20, 20, this::onTimer);
+		timerTask = TaskSpec.ofAction(this::onTimer).scheduleWithPeriodUnsafe(20, 20);
 	}
 
 	private long processAppendEntries(AppendEntries r) throws Exception {

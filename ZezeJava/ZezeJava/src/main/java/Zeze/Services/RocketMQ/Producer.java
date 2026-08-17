@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.Builtin.RocketMQ.Producer.BTransactionMessageResult;
 import Zeze.Util.FuncLong;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
@@ -61,16 +61,16 @@ public class Producer extends AbstractProducer implements TransactionListener {
 		// msg = new Message("Topic", "tag1 || tag2", "key1", "Message Body".getBytes(RemotingHelper.DEFAULT_CHARSET));
 		var txnId = zeze.getAutoKey("RocketMQ").nextString();
 		msg.setTransactionId(txnId);
-		var r = Task.call(zeze.newProcedure(() -> {
+		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			_tSent.insert(txnId, new BTransactionMessageResult(false, System.currentTimeMillis()));
 			return 0;
-		}, "RocketMQ.executeLocalTransaction"));
+		}, "RocketMQ.executeLocalTransaction")).call();
 		return r == 0 ? producer.sendMessageInTransaction(msg, procedureAction) : null;
 	}
 
 	@Override
 	public @NotNull LocalTransactionState executeLocalTransaction(@NotNull Message msg, Object arg) {
-		var r = Task.call(zeze.newProcedure(() -> {
+		var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 			var sent = _tSent.get(msg.getTransactionId());
 			if (sent == null)
 				return 1;
@@ -78,15 +78,15 @@ public class Producer extends AbstractProducer implements TransactionListener {
 				return 0;
 			sent.setResult(true);
 			return ((FuncLong)arg).call();
-		}, "RocketMQ.executeLocalTransaction"));
+		}, "RocketMQ.executeLocalTransaction")).call();
 
 		if (r == 0)
 			return LocalTransactionState.COMMIT_MESSAGE;
 		if (r != 1) {
-			Task.call(zeze.newProcedure(() -> {
+			TaskSpec.ofProcedure(zeze.newProcedure(() -> {
 				_tSent.remove(msg.getTransactionId());
 				return 0;
-			}, "RocketMQ.executeLocalTransaction.rollback"));
+			}, "RocketMQ.executeLocalTransaction.rollback")).call();
 		}
 		return LocalTransactionState.ROLLBACK_MESSAGE;
 	}

@@ -8,13 +8,12 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
-import Zeze.Util.Task;
+import Zeze.Util.TaskSpec;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
@@ -76,14 +75,14 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 			// 总是支持事务
 			var outProtocol = new OutObject<Protocol<?>>();
-			Task.executeUnsafe(getZeze().newProcedure(() -> {
+			TaskSpec.ofProcedure(getZeze().newProcedure(() -> {
 						bb.ReadIndex = 0; // 考虑redo,要重置读指针
 						var p = decodeProtocol(typeId, bb, factoryHandle, so);
 						outProtocol.value = p;
 						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
 						return p.handle(this, factoryHandle);
-					}, factoryHandle.Class.getName(), TransactionLevel.Serializable),
-					outProtocol, Protocol::trySendResultCode, DispatchMode.Normal);
+					}, factoryHandle.Class.getName(), TransactionLevel.Serializable))
+					.outProtocol(outProtocol).errorHandle(Protocol::trySendResultCode).executeUnsafe();
 		}
 	}
 }
