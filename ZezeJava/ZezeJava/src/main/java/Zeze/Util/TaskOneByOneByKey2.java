@@ -223,13 +223,13 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 								 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
-			Execute(key, () -> batch.run(key), mode);
+			executeActionCore(key.hashCode(), () -> batch.run(key), null, mode);
 	}
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
 		var batch = new Batch<>(keys.size(), action, batchEnd);
-		keys.foreach((key) -> Execute(key, () -> batch.run(key), mode));
+		keys.foreach((key) -> executeActionCore(Long.hashCode(key), () -> batch.run(key), null, mode));
 	}
 
 	// 以下3个Core是真核心，所有Execute重载最终都委托到这里。
@@ -251,60 +251,88 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Action0 action) {
 		executeActionCore(key.hashCode(), action, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		executeActionCore(key.hashCode(), action, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
 		executeActionCore(key.hashCode(), action, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		executeActionCore(key.hashCode(), action, name, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Func0<?> func) {
 		executeFunc0Core(key.hashCode(), func, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
 		executeFunc0Core(key.hashCode(), func, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name) {
 		executeFunc0Core(key.hashCode(), func, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name,
 						@Nullable DispatchMode mode) {
 		executeFunc0Core(key.hashCode(), func, name, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
 		executeProcedureCore(key.hashCode(), procedure, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeProcedureCore(key.hashCode(), procedure, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Action0 action) {
 		executeActionCore(key, action, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		executeActionCore(key, action, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
 		executeActionCore(key, action, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		executeActionCore(key, action, name, mode);
 	}
@@ -313,66 +341,98 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		return concurrency[hash(key.hashCode()) & hashMask];
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Func0<?> func) {
 		executeFunc0Core(key, func, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
 		executeFunc0Core(key, func, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name) {
 		executeFunc0Core(key, func, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
 		executeFunc0Core(key, func, name, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Procedure procedure) {
 		executeProcedureCore(key, procedure, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeProcedureCore(key, procedure, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Action0 action) {
 		executeActionCore(Long.hashCode(key), action, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
 		executeActionCore(Long.hashCode(key), action, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
 		executeActionCore(Long.hashCode(key), action, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Action0 action, String name, DispatchMode mode) {
 		executeActionCore(Long.hashCode(key), action, name, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Func0<?> func) {
 		executeFunc0Core(Long.hashCode(key), func, null, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
 		executeFunc0Core(Long.hashCode(key), func, null, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name) {
 		executeFunc0Core(Long.hashCode(key), func, name, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
 		executeFunc0Core(Long.hashCode(key), func, name, mode);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Procedure procedure) {
 		executeProcedureCore(Long.hashCode(key), procedure, DispatchMode.Normal);
 	}
 
+	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
+	@Deprecated
 	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
 		executeProcedureCore(Long.hashCode(key), procedure, mode);
 	}
