@@ -264,7 +264,7 @@ public class ProviderService extends HandshakeClient {
 							() -> TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p))
 									.protocol(p).errorHandle(Protocol::trySendResultCode).call())
 					.mode(factoryHandle.Mode)
-					.execute(getZeze().getTaskOneByOneByKey());
+					.execute();
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}

@@ -1050,7 +1050,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					else {
 						OneByOneSpec.ofAction(oneByOneKey,
 										() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.execute(zeze.getTaskOneByOneByKey());
+								.execute();
 					}
 				}).scheduleUnsafe(delay));
 				if (null != exist)
@@ -1151,7 +1151,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					else {
 						OneByOneSpec.ofAction(oneByOneKey,
 										() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.execute(zeze.getTaskOneByOneByKey());
+								.execute();
 					}
 				}).scheduleUnsafe(delay));
 				if (null != exist)

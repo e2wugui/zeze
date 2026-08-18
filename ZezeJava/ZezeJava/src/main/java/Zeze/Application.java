@@ -871,6 +871,8 @@ public final class Application extends ReentrantLock {
 		}
 	}
 
+	/** @deprecated 请直接使用 {@link Task#getOneByOne()}。 */
+	@Deprecated
 	@SuppressWarnings("MethodMayBeStatic")
 	public @NotNull TaskOneByOneByKey getTaskOneByOneByKey() {
 		return Task.getOneByOne();
@@ -878,16 +880,16 @@ public final class Application extends ReentrantLock {
 
 	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
+				.mode(DispatchMode.Normal).execute();
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
+				.mode(DispatchMode.Normal).execute();
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
 		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
+				.mode(DispatchMode.Normal).execute();
 	}
 }

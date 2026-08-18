@@ -306,7 +306,7 @@ public class ProviderDirectService extends HandshakeBoth {
 										.errorHandle(Protocol::trySendResultCode)
 										.name(r.Argument.getMethodFullName()).call())
 						.mode(factoryHandle.Mode)
-						.execute(getZeze().getTaskOneByOneByKey());
+						.execute();
 			}
 			return;
 		}
@@ -338,7 +338,7 @@ public class ProviderDirectService extends HandshakeBoth {
 				OneByOneSpec.ofFunc(r.Argument.getKey(),
 								() -> TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).call())
 						.mode(factoryHandle.Mode)
-						.execute(getZeze().getTaskOneByOneByKey());
+						.execute();
 			}
 			return;
 		}
