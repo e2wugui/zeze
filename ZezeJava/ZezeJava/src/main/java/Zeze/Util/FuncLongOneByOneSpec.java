@@ -66,4 +66,11 @@ public final class FuncLongOneByOneSpec extends AbstractOneByOneSpec implements 
 	public void execute(@NotNull TaskOneByOneBase oneByOne) {
 		executeByKey(oneByOne, new TaskOneByOneQueue.TaskFunc(func, name, cancel, modeOrDefault()));
 	}
+
+	/**
+	 * 提交到全局静态 {@link Task#getOneByOne()}，等价 {@code execute(Task.getOneByOne())}。
+	 */
+	public void execute() {
+		execute(Task.getOneByOne());
+	}
 }

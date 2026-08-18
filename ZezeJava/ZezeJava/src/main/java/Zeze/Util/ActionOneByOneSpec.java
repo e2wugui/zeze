@@ -65,6 +65,13 @@ public final class ActionOneByOneSpec extends AbstractOneByOneSpec implements On
 	}
 
 	/**
+	 * 提交到全局静态 {@link Task#getOneByOne()}，等价 {@code execute(Task.getOneByOne())}。
+	 */
+	public void execute() {
+		execute(Task.getOneByOne());
+	}
+
+	/**
 	 * 提交到 {@link TaskOneByOneByKey2}。
 	 * 等价 {@link TaskOneByOneByKey2#Execute(int, Action0, String, DispatchMode)}
 	 * （long key 转 Long.hashCode、Object key 转 hashCode 后委托 int 版，与旧重载一致）。

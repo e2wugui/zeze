@@ -171,6 +171,21 @@ public class TestOneByOneSpec {
 	}
 
 	/**
+	 * 无参 execute()：提交到全局静态 Task.getOneByOne()。
+	 */
+	@Test
+	public void testExecuteNoArg() throws Exception {
+		var counter = new AtomicInteger();
+		for (int i = 0; i < 100; i++)
+			OneByOneSpec.ofAction("globalKey", counter::incrementAndGet).execute();
+		OneByOneSpec.ofFunc(1, () -> {
+			counter.incrementAndGet();
+			return 0L;
+		}).execute();
+		awaitCounter(counter, 101);
+	}
+
+	/**
 	 * int key 与 long key 走不装箱路径且 (int)rawKey 取回无损（含负数）。
 	 */
 	@Test
@@ -203,6 +218,7 @@ public class TestOneByOneSpec {
 		test.testNameDefaultExplicitAndProcedure();
 		test.testCancelAndShutdown();
 		test.testKey2();
+		test.testExecuteNoArg();
 		test.testIntLongKeyNegative();
 		demo.App.Instance.Stop(); // App.Start 创建非守护线程，需要显式停止进程才能退出
 		System.out.println("TestOneByOneSpec OK");
