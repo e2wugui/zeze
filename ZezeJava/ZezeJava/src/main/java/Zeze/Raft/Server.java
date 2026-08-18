@@ -14,6 +14,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.FuncLong;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
@@ -281,7 +282,8 @@ public class Server extends HandshakeBoth {
 	@SuppressWarnings("RedundantThrows")
 	public void dispatchRaftRequest(Protocol<?> p, FuncLong func, String name, Action0 cancel, DispatchMode mode)
 			throws Exception {
-		taskOneByOne.Execute(((IRaftRpc)p).getUnique(), func, name, cancel, mode);
+		OneByOneSpec.ofFunc(((IRaftRpc)p).getUnique(), func)
+				.name(name).cancel(cancel).mode(mode).execute(taskOneByOne);
 	}
 
 	public void trySendLeaderIs(AsyncSocket sender) {

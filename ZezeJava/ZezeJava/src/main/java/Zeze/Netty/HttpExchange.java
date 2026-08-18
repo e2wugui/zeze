@@ -19,6 +19,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
@@ -457,14 +458,15 @@ public class HttpExchange {
 			if (handler.Mode == DispatchMode.Direct)
 				TaskSpec.ofProcedure(p).call();
 			else
-				server.task11Executor.Execute(context.channel().id(), p, null, handler.Mode);
+				OneByOneSpec.ofProcedure(context.channel().id(), p)
+						.mode(handler.Mode).execute(server.task11Executor);
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
 					.name("fireBeginStream").call();
 		} else {
-			server.task11Executor.Execute(context.channel().id(),
-					() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]),
-					"fireBeginStream", handler.Mode);
+			OneByOneSpec.ofAction(context.channel().id(),
+							() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
+					.name("fireBeginStream").mode(handler.Mode).execute(server.task11Executor);
 		}
 	}
 
@@ -482,25 +484,25 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else {
 				c.retain();
-				server.task11Executor.Execute(context.channel().id(), () -> {
+				OneByOneSpec.ofFunc(context.channel().id(), () -> {
 					try {
 						return p.call();
 					} finally {
 						c.release();
 					}
-				}, p.getActionName(), handler.Mode);
+				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handle.onStreamContent(this, c)).name("fireStreamContentHandle").call();
 		} else {
 			c.retain();
-			server.task11Executor.Execute(context.channel().id(), () -> {
+			OneByOneSpec.ofAction(context.channel().id(), () -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
 					c.release();
 				}
-			}, "fireStreamContentHandle", handler.Mode);
+			}).name("fireStreamContentHandle").mode(handler.Mode).execute(server.task11Executor);
 		}
 	}
 
@@ -537,20 +539,20 @@ public class HttpExchange {
 						close(null);
 				}
 			} else {
-				server.task11Executor.Execute(context.channel().id(), () -> {
+				OneByOneSpec.ofFunc(context.channel().id(), () -> {
 					try {
 						return p.call();
 					} finally {
 						if (detached == 0)
 							close(null);
 					}
-				}, p.getActionName(), handler.Mode);
+				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(this::invokeEndStream).name("fireEndStreamHandle").call();
 		} else {
-			server.task11Executor.Execute(context.channel().id(), this::invokeEndStream,
-					"fireEndStreamHandle", handler.Mode);
+			OneByOneSpec.ofAction(context.channel().id(), this::invokeEndStream)
+					.name("fireEndStreamHandle").mode(handler.Mode).execute(server.task11Executor);
 		}
 	}
 
@@ -567,25 +569,25 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else {
 				frame.retain();
-				server.task11Executor.Execute(context.channel().id(), () -> {
+				OneByOneSpec.ofFunc(context.channel().id(), () -> {
 					try {
 						return p.call();
 					} finally {
 						frame.release();
 					}
-				}, p.getActionName(), handler.Mode);
+				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> fireWebSocket0(frame)).name("fireWebSocket").call();
 		} else {
 			frame.retain();
-			server.task11Executor.Execute(context.channel().id(), () -> {
+			OneByOneSpec.ofAction(context.channel().id(), () -> {
 				try {
 					fireWebSocket0(frame);
 				} finally {
 					frame.release();
 				}
-			}, "fireWebSocket", handler.Mode);
+			}).name("fireWebSocket").mode(handler.Mode).execute(server.task11Executor);
 		}
 	}
 

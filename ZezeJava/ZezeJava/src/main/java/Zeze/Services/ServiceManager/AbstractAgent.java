@@ -13,6 +13,7 @@ import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Util.Action1;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -162,13 +163,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected void triggerOnChanged(@NotNull BEditService edit) {
 		if (onChanged != null) {
-			Task.getOneByOne().Execute(SMCallbackOneByOneKey, () -> {
+			OneByOneSpec.ofAction(SMCallbackOneByOneKey, () -> {
 				try {
 					onChanged.run(edit);
 				} catch (Throwable e) { // logger.error
 					logger.error("", e);
 				}
-			});
+			}).execute(Task.getOneByOne());
 		}
 	}
 

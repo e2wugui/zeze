@@ -115,7 +115,7 @@ public final class Task {
 	 * @param action0 action
 	 */
 	public static void executeSystemOneByOne(Action0 action0, String name) {
-		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), action0, name);
+		OneByOneSpec.ofAction(nextSystemOneByOneConcurrencyName(), action0).name(name).execute(oneByOne);
 	}
 
 	/**
@@ -125,7 +125,7 @@ public final class Task {
 	 * @param proc proc
 	 */
 	public static void executeSystemOneByOne(Procedure proc) {
-		oneByOne.Execute(nextSystemOneByOneConcurrencyName(), proc);
+		OneByOneSpec.ofProcedure(nextSystemOneByOneConcurrencyName(), proc).execute(oneByOne);
 	}
 
 	public static ExecutorService getThreadPool() {

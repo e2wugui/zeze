@@ -27,6 +27,7 @@ import Zeze.Util.Action0;
 import Zeze.Util.Action2;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func3;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -178,7 +179,7 @@ public final class Raft {
 	}
 
 	public void executeUserTask(@NotNull Action0 task) {
-		taskOneByOne.Execute(userTaskOneByOneKey, task);
+		OneByOneSpec.ofAction(userTaskOneByOneKey, task).execute(taskOneByOne);
 	}
 
 	public StateMachine getStateMachine() {

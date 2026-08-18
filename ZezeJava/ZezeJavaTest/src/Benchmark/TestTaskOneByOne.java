@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
@@ -28,13 +29,11 @@ public class TestTaskOneByOne {
 		var oo = new TaskOneByOneByKey();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
-			oo.Execute(1, () -> {
-				counter.incrementAndGet();
-			});
+			OneByOneSpec.ofAction(1, counter::incrementAndGet).execute(oo);
 		}
 		lock.lock();
 		try {
-			oo.Execute(1, () -> {
+			OneByOneSpec.ofAction(1, () -> {
 				lock.lock();
 				try {
 					counter.incrementAndGet();
@@ -42,7 +41,7 @@ public class TestTaskOneByOne {
 				} finally {
 					lock.unlock();
 				}
-			});
+			}).execute(oo);
 			cond.await();
 		} finally {
 			lock.unlock();
@@ -76,13 +75,11 @@ public class TestTaskOneByOne {
 		var oo = new TaskOneByOneByKey2();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
-			oo.Execute(1, () -> {
-				counter.incrementAndGet();
-			});
+			OneByOneSpec.ofAction(1, counter::incrementAndGet).execute(oo);
 		}
 		lock.lock();
 		try {
-			oo.Execute(1, () -> {
+			OneByOneSpec.ofAction(1, () -> {
 				lock.lock();
 				try {
 					counter.incrementAndGet();
@@ -90,7 +87,7 @@ public class TestTaskOneByOne {
 				} finally {
 					lock.unlock();
 				}
-			});
+			}).execute(oo);
 			cond.await();
 		} finally {
 			lock.unlock();

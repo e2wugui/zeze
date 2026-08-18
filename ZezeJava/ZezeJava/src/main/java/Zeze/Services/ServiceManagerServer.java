@@ -32,6 +32,7 @@ import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -861,10 +862,11 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
 						.protocol(p).errorHandle(Protocol::trySendResultCode).call();
 			} else {
-				oneByOneByKey.Execute(p.getSender(),
-						() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
-								.protocol(p).errorHandle(Protocol::trySendResultCode).call(),
-						factoryHandle.Mode);
+				OneByOneSpec.ofFunc(p.getSender(),
+								() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
+										.protocol(p).errorHandle(Protocol::trySendResultCode).call())
+						.mode(factoryHandle.Mode)
+						.execute(oneByOneByKey);
 			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}

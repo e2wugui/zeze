@@ -51,6 +51,7 @@ import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
@@ -876,14 +877,17 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
+				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
+				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		Task.getOneByOne().Execute(oneByOneKey, newProcedure(func, actionName), DispatchMode.Normal);
+		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
+				.mode(DispatchMode.Normal).execute(Task.getOneByOne());
 	}
 }

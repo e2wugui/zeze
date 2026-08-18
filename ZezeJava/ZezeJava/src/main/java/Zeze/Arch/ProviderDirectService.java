@@ -17,6 +17,7 @@ import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -300,11 +301,12 @@ public class ProviderDirectService extends HandshakeBoth {
 						.errorHandle(Protocol::trySendResultCode)
 						.name(r.Argument.getMethodFullName()).mode(factoryHandle.Mode).executeUnsafe();
 			} else {
-				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
-						() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
-								.errorHandle(Protocol::trySendResultCode)
-								.name(r.Argument.getMethodFullName()).call(),
-						factoryHandle.Mode);
+				OneByOneSpec.ofFunc(r.Argument.getKey(),
+								() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
+										.errorHandle(Protocol::trySendResultCode)
+										.name(r.Argument.getMethodFullName()).call())
+						.mode(factoryHandle.Mode)
+						.execute(getZeze().getTaskOneByOneByKey());
 			}
 			return;
 		}
@@ -333,8 +335,10 @@ public class ProviderDirectService extends HandshakeBoth {
 				TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc)
 						.mode(factoryHandle.Mode).executeUnsafe();
 			else {
-				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getKey(),
-						() -> TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).call(), factoryHandle.Mode);
+				OneByOneSpec.ofFunc(r.Argument.getKey(),
+								() -> TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).call())
+						.mode(factoryHandle.Mode)
+						.execute(getZeze().getTaskOneByOneByKey());
 			}
 			return;
 		}

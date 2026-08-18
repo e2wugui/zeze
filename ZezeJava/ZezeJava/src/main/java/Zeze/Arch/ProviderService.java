@@ -17,6 +17,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
+import Zeze.Util.OneByOneSpec;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -259,9 +260,11 @@ public class ProviderService extends HandshakeClient {
 			throws Exception {
 		if (p instanceof Dispatch d) {
 			//noinspection DataFlowIssue
-			getZeze().getTaskOneByOneByKey().Execute(d.Argument.getAccount(),
-					() -> TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p))
-							.protocol(p).errorHandle(Protocol::trySendResultCode).call(), factoryHandle.Mode);
+			OneByOneSpec.ofFunc(d.Argument.getAccount(),
+							() -> TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p))
+									.protocol(p).errorHandle(Protocol::trySendResultCode).call())
+					.mode(factoryHandle.Mode)
+					.execute(getZeze().getTaskOneByOneByKey());
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}
