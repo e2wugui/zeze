@@ -16,7 +16,7 @@ abstract class AbstractOneByOneSpec {
 	static final byte KEY_LONG = 2;
 
 	final byte keyType;
-	final @Nullable Object objectKey; // 仅 KEY_OBJECT 有值
+	final Object objectKey; // 仅 KEY_OBJECT 有值
 	final long rawKey; // KEY_INT 时低32位按位保存 int（符号扩展无损），KEY_LONG 时为 key 本身
 
 	@Nullable String name;
@@ -58,6 +58,7 @@ abstract class AbstractOneByOneSpec {
 			oneByOne.execute(rawKey, task);
 			break;
 		default:
+			assert objectKey != null;
 			oneByOne.execute(objectKey, task);
 			break;
 		}
@@ -68,13 +69,13 @@ abstract class AbstractOneByOneSpec {
 	 * int 直接返回 / long 转 Long.hashCode / Object 转 hashCode()，与 Key2 旧 long/Object 重载的委托一致。
 	 */
 	int hashKey() {
-		switch (keyType) {
-		case KEY_INT:
-			return (int)rawKey;
-		case KEY_LONG:
-			return Long.hashCode(rawKey);
-		default:
-			return objectKey.hashCode();
-		}
+		return switch (keyType) {
+			case KEY_INT -> (int)rawKey;
+			case KEY_LONG -> Long.hashCode(rawKey);
+			default -> {
+				assert objectKey != null;
+				yield objectKey.hashCode();
+			}
+		};
 	}
 }
