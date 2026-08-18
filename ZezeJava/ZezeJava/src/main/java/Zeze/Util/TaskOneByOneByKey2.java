@@ -232,65 +232,81 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		keys.foreach((key) -> Execute(key, () -> batch.run(key), mode));
 	}
 
-	public void Execute(@NotNull Object key, @NotNull Action0 action) {
-		Execute(key.hashCode(), action, DispatchMode.Normal);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), action, mode);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
-		Execute(key.hashCode(), action, name, DispatchMode.Normal);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
-						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), action, name, mode);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func) {
-		Execute(key.hashCode(), func, DispatchMode.Normal);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), func, mode);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name) {
-		Execute(key.hashCode(), func, name, DispatchMode.Normal);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name,
-						@Nullable DispatchMode mode) {
-		Execute(key.hashCode(), func, name, mode);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
-		Execute(key.hashCode(), procedure, DispatchMode.Normal);
-	}
-
-	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		Execute(key.hashCode(), procedure, mode);
-	}
-
-	public void Execute(int key, @NotNull Action0 action) {
-		Execute(key, action, null, DispatchMode.Normal);
-	}
-
-	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
-		Execute(key, action, null, mode);
-	}
-
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
-		Execute(key, action, name, DispatchMode.Normal);
-	}
-
-	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+	// 以下3个Core是真核心，所有Execute重载最终都委托到这里。
+	void executeActionCore(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		//noinspection ConstantValue
 		if (action == null)
 			throw new IllegalArgumentException("null action");
 		concurrency[hash(key) & hashMask].execute(action, name, mode);
+	}
+
+	void executeFunc0Core(int key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
+		//noinspection ConstantValue
+		if (func == null)
+			throw new IllegalArgumentException("null func");
+		concurrency[hash(key) & hashMask].execute(func, name, mode);
+	}
+
+	void executeProcedureCore(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), mode);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Action0 action) {
+		executeActionCore(key.hashCode(), action, null, DispatchMode.Normal);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+		executeActionCore(key.hashCode(), action, null, mode);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name) {
+		executeActionCore(key.hashCode(), action, name, DispatchMode.Normal);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Action0 action, @Nullable String name,
+						@Nullable DispatchMode mode) {
+		executeActionCore(key.hashCode(), action, name, mode);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Func0<?> func) {
+		executeFunc0Core(key.hashCode(), func, null, DispatchMode.Normal);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
+		executeFunc0Core(key.hashCode(), func, null, mode);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name) {
+		executeFunc0Core(key.hashCode(), func, name, DispatchMode.Normal);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Func0<?> func, @Nullable String name,
+						@Nullable DispatchMode mode) {
+		executeFunc0Core(key.hashCode(), func, name, mode);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Procedure procedure) {
+		executeProcedureCore(key.hashCode(), procedure, DispatchMode.Normal);
+	}
+
+	public void Execute(@NotNull Object key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
+		executeProcedureCore(key.hashCode(), procedure, mode);
+	}
+
+	public void Execute(int key, @NotNull Action0 action) {
+		executeActionCore(key, action, null, DispatchMode.Normal);
+	}
+
+	public void Execute(int key, @NotNull Action0 action, @Nullable DispatchMode mode) {
+		executeActionCore(key, action, null, mode);
+	}
+
+	public void Execute(int key, @NotNull Action0 action, @Nullable String name) {
+		executeActionCore(key, action, name, DispatchMode.Normal);
+	}
+
+	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
+		executeActionCore(key, action, name, mode);
 	}
 
 	private @NotNull TaskOneByOne bucket(@NotNull Object key) {
@@ -298,70 +314,67 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	public void Execute(int key, @NotNull Func0<?> func) {
-		Execute(key, func, null, DispatchMode.Normal);
+		executeFunc0Core(key, func, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
-		Execute(key, func, null, mode);
+		executeFunc0Core(key, func, null, mode);
 	}
 
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name) {
-		Execute(key, func, name, DispatchMode.Normal);
+		executeFunc0Core(key, func, name, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (func == null)
-			throw new IllegalArgumentException("null func");
-		concurrency[hash(key) & hashMask].execute(func, name, mode);
+		executeFunc0Core(key, func, name, mode);
 	}
 
 	public void Execute(int key, @NotNull Procedure procedure) {
-		Execute(key, procedure, DispatchMode.Normal);
+		executeProcedureCore(key, procedure, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		concurrency[hash(key) & hashMask].execute(procedure::call, procedure.getActionName(), mode);
+		executeProcedureCore(key, procedure, mode);
 	}
 
 	public void Execute(long key, @NotNull Action0 action) {
-		Execute(Long.hashCode(key), action, DispatchMode.Normal);
+		executeActionCore(Long.hashCode(key), action, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), action, mode);
+		executeActionCore(Long.hashCode(key), action, null, mode);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, @Nullable String name) {
-		Execute(Long.hashCode(key), action, name, DispatchMode.Normal);
+		executeActionCore(Long.hashCode(key), action, name, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Action0 action, String name, DispatchMode mode) {
-		Execute(Long.hashCode(key), action, name, mode);
+		executeActionCore(Long.hashCode(key), action, name, mode);
 	}
 
 	public void Execute(long key, @NotNull Func0<?> func) {
-		Execute(Long.hashCode(key), func, DispatchMode.Normal);
+		executeFunc0Core(Long.hashCode(key), func, null, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), func, mode);
+		executeFunc0Core(Long.hashCode(key), func, null, mode);
 	}
 
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name) {
-		Execute(Long.hashCode(key), func, name, DispatchMode.Normal);
+		executeFunc0Core(Long.hashCode(key), func, name, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), func, name, mode);
+		executeFunc0Core(Long.hashCode(key), func, name, mode);
 	}
 
 	public void Execute(long key, @NotNull Procedure procedure) {
-		Execute(Long.hashCode(key), procedure, DispatchMode.Normal);
+		executeProcedureCore(Long.hashCode(key), procedure, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, @NotNull Procedure procedure, @Nullable DispatchMode mode) {
-		Execute(Long.hashCode(key), procedure, mode);
+		executeProcedureCore(Long.hashCode(key), procedure, mode);
 	}
 
 	@Override
