@@ -48,4 +48,13 @@ public final class Func0OneByOneSpec<R> extends AbstractOneByOneSpec implements 
 		this.mode = mode;
 		return this;
 	}
+
+	/**
+	 * 提交到 {@link TaskOneByOneByKey2}。
+	 * 等价 {@link TaskOneByOneByKey2#Execute(int, Func0, String, DispatchMode)}
+	 * （long key 转 Long.hashCode、Object key 转 hashCode 后委托 int 版，与旧重载一致）。
+	 */
+	public void execute(@NotNull TaskOneByOneByKey2 oneByOne) {
+		oneByOne.executeFunc0Core(hashKey(), func, name, modeOrDefault());
+	}
 }

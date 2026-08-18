@@ -58,4 +58,17 @@ public final class ProcedureOneByOneSpec extends AbstractOneByOneSpec implements
 		executeByKey(oneByOne, new TaskOneByOneQueue.TaskFunc(procedure::call, procedure.getActionName(), cancel,
 				modeOrDefault()));
 	}
+
+	/**
+	 * 提交到 {@link TaskOneByOneByKey2}。
+	 * 等价 {@link TaskOneByOneByKey2#Execute(int, Procedure, DispatchMode)}
+	 * （long key 转 Long.hashCode、Object key 转 hashCode 后委托 int 版，与旧重载一致）。
+	 *
+	 * @throws IllegalArgumentException 已设置 {@link #cancel} 时（Key2 不支持 shutdown/cancel）
+	 */
+	public void execute(@NotNull TaskOneByOneByKey2 oneByOne) {
+		if (cancel != null)
+			throw new IllegalArgumentException("cancel is not supported by TaskOneByOneByKey2");
+		oneByOne.executeProcedureCore(hashKey(), procedure, modeOrDefault());
+	}
 }

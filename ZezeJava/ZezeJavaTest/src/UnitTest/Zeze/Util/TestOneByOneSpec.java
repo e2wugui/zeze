@@ -7,6 +7,7 @@ import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskOneByOneByKey;
+import Zeze.Util.TaskOneByOneByKey2;
 import Zeze.Util.TaskOneByOneByKeyLru;
 import demo.App;
 import org.junit.Assert;
@@ -130,6 +131,48 @@ public class TestOneByOneSpec {
 	/**
 	 * int key 与 long key 走不装箱路径且 (int)rawKey 取回无损（含负数）。
 	 */
+	/**
+	 * Key2：ofAction/ofFunc0/ofProcedure 提交执行、cancel 拒绝、任务名（no-op executor 入队后 toString 检查）。
+	 */
+	@Test
+	public void testKey2() throws Exception {
+		var oo = new TaskOneByOneByKey2();
+		var counter = new AtomicInteger();
+		for (int i = 0; i < 100; i++) {
+			OneByOneSpec.ofAction(1, counter::incrementAndGet).execute(oo);
+			OneByOneSpec.<Object>ofFunc0(2L, () -> {
+				counter.incrementAndGet();
+				return null;
+			}).execute(oo);
+			OneByOneSpec.ofAction("k3", counter::incrementAndGet).execute(oo);
+		}
+		awaitCounter(counter, 300);
+
+		// Key2 不支持 cancel
+		try {
+			OneByOneSpec.ofAction(1, () -> {
+			}).cancel(() -> {
+			}).execute(oo);
+			Assert.fail();
+		} catch (IllegalArgumentException ignored) {
+		}
+
+		App.Instance.Start();
+		var noop = new TaskOneByOneByKey2(1024, r -> {
+		}); // no-op executor：任务入队后不执行
+		OneByOneSpec.ofAction("k1", counter::incrementAndGet).name("TestOneByOneSpec.Key2NamedAction").execute(noop);
+		OneByOneSpec.ofFunc0(7, () -> 0).name("TestOneByOneSpec.Key2NamedFunc0").execute(noop);
+		OneByOneSpec.ofProcedure("k3",
+				App.Instance.Zeze.newProcedure(() -> 0L, "TestOneByOneSpec.Key2ProcActionName")).execute(noop);
+		var dump = noop.toString();
+		Assert.assertTrue(dump, dump.contains("TestOneByOneSpec.Key2NamedAction"));
+		Assert.assertTrue(dump, dump.contains("TestOneByOneSpec.Key2NamedFunc0"));
+		Assert.assertTrue(dump, dump.contains("TestOneByOneSpec.Key2ProcActionName"));
+	}
+
+	/**
+	 * int key 与 long key 走不装箱路径且 (int)rawKey 取回无损（含负数）。
+	 */
 	@Test
 	public void testIntLongKeyNegative() throws Exception {
 		var oo = new TaskOneByOneByKey();
@@ -159,6 +202,7 @@ public class TestOneByOneSpec {
 		test.testModeCritical();
 		test.testNameDefaultExplicitAndProcedure();
 		test.testCancelAndShutdown();
+		test.testKey2();
 		test.testIntLongKeyNegative();
 		demo.App.Instance.Stop(); // App.Start 创建非守护线程，需要显式停止进程才能退出
 		System.out.println("TestOneByOneSpec OK");

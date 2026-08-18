@@ -63,4 +63,17 @@ public final class ActionOneByOneSpec extends AbstractOneByOneSpec implements On
 	public void execute(@NotNull TaskOneByOneBase oneByOne) {
 		executeByKey(oneByOne, new TaskOneByOneQueue.TaskAction(action, name, cancel, modeOrDefault()));
 	}
+
+	/**
+	 * 提交到 {@link TaskOneByOneByKey2}。
+	 * 等价 {@link TaskOneByOneByKey2#Execute(int, Action0, String, DispatchMode)}
+	 * （long key 转 Long.hashCode、Object key 转 hashCode 后委托 int 版，与旧重载一致）。
+	 *
+	 * @throws IllegalArgumentException 已设置 {@link #cancel} 时（Key2 不支持 shutdown/cancel）
+	 */
+	public void execute(@NotNull TaskOneByOneByKey2 oneByOne) {
+		if (cancel != null)
+			throw new IllegalArgumentException("cancel is not supported by TaskOneByOneByKey2");
+		oneByOne.executeActionCore(hashKey(), action, name, modeOrDefault());
+	}
 }
