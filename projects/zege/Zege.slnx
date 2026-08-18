@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="../../confcs/confcs.csproj" />
+  <Project Path="Zege/Zege.csproj">
+    <Deploy />
+  </Project>
+</Solution>
