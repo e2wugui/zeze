@@ -857,8 +857,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		}
 	}
 
-	public long sendError(@NotNull String account, long roleId,
-						  @NotNull String linkName, long linkSid) throws Exception {
+	public long onSendError(@NotNull String account, long roleId,
+							@NotNull String linkName, long linkSid) throws Exception {
 		var onlineShared = getOrAddOnlineShared(roleId);
 
 		var local = _tlocal.get(roleId);
@@ -1215,7 +1215,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		errorSids.foreach(linkSid -> providerApp.zeze.newProcedure(() -> {
 			var roleId = context.get(linkSid);
 			// 补发的linkBroken没有account上下文。
-			return roleId != null ? sendError("", roleId, linkName, linkSid) : 0;
+			return roleId != null ? onSendError("", roleId, linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken").call());
 		return 0;
 	}
@@ -1317,7 +1317,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		errorSids.foreach(linkSid -> TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			// 补发的linkBroken没有account上下文
-			return idx >= 0 ? sendError("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
+			return idx >= 0 ? onSendError("", group.roleIds.get(idx), group.linkName, linkSid) : 0;
 		}, "Online.triggerLinkBroken2")).run());
 	}
 
@@ -1411,7 +1411,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): not found connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_a")).run();
 			return false;
 		}
@@ -1419,7 +1419,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_b")).run();
 			return false;
 		}
@@ -1429,7 +1429,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			logger.warn("sendDirect({}): closed connector for linkName={} roleId={}",
 					getTypeId(fullEncodedProtocol), linkName, roleId);
 			// link miss
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken0_c")).run();
 			return false;
 		}
@@ -1440,7 +1440,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
 				// 补发的linkBroken没有account上下文
-				providerApp.zeze.newProcedure(() -> sendError("", roleId, linkName, linkSid),
+				providerApp.zeze.newProcedure(() -> onSendError("", roleId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;

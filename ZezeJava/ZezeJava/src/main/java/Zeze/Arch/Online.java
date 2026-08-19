@@ -533,8 +533,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 	}
 
-	public long sendError(@NotNull String account, @NotNull String clientId,
-						  @NotNull String linkName, long linkSid) throws Exception {
+	public long onSendError(@NotNull String account, @NotNull String clientId,
+							@NotNull String linkName, long linkSid) throws Exception {
 		// todo 这个版本的处理没有经过考验，需要参考Game.Online。
 
 		var online = getOrAddOnline(account);
@@ -787,7 +787,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		errorSids.foreach(sid -> providerApp.zeze.newProcedure(() -> {
 			var ctx = contexts.get(sid);
 			if (ctx != null) {
-				return sendError(ctx.getAccount(), ctx.getClientId(), linkName, sid);
+				return onSendError(ctx.getAccount(), ctx.getClientId(), linkName, sid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken").call());
@@ -889,7 +889,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			int idx = group.send.Argument.getLinkSids().indexOf(linkSid);
 			if (idx >= 0) {
 				var loginKey = group.accounts.get(idx);
-				return sendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid);
+				return onSendError(loginKey.getAccount(), loginKey.getClientId(), group.linkName, linkSid);
 			}
 			return 0;
 		}, "Online.triggerLinkBroken2")).run());
@@ -998,14 +998,14 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (connector == null) {
 			logger.warn("sendDirect({}): not found connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
 		if (!connector.isHandshakeDone()) {
 			logger.warn("sendDirect({}): not isHandshakeDone for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
@@ -1014,7 +1014,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		if (linkSocket == null) {
 			logger.warn("sendDirect({}): closed connector for linkName={} account={} clientId={}",
 					getTypeId(fullEncodedProtocol), linkName, account, clientId);
-			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, link.getLinkSid()),
+			TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, link.getLinkSid()),
 					"Online.triggerLinkBroken1")).run();
 			return false;
 		}
@@ -1023,7 +1023,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return send.Send(linkSocket, rpc -> {
 			if (send.isTimeout() || !send.Result.getErrorLinkSids().isEmpty()) {
 				var linkSid = send.Argument.getLinkSids().get(0);
-				providerApp.zeze.newProcedure(() -> sendError(account, clientId, linkName, linkSid),
+				providerApp.zeze.newProcedure(() -> onSendError(account, clientId, linkName, linkSid),
 						"Online.triggerLinkBroken1").call();
 			}
 			return Procedure.Success;
