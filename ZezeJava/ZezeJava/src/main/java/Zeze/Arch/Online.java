@@ -612,29 +612,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 	}
 
-	public void sendReliableNotifyWhileCommit(@NotNull String account, @NotNull String clientId,
-											  @NotNull String listenerName, @NotNull Protocol<?> p) {
-		Transaction.whileCommit(() -> sendReliableNotify(account, clientId, listenerName, p));
-	}
-
-	public void SendReliableNotifyWhileCommit(@NotNull String account, @NotNull String clientId,
-											  @NotNull String listenerName, int typeId,
-											  @NotNull Binary fullEncodedProtocol) {
-		Transaction.whileCommit(() -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol));
-	}
-
-	public void sendReliableNotifyWhileRollback(@NotNull String account, @NotNull String clientId,
-												@NotNull String listenerName, @NotNull Protocol<?> p) {
-		Transaction.whileRollback(() -> sendReliableNotify(account, clientId, listenerName, p));
-	}
-
-	public void sendReliableNotifyWhileRollback(@NotNull String account, @NotNull String clientId,
-												@NotNull String listenerName, int typeId,
-												@NotNull Binary fullEncodedProtocol) {
-		Transaction.whileRollback(() -> sendReliableNotify(
-				account, clientId, listenerName, typeId, fullEncodedProtocol));
-	}
-
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId,
 								   @NotNull String listenerName, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
@@ -650,12 +627,25 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	/**
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
-	 *
+	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId, @NotNull String listenerName,
 								   long typeId, @NotNull Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(listenerName, "Online.sendReliableNotify." + listenerName, () -> {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> sendReliableNotifyDirect(account, clientId, listenerName, typeId, fullEncodedProtocol));
+		else
+			sendReliableNotifyDirect(account, clientId, listenerName, typeId, fullEncodedProtocol);
+	}
+
+	public void sendReliableNotifyDirect(@NotNull String account, @NotNull String clientId,
+										 @NotNull String listenerName,
+										 long typeId, @NotNull Binary fullEncodedProtocol) {
+		providerApp.zeze.runTaskOneByOneByKey(
+			listenerName,
+			"Online.sendReliableNotify." + listenerName,
+			() -> {
 			var login = getLogin(account, clientId);
 			if (login == null || !login.getReliableNotifyMark().contains(listenerName))
 				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
@@ -677,7 +667,6 @@ public class Online extends AbstractOnline implements HotUpgrade {
 					AsyncSocket.log("Send", account + ',' + clientId + ':' + listenerName, notify);
 				sendDirect(account, clientId, notify.getTypeId(), new Binary(notify.encode()), false);
 			});
-//			sendEmbed(List.of(new LoginKey(account, clientId)), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
 		});
 	}

@@ -1509,28 +1509,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			online.getReliableNotifyMark().remove(listenerName);
 	}
 
-	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
-	}
-
-	public void sendReliableNotifyWhileCommit(long roleId, @NotNull String listenerName, int typeId,
-											  @NotNull Binary fullEncodedProtocol) {
-		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
-	}
-
-	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
-		if (p instanceof Rpc && p.isRequest())
-			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
-		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
-	}
-
-	public void sendReliableNotifyWhileRollback(long roleId, @NotNull String listenerName, int typeId,
-												@NotNull Binary fullEncodedProtocol) {
-		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
-	}
-
+	/**
+	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
+	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
+	 * @param p 协议。
+	 */
 	public void sendReliableNotify(long roleId, @NotNull String listenerName, @NotNull Protocol<?> p) {
 		if (p instanceof Rpc && p.isRequest())
 			throw new IllegalArgumentException(p.getClass().getName() + " is rpc. please use sendRpc/sendOnlineRpc");
@@ -1546,12 +1529,25 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	/**
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
-	 *
+	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
-	public void sendReliableNotify(long roleId, @NotNull String listenerName, long typeId,
+	public void sendReliableNotify(long roleId,
+								   @NotNull String listenerName,
+								   long typeId,
 								   @NotNull Binary fullEncodedProtocol) {
-		providerApp.zeze.runTaskOneByOneByKey(Long.hashCode(roleId) ^ listenerName.hashCode(), "Online.sendReliableNotify." + listenerName, () -> {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol));
+		else
+			sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol);
+	}
+
+	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol) {
+		providerApp.zeze.runTaskOneByOneByKey(
+			listenerName,
+			"Online.sendReliableNotify." + listenerName,
+			() -> {
 			var online = getLoginOnline(roleId);
 			if (online == null)
 				return Procedure.Success;
