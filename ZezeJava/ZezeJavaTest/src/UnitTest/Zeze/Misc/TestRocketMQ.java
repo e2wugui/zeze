@@ -11,6 +11,7 @@ import demo.App;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
@@ -18,6 +19,7 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -38,21 +40,7 @@ public class TestRocketMQ {
 	@Test
 	public void testProducer() throws Exception {
 		App.Instance.RocketMQProducer.start();
-		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", new ClientConfig());
-
-		consumer.setMessageListener((MessageListenerConcurrently)(msgs, context) -> {
-			for (MessageExt msg : msgs) {
-				System.out.println("Receive: ");
-				System.out.println("\tBody: " + new String(msg.getBody()));
-				System.out.println("\tTags: " + msg.getTags());
-				System.out.println("\tKeys: " + msg.getKeys());
-				System.out.println("\tTopic: " + msg.getTopic());
-				System.out.println("\tMsgId: " + msg.getMsgId());
-			}
-			return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-		});
-		consumer.subscribe("topic2", "*");
-		consumer.start();
+		var consumer = createConsumer();
 
 		try {
 			// 发送普通消息
@@ -77,6 +65,25 @@ public class TestRocketMQ {
 		} finally {
 			consumer.stop();
 		}
+	}
+
+	private static @NonNull Consumer createConsumer() throws MQClientException {
+		var consumer = new Consumer(App.Instance.Zeze, "testRocketMQ", new ClientConfig());
+
+		consumer.setMessageListener((MessageListenerConcurrently)(msgs, context) -> {
+			for (MessageExt msg : msgs) {
+				System.out.println("Receive: ");
+				System.out.println("\tBody: " + new String(msg.getBody()));
+				System.out.println("\tTags: " + msg.getTags());
+				System.out.println("\tKeys: " + msg.getKeys());
+				System.out.println("\tTopic: " + msg.getTopic());
+				System.out.println("\tMsgId: " + msg.getMsgId());
+			}
+			return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+		});
+		consumer.subscribe("topic2", "*");
+		consumer.start();
+		return consumer;
 	}
 
 	static class TransactionListenerImpl implements TransactionListener {
