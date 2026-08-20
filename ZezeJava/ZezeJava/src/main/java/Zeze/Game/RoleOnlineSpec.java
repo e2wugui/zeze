@@ -79,6 +79,28 @@ public final class RoleOnlineSpec extends AbstractOnlineSpec implements OnlineSp
 		online.sendDirect(roleId, typeId, fullEncodedProtocol, trying);
 	}
 
+	/**
+	 * 当事务回滚时，发送协议。
+	 * @param p protocol
+	 */
+	public void sendWhileRollback(Protocol<?> p) {
+		var typeId = p.getTypeId();
+		tryLog(typeId, p, roleId, online.getOnlineSetName());
+		var fullEncodedProtocol = new Binary(p.encode());
+		sendWhileRollback(typeId, fullEncodedProtocol);
+	}
+
+	/**
+	 * 当事务回滚时，发送编码好的协议。
+	 * 如果在事务中，那么会在事务提交的时候发送。
+	 * 如果不在事务中，马上发送。
+	 * @param typeId typeId
+	 * @param fullEncodedProtocol encoded protocol
+	 */
+	public void sendWhileRollback(long typeId, Binary fullEncodedProtocol) {
+		Transaction.whileRollback(() -> online.sendDirect(roleId, typeId, fullEncodedProtocol, trying));
+	}
+
 	public <A extends Serializable, R extends Serializable>
 	void sendRpc(@NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
 

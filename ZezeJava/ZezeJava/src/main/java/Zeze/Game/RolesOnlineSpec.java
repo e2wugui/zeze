@@ -58,10 +58,33 @@ public final class RolesOnlineSpec extends AbstractOnlineSpec implements OnlineS
 	public void send(long typeId, Binary fullEncodedProtocol) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> sendDirect(roleIds, typeId, fullEncodedProtocol));
+			t.runWhileCommit(() -> super.sendDirect(roleIds, typeId, fullEncodedProtocol));
 		} else {
 			// 事务外。
-			sendDirect(roleIds, typeId, fullEncodedProtocol);
+			super.sendDirect(roleIds, typeId, fullEncodedProtocol);
 		}
 	}
+
+	/**
+	 * 当事务回滚时，发送协议。
+	 * @param p protocol
+	 */
+	public void sendWhileRollback(Protocol<?> p) {
+		var typeId = p.getTypeId();
+		tryLog(typeId, p, roleIds, online.getOnlineSetName());
+		var fullEncodedProtocol = new Binary(p.encode());
+		sendWhileRollback(typeId, fullEncodedProtocol);
+	}
+
+	/**
+	 * 当事务回滚时，发送编码好的协议。
+	 * 如果在事务中，那么会在事务提交的时候发送。
+	 * 如果不在事务中，马上发送。
+	 * @param typeId typeId
+	 * @param fullEncodedProtocol encoded protocol
+	 */
+	public void sendWhileRollback(long typeId, Binary fullEncodedProtocol) {
+		Transaction.whileRollback(() -> super.sendDirect(roleIds, typeId, fullEncodedProtocol));
+	}
+
 }

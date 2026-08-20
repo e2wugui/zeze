@@ -78,4 +78,30 @@ public final class AllOnlineSpec extends AbstractOnlineSpec implements OnlineSpe
 		else
 			super.sendAll(roleIds, typeId, fullEncodedProtocol);
 	}
+
+	/**
+	 * 当事务回滚时，发送协议。
+	 * @param p protocol
+	 */
+	public void sendWhileRollback(Protocol<?> p) {
+		var typeId = p.getTypeId();
+		if (null == roleIds)
+			tryLog(typeId, p, roleId, "*");
+		else
+			tryLog(typeId, p, roleIds, "*");
+		var fullEncodedProtocol = new Binary(p.encode());
+		sendWhileRollback(typeId, fullEncodedProtocol);
+	}
+
+	/**
+	 * 当事务回滚时，发送编码好的协议。
+	 * 如果在事务中，那么会在事务提交的时候发送。
+	 * 如果不在事务中，马上发送。
+	 * @param typeId typeId
+	 * @param fullEncodedProtocol encoded protocol
+	 */
+	public void sendWhileRollback(long typeId, Binary fullEncodedProtocol) {
+		Transaction.whileRollback(() -> this.sendAll(typeId, fullEncodedProtocol));
+	}
+
 }
