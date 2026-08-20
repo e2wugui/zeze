@@ -967,18 +967,18 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	// 优先在上下文中的Online上发送
 	public <A extends Serializable, R extends Serializable> void sendRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
-		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle, timeoutMs);
+		getOnlineByContext().sendOnlineRpc(roleId, rpc, responseHandle, timeoutMs, false);
 	}
 
 	// 在指定Online上发送
 	public <A extends Serializable, R extends Serializable> void sendOnlineRpc(
 			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-		sendOnlineRpc(roleId, rpc, responseHandle, 5000);
+		sendOnlineRpc(roleId, rpc, responseHandle, 5000, false);
 	}
 
 	// 在指定Online上发送
 	public <A extends Serializable, R extends Serializable> boolean sendOnlineRpc(
-			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs) {
+			long roleId, @NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle, int timeoutMs, boolean trySend) {
 		var service = providerApp.providerService;
 		// try remove. 只维护一个上下文。多次发送相同rpc会如此，这个应该最好报错。沿用老的逻辑吧。see Rpc.Send
 		service.removeRpcContext(rpc.getSessionId(), rpc);
@@ -989,7 +989,10 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		rpc.setIsTimeout(false);
 		rpc.setRequest(true);
 		rpc.schedule(service, sessionId, timeoutMs);
-		return sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), false);
+		var sent = sendDirect(roleId, rpc.getTypeId(), new Binary(rpc.encode()), trySend);
+		if (!sent && rpc.getFuture() != null)
+			rpc.getFuture().setException(new IllegalStateException("sendRpc fail."));
+		return sent;
 	}
 
 	// 在指定Online上同步发送
@@ -1003,7 +1006,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			long roleId, @NotNull Rpc<A, R> rpc, int timeoutMs) {
 		var future = new TaskCompletionSource<R>();
 		rpc.setFuture(future);
-		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs))
+		if (!sendOnlineRpc(roleId, rpc, null, timeoutMs, false))
 			future.setException(new IllegalStateException("sendOnlineRpc fail."));
 		return future;
 	}
@@ -1528,7 +1531,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	/**
-	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
+	 * 发送在线可靠协议，如果不在线等，仍然不会发送。
 	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
@@ -1538,12 +1541,12 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 								   @NotNull Binary fullEncodedProtocol) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol));
+			t.runWhileCommit(() -> sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol, false));
 		else
-			sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol);
+			sendReliableNotifyDirect(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
-	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol) {
+	public void sendReliableNotifyDirect(long roleId, @NotNull String listenerName, long typeId, @NotNull Binary fullEncodedProtocol, boolean trySend) {
 		providerApp.zeze.runTaskOneByOneByKey(
 			listenerName,
 			"Online.sendReliableNotify." + listenerName,
@@ -1569,7 +1572,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			Transaction.whileCommit(() -> {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
 					AsyncSocket.log("Send", roleId + ":" + listenerName, notify);
-				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), false);
+				sendDirect(roleId, notify.getTypeId(), new Binary(notify.encode()), trySend);
 			});
 //			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.encode()));
 			return Procedure.Success;
