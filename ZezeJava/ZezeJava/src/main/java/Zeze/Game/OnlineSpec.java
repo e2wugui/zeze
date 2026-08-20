@@ -6,19 +6,19 @@ import java.util.List;
 
 public sealed interface OnlineSpec permits RoleOnlineSpec, RolesOnlineSpec,
 	AllOnlineSpec, ReliableOnlineSpec, TransmitOnlineSpec {
-	static @NotNull RoleOnlineSpec ofRole(@NotNull Online online, long roleId) {
+	static @NotNull RoleOnlineSpec ofSendRole(@NotNull Online online, long roleId) {
 		return new RoleOnlineSpec(online, roleId);
 	}
 
-	static @NotNull RolesOnlineSpec ofRole(@NotNull Online online, Collection<Long> roleIds) {
+	static @NotNull RolesOnlineSpec ofSendRoles(@NotNull Online online, Collection<Long> roleIds) {
 		return new RolesOnlineSpec(online, roleIds);
 	}
 
-	static @NotNull AllOnlineSpec ofAllOnline(@NotNull Online online, long roleId) {
+	static @NotNull AllOnlineSpec ofSendAllOnline(@NotNull Online online, long roleId) {
 		return new AllOnlineSpec(online, roleId);
 	}
 
-	static @NotNull AllOnlineSpec ofAllOnline(@NotNull Online online, Collection<Long> roleId) {
+	static @NotNull AllOnlineSpec ofSendAllOnline(@NotNull Online online, Collection<Long> roleId) {
 		return new AllOnlineSpec(online, roleId);
 	}
 
