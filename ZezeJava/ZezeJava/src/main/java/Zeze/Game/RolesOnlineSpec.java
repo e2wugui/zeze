@@ -78,8 +78,6 @@ public final class RolesOnlineSpec extends AbstractOnlineSpec implements OnlineS
 
 	/**
 	 * 当事务回滚时，发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
 	 * @param typeId typeId
 	 * @param fullEncodedProtocol encoded protocol
 	 */

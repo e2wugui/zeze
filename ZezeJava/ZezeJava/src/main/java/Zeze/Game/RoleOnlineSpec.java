@@ -92,8 +92,6 @@ public final class RoleOnlineSpec extends AbstractOnlineSpec implements OnlineSp
 
 	/**
 	 * 当事务回滚时，发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
 	 * @param typeId typeId
 	 * @param fullEncodedProtocol encoded protocol
 	 */
@@ -101,6 +99,14 @@ public final class RoleOnlineSpec extends AbstractOnlineSpec implements OnlineSp
 		Transaction.whileRollback(() -> online.sendDirect(roleId, typeId, fullEncodedProtocol, trying));
 	}
 
+	/**
+	 * 异步发送rpc。
+	 *
+	 * @param rpc rpc
+	 * @param responseHandle responseHandle
+	 * @param <A> argument type
+	 * @param <R> result type
+	 */
 	public <A extends Serializable, R extends Serializable>
 	void sendRpc(@NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
 
@@ -112,10 +118,45 @@ public final class RoleOnlineSpec extends AbstractOnlineSpec implements OnlineSp
 		online.sendOnlineRpc(roleId, rpc, responseHandle, timeout, trying);
 	}
 
+	/**
+	 * 同步发送rpc。
+	 *
+	 * @param rpc rpc
+	 * @param <A> argument type
+	 * @param <R> result type
+	 * @return future 可以等待。
+	 */
 	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendRpcForWait(@NotNull Rpc<A, R> rpc) {
 		var future = new TaskCompletionSource<R>();
 		rpc.setFuture(future);
 		sendRpc(rpc, null);
 		return future;
+	}
+
+	/**
+	 * 直接通过link发送协议。
+	 *
+	 * @param linkName linkName
+	 * @param linkSid linkSid
+	 * @param p protocol
+	 */
+	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning()) {
+			t.runWhileCommit(() -> online.send(roleId, linkName, linkSid, p));
+			return;
+		}
+		online.send(roleId, linkName, linkSid, p);
+	}
+
+	/**
+	 * 事务回滚时，直接通过link发送协议。
+	 *
+	 * @param linkName linkName
+	 * @param linkSid linkSid
+	 * @param p protocol
+	 */
+	public void sendWhileRollback(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
+		Transaction.whileRollback(() -> online.send(roleId, linkName, linkSid, p));
 	}
 }

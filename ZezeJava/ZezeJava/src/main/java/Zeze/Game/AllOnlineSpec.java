@@ -6,7 +6,7 @@ import Zeze.Transaction.Transaction;
 
 import java.util.Collection;
 
-import javax.validation.constraints.NotNull;
+import org.jetbrains.annotations.NotNull;
 
 public final class AllOnlineSpec extends AbstractOnlineSpec implements OnlineSpec {
 	private final long roleId;
@@ -95,8 +95,6 @@ public final class AllOnlineSpec extends AbstractOnlineSpec implements OnlineSpe
 
 	/**
 	 * 当事务回滚时，发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
 	 * @param typeId typeId
 	 * @param fullEncodedProtocol encoded protocol
 	 */

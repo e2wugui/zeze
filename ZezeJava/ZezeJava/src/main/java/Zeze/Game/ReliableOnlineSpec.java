@@ -16,6 +16,29 @@ public final class ReliableOnlineSpec extends AbstractOnlineSpec implements Onli
 	}
 
 	/**
+	 * 本次send是否只是尝试，即允许失败。
+	 * 这个参数影响是否记录错误日志。
+	 * @param trySend 是否尝试发送
+	 * @return this
+	 */
+	public @NotNull ReliableOnlineSpec trying(boolean trySend) {
+		this.trying = trySend;
+		return this;
+	}
+
+	/**
+	 * 由于OnlineSet，现在允许多个Online集合。
+	 * 这个参数决定是否根据当前上下文选择Online实例。
+	 * 默认情况下直接通过本Online发送。
+	 * @return this
+	 */
+	public @NotNull ReliableOnlineSpec withContext() {
+		this.withContext = true;
+		online = online.getOnlineByContext();
+		return this;
+	}
+
+	/**
 	 * 发送协议。
 	 * @param p protocol
 	 */
@@ -55,8 +78,6 @@ public final class ReliableOnlineSpec extends AbstractOnlineSpec implements Onli
 
 	/**
 	 * 当事务回滚时，发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
 	 * @param typeId typeId
 	 * @param fullEncodedProtocol encoded protocol
 	 */

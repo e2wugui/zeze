@@ -1587,7 +1587,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	 * @param roleId     目标角色
 	 */
 	public void transmit(long sender, @NotNull String actionName, long roleId, @Nullable Serializable parameter) {
-		transmit(sender, actionName, List.of(roleId), parameter);
+		transmit(sender, actionName, List.of(roleId), parameter, true);
 	}
 
 	public void transmit(long sender, @NotNull String actionName, long roleId) {
@@ -1698,11 +1698,11 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds) {
-		transmit(sender, actionName, roleIds, null);
+		transmit(sender, actionName, roleIds, null, true);
 	}
 
 	public void transmit(long sender, @NotNull String actionName, @NotNull Iterable<Long> roleIds,
-						 @Nullable Serializable parameter) {
+						 @Nullable Serializable parameter, boolean processNotOnline) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
 		ByteBuffer bb;
@@ -1716,7 +1716,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
 		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
-			transmitEmbed(sender, actionName, roleIds, bb != null ? new Binary(bb) : null, true);
+			transmitEmbed(sender, actionName, roleIds, bb != null ? new Binary(bb) : null, processNotOnline);
 			return Procedure.Success;
 		}, "Online.transmit")).run();
 	}
@@ -1740,7 +1740,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 									@Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter, true));
 	}
 
 	public void transmitWhileRollback(long sender, @NotNull String actionName, long roleId) {
@@ -1762,7 +1762,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 									  @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
-		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter, true));
 	}
 
 	private int broadcast(long typeId, @NotNull Binary fullEncodedProtocol, int time, boolean onlySameVersion) {
