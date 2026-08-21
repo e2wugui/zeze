@@ -495,9 +495,13 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 			return true;
 		var timer = online.providerApp.zeze.getTimer();
 		timer.cancel(timerId);
-		var bTimers = timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
-		if (bTimers != null)
+		var key = new BAccountClientId(account, clientId);
+		var bTimers = timer.tAccountOfflineTimers().get(key);
+		if (bTimers != null) {
 			bTimers.getOfflineTimers().remove(timerId);
+			if (bTimers.getOfflineTimers().isEmpty())
+				timer.tAccountOfflineTimers().remove(key);
+		}
 		return true;
 	}
 
@@ -736,9 +740,13 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 			} else {
 				var timerId = offlineCustom.getTimerName();
 				context.timer.cancel(timerId);
-				var offlineTimers = context.timer.tAccountOfflineTimers().get(new BAccountClientId(account, clientId));
-				if (offlineTimers != null)
+				var key = new BAccountClientId(account, clientId);
+				var offlineTimers = context.timer.tAccountOfflineTimers().get(key);
+				if (offlineTimers != null) {
 					offlineTimers.getOfflineTimers().remove(timerId);
+					if (offlineTimers.getOfflineTimers().isEmpty())
+						context.timer.tAccountOfflineTimers().remove(key);
+				}
 			}
 		}
 	}

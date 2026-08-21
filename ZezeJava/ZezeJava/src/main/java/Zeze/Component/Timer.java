@@ -930,7 +930,9 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		return _tAccountOfflineTimers;
 	}
 
-	public TimerAccount getAccountTimer() {
+	public @NotNull TimerAccount getAccountTimer() {
+		if (timerAccount == null)
+			throw new IllegalStateException("account timer not initialized. please call initializeOnlineTimer first.");
 		return timerAccount;
 	}
 
@@ -974,10 +976,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	 * 通过返回对象的 online()/onlineHot()/offline() 选择定时器类型。
 	 */
 	public @NotNull AccountTimers accounts(@NotNull String account, @NotNull String clientId) {
-		var ta = getAccountTimer();
-		if (ta == null)
-			throw new IllegalStateException("account timer not initialized");
-		return new AccountTimers(ta, account, clientId);
+		return new AccountTimers(getAccountTimer(), account, clientId);
 	}
 
 	public @Nullable BIndex getTimerIndex(@NotNull String timerId) {

@@ -483,6 +483,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 		online.providerApp.zeze.getTimer().cancel(timerId);
 		var bTimers = online._tRoleOfflineTimers().get(roleId);
 		var r = bTimers != null && bTimers.getOfflineTimers().remove(timerId) != null;
+		if (bTimers != null && bTimers.getOfflineTimers().isEmpty())
+			online._tRoleOfflineTimers().remove(roleId);
 		if (r)
 			logger.debug("cancel offline timer: timerId={}, roleId={}", timerId, roleId);
 		return r;
@@ -736,6 +738,8 @@ public class TimerRole extends TimerOnlineBase<Long> {
 					var offlineTimers = online._tRoleOfflineTimers().get(roleId);
 					if (offlineTimers != null) {
 						offlineTimers.getOfflineTimers().remove(timerId);
+						if (offlineTimers.getOfflineTimers().isEmpty())
+							online._tRoleOfflineTimers().remove(roleId);
 						logger.debug("OfflineHandle: cancel offline timer: timerId={}, roleId={}, handle={}",
 								timerId, roleId, offlineCustom.getHandleName());
 					}

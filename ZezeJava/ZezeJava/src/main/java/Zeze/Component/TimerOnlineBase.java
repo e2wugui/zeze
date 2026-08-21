@@ -137,6 +137,7 @@ abstract class TimerOnlineBase<I> {
 		if (customData != null) {
 			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
+			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		var delay = Math.max(simpleTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
 		if (hot)
@@ -184,6 +185,7 @@ abstract class TimerOnlineBase<I> {
 		if (customData != null) {
 			Timer.register(customData);
 			timerLocal.getCustomData().setBean(customData);
+			timer().tryRecordBeanHotModuleWhileCommit(customData);
 		}
 		if (hot)
 			scheduleOnlineCronHot(timerId, cronTimer, handleClass);
@@ -332,7 +334,8 @@ abstract class TimerOnlineBase<I> {
 
 	private void scheduleOnlineCron(@NotNull String timerId, @NotNull BCronTimer cron, @Nullable TimerHandle handle) {
 		try {
-			scheduleOnlineCronNext(timerId, cron.getNextExpectedTime() - System.currentTimeMillis(), handle);
+			scheduleOnlineCronNext(timerId,
+					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handle);
 		} catch (Exception ex) {
 			logger.error("scheduleOnlineCron exception:", ex);
 		}
@@ -341,7 +344,8 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronHot(@NotNull String timerId, @NotNull BCronTimer cron,
 									   @NotNull Class<? extends TimerHandle> handleClass) {
 		try {
-			scheduleOnlineCronNextHot(timerId, cron.getNextExpectedTime() - System.currentTimeMillis(), handleClass);
+			scheduleOnlineCronNextHot(timerId,
+					Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1), handleClass);
 		} catch (Exception ex) {
 			logger.error("scheduleOnlineCronHot exception:", ex);
 		}
@@ -406,7 +410,7 @@ abstract class TimerOnlineBase<I> {
 			public void scheduleNext(@NotNull OnlineTimer<I> bTimer, @NotNull I id, @NotNull TimerHandle handle,
 									 boolean hot) {
 				var cronTimer = (BCronTimer)bTimer.getTimerObj();
-				var delay = cronTimer.getNextExpectedTime() - System.currentTimeMillis();
+				var delay = Math.max(cronTimer.getNextExpectedTime() - System.currentTimeMillis(), 1);
 				if (hot)
 					scheduleOnlineCronNextHot(timerId, delay, handle.getClass());
 				else
