@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 public final class LoginsOnlineSpec extends AbstractOnlineSpec implements OnlineSpec {
 	private final @NotNull Collection<BLoginKey> logins;
@@ -73,7 +74,7 @@ public final class LoginsOnlineSpec extends AbstractOnlineSpec implements Online
 				online.sendDirect(login.getAccount(), login.getClientId(), typeId, fullEncodedProtocol, trying);
 			}
 		} else if (size > 1) {
-			online.sendDirect(logins instanceof HashSet<BLoginKey> set ? set : new HashSet<>(logins),
+			online.sendDirect(logins instanceof Set<BLoginKey> set ? set : new HashSet<>(logins),
 					typeId, fullEncodedProtocol, trying);
 		}
 	}

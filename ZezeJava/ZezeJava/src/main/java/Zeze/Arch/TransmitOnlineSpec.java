@@ -35,12 +35,18 @@ public final class TransmitOnlineSpec extends AbstractOnlineSpec implements Onli
 		return this;
 	}
 
+	private void verify() {
+		if (!online.getTransmitActions().containsKey(actionName))
+			throw new UnsupportedOperationException("Unknown Action Name: " + actionName);
+	}
+
 	/**
 	 * 发送transmit。
 	 * 如果在事务中，则在提交时执行。
 	 * 不在事务中，立即执行。
 	 */
 	public void transmit() {
+		verify();
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning()) {
 			t.runWhileCommit(() -> online.transmit(senderAccount, senderClientId, actionName, targets, parameter));
@@ -53,6 +59,7 @@ public final class TransmitOnlineSpec extends AbstractOnlineSpec implements Onli
 	 * 事务回滚时，发送transmit。
 	 */
 	public void transmitWhileRollback() {
+		verify();
 		Transaction.whileRollback(() -> online.transmit(senderAccount, senderClientId, actionName, targets, parameter));
 	}
 }

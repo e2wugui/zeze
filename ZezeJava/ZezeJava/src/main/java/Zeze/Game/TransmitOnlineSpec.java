@@ -73,7 +73,7 @@ public final class TransmitOnlineSpec extends AbstractOnlineSpec implements Onli
 	}
 
 	/**
-	 * 事务回滚时，发送tramsmit。
+	 * 事务回滚时，发送transmit。
 	 */
 	public void transmitWhileRollback() {
 		verify();
