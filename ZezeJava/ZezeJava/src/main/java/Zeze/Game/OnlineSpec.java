@@ -5,21 +5,21 @@ import java.util.Collection;
 import java.util.List;
 
 public sealed interface OnlineSpec permits RoleOnlineSpec, RolesOnlineSpec,
-	AllOnlineSpec, ReliableOnlineSpec, TransmitOnlineSpec {
-	static @NotNull RoleOnlineSpec ofSendRole(@NotNull Online online, long roleId) {
+	AllOnlinesSpec, ReliableOnlineSpec, TransmitOnlineSpec {
+	static @NotNull RoleOnlineSpec ofRole(@NotNull Online online, long roleId) {
 		return new RoleOnlineSpec(online, roleId);
 	}
 
-	static @NotNull RolesOnlineSpec ofSendRoles(@NotNull Online online, Collection<Long> roleIds) {
+	static @NotNull RolesOnlineSpec ofRoles(@NotNull Online online, Collection<Long> roleIds) {
 		return new RolesOnlineSpec(online, roleIds);
 	}
 
-	static @NotNull AllOnlineSpec ofSendAllOnline(@NotNull Online online, long roleId) {
-		return new AllOnlineSpec(online, roleId);
+	static @NotNull AllOnlinesSpec ofAllOnlines(@NotNull Online online, long roleId) {
+		return new AllOnlinesSpec(online, roleId);
 	}
 
-	static @NotNull AllOnlineSpec ofSendAllOnline(@NotNull Online online, Collection<Long> roleId) {
-		return new AllOnlineSpec(online, roleId);
+	static @NotNull AllOnlinesSpec ofAllOnlines(@NotNull Online online, Collection<Long> roleIds) {
+		return new AllOnlinesSpec(online, roleIds);
 	}
 
 	static @NotNull TransmitOnlineSpec ofTransmit(@NotNull Online online,
@@ -32,7 +32,7 @@ public sealed interface OnlineSpec permits RoleOnlineSpec, RolesOnlineSpec,
 		return new TransmitOnlineSpec(online, sender, actionName, targets);
 	}
 
-	static @NotNull ReliableOnlineSpec ofReliable(@NotNull Online online, long roleId, String listenerName) {
+	static @NotNull ReliableOnlineSpec ofReliableNotify(@NotNull Online online, long roleId, String listenerName) {
 		return new ReliableOnlineSpec(online, roleId, listenerName);
 	}
 }

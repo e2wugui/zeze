@@ -8,18 +8,18 @@ import java.util.Collection;
 
 import org.jetbrains.annotations.NotNull;
 
-public final class AllOnlineSpec extends AbstractOnlineSpec implements OnlineSpec {
+public final class AllOnlinesSpec extends AbstractOnlineSpec implements OnlineSpec {
 	private final long roleId;
 	private final Collection<Long> roleIds;
 
-	AllOnlineSpec(@NotNull Online online, long roleId) {
+	AllOnlinesSpec(@NotNull Online online, long roleId) {
 		super(online);
 		this.roleId = roleId;
 		this.roleIds = null;
 		super.trying = true; // 修改默认值。
 	}
 
-	AllOnlineSpec(@NotNull Online online, Collection<Long> roleIds) {
+	AllOnlinesSpec(@NotNull Online online, Collection<Long> roleIds) {
 		super(online);
 		this.roleId = 0;
 		this.roleIds = roleIds;
@@ -32,7 +32,7 @@ public final class AllOnlineSpec extends AbstractOnlineSpec implements OnlineSpe
 	 * @param trySend 是否尝试发送
 	 * @return this
 	 */
-	public @NotNull AllOnlineSpec trying(boolean trySend) {
+	public @NotNull AllOnlinesSpec trying(boolean trySend) {
 		this.trying = trySend;
 		return this;
 	}
