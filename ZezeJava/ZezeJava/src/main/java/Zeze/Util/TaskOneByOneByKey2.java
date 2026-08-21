@@ -213,14 +213,29 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		}
 
 		public void run(@NotNull T key) throws Exception {
-			action.run(key);
-			if (keysCount.decrementAndGet() == 0)
-				batchEnd.run();
+			try {
+				action.run(key);
+			} finally {
+				if (keysCount.decrementAndGet() == 0)
+					batchEnd.run();
+			}
+		}
+	}
+
+	private static void runBatchEndDirect(@NotNull Action0 batchEnd) {
+		try {
+			batchEnd.run();
+		} catch (Throwable e) { // logger.error
+			logger.error("executeBatch: batchEnd exception", e);
 		}
 	}
 
 	public <T> void executeBatch(@NotNull Collection<T> keys, @NotNull Action1<T> action, @NotNull Action0 batchEnd,
 								 @Nullable DispatchMode mode) {
+		if (keys.isEmpty()) {
+			runBatchEndDirect(batchEnd);
+			return;
+		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
 			executeActionCore(key.hashCode(), () -> batch.run(key), null, mode);
@@ -228,6 +243,10 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
+		if (keys.isEmpty()) {
+			runBatchEndDirect(batchEnd);
+			return;
+		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		keys.foreach((key) -> executeActionCore(Long.hashCode(key), () -> batch.run(key), null, mode));
 	}
@@ -397,7 +416,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 	/** @deprecated 请使用 {@link OneByOneSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂（key 重载 Object/int/long）+ 链式 setter + execute(taskOneByOneByKey2) 终结方法。 */
 	@Deprecated
-	public void Execute(long key, @NotNull Action0 action, String name, DispatchMode mode) {
+	public void Execute(long key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		executeActionCore(Long.hashCode(key), action, name, mode);
 	}
 

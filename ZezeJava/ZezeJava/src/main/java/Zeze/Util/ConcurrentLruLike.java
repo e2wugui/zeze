@@ -260,10 +260,11 @@ public class ConcurrentLruLike<K, V> {
 				var tryRemoveCallback = this.tryRemoveCallback;
 				if (tryRemoveCallback != null) {
 					for (var e : node.entrySet()) {
-						if (!tryRemoveCallback.test(e.getKey(), e.getValue().value)
-								&& !continueWhenTryRemoveCallbackFail)
+						var removed = tryRemoveCallback.test(e.getKey(), e.getValue().value);
+						if (!removed && !continueWhenTryRemoveCallbackFail)
 							break;
-						recordCount++;
+						if (removed)
+							recordCount++; // 只统计成功删除的，回调失败(队列忙)时不计数。
 					}
 				} else {
 					recordCount += node.size();

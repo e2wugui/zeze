@@ -18,7 +18,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 	private final BatchTask batch = new BatchTask();
 	private @NotNull ArrayDeque<Task> queue = new ArrayDeque<>();
 	private final @Nullable Executor executor;
-	private boolean isShutdown;
+	private volatile boolean isShutdown;
 	private boolean removed;
 
 	void setRemoved() {
@@ -55,7 +55,8 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		public void prepare() {
 			if (!queue.isEmpty()) {
 				var max = Math.min(queue.size(), 1000);
-				if (tasks == null || max > tasks.length)
+				if (tasks == null || max > tasks.length || max < tasks.length / 2)
+					// 增长：批量变大时扩容；收缩(需求小于现容量一半)：空闲后释放峰值内存，避免长期驻留。
 					tasks = new Task[max];
 				mode = queue.peekFirst().mode;
 				var i = 0;
@@ -80,6 +81,10 @@ public class TaskOneByOneQueue extends ReentrantLock {
 				tasks[processedCount++] = null; // gc, 下标索引转换成count。
 				if (!task.process(this))
 					return; // 任务调度终端，当前任务以后完成的时候会触发runNext;
+				if (isShutdown)
+					// shutdown(true)时批量内后续任务已被cancel，不再执行；shutdown(false)时任务仍在队列，
+					// 由下面的runNext重新prepare逐个调度执行。保留的firstTask由runNext的poll计数吸收。
+					break;
 			}
 			TaskOneByOneQueue.this.runNext(processedCount);
 		}

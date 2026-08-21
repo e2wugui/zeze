@@ -7,10 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class TaskOneByOneBase extends ReentrantLock {
+	private static final @NotNull Logger logger = LogManager.getLogger(TaskOneByOneBase.class);
+
 	public <T extends Comparable<T>> void executeCyclicBarrier(@NotNull List<T> keys, @NotNull Procedure procedure,
 															   @Nullable Action0 cancel, @Nullable DispatchMode mode) {
 		lock();
@@ -72,14 +76,29 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 		}
 
 		public void run(@NotNull T key) throws Exception {
-			action.run(key);
-			if (keysCount.decrementAndGet() == 0)
-				batchEnd.run();
+			try {
+				action.run(key);
+			} finally {
+				if (keysCount.decrementAndGet() == 0)
+					batchEnd.run();
+			}
+		}
+	}
+
+	private static void runBatchEndDirect(@NotNull Action0 batchEnd) {
+		try {
+			batchEnd.run();
+		} catch (Throwable e) { // logger.error
+			logger.error("executeBatch: batchEnd exception", e);
 		}
 	}
 
 	public <T> void executeBatch(@NotNull Collection<T> keys, @NotNull Action1<T> action, @NotNull Action0 batchEnd,
 								 @Nullable DispatchMode mode) {
+		if (keys.isEmpty()) {
+			runBatchEndDirect(batchEnd);
+			return;
+		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		for (var key : keys)
 			execute(key, new TaskOneByOneQueue.TaskAction(() -> batch.run(key), null, null, mode));
@@ -87,6 +106,10 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 
 	public void executeBatch(@NotNull LongList keys, @NotNull Action1<Long> action, @NotNull Action0 batchEnd,
 							 @Nullable DispatchMode mode) {
+		if (keys.isEmpty()) {
+			runBatchEndDirect(batchEnd);
+			return;
+		}
 		var batch = new Batch<>(keys.size(), action, batchEnd);
 		keys.foreach((key) -> execute(key, new TaskOneByOneQueue.TaskAction(() -> batch.run(key), null, null, mode)));
 	}
