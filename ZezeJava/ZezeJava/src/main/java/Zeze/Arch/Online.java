@@ -612,6 +612,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofReliableNotify(online, account, clientId, listenerName).send(p)} 替代。
+	 */
+	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId,
 								   @NotNull String listenerName, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
@@ -629,7 +633,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
 	 * 如果在事务中，则事务提交时才排队发送。如果不在事务中，马上排队发送。
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
+	 * @deprecated 使用 {@code OnlineSpec.ofReliableNotify(online, account, clientId, listenerName).send(typeId, fullEncodedProtocol)} 替代。
 	 */
+	@Deprecated
 	public void sendReliableNotify(@NotNull String account, @NotNull String clientId, @NotNull String listenerName,
 								   long typeId, @NotNull Binary fullEncodedProtocol) {
 		var t = Transaction.getCurrent();
@@ -1035,6 +1041,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //		});
 //	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogins(online, loginKeys).trying(trySend).send(typeId, fullEncodedProtocol)} 替代。
+	 */
+	@Deprecated
 	public int send(@NotNull Collection<BLoginKey> loginKeys, long typeId, @NotNull Binary fullEncodedProtocol,
 					boolean trySend) {
 		int loginCount = loginKeys.size();
@@ -1059,6 +1069,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return 0;
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogin(online, account, clientId).send(p)} 替代。
+	 */
+	@Deprecated
 	public void send(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
@@ -1066,11 +1080,19 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		sendDirect(account, clientId, typeId, new Binary(p.encode()), false);
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogin(online, account, clientId).sendResponse(r)} 替代。
+	 */
+	@Deprecated
 	public void sendResponse(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
 		r.setRequest(false);
 		send(account, clientId, r);
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogins(online, logins).send(p)} 替代。
+	 */
+	@Deprecated
 	public void send(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		if (logins.size() <= 0)
 			return;
@@ -1088,14 +1110,26 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		send(logins, typeId, new Binary(p.encode()), false);
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogin(online, account, clientId).send(p)} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void sendWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(account, clientId, p));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogins(online, logins).send(p)} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void sendWhileCommit(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileCommit(() -> send(logins, p));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogin(online, account, clientId).sendResponse(r)} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void sendResponseWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull Rpc<?, ?> r) {
 		Transaction.whileCommit(() -> {
 			r.setRequest(false);
@@ -1103,10 +1137,18 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		});
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogin(online, account, clientId).sendWhileRollback(p)} 替代。
+	 */
+	@Deprecated
 	public void sendWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(account, clientId, p));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofLogins(online, logins).sendWhileRollback(p)} 替代。
+	 */
+	@Deprecated
 	public void sendWhileRollback(@NotNull Collection<BLoginKey> logins, @NotNull Protocol<?> p) {
 		Transaction.whileRollback(() -> send(logins, p));
 	}
@@ -1265,6 +1307,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		return sendCount;
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccount(online, account).send(typeId, fullEncodedProtocol)} 替代。
+	 */
+	@Deprecated
 	public void sendAccount(@NotNull String account, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
 		sendAccountDirect(account, typeId, fullEncodedProtocol, false);
 //		providerApp.zeze.runTaskOneByOneByKey(account, "Online.sendAccount", () -> {
@@ -1273,6 +1319,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //		});
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).send(typeId, fullEncodedProtocol)} 替代。
+	 */
+	@Deprecated
 	public int sendAccounts(@NotNull Collection<String> accounts, long typeId, @NotNull Binary fullEncodedProtocol) { // OnlineSend sender
 		int accountCount = accounts.size();
 		if (accountCount == 1) {
@@ -1296,7 +1346,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	/**
 	 * 给账号所有的登录终端发送消息。
+	 * @deprecated 使用 {@code OnlineSpec.ofAccount(online, account).send(p)} 替代。
 	 */
+	@Deprecated
 	public void sendAccount(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		var typeId = p.getTypeId();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG && AsyncSocket.canLogProtocol(typeId))
@@ -1306,7 +1358,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	/**
 	 * 给账号所有的登录终端发送消息。
+	 * @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).send(p)} 替代。
 	 */
+	@Deprecated
 	public void sendAccounts(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		if (accounts.size() <= 0)
 			return;
@@ -1324,18 +1378,34 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		sendAccounts(accounts, typeId, new Binary(p.encode())/*, sender*/);
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccount(online, account).send(p)} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void sendAccountWhileCommit(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileCommit(() -> sendAccount(account, p/*, sender*/));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).send(p)} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void sendAccountsWhileCommit(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileCommit(() -> sendAccounts(accounts, p/*, sender*/));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccount(online, account).sendWhileRollback(p)} 替代。
+	 */
+	@Deprecated
 	public void sendAccountWhileRollback(@NotNull String account, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileRollback(() -> sendAccount(account, p/*, sender*/));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofAccounts(online, accounts).sendWhileRollback(p)} 替代。
+	 */
+	@Deprecated
 	public void sendAccountsWhileRollback(@NotNull Collection<String> accounts, @NotNull Protocol<?> p/*, OnlineSend sender*/) {
 		Transaction.whileRollback(() -> sendAccounts(accounts, p/*, sender*/));
 	}
@@ -1346,7 +1416,9 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	 * @param account    查询发起者，结果发送给他。
 	 * @param actionName 查询处理的实现
 	 * @param target     目标角色
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, account, clientId, actionName, target, targetClientId).parameter(parameter).transmit()} 替代。
 	 */
+	@Deprecated
 	public void transmit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 						 @NotNull String target, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		transmit(account, clientId, actionName, List.of(new BLoginKey(target, targetClientId)), parameter);
@@ -1478,6 +1550,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		}, "Online.transmit")).run();
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmit()} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 									@NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
@@ -1485,6 +1561,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, account, clientId, actionName, targets).parameter(parameter).transmit()} 替代。事务内自动在提交时发送。
+	 */
+	@Deprecated
 	public void transmitWhileCommit(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 									@NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
@@ -1492,6 +1572,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileCommit(() -> transmit(account, clientId, actionName, targets, parameter));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, account, clientId, actionName, targetAccount, targetClientId).parameter(parameter).transmitWhileRollback()} 替代。
+	 */
+	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 									  @NotNull String targetAccount, @NotNull String targetClientId, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
@@ -1499,6 +1583,10 @@ public class Online extends AbstractOnline implements HotUpgrade {
 		Transaction.whileRollback(() -> transmit(account, clientId, actionName, targetAccount, targetClientId, parameter));
 	}
 
+	/**
+	 * @deprecated 使用 {@code OnlineSpec.ofTransmit(online, account, clientId, actionName, targets).parameter(parameter).transmitWhileRollback()} 替代。
+	 */
+	@Deprecated
 	public void transmitWhileRollback(@NotNull String account, @NotNull String clientId, @NotNull String actionName,
 									  @NotNull Collection<BLoginKey> targets, @Nullable Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
