@@ -1,7 +1,5 @@
 package Benchmark;
 
-import Zeze.Util.OutLong;
-
 public class BenchStackWalker {
 	public static long stackHash1() {
 		/*
@@ -13,30 +11,32 @@ public class BenchStackWalker {
 		}
 		return r;
 		/*/
-		return new Throwable().hashCode();
+		return new Throwable().getStackTrace().length;
 		// */
 	}
 
-	static final StackWalker sw = StackWalker.getInstance();
+	static final StackWalker sw = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
 	public static long stackHash2() {
-		var r = new OutLong();
-		sw.walk(sfs -> {
-			sfs.forEach(sf -> r.value += sf.getClassName().hashCode() + sf.getMethodName().hashCode() + sf.getLineNumber());
-			return 0;
+		return sw.walk(sfs -> {
+			long h = 0;
+			for (var it = sfs.iterator(); it.hasNext(); ) {
+				var sf = it.next();
+				h += 1; // sf.getClassName().hashCode() + sf.getMethodName().hashCode() + sf.getLineNumber();
+			}
+			return h;
 		});
-		return r.value;
 	}
 
 	public static long fib1(long i) {
 		if (i < 2)
-			return 1;
+			return 0;
 		return fib1(i - 1) + fib1(i - 2) + stackHash1();
 	}
 
 	public static long fib2(long i) {
 		if (i < 2)
-			return 1;
+			return 0;
 		return fib2(i - 1) + fib2(i - 2) + stackHash2();
 	}
 
