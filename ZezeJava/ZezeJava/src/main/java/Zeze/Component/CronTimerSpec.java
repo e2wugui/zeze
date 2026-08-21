@@ -140,6 +140,12 @@ public final class CronTimerSpec implements TimerSpec {
 		} else
 			baseTime = nextExpectedTime;
 		nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), baseTime);
+		if (missfire && cronTimer.getMissfirePolicy() == AbstractTimer.eMissfirePolicyRunOnceOldNext
+				&& nextExpectedTime <= now) {
+			// OldNext只补触发一次：cron的触发点是绝对时间，未来最近的定点等价于从now开始计算，
+			// 避免按旧的触发点序列追赶式连发。
+			nextExpectedTime = cronNextTime(cronTimer.getCronExpression(), now);
+		}
 		cronTimer.setNextExpectedTime(nextExpectedTime);
 
 		// check endTime

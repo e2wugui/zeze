@@ -2,6 +2,7 @@ package Zeze.Component;
 
 import java.text.ParseException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -199,6 +200,12 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	@NotNull TimerHandle findTimerHandle(@NotNull String handleClassName) {
 		return hotHandle.findHandle(zeze, handleClassName);
+	}
+
+	static void checkRunningTransaction(@NotNull String methodName) {
+		var t = Transaction.getCurrent();
+		if (t == null || !t.isRunning())
+			throw new IllegalStateException("Timer." + methodName + " must be called within a running transaction.");
 	}
 
 	/**
@@ -788,6 +795,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	@Override
 	public @NotNull String schedule(@NotNull TimerSpec spec, @NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
+		checkRunningTransaction("schedule");
 		return switch (spec) {
 			case SimpleTimerSpec s -> schedule(s.build(), handleClass, customData);
 			case CronTimerSpec c -> schedule(c.build(), handleClass, customData);
@@ -807,6 +815,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	@Override
 	public boolean scheduleNamed(@NotNull String timerId, @NotNull TimerSpec spec,
 								 @NotNull Class<? extends TimerHandle> handleClass, @Nullable Bean customData) {
+		checkRunningTransaction("scheduleNamed");
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
 		var index = _tIndexs.get(timerId);
@@ -834,7 +843,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					var timer = node.getTimers().get(timerId);
 					if (timer != null
 							&& timer.getHandleName().equals(handleClass.getName())
-							&& timer.getCustomData().getBean().equals(customData)) {
+							&& isSameCustomData(timer.getCustomData().getBean(), customData)) {
 						var timerObj = timer.getTimerObj().getBean();
 						if (timerObj instanceof BCronTimer cronTimer) {
 							return spec.matches(cronTimer);
@@ -844,6 +853,10 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			}
 		}
 		return false;
+	}
+
+	private static boolean isSameCustomData(@NotNull Bean savedCustomData, @Nullable Bean customData) {
+		return Objects.equals(savedCustomData instanceof EmptyBean ? null : savedCustomData, customData);
 	}
 
 	/**
@@ -858,6 +871,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 			logger.warn("Timer cancel(null).", new Exception());
 			return false; // 忽略没有初始化的timerId。
 		}
+		checkRunningTransaction("cancel");
 		/*
 		try {
 			// XXX 统一通过这里取消定时器，可能会浪费一次内存表查询。
@@ -925,10 +939,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	public @NotNull TimerRole getRoleTimer() {
+		if (defaultOnline == null)
+			throw new IllegalStateException("role timer not initialized. please call initializeOnlineTimer first.");
 		return defaultOnline.getTimerRole();
 	}
 
 	public @NotNull TimerRole getRoleTimer(@Nullable String onlineSetName) {
+		if (defaultOnline == null)
+			throw new IllegalStateException("role timer not initialized. please call initializeOnlineTimer first.");
 		var online = defaultOnline.getOnline(onlineSetName);
 		if (online == null)
 			throw new IllegalStateException("online miss " + onlineSetName);
@@ -1040,6 +1058,13 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		}
 	}
 
+	private static void dispatchFire(@Nullable String oneByOneKey, @NotNull Runnable fire) {
+		if (oneByOneKey == null || oneByOneKey.isEmpty())
+			fire.run();
+		else
+			OneByOneSpec.ofAction(oneByOneKey, fire::run).execute();
+	}
+
 	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay,
 	                            long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		Transaction.whileCommit(() -> {
@@ -1133,7 +1158,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private void scheduleCron(long timerSerialId, int serverId, @NotNull String timerId, @NotNull BCronTimer cron,
 	                          long concurrentSerialNo, boolean putIfAbsent, @Nullable String oneByOneKey) {
 		try {
-			long delay = cron.getNextExpectedTime() - System.currentTimeMillis();
+			long delay = Math.max(cron.getNextExpectedTime() - System.currentTimeMillis(), 1);
 			scheduleCronNext(timerSerialId, serverId, timerId, delay, concurrentSerialNo, putIfAbsent, oneByOneKey);
 		} catch (Exception ex) {
 			// 这个错误是在不好处理。先只记录日志吧。
@@ -1385,11 +1410,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				if (simpleTimer.getNextExpectedTime() < now) { // missfire found
 					switch (simpleTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
-					case eMissfirePolicyRunOnceOldNext:
+					case eMissfirePolicyRunOnceOldNext: {
+						var oneByOneKey = simpleTimer.getOneByOneKey();
 						Transaction.whileCommit(() ->
-								TaskSpec.ofAction(() -> fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
-										timer.getConcurrentFireSerialNo(), true)).name("Timer.missfireSimple").run());
+								dispatchFire(oneByOneKey, () ->
+										fireSimple(index.getSerialId(), serverId, timer.getTimerName(),
+												timer.getConcurrentFireSerialNo(), true)));
 						continue; // loop done, continue
+					}
 
 					case eMissfirePolicyNothing:
 						// 重置启动时间，调度下一个（未来）间隔的时间。没有考虑对齐。
@@ -1411,11 +1439,14 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 				if (cronTimer.getNextExpectedTime() < now) {
 					switch (cronTimer.getMissfirePolicy()) {
 					case eMissfirePolicyRunOnce:
-					case eMissfirePolicyRunOnceOldNext:
+					case eMissfirePolicyRunOnceOldNext: {
+						var oneByOneKey = cronTimer.getOneByOneKey();
 						Transaction.whileCommit(() ->
-								TaskSpec.ofAction(() -> fireCron(index.getSerialId(), serverId, timer.getTimerName(),
-										timer.getConcurrentFireSerialNo(), true)).name("Timer.missfireCron").run());
+								dispatchFire(oneByOneKey, () ->
+										fireCron(index.getSerialId(), serverId, timer.getTimerName(),
+												timer.getConcurrentFireSerialNo(), true)));
 						continue; // loop done, continue
+					}
 
 					case eMissfirePolicyNothing:
 						// 计算下一次（未来）发生的时间。

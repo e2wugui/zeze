@@ -137,8 +137,14 @@ public final class SimpleTimerSpec implements TimerSpec {
 						// 这种策略重置时间，定时器将在新的开始时间之后按原来的间隔执行。
 						// simpleTimer.setStartTime(now);
 						nextExpectedTime = now + period;
-					} else // eMissfirePolicyRunOnceOldNext
+					} else { // eMissfirePolicyRunOnceOldNext
 						nextExpectedTime += period;
+						if (missfire && nextExpectedTime <= now) {
+							// OldNext只补触发一次：保持定点对齐，直接跳到未来最近的定点，避免追赶式连发。
+							var step = (now - nextExpectedTime) / period + 1;
+							nextExpectedTime += step * period;
+						}
+					}
 				}
 			}
 		}
