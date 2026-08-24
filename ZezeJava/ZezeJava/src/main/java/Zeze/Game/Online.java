@@ -428,7 +428,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			providerApp.providerService.setDisableChoiceFromLinks(true);
 			getProviderWithOnline().foreachOnline(online -> {
 				try {
-					online._tlocal.walk((roleId, local) -> processOffline(roleId, local, false));
+					online._tlocal.walk((roleId, local) -> online.processOffline(roleId, local, false));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
