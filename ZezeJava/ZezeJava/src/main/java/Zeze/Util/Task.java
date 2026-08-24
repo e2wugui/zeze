@@ -246,7 +246,9 @@ public final class Task {
 		return tryInitThreadPool(app != null ? app.getConfig() : null, null, null);
 	}
 
-	public static boolean tryInitThreadPool(@Nullable Config config) {
+	// 不叫 tryInitThreadPool(Config)：避免与 Application 单参重载对裸 null 调用产生歧义
+	// （tryInitThreadPool(null) 在两个引用类型重载间无法确定绑定，编译报错）。
+	public static boolean tryInitThreadPoolWithConfig(@Nullable Config config) {
 		return tryInitThreadPool(config, null, null);
 	}
 
@@ -255,6 +257,7 @@ public final class Task {
 		return tryInitThreadPool(app != null ? app.getConfig() : null, pool, scheduled);
 	}
 
+	// 注意：第一个参数传字面量 null 时需强转 (Config)null，以区别于 Application 三参重载。
 	public static boolean tryInitThreadPool(@Nullable Config config, @Nullable ExecutorService pool,
 	                                        @Nullable ScheduledExecutorService scheduled) {
 		taskLock.lock();

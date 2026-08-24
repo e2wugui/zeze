@@ -42,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
  * <li>{@link #call} 显式设置过 dispatchMode/timeout/onCancel → IllegalArgumentException；</li>
  * <li>{@link #run} 在运行中的事务内且 ofProcedure + dispatchMode(Direct) → IllegalArgumentException
  *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
+ * <li>run 族（{@link #run}/{@link #runNow}/{@link #submitNow}）显式设置过 onCancel → IllegalArgumentException；</li>
  * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；</li>
  * <li>executeOneByOne 显式设置过 timeout → IllegalArgumentException；
  *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
@@ -219,19 +220,24 @@ public final class TaskSpec<R> {
 	 * dispatchMode 只决定执行位置：Normal/Critical 延迟时在提交后入池执行（之后可正常开新事务）；
 	 * Direct 延迟时在 commit 回调中于提交线程同步执行（此时事务已 Completed，不能再访问表或开新事务），
 	 * 因此 ofProcedure + dispatchMode(Direct) 在事务内 run() 抛 IllegalArgumentException，请改用 runNow()/call()。
+	 * 显式设置过 onCancel 时抛 IllegalArgumentException（run 族无队列丢弃语义，不消费它）。
+	 * 上述校验都在消费实例之前完成，抛错后本实例仍可用于 runNow()/call() 等补救调用。
 	 */
 	public void run() {
-		consume();
+		checkRunOptions();
 		var t = Transaction.getCurrent();
 		if (procedure != null && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
 			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
+		consume();
 		Task.runTxnAware(this::runNowInternal);
 	}
 
 	/**
 	 * 异步·立即入池，不等事务提交（即使在事务中，之后该事务 redo 或 rollback 也无法撤销）。
+	 * 显式设置过 onCancel 时抛 IllegalArgumentException。
 	 */
 	public void runNow() {
+		checkRunOptions();
 		consume();
 		runNowInternal();
 	}
@@ -257,8 +263,10 @@ public final class TaskSpec<R> {
 	/**
 	 * 同 {@link #runNow}，但返回 Future：ofAction 的 Future 结果为 null（Direct 时为 0），
 	 * ofFunc/ofProcedure 为结果码，ofFunc0 的返回值与异常经 Future 传播。
+	 * 显式设置过 onCancel 时抛 IllegalArgumentException。
 	 */
 	public @NotNull Future<R> submitNow() {
+		checkRunOptions();
 		consume();
 		var timeout = timeoutOrDefault();
 		if (action != null)
@@ -269,6 +277,11 @@ public final class TaskSpec<R> {
 			return castFuture(Task.submitFuncCore(func, name, dispatchMode, timeout));
 		//noinspection DataFlowIssue
 		return Task.submitFunc0Core(func0, name, dispatchMode, timeout);
+	}
+
+	private void checkRunOptions() {
+		if (onCancelSet)
+			throw new IllegalArgumentException("run family does not consume onCancel");
 	}
 
 	private void checkScheduleOptions() {
@@ -388,6 +401,8 @@ public final class TaskSpec<R> {
 	/**
 	 * 立即注册每天 hour:minute 调度，不等事务提交，返回句柄；period &gt; 0 时按该周期(毫秒)重复触发
 	 * （结果丢弃，见 {@link #schedule(long, long)}）。忽略 dispatchMode/onCancel（显式设置抛错）。
+	 * 实际返回对象取决于 period：period &gt; 0 时为 {@link TimerFuture}（固定延迟周期调度），
+	 * 单次触发时为普通 ScheduledFuture，故声明返回类型保持 ScheduledFuture。
 	 */
 	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute, long period) {
 		consume();

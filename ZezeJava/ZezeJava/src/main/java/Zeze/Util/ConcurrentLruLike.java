@@ -137,7 +137,8 @@ public class ConcurrentLruLike<K, V> {
 			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
 				newLruHot();
 		}).schedule(newLruHotPeriod, newLruHotPeriod);
-		// 下面这个任务的执行时间可能很长，不直接使用带period的schedule的定时任务，每次执行完重新调度。
+		// 下面这个清理任务的执行时间可能很长；schedule(delay, period) 是固定延迟调度(scheduleWithFixedDelay)，
+		// 本次执行完才开始计时下一次，执行时间长只会推迟后续执行，不会并发重入或堆积。
 		TaskSpec.ofAction(this::cleanNow).schedule(this.cleanPeriod, this.cleanPeriod);
 	}
 
@@ -206,12 +207,28 @@ public class ConcurrentLruLike<K, V> {
 		// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 		// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 		// 1. GetOrAdd 需要 replace 更新
-		// 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-		var node = lruItemRemoved.lruNode;
+		// 2. 必须使用 Pair，有可能 LruNode 里面已经有新建的记录了。
+		removeLruRecord(key, lruItemRemoved);
+		return lruItemRemoved.value;
+	}
+
+	// 仅当key当前映射的值与expectedValue是同一个对象(引用相等)时才删除，返回是否删除成功。
+	// 用于并发场景避免误删同key的新映射(如TaskOneByOneByKeyLru淘汰残留旧队列时，同名key可能已建有活跃的新队列)。
+	public final boolean remove(@NotNull K key, @NotNull V expectedValue) {
+		var item = dataMap.get(key);
+		if (item == null || item.value != expectedValue)
+			return false;
+		if (!dataMap.remove(key, item)) // 原子删除，失败说明映射已被并发改变
+			return false;
+		removeLruRecord(key, item);
+		return true;
+	}
+
+	private void removeLruRecord(@NotNull K key, @NotNull LruItem<K, V> item) {
+		var node = item.lruNode;
 		//noinspection ConstantValue
 		if (node != null)
-			node.remove(key, lruItemRemoved);
-		return lruItemRemoved.value;
+			node.remove(key, item);
 	}
 
 	private void tryPollLruQueue() {

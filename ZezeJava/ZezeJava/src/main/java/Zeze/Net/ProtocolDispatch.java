@@ -163,12 +163,13 @@ public final class ProtocolDispatch {
 	 * dispatchMode 只决定执行位置：Normal/Critical 延迟时在提交后入池执行（之后可正常开新事务）；
 	 * Direct 延迟时在 commit 回调中于提交线程同步执行（此时事务已 Completed，不能再访问表或开新事务），
 	 * 因此 ofProcedure + dispatchMode(Direct) 在事务内 run() 抛 IllegalArgumentException，请改用 runNow()/call()。
+	 * 该校验在消费实例之前完成，抛错后本实例仍可用于 runNow()/call() 等补救调用。
 	 */
 	public void run() {
-		consume();
 		var t = Transaction.getCurrent();
 		if (procedure != null && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
 			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
+		consume();
 		Task.runTxnAware(this::runNowInternal);
 	}
 

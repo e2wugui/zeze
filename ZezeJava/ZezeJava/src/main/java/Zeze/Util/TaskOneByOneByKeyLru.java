@@ -67,8 +67,8 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 		try {
 			if (queue.sizeUnderLock() == 0) {
 				queue.setRemoved();
-				queues.remove(key);
-				return true;
+				// 按值条件删除：并发下同key可能已建有活跃的新队列，仅当映射仍指向本队列才删除，否则视为不淘汰。
+				return queues.remove(key, queue);
 			}
 			return false;
 		} finally {

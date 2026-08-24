@@ -251,7 +251,7 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 		keys.foreach((key) -> executeActionCore(Long.hashCode(key), () -> batch.run(key), null, mode));
 	}
 
-	// 以下3个Core是真核心，所有Execute重载最终都委托到这里。
+	// 以下4个Core是真核心，所有Execute重载最终都委托到这里。
 	void executeActionCore(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
 		concurrency[hash(key) & hashMask].execute(action, name, mode);
 	}

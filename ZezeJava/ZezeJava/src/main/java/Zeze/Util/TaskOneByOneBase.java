@@ -225,9 +225,6 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	@Deprecated
 	public void Execute(int key, @NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (action == null)
-			throw new IllegalArgumentException("null action");
 		execute(key, new TaskOneByOneQueue.TaskAction(action, name, cancel, mode));
 	}
 
@@ -301,9 +298,6 @@ public abstract class TaskOneByOneBase extends ReentrantLock {
 	@Deprecated
 	public void Execute(int key, @NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
 						@Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (func == null)
-			throw new IllegalArgumentException("null func");
 		execute(key, new TaskOneByOneQueue.TaskFunc(func, name, cancel, mode));
 	}
 
