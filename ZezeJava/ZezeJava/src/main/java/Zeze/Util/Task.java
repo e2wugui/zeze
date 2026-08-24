@@ -337,16 +337,16 @@ public final class Task {
 		}
 	}
 
-	// 事务感知执行：mode != Direct 且当前在运行中的事务内时，延迟到事务提交后执行(runWhileCommit)，否则立即执行。
-	// mode 为 null 时等同 Normal（非 Direct），即总是检查事务。
 	/**
-	 * 事务感知执行：mode != Direct 且当前在运行中的事务内时延迟到事务提交后执行
-	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行；mode=Direct 时跳过事务检查立即执行。
+	 * 事务感知执行：当前在运行中的事务内时延迟到事务提交后执行
+	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行。
+	 * 注意被延迟的 action 在事务的 commit 回调中同步执行，此时事务已 Completed，
+	 * 不能再访问表或开新事务（需要事务的工作应在 action 内转入线程池执行）。
 	 * 供 Zeze.Net.ProtocolDispatch 等 Util 包外的框架层复用。
 	 */
-	public static void runTxnAware(@Nullable DispatchMode mode, @NotNull Runnable action) {
+	public static void runTxnAware(@NotNull Runnable action) {
 		Transaction t;
-		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+		if ((t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(action);
 		else
 			action.run();
@@ -355,19 +355,25 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name) {
-		runTxnAware(null, () -> executeActionCore(action, name, null, defaultTimeout));
+		runTxnAware(() -> executeActionCore(action, name, null, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeActionCore(action, name, mode, defaultTimeout));
+		if (mode == DispatchMode.Direct)
+			executeActionCore(action, name, mode, defaultTimeout);
+		else
+			runTxnAware(() -> executeActionCore(action, name, mode, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeActionCore(action, name, mode, timeout));
+		if (mode == DispatchMode.Direct)
+			executeActionCore(action, name, mode, timeout);
+		else
+			runTxnAware(() -> executeActionCore(action, name, mode, timeout));
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
@@ -489,13 +495,13 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action) {
-		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, null, defaultTimeout));
+		runTxnAware(() -> scheduleActionCore(initialDelay, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, null, timeout));
+		runTxnAware(() -> scheduleActionCore(initialDelay, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -694,13 +700,13 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
-		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, null, defaultTimeout));
+		runTxnAware(() -> scheduleAtCore(hour, minute, period, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, null, timeout));
+		runTxnAware(() -> scheduleAtCore(hour, minute, period, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -772,13 +778,13 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
-		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, null, defaultTimeout));
+		runTxnAware(() -> schedulePeriodCore(initialDelay, period, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, null, timeout));
+		runTxnAware(() -> schedulePeriodCore(initialDelay, period, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -911,7 +917,8 @@ public final class Task {
 		return callFuncCore(func, p, actionWhenError, aName);
 	}
 
-	static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static long callFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                         @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
 		var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 		boolean isRequestSaved = p == null || p.isRequest(); // 记住这个，以后可能会被改变。
@@ -981,37 +988,43 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		runTxnAware(null, () -> executeFuncCore(func, p, null, null, null, defaultTimeout));
+		runTxnAware(() -> executeFuncCore(func, p, null, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		runTxnAware(null, () -> executeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
+		runTxnAware(() -> executeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		runTxnAware(null, () -> executeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
+		runTxnAware(() -> executeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
+		if (mode == DispatchMode.Direct)
+			executeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout);
+		else
+			runTxnAware(() -> executeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeFuncCore(func, p, actionWhenError, aName, mode, timeout));
+		if (mode == DispatchMode.Direct)
+			executeFuncCore(func, p, actionWhenError, aName, mode, timeout);
+		else
+			runTxnAware(() -> executeFuncCore(func, p, actionWhenError, aName, mode, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -1050,18 +1063,19 @@ public final class Task {
 		return submitFuncCore(func, p, actionWhenError, aName, mode, timeout);
 	}
 
-	static @NotNull Future<Long> submitFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static @NotNull Future<Long> submitFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                               @Nullable ProtocolErrorHandle actionWhenError,
 	                                               @Nullable String aName, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
-			future.setResult(call(func, p, actionWhenError, aName));
+			future.setResult(callFuncCore(func, p, actionWhenError, aName));
 			return future;
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return call(func, p, actionWhenError, aName);
+				return callFuncCore(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
 				return Procedure.Exception;
@@ -1105,17 +1119,18 @@ public final class Task {
 		executeFuncCore(func, p, actionWhenError, aName, mode, timeout);
 	}
 
-	static void executeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static void executeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
-			call(func, p, actionWhenError, aName);
+			callFuncCore(func, p, actionWhenError, aName);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				call(func, p, actionWhenError, aName);
+				callFuncCore(func, p, actionWhenError, aName);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", aName != null ? aName : (p != null ? p.getClass().getName() : null), e);
 			}
@@ -1141,7 +1156,8 @@ public final class Task {
 		return callProcCore(procedure, from, actionWhenError);
 	}
 
-	static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static long callProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                         @Nullable ProtocolErrorHandle actionWhenError) {
 		boolean isRequestSaved = from == null || from.isRequest();
 		try {
@@ -1173,7 +1189,8 @@ public final class Task {
 		return callProcOutCore(procedure, outProtocol, actionWhenError);
 	}
 
-	static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static long callProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                            @Nullable ProtocolErrorHandle actionWhenError) {
 		Protocol<?> from = null;
 		try {
@@ -1202,34 +1219,40 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure) {
-		runTxnAware(null, () -> executeProcCore(procedure, null, null, null, defaultTimeout));
+		runTxnAware(() -> executeProcCore(procedure, null, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		runTxnAware(null, () -> executeProcCore(procedure, from, null, null, defaultTimeout));
+		runTxnAware(() -> executeProcCore(procedure, from, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		runTxnAware(null, () -> executeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
+		runTxnAware(() -> executeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
+		if (mode == DispatchMode.Direct)
+			executeProcCore(procedure, from, actionWhenError, mode, defaultTimeout);
+		else
+			runTxnAware(() -> executeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
 	}
 
-	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
+	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。注意本方法保留老语义：mode=Direct 跳过事务检查立即执行；TaskSpec 的 run() 中 Direct 不再跳过事务延迟。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeProcCore(procedure, from, actionWhenError, mode, timeout));
+		if (mode == DispatchMode.Direct)
+			executeProcCore(procedure, from, actionWhenError, mode, timeout);
+		else
+			runTxnAware(() -> executeProcCore(procedure, from, actionWhenError, mode, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -1273,18 +1296,19 @@ public final class Task {
 		return submitProcCore(procedure, from, actionWhenError, mode, timeout);
 	}
 
-	static @NotNull Future<Long> submitProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static @NotNull Future<Long> submitProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                               @Nullable ProtocolErrorHandle actionWhenError,
 	                                               @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
-			future.setResult(call(procedure, from, actionWhenError));
+			future.setResult(callProcCore(procedure, from, actionWhenError));
 			return future;
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return call(procedure, from, actionWhenError);
+				return callProcCore(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
@@ -1310,19 +1334,20 @@ public final class Task {
 		return submitProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
 	}
 
-	static @NotNull Future<Long> submitProcOutCore(@NotNull Procedure procedure,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static @NotNull Future<Long> submitProcOutCore(@NotNull Procedure procedure,
 	                                                  @NotNull OutObject<Protocol<?>> outProtocol,
 	                                                  @Nullable ProtocolErrorHandle actionWhenError,
 	                                                  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var future = new TaskCompletionSource<Long>();
-			future.setResult(call(procedure, outProtocol, actionWhenError));
+			future.setResult(callProcOutCore(procedure, outProtocol, actionWhenError));
 			return future;
 		}
 
 		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				return call(procedure, outProtocol, actionWhenError);
+				return callProcOutCore(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", procedure, e);
 				return Procedure.Exception;
@@ -1370,17 +1395,18 @@ public final class Task {
 		executeProcCore(procedure, from, actionWhenError, mode, timeout);
 	}
 
-	static void executeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static void executeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                  long timeout) {
 		if (mode == DispatchMode.Direct) {
-			call(procedure, from, actionWhenError);
+			callProcCore(procedure, from, actionWhenError);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				call(procedure, from, actionWhenError);
+				callProcCore(procedure, from, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", procedure, e);
 			}
@@ -1402,17 +1428,18 @@ public final class Task {
 		executeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
 	}
 
-	static void executeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	/** 框架层（Zeze.Net 等）复用的核心方法；应用层请使用 {@link TaskSpec}。 */
+	public static void executeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                     @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                     long timeout) {
 		if (mode == DispatchMode.Direct) {
-			call(procedure, outProtocol, actionWhenError);
+			callProcOutCore(procedure, outProtocol, actionWhenError);
 			return;
 		}
 
 		(mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).execute(() -> {
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
-				call(procedure, outProtocol, actionWhenError);
+				callProcOutCore(procedure, outProtocol, actionWhenError);
 			} catch (Throwable e) { // logger.error
 				logger.error("{} exception:", procedure, e);
 			}

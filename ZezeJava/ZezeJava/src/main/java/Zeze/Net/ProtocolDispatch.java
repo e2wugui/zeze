@@ -5,6 +5,7 @@ import java.util.concurrent.Future;
 
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -30,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
  * <p>实例是一次性的、非线程安全：任何终结方法执行后实例失效，再调 setter/终结方法抛
  * {@link IllegalStateException}。
  */
-@SuppressWarnings("deprecation")
 public final class ProtocolDispatch {
 	private final @Nullable FuncLong func;
 	private final @Nullable Procedure procedure;
@@ -150,21 +150,26 @@ public final class ProtocolDispatch {
 		if (dispatchModeSet || timeoutSet)
 			throw new IllegalArgumentException("call() does not consume dispatchMode/timeout");
 		if (func != null)
-			return Task.call(func, protocol, errorHandle, name);
+			return Task.callFuncCore(func, protocol, errorHandle, name);
 		assert procedure != null;
 		if (outProtocol != null)
-			return Task.call(procedure, outProtocol, errorHandle);
-		return Task.call(procedure, protocol, errorHandle);
+			return Task.callProcOutCore(procedure, outProtocol, errorHandle);
+		return Task.callProcCore(procedure, protocol, errorHandle);
 	}
 
 	/**
-	 * 异步·事务感知：dispatchMode != Direct 且当前在运行中的事务内时延迟到事务提交后执行
-	 * （rollback 不执行、redo 由新一轮重新注册），否则立即入池；dispatchMode=Direct 时跳过事务检查，
-	 * 当前线程立即同步执行。
+	 * 异步·事务感知：当前在运行中的事务内时延迟到事务提交后执行
+	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行。
+	 * dispatchMode 只决定执行位置：Normal/Critical 延迟时在提交后入池执行（之后可正常开新事务）；
+	 * Direct 延迟时在 commit 回调中于提交线程同步执行（此时事务已 Completed，不能再访问表或开新事务），
+	 * 因此 ofProcedure + dispatchMode(Direct) 在事务内 run() 抛 IllegalArgumentException，请改用 runNow()/call()。
 	 */
 	public void run() {
 		consume();
-		Task.runTxnAware(dispatchMode, this::runNowInternal);
+		var t = Transaction.getCurrent();
+		if (procedure != null && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
+			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
+		Task.runTxnAware(this::runNowInternal);
 	}
 
 	/**
@@ -178,14 +183,14 @@ public final class ProtocolDispatch {
 	private void runNowInternal() {
 		var timeout = timeoutOrDefault();
 		if (func != null) {
-			Task.executeUnsafe(func, protocol, errorHandle, name, dispatchMode, timeout);
+			Task.executeFuncCore(func, protocol, errorHandle, name, dispatchMode, timeout);
 			return;
 		}
 		assert procedure != null;
 		if (outProtocol != null)
-			Task.executeUnsafe(procedure, outProtocol, errorHandle, dispatchMode, timeout);
+			Task.executeProcOutCore(procedure, outProtocol, errorHandle, dispatchMode, timeout);
 		else
-			Task.executeUnsafe(procedure, protocol, errorHandle, dispatchMode, timeout);
+			Task.executeProcCore(procedure, protocol, errorHandle, dispatchMode, timeout);
 	}
 
 	/**
@@ -195,10 +200,10 @@ public final class ProtocolDispatch {
 		consume();
 		var timeout = timeoutOrDefault();
 		if (func != null)
-			return Task.runUnsafe(func, protocol, errorHandle, name, dispatchMode, timeout);
+			return Task.submitFuncCore(func, protocol, errorHandle, name, dispatchMode, timeout);
 		assert procedure != null;
 		if (outProtocol != null)
-			return Task.runUnsafe(procedure, outProtocol, errorHandle, dispatchMode, timeout);
-		return Task.runUnsafe(procedure, protocol, errorHandle, dispatchMode, timeout);
+			return Task.submitProcOutCore(procedure, outProtocol, errorHandle, dispatchMode, timeout);
+		return Task.submitProcCore(procedure, protocol, errorHandle, dispatchMode, timeout);
 	}
 }

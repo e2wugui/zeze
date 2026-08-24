@@ -278,6 +278,51 @@ public class TestTaskSpec {
 		Assert.assertTrue(called.get(10, TimeUnit.SECONDS));
 	}
 
+	@Test
+	public void testRunDirectDeferInTransaction() throws Exception {
+		App.Instance.Start();
+		var order = new ArrayList<String>();
+		var txnThread = new AtomicLong();
+		var deferredThread = new AtomicLong();
+		var result = App.Instance.Zeze.newProcedure(() -> {
+			// Direct 不再跳过事务：运行中的事务内 run() 同样延迟到事务提交后执行
+			txnThread.set(Thread.currentThread().getId());
+			TaskSpec.ofAction(() -> {
+				deferredThread.set(Thread.currentThread().getId());
+				synchronized (order) {
+					order.add("deferred");
+				}
+			}).name("testRunDirectDeferInTransaction.deferred").dispatchMode(DispatchMode.Direct).run();
+			synchronized (order) {
+				order.add("inTxn");
+			}
+			return 0L;
+		}, "testRunDirectDeferInTransaction").call();
+		Assert.assertEquals(0L, result);
+		// Direct 延迟时在 commit 回调中于提交线程同步执行，call() 返回时已执行完，无需等待
+		synchronized (order) {
+			Assert.assertEquals(java.util.List.of("inTxn", "deferred"), order);
+		}
+		Assert.assertEquals(txnThread.get(), deferredThread.get());
+	}
+
+	@Test
+	public void testRunDirectProcedureInTxnRejected() throws Exception {
+		App.Instance.Start();
+		var result = App.Instance.Zeze.newProcedure(() -> {
+			// ofProcedure + Direct 在事务内 run()：commit 回调中无法再开事务，fail-fast 拒绝
+			try {
+				TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.guardProc"))
+						.dispatchMode(DispatchMode.Direct).run();
+				Assert.fail();
+			} catch (IllegalArgumentException expected) {
+				// 预期拒绝
+			}
+			return 0L;
+		}, "testRunDirectProcedureInTxnRejected").call();
+		Assert.assertEquals(0L, result);
+	}
+
 	// ========== fail-fast 校验 ==========
 
 	@Test
@@ -591,6 +636,8 @@ public class TestTaskSpec {
 		test.testOfProcedure();
 		test.testRunDeferInTransaction();
 		test.testOfProcedureRunDeferInTransaction();
+		test.testRunDirectDeferInTransaction();
+		test.testRunDirectProcedureInTxnRejected();
 		test.testConsumedSingleUse();
 		test.testCallRejectsAsyncOptions();
 		test.testScheduleRejectsDispatchMode();

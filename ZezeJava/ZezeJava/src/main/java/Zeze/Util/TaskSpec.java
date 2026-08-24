@@ -6,6 +6,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +40,8 @@ import org.jetbrains.annotations.Nullable;
  * <p>fail-fast 校验（终结方法执行时）：
  * <ul>
  * <li>{@link #call} 显式设置过 dispatchMode/timeout/onCancel → IllegalArgumentException；</li>
+ * <li>{@link #run} 在运行中的事务内且 ofProcedure + dispatchMode(Direct) → IllegalArgumentException
+ *     （Direct 延迟时在 commit 回调中同步执行，无法再开事务）；</li>
  * <li>schedule 族显式设置过 dispatchMode/onCancel → IllegalArgumentException；</li>
  * <li>executeOneByOne 显式设置过 timeout → IllegalArgumentException；
  *     onCancel 仅 base 家族（含全局队列）支持，Key2 + onCancel → IllegalArgumentException。</li>
@@ -211,13 +214,18 @@ public final class TaskSpec<R> {
 	}
 
 	/**
-	 * 异步·事务感知：dispatchMode != Direct 且当前在运行中的事务内时延迟到事务提交后执行
-	 * （rollback 不执行、redo 由新一轮重新注册），否则立即入池；dispatchMode=Direct 时跳过事务检查，
-	 * 当前线程立即同步执行。
+	 * 异步·事务感知：当前在运行中的事务内时延迟到事务提交后执行
+	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行。
+	 * dispatchMode 只决定执行位置：Normal/Critical 延迟时在提交后入池执行（之后可正常开新事务）；
+	 * Direct 延迟时在 commit 回调中于提交线程同步执行（此时事务已 Completed，不能再访问表或开新事务），
+	 * 因此 ofProcedure + dispatchMode(Direct) 在事务内 run() 抛 IllegalArgumentException，请改用 runNow()/call()。
 	 */
 	public void run() {
 		consume();
-		Task.runTxnAware(dispatchMode, this::runNowInternal);
+		var t = Transaction.getCurrent();
+		if (procedure != null && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
+			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
+		Task.runTxnAware(this::runNowInternal);
 	}
 
 	/**
@@ -276,14 +284,14 @@ public final class TaskSpec<R> {
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
 		if (action != null)
-			Task.runTxnAware(null, () -> Task.scheduleActionCore(delay, action, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleActionCore(delay, action, name, timeout));
 		else if (func != null)
-			Task.runTxnAware(null, () -> Task.scheduleFuncCore(delay, func, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleFuncCore(delay, func, name, timeout));
 		else if (procedure != null)
-			Task.runTxnAware(null, () -> Task.scheduleProcCore(delay, procedure, timeout));
+			Task.runTxnAware(() -> Task.scheduleProcCore(delay, procedure, timeout));
 		else
 			//noinspection DataFlowIssue
-			Task.runTxnAware(null, () -> Task.scheduleFunc0Core(delay, func0, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleFunc0Core(delay, func0, name, timeout));
 	}
 
 	/**
@@ -295,14 +303,14 @@ public final class TaskSpec<R> {
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
 		if (action != null)
-			Task.runTxnAware(null, () -> Task.schedulePeriodCore(delay, period, action, name, timeout));
+			Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, action, name, timeout));
 		else if (func != null)
-			Task.runTxnAware(null, () -> Task.scheduleFuncPeriodCore(delay, period, func, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleFuncPeriodCore(delay, period, func, name, timeout));
 		else if (procedure != null)
-			Task.runTxnAware(null, () -> Task.scheduleProcPeriodCore(delay, period, procedure, timeout));
+			Task.runTxnAware(() -> Task.scheduleProcPeriodCore(delay, period, procedure, timeout));
 		else
 			//noinspection DataFlowIssue
-			Task.runTxnAware(null, () -> Task.scheduleFunc0PeriodCore(delay, period, func0, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleFunc0PeriodCore(delay, period, func0, name, timeout));
 	}
 
 	/**
@@ -359,14 +367,14 @@ public final class TaskSpec<R> {
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
 		if (action != null)
-			Task.runTxnAware(null, () -> Task.scheduleAtCore(hour, minute, period, action, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, period, action, name, timeout));
 		else if (func != null)
-			Task.runTxnAware(null, () -> Task.scheduleAtFuncCore(hour, minute, period, func, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleAtFuncCore(hour, minute, period, func, name, timeout));
 		else if (procedure != null)
-			Task.runTxnAware(null, () -> Task.scheduleAtProcCore(hour, minute, period, procedure, timeout));
+			Task.runTxnAware(() -> Task.scheduleAtProcCore(hour, minute, period, procedure, timeout));
 		else
 			//noinspection DataFlowIssue
-			Task.runTxnAware(null, () -> Task.scheduleAtFunc0Core(hour, minute, period, func0, name, timeout));
+			Task.runTxnAware(() -> Task.scheduleAtFunc0Core(hour, minute, period, func0, name, timeout));
 	}
 
 	/**
