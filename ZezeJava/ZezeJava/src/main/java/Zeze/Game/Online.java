@@ -410,7 +410,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		if (getProviderWithOnline().getOnline() == this) {
 			getProviderWithOnline().foreachOnline(online -> {
 				try {
-					online._tlocal.walk((roleId, local) -> processOffline(roleId, local, true));
+					online._tlocal.walk((roleId, local) -> online.processOffline(roleId, local, true));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -1720,7 +1720,8 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 				transmit.Argument.setParameter(parameter);
 			var ps = providerApp.providerDirectService.providerByServerId.get(group.serverId);
 			if (ps == null) {
-				assert groupLocal != null;
+				if (groupLocal == null)
+					groupLocal = new RoleOnServer();
 				groupLocal.roles.addAll(group.roles);
 				continue;
 			}
@@ -2188,10 +2189,14 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 			return Procedure.LogicError;
 		var linkSid = onlineShared.getLink().getLinkSid();
 		var link = providerApp.providerService.getLinks().get(onlineShared.getLink().getLinkName());
+		if (null == link)
+			return Procedure.LogicError;
 		return localLogout(roleId, link.getSocket(), linkSid);
 	}
 
-	private long localLogout(long roleId, @NotNull AsyncSocket link, long linkSid) throws Exception {
+	private long localLogout(long roleId, AsyncSocket link, long linkSid) throws Exception {
+		if (null == link)
+			return Procedure.LogicError;
 		//var local = _tlocal.get(session.getRoleId());
 		var onlineShared = getLoginOnlineShared(roleId);
 		if (onlineShared != null) {

@@ -1526,7 +1526,8 @@ public class Online extends AbstractOnline implements HotUpgrade {
 			}
 			var socket = providerApp.providerDirectService.GetSocket(ps.sessionId);
 			if (socket == null) {
-				assert groupLocal != null;
+				if (groupLocal == null)
+					groupLocal = new RoleOnServer();
 				groupLocal.addAll(group.accounts);
 				continue;
 			}
