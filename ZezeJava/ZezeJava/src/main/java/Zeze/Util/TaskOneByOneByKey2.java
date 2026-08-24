@@ -253,16 +253,10 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 
 	// 以下3个Core是真核心，所有Execute重载最终都委托到这里。
 	void executeActionCore(int key, @NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (action == null)
-			throw new IllegalArgumentException("null action");
 		concurrency[hash(key) & hashMask].execute(action, name, mode);
 	}
 
 	void executeFunc0Core(int key, @NotNull Func0<?> func, @Nullable String name, @Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (func == null)
-			throw new IllegalArgumentException("null func");
 		concurrency[hash(key) & hashMask].execute(func, name, mode);
 	}
 
@@ -271,9 +265,6 @@ public final class TaskOneByOneByKey2 extends ReentrantLock {
 	}
 
 	void executeFuncCore(int key, @NotNull FuncLong func, @Nullable String name, @Nullable DispatchMode mode) {
-		//noinspection ConstantValue
-		if (func == null)
-			throw new IllegalArgumentException("null func");
 		concurrency[hash(key) & hashMask].execute(func::call, name, mode);
 	}
 

@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.concurrent.Executor;
 
 /*
@@ -75,7 +77,7 @@ public class TaskOneByOneByKeyLru extends TaskOneByOneBase {
 	}
 
 	@Override
-	protected TaskOneByOneQueue getAndLockQueue(Object key) {
+	protected @NonNull TaskOneByOneQueue getAndLockQueue(@NonNull Object key) {
 		while (true) {
 			var queue = queues.getOrAdd(key, () -> new TaskOneByOneQueue(executor));
 			queue.lock();

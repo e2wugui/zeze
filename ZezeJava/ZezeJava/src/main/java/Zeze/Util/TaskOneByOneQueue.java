@@ -94,27 +94,6 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
-	/*
-	public Runnable submit(@NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
-						   @Nullable DispatchMode mode) {
-		return submit(new TaskAction(action, name, cancel, mode));
-	}
-
-	public Runnable submit(@NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel,
-						   @Nullable DispatchMode mode) {
-		return submit(new TaskFunc(func, name, cancel, mode));
-	}
-
-
-	public Runnable executeBarrier(@NotNull BarrierProcedure barrier, int sum, @Nullable DispatchMode mode) {
-		return submit(new TaskBarrierProcedure(barrier, sum, mode));
-	}
-
-	public Runnable executeBarrier(@NotNull BarrierAction barrier, int sum, @Nullable DispatchMode mode) {
-		return submit(new TaskBarrierAction(barrier, sum, mode));
-	}
-	*/
-
 	public Runnable submit(@NotNull Task task) {
 		if (!isShutdown) {
 			queue.addLast(task);
