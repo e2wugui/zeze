@@ -42,7 +42,7 @@ public class ThreadingServer extends AbstractThreadingServer {
 	public ThreadingServer(Service service, ServiceManagerServer.Conf conf) {
 		this.service = service;
 		this.conf = conf;
-		this.timeoutReleaseTask = TaskSpec.ofAction(this::timeoutRelease).scheduleWithPeriodUnsafe(60_000, 60_000);
+		this.timeoutReleaseTask = TaskSpec.ofAction(this::timeoutRelease).scheduleNow(60_000, 60_000);
 	}
 
 	public void close() {

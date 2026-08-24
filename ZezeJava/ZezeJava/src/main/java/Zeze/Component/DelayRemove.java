@@ -64,7 +64,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
 		var period = 24 * 3600 * 1000; // 24 hours
-		timer = TaskSpec.ofAction(this::onTimer).scheduleWithPeriodUnsafe(delay, period);
+		timer = TaskSpec.ofAction(this::onTimer).scheduleNow(delay, period);
 		jobIdAutoKey = zeze.getAutoKey("__GCTableJobIdAutoKey");
 	}
 

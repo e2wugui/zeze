@@ -18,8 +18,8 @@ public class TestPersistentAtomicLong extends TestCase {
 		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
 		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong");
 		var jobs = new ArrayList<Future<?>>();
-		jobs.add(TaskSpec.ofAction(() -> Alloc(p1)).name("Alloc1").runUnsafe());
-		jobs.add(TaskSpec.ofAction(() -> Alloc(p2)).name("Alloc2").runUnsafe());
+		jobs.add(TaskSpec.ofAction(() -> Alloc(p1)).name("Alloc1").submitNow());
+		jobs.add(TaskSpec.ofAction(() -> Alloc(p2)).name("Alloc2").submitNow());
 		Task.waitAll(jobs);
 	}
 

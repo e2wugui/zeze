@@ -42,7 +42,7 @@ public class Bench1Mysql {
 						}
 					}
 					b.report("mysql replace bench", count);
-				}).name("mysql replace").runUnsafe());
+				}).name("mysql replace").submitNow());
 			}
 			for (var future : futures)
 				future.get();

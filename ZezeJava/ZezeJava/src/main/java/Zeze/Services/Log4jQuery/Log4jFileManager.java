@@ -65,7 +65,7 @@ public class Log4jFileManager extends ReentrantLock {
 		}
 		var period = 300_000L;
 		buildIndexTimer = TaskSpec.ofAction(this::buildIndex)
-				.scheduleWithPeriodUnsafe(Random.getInstance().nextLong(period), period);
+				.scheduleNow(Random.getInstance().nextLong(period), period);
 		removeOldLinkFiles();
 	}
 

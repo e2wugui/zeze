@@ -137,7 +137,7 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(gcmConfig.maxNetPing, gcmConfig.serverProcessTime,
 					gcmConfig.serverReleaseTimeout);
-			TaskSpec.ofAction(this::achillesHeelDaemon).scheduleWithPeriod(5000, 5000);
+			TaskSpec.ofAction(this::achillesHeelDaemon).schedule(5000, 5000);
 		} finally {
 			unlock();
 		}

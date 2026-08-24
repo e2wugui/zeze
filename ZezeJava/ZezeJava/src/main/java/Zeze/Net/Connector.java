@@ -216,7 +216,7 @@ public class Connector extends ReentrantLock {
 				return;
 
 			reConnectDelay = reConnectDelay > 0 ? Math.min(reConnectDelay * 2, maxReconnectDelay) : 1000;
-			reconnectTask = TaskSpec.ofAction(this::start).scheduleUnsafe(reConnectDelay);
+			reconnectTask = TaskSpec.ofAction(this::start).scheduleNow(reConnectDelay);
 		} finally {
 			unlock();
 		}

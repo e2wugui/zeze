@@ -13,9 +13,9 @@ import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Util.Action1;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -163,13 +163,13 @@ public abstract class AbstractAgent extends ReentrantLock implements Closeable {
 
 	protected void triggerOnChanged(@NotNull BEditService edit) {
 		if (onChanged != null) {
-			OneByOneSpec.ofAction(SMCallbackOneByOneKey, () -> {
+			TaskSpec.ofAction(() -> {
 				try {
 					onChanged.run(edit);
 				} catch (Throwable e) { // logger.error
 					logger.error("", e);
 				}
-			}).execute(Task.getOneByOne());
+			}).executeOneByOne(SMCallbackOneByOneKey, Task.getOneByOne());
 		}
 	}
 

@@ -32,7 +32,7 @@ public class Threading extends AbstractThreading {
 		this.appSerialId = PersistentAtomicLong.getOrAdd(service.getName() + "." + serverId).next();
 
 		keepAlive(); // first keepAlive
-		keepAliveTask = TaskSpec.ofAction(this::keepAlive).scheduleWithPeriodUnsafe(10_000, 10_000);
+		keepAliveTask = TaskSpec.ofAction(this::keepAlive).scheduleNow(10_000, 10_000);
 	}
 
 	public void close() {

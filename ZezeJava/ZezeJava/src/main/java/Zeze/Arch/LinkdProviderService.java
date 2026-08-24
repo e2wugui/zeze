@@ -10,11 +10,11 @@ import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.HandshakeServer;
 import Zeze.Util.Task;
-import Zeze.Util.TaskSpec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -63,7 +63,7 @@ public class LinkdProviderService extends HandshakeServer {
 		if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 			// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 			// 不要直接在io-thread里面执行。
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p).dispatchMode(factoryHandle.Mode).runNow();
 		} else {
 			// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
 			// 直接执行，少一次线程切换。
@@ -81,7 +81,7 @@ public class LinkdProviderService extends HandshakeServer {
 	public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 															@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// 不支持事务
-		TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).call();
+		ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).call();
 	}
 
 	@SuppressWarnings("MethodMayBeStatic")

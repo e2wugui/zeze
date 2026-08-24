@@ -163,7 +163,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 			// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
 			achillesHeelConfig = new AchillesHeelConfig(this.gcmConfig.maxNetPing,
 					this.gcmConfig.serverProcessTime, this.gcmConfig.serverReleaseTimeout);
-			TaskSpec.ofAction(this::achillesHeelDaemon).scheduleWithPeriod(5000, 5000);
+			TaskSpec.ofAction(this::achillesHeelDaemon).schedule(5000, 5000);
 		} finally {
 			unlock();
 		}
@@ -761,7 +761,7 @@ public final class GlobalCacheManagerServer extends ReentrantLock implements Glo
 						} finally {
 							cs.unlock();
 						}
-					}).name("GlobalCacheManager.AcquireModify.WaitReduce").executeUnsafe();
+					}).name("GlobalCacheManager.AcquireModify.WaitReduce").runNow();
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
 					cs.await(); //await 等通知

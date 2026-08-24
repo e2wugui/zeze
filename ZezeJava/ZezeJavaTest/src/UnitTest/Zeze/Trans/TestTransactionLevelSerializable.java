@@ -29,7 +29,7 @@ public class TestTransactionLevelSerializable {
 			Future<?>[] tasks = new Future[20000];
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.TaskSpec.ofProcedure(
-						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade")).runUnsafe();
+						App.Instance.Zeze.newProcedure(TestTransactionLevelSerializable::trade, "test_trade")).submitNow();
 			}
 			Zeze.Util.Task.waitAll(tasks);
 		} finally {

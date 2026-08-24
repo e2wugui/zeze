@@ -465,9 +465,9 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			TaskSpec.ofProcedure(zeze.newProcedure(() -> responseHandle.handle(rpc),
 					rpc.getClass().getName() + ":Response", factoryHandle.Level))
-					.mode(factoryHandle.Mode).executeUnsafe();
+					.dispatchMode(factoryHandle.Mode).runNow();
 		} else
-			TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 	}
 
 	public boolean isHandshakeProtocol(long typeId) {
@@ -517,12 +517,12 @@ public class Service extends ReentrantLock {
 		if (!noProcedure && factoryHandle.Level != TransactionLevel.None) {
 			var protocolClassName = p.getClass().getName();
 			var proc = zeze.newProcedure(() -> p.handle(this, factoryHandle), protocolClassName, factoryHandle.Level);
-			TaskSpec.ofProcedure(proc).from(p).errorHandle(Protocol::trySendResultCode)
-					.mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofProcedure(proc).from(p).onError(Protocol::trySendResultCode)
+					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
-					.protocol(p).errorHandle(Protocol::trySendResultCode)
-					.mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
+					.onError(Protocol::trySendResultCode)
+					.dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
 
@@ -554,8 +554,8 @@ public class Service extends ReentrantLock {
 						protocolClassName, new Binary(bytesCopy));
 			} else
 				proc = zeze.newProcedure(action, protocolClassName, factoryHandle.Level);
-			TaskSpec.ofProcedure(proc).outProtocol(outProtocol).errorHandle(Protocol::trySendResultCode)
-					.mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofProcedure(proc).outProtocol(outProtocol).onError(Protocol::trySendResultCode)
+					.dispatchMode(factoryHandle.Mode).runNow();
 		} else {
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			// 其他协议或者rpc，马上在io线程继续派发。
@@ -584,7 +584,7 @@ public class Service extends ReentrantLock {
 		if ((int)overflowCountHandle.getAndAdd(this, 1) == 0) {
 			TaskSpec.ofAction(() -> logger.error("Send overflow(>{}): {} dropped {}/{}",
 					maxSize, this, overflowSizeHandle.getAndSet(this, 0L), overflowCountHandle.getAndSet(this, 0)))
-					.scheduleUnsafe(1000);
+					.scheduleNow(1000);
 		}
 		return false;
 	}
@@ -870,7 +870,7 @@ public class Service extends ReentrantLock {
 			if (keepCheckTimer == null) {
 				var period = getConfig().getHandshakeOptions().getKeepCheckPeriod() * 1000L;
 				if (period > 0) {
-					keepCheckTimer = TaskSpec.ofAction(this::checkKeepAlive).scheduleWithPeriodUnsafe(
+					keepCheckTimer = TaskSpec.ofAction(this::checkKeepAlive).scheduleNow(
 							Random.getInstance().nextLong(period) + 1, period);
 				}
 			}

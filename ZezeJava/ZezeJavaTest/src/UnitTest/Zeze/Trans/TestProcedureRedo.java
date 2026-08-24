@@ -57,7 +57,7 @@ public class TestProcedureRedo {
 			});
 			return Procedure.Success;
 
-		}, "TestProcedureRedoTask1")).runUnsafe();
+		}, "TestProcedureRedoTask1")).submitNow();
 
 		var ftask2 = TaskSpec.ofProcedure(App.getInstance().Zeze.newProcedure(() -> {
 
@@ -73,7 +73,7 @@ public class TestProcedureRedo {
 			Transaction.whileCommit(() -> System.out.println("task2 suss"));
 			return Procedure.Success;
 
-		}, "TestProcedureRedoTask2")).runUnsafe();
+		}, "TestProcedureRedoTask2")).submitNow();
 
 		ftask2.get();
 		ftask1.get();

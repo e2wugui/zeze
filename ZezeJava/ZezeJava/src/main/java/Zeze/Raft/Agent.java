@@ -13,6 +13,7 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.RpcTimeoutException;
@@ -378,7 +379,7 @@ public final class Agent {
 		this.client.AddFactoryHandle(StopServerConnector.TypeId_, new Service.ProtocolFactoryHandle<>(
 				StopServerConnector::new, null, TransactionLevel.None, DispatchMode.Normal));
 		// ugly
-		resendTask = TaskSpec.ofAction(this::resend).scheduleWithPeriodUnsafe(1000, 1000);
+		resendTask = TaskSpec.ofAction(this::resend).scheduleNow(1000, 1000);
 	}
 
 	private Connector getRandomConnector(Connector except) {
@@ -586,8 +587,8 @@ public final class Agent {
 			if (p.getTypeId() == LeaderIs.TypeId_ || isHandshakeProtocol(p.getTypeId()) || agent.dispatchProtocolToInternalThreadPool) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p)
-						.errorHandle(Protocol::trySendResultCode).mode(factoryHandle.Mode).executeUnsafe();
+				ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
+						.onError(Protocol::trySendResultCode).dispatchMode(factoryHandle.Mode).runNow();
 		}
 	}
 

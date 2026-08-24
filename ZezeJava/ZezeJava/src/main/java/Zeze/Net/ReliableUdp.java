@@ -176,7 +176,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 			sendWindow.put(packet.serialId, packet);
 
 			// start auto resend timer.
-			packet.resendTimerTask = TaskSpec.ofAction(() -> sendTo(peer, packet)).scheduleWithPeriodUnsafe(3000, 3000);
+			packet.resendTimerTask = TaskSpec.ofAction(() -> sendTo(peer, packet)).scheduleNow(3000, 3000);
 			return sendTo(peer, packet);
 		}
 	}
@@ -203,7 +203,7 @@ public class ReliableUdp extends ReentrantLock implements SelectorHandle, Closea
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
 	public void dispatch(Session session, Packet packet) {
-		TaskSpec.ofAction(() -> session.handle.handle(session, packet)).name("ReliableUdp.dispatch").executeUnsafe();
+		TaskSpec.ofAction(() -> session.handle.handle(session, packet)).name("ReliableUdp.dispatch").runNow();
 		// session.Handle.handle(session, packet); // 直接在网络线程中执行。
 	}
 

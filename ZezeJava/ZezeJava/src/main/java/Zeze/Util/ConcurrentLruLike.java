@@ -136,9 +136,9 @@ public class ConcurrentLruLike<K, V> {
 		TaskSpec.ofAction(() -> {
 			if (lruHot.size() > lruInitialCapacity / 2) // 访问很少的时候不创建新的热点
 				newLruHot();
-		}).scheduleWithPeriod(newLruHotPeriod, newLruHotPeriod);
+		}).schedule(newLruHotPeriod, newLruHotPeriod);
 		// 下面这个任务的执行时间可能很长，不直接使用带period的schedule的定时任务，每次执行完重新调度。
-		TaskSpec.ofAction(this::cleanNow).scheduleWithPeriod(this.cleanPeriod, this.cleanPeriod);
+		TaskSpec.ofAction(this::cleanNow).schedule(this.cleanPeriod, this.cleanPeriod);
 	}
 
 	public long walkKey(@NotNull TableWalkKey<K> callback) throws Exception {

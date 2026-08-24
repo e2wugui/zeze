@@ -134,7 +134,7 @@ public class OnzServer extends AbstractOnz {
 			logger.error("first try.", ex);
 		}
 		// 1 minute?
-		redoTimer = TaskSpec.ofAction(this::redoTimer).scheduleWithPeriodUnsafe(60000, 60000);
+		redoTimer = TaskSpec.ofAction(this::redoTimer).scheduleNow(60000, 60000);
 	}
 
 	private void redoTimer() throws RocksDBException {

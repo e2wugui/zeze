@@ -48,7 +48,7 @@ public class MQSingle extends ReentrantLock {
 					topic, partitionId);
 			this.highLoad = fileWithIndex.getNextMessageId() - fileWithIndex.getFirstMessageId();
 			pullMessage(); // 构造的时候还没有绑定网络，所以只装载进来，不需要tryPushMessage.
-			//fillGuardTimer = Task.scheduleUnsafe(5_000, 5_000, this::tryStartBackgroundFill);
+			//fillGuardTimer = Task.scheduleNow(5_000, 5_000, this::tryStartBackgroundFill);
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
 		}
@@ -87,7 +87,7 @@ public class MQSingle extends ReentrantLock {
 		lock();
 		try {
 			if (highLoad > 0 && messageFillFuture == null && messageQueue.size() < maxFillMessageCount / 2)
-				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").runUnsafe();
+				messageFillFuture = TaskSpec.ofAction(this::pullMessage).name("pullMessage").submitNow();
 		} finally {
 			unlock();
 		}

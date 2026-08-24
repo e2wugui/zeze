@@ -18,12 +18,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.NavigableMap;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class SafeBatch extends AbstractSafeBatch {
 	private final @NotNull Application zeze;
@@ -147,14 +144,14 @@ public class SafeBatch extends AbstractSafeBatch {
 							(WalkListJobHandle)jobHandle, batch.toData());
 					default -> throw new IllegalStateException("invalid worker type.");
 				};
-				var future = TaskSpec.ofAction(worker).name("BatchWorker_" + timerId).runUnsafe();
+				var future = TaskSpec.ofAction(worker).name("BatchWorker_" + timerId).submitNow();
 				worker.setFuture(future);
 				return future;
 			});
 		}
 	}
 
-	void checkBatch(String timerId, BBatch batch) throws Exception {
+	void checkBatch(String timerId, BBatch batch) {
 		if (stopped)
 			return; // stopping skip.
 
@@ -238,7 +235,7 @@ public class SafeBatch extends AbstractSafeBatch {
 		}
 
 		@Override
-		public boolean handle(@NotNull TK key, @NotNull TV value) throws Exception {
+		public boolean handle(@NotNull TK key, @NotNull TV value) {
 			// 当前线程直接调用。call内部基础处理了所有异常。如果还有异常抛出，中断这次批处理，等待timer重启。
 			// 当前记录处理失败，中断批执行，下一次重启批处理，但跳过当前数据。
 			return 0 == zeze.newProcedure(() -> {
@@ -280,7 +277,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle) throws Exception {
+	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle) {
 		return startWalkSortedMap(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -297,7 +294,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 */
 	public <MK, MV> String startWalkSortedMap(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
 	                                          @NotNull WalkSortedMapJobHandle<MK, MV> jobHandle,
-	                                          long checkPeriod, int limit) throws Exception {
+	                                          long checkPeriod, int limit) {
 		if (stopped)
 			throw new IllegalStateException("stopped");
 		if (limit <= 0)
@@ -314,7 +311,7 @@ public class SafeBatch extends AbstractSafeBatch {
 	 * @return jobId
 	 */
 	public <E> String startWalkList(@NotNull TableX<?, ?> table, @NotNull Comparable<?> key,
-	                                @NotNull WalkListJobHandle<E> jobHandle) throws Exception {
+	                                @NotNull WalkListJobHandle<E> jobHandle) {
 		return startWalkList(table, key, jobHandle, 60_000, 100);
 	}
 
@@ -360,7 +357,8 @@ public class SafeBatch extends AbstractSafeBatch {
 		batch.setJobClass(jobHandle.getClass().getName());
 		batch.setWorker(workerType);
 
-		var timerId = zeze.getTimer().schedule(checkPeriod, checkPeriod, BatchTimerHandle.class, batch);
+		var timerId = zeze.getTimer().schedule(TimerSpec.ofDelay(checkPeriod).period(checkPeriod),
+				BatchTimerHandle.class, batch);
 		Transaction.whileCommit(() -> _startWorker(timerId, jobHandle, batch));
 		return timerId;
 	}

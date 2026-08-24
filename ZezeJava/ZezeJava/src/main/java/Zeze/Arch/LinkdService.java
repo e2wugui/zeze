@@ -42,7 +42,7 @@ public class LinkdService extends HandshakeServer {
 				long sendSize = getSendSize();
 				curSendSpeed = sendSize - lastSendSize.value;
 				lastSendSize.value = sendSize;
-			}).scheduleWithPeriodUnsafe(1000, 1000);
+			}).scheduleNow(1000, 1000);
 		}
 	}
 

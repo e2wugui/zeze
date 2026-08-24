@@ -24,7 +24,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 			var b = new Zeze.Util.Benchmark();
 			for (int i = 0; i < AddCount; ++i) {
 				final int c = i % ConcurrentLevel;
-				tasks.add(Zeze.Util.TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> Add(c), "Add")).runUnsafe());
+				tasks.add(Zeze.Util.TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> Add(c), "Add")).submitNow());
 				if ((i+1) % 200 == 0) {
 					for (var task : tasks)
 						task.get();

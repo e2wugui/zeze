@@ -13,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import Zeze.Application;
+import Zeze.Config;
 import Zeze.Hot.HotGuard;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
@@ -55,8 +56,6 @@ public final class Task {
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
 	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-	// private static final ThreadPoolExecutor rpcResponseThreadPool
-	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	@SuppressWarnings("CanBeFinal")
 	public static @Nullable ILogAction logAction = Task::DefaultLogAction;
 
@@ -115,7 +114,7 @@ public final class Task {
 	 * @param action0 action
 	 */
 	public static void executeSystemOneByOne(Action0 action0, String name) {
-		OneByOneSpec.ofAction(nextSystemOneByOneConcurrencyName(), action0).name(name).execute(oneByOne);
+		TaskSpec.ofAction(action0).name(name).executeOneByOne(nextSystemOneByOneConcurrencyName(), oneByOne);
 	}
 
 	/**
@@ -125,7 +124,7 @@ public final class Task {
 	 * @param proc proc
 	 */
 	public static void executeSystemOneByOne(Procedure proc) {
-		OneByOneSpec.ofProcedure(nextSystemOneByOneConcurrencyName(), proc).execute(oneByOne);
+		TaskSpec.ofProcedure(proc).executeOneByOne(nextSystemOneByOneConcurrencyName(), oneByOne);
 	}
 
 	public static ExecutorService getThreadPool() {
@@ -240,14 +239,23 @@ public final class Task {
 	}
 
 	public static boolean tryInitThreadPool() {
-		return tryInitThreadPool(null);
+		return tryInitThreadPool((Config)null, null, null);
 	}
 
 	public static boolean tryInitThreadPool(@Nullable Application app) {
-		return tryInitThreadPool(app, null, null);
+		return tryInitThreadPool(app != null ? app.getConfig() : null, null, null);
+	}
+
+	public static boolean tryInitThreadPool(@Nullable Config config) {
+		return tryInitThreadPool(config, null, null);
 	}
 
 	public static boolean tryInitThreadPool(@Nullable Application app, @Nullable ExecutorService pool,
+	                                        @Nullable ScheduledExecutorService scheduled) {
+		return tryInitThreadPool(app != null ? app.getConfig() : null, pool, scheduled);
+	}
+
+	public static boolean tryInitThreadPool(@Nullable Config config, @Nullable ExecutorService pool,
 	                                        @Nullable ScheduledExecutorService scheduled) {
 		taskLock.lock();
 		try {
@@ -256,8 +264,8 @@ public final class Task {
 
 			if (pool == null) {
 				int workerThreads;
-				if (app != null && app.getConfig().getWorkerThreads() > 0)
-					workerThreads = app.getConfig().getWorkerThreads();
+				if (config != null && config.getWorkerThreads() > 0)
+					workerThreads = config.getWorkerThreads();
 				else
 					workerThreads = Runtime.getRuntime().availableProcessors() * 30;
 				threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
@@ -266,8 +274,8 @@ public final class Task {
 
 			if (scheduled == null) {
 				int workerThreads;
-				if (app != null && app.getConfig().getScheduledThreads() > 0)
-					workerThreads = app.getConfig().getScheduledThreads();
+				if (config != null && config.getScheduledThreads() > 0)
+					workerThreads = config.getScheduledThreads();
 				else
 					workerThreads = Runtime.getRuntime().availableProcessors();
 				threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
@@ -331,7 +339,12 @@ public final class Task {
 
 	// 事务感知执行：mode != Direct 且当前在运行中的事务内时，延迟到事务提交后执行(runWhileCommit)，否则立即执行。
 	// mode 为 null 时等同 Normal（非 Direct），即总是检查事务。
-	static void runTxnAware(@Nullable DispatchMode mode, @NotNull Runnable action) {
+	/**
+	 * 事务感知执行：mode != Direct 且当前在运行中的事务内时延迟到事务提交后执行
+	 * （rollback 不执行、redo 由新一轮重新注册），否则立即执行；mode=Direct 时跳过事务检查立即执行。
+	 * 供 Zeze.Net.ProtocolDispatch 等 Util 包外的框架层复用。
+	 */
+	public static void runTxnAware(@Nullable DispatchMode mode, @NotNull Runnable action) {
 		Transaction t;
 		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
 			t.runWhileCommit(action);
@@ -342,19 +355,19 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name) {
-		runTxnAware(null, () -> executeUnsafeActionCore(action, name, null, defaultTimeout));
+		runTxnAware(null, () -> executeActionCore(action, name, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, defaultTimeout));
+		runTxnAware(mode, () -> executeActionCore(action, name, mode, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Action0 action, @Nullable String name, @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeUnsafeActionCore(action, name, mode, timeout));
+		runTxnAware(mode, () -> executeActionCore(action, name, mode, timeout));
 	}
 
 	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
@@ -375,10 +388,10 @@ public final class Task {
 	@Deprecated
 	public static @NotNull Future<?> runUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                           @Nullable DispatchMode mode, long timeout) {
-		return runUnsafeActionCore(action, name, mode, timeout);
+		return submitActionCore(action, name, mode, timeout);
 	}
 
-	static @NotNull Future<?> runUnsafeActionCore(@NotNull Action0 action, @Nullable String name,
+	static @NotNull Future<?> submitActionCore(@NotNull Action0 action, @Nullable String name,
 	                                              @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -434,10 +447,10 @@ public final class Task {
 	@Deprecated
 	public static void executeUnsafe(@NotNull Action0 action, @Nullable String name,
 	                                 @Nullable DispatchMode mode, long timeout) {
-		executeUnsafeActionCore(action, name, mode, timeout);
+		executeActionCore(action, name, mode, timeout);
 	}
 
-	static void executeUnsafeActionCore(@NotNull Action0 action, @Nullable String name,
+	static void executeActionCore(@NotNull Action0 action, @Nullable String name,
 	                                    @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -476,38 +489,40 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action) {
-		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, defaultTimeout));
+		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, timeout));
+		runTxnAware(null, () -> scheduleActionCore(initialDelay, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action) {
-		return scheduleActionCore(initialDelay, action, defaultTimeout);
+		return scheduleActionCore(initialDelay, action, null, defaultTimeout);
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleUnsafe(long initialDelay, @NotNull Action0 action, long timeout) {
-		return scheduleActionCore(initialDelay, action, timeout);
+		return scheduleActionCore(initialDelay, action, null, timeout);
 	}
 
-	static @NotNull ScheduledFuture<?> scheduleActionCore(long initialDelay, @NotNull Action0 action, long timeout) {
+	static @NotNull ScheduledFuture<?> scheduleActionCore(long initialDelay, @NotNull Action0 action,
+	                                                      @Nullable String aName, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				action.run();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule exception:", e);
+				logger.error("{} exception:", aName != null ? aName : "schedule", e);
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null)
-					ZezeCounter.instance.addTaskRunTime(action.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(aName != null ? aName : action.getClass(),
+							System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
@@ -515,29 +530,159 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func) {
-		return scheduleFunc0Core(initialDelay, func, defaultTimeout);
+		return scheduleFunc0Core(initialDelay, func, null, defaultTimeout);
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static <R> @NotNull Future<R> scheduleUnsafe(long initialDelay, @NotNull Func0<R> func, long timeout) {
-		return scheduleFunc0Core(initialDelay, func, timeout);
+		return scheduleFunc0Core(initialDelay, func, null, timeout);
 	}
 
-	static <R> @NotNull Future<R> scheduleFunc0Core(long initialDelay, @NotNull Func0<R> func, long timeout) {
+	// Func0 入池执行：返回值与异常经 Future 传播（异常同时记日志，与 scheduleFunc0Core 一致）。
+	static <R> @NotNull Future<R> submitFunc0Core(@NotNull Func0<R> func, @Nullable String name,
+	                                              @Nullable DispatchMode mode, long timeout) {
+		if (mode == DispatchMode.Direct) {
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
+			var future = new TaskCompletionSource<R>();
+			try {
+				future.setResult(func.call());
+			} catch (Exception e) {
+				//noinspection ConstantValue,UnreachableCode
+				logger.error("{} exception:", name != null ? name : func != null ? func.getClass().getName() : "", e);
+				future.setException(e);
+			} finally {
+				//noinspection ConstantValue
+				if (ZezeCounter.instance != null && func != null)
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : func.getClass(),
+							System.nanoTime() - timeBegin);
+			}
+			return future;
+		}
+
+		return (mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault).submit(() -> {
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				return func.call();
+			} catch (Throwable e) { // logger.error
+				//noinspection ConstantValue,UnreachableCode
+				logger.error("{} exception:", name != null ? name : func != null ? func.getClass().getName() : "", e);
+				throw forceThrow(e);
+			} finally {
+				//noinspection ConstantValue
+				if (ZezeCounter.instance != null && func != null)
+					ZezeCounter.instance.addTaskRunTime(name != null ? name : func.getClass(),
+							System.nanoTime() - timeBegin);
+			}
+		});
+	}
+
+	static <R> @NotNull ScheduledFuture<R> scheduleFunc0Core(long initialDelay, @NotNull Func0<R> func,
+	                                                         @Nullable String aName, long timeout) {
 		return threadPoolScheduled.schedule(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
 			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
 				return func.call();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule exception:", e);
+				logger.error("{} exception:", aName != null ? aName : "schedule", e);
 				throw forceThrow(e);
 			} finally {
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && func != null)
-					ZezeCounter.instance.addTaskRunTime(func.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(aName != null ? aName : func.getClass(),
+							System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
+	}
+
+	// FuncLong 延迟调度：结果码经 Future 传播，日志/统计在 callFuncCore 内完成（不重复计数）。
+	static @NotNull ScheduledFuture<Long> scheduleFuncCore(long initialDelay, @NotNull FuncLong func,
+	                                                       @Nullable String aName, long timeout) {
+		return threadPoolScheduled.schedule(() -> {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				return callFuncCore(func, null, null, aName);
+			} catch (Throwable e) { // logger.error
+				logger.error("{} exception:", aName != null ? aName : func.getClass().getName(), e);
+				return Procedure.Exception;
+			}
+		}, initialDelay, TimeUnit.MILLISECONDS);
+	}
+
+	// Procedure 延迟调度：结果码经 Future 传播，日志名固定使用 getActionName()。
+	static @NotNull ScheduledFuture<Long> scheduleProcCore(long initialDelay, @NotNull Procedure procedure,
+	                                                       long timeout) {
+		return threadPoolScheduled.schedule(() -> {
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				return callProcCore(procedure, null, null);
+			} catch (Throwable e) { // logger.error
+				logger.error("{} exception:", procedure, e);
+				return Procedure.Exception;
+			}
+		}, initialDelay, TimeUnit.MILLISECONDS);
+	}
+
+	// Func0 周期调度：周期任务无法携带返回值，结果丢弃，异常只记日志（与 schedulePeriodCore 一致）。
+	static <R> @NotNull TimerFuture<R> scheduleFunc0PeriodCore(long initialDelay, long period,
+	                                                           @NotNull Func0<R> func, @Nullable String aName,
+	                                                           long timeout) {
+		var future = new TimerFuture<R>();
+		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
+			future.lock();
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				if (future.isCancelled())
+					return;
+				func.call();
+			} catch (Throwable e) { // logger.error
+				logger.error("{} exception:", aName != null ? aName : "schedule", e);
+			} finally {
+				future.unlock();
+				//noinspection ConstantValue
+				if (ZezeCounter.instance != null && func != null)
+					ZezeCounter.instance.addTaskRunTime(aName != null ? aName : func.getClass(),
+							System.nanoTime() - timeBegin);
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS));
+		return future;
+	}
+
+	// FuncLong 周期调度：周期任务结果码无法携带，丢弃，日志/统计照常在 callFuncCore 内完成。
+	static @NotNull TimerFuture<Long> scheduleFuncPeriodCore(long initialDelay, long period,
+	                                                         @NotNull FuncLong func, @Nullable String aName,
+	                                                         long timeout) {
+		var future = new TimerFuture<Long>();
+		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			future.lock();
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				if (future.isCancelled())
+					return;
+				callFuncCore(func, null, null, aName);
+			} catch (Throwable e) { // logger.error
+				logger.error("{} exception:", aName != null ? aName : func.getClass().getName(), e);
+			} finally {
+				future.unlock();
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS));
+		return future;
+	}
+
+	// Procedure 周期调度：周期任务结果码无法携带，丢弃，日志名固定使用 getActionName()。
+	static @NotNull TimerFuture<Long> scheduleProcPeriodCore(long initialDelay, long period,
+	                                                         @NotNull Procedure procedure, long timeout) {
+		var future = new TimerFuture<Long>();
+		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
+			future.lock();
+			try (var ignoredHot = hotGuard.create(); var ignored = createTimeout(timeout)) {
+				if (future.isCancelled())
+					return;
+				callProcCore(procedure, null, null);
+			} catch (Throwable e) { // logger.error
+				logger.error("{} exception:", procedure, e);
+			} finally {
+				future.unlock();
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS));
+		return future;
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -549,13 +694,13 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action) {
-		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, defaultTimeout));
+		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void scheduleAt(int hour, int minute, long period, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, timeout));
+		runTxnAware(null, () -> scheduleAtCore(hour, minute, period, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -568,18 +713,17 @@ public final class Task {
 	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action) {
-		return scheduleAtCore(hour, minute, period, action, defaultTimeout);
+		return scheduleAtCore(hour, minute, period, action, null, defaultTimeout);
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static @NotNull ScheduledFuture<?> scheduleAtUnsafe(int hour, int minute, long period,
 	                                                           @NotNull Action0 action, long timeout) {
-		return scheduleAtCore(hour, minute, period, action, timeout);
+		return scheduleAtCore(hour, minute, period, action, null, timeout);
 	}
 
-	static @NotNull ScheduledFuture<?> scheduleAtCore(int hour, int minute, long period,
-	                                                  @NotNull Action0 action, long timeout) {
+	static long scheduleAtDelay(int hour, int minute) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -587,39 +731,71 @@ public final class Task {
 		firstTime.set(Calendar.MILLISECOND, 0);
 		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
-		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
+		return firstTime.getTime().getTime() - System.currentTimeMillis();
+	}
+
+	static @NotNull ScheduledFuture<?> scheduleAtCore(int hour, int minute, long period,
+	                                                  @NotNull Action0 action, @Nullable String aName,
+	                                                  long timeout) {
+		var delay = scheduleAtDelay(hour, minute);
 		if (period > 0)
-			return schedulePeriodCore(delay, period, action, timeout);
-		return scheduleActionCore(delay, action, timeout);
+			return schedulePeriodCore(delay, period, action, aName, timeout);
+		return scheduleActionCore(delay, action, aName, timeout);
+	}
+
+	static <R> @NotNull ScheduledFuture<R> scheduleAtFunc0Core(int hour, int minute, long period,
+	                                                           @NotNull Func0<R> func, @Nullable String aName,
+	                                                           long timeout) {
+		var delay = scheduleAtDelay(hour, minute);
+		if (period > 0)
+			return scheduleFunc0PeriodCore(delay, period, func, aName, timeout);
+		return scheduleFunc0Core(delay, func, aName, timeout);
+	}
+
+	static @NotNull ScheduledFuture<Long> scheduleAtFuncCore(int hour, int minute, long period,
+	                                                         @NotNull FuncLong func, @Nullable String aName,
+	                                                         long timeout) {
+		var delay = scheduleAtDelay(hour, minute);
+		if (period > 0)
+			return scheduleFuncPeriodCore(delay, period, func, aName, timeout);
+		return scheduleFuncCore(delay, func, aName, timeout);
+	}
+
+	static @NotNull ScheduledFuture<Long> scheduleAtProcCore(int hour, int minute, long period,
+	                                                         @NotNull Procedure procedure, long timeout) {
+		var delay = scheduleAtDelay(hour, minute);
+		if (period > 0)
+			return scheduleProcPeriodCore(delay, period, procedure, timeout);
+		return scheduleProcCore(delay, procedure, timeout);
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action) {
-		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, defaultTimeout));
+		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void schedule(long initialDelay, long period, @NotNull Action0 action, long timeout) {
-		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, timeout));
+		runTxnAware(null, () -> schedulePeriodCore(initialDelay, period, action, null, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action) {
-		return schedulePeriodCore(initialDelay, period, action, defaultTimeout);
+		return schedulePeriodCore(initialDelay, period, action, null, defaultTimeout);
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static @NotNull TimerFuture<?> scheduleUnsafe(long initialDelay, long period, @NotNull Action0 action,
 	                                                     long timeout) {
-		return schedulePeriodCore(initialDelay, period, action, timeout);
+		return schedulePeriodCore(initialDelay, period, action, null, timeout);
 	}
 
 	static @NotNull TimerFuture<?> schedulePeriodCore(long initialDelay, long period, @NotNull Action0 action,
-	                                                  long timeout) {
+	                                                  @Nullable String aName, long timeout) {
 		var future = new TimerFuture<>();
 		future.setFuture(threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			var timeBegin = ZezeCounter.ENABLE ? System.nanoTime() : 0;
@@ -630,12 +806,13 @@ public final class Task {
 					return;
 				action.run();
 			} catch (Throwable e) { // logger.error
-				logger.error("schedule exception:", e);
+				logger.error("{} exception:", aName != null ? aName : "schedule", e);
 			} finally {
 				future.unlock();
 				//noinspection ConstantValue
 				if (ZezeCounter.instance != null && action != null)
-					ZezeCounter.instance.addTaskRunTime(action.getClass(), System.nanoTime() - timeBegin);
+					ZezeCounter.instance.addTaskRunTime(aName != null ? aName : action.getClass(),
+							System.nanoTime() - timeBegin);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS));
 		return future;
@@ -773,24 +950,52 @@ public final class Task {
 		}
 	}
 
+	// 以下无协议重载供 TaskSpec 使用，避免 TaskSpec 依赖 Zeze.Net；协议感知路径见 Zeze.Net.ProtocolDispatch。
+	static long callFuncCore(@NotNull FuncLong func, @Nullable String aName) {
+		return callFuncCore(func, null, null, aName);
+	}
+
+	static long callProcCore(@NotNull Procedure procedure) {
+		return callProcCore(procedure, null, null);
+	}
+
+	static @NotNull Future<Long> submitFuncCore(@NotNull FuncLong func, @Nullable String aName,
+	                                            @Nullable DispatchMode mode, long timeout) {
+		return submitFuncCore(func, null, null, aName, mode, timeout);
+	}
+
+	static void executeFuncCore(@NotNull FuncLong func, @Nullable String aName,
+	                            @Nullable DispatchMode mode, long timeout) {
+		executeFuncCore(func, null, null, aName, mode, timeout);
+	}
+
+	static @NotNull Future<Long> submitProcCore(@NotNull Procedure procedure,
+	                                            @Nullable DispatchMode mode, long timeout) {
+		return submitProcCore(procedure, null, null, mode, timeout);
+	}
+
+	static void executeProcCore(@NotNull Procedure procedure, @Nullable DispatchMode mode, long timeout) {
+		executeProcCore(procedure, null, null, mode, timeout);
+	}
+
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p) {
-		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, null, null, null, defaultTimeout));
+		runTxnAware(null, () -> executeFuncCore(func, p, null, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
+		runTxnAware(null, () -> executeFuncCore(func, p, actionWhenError, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName) {
-		runTxnAware(null, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
+		runTxnAware(null, () -> executeFuncCore(func, p, actionWhenError, aName, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -798,7 +1003,7 @@ public final class Task {
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
+		runTxnAware(mode, () -> executeFuncCore(func, p, actionWhenError, aName, mode, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -806,7 +1011,7 @@ public final class Task {
 	public static void run(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                       @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout));
+		runTxnAware(mode, () -> executeFuncCore(func, p, actionWhenError, aName, mode, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -842,10 +1047,10 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                              @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                              @Nullable DispatchMode mode, long timeout) {
-		return runUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout);
+		return submitFuncCore(func, p, actionWhenError, aName, mode, timeout);
 	}
 
-	static @NotNull Future<Long> runUnsafeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	static @NotNull Future<Long> submitFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                               @Nullable ProtocolErrorHandle actionWhenError,
 	                                               @Nullable String aName, @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
@@ -897,10 +1102,10 @@ public final class Task {
 	public static void executeUnsafe(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                 @Nullable DispatchMode mode, long timeout) {
-		executeUnsafeFuncCore(func, p, actionWhenError, aName, mode, timeout);
+		executeFuncCore(func, p, actionWhenError, aName, mode, timeout);
 	}
 
-	static void executeUnsafeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
+	static void executeFuncCore(@NotNull FuncLong func, @Nullable Protocol<?> p,
 	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable String aName,
 	                                  @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
@@ -997,34 +1202,34 @@ public final class Task {
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure) {
-		runTxnAware(null, () -> executeUnsafeProcCore(procedure, null, null, null, defaultTimeout));
+		runTxnAware(null, () -> executeProcCore(procedure, null, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from) {
-		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, null, null, defaultTimeout));
+		runTxnAware(null, () -> executeProcCore(procedure, from, null, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError) {
-		runTxnAware(null, () -> executeUnsafeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
+		runTxnAware(null, () -> executeProcCore(procedure, from, actionWhenError, null, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode) {
-		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
+		runTxnAware(mode, () -> executeProcCore(procedure, from, actionWhenError, mode, defaultTimeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
 	@Deprecated
 	public static void run(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                       @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode, long timeout) {
-		runTxnAware(mode, () -> executeUnsafeProcCore(procedure, from, actionWhenError, mode, timeout));
+		runTxnAware(mode, () -> executeProcCore(procedure, from, actionWhenError, mode, timeout));
 	}
 
 	/** @deprecated 请使用 {@link TaskSpec}：ofAction/ofFunc/ofProcedure/ofFunc0 工厂 + 链式 setter + 终结方法。 */
@@ -1065,10 +1270,10 @@ public final class Task {
 	public static @NotNull Future<Long> runUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode, long timeout) {
-		return runUnsafeProcCore(procedure, from, actionWhenError, mode, timeout);
+		return submitProcCore(procedure, from, actionWhenError, mode, timeout);
 	}
 
-	static @NotNull Future<Long> runUnsafeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	static @NotNull Future<Long> submitProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                               @Nullable ProtocolErrorHandle actionWhenError,
 	                                               @Nullable DispatchMode mode, long timeout) {
 		if (mode == DispatchMode.Direct) {
@@ -1102,10 +1307,10 @@ public final class Task {
 	                                              @NotNull OutObject<Protocol<?>> outProtocol,
 	                                              @Nullable ProtocolErrorHandle actionWhenError,
 	                                              @Nullable DispatchMode mode, long timeout) {
-		return runUnsafeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
+		return submitProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
 	}
 
-	static @NotNull Future<Long> runUnsafeProcOutCore(@NotNull Procedure procedure,
+	static @NotNull Future<Long> submitProcOutCore(@NotNull Procedure procedure,
 	                                                  @NotNull OutObject<Protocol<?>> outProtocol,
 	                                                  @Nullable ProtocolErrorHandle actionWhenError,
 	                                                  @Nullable DispatchMode mode, long timeout) {
@@ -1162,10 +1367,10 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
-		executeUnsafeProcCore(procedure, from, actionWhenError, mode, timeout);
+		executeProcCore(procedure, from, actionWhenError, mode, timeout);
 	}
 
-	static void executeUnsafeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
+	static void executeProcCore(@NotNull Procedure procedure, @Nullable Protocol<?> from,
 	                                  @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                  long timeout) {
 		if (mode == DispatchMode.Direct) {
@@ -1194,10 +1399,10 @@ public final class Task {
 	public static void executeUnsafe(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                 @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                 long timeout) {
-		executeUnsafeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
+		executeProcOutCore(procedure, outProtocol, actionWhenError, mode, timeout);
 	}
 
-	static void executeUnsafeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
+	static void executeProcOutCore(@NotNull Procedure procedure, @NotNull OutObject<Protocol<?>> outProtocol,
 	                                     @Nullable ProtocolErrorHandle actionWhenError, @Nullable DispatchMode mode,
 	                                     long timeout) {
 		if (mode == DispatchMode.Direct) {

@@ -27,7 +27,6 @@ import Zeze.Util.Action0;
 import Zeze.Util.Action2;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func3;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
@@ -179,7 +178,7 @@ public final class Raft {
 	}
 
 	public void executeUserTask(@NotNull Action0 task) {
-		OneByOneSpec.ofAction(userTaskOneByOneKey, task).execute(taskOneByOne);
+		TaskSpec.ofAction(task).executeOneByOne(userTaskOneByOneKey, taskOneByOne);
 	}
 
 	public StateMachine getStateMachine() {
@@ -385,7 +384,7 @@ public final class Raft {
 			logger.info("Raft {} ShutdownHook end", getName());
 		});
 
-		timerTask = TaskSpec.ofAction(this::onTimer).scheduleWithPeriodUnsafe(20, 20);
+		timerTask = TaskSpec.ofAction(this::onTimer).scheduleNow(20, 20);
 	}
 
 	private long processAppendEntries(AppendEntries r) throws Exception {
@@ -551,7 +550,7 @@ public final class Raft {
 			}
 		} finally {
 			unlock();
-			//timerTask = Task.scheduleUnsafe(10, this::onTimer);
+			//timerTask = Task.scheduleNow(10, this::onTimer);
 		}
 	}
 

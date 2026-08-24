@@ -317,7 +317,7 @@ public class HandshakeBase extends Service {
 				if (null != dhContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));
 				}
-			}).scheduleUnsafe(5000);
+			}).scheduleNow(5000);
 		} catch (Throwable ex) { // 这是普通协议，而Service.Dispatch可能会被重载成忽略协议处理错误，但是这个握手错误不能忽略。
 			so.close(ex);
 		}

@@ -51,7 +51,6 @@ import Zeze.Util.DeadlockBreaker;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
@@ -865,7 +864,7 @@ public final class Application extends ReentrantLock {
 				checkpointFuture = TaskSpec.ofAction(() -> {
 					checkpoint.runOnce();
 					checkpointFuture = null;
-				}).name("CheckpointRunThread").runUnsafe();
+				}).name("CheckpointRunThread").submitNow();
 		} finally {
 			unlock();
 		}
@@ -879,17 +878,17 @@ public final class Application extends ReentrantLock {
 	}
 
 	public void runTaskOneByOneByKey(@NotNull Object oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute();
+		TaskSpec.ofProcedure(newProcedure(func, actionName))
+				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
 	public void runTaskOneByOneByKey(int oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute();
+		TaskSpec.ofProcedure(newProcedure(func, actionName))
+				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 
 	public void runTaskOneByOneByKey(long oneByOneKey, @Nullable String actionName, @NotNull FuncLong func) {
-		OneByOneSpec.ofProcedure(oneByOneKey, newProcedure(func, actionName))
-				.mode(DispatchMode.Normal).execute();
+		TaskSpec.ofProcedure(newProcedure(func, actionName))
+				.dispatchMode(DispatchMode.Normal).executeOneByOne(oneByOneKey);
 	}
 }

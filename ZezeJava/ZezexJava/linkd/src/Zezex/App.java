@@ -90,7 +90,7 @@ public final class App extends Zeze.AppBase {
 		startService(); // 启动网络. after setSessionIdGenFunc
 		LinkdApp.registerService(null);
 
-		TaskSpec.ofAction(HotReloadTest::print).scheduleWithPeriod(2000, 2000);
+		TaskSpec.ofAction(HotReloadTest::print).schedule(2000, 2000);
 	}
 
 	public void Stop() throws Exception {

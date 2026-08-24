@@ -72,7 +72,7 @@ public class DemoMain {
 				var r = StableRandom.local();
 				r.setSeed(seed2);
 				System.out.println(r.nextLong(65536));
-			}).name("runUnsafe").runUnsafe());
+			}).name("runUnsafe").submitNow());
 		}
 		for (var future : futures)
 			future.get();

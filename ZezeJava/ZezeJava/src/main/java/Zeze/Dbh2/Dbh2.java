@@ -19,6 +19,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Agent;
 import Zeze.Raft.Raft;
@@ -107,7 +108,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			prepareQueueLock.lock();
 			try {
 				if (null != prepareQueue && isPrepareRequest(p.getTypeId())) {
-					prepareQueue.add(() -> TaskSpec.ofFunc(func).protocol(p).call());
+					prepareQueue.add(() -> ProtocolDispatch.ofFunc(func, p).call());
 					return;
 				}
 			} finally {
@@ -118,7 +119,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 				// 允许Get请求并发
 				super.dispatchRaftRequest(p, func, name, cancel, mode);
 			} else {
-				raft.executeUserTask(() -> TaskSpec.ofFunc(func).protocol(p).call());
+				raft.executeUserTask(() -> ProtocolDispatch.ofFunc(func, p).call());
 			}
 		}
 	}
@@ -450,7 +451,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 			if (p.getTypeId() == Zeze.Raft.LeaderIs.TypeId_) {
 				Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).name("InternalRequest").call());
 			} else {
-				raft.executeUserTask(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).executeUnsafe());
+				raft.executeUserTask(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p).runNow());
 			}
 		}
 
@@ -686,7 +687,7 @@ public class Dbh2 extends AbstractDbh2 implements Closeable {
 		server.setupPrepareQueue();
 
 		// 设置一个超时，每秒放行一次。
-		TaskSpec.ofAction(() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove))).scheduleUnsafe(1000);
+		TaskSpec.ofAction(() -> getRaft().executeUserTask(() -> consumePrepareAndBlockAgain(isMove))).scheduleNow(1000);
 
 		// 在队列中增加endSplit启动任务，先要处理完队列中的请求。
 		// 此时PrepareBatch已经被拦截，但是还有CommitBatch,UndoBatch等其他请求在处理。

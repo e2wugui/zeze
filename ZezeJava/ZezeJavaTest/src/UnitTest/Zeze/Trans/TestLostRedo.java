@@ -33,7 +33,7 @@ public class TestLostRedo {
 		App.Instance.Zeze.newProcedure(TestLostRedo::clear, "clear").call();
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
-			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::write, "write")).runUnsafe());
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::write, "write")).submitNow());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();
@@ -73,7 +73,7 @@ public class TestLostRedo {
 		runTimes.set(0);
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < 1_0000; ++i) {
-			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")).runUnsafe());
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyConflict, "write")).submitNow());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();
@@ -111,7 +111,7 @@ public class TestLostRedo {
 		var count = 1000;
 		var futures = new ArrayList<Future<?>>();
 		for (int i = 0; i < count; ++i) {
-			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")).runUnsafe());
+			futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(this::autoKeyWithInsert, "write")).submitNow());
 			if ((i+1) % 200 == 0) {
 				for (var future : futures)
 					future.get();

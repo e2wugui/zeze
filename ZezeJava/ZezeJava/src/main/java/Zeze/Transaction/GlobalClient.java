@@ -4,6 +4,7 @@ import java.io.IOException;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
@@ -11,7 +12,6 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Util.Reflect;
 import Zeze.Util.Task;
-import Zeze.Util.TaskSpec;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -93,7 +93,7 @@ public final class GlobalClient extends Service {
 	public void dispatchProtocol(@NotNull Protocol<?> p,
 								 @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		Task.getCriticalThreadPool().execute(() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle)).protocol(p).call());
+		Task.getCriticalThreadPool().execute(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p).call());
 	}
 
 	@Override

@@ -25,7 +25,7 @@ public class TempGlobalRelease {
 					prepareFutures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 						App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(1L);
 						return 0;
-					}, "prepare data")).runUnsafe());
+					}, "prepare data")).submitNow());
 				}
 				for (var future : prepareFutures)
 					future.get();

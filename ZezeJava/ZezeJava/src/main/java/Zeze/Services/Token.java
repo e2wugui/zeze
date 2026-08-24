@@ -537,8 +537,8 @@ public final class Token extends AbstractToken {
 			}
 			service.start();
 
-			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).scheduleWithPeriodUnsafe(1000, 1000);
-			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtUnsafe(3, 14);
+			cleanTokenMapFuture = TaskSpec.ofAction(this::cleanTokenMap).scheduleNow(1000, 1000);
+			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
 			return this;
 		} finally {
 			unlock();
@@ -623,7 +623,7 @@ public final class Token extends AbstractToken {
 			logger.error("cleanTokenMapTable exception:", e);
 		} finally {
 			logger.info("cleanTokenMapTable: {} => {} ({} ms)", n, n - d, System.currentTimeMillis() - now);
-			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtUnsafe(3, 14);
+			cleanTokenMapTableFuture = TaskSpec.ofAction(this::cleanTokenMapTable).scheduleAtNow(3, 14);
 		}
 	}
 

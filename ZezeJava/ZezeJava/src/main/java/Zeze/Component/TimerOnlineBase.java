@@ -314,7 +314,7 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineSimple(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
 			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> fireOnlineSimple(timerId, handle, false)).scheduleUnsafe(delay));
+					TaskSpec.ofAction(() -> fireOnlineSimple(timerId, handle, false)).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -326,7 +326,7 @@ abstract class TimerOnlineBase<I> {
 		Transaction.whileCommit(() -> {
 			var exist = timer.timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> fireOnlineSimple(timerId, timer.findTimerHandle(handleClass.getName()), true))
-					.scheduleUnsafe(delay));
+					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -355,7 +355,7 @@ abstract class TimerOnlineBase<I> {
 	private void scheduleOnlineCronNext(@NotNull String timerId, long delay, @Nullable TimerHandle handle) {
 		Transaction.whileCommit(() -> {
 			var exist = timer().timerFutures.put(timerId,
-					TaskSpec.ofAction(() -> fireOnlineCron(timerId, handle, false)).scheduleUnsafe(delay));
+					TaskSpec.ofAction(() -> fireOnlineCron(timerId, handle, false)).scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});
@@ -367,7 +367,7 @@ abstract class TimerOnlineBase<I> {
 		Transaction.whileCommit(() -> {
 			var exist = timer.timerFutures.put(timerId, TaskSpec
 					.ofAction(() -> fireOnlineCron(timerId, timer.findTimerHandle(handleClass.getName()), true))
-					.scheduleUnsafe(delay));
+					.scheduleNow(delay));
 			if (null != exist)
 				exist.cancel(false);
 		});

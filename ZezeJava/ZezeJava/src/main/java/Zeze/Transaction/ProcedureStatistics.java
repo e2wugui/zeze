@@ -13,7 +13,7 @@ public final class ProcedureStatistics {
 	public static @NotNull TimerFuture<?> watch(@NotNull String procedureName, long reachPerSecond,
 												@NotNull Runnable handle) {
 		var watcher = new Watcher(procedureName, reachPerSecond, handle);
-		return TaskSpec.ofAction(watcher::check).scheduleWithPeriodUnsafe(Watcher.CheckPeriod, Watcher.CheckPeriod);
+		return TaskSpec.ofAction(watcher::check).scheduleNow(Watcher.CheckPeriod, Watcher.CheckPeriod);
 	}
 
 	static final class Watcher {

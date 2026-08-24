@@ -57,7 +57,7 @@ public final class ModuleLinkd extends AbstractModule {
 		res.Argument.setAccount("Response");
 		res.Send(p.getSender());
 		if (null == timer) {
-			timer = TaskSpec.ofAction(this::sendSc).scheduleWithPeriodUnsafe(1000, 1000);
+			timer = TaskSpec.ofAction(this::sendSc).scheduleNow(1000, 1000);
 			clientId = p.getSender().getSessionId();
 		}
 		return 0;

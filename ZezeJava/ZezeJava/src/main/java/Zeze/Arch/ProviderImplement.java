@@ -11,6 +11,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.FamilyClass;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
@@ -23,7 +24,6 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.OutObject;
-import Zeze.Util.TaskSpec;
 import Zeze.Util.TransactionLevelAnnotation;
 import Zeze.Util.ZezeCounter;
 import org.apache.logging.log4j.LogManager;
@@ -162,7 +162,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var outRpcContext = new OutObject<Rpc<?, ?>>();
 			if (txn == null && zeze != null && factoryHandle.Level != TransactionLevel.None) {
 				var outProtocol = new OutObject<Protocol<?>>();
-				var r = TaskSpec.ofProcedure(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
+				var r = ProtocolDispatch.ofProcedure(zeze.newProcedure(() -> { // 创建存储过程并且在当前线程中调用。
 					var p3 = factoryHandle.Factory.create();
 					var t = Transaction.getCurrent();
 					var proc = t.getTopProcedure();
@@ -189,7 +189,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					@SuppressWarnings("unchecked")
 					var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 					return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-				}, null, factoryHandle.Level)).outProtocol(outProtocol).errorHandle(session::trySendResponse).call();
+				}, null, factoryHandle.Level)).outProtocol(outProtocol).onError(session::trySendResponse).call();
 				if (ZezeCounter.instance != null) {
 					ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 							Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);
@@ -215,14 +215,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			} else // 应用框架不支持事务或者协议配置了"不需要事务”
 				arg.setProtocolData(Binary.Empty); // 这个字段不再需要读了,避免ProviderUserSession引用太久,置空
 			var p3 = p2;
-			var r = TaskSpec.ofFunc(() -> {
+			var r = ProtocolDispatch.ofFunc(() -> {
 				if (isRpcResponse)
 					return processRpcResponse(outRpcContext, p3);
 				// protocol or rpc request
 				@SuppressWarnings("unchecked")
 				var handler = (ProtocolHandle<Protocol<?>>)factoryHandle.Handle;
 				return handler != null ? handler.handle(p3) : Procedure.NotImplement;
-			}).protocol(p3).errorHandle(session::trySendResponse).call();
+			}, p3).onError(session::trySendResponse).call();
 			if (ZezeCounter.instance != null) {
 				ZezeCounter.instance.addRecvSizeTime(typeId, factoryHandle.Class,
 						Protocol.HEADER_SIZE + psize, System.nanoTime() - timeBegin);

@@ -47,7 +47,7 @@ public abstract class LoadBase {
 		timeoutDelaySeconds = delaySeconds;
 		if (null != timerTask)
 			timerTask.cancel(false);
-		timerTask = TaskSpec.ofAction(this::onTimerTask).scheduleUnsafe(timeoutDelaySeconds * 1000L);
+		timerTask = TaskSpec.ofAction(this::onTimerTask).scheduleNow(timeoutDelaySeconds * 1000L);
 	}
 
 	public final void stop() throws Exception {

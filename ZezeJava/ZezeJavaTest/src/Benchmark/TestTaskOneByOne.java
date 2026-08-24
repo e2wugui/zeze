@@ -9,7 +9,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.DispatchMode;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
@@ -29,11 +28,11 @@ public class TestTaskOneByOne {
 		var oo = new TaskOneByOneByKey();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
-			OneByOneSpec.ofAction(1, counter::incrementAndGet).execute(oo);
+			TaskSpec.ofAction(counter::incrementAndGet).executeOneByOne(1, oo);
 		}
 		lock.lock();
 		try {
-			OneByOneSpec.ofAction(1, () -> {
+			TaskSpec.ofAction(() -> {
 				lock.lock();
 				try {
 					counter.incrementAndGet();
@@ -41,7 +40,7 @@ public class TestTaskOneByOne {
 				} finally {
 					lock.unlock();
 				}
-			}).execute(oo);
+			}).executeOneByOne(1, oo);
 			cond.await();
 		} finally {
 			lock.unlock();
@@ -75,11 +74,11 @@ public class TestTaskOneByOne {
 		var oo = new TaskOneByOneByKey2();
 		var b = new Zeze.Util.Benchmark();
 		for (int i = 0; i < TaskCount; ++i) {
-			OneByOneSpec.ofAction(1, counter::incrementAndGet).execute(oo);
+			TaskSpec.ofAction(counter::incrementAndGet).executeOneByOne(1, oo);
 		}
 		lock.lock();
 		try {
-			OneByOneSpec.ofAction(1, () -> {
+			TaskSpec.ofAction(() -> {
 				lock.lock();
 				try {
 					counter.incrementAndGet();
@@ -87,7 +86,7 @@ public class TestTaskOneByOne {
 				} finally {
 					lock.unlock();
 				}
-			}).execute(oo);
+			}).executeOneByOne(1, oo);
 			cond.await();
 		} finally {
 			lock.unlock();
@@ -133,7 +132,7 @@ public class TestTaskOneByOne {
 		var f = TaskSpec.ofAction(() -> {
 			System.out.println("taskIds: " + taskIds);
 			System.out.println("dump:\n" + oo);
-		}).scheduleUnsafe(60_000);
+		}).scheduleNow(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
 		b.report("TestTaskOneByOne.testCyclicBarrier", exeCount);
@@ -170,7 +169,7 @@ public class TestTaskOneByOne {
 		var f = TaskSpec.ofAction(() -> {
 			System.out.println("taskIds: " + taskIds);
 			System.out.println("dump:\n" + oo);
-		}).scheduleUnsafe(60_000);
+		}).scheduleNow(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
 		b.report("TestTaskOneByOne.testCyclicBarrier2", exeCount);

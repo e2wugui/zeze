@@ -78,8 +78,8 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		Simulate.getInstance().RunningTasks.add(task.IsProcedure()
-				? TaskSpec.ofProcedure(app.Zeze.newProcedure(task, name)).runUnsafe()
-				: TaskSpec.ofAction(task::call).name(name).runUnsafe());
+				? TaskSpec.ofProcedure(app.Zeze.newProcedure(task, name)).submitNow()
+				: TaskSpec.ofAction(task::call).name(name).submitNow());
 		}
 
 	public static <K extends Comparable<K>> void clearDbTable(TableX<K, ?> table) throws Exception {

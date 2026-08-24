@@ -162,10 +162,10 @@ public class ModuleTimer extends AbstractModule implements IModuleTimer {
 	private void ScheduleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
 		if (period > 0) {
 			TimersLocal.put(timerId, TaskSpec.ofAction(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
-					.scheduleWithPeriodUnsafe(delay, period));
+					.scheduleNow(delay, period));
 		} else {
 			TimersLocal.put(timerId, TaskSpec.ofFunc0(() -> TriggerTimerLocal(serverId, timerId, nodeId, name))
-					.scheduleUnsafe(delay));
+					.scheduleNow(delay));
 		}
 	}
 

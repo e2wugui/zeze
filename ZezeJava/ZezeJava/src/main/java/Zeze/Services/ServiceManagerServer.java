@@ -17,6 +17,7 @@ import Zeze.Config;
 import Zeze.Net.Acceptor;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -32,7 +33,6 @@ import Zeze.Util.KV;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Random;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
@@ -288,7 +288,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 						else
 							logger.error("ServiceManager.KeepAlive", ex);
 					}
-				}).scheduleWithPeriodUnsafe(
+				}).scheduleNow(
 						Random.getInstance().nextInt(serviceManager.conf.keepAlivePeriod),
 						serviceManager.conf.keepAlivePeriod);
 			} else
@@ -323,7 +323,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				try {
 					if (!serviceManager.offlineNotifyFutures.containsKey(offlineRegisterServerId))
 						serviceManager.offlineNotifyFutures.put(offlineRegisterServerId,
-							TaskSpec.ofAction(() -> offlineNotify(true)).scheduleUnsafe(eOfflineNotifyDelay));
+							TaskSpec.ofAction(() -> offlineNotify(true)).scheduleNow(eOfflineNotifyDelay));
 				} finally {
 					serviceManager.unlock();
 				}
@@ -598,7 +598,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var ctx = announceContextMap.computeIfAbsent(notifyId, k -> {
 				logger.info("processAnnounceServers: new context notifyId={}", k);
 				var c = new AnnounceContext(k);
-				TaskSpec.ofAction(() -> checkAnnounceContextTask(c)).scheduleUnsafe(5000);
+				TaskSpec.ofAction(() -> checkAnnounceContextTask(c)).scheduleNow(5000);
 				return c;
 			});
 			var curMs = System.nanoTime() / 1_000_000;
@@ -633,7 +633,7 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 				var watchState = it.value();
 				if (watchState.beginMs != -1 && curMs - watchState.beginMs < Session.eOfflineNotifyDelay) {
 					// 还有需要等待的(没announce过且没通知offline过的),继续下次调度
-					TaskSpec.ofAction(() -> checkAnnounceContextTask(ctx)).scheduleUnsafe(5000);
+					TaskSpec.ofAction(() -> checkAnnounceContextTask(ctx)).scheduleNow(5000);
 					return;
 				}
 			}
@@ -859,14 +859,13 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 			var p = decodeProtocol(typeId, bb, factoryHandle, so);
 			if (factoryHandle.Mode == DispatchMode.Direct) {
 				// 有几个direct方式的协议,为了性能就不考虑和其它非direct协议的处理顺序了,但因为在IO线程串行处理,这些协议本身的处理还是有顺序的
-				TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
-						.protocol(p).errorHandle(Protocol::trySendResultCode).call();
+				ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
+						.onError(Protocol::trySendResultCode).call();
 			} else {
-				OneByOneSpec.ofFunc(p.getSender(),
-								() -> TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
-										.protocol(p).errorHandle(Protocol::trySendResultCode).call())
-						.mode(factoryHandle.Mode)
-						.execute(oneByOneByKey);
+				TaskSpec.ofFunc(() -> ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
+								.onError(Protocol::trySendResultCode).call())
+						.dispatchMode(factoryHandle.Mode)
+						.executeOneByOne(p.getSender(), oneByOneByKey);
 			}
 			// 不支持事务，由于这里直接OneByOne执行，所以下面两个方法就不重载了。
 		}
@@ -874,15 +873,15 @@ public final class ServiceManagerServer extends ReentrantLock implements Closeab
 		@Override
 		public void dispatchProtocol(@NotNull Protocol<?> p, @NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			TaskSpec.ofFunc(() -> p.handle(this, factoryHandle))
-					.protocol(p).errorHandle(Protocol::trySendResultCode).mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofFunc(() -> p.handle(this, factoryHandle), p)
+					.onError(Protocol::trySendResultCode).dispatchMode(factoryHandle.Mode).runNow();
 		}
 
 		@Override
 		public <P extends Protocol<?>> void dispatchRpcResponse(@NotNull P rpc, @NotNull ProtocolHandle<P> responseHandle,
 																@NotNull ProtocolFactoryHandle<?> factoryHandle) throws Exception {
 			// 不支持事务
-			TaskSpec.ofFunc(() -> responseHandle.handle(rpc)).protocol(rpc).mode(factoryHandle.Mode).executeUnsafe();
+			ProtocolDispatch.ofFunc(() -> responseHandle.handle(rpc), rpc).dispatchMode(factoryHandle.Mode).runNow();
 		}
 		*/
 	}

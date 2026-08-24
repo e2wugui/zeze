@@ -225,7 +225,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 	private void startLocalCheck() {
 		if (verifyLocalTimer != null)
 			verifyLocalTimer.cancel(false);
-		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleUnsafe(localCheckPeriod);
+		verifyLocalTimer = TaskSpec.ofAction(this::verifyLocal).scheduleNow(localCheckPeriod);
 	}
 
 	public void stop() {
@@ -1062,7 +1062,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //				return Procedure.Success;
 //			}, "Online.send");
 //			if (loginKeys.size() > 1)
-//				Task.executeUnsafe(p);
+//				Task.runNow(p);
 //			else
 //				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(loginKeys, p, null, DispatchMode.Normal);
 		}
@@ -1337,7 +1337,7 @@ public class Online extends AbstractOnline implements HotUpgrade {
 //				return Procedure.Success;
 //			}, "Online.sendAccounts");
 //			if (accounts.size() > 1)
-//				Task.executeUnsafe(p);
+//				Task.runNow(p);
 //			else
 //				providerApp.zeze.getTaskOneByOneByKey().executeCyclicBarrier(accounts, p, null, DispatchMode.Normal);
 		}

@@ -46,7 +46,7 @@ public class GlobalCacheManagerPerf extends ReentrantLock {
 			maxAcquireTimes[i] = new AtomicLong();
 			totalAcquireResults[i] = new ConcurrentSkipListMap<>();
 		}
-		TaskSpec.ofAction(this::report).scheduleWithPeriod(1000, 1000);
+		TaskSpec.ofAction(this::report).schedule(1000, 1000);
 	}
 
 	void onAcquireBegin(@NotNull Protocol<?> rpc, int state) {

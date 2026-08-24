@@ -160,7 +160,7 @@ public class AutoKey extends ReentrantLock {
 					return 0;
 				}
 				return Procedure.LogicError;
-			}, "AutoKey.setSeed")).mode(DispatchMode.Critical).runUnsafe().get();
+			}, "AutoKey.setSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -179,7 +179,7 @@ public class AutoKey extends ReentrantLock {
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				bAutoKey.setNextId(0);
 				return 0;
-			}, "AutoKey.setSeed")).mode(DispatchMode.Critical).runUnsafe().get();
+			}, "AutoKey.setSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -205,7 +205,7 @@ public class AutoKey extends ReentrantLock {
 				}
 				// 溢出
 				return Procedure.LogicError;
-			}, "AutoKey.increaseSeed")).mode(DispatchMode.Critical).runUnsafe().get();
+			}, "AutoKey.increaseSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw Task.forceThrow(e);
 		}
@@ -225,7 +225,7 @@ public class AutoKey extends ReentrantLock {
 				var bAutoKey = module._tAutoKeys.getOrAdd(seedKey);
 				result.value = bAutoKey.getNextId();
 				return 0;
-			}, "AutoKey.getSeed")).mode(DispatchMode.Critical).runUnsafe().get();
+			}, "AutoKey.getSeed")).dispatchMode(DispatchMode.Critical).submitNow().get();
 			if (ret == Procedure.Success)
 				return result.value;
 		} catch (InterruptedException | ExecutionException e) {
@@ -261,7 +261,7 @@ public class AutoKey extends ReentrantLock {
 						key.setNextId(end);
 						newRange.value = new Range(start, end);
 						return 0;
-					}, "AutoKey.allocateSeeds")).mode(DispatchMode.Critical).runUnsafe().get();
+					}, "AutoKey.allocateSeeds")).dispatchMode(DispatchMode.Critical).submitNow().get();
 					if (ret == Procedure.Success) {
 						range = newRange.value;
 						continue;

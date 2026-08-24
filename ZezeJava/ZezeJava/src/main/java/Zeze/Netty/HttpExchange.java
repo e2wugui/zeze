@@ -19,7 +19,6 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
@@ -458,15 +457,15 @@ public class HttpExchange {
 			if (handler.Mode == DispatchMode.Direct)
 				TaskSpec.ofProcedure(p).call();
 			else
-				OneByOneSpec.ofProcedure(context.channel().id(), p)
-						.mode(handler.Mode).execute(server.task11Executor);
+				TaskSpec.ofProcedure(p)
+						.dispatchMode(handler.Mode).executeOneByOne(context.channel().id(), server.task11Executor);
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
 					.name("fireBeginStream").call();
 		} else {
-			OneByOneSpec.ofAction(context.channel().id(),
-							() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
-					.name("fireBeginStream").mode(handler.Mode).execute(server.task11Executor);
+			TaskSpec.ofAction(() -> handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]))
+					.name("fireBeginStream").dispatchMode(handler.Mode)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -484,25 +483,27 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else {
 				c.retain();
-				OneByOneSpec.ofFunc(context.channel().id(), () -> {
+				TaskSpec.ofFunc(() -> {
 					try {
 						return p.call();
 					} finally {
 						c.release();
 					}
-				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
+				}).name(p.getActionName()).dispatchMode(handler.Mode)
+						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> handle.onStreamContent(this, c)).name("fireStreamContentHandle").call();
 		} else {
 			c.retain();
-			OneByOneSpec.ofAction(context.channel().id(), () -> {
+			TaskSpec.ofAction(() -> {
 				try {
 					handle.onStreamContent(this, c);
 				} finally {
 					c.release();
 				}
-			}).name("fireStreamContentHandle").mode(handler.Mode).execute(server.task11Executor);
+			}).name("fireStreamContentHandle").dispatchMode(handler.Mode)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -539,20 +540,22 @@ public class HttpExchange {
 						close(null);
 				}
 			} else {
-				OneByOneSpec.ofFunc(context.channel().id(), () -> {
+				TaskSpec.ofFunc(() -> {
 					try {
 						return p.call();
 					} finally {
 						if (detached == 0)
 							close(null);
 					}
-				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
+				}).name(p.getActionName()).dispatchMode(handler.Mode)
+						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(this::invokeEndStream).name("fireEndStreamHandle").call();
 		} else {
-			OneByOneSpec.ofAction(context.channel().id(), this::invokeEndStream)
-					.name("fireEndStreamHandle").mode(handler.Mode).execute(server.task11Executor);
+			TaskSpec.ofAction(this::invokeEndStream)
+					.name("fireEndStreamHandle").dispatchMode(handler.Mode)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 
@@ -569,25 +572,27 @@ public class HttpExchange {
 				TaskSpec.ofProcedure(p).call();
 			else {
 				frame.retain();
-				OneByOneSpec.ofFunc(context.channel().id(), () -> {
+				TaskSpec.ofFunc(() -> {
 					try {
 						return p.call();
 					} finally {
 						frame.release();
 					}
-				}).name(p.getActionName()).mode(handler.Mode).execute(server.task11Executor);
+				}).name(p.getActionName()).dispatchMode(handler.Mode)
+						.executeOneByOne(context.channel().id(), server.task11Executor);
 			}
 		} else if (handler.Mode == DispatchMode.Direct) {
 			TaskSpec.ofAction(() -> fireWebSocket0(frame)).name("fireWebSocket").call();
 		} else {
 			frame.retain();
-			OneByOneSpec.ofAction(context.channel().id(), () -> {
+			TaskSpec.ofAction(() -> {
 				try {
 					fireWebSocket0(frame);
 				} finally {
 					frame.release();
 				}
-			}).name("fireWebSocket").mode(handler.Mode).execute(server.task11Executor);
+			}).name("fireWebSocket").dispatchMode(handler.Mode)
+					.executeOneByOne(context.channel().id(), server.task11Executor);
 		}
 	}
 

@@ -286,6 +286,31 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		}
 	}
 
+	public static final class TaskFunc0 extends Task {
+		private final @NotNull Func0<?> func;
+
+		public TaskFunc0(@NotNull Func0<?> func, @Nullable String name, @Nullable Action0 cancel,
+						 @Nullable DispatchMode mode) {
+			super(name != null ? name : func.getClass().getName(), cancel, mode);
+			this.func = func;
+		}
+
+		@Override
+		public boolean isBarrier() {
+			return false;
+		}
+
+		@Override
+		public boolean process(@NotNull BatchTask batch) {
+			try {
+				func.call(); // 队列语义无返回值消费者，结果丢弃（与 TaskFunc 一致）
+			} catch (Throwable e) { // logger.error
+				logger.error("TaskOneByOne: {}", name, e);
+			}
+			return true;
+		}
+	}
+
 	public static final class TaskBarrierProcedure extends Task {
 		private final @NotNull BarrierProcedure barrier;
 		private final int sum;

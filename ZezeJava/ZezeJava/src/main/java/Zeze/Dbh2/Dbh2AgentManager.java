@@ -60,7 +60,7 @@ public class Dbh2AgentManager extends ReentrantLock {
 			refreshMasterTableTask = TaskSpec.ofAction(() -> {
 						reload(openMasterAgent(masterName), masterName, databaseName, tableName);
 						refreshMasterTableTask = null;
-					}).scheduleUnsafe(200);
+					}).scheduleNow(200);
 		} finally {
 			unlock();
 		}

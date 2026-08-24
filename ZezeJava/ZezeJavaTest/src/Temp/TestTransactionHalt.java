@@ -99,7 +99,7 @@ public class TestTransactionHalt {
 			System.out.println("transactions: " + counter.sum());
 			LogManager.shutdown();
 			Runtime.getRuntime().halt(0);
-		}).scheduleUnsafe(1000);
+		}).scheduleNow(1000);
 
 		Thread.sleep(Integer.MAX_VALUE);
 	}

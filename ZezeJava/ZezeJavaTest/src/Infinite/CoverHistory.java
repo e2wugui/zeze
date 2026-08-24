@@ -80,7 +80,7 @@ public class CoverHistory {
 	public Future<?> submitTasks(int i) {
 		var seed = randSeed.nextLong();
 		//logger.info("submitTasks: seed={}", s);
-		return TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")).runUnsafe();
+		return TaskSpec.ofProcedure(app.Zeze.newProcedure(() -> runJobs(seed, null), "runJob")).submitNow();
 	}
 
 	public static StableRandom getRandom() {

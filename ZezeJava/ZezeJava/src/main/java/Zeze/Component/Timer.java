@@ -43,7 +43,6 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.OutLong;
 import Zeze.Util.Reflect;
 import Zeze.Util.TaskSpec;
@@ -1061,7 +1060,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 		if (oneByOneKey == null || oneByOneKey.isEmpty())
 			fire.run();
 		else
-			OneByOneSpec.ofAction(oneByOneKey, fire::run).execute();
+			TaskSpec.ofAction(fire::run).executeOneByOne(oneByOneKey);
 	}
 
 	private void scheduleSimple(long timerSerialId, int serverId, @NotNull String timerId, long delay,
@@ -1072,11 +1071,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
-						OneByOneSpec.ofAction(oneByOneKey,
+						TaskSpec.ofAction(
 										() -> fireSimple(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.execute();
+								.executeOneByOne(oneByOneKey);
 					}
-				}).scheduleUnsafe(delay));
+				}).scheduleNow(delay));
 				if (null != exist)
 					exist.cancel(false);
 			}
@@ -1173,11 +1172,11 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 					if (oneByOneKey == null || oneByOneKey.isEmpty())
 						fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false);
 					else {
-						OneByOneSpec.ofAction(oneByOneKey,
+						TaskSpec.ofAction(
 										() -> fireCron(timerSerialId, serverId, timerId, concurrentSerialNo, false))
-								.execute();
+								.executeOneByOne(oneByOneKey);
 					}
-				}).scheduleUnsafe(delay));
+				}).scheduleNow(delay));
 				if (null != exist)
 					exist.cancel(false);
 			}

@@ -112,7 +112,7 @@ public class BenchClient {
 				lastReportCount.value = countNow;
 
 				System.out.println("transaction/s: " + diff / elapse);
-			}).scheduleWithPeriodUnsafe(2000, 2000);
+			}).scheduleNow(2000, 2000);
 
 			var inputReader = new BufferedReader(new InputStreamReader(System.in));
 			while (true) {
@@ -148,7 +148,7 @@ public class BenchClient {
 					logger.error("", ex);
 				}
 			}
-		}).name("table get thread").runUnsafe();
+		}).name("table get thread").submitNow();
 	}
 
 	public static class TableKey {
@@ -218,6 +218,6 @@ public class BenchClient {
 					logger.error("", ex);
 				}
 			}
-		}).name("table put thread").runUnsafe();
+		}).name("table put thread").submitNow();
 	}
 }

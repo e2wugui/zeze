@@ -192,7 +192,7 @@ public class Dbh2Manager {
 		masterAgent.setDbh2Ready();
 		proxyServer.start();
 
-		loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleWithPeriodUnsafe(120_000, 120_000);
+		loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleNow(120_000, 120_000);
 	}
 
 	private void loadMonitor() throws Exception {

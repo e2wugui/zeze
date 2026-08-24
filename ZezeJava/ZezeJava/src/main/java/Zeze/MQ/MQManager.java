@@ -77,7 +77,7 @@ public class MQManager extends AbstractMQManager {
         masterAgent.register(acceptorAddress.getKey(), acceptorAddress.getValue(), queueCount());
         proxyServer.start();
 
-        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleWithPeriodUnsafe(120_000, 120_000);
+        loadMonitorTimer = TaskSpec.ofAction(this::loadMonitor).scheduleNow(120_000, 120_000);
     }
 
     public void stop() throws Exception {

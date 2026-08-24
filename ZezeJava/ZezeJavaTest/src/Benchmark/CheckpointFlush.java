@@ -48,7 +48,7 @@ public class CheckpointFlush {
 				futures.add(TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> {
 					App.Instance.demo_Module1.getTable1().getOrAdd(key).setLong2(key);
 					return 0;
-				}, "modify")).runUnsafe());
+				}, "modify")).submitNow());
 				if ((i+1) % 100 == 0) {
 					for (var task : futures)
 						task.get();

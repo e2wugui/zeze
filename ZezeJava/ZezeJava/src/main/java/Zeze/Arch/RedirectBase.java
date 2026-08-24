@@ -272,7 +272,7 @@ public class RedirectBase {
 				throw e;
 			}
 			return Procedure.Success;
-		}, actionName, level)).executeUnsafe();
+		}, actionName, level)).runNow();
 		return future;
 	}
 
@@ -295,6 +295,6 @@ public class RedirectBase {
 		TaskSpec.ofProcedure(providerApp.zeze.newProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, actionName, level)).executeUnsafe();
+		}, actionName, level)).runNow();
 	}
 }

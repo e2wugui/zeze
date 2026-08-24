@@ -8,6 +8,7 @@ import Zeze.Builtin.ServiceManagerWithRaft.*;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Raft.Raft;
 import Zeze.Raft.RaftConfig;
@@ -100,7 +101,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 				if (logger.isDebugEnabled())
 					logger.debug("dispatchRaftRpcResponse: {}{}", rpc.getClass().getName(), rpc);
 				var procedure = rocks.newProcedure(() -> responseHandle.handle(rpc));
-				TaskSpec.ofFunc(procedure::call).protocol(rpc).call();
+				ProtocolDispatch.ofFunc(procedure::call, rpc).call();
 			} finally {
 				unlock();
 			}
@@ -117,7 +118,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					logger.debug("dispatchRaftRequest: {}@{}{}", p.getClass().getName(), ssName, p);
 				}
 				var procedure = new Procedure(rocks, func);
-				TaskSpec.ofFunc(procedure::call).protocol(p).errorHandle(Protocol::SendResultCode).call();
+				ProtocolDispatch.ofFunc(procedure::call, p).onError(Protocol::SendResultCode).call();
 			} finally {
 				unlock();
 			}
@@ -173,7 +174,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 						else
 							logger.error("ServiceManager.KeepAlive", ex);
 					}
-				}).scheduleWithPeriodUnsafe(
+				}).scheduleNow(
 						Random.getInstance().nextInt(conf.keepAlivePeriod),
 						conf.keepAlivePeriod);
 			} else
@@ -213,7 +214,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 					if (!offlineNotifyFutures.containsKey(serverId))
 						offlineNotifyFutures.put(serverId, TaskSpec
 								.ofAction(() -> offlineNotify(session, true))
-								.scheduleUnsafe(eOfflineNotifyDelay));
+								.scheduleNow(eOfflineNotifyDelay));
 				} else {
 					TaskSpec.ofAction(() -> offlineNotify(session, false)).name("offlineNotifyImmediately").run();
 				}

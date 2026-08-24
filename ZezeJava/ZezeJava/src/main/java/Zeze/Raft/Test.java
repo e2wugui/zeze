@@ -368,7 +368,7 @@ public class Test {
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		snapshotTimer = TaskSpec.ofAction(this::randomSnapshotTimer).scheduleWithPeriodUnsafe(60 * 1000, 60 * 1000);
+		snapshotTimer = TaskSpec.ofAction(this::randomSnapshotTimer).scheduleNow(60 * 1000, 60 * 1000);
 
 		setLogLevel(Level.INFO);
 

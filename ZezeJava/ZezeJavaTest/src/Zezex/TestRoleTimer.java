@@ -510,7 +510,7 @@ public class TestRoleTimer {
 					var roleId = null != role ? role.getId() : createRole(client, "role" + finalLoginI);
 					login(client, roleId);
 					loginRoleIds.add(roleId);
-				}).name("login").runUnsafe());
+				}).name("login").submitNow());
 
 				// 为了防止Task把线程全部占完，造成线程饥饿，这里每150个任务就等待完成一次。
 				if ((loginI + 1) % 150 == 0) {

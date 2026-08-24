@@ -13,11 +13,11 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolDispatch;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Services.HandshakeClient;
 import Zeze.Services.ServiceManager.BServiceInfo;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
-import Zeze.Util.OneByOneSpec;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -260,11 +260,11 @@ public class ProviderService extends HandshakeClient {
 			throws Exception {
 		if (p instanceof Dispatch d) {
 			//noinspection DataFlowIssue
-			OneByOneSpec.ofFunc(d.Argument.getAccount(),
-							() -> TaskSpec.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p))
-									.protocol(p).errorHandle(Protocol::trySendResultCode).call())
-					.mode(factoryHandle.Mode)
-					.execute();
+			TaskSpec.ofFunc(
+							() -> ProtocolDispatch.ofFunc(() -> ((ProtocolHandle<Protocol<?>>)factoryHandle.Handle).handle(p), p)
+									.onError(Protocol::trySendResultCode).call())
+					.dispatchMode(factoryHandle.Mode)
+					.executeOneByOne(d.Argument.getAccount());
 		} else
 			super.dispatchProtocol(p, factoryHandle);
 	}

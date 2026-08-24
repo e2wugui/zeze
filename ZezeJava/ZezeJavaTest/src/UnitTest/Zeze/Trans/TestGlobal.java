@@ -101,8 +101,8 @@ public class TestGlobal extends TestCase {
 			@SuppressWarnings("unchecked")
 			Future<Long>[] task2 = new Future[2];
 			int count = 2000;
-			task2[0] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app1, count, 1)).runUnsafe();
-			task2[1] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app2, count, 2)).runUnsafe();
+			task2[0] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app1, count, 1)).submitNow();
+			task2[1] = Zeze.Util.TaskSpec.ofFunc(() -> (long)ConcurrentAdd(app2, count, 2)).submitNow();
 			long success0 = 0;
 			long success1 = 0;
 			try {
@@ -144,7 +144,7 @@ public class TestGlobal extends TestCase {
 				//noinspection DataFlowIssue
 				Transaction.getCurrent().putLog(log);
 				return Procedure.Success;
-			}, "ConcurrentAdd" + appId)).runUnsafe();
+			}, "ConcurrentAdd" + appId)).submitNow();
 		}
 		int success = 0;
 		for (Future<Long> task : tasks) {

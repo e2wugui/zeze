@@ -14,11 +14,11 @@ public sealed interface OnlineSpec permits RoleOnlineSpec, RolesOnlineSpec,
 		return new RolesOnlineSpec(online, roleIds);
 	}
 
-	static @NotNull AllOnlinesSpec ofAllOnlines(@NotNull Online online, long roleId) {
+	static @NotNull AllOnlinesSpec ofAllOnline(@NotNull Online online, long roleId) {
 		return new AllOnlinesSpec(online, roleId);
 	}
 
-	static @NotNull AllOnlinesSpec ofAllOnlines(@NotNull Online online, Collection<Long> roleIds) {
+	static @NotNull AllOnlinesSpec ofAllOnline(@NotNull Online online, Collection<Long> roleIds) {
 		return new AllOnlinesSpec(online, roleIds);
 	}
 

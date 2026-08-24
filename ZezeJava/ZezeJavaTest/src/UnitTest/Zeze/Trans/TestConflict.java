@@ -29,7 +29,7 @@ public class TestConflict {
 		var tasks = new ArrayList<Future<?>>();
 		for (int i = 0; i < 2000; ++i) {
 			tasks.add(Zeze.Util.TaskSpec.ofProcedure(
-					demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcAdd, "ProcAdd")).runUnsafe());
+					demo.App.getInstance().Zeze.newProcedure(TestConflict::ProcAdd, "ProcAdd")).submitNow());
 			if ((i + 1) % 200 == 0) {
 				for (Future<?> task : tasks)
 					task.get();

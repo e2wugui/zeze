@@ -66,7 +66,7 @@ public class LoginQueue extends AbstractLoginQueue {
 		this.server = new LoginQueueServer(this, config);
 		this.service = new LoginQueueService(config);
 		RegisterProtocols(service);
-		this.allocateTimer = TaskSpec.ofAction(this::allocateTimer).scheduleWithPeriodUnsafe(1000L, 1000L);
+		this.allocateTimer = TaskSpec.ofAction(this::allocateTimer).scheduleNow(1000L, 1000L);
 		timeThrottle = new TimeThrottleCounter(1, maxOnlineNew, maxOnlineNew);
 	}
 

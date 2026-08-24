@@ -284,12 +284,12 @@ public class TestGlobalCacheMgrWithRaft {
 		task2[0] = TaskSpec.ofProcedure(App1.Zeze.newProcedure(() -> {
 			finalCount1.set(TestConcurrency(App1, count, 1));
 			return Procedure.Success;
-		}, testName)).runUnsafe();
+		}, testName)).submitNow();
 
 		task2[1] = TaskSpec.ofProcedure(App2.Zeze.newProcedure(() -> {
 			finalCount2.set(TestConcurrency(App2, count, 2));
 			return Procedure.Success;
-		}, testName)).runUnsafe();
+		}, testName)).submitNow();
 
 		try {
 			task2[0].get();
@@ -314,7 +314,7 @@ public class TestGlobalCacheMgrWithRaft {
 
 				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt_1(), System.currentTimeMillis());
 				return Procedure.Success;
-			}, "doConcurrency" + appId)).runUnsafe();
+			}, "doConcurrency" + appId)).submitNow();
 
 //			app.Zeze.NewProcedure(() -> {
 //				var v = app.demo_Module1.getTable1().getOrAdd(99L);

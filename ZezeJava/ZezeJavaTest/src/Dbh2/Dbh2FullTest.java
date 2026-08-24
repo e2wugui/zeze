@@ -36,7 +36,7 @@ public class Dbh2FullTest {
 					trans.commit();
 				}
 			}
-		}).name("").runUnsafe();
+		}).name("").submitNow();
 	}
 
 	@Test
