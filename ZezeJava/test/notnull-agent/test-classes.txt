@@ -16,6 +16,7 @@ MQ.TestFileWithIndexed
 MQ.TestMQ
 Onz.TestOnz
 RelationalMapping.TestRelationalTableDiff
+Temp.TestMemoryTable
 TestLog4jQuery.TestLog4jQ
 TestLog4jQuery.TestLogService
 TestLog4jQuery.TestMmap
@@ -63,6 +64,8 @@ UnitTest.Zeze.Trans.TestMemorySize
 UnitTest.Zeze.Trans.TestNestProcedureModifyMapSet
 UnitTest.Zeze.Trans.TestProcedure
 UnitTest.Zeze.Trans.TestProcedureRedo
+UnitTest.Zeze.Trans.TestSafeBatch
+UnitTest.Zeze.Trans.TestSortedMap
 UnitTest.Zeze.Trans.TestTable
 UnitTest.Zeze.Trans.TestTableKey
 UnitTest.Zeze.Trans.TestTableNest
@@ -74,6 +77,7 @@ UnitTest.Zeze.Util.TestBloomFilter
 UnitTest.Zeze.Util.TestCert
 UnitTest.Zeze.Util.TestClassReloader
 UnitTest.Zeze.Util.TestConcurrentHashMapOrdered
+UnitTest.Zeze.Util.TestConcurrentLruLike
 UnitTest.Zeze.Util.TestConsistentHash
 UnitTest.Zeze.Util.TestContainers
 UnitTest.Zeze.Util.TestFastLock
@@ -87,10 +91,13 @@ UnitTest.Zeze.Util.TestPersistentAtomicLong
 UnitTest.Zeze.Util.TestSortedMap
 UnitTest.Zeze.Util.TestStr
 UnitTest.Zeze.Util.TestStringChecker
+UnitTest.Zeze.Util.TestTaskSpec
 UnitTest.Zeze.Util.TestThreadDiagnosable
 UnitTest.Zeze.Util.TestTimeCounter
 UnitTest.Zeze.Util.TestTimeThrottle
+Zeze.Arch.TestArchOnlineSpec
 Zezex.ModuleRedirectRank
 Zezex.TestGameTimer
 Zezex.TestOnline
+Zezex.TestOnlineSpec
 Zezex.TestRoleTimer

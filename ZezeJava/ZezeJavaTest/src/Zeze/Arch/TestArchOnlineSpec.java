@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +27,24 @@ import org.junit.Test;
 public class TestArchOnlineSpec {
 	private static final long ANY_TYPE_ID = 1L;
 
-	/** null 探针：所有实际发送都会经由 online.sendXxx，走到即 NPE——测试借此证明空目标/守卫提前返回。 */
-	private static final Online NoOnline = null;
+	/**
+	 * 未初始化 Online 探针：不调用构造器分配实例，字段全为默认值，任何真实发送路径都会触碰其内部状态而 NPE——
+	 * 语义等价于最初的 null 探针（空目标/守卫必须提前返回），但引用非 null，
+	 * 满足工厂方法 @NotNull 契约，兼容 IDEA "Add runtime assertions"。
+	 */
+	private static final Online NoOnline = newUninitializedOnline();
+
+	@SuppressWarnings("restriction")
+	private static Online newUninitializedOnline() {
+		try {
+			@SuppressWarnings("unchecked")
+			var ctor = (Constructor<Online>)sun.reflect.ReflectionFactory.getReflectionFactory()
+					.newConstructorForSerialization(Online.class, Object.class.getDeclaredConstructor());
+			return ctor.newInstance();
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 
 	@Test
 	public void testEmptyTargetShortCircuit() {
@@ -37,7 +54,7 @@ public class TestArchOnlineSpec {
 				throw new AssertionError("empty target must not encode");
 			}
 		};
-		// 空目标在编码与发送之前短路（null online 探针，见 NoOnline 注释）
+		// 空目标在编码与发送之前短路（未初始化 online 探针，见 NoOnline 注释）
 		OnlineSpec.ofLogins(NoOnline, List.of()).send(bomb);
 		OnlineSpec.ofLogins(NoOnline, List.of()).sendNow(bomb);
 		OnlineSpec.ofLogins(NoOnline, List.of()).sendWhileRollback(bomb);

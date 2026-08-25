@@ -50,6 +50,6 @@
 		<Acceptor Ip="127.0.0.1" Port="7788"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Onz.Server">
-		<Acceptor Ip="127.0.0.1" Port="9001"/>
+		<Acceptor Ip="127.0.0.1" Port="29001"/>
 	</ServiceConf>
 </zeze>

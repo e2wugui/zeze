@@ -50,7 +50,7 @@
 		<Acceptor Ip="127.0.0.1" Port="7788"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.Onz.Server">
-		<Acceptor Ip="127.0.0.1" Port="9000"/>
+		<Acceptor Ip="127.0.0.1" Port="29000"/>
 	</ServiceConf>
 	<ServiceConf Name="Zeze.MQ.Master.Agent">
 		<Connector HostNameOrAddress="127.0.0.1" Port="6000"/>
