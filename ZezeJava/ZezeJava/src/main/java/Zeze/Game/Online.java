@@ -50,6 +50,7 @@ import Zeze.Collections.BeanFactory;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerRole;
+import Zeze.Component.TimerSpec;
 import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotManager;
 import Zeze.Hot.HotModule;
@@ -938,7 +939,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		var delay = zeze.getConfig().getOnlineLogoutDelay();
 		logger.info("linkBroken({}): account={}, roleId={}, linkName={}, linkSid={}, triggerEmbed={}, delay={}",
 				multiInstanceName, account, roleId, linkName, linkSid, ret, delay);
-		zeze.getTimer().schedule(delay, DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
+		zeze.getTimer().schedule(TimerSpec.ofDelay(delay).times(1), DelayLogout.class, new BDelayLogoutCustom(roleId, onlineShared.getLoginVersion(),
 				multiInstanceName, zeze.getProjectName()));
 		return 0;
 	}

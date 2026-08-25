@@ -51,7 +51,7 @@ public final class RoleOnlineSpec extends OnlineSpec {
 	public <A extends Serializable, R extends Serializable>
 	void sendRpc(@NotNull Rpc<A, R> rpc, @Nullable ProtocolHandle<Rpc<A, R>> responseHandle) {
 		var o = resolveOnline();
-		var rid = roleId; // 以下字段全部读进局部变量：闭包不捕获 spec 实例（S4）
+		var rid = roleId; // 以下字段全部读进局部变量：闭包不捕获 spec 实例
 		var to = timeout;
 		var tr = trying;
 		Task.runTxnAware(() -> o.sendOnlineRpc(rid, rpc, responseHandle, to, tr));
@@ -78,7 +78,7 @@ public final class RoleOnlineSpec extends OnlineSpec {
 	/** 直接通过 link 发送（事务感知）；忽略 trying/timeout 选项。 */
 	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
 		var o = resolveOnline();
-		var rid = roleId; // 读进局部变量：闭包不捕获 spec 实例（S4）
+		var rid = roleId; // 读进局部变量：闭包不捕获 spec 实例
 		Task.runTxnAware(() -> o.send(rid, linkName, linkSid, p));
 	}
 

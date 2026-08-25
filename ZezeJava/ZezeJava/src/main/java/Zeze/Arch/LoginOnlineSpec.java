@@ -32,7 +32,7 @@ public final class LoginOnlineSpec extends OnlineSpec {
 
 	/** 直接通过 link 发送（事务感知）；忽略 trying 选项。 */
 	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
-		var ol = online; // 字段读进局部变量：闭包不捕获 spec 实例（S4）
+		var ol = online; // 字段读进局部变量：闭包不捕获 spec 实例
 		var key = new BLoginKey(account, clientId);
 		Task.runTxnAware(() -> ol.send(key, linkName, linkSid, p));
 	}

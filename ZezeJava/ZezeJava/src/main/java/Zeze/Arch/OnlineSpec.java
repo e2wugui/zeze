@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
  * 集合目标直传（工厂不预拷贝），快照语义统一由 OnlineTarget 各 record 的规范构造器负责。
  *
  * 实例可复用、非线程安全。选项在终结方法调用时刻冻结：延迟闭包只捕获局部变量，
- * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送（见 S4）。
+ * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送。
  */
 public class OnlineSpec {
 	final @NotNull Online online;
@@ -95,7 +95,7 @@ public class OnlineSpec {
 	/** 事务感知发送：运行中的事务内延迟到 commit 发送，否则立即发送。 */
 	public void send(@NotNull Protocol<?> p) {
 		if (target.isEmpty())
-			return; // 空目标不编码（对齐旧行为）
+			return; // 空目标不编码
 		var typeId = p.getTypeId();
 		tryLog(typeId, p);
 		send0(typeId, new Binary(p.encode()));
@@ -108,7 +108,7 @@ public class OnlineSpec {
 	}
 
 	private void send0(long typeId, @NotNull Binary data) {
-		var ol = online; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例（S4）
+		var ol = online; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例
 		var tg = target;
 		var tr = trying;
 		Task.runTxnAware(() -> tg.send(ol, typeId, data, tr));

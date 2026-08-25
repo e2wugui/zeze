@@ -21,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
  * 集合目标直传（工厂不预拷贝），快照语义统一由 OnlineTarget 各 record 的规范构造器负责。
  *
  * 实例可复用、非线程安全。选项在终结方法调用时刻冻结：延迟闭包只捕获局部变量，
- * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送（见 S4）。
+ * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送。
  */
 public class OnlineSpec {
 	final @NotNull Online online;
@@ -114,7 +114,7 @@ public class OnlineSpec {
 	}
 
 	private void send0(long typeId, @NotNull Binary data, @NotNull Online o) {
-		var tg = target; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例（S4）
+		var tg = target; // 字段读进局部变量：延迟闭包只捕获局部变量，不捕获 spec 实例
 		var tr = trying;
 		Task.runTxnAware(() -> tg.send(o, typeId, data, tr));
 	}

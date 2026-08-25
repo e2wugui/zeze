@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * transmit 操作的统一描述：工厂收目标，setter 收选项，终结方法定时机。
  * transmit 是"路由动作到目标所在服务器"的另一操作族，独立于 OnlineSpec 的 send 体系。
- * 实例可复用、非线程安全；延迟闭包只捕获局部变量，从不捕获 spec 实例（S4）。
+ * 实例可复用、非线程安全；延迟闭包只捕获局部变量，从不捕获 spec 实例。
  */
 public final class TransmitOnlineSpec {
 	private final @NotNull Online online;
@@ -69,7 +69,7 @@ public final class TransmitOnlineSpec {
 	public void transmit() {
 		verify();
 		var o = resolveOnline(); // 此刻解析并固定（commit 回调里上下文已变，不能晚解析）
-		var sd = sender; // 字段全部读进局部变量：闭包不捕获 spec 实例（S4）
+		var sd = sender; // 字段全部读进局部变量：闭包不捕获 spec 实例
 		var an = actionName;
 		var tg = targets;
 		var pm = parameter;
