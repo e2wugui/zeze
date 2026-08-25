@@ -18,6 +18,7 @@ Redirect_*.java
 rocksdbjni.dll
 test.ks
 
+/ZezeJava/out/
 /test/autokeys2
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*

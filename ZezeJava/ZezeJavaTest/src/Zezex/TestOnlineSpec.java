@@ -29,7 +29,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * OnlineSpec（Online优化.md v3）的回归测试。
+ * OnlineSpec 的回归测试。
  * harness 参考 TestOnline/TestRoleTimer：loginQueue + linkd + server + client 全进程内组网。
  *
  * 关于 §8-6（P0 回归，ofAllOnline 多 OnlineSet）：本 harness 只有默认单 OnlineSet，
