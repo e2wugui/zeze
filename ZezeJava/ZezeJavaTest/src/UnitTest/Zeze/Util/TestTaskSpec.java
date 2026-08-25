@@ -44,10 +44,10 @@ public class TestTaskSpec {
 	@Test
 	public void testOfActionSubmitNowDirect() throws Exception {
 		var threadId = new AtomicLong();
-		var future = TaskSpec.ofAction(() -> threadId.set(Thread.currentThread().getId()))
+		var future = TaskSpec.ofAction(() -> threadId.set(Thread.currentThread().threadId()))
 				.dispatchMode(DispatchMode.Direct).submitNow();
 		Assert.assertTrue(future.isDone());
-		Assert.assertEquals(Thread.currentThread().getId(), threadId.get());
+		Assert.assertEquals(Thread.currentThread().threadId(), threadId.get());
 
 		// Direct 分支异常通过 Future 传播（TaskCompletionSource.get 抛 CompletionException）
 		var futureEx = TaskSpec.ofAction(() -> {
@@ -79,12 +79,12 @@ public class TestTaskSpec {
 	}
 
 	@Test
-	public void testOfActionRunNow() throws Exception {
+	public void testOfActionRunNow() {
 		var done = new TaskCompletionSource<Long>();
-		TaskSpec.ofAction(() -> done.setResult(Thread.currentThread().getId()))
+		TaskSpec.ofAction(() -> done.setResult(Thread.currentThread().threadId()))
 				.name("testOfActionRunNow").runNow();
 		long poolThreadId = done.get(10, TimeUnit.SECONDS);
-		Assert.assertNotEquals(Thread.currentThread().getId(), poolThreadId);
+		Assert.assertNotEquals(Thread.currentThread().threadId(), poolThreadId);
 	}
 
 	@Test
@@ -236,9 +236,9 @@ public class TestTaskSpec {
 		var deferredThread = new AtomicLong();
 		var result = App.Instance.Zeze.newProcedure(() -> {
 			// 运行中的事务内 run：应延迟到事务提交后异步执行
-			txnThread.set(Thread.currentThread().getId());
+			txnThread.set(Thread.currentThread().threadId());
 			TaskSpec.ofAction(() -> {
-				deferredThread.set(Thread.currentThread().getId());
+				deferredThread.set(Thread.currentThread().threadId());
 				synchronized (order) {
 					order.add("deferred");
 				}
@@ -286,9 +286,9 @@ public class TestTaskSpec {
 		var deferredThread = new AtomicLong();
 		var result = App.Instance.Zeze.newProcedure(() -> {
 			// Direct 不再跳过事务：运行中的事务内 run() 同样延迟到事务提交后执行
-			txnThread.set(Thread.currentThread().getId());
+			txnThread.set(Thread.currentThread().threadId());
 			TaskSpec.ofAction(() -> {
-				deferredThread.set(Thread.currentThread().getId());
+				deferredThread.set(Thread.currentThread().threadId());
 				synchronized (order) {
 					order.add("deferred");
 				}

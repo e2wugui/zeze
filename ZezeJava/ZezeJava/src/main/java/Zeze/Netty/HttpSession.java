@@ -8,6 +8,7 @@ import java.util.Random;
 import Zeze.Application;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
+import Zeze.Component.TimerSpec;
 import Zeze.Services.Token;
 import Zeze.Util.OutObject;
 import org.jetbrains.annotations.NotNull;
@@ -112,7 +113,9 @@ public class HttpSession extends AbstractHttpSession {
 	public void start() throws ParseException {
 		// 全局一个timer实例，会忽略重复注册调用。
 		// 不取消。
-		zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer, "0 0 5 * * ?", ExpiredTimer.class, null);
+		zeze.getTimer().scheduleNamed(GlobalHttpSessionExpiredTimer,
+				TimerSpec.ofCron("0 0 5 * * ?"),
+				ExpiredTimer.class);
 	}
 
 	public void stop() {
