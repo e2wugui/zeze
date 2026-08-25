@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
  *         .run();                                     // 执行方式（终结方法）
  * TaskSpec.ofAction(this::logout).executeOneByOne(account, oneByOne); // key+queue 是终结方法参数
  * </pre>
- *
+ * <p>
  * 载荷与异常策略（载荷类型见 {@link TaskBody} 的 4 个密封实现）：
  * <ul>
  * <li>ofAction：Action0，异常吞掉只记日志，结果归一为 Long(0)；</li>
@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
  * <li>ofProcedure：Procedure，同 ofFunc，日志名固定使用 procedure.getActionName()（{@link #name} 对它无效）；</li>
  * <li>ofFunc0：Func0&lt;R&gt;，返回值与异常都经 Future 传播（call() 时直接抛给调用者）。</li>
  * </ul>
- *
+ * <p>
  * 动词约定：无标记动词 = 事务感知（在运行中的事务内延迟到提交后执行/注册，rollback 不执行）；
  * Now 后缀 = 不等事务提交，立即入池/注册（scheduleNow 的 "now" 指注册不等提交，delay 后触发照旧）。
  * OneByOne 天然立即语义，故 executeOneByOne 无事务感知变体。
@@ -220,17 +220,11 @@ public final class TaskSpec<R> {
 			throw new IllegalArgumentException("run family does not consume onCancel");
 	}
 
-	private void checkScheduleOptions() {
-		if (dispatchModeSet || onCancelSet)
-			throw new IllegalArgumentException("schedule family does not consume dispatchMode/onCancel");
-	}
-
 	/**
 	 * 事务感知注册延迟调度(毫秒)。忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
 	public void schedule(long delay) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		var timeout = timeoutOrDefault();
 		Task.runTxnAware(() -> Task.scheduleCore(delay, body, name, timeout));
 	}
@@ -240,8 +234,7 @@ public final class TaskSpec<R> {
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
 	public void schedule(long delay, long period) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		var timeout = timeoutOrDefault();
 		Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, body, name, timeout));
 	}
@@ -251,8 +244,7 @@ public final class TaskSpec<R> {
 	 * 忽略 dispatchMode/onCancel（显式设置抛错）；ofFunc/ofProcedure 的结果码经 Future 传播。
 	 */
 	public @NotNull ScheduledFuture<R> scheduleNow(long delay) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		return Task.scheduleCore(delay, body, name, timeoutOrDefault());
 	}
 
@@ -262,8 +254,7 @@ public final class TaskSpec<R> {
 	 * 周期任务无法携带返回值，ofFunc/ofProcedure/ofFunc0 的结果丢弃，日志与统计照常。
 	 */
 	public @NotNull TimerFuture<R> scheduleNow(long delay, long period) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		return Task.schedulePeriodCore(delay, period, body, name, timeoutOrDefault());
 	}
 
@@ -280,8 +271,7 @@ public final class TaskSpec<R> {
 	 * {@link #schedule(long, long)}）。忽略 dispatchMode/onCancel（显式设置抛错）。
 	 */
 	public void scheduleAt(int hour, int minute, long period) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		var timeout = timeoutOrDefault();
 		Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, period, body, name, timeout));
 	}
@@ -301,9 +291,14 @@ public final class TaskSpec<R> {
 	 * 单次触发时为普通 ScheduledFuture，故声明返回类型保持 ScheduledFuture。
 	 */
 	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute, long period) {
-		consume();
-		checkScheduleOptions();
+		consumeSchedule();
 		return Task.scheduleAtCore(hour, minute, period, body, name, timeoutOrDefault());
+	}
+
+	private void consumeSchedule() {
+		if (dispatchModeSet || onCancelSet)
+			throw new IllegalArgumentException("schedule family does not consume dispatchMode/onCancel");
+		consume();
 	}
 
 	/**
@@ -380,15 +375,15 @@ public final class TaskSpec<R> {
 	}
 
 	private void consumeBase() {
-		consume();
 		if (timeoutSet)
 			throw new IllegalArgumentException("executeOneByOne does not consume timeout");
+		consume();
 	}
 
 	private void consumeKey2() {
-		consumeBase();
 		if (onCancel != null)
 			throw new IllegalArgumentException("onCancel is not supported by TaskOneByOneByKey2");
+		consumeBase();
 	}
 
 	private @NotNull TaskOneByOneQueue.Task newQueueTask() {
