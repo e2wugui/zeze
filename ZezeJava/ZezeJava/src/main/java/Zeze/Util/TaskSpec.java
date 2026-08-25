@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
  * TaskSpec.ofAction(this::logout).executeOneByOne(account, oneByOne); // key+queue 是终结方法参数
  * </pre>
  *
- * 载荷与异常策略：
+ * 载荷与异常策略（载荷类型见 {@link TaskBody} 的 4 个密封实现）：
  * <ul>
  * <li>ofAction：Action0，异常吞掉只记日志，结果归一为 Long(0)；</li>
  * <li>ofFunc：FuncLong，返回 long 结果，异常翻错误码并走结果日志；</li>
@@ -49,11 +49,7 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public final class TaskSpec<R> {
-	// 4 个载荷字段有且仅有一个非空，终结方法按判空分派。
-	private final @Nullable Action0 action; // 异常吞掉只记日志，结果归一为 Long(0)
-	private final @Nullable FuncLong func; // 返回 long 结果，异常翻错误码并走结果日志
-	private final @Nullable Procedure procedure; // 同 FuncLong，日志名固定使用 getActionName()
-	private final @Nullable Func0<R> func0; // 返回值与异常都经 Future 传播
+	private final @NotNull TaskBody<R> body; // 任务载荷；终结方法不做类型分派，统一委托 Task 的 core
 
 	private boolean consumed;
 	private @Nullable String name;
@@ -64,12 +60,8 @@ public final class TaskSpec<R> {
 	private boolean timeoutSet;
 	private boolean onCancelSet;
 
-	private TaskSpec(@Nullable Action0 action, @Nullable FuncLong func,
-	                 @Nullable Procedure procedure, @Nullable Func0<R> func0) {
-		this.action = action;
-		this.func = func;
-		this.procedure = procedure;
-		this.func0 = func0;
+	private TaskSpec(@NotNull TaskBody<R> body) {
+		this.body = body;
 	}
 
 	/**
@@ -78,7 +70,7 @@ public final class TaskSpec<R> {
 	 * @param action 不能为空
 	 */
 	public static @NotNull TaskSpec<Long> ofAction(@NotNull Action0 action) {
-		return new TaskSpec<>(Objects.requireNonNull(action), null, null, null);
+		return new TaskSpec<>(new TaskBody.OfAction(Objects.requireNonNull(action)));
 	}
 
 	/**
@@ -87,7 +79,7 @@ public final class TaskSpec<R> {
 	 * @param func 不能为空
 	 */
 	public static @NotNull TaskSpec<Long> ofFunc(@NotNull FuncLong func) {
-		return new TaskSpec<>(null, Objects.requireNonNull(func), null, null);
+		return new TaskSpec<>(new TaskBody.OfFunc(Objects.requireNonNull(func)));
 	}
 
 	/**
@@ -96,7 +88,7 @@ public final class TaskSpec<R> {
 	 * @param func 不能为空
 	 */
 	public static <R> @NotNull TaskSpec<R> ofFunc0(@NotNull Func0<R> func) {
-		return new TaskSpec<>(null, null, null, Objects.requireNonNull(func));
+		return new TaskSpec<>(new TaskBody.OfFunc0<>(Objects.requireNonNull(func)));
 	}
 
 	/**
@@ -105,7 +97,7 @@ public final class TaskSpec<R> {
 	 * @param procedure 不能为空
 	 */
 	public static @NotNull TaskSpec<Long> ofProcedure(@NotNull Procedure procedure) {
-		return new TaskSpec<>(null, null, Objects.requireNonNull(procedure), null);
+		return new TaskSpec<>(new TaskBody.OfProcedure(Objects.requireNonNull(procedure)));
 	}
 
 	/**
@@ -168,27 +160,6 @@ public final class TaskSpec<R> {
 		return dispatchMode != null ? dispatchMode : DispatchMode.Normal;
 	}
 
-	// ofAction/ofFunc/ofProcedure 的 R 归一为 Long
-	@SuppressWarnings("unchecked")
-	private R longResult(long result) {
-		return (R)Long.valueOf(result);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <R> @NotNull Future<R> castFuture(@NotNull Future<?> future) {
-		return (Future<R>)future;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <R> @NotNull ScheduledFuture<R> castScheduledFuture(@NotNull ScheduledFuture<?> future) {
-		return (ScheduledFuture<R>)future;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static <R> @NotNull TimerFuture<R> castTimerFuture(@NotNull TimerFuture<?> future) {
-		return (TimerFuture<R>)future;
-	}
-
 	/**
 	 * 当前线程同步执行完（≡ dispatchMode=Direct 的退化形态：不进池、不包 hotGuard、不包 timeout）。
 	 * ofAction 返回 0；ofFunc/ofProcedure 返回结果码；ofFunc0 返回值，异常直接抛给调用者。
@@ -198,20 +169,7 @@ public final class TaskSpec<R> {
 		consume();
 		if (dispatchModeSet || timeoutSet || onCancelSet)
 			throw new IllegalArgumentException("call() does not consume dispatchMode/timeout/onCancel");
-		if (action != null) {
-			Task.callActionCore(action, name);
-			return longResult(0);
-		}
-		if (procedure != null)
-			return longResult(Task.callProcCore(procedure));
-		if (func != null)
-			return longResult(Task.callFuncCore(func, name));
-		try {
-			//noinspection DataFlowIssue
-			return func0.call();
-		} catch (Throwable e) {
-			throw Task.forceThrow(e);
-		}
+		return Task.callCore(body, name);
 	}
 
 	/**
@@ -226,7 +184,7 @@ public final class TaskSpec<R> {
 	public void run() {
 		checkRunOptions();
 		var t = Transaction.getCurrent();
-		if (procedure != null && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
+		if (body instanceof TaskBody.OfProcedure && dispatchMode == DispatchMode.Direct && t != null && t.isRunning())
 			throw new IllegalArgumentException("run() in a running transaction does not accept ofProcedure + dispatchMode(Direct): procedure cannot run in commit callback; use runNow()/call() or another dispatchMode");
 		consume();
 		Task.runTxnAware(this::runNowInternal);
@@ -243,40 +201,18 @@ public final class TaskSpec<R> {
 	}
 
 	private void runNowInternal() {
-		var timeout = timeoutOrDefault();
-		if (action != null) {
-			Task.executeActionCore(action, name, dispatchMode, timeout);
-			return;
-		}
-		if (procedure != null) {
-			Task.executeProcCore(procedure, dispatchMode, timeout);
-			return;
-		}
-		if (func != null) {
-			Task.executeFuncCore(func, name, dispatchMode, timeout);
-			return;
-		}
-		//noinspection DataFlowIssue
-		Task.submitFunc0Core(func0, name, dispatchMode, timeout); // 异常已记日志，Future 丢弃
+		Task.executeCore(body, name, dispatchMode, timeoutOrDefault());
 	}
 
 	/**
-	 * 同 {@link #runNow}，但返回 Future：ofAction 的 Future 结果为 null（Direct 时为 0），
+	 * 同 {@link #runNow}，但返回 Future：ofAction 的 Future 结果为 0，
 	 * ofFunc/ofProcedure 为结果码，ofFunc0 的返回值与异常经 Future 传播。
 	 * 显式设置过 onCancel 时抛 IllegalArgumentException。
 	 */
 	public @NotNull Future<R> submitNow() {
 		checkRunOptions();
 		consume();
-		var timeout = timeoutOrDefault();
-		if (action != null)
-			return castFuture(Task.submitActionCore(action, name, dispatchMode, timeout));
-		if (procedure != null)
-			return castFuture(Task.submitProcCore(procedure, dispatchMode, timeout));
-		if (func != null)
-			return castFuture(Task.submitFuncCore(func, name, dispatchMode, timeout));
-		//noinspection DataFlowIssue
-		return Task.submitFunc0Core(func0, name, dispatchMode, timeout);
+		return Task.submitCore(body, name, dispatchMode, timeoutOrDefault());
 	}
 
 	private void checkRunOptions() {
@@ -296,15 +232,7 @@ public final class TaskSpec<R> {
 		consume();
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
-		if (action != null)
-			Task.runTxnAware(() -> Task.scheduleActionCore(delay, action, name, timeout));
-		else if (func != null)
-			Task.runTxnAware(() -> Task.scheduleFuncCore(delay, func, name, timeout));
-		else if (procedure != null)
-			Task.runTxnAware(() -> Task.scheduleProcCore(delay, procedure, timeout));
-		else
-			//noinspection DataFlowIssue
-			Task.runTxnAware(() -> Task.scheduleFunc0Core(delay, func0, name, timeout));
+		Task.runTxnAware(() -> Task.scheduleCore(delay, body, name, timeout));
 	}
 
 	/**
@@ -315,15 +243,7 @@ public final class TaskSpec<R> {
 		consume();
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
-		if (action != null)
-			Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, action, name, timeout));
-		else if (func != null)
-			Task.runTxnAware(() -> Task.scheduleFuncPeriodCore(delay, period, func, name, timeout));
-		else if (procedure != null)
-			Task.runTxnAware(() -> Task.scheduleProcPeriodCore(delay, period, procedure, timeout));
-		else
-			//noinspection DataFlowIssue
-			Task.runTxnAware(() -> Task.scheduleFunc0PeriodCore(delay, period, func0, name, timeout));
+		Task.runTxnAware(() -> Task.schedulePeriodCore(delay, period, body, name, timeout));
 	}
 
 	/**
@@ -333,15 +253,7 @@ public final class TaskSpec<R> {
 	public @NotNull ScheduledFuture<R> scheduleNow(long delay) {
 		consume();
 		checkScheduleOptions();
-		var timeout = timeoutOrDefault();
-		if (action != null)
-			return castScheduledFuture(Task.scheduleActionCore(delay, action, name, timeout));
-		if (func != null)
-			return castScheduledFuture(Task.scheduleFuncCore(delay, func, name, timeout));
-		if (procedure != null)
-			return castScheduledFuture(Task.scheduleProcCore(delay, procedure, timeout));
-		//noinspection DataFlowIssue
-		return Task.scheduleFunc0Core(delay, func0, name, timeout);
+		return Task.scheduleCore(delay, body, name, timeoutOrDefault());
 	}
 
 	/**
@@ -352,15 +264,7 @@ public final class TaskSpec<R> {
 	public @NotNull TimerFuture<R> scheduleNow(long delay, long period) {
 		consume();
 		checkScheduleOptions();
-		var timeout = timeoutOrDefault();
-		if (action != null)
-			return castTimerFuture(Task.schedulePeriodCore(delay, period, action, name, timeout));
-		if (func != null)
-			return castTimerFuture(Task.scheduleFuncPeriodCore(delay, period, func, name, timeout));
-		if (procedure != null)
-			return castTimerFuture(Task.scheduleProcPeriodCore(delay, period, procedure, timeout));
-		//noinspection DataFlowIssue
-		return Task.scheduleFunc0PeriodCore(delay, period, func0, name, timeout);
+		return Task.schedulePeriodCore(delay, period, body, name, timeoutOrDefault());
 	}
 
 	/**
@@ -379,15 +283,7 @@ public final class TaskSpec<R> {
 		consume();
 		checkScheduleOptions();
 		var timeout = timeoutOrDefault();
-		if (action != null)
-			Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, period, action, name, timeout));
-		else if (func != null)
-			Task.runTxnAware(() -> Task.scheduleAtFuncCore(hour, minute, period, func, name, timeout));
-		else if (procedure != null)
-			Task.runTxnAware(() -> Task.scheduleAtProcCore(hour, minute, period, procedure, timeout));
-		else
-			//noinspection DataFlowIssue
-			Task.runTxnAware(() -> Task.scheduleAtFunc0Core(hour, minute, period, func0, name, timeout));
+		Task.runTxnAware(() -> Task.scheduleAtCore(hour, minute, period, body, name, timeout));
 	}
 
 	/**
@@ -407,15 +303,7 @@ public final class TaskSpec<R> {
 	public @NotNull ScheduledFuture<R> scheduleAtNow(int hour, int minute, long period) {
 		consume();
 		checkScheduleOptions();
-		var timeout = timeoutOrDefault();
-		if (action != null)
-			return castScheduledFuture(Task.scheduleAtCore(hour, minute, period, action, name, timeout));
-		if (func != null)
-			return castScheduledFuture(Task.scheduleAtFuncCore(hour, minute, period, func, name, timeout));
-		if (procedure != null)
-			return castScheduledFuture(Task.scheduleAtProcCore(hour, minute, period, procedure, timeout));
-		//noinspection DataFlowIssue
-		return Task.scheduleAtFunc0Core(hour, minute, period, func0, name, timeout);
+		return Task.scheduleAtCore(hour, minute, period, body, name, timeoutOrDefault());
 	}
 
 	/**
@@ -504,32 +392,10 @@ public final class TaskSpec<R> {
 	}
 
 	private @NotNull TaskOneByOneQueue.Task newQueueTask() {
-		var mode = dispatchModeOrDefault();
-		if (action != null)
-			return new TaskOneByOneQueue.TaskAction(action, name, onCancel, mode);
-		if (procedure != null)
-			return new TaskOneByOneQueue.TaskFunc(procedure::call, procedure.getActionName(), onCancel, mode);
-		if (func != null)
-			return new TaskOneByOneQueue.TaskFunc(func, name, onCancel, mode);
-		//noinspection DataFlowIssue
-		return new TaskOneByOneQueue.TaskFunc0(func0, name, onCancel, mode);
+		return new TaskOneByOneQueue.TaskBodyTask(body, name, onCancel, dispatchModeOrDefault());
 	}
 
 	private void executeKey2(int hashKey, @NotNull TaskOneByOneByKey2 queue) {
-		var mode = dispatchModeOrDefault();
-		if (action != null) {
-			queue.executeActionCore(hashKey, action, name, mode);
-			return;
-		}
-		if (procedure != null) {
-			queue.executeProcedureCore(hashKey, procedure, mode);
-			return;
-		}
-		if (func != null) {
-			queue.executeFuncCore(hashKey, func, name, mode);
-			return;
-		}
-		//noinspection DataFlowIssue
-		queue.executeFunc0Core(hashKey, func0, name, mode);
+		queue.executeCore(hashKey, body, name, dispatchModeOrDefault());
 	}
 }

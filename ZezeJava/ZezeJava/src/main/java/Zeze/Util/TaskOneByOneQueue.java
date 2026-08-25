@@ -216,13 +216,17 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		public abstract boolean process(@NotNull BatchTask batch);
 	}
 
-	public static final class TaskAction extends Task {
-		private final @NotNull Action0 action;
+	/**
+	 * 统一载荷任务：用 {@link TaskBody} 一份代码覆盖 action/func/procedure/func0 四种载荷。
+	 * 队列语义无返回值消费者，callRaw 的结果丢弃；名字解析见 {@link TaskBody#logName}。
+	 */
+	public static final class TaskBodyTask extends Task {
+		private final @NotNull TaskBody<?> body;
 
-		public TaskAction(@NotNull Action0 action, @Nullable String name, @Nullable Action0 cancel,
-						  @Nullable DispatchMode mode) {
-			super(name != null ? name : action.getClass().getName(), cancel, mode);
-			this.action = action;
+		public TaskBodyTask(@NotNull TaskBody<?> body, @Nullable String name, @Nullable Action0 cancel,
+		                    @Nullable DispatchMode mode) {
+			super(body.logName(name), cancel, mode);
+			this.body = body;
 		}
 
 		@Override
@@ -233,56 +237,7 @@ public class TaskOneByOneQueue extends ReentrantLock {
 		@Override
 		public boolean process(@NotNull BatchTask batch) {
 			try {
-				action.run();
-			} catch (Throwable e) { // logger.error
-				logger.error("TaskOneByOne: {}", name, e);
-			}
-			return true;
-		}
-	}
-
-	public static final class TaskFunc extends Task {
-		private final @NotNull FuncLong func;
-
-		public TaskFunc(@NotNull FuncLong func, @Nullable String name, @Nullable Action0 cancel, @Nullable DispatchMode mode) {
-			super(name != null ? name : func.getClass().getName(), cancel, mode);
-			this.func = func;
-		}
-
-		@Override
-		public boolean isBarrier() {
-			return false;
-		}
-
-		@Override
-		public boolean process(@NotNull BatchTask batch) {
-			try {
-				func.call();
-			} catch (Throwable e) { // logger.error
-				logger.error("TaskOneByOne: {}", name, e);
-			}
-			return true;
-		}
-	}
-
-	public static final class TaskFunc0 extends Task {
-		private final @NotNull Func0<?> func;
-
-		public TaskFunc0(@NotNull Func0<?> func, @Nullable String name, @Nullable Action0 cancel,
-						 @Nullable DispatchMode mode) {
-			super(name != null ? name : func.getClass().getName(), cancel, mode);
-			this.func = func;
-		}
-
-		@Override
-		public boolean isBarrier() {
-			return false;
-		}
-
-		@Override
-		public boolean process(@NotNull BatchTask batch) {
-			try {
-				func.call(); // 队列语义无返回值消费者，结果丢弃（与 TaskFunc 一致）
+				body.callRaw();
 			} catch (Throwable e) { // logger.error
 				logger.error("TaskOneByOne: {}", name, e);
 			}
