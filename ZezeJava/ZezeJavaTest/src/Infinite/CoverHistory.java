@@ -214,6 +214,7 @@ public class CoverHistory {
 			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
+					it.next(); // remove 前必须先 next，否则移除的是 null（下一次调用才赋值 next）
 					it.remove();
 					break;
 				}
@@ -832,6 +833,7 @@ public class CoverHistory {
 			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
+					it.next(); // remove 前必须先 next，否则移除的是 null（下一次调用才赋值 next）
 					it.remove();
 					break;
 				}
@@ -868,6 +870,7 @@ public class CoverHistory {
 			var index = getRandom().nextInt(set.size());
 			for (var it = set.iterator(); it.hasNext(); /**/) {
 				if (index == 0) {
+					it.next(); // remove 前必须先 next，否则移除的是 null（下一次调用才赋值 next）
 					it.remove();
 					break;
 				}

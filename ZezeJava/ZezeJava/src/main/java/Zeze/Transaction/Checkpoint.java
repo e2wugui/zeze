@@ -324,8 +324,11 @@ public final class Checkpoint {
 			OnzProcedure.sendFlushAndWait(onzProcedures);
 			// 保存到数据库中
 			for (var r : rs) {
-				//noinspection DataFlowIssue
-				r.flush(r.getDatabaseTransactionTmp(), localCacheTransaction);
+				var t = r.getDatabaseTransactionTmp();
+				if (t != null)
+					r.flush(t, localCacheTransaction);
+				else // 内存表没有持久化存储，没有数据库事务，只需 flush 本地 cache
+					r.flushLocalCache(localCacheTransaction);
 			}
 			if (history != null) {
 				var storage = ((Table)historyTable).getStorage();

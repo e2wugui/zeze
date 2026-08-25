@@ -6,6 +6,7 @@ import Zeze.Serialize.Vector2;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableKey;
+import Zeze.Transaction.TableX;
 import Zeze.Util.Random;
 import demo.App;
 import demo.Bean1;
@@ -62,9 +63,10 @@ public class TestProcedure {
 	@Test
 	public final void test1() throws Exception {
 		TableKey root = new TableKey(1, 1);
-		// 特殊测试，拼凑一个record用来提供需要的信息。
-		//noinspection DataFlowIssue
-		var r = new Record1<>(null, 1L, bean);
+		// 特殊测试，拼凑一个record用来提供需要的信息。table不会真正使用，借用一个真实的表避免破坏@NotNull约定。
+		@SuppressWarnings("unchecked")
+		var r = new Record1<>((TableX<Long, BMyBean>)(TableX<?, ?>)demo.App.getInstance().demo_Module1.getTable1(),
+				1L, bean);
 		bean.initRootInfo(r.createRootInfoIfNeed(root), null);
 		long rc = demo.App.getInstance().Zeze.newProcedure(this::ProcNest, "ProcNest").call();
 		Assert.assertEquals(Procedure.Success, rc);

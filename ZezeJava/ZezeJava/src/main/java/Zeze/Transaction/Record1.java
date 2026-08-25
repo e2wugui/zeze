@@ -329,6 +329,16 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
+	public void flushLocalCache(@Nullable Database.Transaction lct) {
+		if (!getDirty() || lct == null)
+			return;
+		if (snapshotValue != null)
+			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
+		else
+			table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
+	}
+
+	@Override
 	public void cleanup() {
 		setDatabaseTransactionTmp(null);
 		setDatabaseTransactionOldTmp(null);

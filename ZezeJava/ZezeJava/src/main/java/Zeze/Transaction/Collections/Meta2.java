@@ -47,7 +47,10 @@ public final class Meta2<K, V> {
 		keyEncoder = keyCodecFuncs.encoder;
 		keyDecoder = keyCodecFuncs.decoder;
 		keyDecoderWithType = keyCodecFuncs.decoderWithType;
-		var valueCodecFuncs = SerializeHelper.createCodec(valueClass, valueFactory);
+		// 非Bean类型没有valueFactory，其codec已预注册，使用无ctor的重载。
+		var valueCodecFuncs = valueFactory != null
+				? SerializeHelper.createCodec(valueClass, valueFactory)
+				: SerializeHelper.createCodec(valueClass);
 		valueEncodeType = valueCodecFuncs.encodeType;
 		valueEncoder = valueCodecFuncs.encoder;
 		valueDecoder = valueCodecFuncs.decoder;

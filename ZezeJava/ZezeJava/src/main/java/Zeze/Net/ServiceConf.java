@@ -27,7 +27,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public final class ServiceConf extends ReentrantLock {
-	private Service service;
+	private @Nullable Service service;
 	private final @NotNull String name;
 	private @NotNull SocketOptions socketOptions = new SocketOptions();
 	private @NotNull HandshakeOptions handshakeOptions = new HandshakeOptions();
@@ -37,7 +37,7 @@ public final class ServiceConf extends ReentrantLock {
 	private int maxConnections = 1024; // 适合绝大多数网络服务，对于连接机，比如Linkd，Gated等需要自己加大。
 	private @Nullable String haProxyKey;
 
-	public Service getService() {
+	public @Nullable Service getService() {
 		return service;
 	}
 
@@ -92,14 +92,16 @@ public final class ServiceConf extends ReentrantLock {
 		if (null != websockets.putIfAbsent(websocket.getName(), websocket)) {
 			throw new IllegalStateException("Duplicate Connector=" + websocket.getName());
 		}
-		websocket.setService(service);
+		if (service != null) // Config.parse 阶段 service 尚未赋值，之后由 setService 统一设置
+			websocket.setService(service);
 	}
 
 	public void addConnector(@NotNull Connector connector) {
 		if (null != connectors.putIfAbsent(connector.getName(), connector)) {
 			throw new IllegalStateException("Duplicate Connector=" + connector.getName());
 		}
-		connector.SetService(service);
+		if (service != null) // 同上
+			connector.SetService(service);
 	}
 
 	public @Nullable Connector findConnector(@NotNull String name) {
@@ -136,7 +138,8 @@ public final class ServiceConf extends ReentrantLock {
 			} catch (Exception e) {
 				throw Task.forceThrow(e);
 			}
-			add.SetService(service);
+			if (service != null) // Dbh2 等场景直接使用 ServiceConf，没有关联 Service
+				add.SetService(service);
 			addNew.value = add;
 			return add;
 		});

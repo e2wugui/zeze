@@ -79,7 +79,8 @@ public abstract class Bean implements Serializable {
 		this.rootInfo = rootInfo;
 		this.parent = parent;
 		Transaction.whileRedo(this);
-		initChildrenRootInfoWithRedo(rootInfo);
+		if (rootInfo != null) // followerApply 等非受管场景 rootInfo 为 null，子 bean 保持非受管即可
+			initChildrenRootInfoWithRedo(rootInfo);
 	}
 
 	public final void initRootInfo(Record.RootInfo rootInfo, @Nullable Bean parent) {
@@ -87,7 +88,8 @@ public abstract class Bean implements Serializable {
 			throw new HasManagedException();
 		this.rootInfo = rootInfo;
 		this.parent = parent;
-		initChildrenRootInfo(rootInfo);
+		if (rootInfo != null) // 同上
+			initChildrenRootInfo(rootInfo);
 	}
 
 	public final void resetRootInfo() {
