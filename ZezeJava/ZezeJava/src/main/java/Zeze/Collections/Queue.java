@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.Queue.BQueue;
 import Zeze.Builtin.Collections.Queue.BQueueNode;
 import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
@@ -25,10 +26,11 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 	}
 
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic = false;
+	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	private void onHotModuleStop(HotModule hot) {
-		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+		if (hotModulesHaveDynamic.remove(hot) != null)
+			freshStopModuleDynamic.set(true);
 	}
 
 	private void tryRecordHotModule(Class<?> customClass) {
@@ -59,9 +61,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 
 	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
-		var tmp = freshStopModuleDynamic;
-		freshStopModuleDynamic = false;
-		return tmp;
+		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	public static class Module extends AbstractQueue {

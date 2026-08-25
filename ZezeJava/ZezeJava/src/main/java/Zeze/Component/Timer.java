@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
 import Zeze.Application;
@@ -104,7 +105,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	private Online defaultOnline;
 
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic;
+	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	public static @NotNull Timer create(@NotNull AppBase app) {
 		return GenModule.createRedirectModule(Timer.class, app);
@@ -1469,7 +1470,8 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 	}
 
 	private void onHotModuleStop(@NotNull HotModule hot) {
-		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+		if (hotModulesHaveDynamic.remove(hot) != null)
+			freshStopModuleDynamic.set(true);
 	}
 
 	void tryRecordBeanHotModuleWhileCommit(@NotNull Bean customData) {
@@ -1499,9 +1501,7 @@ public class Timer extends AbstractTimer implements HotBeanFactory, TimerScope {
 
 	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
-		var tmp = freshStopModuleDynamic;
-		freshStopModuleDynamic = false;
-		return tmp;
+		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	@Override

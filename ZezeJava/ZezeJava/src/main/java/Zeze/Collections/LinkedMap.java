@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.LinkedMap.BClearJobState;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
@@ -36,10 +37,11 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 	}
 
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic = false;
+	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	private void onHotModuleStop(HotModule hot) {
-		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+		if (hotModulesHaveDynamic.remove(hot) != null)
+			freshStopModuleDynamic.set(true);
 	}
 
 	private void tryRecordHotModule(Class<?> customClass) {
@@ -60,9 +62,7 @@ public class LinkedMap<V extends Bean> implements HotBeanFactory {
 
 	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
-		var tmp = freshStopModuleDynamic;
-		freshStopModuleDynamic = false;
-		return tmp;
+		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	@Override

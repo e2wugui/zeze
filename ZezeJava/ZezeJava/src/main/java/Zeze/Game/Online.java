@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -99,9 +100,9 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
-	private volatile boolean freshStopModuleLocal;
+	private final AtomicBoolean freshStopModuleLocal = new AtomicBoolean();
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private volatile boolean freshStopModuleDynamic;
+	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 	private volatile long localActiveTimeout = 600 * 1000; // 活跃时间超时。
 	private volatile long localCheckPeriod = 600 * 1000; // 检查间隔
 	private final AtomicInteger verifyLocalCount = new AtomicInteger();
@@ -140,22 +141,20 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 	}
 
 	private void onHotModuleStop(HotModule hot) {
-		freshStopModuleLocal |= hotModulesHaveLocal.remove(hot) != null;
-		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+		if (hotModulesHaveLocal.remove(hot) != null)
+			freshStopModuleLocal.set(true);
+		if (hotModulesHaveDynamic.remove(hot) != null)
+			freshStopModuleDynamic.set(true);
 	}
 
 	@Override
 	public boolean hasFreshStopModuleLocalOnce() {
-		var tmp = freshStopModuleLocal;
-		freshStopModuleLocal = false;
-		return tmp;
+		return freshStopModuleLocal.getAndSet(false);
 	}
 
 	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
-		var tmp = freshStopModuleDynamic;
-		freshStopModuleDynamic = false;
-		return tmp;
+		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	@Override

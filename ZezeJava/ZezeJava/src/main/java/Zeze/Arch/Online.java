@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import Zeze.AppBase;
@@ -82,17 +83,16 @@ public class Online extends AbstractOnline implements HotUpgrade {
 
 	// 缓存拥有Local数据的HotModule，用来优化。
 	private final ConcurrentHashSet<HotModule> hotModulesHaveLocal = new ConcurrentHashSet<>();
-	private boolean freshStopModule = false;
+	private final AtomicBoolean freshStopModule = new AtomicBoolean();
 
 	private void onHotModuleStop(@NotNull HotModule hot) {
-		freshStopModule |= hotModulesHaveLocal.remove(hot) != null;
+		if (hotModulesHaveLocal.remove(hot) != null)
+			freshStopModule.set(true);
 	}
 
 	@Override
 	public boolean hasFreshStopModuleLocalOnce() {
-		var tmp = freshStopModule;
-		freshStopModule = false;
-		return tmp;
+		return freshStopModule.getAndSet(false);
 	}
 
 	record Retreat(@NotNull String account, @NotNull String clientId, @NotNull String key, @NotNull Bean bean) {

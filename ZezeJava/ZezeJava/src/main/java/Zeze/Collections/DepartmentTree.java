@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import Zeze.Builtin.Collections.DepartmentTree.*;
 import Zeze.Hot.HotBeanFactory;
 import Zeze.Hot.HotManager;
@@ -28,10 +29,11 @@ public class DepartmentTree<
 	}
 
 	private final ConcurrentHashSet<HotModule> hotModulesHaveDynamic = new ConcurrentHashSet<>();
-	private boolean freshStopModuleDynamic = false;
+	private final AtomicBoolean freshStopModuleDynamic = new AtomicBoolean();
 
 	private void onHotModuleStop(HotModule hot) {
-		freshStopModuleDynamic |= hotModulesHaveDynamic.remove(hot) != null;
+		if (hotModulesHaveDynamic.remove(hot) != null)
+			freshStopModuleDynamic.set(true);
 	}
 
 	private void tryRecordHotModule(Class<?> customClass) {
@@ -52,9 +54,7 @@ public class DepartmentTree<
 
 	@Override
 	public boolean hasFreshStopModuleDynamicOnce() {
-		var tmp = freshStopModuleDynamic;
-		freshStopModuleDynamic = false;
-		return tmp;
+		return freshStopModuleDynamic.getAndSet(false);
 	}
 
 	@Override
