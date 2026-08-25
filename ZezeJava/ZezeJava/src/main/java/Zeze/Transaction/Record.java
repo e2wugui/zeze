@@ -177,13 +177,13 @@ public abstract class Record extends ReentrantLock {
 
 	public abstract void encode0();
 
-	public abstract void flush(@NotNull Database.Transaction t, @Nullable Database.Transaction lct);
+	public abstract void flush(@NotNull Database.Transaction t, @NotNull Database.Transaction lct);
 
 	/**
 	 * flush 没有持久化存储（内存表）的记录：没有数据库事务，只需要更新本地 rocks cache。
 	 * see Checkpoint.flush
 	 */
-	public abstract void flushLocalCache(@Nullable Database.Transaction lct);
+	public abstract void flushLocalCache(@NotNull Database.Transaction lct);
 
 	public abstract void commit(@NotNull RecordAccessed accessed);
 

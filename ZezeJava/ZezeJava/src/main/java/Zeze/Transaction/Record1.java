@@ -297,25 +297,20 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 */
 
 	@Override
-	public void flush(@NotNull Database.Transaction t, @Nullable Database.Transaction lct) {
+	public void flush(@NotNull Database.Transaction t, @NotNull Database.Transaction lct) {
 		if (!getDirty())
 			return;
 
+		var storage = table.getStorage();
 		if (snapshotValue != null) {
 			// changed
-			var storage = table.getStorage();
 			if (storage != null)
 				storage.getDatabaseTable().replace(t, snapshotKey, snapshotValue);
-			if (lct != null)
-				table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
 		} else {
 			// removed
 //			if (existInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-			var storage = table.getStorage();
 			if (storage != null)
 				storage.getDatabaseTable().remove(t, snapshotKey);
-			if (lct != null)
-				table.getLocalRocksCacheTable().remove(lct, snapshotKeyLocal);
 //			}
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
@@ -326,11 +321,13 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				table.getOldTable().remove(databaseTransactionOldTmp, snapshotKey);
 			}
 		}
+		// 本地cache（rocks）的写入在有无storage两种表下逻辑相同，统一走flushLocalCache。
+		flushLocalCache(lct);
 	}
 
 	@Override
-	public void flushLocalCache(@Nullable Database.Transaction lct) {
-		if (!getDirty() || lct == null)
+	public void flushLocalCache(@NotNull Database.Transaction lct) {
+		if (!getDirty())
 			return;
 		if (snapshotValue != null)
 			table.getLocalRocksCacheTable().replace(lct, snapshotKeyLocal, snapshotValueLocal);
