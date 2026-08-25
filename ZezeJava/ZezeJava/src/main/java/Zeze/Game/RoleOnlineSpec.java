@@ -1,162 +1,91 @@
 package Zeze.Game;
 
-import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public final class RoleOnlineSpec extends AbstractOnlineSpec implements OnlineSpec {
+/** 单角色发送器：在 OnlineSpec 之上追加仅对单端点成立的能力（rpc/response/link 直发）。 */
+public final class RoleOnlineSpec extends OnlineSpec {
 	private final long roleId;
-	private int timeout = 5000;
+	private int timeout = 5000; // 仅 sendRpc 族消费，send 族忽略
 
 	RoleOnlineSpec(@NotNull Online online, long roleId) {
-		super(online);
+		super(online, new OnlineTarget.Role(roleId));
 		this.roleId = roleId;
 	}
 
-	/**
-	 * 本次send是否只是尝试，即允许失败。
-	 * 这个参数影响是否记录错误日志。
-	 * @param trySend 是否尝试发送
-	 * @return this
-	 */
-	public @NotNull RoleOnlineSpec trying(boolean trySend) {
-		this.trying = trySend;
+	@Override
+	public @NotNull RoleOnlineSpec trying(boolean trying) { // 协变返回，保持链式
+		super.trying(trying);
 		return this;
 	}
 
-	/**
-	 * 由于OnlineSet，现在允许多个Online集合。
-	 * 这个参数决定是否根据当前上下文选择Online实例。
-	 * 默认情况下直接通过本Online发送。
-	 * @return this
-	 */
+	@Override
 	public @NotNull RoleOnlineSpec withContext() {
-		this.withContext = true;
-		online = online.getOnlineByContext();
+		super.withContext();
 		return this;
 	}
 
-	/**
-	 * 设置rpc的timeout参数。仅对rpc有效。
-	 *
-	 * @param timeout timeout default=5000
-	 * @return this
-	 */
-	public @NotNull RoleOnlineSpec timeout(int timeout) {
-		this.timeout = timeout;
+	/** rpc 超时（毫秒），默认 5000；仅 sendRpc/sendRpcForWait 消费，send 族忽略。 */
+	public @NotNull RoleOnlineSpec timeout(int timeoutMs) {
+		this.timeout = timeoutMs;
 		return this;
 	}
 
-	/**
-	 * 发送协议。
-	 * @param p protocol
-	 */
-	public void send(Protocol<?> p) {
-		var typeId = p.getTypeId();
-		tryLog(typeId, p, roleId, online.getOnlineSetName());
-		var fullEncodedProtocol = new Binary(p.encode());
-		send(typeId, fullEncodedProtocol);
+	/** 发送 rpc 响应（事务感知）。 */
+	public void sendResponse(@NotNull Rpc<?, ?> r) {
+		r.setRequest(false);
+		send(r); // 走 send 族：非 request 放行守卫
 	}
 
 	/**
-	 * 发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
-	 * @param typeId typeId
-	 * @param fullEncodedProtocol encoded protocol
-	 */
-	public void send(long typeId, Binary fullEncodedProtocol) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> online.sendDirect(roleId, typeId, fullEncodedProtocol, trying));
-			return;
-		}
-		online.sendDirect(roleId, typeId, fullEncodedProtocol, trying);
-	}
-
-	/**
-	 * 当事务回滚时，发送协议。
-	 * @param p protocol
-	 */
-	public void sendWhileRollback(Protocol<?> p) {
-		var typeId = p.getTypeId();
-		tryLog(typeId, p, roleId, online.getOnlineSetName());
-		var fullEncodedProtocol = new Binary(p.encode());
-		sendWhileRollback(typeId, fullEncodedProtocol);
-	}
-
-	/**
-	 * 当事务回滚时，发送编码好的协议。
-	 * @param typeId typeId
-	 * @param fullEncodedProtocol encoded protocol
-	 */
-	public void sendWhileRollback(long typeId, Binary fullEncodedProtocol) {
-		Transaction.whileRollback(() -> online.sendDirect(roleId, typeId, fullEncodedProtocol, trying));
-	}
-
-	/**
-	 * 异步发送rpc。
-	 *
-	 * @param rpc rpc
-	 * @param responseHandle responseHandle
-	 * @param <A> argument type
-	 * @param <R> result type
+	 * 异步发送 rpc（事务感知）。
+	 * 注意：rpc 本体在执行时刻才被接线与编码，sendRpc 后不要再修改 rpc.Argument。
 	 */
 	public <A extends Serializable, R extends Serializable>
-	void sendRpc(@NotNull Rpc<A, R> rpc, ProtocolHandle<Rpc<A, R>> responseHandle) {
-
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> online.sendOnlineRpc(roleId, rpc, responseHandle, timeout, trying));
-			return;
-		}
-		online.sendOnlineRpc(roleId, rpc, responseHandle, timeout, trying);
+	void sendRpc(@NotNull Rpc<A, R> rpc, @Nullable ProtocolHandle<Rpc<A, R>> responseHandle) {
+		var o = resolveOnline();
+		var rid = roleId; // 以下字段全部读进局部变量：闭包不捕获 spec 实例（S4）
+		var to = timeout;
+		var tr = trying;
+		Task.runTxnAware(() -> o.sendOnlineRpc(rid, rpc, responseHandle, to, tr));
 	}
 
 	/**
-	 * 同步发送rpc。
-	 *
-	 * @param rpc rpc
-	 * @param <A> argument type
-	 * @param <R> result type
-	 * @return future 可以等待。
+	 * 同步发送 rpc，返回可等待的 future（立即发送）。
+	 * 运行中的事务内调用抛 IllegalStateException：发送若延迟到 commit 而等待阻塞 commit 将死锁；
+	 * 请在事务外调用，或改用 sendRpc + responseHandle。
 	 */
-	public <A extends Serializable, R extends Serializable> TaskCompletionSource<R> sendRpcForWait(@NotNull Rpc<A, R> rpc) {
+	public <A extends Serializable, R extends Serializable>
+	@NotNull TaskCompletionSource<R> sendRpcForWait(@NotNull Rpc<A, R> rpc) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			throw new IllegalStateException("sendRpcForWait 不能用于运行中的事务内："
+					+ "发送会延迟到 commit，而等待会阻塞 commit（死锁）。请在事务外调用，或改用 sendRpc + responseHandle。");
 		var future = new TaskCompletionSource<R>();
 		rpc.setFuture(future);
-		sendRpc(rpc, null);
+		if (!resolveOnline().sendOnlineRpc(roleId, rpc, null, timeout, trying))
+			future.setException(new IllegalStateException("sendOnlineRpc fail.")); // 对齐旧 sendOnlineRpcForWait
 		return future;
 	}
 
-	/**
-	 * 直接通过link发送协议。
-	 *
-	 * @param linkName linkName
-	 * @param linkSid linkSid
-	 * @param p protocol
-	 */
+	/** 直接通过 link 发送（事务感知）；忽略 trying/timeout 选项。 */
 	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> online.send(roleId, linkName, linkSid, p));
-			return;
-		}
-		online.send(roleId, linkName, linkSid, p);
+		var o = resolveOnline();
+		var rid = roleId; // 读进局部变量：闭包不捕获 spec 实例（S4）
+		Task.runTxnAware(() -> o.send(rid, linkName, linkSid, p));
 	}
 
-	/**
-	 * 事务回滚时，直接通过link发送协议。
-	 *
-	 * @param linkName linkName
-	 * @param linkSid linkSid
-	 * @param p protocol
-	 */
+	/** 事务回滚时直接通过 link 发送；选项规则同上。 */
 	public void sendWhileRollback(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
-		Transaction.whileRollback(() -> online.send(roleId, linkName, linkSid, p));
+		var o = resolveOnline();
+		var rid = roleId;
+		Transaction.whileRollback(() -> o.send(rid, linkName, linkSid, p));
 	}
 }

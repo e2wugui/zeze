@@ -1,118 +1,46 @@
 package Zeze.Arch;
 
 import Zeze.Builtin.ProviderDirect.BLoginKey;
-import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Task;
 import org.jetbrains.annotations.NotNull;
 
-public final class LoginOnlineSpec extends AbstractOnlineSpec implements OnlineSpec {
+/** 单登录端点发送器：在 OnlineSpec 之上追加仅对单端点成立的能力（response/link 直发）。 */
+public final class LoginOnlineSpec extends OnlineSpec {
 	private final @NotNull String account;
 	private final @NotNull String clientId;
 
 	LoginOnlineSpec(@NotNull Online online, @NotNull String account, @NotNull String clientId) {
-		super(online);
+		super(online, new OnlineTarget.Login(account, clientId));
 		this.account = account;
 		this.clientId = clientId;
 	}
 
-	/**
-	 * 本次send是否只是尝试，即允许失败。
-	 * 这个参数影响是否记录错误日志。
-	 *
-	 * @param trySend 是否尝试发送
-	 * @return this
-	 */
-	public @NotNull LoginOnlineSpec trying(boolean trySend) {
-		this.trying = trySend;
+	@Override
+	public @NotNull LoginOnlineSpec trying(boolean trying) { // 协变返回，保持链式
+		super.trying(trying);
 		return this;
 	}
 
-	/**
-	 * 发送协议。
-	 *
-	 * @param p protocol
-	 */
-	public void send(@NotNull Protocol<?> p) {
-		var typeId = p.getTypeId();
-		tryLog(typeId, p, account + ',' + clientId);
-		send(typeId, new Binary(p.encode()));
-	}
-
-	/**
-	 * 发送编码好的协议。
-	 * 如果在事务中，那么会在事务提交的时候发送。
-	 * 如果不在事务中，马上发送。
-	 *
-	 * @param typeId             typeId
-	 * @param fullEncodedProtocol encoded protocol
-	 */
-	public void send(long typeId, @NotNull Binary fullEncodedProtocol) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> online.sendDirect(account, clientId, typeId, fullEncodedProtocol, trying));
-			return;
-		}
-		online.sendDirect(account, clientId, typeId, fullEncodedProtocol, trying);
-	}
-
-	/**
-	 * 当事务回滚时，发送协议。
-	 *
-	 * @param p protocol
-	 */
-	public void sendWhileRollback(@NotNull Protocol<?> p) {
-		var typeId = p.getTypeId();
-		tryLog(typeId, p, account + ',' + clientId);
-		sendWhileRollback(typeId, new Binary(p.encode()));
-	}
-
-	/**
-	 * 当事务回滚时，发送编码好的协议。
-	 *
-	 * @param typeId             typeId
-	 * @param fullEncodedProtocol encoded protocol
-	 */
-	public void sendWhileRollback(long typeId, @NotNull Binary fullEncodedProtocol) {
-		Transaction.whileRollback(() -> online.sendDirect(account, clientId, typeId, fullEncodedProtocol, trying));
-	}
-
-	/**
-	 * 发送rpc的响应。
-	 *
-	 * @param r rpc response
-	 */
+	/** 发送 rpc 响应（事务感知）。 */
 	public void sendResponse(@NotNull Rpc<?, ?> r) {
 		r.setRequest(false);
-		send(r);
+		send(r); // 走 send 族：非 request 放行守卫
 	}
 
-	/**
-	 * 直接通过link发送协议。
-	 *
-	 * @param linkName linkName
-	 * @param linkSid  linkSid
-	 * @param p        protocol
-	 */
+	/** 直接通过 link 发送（事务感知）；忽略 trying 选项。 */
 	public void send(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
-		var loginKey = new BLoginKey(account, clientId);
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning()) {
-			t.runWhileCommit(() -> online.send(loginKey, linkName, linkSid, p));
-			return;
-		}
-		online.send(loginKey, linkName, linkSid, p);
+		var ol = online; // 字段读进局部变量：闭包不捕获 spec 实例（S4）
+		var key = new BLoginKey(account, clientId);
+		Task.runTxnAware(() -> ol.send(key, linkName, linkSid, p));
 	}
 
-	/**
-	 * 事务回滚时，直接通过link发送协议。
-	 *
-	 * @param linkName linkName
-	 * @param linkSid  linkSid
-	 * @param p        protocol
-	 */
+	/** 事务回滚时直接通过 link 发送；选项规则同上。 */
 	public void sendWhileRollback(@NotNull String linkName, long linkSid, @NotNull Protocol<?> p) {
-		Transaction.whileRollback(() -> online.send(new BLoginKey(account, clientId), linkName, linkSid, p));
+		var ol = online;
+		var key = new BLoginKey(account, clientId);
+		Transaction.whileRollback(() -> ol.send(key, linkName, linkSid, p));
 	}
 }

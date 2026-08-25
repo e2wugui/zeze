@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且这个项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 变更
+- **Online 发送 API（OnlineSpec）重构**：spec 层收敛（Game 7 文件→4，Arch 8→4），目的地抽象为包私有 `OnlineTarget`，骨架（rpc 守卫/日志/编码/事务时机）每包一份；删除上一版 spec 的 9 个类（`AbstractOnlineSpec`、`RolesOnlineSpec`、`AllOnlinesSpec`、`ReliableOnlineSpec`、`LoginsOnlineSpec`、`AccountOnlineSpec`、`AccountsOnlineSpec`），`OnlineSpec.ofXxx` 工厂表达式保持不变，下游按工厂表达式使用者不受影响
+- **统一发送日志标识格式**（`describe()`）；空目标发送不再编码协议
+- **spec 可复用**：选项在终结方法调用时刻冻结（延迟闭包不捕获 spec 实例），之后修改选项不影响已排队的发送
+- **RoleOnlineSpec.sendRpcForWait** 在运行中的事务内抛 `IllegalStateException`（原为立即发送；自适应事务语义下事务内等待必死锁，改为明确拒绝，请改用 `sendRpc` + responseHandle）
+
+### 新增
+- **立即语义动词**：`OnlineSpec.sendNow`、`TransmitOnlineSpec.transmitNow`（事务内也不等 commit，立即发送/执行）
+
+### 修复
+- **ofAllOnline 多 OnlineSet 广播**：修复同一 Online 实例重复发送 N 次、其它 OnlineSet 的角色收不到的问题（原 `AbstractOnlineSpec.sendAll(Collection)` 的 lambda 遮蔽 bug）
+
 ## [1.6.3] - 2026-06-11
 
 ### 新增
