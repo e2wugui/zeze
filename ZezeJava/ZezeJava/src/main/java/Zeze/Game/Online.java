@@ -183,16 +183,7 @@ public class Online extends AbstractOnline implements HotUpgrade, HotBeanFactory
 		return beanFactory;
 	}
 
-	static class Retreat {
-		final long roleId;
-		final @NotNull String key;
-		final @NotNull Bean bean;
-
-		Retreat(long roleId, @NotNull String key, @NotNull Bean bean) {
-			this.roleId = roleId;
-			this.key = key;
-			this.bean = bean;
-		}
+	record Retreat(long roleId, @NotNull String key, @NotNull Bean bean) {
 	}
 
 	@Override
