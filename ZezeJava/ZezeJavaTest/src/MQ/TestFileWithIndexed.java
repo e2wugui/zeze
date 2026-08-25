@@ -8,8 +8,8 @@ import Zeze.Builtin.MQ.BMessage;
 import Zeze.MQ.MQFileWithIndex;
 import Zeze.Util.OutLong;
 import Zeze.Util.RocksDatabase;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestFileWithIndexed {
 	@Test
@@ -37,11 +37,11 @@ public class TestFileWithIndexed {
 				file.calculateFill(queue, first, last, 300);
 				file.fillMessage(queue, first.value, last.value);
 				var queueEquals = new ArrayDeque<>(queueOrigin);
-				Assert.assertEquals(queueEquals.size(), queue.size());
+				Assertions.assertEquals(queueEquals.size(), queue.size());
 				for (var i = 0; i < queue.size(); ++i) {
 					var origin = queueEquals.poll();
 					var fill = queue.poll();
-					Assert.assertEquals(origin, fill);
+					Assertions.assertEquals(origin, fill);
 				}
 			}
 			// 这里本不需要循环256次，确保全部清空才写了这么多。
@@ -59,11 +59,11 @@ public class TestFileWithIndexed {
 					file.fillMessage(queue, first.value, last.value);
 					//System.out.println("=====>" + i);
 					var queueEquals = new ArrayDeque<>(queueOrigin);
-					Assert.assertEquals(queueEquals.size(), queue.size());
+					Assertions.assertEquals(queueEquals.size(), queue.size());
 					for (var k = 0; k < queue.size(); ++k) {
 						var origin = queueEquals.poll();
 						var fill = queue.poll();
-						Assert.assertEquals(origin, fill);
+						Assertions.assertEquals(origin, fill);
 					}
 				}
 			}

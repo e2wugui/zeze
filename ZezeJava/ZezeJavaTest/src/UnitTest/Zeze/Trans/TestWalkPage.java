@@ -7,18 +7,18 @@ import Zeze.Util.OutInt;
 import demo.App;
 import demo.Bean1;
 import demo.Module1.tWalkPage;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestWalkPage {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -42,12 +42,12 @@ public class TestWalkPage {
 			walkedKeys.add(key);
 			return true;
 		}));
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
 		if (t.getDatabase() instanceof DatabaseRedis) // unordered
-			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
 		else
-			Assert.assertEquals(expected, walkedKeys);
+			Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -67,9 +67,9 @@ public class TestWalkPage {
 						return true;
 					});
 		} while (exclusiveStartKey != null);
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -85,9 +85,9 @@ public class TestWalkPage {
 			walkedKeys.add(key);
 			return true;
 		}));
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(5, 4, 3, 2, 1);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -107,9 +107,9 @@ public class TestWalkPage {
 						return true;
 					});
 		} while (exclusiveStartKey != null);
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(5, 4, 3, 2, 1);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -129,9 +129,9 @@ public class TestWalkPage {
 			});
 		} while (exclusiveStartKey != null);
 
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -150,9 +150,9 @@ public class TestWalkPage {
 				return true;
 			});
 		} while (exclusiveStartKey != null);
-		Assert.assertEquals(walkTimes.value, walkingKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkingKeys.size());
 		var expected = List.of(5, 4, 3, 2, 1);
-		Assert.assertEquals(expected, walkingKeys);
+		Assertions.assertEquals(expected, walkingKeys);
 	}
 
 	@Test
@@ -165,9 +165,9 @@ public class TestWalkPage {
 			walkedKeys.add(key);
 			return true;
 		});
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -181,12 +181,12 @@ public class TestWalkPage {
 			return true;
 		});
 
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
 		if (t.getDatabase() instanceof DatabaseRedis) // unordered
-			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
 		else
-			Assert.assertEquals(expected, walkedKeys);
+			Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -202,12 +202,12 @@ public class TestWalkPage {
 				walkedKeys.add(bbKey);
 				return true;
 			});
-			Assert.assertEquals(walkTimes.value, walkedKeys.size());
+			Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 			var expected = List.of(1, 2, 3, 4, 5);
 			if (t.getDatabase() instanceof DatabaseRedis) // unordered
-				Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+				Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
 			else
-				Assert.assertEquals(expected, walkedKeys);
+				Assertions.assertEquals(expected, walkedKeys);
 		}
 	}
 
@@ -227,9 +227,9 @@ public class TestWalkPage {
 				walkedKeys.add(bbKey);
 				return true;
 			});
-			Assert.assertEquals(walkTimes.value, walkedKeys.size());
+			Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 			var expected = List.of(5, 4, 3, 2, 1);
-			Assert.assertEquals(expected, walkedKeys);
+			Assertions.assertEquals(expected, walkedKeys);
 		}
 	}
 
@@ -245,12 +245,12 @@ public class TestWalkPage {
 			return true;
 		});
 
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(1, 2, 3, 4, 5);
 		if (t.getDatabase() instanceof DatabaseRedis) // unordered
-			Assert.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
+			Assertions.assertTrue(walkedKeys.containsAll(expected) && expected.containsAll(walkedKeys));
 		else
-			Assert.assertEquals(expected, walkedKeys);
+			Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test
@@ -268,9 +268,9 @@ public class TestWalkPage {
 			return true;
 		});
 
-		Assert.assertEquals(walkTimes.value, walkedKeys.size());
+		Assertions.assertEquals(walkTimes.value, walkedKeys.size());
 		var expected = List.of(5, 4, 3, 2, 1);
-		Assert.assertEquals(expected, walkedKeys);
+		Assertions.assertEquals(expected, walkedKeys);
 	}
 
 	@Test

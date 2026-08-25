@@ -2,15 +2,15 @@ package UnitTest.Zeze.Game;
 
 import Zeze.Transaction.Procedure;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("DataFlowIssue")
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestBag {
 	public static final int ADD_NUM = 100;          // add item num
 	public static final int ADD_PILE_NUM = 10;      // 添加的格子数量
@@ -19,20 +19,20 @@ public class TestBag {
 	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
 	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
 
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 		// 设置下可堆叠个数
 		App.Instance.BagModule.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 	}
 
 	@Test
 	public final void test1_Add() throws Exception {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(MAX_BAG_CAPACITY);
@@ -40,71 +40,71 @@ public class TestBag {
 				// bag.GetItemPileMax() TODO阶段，默认99
 				// 占用两个格子，第1个99个，第二个1个
 				var code = bag.add(i, ADD_NUM);
-				Assert.assertEquals(0, code);
+				Assertions.assertEquals(0, code);
 			}
 			// 总共占用20个格子
-			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
 		}, "test1_Add").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
 	public final void test2_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			int moveNum = MAX_GRID_CAPACITY - (ADD_NUM / 2);
 			for (int i = 0; i < ADD_PILE_NUM * 2; i += 2) {
 				int code = bag.move(i, i + 1, moveNum);
-				Assert.assertEquals(0, code);
-				Assert.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i).getNumber());
-				Assert.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i + 1).getNumber());
+				Assertions.assertEquals(0, code);
+				Assertions.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i).getNumber());
+				Assertions.assertEquals(ADD_NUM / 2, bag.getBean().getItems().get(i + 1).getNumber());
 			}
 			return Procedure.Success;
 		}, "test2_Move").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
 	public final void test3_Remove() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, ADD_NUM / 2);
-				Assert.assertTrue(code);
+				Assertions.assertTrue(code);
 			}
-			Assert.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, SECOND_REMOVE_NUM);
-				Assert.assertTrue(code);
+				Assertions.assertTrue(code);
 			}
 			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
-				Assert.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM, bag.getBean().getItems().get(i).getNumber());
+				Assertions.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM, bag.getBean().getItems().get(i).getNumber());
 			}
 			return Procedure.Success;
 		}, "test3_Remove").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
 	public final void test4_Move() {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			Assert.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM, bag.getBean().getItems().size());
 			// 移动物品到空格子
 			int moveNum = (ADD_NUM / 2 - SECOND_REMOVE_NUM) / 2;
 			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
 				var code = bag.move(i, i - 1, moveNum);
-				Assert.assertEquals(0, code);
-				Assert.assertEquals(moveNum, bag.getBean().getItems().get(i - 1).getNumber());
-				Assert.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum, bag.getBean().getItems().get(i).getNumber());
+				Assertions.assertEquals(0, code);
+				Assertions.assertEquals(moveNum, bag.getBean().getItems().get(i - 1).getNumber());
+				Assertions.assertEquals(ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum, bag.getBean().getItems().get(i).getNumber());
 			}
-			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
+			Assertions.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
 		}, "test4_Move").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	private static long preRemove() {

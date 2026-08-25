@@ -1,17 +1,21 @@
 package Zezex;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import Game.App;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.TaskCompletionSource;
-import junit.framework.TestCase;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class ModuleRedirectRank extends TestCase {
+public class ModuleRedirectRank {
 	private App app1;
 	private App app2;
 
-	@Override
+	@BeforeEach
 	protected void setUp() {
 		app1 = App.Instance;
 		app2 = new App();
@@ -53,7 +57,7 @@ public class ModuleRedirectRank extends TestCase {
 		}
 	}
 
-	@Override
+	@AfterEach
 	protected void tearDown() {
 		System.out.println("Begin Stop");
 		try {
@@ -67,6 +71,8 @@ public class ModuleRedirectRank extends TestCase {
 		}
 		System.out.println("End Stop");
 	}
+
+	@Test
 
 	public void testRedirect() throws Exception {
 		// RedirectToServer
@@ -173,8 +179,8 @@ public class ModuleRedirectRank extends TestCase {
 			}
 		});
 
-		rank.TestToServerBeanResult(30, true).await().onSuccess(TestCase::assertNull).onFail(r -> TestCase.fail(r.getMessage()));
-		rank.TestToServerBeanResult(30, null).await().onSuccess(TestCase::assertNull).onFail(r -> TestCase.fail(r.getMessage()));
-		rank.TestToServerBeanResult(30, false).await().onSuccess(TestCase::assertNotNull).onFail(r -> TestCase.fail(r.getMessage()));
+		rank.TestToServerBeanResult(30, true).await().onSuccess(Assertions::assertNull).onFail(r -> Assertions.fail(r.getMessage()));
+		rank.TestToServerBeanResult(30, null).await().onSuccess(Assertions::assertNull).onFail(r -> Assertions.fail(r.getMessage()));
+		rank.TestToServerBeanResult(30, false).await().onSuccess(Assertions::assertNotNull).onFail(r -> Assertions.fail(r.getMessage()));
 	}
 }

@@ -18,8 +18,8 @@ import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 // 测试桶(raft)，在同一个进程内构建3个桶，通过Dbh2Agent访问。
 public class Dbh2Test {
@@ -123,9 +123,9 @@ public class Dbh2Test {
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+				Assertions.assertTrue(kv.getKey());
+				Assertions.assertNotNull(kv.getValue());
+				Assertions.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
 				var batch = new BPrepareBatch.Data("", db, tb1, null);
@@ -136,9 +136,9 @@ public class Dbh2Test {
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+				Assertions.assertTrue(kv.getKey());
+				Assertions.assertNotNull(kv.getValue());
+				Assertions.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
 				var batch = new BPrepareBatch.Data("", db, tb1, null);
@@ -149,8 +149,8 @@ public class Dbh2Test {
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNull(kv.getValue());
+				Assertions.assertTrue(kv.getKey());
+				Assertions.assertNull(kv.getValue());
 			}
 
 			// multi-bucket transaction
@@ -172,15 +172,15 @@ public class Dbh2Test {
 			}
 			{
 				var kv = bucket1.agent().get(db, tb1, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+				Assertions.assertTrue(kv.getKey());
+				Assertions.assertNotNull(kv.getValue());
+				Assertions.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 			{
 				var kv = bucket2.agent().get(db, tb2, key);
-				Assert.assertTrue(kv.getKey());
-				Assert.assertNotNull(kv.getValue());
-				Assert.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
+				Assertions.assertTrue(kv.getKey());
+				Assertions.assertNotNull(kv.getValue());
+				Assertions.assertEquals(value, new Binary(kv.getValue().Bytes, kv.getValue().ReadIndex, kv.getValue().size()));
 			}
 		} finally {
 			bucket1.close();

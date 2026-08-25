@@ -27,8 +27,8 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
 import Zeze.Util.StableRandom;
 import demo.Module1.BValue;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
 public class BenchSocket {
@@ -241,8 +241,8 @@ public class BenchSocket {
 			System.out.println("sum=" + sum + " bytes; speed=" + sum / seconds / 1024 / 1024 + "M/s; hash=" + de2HashCode);
 		}
 
-		Assert.assertEquals(enHashCode, en2HashCode);
-		Assert.assertEquals(deHashCode, de2HashCode);
+		Assertions.assertEquals(enHashCode, en2HashCode);
+		Assertions.assertEquals(deHashCode, de2HashCode);
 	}
 
 	static class ServerService extends Zeze.Services.HandshakeServer {
@@ -543,7 +543,7 @@ public class BenchSocket {
 			var bb1 = benchFastSendEncode(rand);
 			var sum0 = benchSendDecode(bb1);
 			var sum1 = benchFastSendDecode(bb0);
-			Assert.assertEquals(sum0, sum1);
+			Assertions.assertEquals(sum0, sum1);
 		}
 	}
 

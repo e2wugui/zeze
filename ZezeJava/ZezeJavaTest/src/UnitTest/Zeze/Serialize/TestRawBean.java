@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Serialize;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -7,9 +9,9 @@ import Zeze.Transaction.TableCache;
 import Zeze.Transaction.TableX;
 import demo.App;
 import demo.Module1.BValue;
-import junit.framework.TestCase;
 
-public class TestRawBean extends TestCase {
+public class TestRawBean {
+	@Test
 	public void testBasic() {
 		var b1 = new BValue();
 		b1.setInt_1(123);

@@ -3,18 +3,18 @@ package UnitTest.Zeze.Trans;
 import java.util.concurrent.Future;
 import Zeze.Transaction.Transaction;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestTransactionLevelSerializable {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -48,7 +48,7 @@ public class TestTransactionLevelSerializable {
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		final var total = v1.getInt_1() + v2.getInt_1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
-		Transaction.whileCommit(() -> Assert.assertEquals(100_000, total));
+		Transaction.whileCommit(() -> Assertions.assertEquals(100_000, total));
 		return 0;
 	}
 

@@ -6,13 +6,13 @@ import Zeze.Transaction.TableX;
 import demo.App;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.NavigableMap;
 
 public class TestSafeBatch {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.getInstance().Start();
 	}

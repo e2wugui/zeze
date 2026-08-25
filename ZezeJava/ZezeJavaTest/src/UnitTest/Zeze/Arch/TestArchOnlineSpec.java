@@ -11,8 +11,8 @@ import Zeze.Builtin.ProviderDirect.BLoginKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * Arch.OnlineSpec / OnlineTarget 的单元测试（不组网）。
@@ -67,13 +67,13 @@ public class TestArchOnlineSpec {
 	@Test
 	public void testRpcFailFast() {
 		// Rpc request 直接 send/sendNow 抛 IllegalArgumentException（提示走 sendResponse）；守卫先于 online 使用
-		Assert.assertThrows(IllegalArgumentException.class,
+		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> OnlineSpec.ofLogin(NoOnline, "a", "c").send(new Login()));
-		Assert.assertThrows(IllegalArgumentException.class,
+		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> OnlineSpec.ofLogin(NoOnline, "a", "c").sendNow(new Login()));
-		Assert.assertThrows(IllegalArgumentException.class,
+		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> OnlineSpec.ofLogins(NoOnline, List.of(new BLoginKey("a", "c"))).send(new Login()));
-		Assert.assertThrows(IllegalArgumentException.class,
+		Assertions.assertThrows(IllegalArgumentException.class,
 				() -> OnlineSpec.ofAccounts(NoOnline, List.of("a")).send(new Login()));
 	}
 }

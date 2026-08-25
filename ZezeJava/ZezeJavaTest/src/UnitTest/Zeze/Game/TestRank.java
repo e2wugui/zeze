@@ -1,4 +1,8 @@
 package UnitTest.Zeze.Game;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.function.LongUnaryOperator;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
@@ -7,9 +11,8 @@ import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Game.Rank;
 import Zeze.Transaction.Procedure;
 import demo.SimpleApp;
-import junit.framework.TestCase;
 
-public class TestRank extends TestCase {
+public class TestRank {
 	private static final int CONC_LEVEL = 100;
 	private static final int APP_COUNT = 3;
 	private static final int ROLE_ID_BEGIN = 1000;
@@ -20,7 +23,7 @@ public class TestRank extends TestCase {
 
 	private boolean disableTest = false;
 
-	@Override
+	@BeforeEach
 	protected void setUp() {
 		var config = Zeze.Config.load();
 		if (config.getGlobalCacheManagerHostNameOrAddress().contains(".xml")) {
@@ -50,7 +53,7 @@ public class TestRank extends TestCase {
 		}
 	}
 
-	@Override
+	@AfterEach
 	protected void tearDown() {
 		if (disableTest)
 			return;
@@ -64,6 +67,7 @@ public class TestRank extends TestCase {
 		System.out.println("------ tearDown end");
 	}
 
+	@Test
 	public void testRank() {
 		if (disableTest)
 			return;

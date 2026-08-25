@@ -1,16 +1,18 @@
 package Benchmark;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Util.PerfCounter;
 import demo.App;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class CBasicSimpleAddConcurrent extends TestCase {
+public class CBasicSimpleAddConcurrent {
 	public final static int AddCount = 250_000;
 	public final static int ConcurrentLevel = 5_000;
+
+	@Test
 
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();
@@ -53,7 +55,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
 			var r = App.Instance.demo_Module1.getTable1().getOrAdd(i);
 			sum += r.getLong2();
 		}
-		Assert.assertEquals(AddCount, sum);
+		Assertions.assertEquals(AddCount, sum);
 		//System.out.println(r.getLong2());
 		return 0;
 	}

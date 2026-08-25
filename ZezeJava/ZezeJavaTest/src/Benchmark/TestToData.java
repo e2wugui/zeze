@@ -2,7 +2,7 @@ package Benchmark;
 
 import Zeze.Serialize.ByteBuffer;
 import demo.Module1.BValue;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestToData {
 

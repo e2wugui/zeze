@@ -6,8 +6,8 @@ import Zeze.Util.LongHashSet;
 import Zeze.Util.StableRandom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestBloomFilter implements BloomFilter.BitArray {
 	private static final Logger logger = LogManager.getLogger(TestBloomFilter.class);
@@ -48,8 +48,8 @@ public class TestBloomFilter implements BloomFilter.BitArray {
 		sr.setSeed(1);
 		for (int i = 0; i < KEY_COUNT; i++) {
 			var v = sr.next64();
-			Assert.assertTrue(keys.contains(v));
-			Assert.assertTrue(bf.testKey(v));
+			Assertions.assertTrue(keys.contains(v));
+			Assertions.assertTrue(bf.testKey(v));
 		}
 
 		sr.setSeed(System.currentTimeMillis());

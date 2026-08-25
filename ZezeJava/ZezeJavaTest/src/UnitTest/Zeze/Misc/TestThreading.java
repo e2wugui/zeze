@@ -3,13 +3,13 @@ package UnitTest.Zeze.Misc;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 import demo.App;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestThreading {
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 	}
@@ -31,7 +31,7 @@ public class TestThreading {
 		var map = new HashMap<Integer, Integer>();
 		map.put(1, 1);
 		map.computeIfPresent(1, (key, This) -> null);
-		Assert.assertNull(map.get(1));
+		Assertions.assertNull(map.get(1));
 	}
 
 	@Test

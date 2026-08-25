@@ -1,12 +1,14 @@
 package UnitTest.Zeze.Serialize;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Serialize.ByteBuffer;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
-import junit.framework.TestCase;
 
-public class TestDynamic extends TestCase {
+public class TestDynamic {
+	@Test
 	public void testDynamicMap() {
 		var b = new BValue();
 		var m = b.getMap26();

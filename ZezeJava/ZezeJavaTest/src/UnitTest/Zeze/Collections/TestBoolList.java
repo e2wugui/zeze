@@ -3,12 +3,12 @@ package UnitTest.Zeze.Collections;
 import Zeze.Collections.BoolList;
 import Zeze.Util.OutInt;
 import demo.App;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestBoolList {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 	}
@@ -17,7 +17,7 @@ public class TestBoolList {
 	public void testBoolList() throws Exception {
 		var bl = App.Instance.BoolListModule.open("myBoolListTest");
 		for (int i = 0; i < 1024; ++i) {
-			Assert.assertFalse(get(bl, i));
+			Assertions.assertFalse(get(bl, i));
 		}
 		App.Instance.Zeze.newProcedure(() -> {
 			for (int i = 0; i < 1024; ++i) {
@@ -26,7 +26,7 @@ public class TestBoolList {
 			return 0;
 		}, "set all").call();
 		for (int i = 0; i < 1024; ++i) {
-			Assert.assertTrue(get(bl, i));
+			Assertions.assertTrue(get(bl, i));
 		}
 		App.Instance.Zeze.newProcedure(() -> {
 			for (int i = 0; i < 1024; ++i) {
@@ -35,7 +35,7 @@ public class TestBoolList {
 			return 0;
 		}, "set all").call();
 		for (int i = 0; i < 1024; ++i) {
-			Assert.assertFalse(get(bl, i));
+			Assertions.assertFalse(get(bl, i));
 		}
 	}
 

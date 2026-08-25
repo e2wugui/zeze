@@ -12,12 +12,11 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.LogSpecial;
 import Zeze.Transaction.Procedure;
-import junit.framework.TestCase;
-import org.junit.Assert;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 
 @SuppressWarnings("CallToPrintStackTrace")
-public class TestGlobal extends TestCase {
+public class TestGlobal {
 	public static class PrintLog extends LogSpecial<BValue, BValue> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
 
@@ -83,17 +82,17 @@ public class TestGlobal extends TestCase {
 		app1.Start(config1);
 		app2.Start(config2);
 		try {
-			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				app1.demo_Module1.getTable1().getOrAdd(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
-			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
 				app2.demo_Module1.getTable1().getOrAdd(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
 
 			// 只删除一个app里面的记录就够了。
-			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				app1.demo_Module1.getTable1().remove(6785L);
 				return Procedure.Success;
 			}, "RemoveClean").call());
@@ -115,16 +114,16 @@ public class TestGlobal extends TestCase {
 			if (countAll != count * 2)
 				Thread.sleep(5000); // wait for globalForbidPeriod
 
-			Assert.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, app1.Zeze.newProcedure(() -> {
 				int last1 = Objects.requireNonNull(app1.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app1 " + last1);
-				Assert.assertEquals(countAll, last1);
+				Assertions.assertEquals(countAll, last1);
 				return Procedure.Success;
 			}, "CheckResult1").call());
-			Assert.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, app2.Zeze.newProcedure(() -> {
 				int last2 = Objects.requireNonNull(app2.demo_Module1.getTable1().get(6785L)).getInt_1();
 				System.out.println("app2 " + last2);
-				Assert.assertEquals(countAll, last2);
+				Assertions.assertEquals(countAll, last2);
 				return Procedure.Success;
 			}, "CheckResult2").call());
 		} finally {
@@ -153,7 +152,7 @@ public class TestGlobal extends TestCase {
 				if (r == Procedure.Success)
 					success++;
 				else
-					Assert.assertEquals(Procedure.AbortException, r.longValue());
+					Assertions.assertEquals(Procedure.AbortException, r.longValue());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

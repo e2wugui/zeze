@@ -6,22 +6,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Procedure;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("DataFlowIssue")
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestLinkedMap {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -37,7 +37,7 @@ public class TestLinkedMap {
 			}
 			return Procedure.Success;
 		}, "test1_LinkedMapPut").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -46,11 +46,11 @@ public class TestLinkedMap {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.get(i);
-				Assert.assertEquals(bean.getI(), i);
+				Assertions.assertEquals(bean.getI(), i);
 			}
 			return Procedure.Success;
 		}, "test2_LinkedMapGet").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -60,11 +60,11 @@ public class TestLinkedMap {
 		var arr = Arrays.asList(100, 101, 102, 103, 104, 105, 106, 107, 108, 109);
 		Collections.reverse(arr);
 		map.walk(((key, value) -> {
-			Assert.assertTrue(i.get() < 10);
-			Assert.assertEquals(value.getI(), (int)arr.get(i.getAndAdd(1)));
+			Assertions.assertTrue(i.get() < 10);
+			Assertions.assertEquals(value.getI(), (int)arr.get(i.getAndAdd(1)));
 			return true;
 		}));
-		Assert.assertEquals(10, i.get());
+		Assertions.assertEquals(10, i.get());
 	}
 
 	@Test
@@ -73,12 +73,12 @@ public class TestLinkedMap {
 			var map = demo.App.getInstance().LinkedMapModule.open("test1", BMyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.remove(i);
-				Assert.assertEquals(bean.getI(), i);
+				Assertions.assertEquals(bean.getI(), i);
 			}
-			Assert.assertTrue(map.isEmpty());
+			Assertions.assertTrue(map.isEmpty());
 			return Procedure.Success;
 		}, "test2_LinkedMapRemove").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -92,9 +92,9 @@ public class TestLinkedMap {
 			}
 			return Procedure.Success;
 		}, "test1_LinkedMapPut").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 
-		Assert.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.LinkedMapModule.open("test1", BMyBean.class).clear();
 			return 0;
 		}, "clear").call());

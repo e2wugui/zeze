@@ -2,11 +2,11 @@ package UnitTest.Zeze.Trans;
 
 import java.util.Objects;
 import Zeze.Transaction.Transaction;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestTid {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		demo.App.getInstance().Start();
 	}

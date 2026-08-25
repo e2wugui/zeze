@@ -1,12 +1,14 @@
 package Benchmark;
+import org.junit.jupiter.api.Test;
 
 import demo.App;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class ABasicSimpleAddOneThread extends TestCase {
+public class ABasicSimpleAddOneThread {
 	public final static int AddCount = 1_000_000;
+
+	@Test
 
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();
@@ -27,7 +29,7 @@ public class ABasicSimpleAddOneThread extends TestCase {
 
 	private static long Check() {
 		var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
-		Assert.assertEquals(AddCount, r.getLong2());
+		Assertions.assertEquals(AddCount, r.getLong2());
 		//System.out.println(r.getLong2());
 		return 0;
 	}

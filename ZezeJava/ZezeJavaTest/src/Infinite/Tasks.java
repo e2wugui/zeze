@@ -20,7 +20,7 @@ import Zeze.Util.PerfCounter;
 import Zeze.Util.Random;
 import demo.Module1.BSimple;
 import org.apache.logging.log4j.Level;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 public final class Tasks {
 	public static final boolean debugTradeSum = false;
@@ -99,7 +99,7 @@ public final class Tasks {
 				Simulate.logger.error("verify failed({}): {} != {} = {} + {} + {}\n{}",
 						name, runCount, successCount + abortCount + tooManyTry, successCount, abortCount, tooManyTry,
 						stats.toString(false));
-				Assert.fail();
+				Assertions.fail();
 			}
 		}
 
@@ -260,7 +260,7 @@ public final class Tasks {
 				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {} (walk:{}, commitCount:{})",
 						success, sum, a.value, commitCount.sum());
 			}
-			Assert.assertEquals(success, sum);
+			Assertions.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
 	}
@@ -365,7 +365,7 @@ public final class Tasks {
 					}
 				}
 			}
-			Assert.assertEquals(0, sum);
+			Assertions.assertEquals(0, sum);
 		}
 	}
 
@@ -415,7 +415,7 @@ public final class Tasks {
 						}
 					}
 				}
-				Assert.assertEquals(0, sum);
+				Assertions.assertEquals(0, sum);
 			}
 			return 0L;
 		}

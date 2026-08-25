@@ -11,11 +11,10 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMongoDb;
 import Zeze.Transaction.DatabasePostgreSQL;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("CallToPrintStackTrace")
-public class TestDatabaseMongoDb extends TestCase {
+public class TestDatabaseMongoDb {
 	private static String getPersonalUrl() throws UnknownHostException {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
@@ -61,7 +60,7 @@ public class TestDatabaseMongoDb extends TestCase {
 				trans.commit();
 			}
 		}
-		Assert.assertEquals(0, table.walk(TestDatabaseMongoDb::PrintRecord));
+		Assertions.assertEquals(0, table.walk(TestDatabaseMongoDb::PrintRecord));
 		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{
@@ -85,19 +84,19 @@ public class TestDatabaseMongoDb extends TestCase {
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
 			ByteBuffer value = table.find(key);
-			Assert.assertNotNull(value);
-			Assert.assertEquals(1, value.ReadInt());
-			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(1, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(2);
 			ByteBuffer value = table.find(key);
-			Assert.assertNotNull(value);
-			Assert.assertEquals(2, value.ReadInt());
-			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(2, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		Assert.assertEquals(2, table.walk(TestDatabaseMongoDb::PrintRecord));
+		Assertions.assertEquals(2, table.walk(TestDatabaseMongoDb::PrintRecord));
 		System.out.println(table.getSizeApproximation());
 	}
 

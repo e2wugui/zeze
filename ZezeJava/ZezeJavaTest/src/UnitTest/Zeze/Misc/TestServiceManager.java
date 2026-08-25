@@ -6,10 +6,10 @@ import Zeze.Services.ServiceManager.BServiceInfos;
 import Zeze.Services.ServiceManager.BSubscribeInfo;
 import Zeze.Util.TaskCompletionSource;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestServiceManager {
 	@Test
@@ -19,21 +19,21 @@ public class TestServiceManager {
 		infos.insert(new BServiceInfo("TestBase", "3", 0));
 		infos.insert(new BServiceInfo("TestBase", "2", 0));
 		var it = infos.getSortedIdentities().iterator();
-		Assert.assertTrue(it.hasNext());
-		Assert.assertEquals("1", it.next().getServiceIdentity());
-		Assert.assertTrue(it.hasNext());
-		Assert.assertEquals("2", it.next().getServiceIdentity());
-		Assert.assertTrue(it.hasNext());
-		Assert.assertEquals("3", it.next().getServiceIdentity());
-		Assert.assertFalse(it.hasNext());
+		Assertions.assertTrue(it.hasNext());
+		Assertions.assertEquals("1", it.next().getServiceIdentity());
+		Assertions.assertTrue(it.hasNext());
+		Assertions.assertEquals("2", it.next().getServiceIdentity());
+		Assertions.assertTrue(it.hasNext());
+		Assertions.assertEquals("3", it.next().getServiceIdentity());
+		Assertions.assertFalse(it.hasNext());
 	}
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		//App.Instance.Stop();
 	}

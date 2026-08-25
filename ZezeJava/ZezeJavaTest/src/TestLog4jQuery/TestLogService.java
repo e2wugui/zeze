@@ -6,7 +6,7 @@ import Zeze.Config;
 import Zeze.Services.LogAgent;
 import Zeze.Services.LogService;
 import Zeze.Util.Task;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestLogService {
 	@Test

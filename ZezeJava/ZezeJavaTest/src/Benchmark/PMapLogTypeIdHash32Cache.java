@@ -3,7 +3,7 @@ package Benchmark;
 import java.util.ArrayList;
 import Zeze.Transaction.Collections.PMap1;
 import Zeze.Util.Benchmark;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PMapLogTypeIdHash32Cache {
 	public int size;

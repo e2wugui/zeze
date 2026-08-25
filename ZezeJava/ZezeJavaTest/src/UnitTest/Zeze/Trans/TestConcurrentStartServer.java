@@ -2,8 +2,8 @@ package UnitTest.Zeze.Trans;
 
 import Zeze.Config;
 import Zeze.Util.OutInt;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CallToPrintStackTrace")
 public class TestConcurrentStartServer {
@@ -67,9 +67,9 @@ public class TestConcurrentStartServer {
 			t1.join();
 			t2.join();
 			t3.join();
-			Assert.assertEquals(1, start1.value);
-			Assert.assertEquals(1, start2.value);
-			Assert.assertEquals(1, start3.value);
+			Assertions.assertEquals(1, start1.value);
+			Assertions.assertEquals(1, start2.value);
+			Assertions.assertEquals(1, start3.value);
 		} finally {
 			app1.Stop();
 			app2.Stop();

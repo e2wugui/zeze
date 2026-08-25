@@ -3,8 +3,8 @@ package UnitTest.Zeze.Util;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import Zeze.Util.StringChecker;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestStringChecker {
 	@Test
@@ -17,32 +17,32 @@ public class TestStringChecker {
 		c.addNewLine("EF");
 		c.addNewLine("FG");
 		c.reload(null);
-		Assert.assertEquals("*", c.replace("A", '*'));
-		Assert.assertEquals("B", c.replace("B", '*'));
-		Assert.assertEquals("*", c.replace("C", '*'));
-		Assert.assertEquals("D", c.replace("D", '*'));
-		Assert.assertEquals("**", c.replace("AB", '*'));
-		Assert.assertEquals("**", c.replace("AC", '*'));
-		Assert.assertEquals("*D", c.replace("AD", '*'));
-		Assert.assertEquals("B*", c.replace("BC", '*'));
-		Assert.assertEquals("BD", c.replace("BD", '*'));
-		Assert.assertEquals("**", c.replace("CD", '*'));
-		Assert.assertEquals("***", c.replace("ABC", '*'));
-		Assert.assertEquals("**D", c.replace("ABD", '*'));
-		Assert.assertEquals("***", c.replace("ACD", '*'));
-		Assert.assertEquals("B**", c.replace("BCD", '*'));
-		Assert.assertEquals("****", c.replace("ABCD", '*'));
-		Assert.assertEquals("B*", c.replace("BA", '*'));
-		Assert.assertEquals("**", c.replace("CA", '*'));
-		Assert.assertEquals("D*", c.replace("DA", '*'));
-		Assert.assertEquals("*B", c.replace("CB", '*'));
-		Assert.assertEquals("DB", c.replace("DB", '*'));
-		Assert.assertEquals("D*", c.replace("DC", '*'));
-		Assert.assertEquals("*B*", c.replace("CBA", '*'));
-		Assert.assertEquals("DB*", c.replace("DBA", '*'));
-		Assert.assertEquals("***", c.replace("CDA", '*'));
-		Assert.assertEquals("D*B", c.replace("DCB", '*'));
-		Assert.assertEquals("D*B*", c.replace("DCBA", '*'));
+		Assertions.assertEquals("*", c.replace("A", '*'));
+		Assertions.assertEquals("B", c.replace("B", '*'));
+		Assertions.assertEquals("*", c.replace("C", '*'));
+		Assertions.assertEquals("D", c.replace("D", '*'));
+		Assertions.assertEquals("**", c.replace("AB", '*'));
+		Assertions.assertEquals("**", c.replace("AC", '*'));
+		Assertions.assertEquals("*D", c.replace("AD", '*'));
+		Assertions.assertEquals("B*", c.replace("BC", '*'));
+		Assertions.assertEquals("BD", c.replace("BD", '*'));
+		Assertions.assertEquals("**", c.replace("CD", '*'));
+		Assertions.assertEquals("***", c.replace("ABC", '*'));
+		Assertions.assertEquals("**D", c.replace("ABD", '*'));
+		Assertions.assertEquals("***", c.replace("ACD", '*'));
+		Assertions.assertEquals("B**", c.replace("BCD", '*'));
+		Assertions.assertEquals("****", c.replace("ABCD", '*'));
+		Assertions.assertEquals("B*", c.replace("BA", '*'));
+		Assertions.assertEquals("**", c.replace("CA", '*'));
+		Assertions.assertEquals("D*", c.replace("DA", '*'));
+		Assertions.assertEquals("*B", c.replace("CB", '*'));
+		Assertions.assertEquals("DB", c.replace("DB", '*'));
+		Assertions.assertEquals("D*", c.replace("DC", '*'));
+		Assertions.assertEquals("*B*", c.replace("CBA", '*'));
+		Assertions.assertEquals("DB*", c.replace("DBA", '*'));
+		Assertions.assertEquals("***", c.replace("CDA", '*'));
+		Assertions.assertEquals("D*B", c.replace("DCB", '*'));
+		Assertions.assertEquals("D*B*", c.replace("DCBA", '*'));
 	}
 
 	public static void test2() throws IOException {

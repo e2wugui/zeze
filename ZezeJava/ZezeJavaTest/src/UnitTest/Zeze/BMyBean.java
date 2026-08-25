@@ -4,7 +4,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.IByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Transaction;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 public class BMyBean extends Bean {
 	@Override
@@ -40,7 +40,7 @@ public class BMyBean extends Bean {
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
-		Assert.assertNotNull(txn);
+		Assertions.assertNotNull(txn);
 		txn.putLog(new MyLog(this, value));
 	}
 }

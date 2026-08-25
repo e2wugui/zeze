@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Util;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -24,9 +26,9 @@ import Zeze.Util.Vector3List;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
-import junit.framework.TestCase;
 
-public class TestJsonZeze extends TestCase {
+public class TestJsonZeze {
+	@Test
 	public void testDynamicBean() throws ReflectiveOperationException {
 		{
 			BValue v = new BValue();
@@ -68,6 +70,7 @@ public class TestJsonZeze extends TestCase {
 	}
 
 	// byte[], Binary, ByteBuffer
+	@Test
 	public void testBytes() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class B {
@@ -111,6 +114,7 @@ public class TestJsonZeze extends TestCase {
 	}
 
 	// IntList, LongList, FloatList, Vector3List, Vector3IntList
+	@Test
 	public void testList() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class L {
@@ -165,6 +169,7 @@ public class TestJsonZeze extends TestCase {
 	}
 
 	// IntHashSet, LongHashSet
+	@Test
 	public void testSet() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class S {
@@ -204,6 +209,7 @@ public class TestJsonZeze extends TestCase {
 	}
 
 	// IntHashMap, LongHashMap, LongMap
+	@Test
 	public void testMap() throws ReflectiveOperationException {
 		//noinspection EqualsAndHashcode
 		class M {

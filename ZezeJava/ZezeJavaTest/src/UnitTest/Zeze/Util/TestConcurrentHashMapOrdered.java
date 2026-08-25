@@ -1,10 +1,10 @@
 package UnitTest.Zeze.Util;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import Zeze.Util.ConcurrentHashMapOrdered;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.Test;
 
 public class TestConcurrentHashMapOrdered {
 	@Test

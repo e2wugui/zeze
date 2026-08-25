@@ -1,4 +1,6 @@
 package Temp;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -7,12 +9,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.GenericBean;
 import Zeze.Util.Benchmark;
 import Zeze.Util.Id128;
-import junit.framework.TestCase;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class TestBigInt extends TestCase {
+public class TestBigInt {
 	private static final Logger logger = LogManager.getLogger(TestBigInt.class);
+
+	@Test
 
 	public void testSerialize() {
 		var id128 = new Id128(123, 0x1234_5678_90ab_cdefL);
@@ -34,6 +37,8 @@ public class TestBigInt extends TestCase {
 		assertEquals(id128.getHigh(), ((Integer)high).intValue());
 		assertEquals(id128.getLow(), ((Long)low).longValue());
 	}
+
+	@Test
 
 	public void testOrder() {
 		var rand = ThreadLocalRandom.current();

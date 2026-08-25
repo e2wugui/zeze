@@ -4,9 +4,8 @@ import Zeze.Serialize.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
 import Zeze.Util.*;
-import junit.framework.TestCase;
 
-public class TestAsyncSocket extends TestCase {
+public class TestAsyncSocket {
 	static {
 		Task.tryInitThreadPool();
 	}

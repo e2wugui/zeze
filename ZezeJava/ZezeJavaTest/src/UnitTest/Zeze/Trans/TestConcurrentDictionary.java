@@ -1,8 +1,7 @@
 package UnitTest.Zeze.Trans;
 
-import junit.framework.TestCase;
 
-public class TestConcurrentDictionary extends TestCase {
+public class TestConcurrentDictionary {
 	public final void testRemoveInForeach() {
 		java.util.concurrent.ConcurrentHashMap<Integer, Integer> cd = new java.util.concurrent.ConcurrentHashMap<>();
 

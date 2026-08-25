@@ -25,8 +25,8 @@ import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * OnlineSpec 的回归测试。
@@ -104,7 +104,7 @@ public class TestOnlineSpec {
 	@SuppressWarnings("unchecked")
 	private static void installCountHandle(ClientGame.App client, long typeId, AtomicInteger counter) {
 		var fh = (Service.ProtocolFactoryHandle<Protocol<?>>)client.ClientService.findProtocolFactoryHandle(typeId);
-		Assert.assertNotNull(fh);
+		Assertions.assertNotNull(fh);
 		fh.Handle = p -> {
 			counter.incrementAndGet();
 			return Procedure.Success;
@@ -114,7 +114,7 @@ public class TestOnlineSpec {
 	private static void awaitCount(AtomicInteger counter, int expected) throws InterruptedException {
 		for (int i = 0; i < 500 && counter.get() < expected; ++i) // 最多等 5 秒
 			Thread.sleep(10);
-		Assert.assertEquals(expected, counter.get());
+		Assertions.assertEquals(expected, counter.get());
 	}
 
 	@Test
@@ -155,14 +155,14 @@ public class TestOnlineSpec {
 			OnlineSpec.ofRoles(online, List.of()).send(encodeBomb.getTypeId(), new Binary(new byte[0]));
 			OnlineSpec.ofAllOnline(online, List.of()).send(encodeBomb);
 			Thread.sleep(300);
-			Assert.assertEquals(0, sEquipCount0.get());
-			Assert.assertEquals(0, sEquipCount1.get());
+			Assertions.assertEquals(0, sEquipCount0.get());
+			Assertions.assertEquals(0, sEquipCount1.get());
 
 			// ---- §8-2 单发/批发路径 ----
 			logger.info("=== 2 roles dispatch");
 			OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement()); // size==1 单发
 			awaitCount(sEquipCount0, 1);
-			Assert.assertEquals(0, sEquipCount1.get());
+			Assertions.assertEquals(0, sEquipCount1.get());
 			OnlineSpec.ofRoles(online, List.of(roleId0, roleId1)).send(new SEquipement()); // size>1 批发
 			awaitCount(sEquipCount0, 2);
 			awaitCount(sEquipCount1, 1);
@@ -172,22 +172,22 @@ public class TestOnlineSpec {
 
 			// ---- §8-3 事务内 send：commit 前未收到，commit 后收到；rollback 后不收到 ----
 			logger.info("=== 3 txn send");
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement());
-				Assert.assertEquals(3, sEquipCount0.get()); // commit 前未收到
+				Assertions.assertEquals(3, sEquipCount0.get()); // commit 前未收到
 				return Procedure.Success;
 			}, "testTxnSend").call());
 			awaitCount(sEquipCount0, 4); // commit 后收到
-			Assert.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement());
 				return 1L; // 非 Success 触发回滚
 			}, "testTxnSendRollback").call());
 			Thread.sleep(500);
-			Assert.assertEquals(4, sEquipCount0.get()); // rollback 后不收到
+			Assertions.assertEquals(4, sEquipCount0.get()); // rollback 后不收到
 
 			// ---- §8-4 事务内 sendNow：立即收到（不等 commit） ----
 			logger.info("=== 4 sendNow");
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendNow(new SEquipement());
 				awaitCount(sEquipCount0, 5); // 事务体内、commit 前即收到
 				return Procedure.Success;
@@ -195,17 +195,17 @@ public class TestOnlineSpec {
 
 			// ---- §8-5 sendWhileRollback：rollback 后收到；commit 后不收到 ----
 			logger.info("=== 5 sendWhileRollback");
-			Assert.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendWhileRollback(new SEquipement());
 				return 1L; // 回滚
 			}, "testSendWhileRollback").call());
 			awaitCount(sEquipCount0, 6); // rollback 后收到
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendWhileRollback(new SEquipement());
 				return Procedure.Success;
 			}, "testSendWhileRollbackCommit").call());
 			Thread.sleep(500);
-			Assert.assertEquals(6, sEquipCount0.get()); // commit 后不收到
+			Assertions.assertEquals(6, sEquipCount0.get()); // commit 后不收到
 
 			// ---- §8-6 P0 回归：ofAllOnline 每个目标恰好收到一次（单 set，见类注释） ----
 			logger.info("=== 6 ofAllOnline");
@@ -215,27 +215,27 @@ public class TestOnlineSpec {
 			awaitCount(sEquipCount0, base0 + 1);
 			awaitCount(sEquipCount1, base1 + 1);
 			Thread.sleep(300);
-			Assert.assertEquals(base0 + 1, sEquipCount0.get()); // 恰好一次，无重复
-			Assert.assertEquals(base1 + 1, sEquipCount1.get());
+			Assertions.assertEquals(base0 + 1, sEquipCount0.get()); // 恰好一次，无重复
+			Assertions.assertEquals(base1 + 1, sEquipCount1.get());
 
 			// ---- §8-7 ofReliableNotify：send / sendWhileRollback 正常投递 ----
 			logger.info("=== 7 reliableNotify");
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				online.addReliableNotifyMark(roleId0, "testListener");
 				return Procedure.Success;
 			}, "addReliableNotifyMark").call());
 			OnlineSpec.ofReliableNotify(online, roleId0, "testListener").send(new SEquipement());
 			awaitCount(sReliableCount0, 1);
-			Assert.assertEquals(1L, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(1L, server0.Zeze.newProcedure(() -> {
 				OnlineSpec.ofReliableNotify(online, roleId0, "testListener").sendWhileRollback(new SEquipement());
 				return 1L;
 			}, "testReliableWhileRollback").call());
 			awaitCount(sReliableCount0, 2);
-			Assert.assertEquals(0, sReliableCount1.get());
+			Assertions.assertEquals(0, sReliableCount1.get());
 
 			// ---- §8-8 ofTransmit：未知 actionName 抛错；已知 action 正常路由 ----
 			logger.info("=== 8 transmit");
-			Assert.assertThrows(UnsupportedOperationException.class,
+			Assertions.assertThrows(UnsupportedOperationException.class,
 					() -> OnlineSpec.ofTransmit(online, roleId0, "unknownActionXyz", roleId1).transmit());
 			var transmitCount = new AtomicInteger();
 			online.getTransmitActions().put("testAction", (sender, target, param) -> {
@@ -247,8 +247,8 @@ public class TestOnlineSpec {
 
 			// ---- §8-9 事务内 sendRpcForWait → IllegalStateException ----
 			logger.info("=== 9 sendRpcForWait in txn");
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
-				Assert.assertThrows(IllegalStateException.class,
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+				Assertions.assertThrows(IllegalStateException.class,
 						() -> OnlineSpec.ofRole(online, roleId0).sendRpcForWait(new AreYouFight()));
 				return Procedure.Success;
 			}, "testSendRpcForWaitInTxn").call());
@@ -265,7 +265,7 @@ public class TestOnlineSpec {
 			// ---- §8-12 冻结：事务内 send(p1) 后改选项再 send(p2)，commit 后两者都送达 ----
 			logger.info("=== 12 freeze");
 			var base12 = sEquipCount0.get();
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				var s = OnlineSpec.ofRole(online, roleId0);
 				s.trying(false).send(new SEquipement()); // p1 冻结 trying=false
 				s.trying(true).send(new SEquipement()); // p2 冻结 trying=true，不影响已排队的 p1
@@ -289,13 +289,13 @@ public class TestOnlineSpec {
 		var login = new Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, login.getResultCode());
+		Assertions.assertEquals(0, login.getResultCode());
 	}
 
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Logout();
 		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, logout.getResultCode());
+		Assertions.assertEquals(0, logout.getResultCode());
 	}
 
 	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
@@ -303,21 +303,21 @@ public class TestOnlineSpec {
 		auth.Argument.setAccount(account);
 		auth.Argument.setLoginQueueToken(token.getToken());
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, auth.getResultCode());
+		Assertions.assertEquals(0, auth.getResultCode());
 	}
 
 	private static long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
 		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, createRole.getResultCode());
+		Assertions.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
 
 	private static BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
 		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, get.getResultCode());
+		Assertions.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
 		return get.Result.getRoleList().get(0);

@@ -4,102 +4,102 @@ pushd %~dp0
 
 rem call ..\ZezeJava\test\build.bat
 
-java -Dlogname=ZezeJavaTest -ea -cp .;lib/*;build/classes/java/main org.junit.runner.JUnitCore ^
-Benchmark.ABasicSimpleAddOneThread ^
-Benchmark.BBasicSimpleAddConcurrentWithConflict ^
-Benchmark.BenchSocket ^
-Benchmark.CBasicSimpleAddConcurrent ^
-Benchmark.CheckpointFlush ^
-Benchmark.DiffLockAndNoLock ^
-Benchmark.PMapLogTypeIdHash32Cache ^
-Benchmark.TestTaskOneByOne ^
-Benchmark.TestToData ^
-Dbh2.Dbh2FullTest ^
-Dbh2.Dbh2Test ^
-Dbh2.TestLocateBucket ^
-Dbh2.TestRocksDb ^
-Infinite.Simulate ^
-MQ.TestFileWithIndexed ^
-MQ.TestMQ ^
-Onz.TestOnz ^
-RelationalMapping.TestRelationalTableDiff ^
-TestLog4jQuery.TestLog4jQ ^
-TestLog4jQuery.TestLogService ^
-TestLog4jQuery.TestMmap ^
-UnitTest.Zeze.Collections.TestBeanFactory ^
-UnitTest.Zeze.Collections.TestBoolList ^
-UnitTest.Zeze.Collections.TestCsQueue ^
-UnitTest.Zeze.Collections.TestLinkedMap ^
-UnitTest.Zeze.Collections.TestQueue ^
-UnitTest.Zeze.Component.TestAutoKey ^
-UnitTest.Zeze.Component.TestTimer ^
-UnitTest.Zeze.Component.TestToken ^
-UnitTest.Zeze.Game.TestBag ^
-UnitTest.Zeze.Game.TestRank ^
-UnitTest.Zeze.Misc.TestRocketMQ ^
-UnitTest.Zeze.Misc.TestServiceManager ^
-UnitTest.Zeze.Misc.TestThreading ^
-UnitTest.Zeze.Misc.TestTreeMap ^
-UnitTest.Zeze.Net.TestAsyncSocket ^
-UnitTest.Zeze.Net.TestCodec ^
-UnitTest.Zeze.Net.TestDatagram ^
-UnitTest.Zeze.Net.TestOutputBuffer ^
-UnitTest.Zeze.Net.TestRpc ^
-UnitTest.Zeze.Netty.TestNettyHttpServer ^
-UnitTest.Zeze.Serialize.TestByteBuffer ^
-UnitTest.Zeze.Serialize.TestDynamic ^
-UnitTest.Zeze.Serialize.TestRawBean ^
-UnitTest.Zeze.Trans.TestBegin ^
-UnitTest.Zeze.Trans.TestChangeListener ^
-UnitTest.Zeze.Trans.TestCheckpoint ^
-UnitTest.Zeze.Trans.TestCheckpointModeTable ^
-UnitTest.Zeze.Trans.TestConcurrentDictionary ^
-UnitTest.Zeze.Trans.TestConcurrentStartServer ^
-UnitTest.Zeze.Trans.TestConflict ^
-UnitTest.Zeze.Trans.TestDatabaseMySql ^
-UnitTest.Zeze.Trans.TestDatabasePostgreSQL ^
-UnitTest.Zeze.Trans.TestDatabaseRocksDB ^
-UnitTest.Zeze.Trans.TestDatabaseSqlServer ^
-UnitTest.Zeze.Trans.TestDatabaseTikv ^
-UnitTest.Zeze.Trans.TestGlobal ^
-UnitTest.Zeze.Trans.TestGTable ^
-UnitTest.Zeze.Trans.TestJsonVar ^
-UnitTest.Zeze.Trans.TestLock ^
-UnitTest.Zeze.Trans.TestLostRedo ^
-UnitTest.Zeze.Trans.TestMemorySize ^
-UnitTest.Zeze.Trans.TestNestProcedureModifyMapSet ^
-UnitTest.Zeze.Trans.TestProcedure ^
-UnitTest.Zeze.Trans.TestProcedureRedo ^
-UnitTest.Zeze.Trans.TestTable ^
-UnitTest.Zeze.Trans.TestTableKey ^
-UnitTest.Zeze.Trans.TestTableNest ^
-UnitTest.Zeze.Trans.TestTableNestAction ^
-UnitTest.Zeze.Trans.TestTid ^
-UnitTest.Zeze.Trans.TestTransactionLevelSerializable ^
-UnitTest.Zeze.Trans.TestWalkPage ^
-UnitTest.Zeze.Util.TestBloomFilter ^
-UnitTest.Zeze.Util.TestCert ^
-UnitTest.Zeze.Util.TestClassReloader ^
-UnitTest.Zeze.Util.TestConcurrentHashMapOrdered ^
-UnitTest.Zeze.Util.TestConsistentHash ^
-UnitTest.Zeze.Util.TestContainers ^
-UnitTest.Zeze.Util.TestFastLock ^
-UnitTest.Zeze.Util.TestFastPriorityQueue ^
-UnitTest.Zeze.Util.TestFewModifySortedMap ^
-UnitTest.Zeze.Util.TestJson ^
-UnitTest.Zeze.Util.TestJson5 ^
-UnitTest.Zeze.Util.TestJsonWriter ^
-UnitTest.Zeze.Util.TestJsonZeze ^
-UnitTest.Zeze.Util.TestPersistentAtomicLong ^
-UnitTest.Zeze.Util.TestSortedMap ^
-UnitTest.Zeze.Util.TestStr ^
-UnitTest.Zeze.Util.TestStringChecker ^
-UnitTest.Zeze.Util.TestThreadDiagnosable ^
-UnitTest.Zeze.Util.TestTimeCounter ^
-UnitTest.Zeze.Util.TestTimeThrottle ^
-Zezex.ModuleRedirectRank ^
-Zezex.TestGameTimer ^
-Zezex.TestOnline ^
+java -Dlogname=ZezeJavaTest -ea -cp .;lib/*;build/classes/java/main org.junit.platform.console.ConsoleLauncher execute --details=summary ^
+--select-class Benchmark.ABasicSimpleAddOneThread ^
+--select-class Benchmark.BBasicSimpleAddConcurrentWithConflict ^
+--select-class Benchmark.BenchSocket ^
+--select-class Benchmark.CBasicSimpleAddConcurrent ^
+--select-class Benchmark.CheckpointFlush ^
+--select-class Benchmark.DiffLockAndNoLock ^
+--select-class Benchmark.PMapLogTypeIdHash32Cache ^
+--select-class Benchmark.TestTaskOneByOne ^
+--select-class Benchmark.TestToData ^
+--select-class Dbh2.Dbh2FullTest ^
+--select-class Dbh2.Dbh2Test ^
+--select-class Dbh2.TestLocateBucket ^
+--select-class Dbh2.TestRocksDb ^
+--select-class Infinite.Simulate ^
+--select-class MQ.TestFileWithIndexed ^
+--select-class MQ.TestMQ ^
+--select-class Onz.TestOnz ^
+--select-class RelationalMapping.TestRelationalTableDiff ^
+--select-class TestLog4jQuery.TestLog4jQ ^
+--select-class TestLog4jQuery.TestLogService ^
+--select-class TestLog4jQuery.TestMmap ^
+--select-class UnitTest.Zeze.Collections.TestBeanFactory ^
+--select-class UnitTest.Zeze.Collections.TestBoolList ^
+--select-class UnitTest.Zeze.Collections.TestCsQueue ^
+--select-class UnitTest.Zeze.Collections.TestLinkedMap ^
+--select-class UnitTest.Zeze.Collections.TestQueue ^
+--select-class UnitTest.Zeze.Component.TestAutoKey ^
+--select-class UnitTest.Zeze.Component.TestTimer ^
+--select-class UnitTest.Zeze.Component.TestToken ^
+--select-class UnitTest.Zeze.Game.TestBag ^
+--select-class UnitTest.Zeze.Game.TestRank ^
+--select-class UnitTest.Zeze.Misc.TestRocketMQ ^
+--select-class UnitTest.Zeze.Misc.TestServiceManager ^
+--select-class UnitTest.Zeze.Misc.TestThreading ^
+--select-class UnitTest.Zeze.Misc.TestTreeMap ^
+--select-class UnitTest.Zeze.Net.TestAsyncSocket ^
+--select-class UnitTest.Zeze.Net.TestCodec ^
+--select-class UnitTest.Zeze.Net.TestDatagram ^
+--select-class UnitTest.Zeze.Net.TestOutputBuffer ^
+--select-class UnitTest.Zeze.Net.TestRpc ^
+--select-class UnitTest.Zeze.Netty.TestNettyHttpServer ^
+--select-class UnitTest.Zeze.Serialize.TestByteBuffer ^
+--select-class UnitTest.Zeze.Serialize.TestDynamic ^
+--select-class UnitTest.Zeze.Serialize.TestRawBean ^
+--select-class UnitTest.Zeze.Trans.TestBegin ^
+--select-class UnitTest.Zeze.Trans.TestChangeListener ^
+--select-class UnitTest.Zeze.Trans.TestCheckpoint ^
+--select-class UnitTest.Zeze.Trans.TestCheckpointModeTable ^
+--select-class UnitTest.Zeze.Trans.TestConcurrentDictionary ^
+--select-class UnitTest.Zeze.Trans.TestConcurrentStartServer ^
+--select-class UnitTest.Zeze.Trans.TestConflict ^
+--select-class UnitTest.Zeze.Trans.TestDatabaseMySql ^
+--select-class UnitTest.Zeze.Trans.TestDatabasePostgreSQL ^
+--select-class UnitTest.Zeze.Trans.TestDatabaseRocksDB ^
+--select-class UnitTest.Zeze.Trans.TestDatabaseSqlServer ^
+--select-class UnitTest.Zeze.Trans.TestDatabaseTikv ^
+--select-class UnitTest.Zeze.Trans.TestGlobal ^
+--select-class UnitTest.Zeze.Trans.TestGTable ^
+--select-class UnitTest.Zeze.Trans.TestJsonVar ^
+--select-class UnitTest.Zeze.Trans.TestLock ^
+--select-class UnitTest.Zeze.Trans.TestLostRedo ^
+--select-class UnitTest.Zeze.Trans.TestMemorySize ^
+--select-class UnitTest.Zeze.Trans.TestNestProcedureModifyMapSet ^
+--select-class UnitTest.Zeze.Trans.TestProcedure ^
+--select-class UnitTest.Zeze.Trans.TestProcedureRedo ^
+--select-class UnitTest.Zeze.Trans.TestTable ^
+--select-class UnitTest.Zeze.Trans.TestTableKey ^
+--select-class UnitTest.Zeze.Trans.TestTableNest ^
+--select-class UnitTest.Zeze.Trans.TestTableNestAction ^
+--select-class UnitTest.Zeze.Trans.TestTid ^
+--select-class UnitTest.Zeze.Trans.TestTransactionLevelSerializable ^
+--select-class UnitTest.Zeze.Trans.TestWalkPage ^
+--select-class UnitTest.Zeze.Util.TestBloomFilter ^
+--select-class UnitTest.Zeze.Util.TestCert ^
+--select-class UnitTest.Zeze.Util.TestClassReloader ^
+--select-class UnitTest.Zeze.Util.TestConcurrentHashMapOrdered ^
+--select-class UnitTest.Zeze.Util.TestConsistentHash ^
+--select-class UnitTest.Zeze.Util.TestContainers ^
+--select-class UnitTest.Zeze.Util.TestFastLock ^
+--select-class UnitTest.Zeze.Util.TestFastPriorityQueue ^
+--select-class UnitTest.Zeze.Util.TestFewModifySortedMap ^
+--select-class UnitTest.Zeze.Util.TestJson ^
+--select-class UnitTest.Zeze.Util.TestJson5 ^
+--select-class UnitTest.Zeze.Util.TestJsonWriter ^
+--select-class UnitTest.Zeze.Util.TestJsonZeze ^
+--select-class UnitTest.Zeze.Util.TestPersistentAtomicLong ^
+--select-class UnitTest.Zeze.Util.TestSortedMap ^
+--select-class UnitTest.Zeze.Util.TestStr ^
+--select-class UnitTest.Zeze.Util.TestStringChecker ^
+--select-class UnitTest.Zeze.Util.TestThreadDiagnosable ^
+--select-class UnitTest.Zeze.Util.TestTimeCounter ^
+--select-class UnitTest.Zeze.Util.TestTimeThrottle ^
+--select-class Zezex.ModuleRedirectRank ^
+--select-class Zezex.TestGameTimer ^
+--select-class Zezex.TestOnline ^
 Zezex.TestRoleTimer
 
 pause

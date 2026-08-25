@@ -1,28 +1,28 @@
 package UnitTest.Zeze.Trans;
 
 import demo.Module1.BValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Transaction.*;
 
 public class TestTableNest {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
 
 	@Test
 	public final void testNest() throws Exception {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableRemove, "ProcTableRemove").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableAdd, "ProcTableAdd").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableRemove, "ProcTableRemove").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTableAdd, "ProcTableAdd").call());
 	}
 
 	private static long ProcTableRemove() {
@@ -32,11 +32,11 @@ public class TestTableNest {
 
 	private static long ProcTableAdd() throws Exception {
 		BValue v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
-		Assert.assertNotNull(v1);
-		Assert.assertNotEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").call());
+		Assertions.assertNotNull(v1);
+		Assertions.assertNotEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTableNest::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").call());
 		BValue v2 = demo.App.getInstance().demo_Module1.getTable1().get(4321L);
-		Assert.assertNotNull(v1);
-		Assert.assertEquals(v1, v2);
+		Assertions.assertNotNull(v1);
+		Assertions.assertEquals(v1, v2);
 		return Procedure.Success;
 	}
 

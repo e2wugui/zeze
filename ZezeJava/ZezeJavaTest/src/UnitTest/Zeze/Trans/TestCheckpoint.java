@@ -4,19 +4,19 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import demo.App;
 import demo.Module1.BValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("DataFlowIssue")
 public class TestCheckpoint {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -24,7 +24,7 @@ public class TestCheckpoint {
 	@Test
 	public final void testModeTable() {
 		/*
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().remove(1L);
 			App.Instance.demo_Module1.getTable1().remove(2L);
 			App.Instance.demo_Module1.getTable1().remove(3L);
@@ -37,21 +37,21 @@ public class TestCheckpoint {
 		System.out.println("2");
 		System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		*/
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(1L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt_1(222);
 			return 0L;
 		}, "12").call());
 		//System.out.println("3");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(3L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt_1(444);
 			return 0L;
 		}, "34").call());
 		//System.out.println("4");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.Instance.Zeze.newProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(2L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt_1(333);
 			return 0L;
@@ -64,22 +64,22 @@ public class TestCheckpoint {
 
 		var table = demo.App.getInstance().demo_Module1.getTable1();
 		var dbtable = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		Assert.assertNotNull(dbtable.find(table, 2L));
-		Assert.assertNotNull(dbtable.find(table, 4L));
-		Assert.assertNotNull(dbtable.find(table, 3L));
+		Assertions.assertNotNull(dbtable.find(table, 2L));
+		Assertions.assertNotNull(dbtable.find(table, 4L));
+		Assertions.assertNotNull(dbtable.find(table, 3L));
 	}
 
 	@Test
 	public final void testCp() throws Exception {
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call());
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call());
+		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(TestCheckpoint::ProcClear, "ProcClear").call());
+		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(this::ProcChange, "ProcChange").call());
 		demo.App.getInstance().Zeze.checkpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		var value = table.internalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().find(table, 56L);
-		Assert.assertNotNull(value);
+		Assertions.assertNotNull(value);
 		var bValueTrans = new BValue();
 		bValueTrans.decode(ByteBuffer.Wrap(bytesInTrans));
-		Assert.assertEquals(resetVersion(value), resetVersion(bValueTrans));
+		Assertions.assertEquals(resetVersion(value), resetVersion(bValueTrans));
 	}
 
 	private static ByteBuffer resetVersion(BValue value) throws ReflectiveOperationException {

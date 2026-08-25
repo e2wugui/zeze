@@ -7,7 +7,7 @@ import Zeze.Raft.LogSequence;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.BitConverter;
 import Zeze.Util.RocksDatabase;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
 public class TestRocksDb {

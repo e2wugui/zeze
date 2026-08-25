@@ -5,8 +5,8 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.ThreadDiagnosable;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestThreadDiagnosable {
 	@Test
@@ -24,7 +24,7 @@ public class TestThreadDiagnosable {
 					r.setResult(true);
 				}
 			}).name("TestThreadDiagnosable").run();
-			Assert.assertTrue(r.get());
+			Assertions.assertTrue(r.get());
 			//ThreadDiagnosable.stopDiagnose(); // 诊断是全局的，没有处理好多次启动重启，为了不影响其他测试，不做停止。
 		} finally {
 			ThreadDiagnosable.disableInterrupt = true;

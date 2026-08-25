@@ -8,10 +8,10 @@ import demo.Module1.BKuafu;
 import demo.Module1.BKuafuResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestOnz {
 	protected static final Logger logger = LogManager.getLogger(TestOnz.class);
@@ -19,7 +19,7 @@ public class TestOnz {
 	private final App zeze2 = new App();
 	private OnzServer onzServer;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 		var config2 = Config.load("./zeze_cluster_2.xml");
@@ -39,7 +39,7 @@ public class TestOnz {
 		onzServer.start();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		onzServer.stop();
 		zeze2.Stop();
@@ -58,8 +58,8 @@ public class TestOnz {
 		Thread.sleep(2000);
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
-		Assert.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
+		Assertions.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。
 		logger.info("after perform m1={} m2={}", txn.m1, txn.m2);
-		Assert.assertEquals(0, txn.m1 + txn.m2);
+		Assertions.assertEquals(0, txn.m1 + txn.m2);
 	}
 }

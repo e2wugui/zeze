@@ -11,8 +11,8 @@ import Zeze.Util.Random;
 import Zeze.Util.SortedMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestConsistentHash {
 	private static final Logger logger = LogManager.getLogger(TestConsistentHash.class);
@@ -21,7 +21,7 @@ public class TestConsistentHash {
 	public void testConsistentHash() throws IOException {
 		var consistentHash = new ConsistentHash<Integer>(null);
 
-		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
+		Assertions.assertNull(consistentHash.get(Integer.hashCode(1)));
 
 		consistentHash.add("1", 1);
 		logger.info("circleSize(1) = {}", consistentHash.circleSize());
@@ -77,10 +77,10 @@ public class TestConsistentHash {
 				consistentHash.get(Bean.hash64("3")),
 				consistentHash.get(Bean.hash64("4")));
 		/*/
-		Assert.assertEquals(consistentHash.get(Bean.hash32("1")), Integer.valueOf(1));
-		Assert.assertEquals(consistentHash.get(Bean.hash32("2")), Integer.valueOf(2));
-		Assert.assertEquals(consistentHash.get(Bean.hash32("3")), Integer.valueOf(2));
-		Assert.assertEquals(consistentHash.get(Bean.hash32("4")), Integer.valueOf(3));
+		Assertions.assertEquals(consistentHash.get(Bean.hash32("1")), Integer.valueOf(1));
+		Assertions.assertEquals(consistentHash.get(Bean.hash32("2")), Integer.valueOf(2));
+		Assertions.assertEquals(consistentHash.get(Bean.hash32("3")), Integer.valueOf(2));
+		Assertions.assertEquals(consistentHash.get(Bean.hash32("4")), Integer.valueOf(3));
 		// */
 		consistentHash.remove(1);
 		logger.info("circleSize(2,3,4) = {}", consistentHash.circleSize());
@@ -91,7 +91,7 @@ public class TestConsistentHash {
 		consistentHash.remove(4);
 		logger.info("circleSize() = {}", consistentHash.circleSize());
 
-		Assert.assertNull(consistentHash.get(Integer.hashCode(1)));
+		Assertions.assertNull(consistentHash.get(Integer.hashCode(1)));
 	}
 
 	@SuppressWarnings("LoggingSimilarMessage")
@@ -116,17 +116,17 @@ public class TestConsistentHash {
 					ch1.size(), ch1.circleKeySize(), ch1.circleSize(),
 					ch2.size(), ch2.circleKeySize(), ch2.circleSize(),
 					(System.nanoTime() - timeBegin) / 1_000_000);
-			Assert.assertEquals(ch1.size(), ch2.size());
+			Assertions.assertEquals(ch1.size(), ch2.size());
 			var s1 = ch1.toString();
 			var s2 = ch2.toString();
 			if (!s1.equals(s2)) {
 				logger.error("testStable: s1={}", s1);
 				logger.error("testStable: s2={}", s2);
-				Assert.fail();
+				Assertions.fail();
 			}
-			Assert.assertEquals(ch1.size(), ch2.size());
-			Assert.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
-			Assert.assertEquals(ch1.circleSize(), ch2.circleSize());
+			Assertions.assertEquals(ch1.size(), ch2.size());
+			Assertions.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
+			Assertions.assertEquals(ch1.circleSize(), ch2.circleSize());
 
 			timeBegin = System.nanoTime();
 
@@ -143,11 +143,11 @@ public class TestConsistentHash {
 			if (!s1.equals(s2)) {
 				logger.error("testStable: s1={}", s1);
 				logger.error("testStable: s2={}", s2);
-				Assert.fail();
+				Assertions.fail();
 			}
-			Assert.assertEquals(ch1.size(), ch2.size());
-			Assert.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
-			Assert.assertEquals(ch1.circleSize(), ch2.circleSize());
+			Assertions.assertEquals(ch1.size(), ch2.size());
+			Assertions.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
+			Assertions.assertEquals(ch1.circleSize(), ch2.circleSize());
 
 			for (int i = begin; i != begin + 1000; i++) {
 				ch1.remove(i);
@@ -162,14 +162,14 @@ public class TestConsistentHash {
 			if (!s1.equals("[]") || !s2.equals("[]")) {
 				logger.error("testStable: s1={}", s1);
 				logger.error("testStable: s2={}", s2);
-				Assert.fail();
+				Assertions.fail();
 			}
-			Assert.assertEquals(0, ch1.size());
-			Assert.assertEquals(0, ch1.circleKeySize());
-			Assert.assertEquals(0, ch1.circleSize());
-			Assert.assertEquals(0, ch2.size());
-			Assert.assertEquals(0, ch2.circleKeySize());
-			Assert.assertEquals(0, ch2.circleSize());
+			Assertions.assertEquals(0, ch1.size());
+			Assertions.assertEquals(0, ch1.circleKeySize());
+			Assertions.assertEquals(0, ch1.circleSize());
+			Assertions.assertEquals(0, ch2.size());
+			Assertions.assertEquals(0, ch2.circleKeySize());
+			Assertions.assertEquals(0, ch2.circleSize());
 		}
 	}
 }

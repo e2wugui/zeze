@@ -1,12 +1,13 @@
 package UnitTest.Zeze.Util;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import junit.framework.TestCase;
 
-public final class TestJson5 extends TestCase {
+public final class TestJson5 {
 	private int checkCount;
 
 	private void checkObj(String json5, String resJson) throws ReflectiveOperationException {
@@ -15,6 +16,8 @@ public final class TestJson5 extends TestCase {
 		assertEquals(resJson, res);
 		checkCount++;
 	}
+
+	@Test
 
 	public void testAll() throws ReflectiveOperationException {
 		checkObj("{'a':1}", "{a:1}");

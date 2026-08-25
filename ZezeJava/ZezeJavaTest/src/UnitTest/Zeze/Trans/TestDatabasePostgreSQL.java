@@ -10,11 +10,10 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabasePostgreSQL;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("CallToPrintStackTrace")
-public class TestDatabasePostgreSQL extends TestCase {
+public class TestDatabasePostgreSQL {
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {
 			Class.forName(driverClassName);
@@ -83,7 +82,7 @@ public class TestDatabasePostgreSQL extends TestCase {
 				trans.commit();
 			}
 		}
-		Assert.assertEquals(0, table.walk(TestDatabasePostgreSQL::PrintRecord));
+		Assertions.assertEquals(0, table.walk(TestDatabasePostgreSQL::PrintRecord));
 		{
 			try (var trans = sqlserver.beginTransaction()) {
 				{
@@ -107,19 +106,19 @@ public class TestDatabasePostgreSQL extends TestCase {
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
 			ByteBuffer value = table.find(key);
-			Assert.assertNotNull(value);
-			Assert.assertEquals(1, value.ReadInt());
-			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(1, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(2);
 			ByteBuffer value = table.find(key);
-			Assert.assertNotNull(value);
-			Assert.assertEquals(2, value.ReadInt());
-			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+			Assertions.assertNotNull(value);
+			Assertions.assertEquals(2, value.ReadInt());
+			Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		Assert.assertEquals(2, table.walk(TestDatabasePostgreSQL::PrintRecord));
+		Assertions.assertEquals(2, table.walk(TestDatabasePostgreSQL::PrintRecord));
 		System.out.println(table.getSizeApproximation());
 	}
 

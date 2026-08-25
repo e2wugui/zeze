@@ -5,12 +5,12 @@ import java.util.List;
 import Game.Equip.BEquipExtra;
 import Zeze.Collections.CsQueue;
 import demo.App;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestCsQueue {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
@@ -27,7 +27,7 @@ public class TestCsQueue {
 	}
 
 	private static void clear(CsQueue<BEquipExtra> csq) {
-		Assert.assertEquals(0, App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(0, App.getInstance().Zeze.newProcedure(() -> {
 			while (csq.poll() != null) {
 				// nothing.
 			}
@@ -49,7 +49,7 @@ public class TestCsQueue {
 			return 0;
 		}, "csq0.add").call();
 
-		Assert.assertEquals(List.of(0, 1, 2), walk(csq0));
+		Assertions.assertEquals(List.of(0, 1, 2), walk(csq0));
 
 		var csq1 = new CsQueue<>(qm, "TestCsQueue", 1, BEquipExtra.class, 100);
 		clear(csq1);
@@ -59,10 +59,10 @@ public class TestCsQueue {
 			csq1.add(new BEquipExtra(5, 5, 5));
 			return 0;
 		}, "csq1.add").call();
-		Assert.assertEquals(List.of(3, 4, 5), walk(csq1));
+		Assertions.assertEquals(List.of(3, 4, 5), walk(csq1));
 
 		csq0.splice(1, csq0.getLoadSerialNo());
-		Assert.assertEquals(List.of(), walk(csq1));
-		Assert.assertEquals(List.of(3, 4, 5, 0, 1, 2), walk(csq0));
+		Assertions.assertEquals(List.of(), walk(csq1));
+		Assertions.assertEquals(List.of(3, 4, 5, 0, 1, 2), walk(csq0));
 	}
 }

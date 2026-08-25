@@ -7,11 +7,10 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRocksDb;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import java.net.InetAddress;
 
-public class TestDatabaseRocksDB extends TestCase {
+public class TestDatabaseRocksDB {
 
 	public final void test1() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
@@ -36,7 +35,7 @@ public class TestDatabaseRocksDB extends TestCase {
 					trans.commit();
 				}
 			}
-			Assert.assertEquals(0, table.walk(TestDatabaseRocksDB::PrintRecord));
+			Assertions.assertEquals(0, table.walk(TestDatabaseRocksDB::PrintRecord));
 			{
 				try (var trans = db.beginTransaction()) {
 					{
@@ -60,19 +59,19 @@ public class TestDatabaseRocksDB extends TestCase {
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				ByteBuffer value = table.find(key);
-				Assert.assertNotNull(value);
-				Assert.assertEquals(1, value.ReadInt());
-				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+				Assertions.assertNotNull(value);
+				Assertions.assertEquals(1, value.ReadInt());
+				Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
 			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				ByteBuffer value = table.find(key);
-				Assert.assertNotNull(value);
-				Assert.assertEquals(2, value.ReadInt());
-				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+				Assertions.assertNotNull(value);
+				Assertions.assertEquals(2, value.ReadInt());
+				Assertions.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
-			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
+			Assertions.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.close();
 		}
@@ -89,7 +88,7 @@ public class TestDatabaseRocksDB extends TestCase {
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
 			var table = (Database.AbstractKVTable)db.openTable("test_1", Bean.hash32("test_1"));
-			Assert.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
+			Assertions.assertEquals(2, table.walk(TestDatabaseRocksDB::PrintRecord));
 		} finally {
 			db.close();
 		}

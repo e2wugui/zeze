@@ -30,10 +30,10 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
 import org.jetbrains.annotations.NotNull;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class TestNettyHttpServer {
 	private static Netty netty;
@@ -45,7 +45,7 @@ public class TestNettyHttpServer {
 		x.sendPlainText(HttpResponseStatus.OK, "fullBody");
 	}
 
-	@BeforeClass
+	@BeforeAll
 	public static void setUp() throws Exception {
 		Task.tryInitThreadPool();
 		netty = new Netty(1);
@@ -80,7 +80,7 @@ public class TestNettyHttpServer {
 		System.out.println("netty bind port " + port);
 	}
 
-	@AfterClass
+	@AfterAll
 	public static void tearDown() {
 		server.close();
 		netty.close();
@@ -165,10 +165,10 @@ public class TestNettyHttpServer {
 	public void testFullHttp() throws IOException, InterruptedException {
 		var res = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
 				.uri(URI.create("http://127.0.0.1:" + port + "/testFull")).GET().build(), h -> {
-			Assert.assertEquals(200, h.statusCode());
+			Assertions.assertEquals(200, h.statusCode());
 			return new HttpResponseStringBody();
 		});
-		Assert.assertEquals("fullBody", res.body());
+		Assertions.assertEquals("fullBody", res.body());
 	}
 
 	@Test
@@ -176,10 +176,10 @@ public class TestNettyHttpServer {
 		var res = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
 				.uri(URI.create("http://127.0.0.1:" + port + "/testStream"))
 				.POST(new HttpRequestStringBody("streamBody")).build(), h -> {
-			Assert.assertEquals(200, h.statusCode());
+			Assertions.assertEquals(200, h.statusCode());
 			return new HttpResponseStringBody();
 		});
-		Assert.assertEquals("streamBody", res.body());
+		Assertions.assertEquals("streamBody", res.body());
 	}
 
 	@Test
@@ -193,7 +193,7 @@ public class TestNettyHttpServer {
 					public CompletionStage<?> onText(WebSocket ws, CharSequence data, boolean last) {
 						sb.append(data);
 						if (last) {
-							Assert.assertEquals("webSocketText", sb.toString());
+							Assertions.assertEquals("webSocketText", sb.toString());
 							checked.set(true);
 							sb.setLength(0);
 							ws.sendClose(WebSocket.NORMAL_CLOSURE, "");
@@ -219,7 +219,7 @@ public class TestNettyHttpServer {
 			//noinspection BusyWait
 			Thread.sleep(100);
 		}
-		Assert.assertTrue(checked.get());
+		Assertions.assertTrue(checked.get());
 	}
 
 	public static void main(String[] args) throws Exception {

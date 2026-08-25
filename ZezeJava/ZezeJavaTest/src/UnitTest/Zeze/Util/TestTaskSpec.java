@@ -20,11 +20,11 @@ import Zeze.Util.TaskOneByOneByKey2;
 import Zeze.Util.TaskOneByOneByKeyLru;
 import Zeze.Util.TaskSpec;
 import demo.App;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestTaskSpec {
-	@org.junit.Before
+	@org.junit.jupiter.api.BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
 	}
@@ -33,12 +33,12 @@ public class TestTaskSpec {
 	public void testOfActionCall() {
 		var count = new AtomicInteger();
 		TaskSpec.ofAction(count::incrementAndGet).name("testOfActionCall").call();
-		Assert.assertEquals(1, count.get());
+		Assertions.assertEquals(1, count.get());
 		// call 吞掉异常
 		TaskSpec.ofAction(() -> {
 			throw new IllegalStateException("testOfActionCall");
 		}).call();
-		Assert.assertEquals(1, count.get());
+		Assertions.assertEquals(1, count.get());
 	}
 
 	@Test
@@ -46,8 +46,8 @@ public class TestTaskSpec {
 		var threadId = new AtomicLong();
 		var future = TaskSpec.ofAction(() -> threadId.set(Thread.currentThread().threadId()))
 				.dispatchMode(DispatchMode.Direct).submitNow();
-		Assert.assertTrue(future.isDone());
-		Assert.assertEquals(Thread.currentThread().threadId(), threadId.get());
+		Assertions.assertTrue(future.isDone());
+		Assertions.assertEquals(Thread.currentThread().threadId(), threadId.get());
 
 		// Direct 分支异常通过 Future 传播（TaskCompletionSource.get 抛 CompletionException）
 		var futureEx = TaskSpec.ofAction(() -> {
@@ -55,9 +55,9 @@ public class TestTaskSpec {
 		}).dispatchMode(DispatchMode.Direct).submitNow();
 		try {
 			futureEx.get(1, TimeUnit.SECONDS);
-			Assert.fail();
+			Assertions.fail();
 		} catch (java.util.concurrent.CompletionException e) {
-			Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
 		}
 	}
 
@@ -65,7 +65,7 @@ public class TestTaskSpec {
 	public void testOfActionRunNowDirect() {
 		var count = new AtomicInteger();
 		TaskSpec.ofAction(count::incrementAndGet).dispatchMode(DispatchMode.Direct).runNow();
-		Assert.assertEquals(1, count.get()); // Direct 立即在当前线程执行
+		Assertions.assertEquals(1, count.get()); // Direct 立即在当前线程执行
 	}
 
 	@Test
@@ -74,8 +74,8 @@ public class TestTaskSpec {
 		var future = TaskSpec.ofAction(() -> threadName.set(Thread.currentThread().getName()))
 				.name("testOfActionSubmitNowCritical").dispatchMode(DispatchMode.Critical).submitNow();
 		future.get(10, TimeUnit.SECONDS);
-		Assert.assertNotNull(threadName.get());
-		Assert.assertTrue(threadName.get(), threadName.get().startsWith("ZezeCriticalPool"));
+		Assertions.assertNotNull(threadName.get());
+		Assertions.assertTrue(threadName.get().startsWith("ZezeCriticalPool"), threadName.get());
 	}
 
 	@Test
@@ -84,7 +84,7 @@ public class TestTaskSpec {
 		TaskSpec.ofAction(() -> done.setResult(Thread.currentThread().threadId()))
 				.name("testOfActionRunNow").runNow();
 		long poolThreadId = done.get(10, TimeUnit.SECONDS);
-		Assert.assertNotEquals(Thread.currentThread().threadId(), poolThreadId);
+		Assertions.assertNotEquals(Thread.currentThread().threadId(), poolThreadId);
 	}
 
 	@Test
@@ -93,8 +93,8 @@ public class TestTaskSpec {
 		ScheduledFuture<?> future = TaskSpec.ofAction(() -> done.setResult(true))
 				.name("testOfActionScheduleNow")
 				.scheduleNow(50);
-		Assert.assertFalse(future.isDone());
-		Assert.assertTrue(done.get(10, TimeUnit.SECONDS));
+		Assertions.assertFalse(future.isDone());
+		Assertions.assertTrue(done.get(10, TimeUnit.SECONDS));
 	}
 
 	@Test
@@ -102,7 +102,7 @@ public class TestTaskSpec {
 		// 事务外：与 scheduleNow 等价
 		var done = new TaskCompletionSource<Boolean>();
 		TaskSpec.ofAction(() -> done.setResult(true)).name("testOfActionSchedule").schedule(10);
-		Assert.assertTrue(done.get(10, TimeUnit.SECONDS));
+		Assertions.assertTrue(done.get(10, TimeUnit.SECONDS));
 	}
 
 	@Test
@@ -116,33 +116,33 @@ public class TestTaskSpec {
 			while (count.get() < 3 && System.currentTimeMillis() - begin < 10_000)
 				//noinspection BusyWait
 				Thread.sleep(50);
-			Assert.assertTrue(count.get() >= 3);
+			Assertions.assertTrue(count.get() >= 3);
 		} finally {
 			future.cancel(false);
 		}
-		Assert.assertTrue(future.isCancelled());
+		Assertions.assertTrue(future.isCancelled());
 		var countAfterCancel = count.get();
 		Thread.sleep(200);
-		Assert.assertEquals(countAfterCancel, count.get()); // cancel 之后不再执行
+		Assertions.assertEquals(countAfterCancel, count.get()); // cancel 之后不再执行
 	}
 
 	@Test
 	public void testOfActionScheduleAtNow() {
 		var now = java.util.Calendar.getInstance();
-		var future = TaskSpec.ofAction(Assert::fail)
+		var future = TaskSpec.ofAction(Assertions::fail)
 				.name("testOfActionScheduleAtNow")
 				.scheduleAtNow(now.get(java.util.Calendar.HOUR_OF_DAY),
 						(now.get(java.util.Calendar.MINUTE) + 1) % 60, 60_000);
-		Assert.assertFalse(future.isDone());
-		Assert.assertTrue(future.cancel(false));
-		Assert.assertTrue(future.isCancelled());
+		Assertions.assertFalse(future.isDone());
+		Assertions.assertTrue(future.cancel(false));
+		Assertions.assertTrue(future.isCancelled());
 	}
 
 	@Test
 	public void testOfFuncCall() {
-		Assert.assertEquals(123L, (long)TaskSpec.ofFunc(() -> 123L).name("testOfFuncCall").call());
+		Assertions.assertEquals(123L, (long)TaskSpec.ofFunc(() -> 123L).name("testOfFuncCall").call());
 		// 异常返回 Procedure.Exception
-		Assert.assertEquals(Procedure.Exception, (long)TaskSpec.ofFunc(() -> {
+		Assertions.assertEquals(Procedure.Exception, (long)TaskSpec.ofFunc(() -> {
 			throw new IllegalStateException("testOfFuncCall");
 		}).call());
 	}
@@ -152,18 +152,18 @@ public class TestTaskSpec {
 		var handled = new AtomicLong(-1);
 		// p == null => isRequestSaved，结果非0时回调 errorHandle
 		long r = ProtocolDispatch.ofFunc(() -> 1L, null).onError((p, code) -> handled.set(code)).call();
-		Assert.assertEquals(1L, r);
-		Assert.assertEquals(1L, handled.get());
+		Assertions.assertEquals(1L, r);
+		Assertions.assertEquals(1L, handled.get());
 		// 结果为 0 不回调
 		handled.set(-1);
-		Assert.assertEquals(0L, (long)ProtocolDispatch.ofFunc(() -> 0L, null).onError((p, code) -> handled.set(code)).call());
-		Assert.assertEquals(-1L, handled.get());
+		Assertions.assertEquals(0L, (long)ProtocolDispatch.ofFunc(() -> 0L, null).onError((p, code) -> handled.set(code)).call());
+		Assertions.assertEquals(-1L, handled.get());
 	}
 
 	@Test
 	public void testOfFuncSubmitNowDirect() throws Exception {
 		var future = TaskSpec.ofFunc(() -> 456L).dispatchMode(DispatchMode.Direct).submitNow();
-		Assert.assertEquals(456L, (long)future.get(1, TimeUnit.SECONDS));
+		Assertions.assertEquals(456L, (long)future.get(1, TimeUnit.SECONDS));
 	}
 
 	@Test
@@ -173,13 +173,13 @@ public class TestTaskSpec {
 			done.setResult(true);
 			return 0L;
 		}).name("testOfFuncRunNow").runNow();
-		Assert.assertTrue(done.get(10, TimeUnit.SECONDS));
+		Assertions.assertTrue(done.get(10, TimeUnit.SECONDS));
 	}
 
 	@Test
 	public void testOfFunc0ScheduleNow() throws Exception {
 		Future<String> future = TaskSpec.ofFunc0(() -> "ok").scheduleNow(10);
-		Assert.assertEquals("ok", future.get(10, TimeUnit.SECONDS));
+		Assertions.assertEquals("ok", future.get(10, TimeUnit.SECONDS));
 
 		// 异常经 Future 传播
 		Future<Long> futureEx = TaskSpec.<Long>ofFunc0(() -> {
@@ -187,9 +187,9 @@ public class TestTaskSpec {
 		}).scheduleNow(10);
 		try {
 			futureEx.get(10, TimeUnit.SECONDS);
-			Assert.fail();
+			Assertions.fail();
 		} catch (ExecutionException e) {
-			Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
 		}
 	}
 
@@ -197,35 +197,35 @@ public class TestTaskSpec {
 	public void testOfFunc0SubmitNow() throws Exception {
 		// ofFunc0 获得池调度动词（新增能力）：返回值与异常经 Future 传播
 		Future<String> future = TaskSpec.ofFunc0(() -> "ok").submitNow();
-		Assert.assertEquals("ok", future.get(10, TimeUnit.SECONDS));
+		Assertions.assertEquals("ok", future.get(10, TimeUnit.SECONDS));
 
 		Future<Long> futureEx = TaskSpec.<Long>ofFunc0(() -> {
 			throw new IllegalStateException("ofFunc0.submitNow");
 		}).submitNow();
 		try {
 			futureEx.get(10, TimeUnit.SECONDS);
-			Assert.fail();
+			Assertions.fail();
 		} catch (ExecutionException e) {
-			Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+			Assertions.assertTrue(e.getCause() instanceof IllegalStateException);
 		}
 	}
 
 	@Test
 	public void testOfProcedure() throws Exception {
 		App.Instance.Start();
-		Assert.assertEquals(0L, (long)TaskSpec.ofProcedure(
+		Assertions.assertEquals(0L, (long)TaskSpec.ofProcedure(
 				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.call")).call());
 
 		var future = TaskSpec.ofProcedure(
 				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.submitNow")).submitNow();
-		Assert.assertEquals(0L, (long)future.get(10, TimeUnit.SECONDS));
+		Assertions.assertEquals(0L, (long)future.get(10, TimeUnit.SECONDS));
 
 		// outProtocol 分支（value 未被过程设置时 from 为 null）
 		var out = new OutObject<Zeze.Net.Protocol<?>>();
-		Assert.assertEquals(0L, (long)ProtocolDispatch.ofProcedure(
+		Assertions.assertEquals(0L, (long)ProtocolDispatch.ofProcedure(
 				App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.ofProcedure.outProtocol"))
 				.outProtocol(out).call());
-		Assert.assertNull(out.value);
+		Assertions.assertNull(out.value);
 	}
 
 	@Test
@@ -249,16 +249,16 @@ public class TestTaskSpec {
 			}
 			return 0L;
 		}, "testRunDeferInTransaction").call();
-		Assert.assertEquals(0L, result);
+		Assertions.assertEquals(0L, result);
 		// 提交后 deferred 被异步执行
 		long begin = System.currentTimeMillis();
 		while (deferredThread.get() == 0 && System.currentTimeMillis() - begin < 10_000)
 			//noinspection BusyWait
 			Thread.sleep(20);
 		synchronized (order) {
-			Assert.assertEquals(java.util.List.of("inTxn", "deferred"), order);
+			Assertions.assertEquals(java.util.List.of("inTxn", "deferred"), order);
 		}
-		Assert.assertNotEquals(txnThread.get(), deferredThread.get());
+		Assertions.assertNotEquals(txnThread.get(), deferredThread.get());
 	}
 
 	@Test
@@ -271,11 +271,11 @@ public class TestTaskSpec {
 				called.setResult(true);
 				return 0L;
 			}, "TestTaskSpec.deferredProc")).run();
-			Assert.assertFalse(called.isDone());
+			Assertions.assertFalse(called.isDone());
 			return 0L;
 		}, "testOfProcedureRunDeferInTransaction").call();
-		Assert.assertEquals(0L, result);
-		Assert.assertTrue(called.get(10, TimeUnit.SECONDS));
+		Assertions.assertEquals(0L, result);
+		Assertions.assertTrue(called.get(10, TimeUnit.SECONDS));
 	}
 
 	@Test
@@ -298,12 +298,12 @@ public class TestTaskSpec {
 			}
 			return 0L;
 		}, "testRunDirectDeferInTransaction").call();
-		Assert.assertEquals(0L, result);
+		Assertions.assertEquals(0L, result);
 		// Direct 延迟时在 commit 回调中于提交线程同步执行，call() 返回时已执行完，无需等待
 		synchronized (order) {
-			Assert.assertEquals(java.util.List.of("inTxn", "deferred"), order);
+			Assertions.assertEquals(java.util.List.of("inTxn", "deferred"), order);
 		}
-		Assert.assertEquals(txnThread.get(), deferredThread.get());
+		Assertions.assertEquals(txnThread.get(), deferredThread.get());
 	}
 
 	@Test
@@ -314,13 +314,13 @@ public class TestTaskSpec {
 			try {
 				TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.guardProc"))
 						.dispatchMode(DispatchMode.Direct).run();
-				Assert.fail();
+				Assertions.fail();
 			} catch (IllegalArgumentException expected) {
 				// 预期拒绝
 			}
 			return 0L;
 		}, "testRunDirectProcedureInTxnRejected").call();
-		Assert.assertEquals(0L, result);
+		Assertions.assertEquals(0L, result);
 	}
 
 	// ========== fail-fast 校验 ==========
@@ -332,12 +332,12 @@ public class TestTaskSpec {
 		spec.call();
 		try {
 			spec.name("x");
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalStateException ignored) {
 		}
 		try {
 			spec.run();
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalStateException ignored) {
 		}
 	}
@@ -347,20 +347,20 @@ public class TestTaskSpec {
 		try {
 			TaskSpec.ofAction(() -> {
 			}).dispatchMode(DispatchMode.Critical).call();
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 		try {
 			TaskSpec.ofAction(() -> {
 			}).timeout(1000).call();
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 		try {
 			TaskSpec.ofAction(() -> {
 			}).onCancel(() -> {
 			}).call();
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 	}
@@ -370,14 +370,14 @@ public class TestTaskSpec {
 		try {
 			TaskSpec.ofAction(() -> {
 			}).dispatchMode(DispatchMode.Critical).scheduleNow(10);
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 		try {
 			TaskSpec.ofAction(() -> {
 			}).onCancel(() -> {
 			}).schedule(10);
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 	}
@@ -385,7 +385,7 @@ public class TestTaskSpec {
 	@Test
 	public void testScheduleOfFuncAndProcedure() throws Exception {
 		// FuncLong 载荷：单次触发的结果码经 Future 传播
-		Assert.assertEquals(7L, (long)TaskSpec.ofFunc(() -> 7L).name("testScheduleFunc").scheduleNow(10).get());
+		Assertions.assertEquals(7L, (long)TaskSpec.ofFunc(() -> 7L).name("testScheduleFunc").scheduleNow(10).get());
 		// 周期形态结果丢弃，仅验证不抛异常、确实触发
 		var count = new AtomicLong();
 		var period = TaskSpec.ofFunc(() -> {
@@ -395,7 +395,7 @@ public class TestTaskSpec {
 		try {
 			for (int i = 0; i < 100 && count.get() < 2; i++)
 				Thread.sleep(20);
-			Assert.assertTrue(count.get() >= 2);
+			Assertions.assertTrue(count.get() >= 2);
 		} finally {
 			period.cancel(true);
 		}
@@ -404,7 +404,7 @@ public class TestTaskSpec {
 		var procCount = new AtomicLong();
 		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(procCount::incrementAndGet,
 				"TestTaskSpec.scheduleProc")).scheduleNow(10).get();
-		Assert.assertEquals(1L, procCount.get());
+		Assertions.assertEquals(1L, procCount.get());
 	}
 
 	@Test
@@ -413,7 +413,7 @@ public class TestTaskSpec {
 		try {
 			TaskSpec.ofAction(() -> {
 			}).timeout(1000).executeOneByOne(1, oo);
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 	}
@@ -446,8 +446,8 @@ public class TestTaskSpec {
 		for (int i = 0; i < 1000; i++)
 			TaskSpec.ofAction(() -> count[0]++).executeOneByOne(1, oo);
 		TaskSpec.ofAction(() -> done.setResult(true)).executeOneByOne(1, oo);
-		Assert.assertTrue(done.get(10, TimeUnit.SECONDS));
-		Assert.assertEquals(1000, count[0]);
+		Assertions.assertTrue(done.get(10, TimeUnit.SECONDS));
+		Assertions.assertEquals(1000, count[0]);
 	}
 
 	/**
@@ -494,7 +494,7 @@ public class TestTaskSpec {
 				.name("testOneByOneModeCritical").dispatchMode(DispatchMode.Critical)
 				.executeOneByOne("criticalKey", oo);
 		var name = threadName.get(10, TimeUnit.SECONDS);
-		Assert.assertTrue(name, name.startsWith("ZezeCriticalPool"));
+		Assertions.assertTrue(name.startsWith("ZezeCriticalPool"), name);
 	}
 
 	/**
@@ -513,10 +513,10 @@ public class TestTaskSpec {
 		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.OneByOneProcActionName"))
 				.executeOneByOne("k4", oo);
 		var dump = oo.toString();
-		Assert.assertTrue(dump, dump.contains("$Lambda")); // 默认任务名 = lambda 类名
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.OneByOneNamedAction"));
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.OneByOneNamedFunc"));
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.OneByOneProcActionName")); // Procedure 固定 getActionName
+		Assertions.assertTrue(dump.contains("$Lambda"), dump); // 默认任务名 = lambda 类名
+		Assertions.assertTrue(dump.contains("TestTaskSpec.OneByOneNamedAction"), dump);
+		Assertions.assertTrue(dump.contains("TestTaskSpec.OneByOneNamedFunc"), dump);
+		Assertions.assertTrue(dump.contains("TestTaskSpec.OneByOneProcActionName"), dump); // Procedure 固定 getActionName
 	}
 
 	/**
@@ -531,8 +531,8 @@ public class TestTaskSpec {
 		TaskSpec.ofAction(ran::incrementAndGet)
 				.onCancel(canceled::incrementAndGet)
 				.executeOneByOne("k", oo); // shutdown 后提交：onCancel 由当前线程同步执行
-		Assert.assertEquals(1, canceled.get());
-		Assert.assertEquals(0, ran.get());
+		Assertions.assertEquals(1, canceled.get());
+		Assertions.assertEquals(0, ran.get());
 	}
 
 	/**
@@ -561,7 +561,7 @@ public class TestTaskSpec {
 			TaskSpec.ofAction(() -> {
 			}).onCancel(() -> {
 			}).executeOneByOne(1, oo);
-			Assert.fail();
+			Assertions.fail();
 		} catch (IllegalArgumentException ignored) {
 		}
 
@@ -573,9 +573,9 @@ public class TestTaskSpec {
 		TaskSpec.ofProcedure(App.Instance.Zeze.newProcedure(() -> 0L, "TestTaskSpec.Key2ProcActionName"))
 				.executeOneByOne("k3", noop);
 		var dump = noop.toString();
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.Key2NamedAction"));
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.Key2NamedFunc0"));
-		Assert.assertTrue(dump, dump.contains("TestTaskSpec.Key2ProcActionName"));
+		Assertions.assertTrue(dump.contains("TestTaskSpec.Key2NamedAction"), dump);
+		Assertions.assertTrue(dump.contains("TestTaskSpec.Key2NamedFunc0"), dump);
+		Assertions.assertTrue(dump.contains("TestTaskSpec.Key2ProcActionName"), dump);
 	}
 
 	/**
@@ -612,7 +612,7 @@ public class TestTaskSpec {
 		while (counter.get() < expected && System.currentTimeMillis() - begin < 10_000)
 			//noinspection BusyWait
 			Thread.sleep(10);
-		Assert.assertEquals(expected, counter.get());
+		Assertions.assertEquals(expected, counter.get());
 	}
 
 	public static void main(String[] args) throws Exception {

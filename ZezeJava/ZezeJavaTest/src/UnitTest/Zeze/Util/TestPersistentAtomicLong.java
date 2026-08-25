@@ -1,7 +1,7 @@
 package UnitTest.Zeze.Util;
+import org.junit.jupiter.api.Test;
 
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
@@ -11,7 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 @SuppressWarnings("CallToPrintStackTrace")
-public class TestPersistentAtomicLong extends TestCase {
+public class TestPersistentAtomicLong {
+	@Test
 	public void testConcurrent() {
 		Task.tryInitThreadPool();
 
@@ -29,11 +30,11 @@ public class TestPersistentAtomicLong extends TestCase {
 		try {
 			for (int i = 0; i < 1000; ++i) {
 				var n = p.next();
-				Assert.assertNull(allocs.put(n, n));
+				Assertions.assertNull(allocs.put(n, n));
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			Assert.fail();
+			Assertions.fail();
 		}
 	}
 }

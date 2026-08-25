@@ -2,12 +2,12 @@ package UnitTest.Zeze.Trans;
 
 import com.alibaba.fastjson2.JSONObject;
 import demo.App;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestJsonVar {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 	}
@@ -22,7 +22,7 @@ public class TestJsonVar {
 		App.getInstance().Zeze.newProcedure(() -> {
 			var bValue = App.getInstance().demo_Module1.getTable1().getOrAdd(7678L);
 			System.out.println(bValue.getJsonObject());
-			Assert.assertEquals("{\"key\":\"value\"}", bValue.getJsonObject());
+			Assertions.assertEquals("{\"key\":\"value\"}", bValue.getJsonObject());
 			return 0;
 		}, "jsonObject.get").call();
 	}
@@ -44,7 +44,7 @@ public class TestJsonVar {
 		App.getInstance().Zeze.newProcedure(() -> {
 			var bValue = App.getInstance().demo_Module1.getTable1().getOrAdd(7678L);
 			System.out.println(bValue.getJsonArray());
-			Assert.assertEquals("[{\"key\":\"value\"}]", bValue.getJsonArray());
+			Assertions.assertEquals("[{\"key\":\"value\"}]", bValue.getJsonArray());
 			return 0;
 		}, "jsonArray.get").call();
 	}

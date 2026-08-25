@@ -2,12 +2,12 @@ package UnitTest.Zeze.Trans;
 
 import demo.App;
 import demo.Module1.BSimple;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestSortedMap {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.getInstance().Start();
 	}
@@ -33,8 +33,8 @@ public class TestSortedMap {
 		App.Instance.getZeze().newProcedure(
 			() -> {
 				var r = App.Instance.demo_Module1.getTable1().getOrAdd(9182394L);
-				Assert.assertEquals(1, r.getSortedmap1().get(1).intValue());
-				Assert.assertEquals(new BSimple(), r.getSortedmap2().get(1));
+				Assertions.assertEquals(1, r.getSortedmap1().get(1).intValue());
+				Assertions.assertEquals(new BSimple(), r.getSortedmap2().get(1));
 				return 0;
 			},
 			"removeSortedMapRecord"
@@ -51,8 +51,8 @@ public class TestSortedMap {
 		App.Instance.getZeze().newProcedure(
 			() -> {
 				var r = App.Instance.demo_Module1.getTable1().getOrAdd(9182394L);
-				Assert.assertTrue(r.getSortedmap1().isEmpty());
-				Assert.assertTrue(r.getSortedmap2().isEmpty());
+				Assertions.assertTrue(r.getSortedmap1().isEmpty());
+				Assertions.assertTrue(r.getSortedmap2().isEmpty());
 				return 0;
 			},
 			"removeSortedMapRecord"

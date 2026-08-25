@@ -7,7 +7,7 @@ import Zeze.MQ.MQConsumer;
 import Zeze.MQ.MQManager;
 import Zeze.MQ.MQProducer;
 import Zeze.Util.Task;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestMQ {
 	@Test

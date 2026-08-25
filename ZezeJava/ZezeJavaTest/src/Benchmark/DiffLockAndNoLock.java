@@ -5,9 +5,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.RocksDatabase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
 public class DiffLockAndNoLock {
@@ -16,13 +16,13 @@ public class DiffLockAndNoLock {
 	final AtomicLong atomicKey = new AtomicLong();
 	final ReentrantLock lock = new ReentrantLock();
 
-	@Before
+	@BeforeEach
 	public void before() throws RocksDBException {
 		db = new Zeze.Util.RocksDatabase("DiffLockAndNoLock");
 		table = db.getOrAddTable("testDiff");
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		db.close();
 	}

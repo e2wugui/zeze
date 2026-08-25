@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,8 +19,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAKey;
 import java.util.Date;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
 import sun.security.x509.CertificateSerialNumber;
@@ -32,7 +32,7 @@ import sun.security.x509.X509CertInfo;
 import static Zeze.Util.Cert.*;
 
 // 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
-public class TestCert extends TestCase {
+public class TestCert {
 	private static final int RSA_BLOCK_SIZE = 2048 / 8; // 256
 	private static final int AES_BLOCK_SIZE = 128 / 8; // 16
 	private static final int AES_KEY_SIZE = 256 / 8; // 32
@@ -67,6 +67,8 @@ public class TestCert extends TestCase {
 		keyStore.store(outputStream, passwd != null ? passwd.toCharArray() : null);
 	}
 
+	@Test
+
 	public void testAll() throws Exception {
 		var pkcs12File = "test.ks";
 		var passwd = "123";
@@ -87,15 +89,15 @@ public class TestCert extends TestCase {
 		if (new File("signature").exists()) {
 			var signature = Files.readAllBytes(Path.of("signature"));
 			var verify = verifySignRsa(publicKey, data, signature);
-			Assert.assertEquals(RSA_BLOCK_SIZE, signature.length);
-			Assert.assertTrue(verify);
+			Assertions.assertEquals(RSA_BLOCK_SIZE, signature.length);
+			Assertions.assertTrue(verify);
 		}
 
 		var signature2 = signRsa(privateKey, data);
 		System.out.println("RSA sign.length=" + signature2.length);
 		var verify2 = verifySignRsa(publicKey, data, signature2);
-		Assert.assertEquals(RSA_BLOCK_SIZE, signature2.length);
-		Assert.assertTrue(verify2);
+		Assertions.assertEquals(RSA_BLOCK_SIZE, signature2.length);
+		Assertions.assertTrue(verify2);
 
 		var aesKey = generateAesKey();
 		var aesKeyData = aesKey.getEncoded();
@@ -105,16 +107,16 @@ public class TestCert extends TestCase {
 		t = System.nanoTime();
 		var aesKeyDec = decryptRsa(privateKey, aesKeyEnc);
 		System.out.println("RSA decrypt " + (System.nanoTime() - t) + " ns");
-		Assert.assertEquals(RSA_BLOCK_SIZE, aesKeyEnc.length);
-		Assert.assertEquals(AES_KEY_SIZE, aesKeyDec.length);
-		Assert.assertArrayEquals(aesKeyData, aesKeyDec);
+		Assertions.assertEquals(RSA_BLOCK_SIZE, aesKeyEnc.length);
+		Assertions.assertEquals(AES_KEY_SIZE, aesKeyDec.length);
+		Assertions.assertArrayEquals(aesKeyData, aesKeyDec);
 
 		var iv = generateAesIv();
 		var dataEnc = encryptAes(aesKey, iv, data);
 		var dataDec = decryptAes(aesKey, iv, dataEnc);
-		Assert.assertEquals(AES_BLOCK_SIZE, dataEnc.length);
-		Assert.assertEquals(data.length, dataDec.length);
-		Assert.assertArrayEquals(data, dataDec);
+		Assertions.assertEquals(AES_BLOCK_SIZE, dataEnc.length);
+		Assertions.assertEquals(data.length, dataDec.length);
+		Assertions.assertArrayEquals(data, dataDec);
 
 //		var aesKeyDecWithPadding = decryptRsaNoPadding(privateKey, aesKeyEnc);
 //		System.out.println("d1 = " + BitConverter.toString(aesKeyDecWithPadding));
@@ -133,21 +135,21 @@ public class TestCert extends TestCase {
 		var encodedPublicKey = keyPair.getPublic().getEncoded();
 		System.out.println("RSA pubKey.encodeSize=" + encodedPublicKey.length);
 		publicKey = loadRsaPublicKey(encodedPublicKey);
-		Assert.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
+		Assertions.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
 		var encodedPrivateKey = keyPair.getPrivate().getEncoded();
 		System.out.println("RSA priKey.encodeSize=" + encodedPrivateKey.length);
 		privateKey = loadRsaPrivateKey(encodedPrivateKey);
-		Assert.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
-		Assert.assertEquals(((RSAKey)publicKey).getModulus(), ((RSAKey)privateKey).getModulus());
+		Assertions.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
+		Assertions.assertEquals(((RSAKey)publicKey).getModulus(), ((RSAKey)privateKey).getModulus());
 
 		var cert = getCertificate(keyStore, alias);
 		var certData = cert.getEncoded();
 		cert = loadCertificate(certData);
-		Assert.assertArrayEquals(certData, cert.getEncoded());
+		Assertions.assertArrayEquals(certData, cert.getEncoded());
 
 		var pkcs1 = exportRsaPublicKeyToPkcs1(keyPair.getPublic());
 		var pubKey = loadRsaPublicKeyByPkcs1(pkcs1);
-		Assert.assertArrayEquals(keyPair.getPublic().getEncoded(), pubKey.getEncoded());
+		Assertions.assertArrayEquals(keyPair.getPublic().getEncoded(), pubKey.getEncoded());
 
 //		saveKeyStore(new FileOutputStream("save.ks"), "123456", "test", keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
 
@@ -157,16 +159,16 @@ public class TestCert extends TestCase {
 		encodedPublicKey = keyPair.getPublic().getEncoded();
 		System.out.println("EC  pubKey.encodeSize=" + encodedPublicKey.length);
 		publicKey = loadEcPublicKey(encodedPublicKey);
-		Assert.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
+		Assertions.assertArrayEquals(encodedPublicKey, publicKey.getEncoded());
 		encodedPrivateKey = keyPair.getPrivate().getEncoded();
 		System.out.println("EC  priKey.encodeSize=" + encodedPrivateKey.length);
 		privateKey = loadEcPrivateKey(encodedPrivateKey);
-		Assert.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
+		Assertions.assertArrayEquals(encodedPrivateKey, privateKey.getEncoded());
 
 		signature2 = signEc(privateKey, data);
 		System.out.println("EC  sign.length=" + signature2.length);
 		verify2 = verifySignEc(publicKey, data, signature2);
-		Assert.assertTrue(verify2);
+		Assertions.assertTrue(verify2);
 	}
 
 	public static void main(String[] args) throws Exception {

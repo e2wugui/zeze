@@ -1,9 +1,10 @@
 package UnitTest.Zeze.Util;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Util.FewModifySortedMap;
-import junit.framework.TestCase;
 
-public class TestFewModifySortedMap extends TestCase {
+public class TestFewModifySortedMap {
+	@Test
 	public void test1() {
 		var sortedMap = new FewModifySortedMap<String, String>();
 		sortedMap.putIfAbsent("/", "");

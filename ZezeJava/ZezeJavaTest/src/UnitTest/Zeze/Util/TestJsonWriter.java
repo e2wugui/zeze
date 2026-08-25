@@ -3,8 +3,8 @@ package UnitTest.Zeze.Util;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("JavaPrintToLogpoint")
 public class TestJsonWriter {
@@ -254,7 +254,7 @@ public class TestJsonWriter {
 		} catch (Exception e) {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();
-			Assert.fail(e.getMessage());
+			Assertions.fail(e.getMessage());
 		}
 	}
 

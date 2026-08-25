@@ -3,21 +3,21 @@ package UnitTest.Zeze.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Procedure;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestQueue {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -33,10 +33,10 @@ public class TestQueue {
 				queue.add(bean);
 			}
 			var bean = queue.peek();
-			Assert.assertEquals(0, bean.getI());
+			Assertions.assertEquals(0, bean.getI());
 			return Procedure.Success;
 		}, "test1_QueueAdd").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -46,11 +46,11 @@ public class TestQueue {
 		var i = new AtomicInteger(0);
 		int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 		queue.walk(((key, value) -> {
-			Assert.assertTrue(i.get() < 10);
-			Assert.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
+			Assertions.assertTrue(i.get() < 10);
+			Assertions.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
 			return true;
 		}));
-		Assert.assertEquals(10, i.get());
+		Assertions.assertEquals(10, i.get());
 	}
 
 	@Test
@@ -60,12 +60,12 @@ public class TestQueue {
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 0; i < 10; i++) {
 				var bean = queue.pop();
-				Assert.assertEquals(bean.getI(), i);
+				Assertions.assertEquals(bean.getI(), i);
 			}
-			Assert.assertTrue(queue.isEmpty());
+			Assertions.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test2_QueuePop").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -79,10 +79,10 @@ public class TestQueue {
 				queue.push(bean);
 			}
 			var bean = queue.peek();
-			Assert.assertEquals(9, bean.getI());
+			Assertions.assertEquals(9, bean.getI());
 			return Procedure.Success;
 		}, "test3_QueuePush").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 
 	@Test
@@ -92,11 +92,11 @@ public class TestQueue {
 		var i = new AtomicInteger(0);
 		int[] arr = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 		queue.walk(((key, value) -> {
-			Assert.assertTrue(i.get() < 10);
-			Assert.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
+			Assertions.assertTrue(i.get() < 10);
+			Assertions.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
 			return true;
 		}));
-		Assert.assertEquals(10, i.get());
+		Assertions.assertEquals(10, i.get());
 	}
 
 	@Test
@@ -106,11 +106,11 @@ public class TestQueue {
 			var queue = queueModule.open("test1", BMyBean.class);
 			for (int i = 9; i >= 0; i--) {
 				var bean = queue.pop();
-				Assert.assertEquals(bean.getI(), i);
+				Assertions.assertEquals(bean.getI(), i);
 			}
-			Assert.assertTrue(queue.isEmpty());
+			Assertions.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test4_QueuePop").call();
-		Assert.assertEquals(Procedure.Success, ret);
+		Assertions.assertEquals(Procedure.Success, ret);
 	}
 }

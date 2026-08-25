@@ -10,18 +10,18 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.TaskSpec;
 import demo.App;
 import demo.Module1.BValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestLostRedo {
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		App.Instance.Start();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		//App.Instance.Stop();
 	}
@@ -54,7 +54,7 @@ public class TestLostRedo {
 		var v1 = App.Instance.demo_Module1.getTable1().get(key);
 		if (null != v1) {
 			for (var lkey : v1.getLongList())
-				Assert.assertNotEquals(null, App.Instance.demo_Module1.getTable3().get(lkey));
+				Assertions.assertNotEquals(null, App.Instance.demo_Module1.getTable3().get(lkey));
 		}
 		return 0;
 	}
@@ -91,7 +91,7 @@ public class TestLostRedo {
 	private long autoKeyConflict() {
 		runTimes.incrementAndGet();
 		var key = App.Instance.Zeze.getAutoKey("conflict.autokey").nextId();
-		Transaction.whileCommit(() -> Assert.assertNull(autos.putIfAbsent(key, key)));
+		Transaction.whileCommit(() -> Assertions.assertNull(autos.putIfAbsent(key, key)));
 		return 0;
 	}
 
@@ -121,7 +121,7 @@ public class TestLostRedo {
 		for (var future : futures)
 			future.get();
 
-		Assert.assertEquals(count, insertOks.get());
+		Assertions.assertEquals(count, insertOks.get());
 		System.out.println("insert funTimes=" + runTimes.get());
 	}
 

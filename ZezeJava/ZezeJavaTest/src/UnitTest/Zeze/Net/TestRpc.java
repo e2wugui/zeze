@@ -7,10 +7,9 @@ import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Factory;
 import demo.Module1.BValue;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
-public class TestRpc extends TestCase {
+public class TestRpc {
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 
 	public final void testRpcSimple() throws Exception {
@@ -33,7 +32,7 @@ public class TestRpc extends TestCase {
 		//Console.WriteLine("SendFirstRpcRequest");
 		first.SendForWait(clientSocket).await();
 		//Console.WriteLine("FirstRpc Wait End");
-		Assert.assertEquals(first.Argument.getInt_1(), first.Result.getInt_1());
+		Assertions.assertEquals(first.Argument.getInt_1(), first.Result.getInt_1());
 	}
 
 	public static long ProcessFirstRpcRequest(Protocol<?> p) {

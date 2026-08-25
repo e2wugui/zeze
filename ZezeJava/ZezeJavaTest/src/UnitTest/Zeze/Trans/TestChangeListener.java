@@ -13,10 +13,10 @@ import Zeze.Transaction.Collections.LogSet1;
 import Zeze.Transaction.Log;
 import demo.Module1.BSimple;
 import demo.Module2.BValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
@@ -24,23 +24,23 @@ import Zeze.Transaction.ChangeListener;
 import Zeze.Transaction.Procedure;
 
 public class TestChangeListener {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
 
 	private static void prepare() {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.Remove").call());
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt_1(123);
 			value.setLong2(123);
@@ -78,7 +78,7 @@ public class TestChangeListener {
 		AddListener();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt_1(124);
 			value.setLong2(124);
@@ -111,7 +111,7 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
 			value.getSet10().remove(124);
@@ -128,7 +128,7 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
 			//noinspection SlowAbstractSetRemoveAll
@@ -138,7 +138,7 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<>(Arrays.asList(123, 126));
 			//value.getSet10().IntersectWith(intersect);
@@ -156,7 +156,7 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
 			//noinspection SlowAbstractSetRemoveAll
@@ -166,7 +166,7 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> Union = new ArrayList<>(Arrays.asList(123, 140));
 			//value.getSet10().UnionWith(Union);
@@ -176,14 +176,14 @@ public class TestChangeListener {
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.BValue());
 			return Procedure.Success;
 		}, "TestChangeListener.PutRecord").call());
 		verify();
 
 		init();
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
 		}, "TestChangeListener.RemoveRecord").call());
@@ -193,7 +193,7 @@ public class TestChangeListener {
 	private demo.Module1.BValue localValue;
 
 	private void init() {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
@@ -217,7 +217,7 @@ public class TestChangeListener {
 	}
 
 	private void verify() {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 			demo.Module1.BValue value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.copy();
 			return Procedure.Success;
@@ -330,19 +330,19 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
 			HashMap<Long, Long> newValueCopy = new HashMap<>();
 			for (var e : current.getMap15().entrySet()) {
 				newValueCopy.put(e.getKey(), e.getValue());
 			}
-			Assert.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(newValue.size(), newValueCopy.size());
 			for (var e : newValue.entrySet()) {
 
 				Long exist = newValueCopy.get(e.getKey());
-				Assert.assertTrue(newValueCopy.containsKey(e.getKey()));
-				Assert.assertEquals(e.getValue(), exist);
+				Assertions.assertTrue(newValueCopy.containsKey(e.getKey()));
+				Assertions.assertEquals(e.getValue(), exist);
 			}
 		}
 
@@ -382,17 +382,17 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue.typeId(), current.getDynamic14().typeId());
+			Assertions.assertEquals(newValue.typeId(), current.getDynamic14().typeId());
 			if (newValue.typeId() == BSimple.TYPEID) {
 				BSimple newSimple = newValue instanceof BSimple ? (BSimple)newValue : null;
 				Zeze.Transaction.Bean tempVar = current.getDynamic14().getBean();
 				BSimple currentSimple = tempVar instanceof BSimple ? (BSimple)tempVar : null;
-				Assert.assertNotNull(newSimple);
-				Assert.assertNotNull(currentSimple);
-				Assert.assertEquals(newSimple.getInt_1(), currentSimple.getInt_1());
+				Assertions.assertNotNull(newSimple);
+				Assertions.assertNotNull(currentSimple);
+				Assertions.assertEquals(newSimple.getInt_1(), currentSimple.getInt_1());
 			}
 		}
 
@@ -421,10 +421,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(((byte)255), newValue);
+				Assertions.assertEquals(((byte)255), newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getByte13());
+			Assertions.assertEquals(newValue, current.getByte13());
 		}
 
 		@Override
@@ -456,10 +456,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue.getInt_1(), current.getBean12().getInt_1());
+			Assertions.assertEquals(newValue.getInt_1(), current.getBean12().getInt_1());
 		}
 
 		@Override
@@ -495,18 +495,18 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
 			HashMap<Long, BValue> newValueCopy = new HashMap<>();
 			for (var e : current.getMap11().entrySet()) {
 				newValueCopy.put(e.getKey(), e.getValue().copy());
 			}
-			Assert.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(newValue.size(), newValueCopy.size());
 			for (var e : newValue.entrySet()) {
 				BValue exist = newValueCopy.get(e.getKey());
-				Assert.assertTrue(newValueCopy.containsKey(e.getKey()));
-				Assert.assertEquals(e.getValue().getS(), exist.getS());
+				Assertions.assertTrue(newValueCopy.containsKey(e.getKey()));
+				Assertions.assertEquals(e.getValue().getS(), exist.getS());
 			}
 		}
 
@@ -555,16 +555,16 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
 			HashSet<Integer> newValueCopy = new HashSet<>();
 			for (var i : current.getSet10()) {
 				newValueCopy.add(i);
 			}
-			Assert.assertEquals(newValue.size(), newValueCopy.size());
+			Assertions.assertEquals(newValue.size(), newValueCopy.size());
 			for (var i : newValue) {
-				Assert.assertTrue(newValueCopy.contains(i));
+				Assertions.assertTrue(newValueCopy.contains(i));
 			}
 		}
 
@@ -610,12 +610,12 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue.size(), current.getList9().size());
+			Assertions.assertEquals(newValue.size(), current.getList9().size());
 			for (int i = 0; i < newValue.size(); ++i) {
-				Assert.assertEquals(newValue.get(i).getV1(), current.getList9().get(i).getV1());
+				Assertions.assertEquals(newValue.get(i).getV1(), current.getList9().get(i).getV1());
 			}
 		}
 
@@ -650,10 +650,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getBytes8());
+			Assertions.assertEquals(newValue, current.getBytes8());
 		}
 
 		@Override
@@ -681,10 +681,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(0, newValue, 0.0001);
+				Assertions.assertEquals(0, newValue, 0.0001);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getDouble7(), 0.0001);
+			Assertions.assertEquals(newValue, current.getDouble7(), 0.0001);
 		}
 
 		@Override
@@ -712,10 +712,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(0, newValue, 0.001);
+				Assertions.assertEquals(0, newValue, 0.001);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getFloat6(), 0.001);
+			Assertions.assertEquals(newValue, current.getFloat6(), 0.001);
 		}
 
 		@Override
@@ -743,10 +743,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(-1, newValue);
+				Assertions.assertEquals(-1, newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getShort5());
+			Assertions.assertEquals(newValue, current.getShort5());
 		}
 
 		@Override
@@ -774,10 +774,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertFalse(newValue);
+				Assertions.assertFalse(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.isBool4());
+			Assertions.assertEquals(newValue, current.isBool4());
 		}
 
 		@Override
@@ -806,10 +806,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertNull(newValue);
+				Assertions.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getString3());
+			Assertions.assertEquals(newValue, current.getString3());
 		}
 
 		@Override
@@ -837,10 +837,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(-1, newValue);
+				Assertions.assertEquals(-1, newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getLong2());
+			Assertions.assertEquals(newValue, current.getLong2());
 		}
 
 		@Override
@@ -868,10 +868,10 @@ public class TestChangeListener {
 
 		public final void Verify(demo.Module1.BValue current) {
 			if (null == current) {
-				Assert.assertEquals(-1, newValue);
+				Assertions.assertEquals(-1, newValue);
 				return;
 			}
-			Assert.assertEquals(newValue, current.getInt_1());
+			Assertions.assertEquals(newValue, current.getInt_1());
 		}
 
 		@Override

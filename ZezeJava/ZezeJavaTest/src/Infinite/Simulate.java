@@ -9,9 +9,9 @@ import Zeze.Util.Task;
 import demo.Module1.BValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("NewClassNamingConvention")
 public final class Simulate {
@@ -48,7 +48,7 @@ public final class Simulate {
 		return Apps.get(Random.getInstance().nextInt(Math.min(max, Apps.size())));
 	}
 
-	@Before
+	@BeforeEach
 	public void Before() throws Exception {
 		After();
 		for (int serverId = 10; serverId < AppCount + 10; serverId++)
@@ -69,7 +69,7 @@ public final class Simulate {
 		}
 	}
 
-	@After
+	@AfterEach
 	public void After() throws Exception {
 		if (Apps.isEmpty())
 			return;

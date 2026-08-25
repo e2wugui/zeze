@@ -12,8 +12,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Util.Task;
 import Zeze.Util.TaskSpec;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import Zeze.Transaction.Database.AbstractKVTable;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)
@@ -104,21 +104,21 @@ public class Dbh2FullTest {
 			}
 			{
 				var valueFindKey = table1.find(key);
-				Assert.assertNotNull(valueFindKey);
-				Assert.assertEquals(valueFindKey, value);
+				Assertions.assertNotNull(valueFindKey);
+				Assertions.assertEquals(valueFindKey, value);
 
 				var valueFindKey1 = table1.find(key1);
-				Assert.assertNotNull(valueFindKey1);
-				Assert.assertEquals(valueFindKey1, value);
+				Assertions.assertNotNull(valueFindKey1);
+				Assertions.assertEquals(valueFindKey1, value);
 			}
 			{
 				var valueFindKey = table2.find(key);
-				Assert.assertNotNull(valueFindKey);
-				Assert.assertEquals(valueFindKey, value);
+				Assertions.assertNotNull(valueFindKey);
+				Assertions.assertEquals(valueFindKey, value);
 
 				var valueFindKey1 = table2.find(key1);
-				Assert.assertNotNull(valueFindKey1);
-				Assert.assertEquals(valueFindKey1, value);
+				Assertions.assertNotNull(valueFindKey1);
+				Assertions.assertEquals(valueFindKey1, value);
 			}
 
 			// testCommitServerQueryVerify()

@@ -23,13 +23,13 @@ import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Assert;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CallToPrintStackTrace")
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestGameTimer {
 	private static final @NotNull Logger logger = LogManager.getLogger();
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
@@ -211,25 +211,25 @@ public class TestGameTimer {
 //			var timerRole1 = timer1.getRoleTimer();
 
 			TestBean bean = new TestBean();
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1).period(1).times(5).endTime(System.currentTimeMillis() + 2000),
 					TestRoleTimer.TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			sleep(100, 6);
-			Assert.assertTrue(bean.getTestValue() >= 5);
+			Assertions.assertTrue(bean.getTestValue() >= 5);
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
 			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
 			sleep(100, 6);
-			Assert.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
+			Assertions.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
 			log("测试二通过");
 
 			TestBean namedBean = new TestBean();
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, namedBean);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 2000),
@@ -238,7 +238,7 @@ public class TestGameTimer {
 			}, "testOnlineWithBean").call());
 			// 在过程中完后注册同名NamedTimer，应该失败
 			TestBean newNamedBean1 = new TestBean();
-			Assert.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Exception, server0.Zeze.newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 5, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean1);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(5).endTime(System.currentTimeMillis() + 5000),
@@ -247,12 +247,12 @@ public class TestGameTimer {
 			}, "testOnlineWithBean").call());
 			sleep(100, 10);
 
-			Assert.assertEquals(5, namedBean.getTestValue());
-			Assert.assertEquals(0, newNamedBean1.getTestValue());
+			Assertions.assertEquals(5, namedBean.getTestValue());
+			Assertions.assertEquals(0, newNamedBean1.getTestValue());
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer", 100, 100, 10, System.currentTimeMillis() + 5000, TestOnlineTimerHandle.class, newNamedBean2);
 				var res = timerRole0.scheduleOnlineNamed(roleId, "MyNamedTimer",
 					TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
@@ -260,7 +260,7 @@ public class TestGameTimer {
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
 			sleep(100, 11);
-			Assert.assertTrue(newNamedBean2.getTestValue() >= 10);
+			Assertions.assertTrue(newNamedBean2.getTestValue() >= 10);
 			log("测试三通过");
 		} catch (Throwable e) {
 			e.printStackTrace();
@@ -315,7 +315,7 @@ public class TestGameTimer {
 			logout(client0, roleId);
 
 			TestBean bean = new TestBean();
-			Assert.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
+			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//timerRole0.scheduleOffline(roleId, 100, 100, 10, System.currentTimeMillis() + 5000, TestOfflineTimerHandle.class, bean);
 				timerRole0.scheduleOffline(roleId, TimerSpec.ofDelay(100).period(100).times(10).endTime(System.currentTimeMillis() + 5000),
 					TestOfflineTimerHandle.class, bean);
@@ -343,21 +343,21 @@ public class TestGameTimer {
 		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
 		relogin.Argument.setRoleId(roleId);
 		relogin.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, relogin.getResultCode());
+		Assertions.assertEquals(0, relogin.getResultCode());
 	}
 
 	@SuppressWarnings("unused")
 	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Zeze.Builtin.Game.Online.Logout();
 		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, logout.getResultCode());
+		Assertions.assertEquals(0, logout.getResultCode());
 	}
 
 	private static void login(ClientGame.App app, long roleId) {
 		var login = new Zeze.Builtin.Game.Online.Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, login.getResultCode());
+		Assertions.assertEquals(0, login.getResultCode());
 	}
 
 	@SuppressWarnings("SameParameterValue")
@@ -366,7 +366,7 @@ public class TestGameTimer {
 		auth.Argument.setAccount(account);
 		auth.Argument.setLoginQueueToken(token.getToken());
 		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, auth.getResultCode());
+		Assertions.assertEquals(0, auth.getResultCode());
 	}
 
 	@SuppressWarnings("SameParameterValue")
@@ -374,14 +374,14 @@ public class TestGameTimer {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
 		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, createRole.getResultCode());
+		Assertions.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
 
 	private static BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
 		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assert.assertEquals(0, get.getResultCode());
+		Assertions.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
 		return get.Result.getRoleList().getFirst();

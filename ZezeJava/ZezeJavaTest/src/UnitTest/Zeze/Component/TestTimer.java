@@ -5,24 +5,24 @@ import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
 import Zeze.Transaction.Procedure;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.Test;
 
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestTimer {
 
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		System.out.println("Timer Test Init");
 		demo.App.getInstance().Start();
 		App.Instance.Zeze.getTimer().start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//System.out.println("Timer Test Cleanup");
 		//demo.App.getInstance().Stop();
@@ -80,7 +80,7 @@ public class TestTimer {
 		var timer = App.getInstance().Zeze.getTimer();
 
 		// Test schedule timer
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
 			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle1.class);
 			return Procedure.Success;
@@ -97,7 +97,7 @@ public class TestTimer {
 		// Test with customBean
 		TestBean testBean1 = new TestBean();
 
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
 			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
@@ -108,12 +108,12 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assert.assertSame(10, testBean1.getTestValue());
+		Assertions.assertSame(10, testBean1.getTestValue());
 		System.out.println("========== Test2 Passed ==========");
 
 		// Test canceling schedule
 		TestBean testBean2 = new TestBean();
-		Assert.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
 			timer.schedule(TimerSpec.ofDelay(1).period(200), TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
@@ -127,7 +127,7 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assert.assertTrue(testBean2.getTestValue() <= 10);
+		Assertions.assertTrue(testBean2.getTestValue() <= 10);
 		System.out.println("========== Test3 Passed ==========");
 	}
 }

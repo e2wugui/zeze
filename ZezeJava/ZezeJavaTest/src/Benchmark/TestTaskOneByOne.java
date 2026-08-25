@@ -13,7 +13,7 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.TaskSpec;
 import Zeze.Util.TaskOneByOneByKey2;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestTaskOneByOne {
 	public final static int TaskCount = 500_0000;

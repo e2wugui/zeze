@@ -9,11 +9,11 @@ import Zeze.Services.Log4jQuery.Log4jLog;
 import Zeze.Services.Log4jQuery.Log4jSession;
 import Zeze.Services.Log4jQuery.LogServiceConf;
 import Zeze.Util.Task;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestLog4jQ {
-	@Before
+	@BeforeEach
 	public void before() {
 		Task.tryInitThreadPool();
 	}

@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Schemas;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestRelationalTableDiff {
 	private static void addColumn(ArrayList<Schemas.Column> columns, int id) {
@@ -34,9 +34,9 @@ public class TestRelationalTableDiff {
 		{
 			var r = new Schemas.RelationalTable("table1");
 			r.diff();
-			Assert.assertTrue(r.add.isEmpty());
-			Assert.assertTrue(r.remove.isEmpty());
-			Assert.assertTrue(r.change.isEmpty());
+			Assertions.assertTrue(r.add.isEmpty());
+			Assertions.assertTrue(r.remove.isEmpty());
+			Assertions.assertTrue(r.change.isEmpty());
 		}
 		{
 			var r = new Schemas.RelationalTable("table2");
@@ -52,9 +52,9 @@ public class TestRelationalTableDiff {
 			r.previous.sort(comparator);
 
 			r.diff();
-			Assert.assertTrue(r.add.isEmpty());
-			Assert.assertTrue(r.remove.isEmpty());
-			Assert.assertTrue(r.change.isEmpty());
+			Assertions.assertTrue(r.add.isEmpty());
+			Assertions.assertTrue(r.remove.isEmpty());
+			Assertions.assertTrue(r.change.isEmpty());
 		}
 		{
 			var r = new Schemas.RelationalTable("table3");
@@ -79,9 +79,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 6), variableIds(r.add));
-			Assert.assertEquals(Set.of(2, 7), variableIds(r.remove));
-			Assert.assertEquals(Set.of(4), variableIds(r.change));
+			Assertions.assertEquals(Set.of(3, 6), variableIds(r.add));
+			Assertions.assertEquals(Set.of(2, 7), variableIds(r.remove));
+			Assertions.assertEquals(Set.of(4), variableIds(r.change));
 		}
 		{
 			var r = new Schemas.RelationalTable("table4");
@@ -106,9 +106,9 @@ public class TestRelationalTableDiff {
 			System.out.println(r.remove);
 			System.out.println(r.change);
 
-			Assert.assertEquals(Set.of(3, 8), variableIds(r.add));
-			Assert.assertEquals(Set.of(2, 7), variableIds(r.remove));
-			Assert.assertEquals(Set.of(4), variableIds(r.change));
+			Assertions.assertEquals(Set.of(3, 8), variableIds(r.add));
+			Assertions.assertEquals(Set.of(2, 7), variableIds(r.remove));
+			Assertions.assertEquals(Set.of(4), variableIds(r.change));
 		}
 	}
 }

@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Net;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -6,20 +7,19 @@ import java.nio.channels.GatheringByteChannel;
 import Zeze.Net.ByteBufferAllocator;
 import Zeze.Net.OutputBuffer;
 import Zeze.Util.IdentityHashSet;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 /**
  * 100%覆盖测试OutputBuffer,随机暴力黑盒测试验证
  */
-public class TestOutputBuffer extends TestCase {
+public class TestOutputBuffer {
 	static class Alloc implements ByteBufferAllocator {
 		final IdentityHashSet<ByteBuffer> allocSet = new IdentityHashSet<>();
 		final int cap;
 		int allocCount;
 
 		Alloc(int cap) {
-			Assert.assertTrue(cap > 0);
+			Assertions.assertTrue(cap > 0);
 			this.cap = cap;
 		}
 
@@ -30,7 +30,7 @@ public class TestOutputBuffer extends TestCase {
 		@Override
 		public ByteBuffer alloc() {
 			var bb = ByteBuffer.allocate(cap);
-			Assert.assertNotNull(bb);
+			Assertions.assertNotNull(bb);
 			allocSet.add(bb);
 			allocCount++;
 			return bb;
@@ -38,8 +38,8 @@ public class TestOutputBuffer extends TestCase {
 
 		@Override
 		public void free(ByteBuffer bb) {
-			Assert.assertNotNull(bb);
-			Assert.assertTrue(allocSet.remove(bb));
+			Assertions.assertNotNull(bb);
+			Assertions.assertTrue(allocSet.remove(bb));
 		}
 	}
 
@@ -153,21 +153,21 @@ public class TestOutputBuffer extends TestCase {
 					;
 			}
 
-			Assert.assertEquals(0, a.getInUseCount());
-			Assert.assertEquals(0, ob.size());
-			Assert.assertEquals(0, ob.getBufferCount());
-			Assert.assertEquals(bb.size(), c.getSink().size());
-			Assert.assertEquals(bb, c.getSink());
+			Assertions.assertEquals(0, a.getInUseCount());
+			Assertions.assertEquals(0, ob.size());
+			Assertions.assertEquals(0, ob.getBufferCount());
+			Assertions.assertEquals(bb.size(), c.getSink().size());
+			Assertions.assertEquals(bb, c.getSink());
 
 			ob.put(new byte[20]);
 			c.setRemaining(7);
 			//noinspection StatementWithEmptyBody
 			while (ob.writeTo(c) > 0 && c.getRemaining() > 0)
 				;
-			Assert.assertEquals(13, ob.size());
+			Assertions.assertEquals(13, ob.size());
 			ob.close();
-			Assert.assertEquals(0, ob.size());
-			Assert.assertEquals(0, ob.getBufferCount());
+			Assertions.assertEquals(0, ob.size());
+			Assertions.assertEquals(0, ob.getBufferCount());
 		}
 	}
 }

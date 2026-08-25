@@ -2,21 +2,21 @@ package UnitTest.Zeze.Trans;
 
 import demo.App;
 import demo.Module1.BValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Transaction.Procedure;
 
 @SuppressWarnings("DataFlowIssue")
 public class TestTable {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -29,9 +29,9 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdate, "ProcGetUpdate").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdate, "ProcGetUpdate").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").call());
 	}
 
 	private static long ProcGetUpdate() {
@@ -55,20 +55,20 @@ public class TestTable {
 	private static long ProcGetUpdateCheckRemove() {
 		BValue v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 
-		Assert.assertEquals(11, v.getInt_1());
-		Assert.assertEquals(22, v.getLong2());
-		Assert.assertEquals("33", v.getString3());
-		Assert.assertTrue(v.isBool4());
-		Assert.assertEquals(55, v.getShort5());
-		Assert.assertEquals(66, v.getFloat6(), 0.001);
-		Assert.assertEquals(77, v.getDouble7(), 0.001);
-		Assert.assertEquals(2, v.getList9().size());
-		Assert.assertTrue(v.getSet10().contains(10));
-		Assert.assertTrue(v.getSet10().contains(1010));
-		Assert.assertEquals(2, v.getSet10().size());
-		Assert.assertEquals(2, v.getMap11().size());
-		Assert.assertEquals(1212, v.getBean12().getInt_1());
-		Assert.assertEquals((byte)131, v.getByte13());
+		Assertions.assertEquals(11, v.getInt_1());
+		Assertions.assertEquals(22, v.getLong2());
+		Assertions.assertEquals("33", v.getString3());
+		Assertions.assertTrue(v.isBool4());
+		Assertions.assertEquals(55, v.getShort5());
+		Assertions.assertEquals(66, v.getFloat6(), 0.001);
+		Assertions.assertEquals(77, v.getDouble7(), 0.001);
+		Assertions.assertEquals(2, v.getList9().size());
+		Assertions.assertTrue(v.getSet10().contains(10));
+		Assertions.assertTrue(v.getSet10().contains(1010));
+		Assertions.assertEquals(2, v.getSet10().size());
+		Assertions.assertEquals(2, v.getMap11().size());
+		Assertions.assertEquals(1212, v.getBean12().getInt_1());
+		Assertions.assertEquals((byte)131, v.getByte13());
 		return Procedure.Success;
 	}
 
@@ -80,8 +80,8 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAdd, "ProcGetOrAdd").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").call());
 	}
 
 	private static long ProcGetOrAdd() {
@@ -104,24 +104,24 @@ public class TestTable {
 
 	private static long ProcGetOrAddCheckAndRemove() {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
-		Assert.assertNotNull(v);
+		Assertions.assertNotNull(v);
 
-		Assert.assertEquals(1, v.getInt_1());
-		Assert.assertEquals(2, v.getLong2());
-		Assert.assertEquals("3", v.getString3());
-		Assert.assertTrue(v.isBool4());
-		Assert.assertEquals(5, v.getShort5());
-		Assert.assertEquals(6, v.getFloat6(), 0.001);
-		Assert.assertEquals(7, v.getDouble7(), 0.001);
-		Assert.assertEquals(1, v.getList9().size());
-		Assert.assertTrue(v.getSet10().contains(10));
-		Assert.assertEquals(1, v.getSet10().size());
-		Assert.assertEquals(1, v.getMap11().size());
-		Assert.assertEquals(12, v.getBean12().getInt_1());
-		Assert.assertEquals(13, v.getByte13());
+		Assertions.assertEquals(1, v.getInt_1());
+		Assertions.assertEquals(2, v.getLong2());
+		Assertions.assertEquals("3", v.getString3());
+		Assertions.assertTrue(v.isBool4());
+		Assertions.assertEquals(5, v.getShort5());
+		Assertions.assertEquals(6, v.getFloat6(), 0.001);
+		Assertions.assertEquals(7, v.getDouble7(), 0.001);
+		Assertions.assertEquals(1, v.getList9().size());
+		Assertions.assertTrue(v.getSet10().contains(10));
+		Assertions.assertEquals(1, v.getSet10().size());
+		Assertions.assertEquals(1, v.getMap11().size());
+		Assertions.assertEquals(12, v.getBean12().getInt_1());
+		Assertions.assertEquals(13, v.getByte13());
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
+		Assertions.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		return Procedure.Success;
 	}
 
@@ -133,8 +133,8 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet11, "ProcGet11").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet12, "ProcGet12").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet11, "ProcGet11").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet12, "ProcGet12").call());
 	}
 
 	@Test
@@ -145,14 +145,14 @@ public class TestTable {
 			return Procedure.Success;
 		}, "RemoveDataFirst").call();
 
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet21, "ProcGet21").call());
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet22, "ProcGet22").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet21, "ProcGet21").call());
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestTable::ProcGet22, "ProcGet22").call());
 	}
 
 	private static long ProcGet21() {
 		ProcGet11();
 		demo.Module1.Key key = new demo.Module1.Key((short)1, "");
-		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
+		Assertions.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		BValue v = new BValue();
 		v.setInt_1(1);
 		v.setLong2(2);
@@ -168,8 +168,8 @@ public class TestTable {
 		v.setByte13((byte)13);
 
 		demo.App.getInstance().demo_Module1.getTable2().put(key, v);
-		Assert.assertTrue(v.isManaged());
-		Assert.assertEquals(v, demo.App.getInstance().demo_Module1.getTable2().get(key));
+		Assertions.assertTrue(v.isManaged());
+		Assertions.assertEquals(v, demo.App.getInstance().demo_Module1.getTable2().get(key));
 		return Procedure.Success;
 	}
 
@@ -177,29 +177,29 @@ public class TestTable {
 		ProcGet12();
 		demo.Module1.Key key = new demo.Module1.Key((short)1, "");
 		var v = demo.App.getInstance().demo_Module1.getTable2().get(key);
-		Assert.assertNotNull(v);
+		Assertions.assertNotNull(v);
 
-		Assert.assertEquals(1, v.getInt_1());
-		Assert.assertEquals(2, v.getLong2());
-		Assert.assertEquals("3", v.getString3());
-		Assert.assertTrue(v.isBool4());
-		Assert.assertEquals(5, v.getShort5());
-		Assert.assertEquals(6, v.getFloat6(), 0.001);
-		Assert.assertEquals(7, v.getDouble7(), 0.001);
-		Assert.assertEquals(1, v.getList9().size());
-		Assert.assertTrue(v.getSet10().contains(10));
-		Assert.assertEquals(1, v.getSet10().size());
-		Assert.assertEquals(1, v.getMap11().size());
-		Assert.assertEquals(12, v.getBean12().getInt_1());
-		Assert.assertEquals(13, v.getByte13());
+		Assertions.assertEquals(1, v.getInt_1());
+		Assertions.assertEquals(2, v.getLong2());
+		Assertions.assertEquals("3", v.getString3());
+		Assertions.assertTrue(v.isBool4());
+		Assertions.assertEquals(5, v.getShort5());
+		Assertions.assertEquals(6, v.getFloat6(), 0.001);
+		Assertions.assertEquals(7, v.getDouble7(), 0.001);
+		Assertions.assertEquals(1, v.getList9().size());
+		Assertions.assertTrue(v.getSet10().contains(10));
+		Assertions.assertEquals(1, v.getSet10().size());
+		Assertions.assertEquals(1, v.getMap11().size());
+		Assertions.assertEquals(12, v.getBean12().getInt_1());
+		Assertions.assertEquals(13, v.getByte13());
 
 		demo.App.getInstance().demo_Module1.getTable2().remove(key);
-		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
+		Assertions.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		return Procedure.Success;
 	}
 
 	private static long ProcGet11() {
-		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
+		Assertions.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		BValue v = new BValue();
 		v.setInt_1(1);
 		v.setLong2(2);
@@ -215,30 +215,30 @@ public class TestTable {
 		v.setByte13((byte)13);
 
 		demo.App.getInstance().demo_Module1.getTable1().put(1L, v);
-		Assert.assertEquals(v, demo.App.getInstance().demo_Module1.getTable1().get(1L));
+		Assertions.assertEquals(v, demo.App.getInstance().demo_Module1.getTable1().get(1L));
 		return Procedure.Success;
 	}
 
 	private static long ProcGet12() {
 		var v = demo.App.getInstance().demo_Module1.getTable1().get(1L);
-		Assert.assertNotNull(v);
+		Assertions.assertNotNull(v);
 
-		Assert.assertEquals(1, v.getInt_1());
-		Assert.assertEquals(2, v.getLong2());
-		Assert.assertEquals("3", v.getString3());
-		Assert.assertTrue(v.isBool4());
-		Assert.assertEquals(5, v.getShort5());
-		Assert.assertEquals(6, v.getFloat6(), 0.001);
-		Assert.assertEquals(7, v.getDouble7(), 0.001);
-		Assert.assertEquals(1, v.getList9().size());
-		Assert.assertTrue(v.getSet10().contains(10));
-		Assert.assertEquals(1, v.getSet10().size());
-		Assert.assertEquals(1, v.getMap11().size());
-		Assert.assertEquals(12, v.getBean12().getInt_1());
-		Assert.assertEquals(13, v.getByte13());
+		Assertions.assertEquals(1, v.getInt_1());
+		Assertions.assertEquals(2, v.getLong2());
+		Assertions.assertEquals("3", v.getString3());
+		Assertions.assertTrue(v.isBool4());
+		Assertions.assertEquals(5, v.getShort5());
+		Assertions.assertEquals(6, v.getFloat6(), 0.001);
+		Assertions.assertEquals(7, v.getDouble7(), 0.001);
+		Assertions.assertEquals(1, v.getList9().size());
+		Assertions.assertTrue(v.getSet10().contains(10));
+		Assertions.assertEquals(1, v.getSet10().size());
+		Assertions.assertEquals(1, v.getMap11().size());
+		Assertions.assertEquals(12, v.getBean12().getInt_1());
+		Assertions.assertEquals(13, v.getByte13());
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
+		Assertions.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		return Procedure.Success;
 	}
 }

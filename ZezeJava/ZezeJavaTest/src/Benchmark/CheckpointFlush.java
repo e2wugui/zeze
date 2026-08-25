@@ -7,7 +7,7 @@ import Zeze.Transaction.CheckpointFlushMode;
 import Zeze.Util.PerfCounter;
 import Zeze.Util.TaskSpec;
 import demo.App;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CheckpointFlush {
 	@Test

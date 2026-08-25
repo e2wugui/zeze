@@ -6,11 +6,10 @@ import Zeze.Net.Compress;
 import Zeze.Net.Decompress;
 import Zeze.Net.Decrypt;
 import Zeze.Net.Encrypt;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import java.util.*;
 
-public class TestCodec extends TestCase{
+public class TestCodec{
 
 	public final void testEncrypt() {
 		BufferCodec b2flush = new BufferCodec();
@@ -29,16 +28,16 @@ public class TestCodec extends TestCase{
 			en.update((byte)2);
 			en.flush();
 		}
-		Assert.assertEquals(b2flush.getBuffer(), b1flush.getBuffer());
+		Assertions.assertEquals(b2flush.getBuffer(), b1flush.getBuffer());
 
 		BufferCodec bdecrypt = new BufferCodec(); {
 			Decrypt de = new Decrypt(bdecrypt, key);
 			de.update(b2flush.getBuffer().Bytes, b2flush.getBuffer().ReadIndex, b2flush.getBuffer().size());
 			de.flush();
 		}
-		Assert.assertEquals(2, bdecrypt.getBuffer().size());
-		Assert.assertEquals(1, bdecrypt.getBuffer().Bytes[0]);
-		Assert.assertEquals(2, bdecrypt.getBuffer().Bytes[1]);
+		Assertions.assertEquals(2, bdecrypt.getBuffer().size());
+		Assertions.assertEquals(1, bdecrypt.getBuffer().Bytes[0]);
+		Assertions.assertEquals(2, bdecrypt.getBuffer().Bytes[1]);
 	}
 
 	public final void testEncrypt2() {
@@ -64,7 +63,7 @@ public class TestCodec extends TestCase{
 			de.update(encrypt.getBuffer().Bytes, encrypt.getBuffer().ReadIndex, encrypt.getBuffer().size());
 			de.flush();
 
-			Assert.assertEquals(ByteBuffer.Wrap(buffer), decrypt.getBuffer());
+			Assertions.assertEquals(ByteBuffer.Wrap(buffer), decrypt.getBuffer());
 		}
 	}
 
@@ -86,7 +85,7 @@ public class TestCodec extends TestCase{
 			Decompress dp = new Decompress(bufdp);
 			dp.update(bufcp.getBuffer().Bytes, bufcp.getBuffer().ReadIndex, bufcp.getBuffer().size());
 			dp.flush();
-			Assert.assertEquals(ByteBuffer.Wrap(buffer), bufdp.getBuffer());
+			Assertions.assertEquals(ByteBuffer.Wrap(buffer), bufdp.getBuffer());
 		}
 	}
 }

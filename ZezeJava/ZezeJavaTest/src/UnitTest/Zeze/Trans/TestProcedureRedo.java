@@ -5,22 +5,22 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.TaskSpec;
 import demo.App;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Created by zyao on 2021/11/24 11:15
  */
 public class TestProcedureRedo {
 
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//App.getInstance().Stop();
 	}
@@ -77,6 +77,6 @@ public class TestProcedureRedo {
 
 		ftask2.get();
 		ftask1.get();
-		Assert.assertEquals(200, outLong2.value);
+		Assertions.assertEquals(200, outLong2.value);
 	}
 }

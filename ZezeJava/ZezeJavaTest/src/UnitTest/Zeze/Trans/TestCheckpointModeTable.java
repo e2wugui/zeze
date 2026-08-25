@@ -1,27 +1,27 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import Zeze.Transaction.Procedure;
 
 public class TestCheckpointModeTable{
 
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
 
 	private static void Check(int expect) throws Exception {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt_1() == expect ? Procedure.Success : Procedure.LogicError;
 		}, "TestCheckpointModeTable.Check").call());
@@ -29,7 +29,7 @@ public class TestCheckpointModeTable{
 
 	@Test
 	public final void test1() throws Exception {
-		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
+		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					value.setInt_1(0);
 					return Procedure.Success;

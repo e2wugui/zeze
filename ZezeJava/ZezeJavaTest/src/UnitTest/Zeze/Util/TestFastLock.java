@@ -2,8 +2,8 @@ package UnitTest.Zeze.Util;
 
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.FastLock;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestFastLock {
 	@Test
@@ -30,7 +30,7 @@ public class TestFastLock {
 		}
 		for (var t : ts)
 			t.join();
-		Assert.assertEquals(THREAD_COUNT * LOOP_COUNT, value[0]);
+		Assertions.assertEquals(THREAD_COUNT * LOOP_COUNT, value[0]);
 		System.out.println("testFastLock OK");
 	}
 

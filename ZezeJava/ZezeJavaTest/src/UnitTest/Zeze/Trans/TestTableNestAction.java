@@ -3,18 +3,18 @@ package UnitTest.Zeze.Trans;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestTableNestAction {
-	@Before
+	@BeforeEach
 	public final void testInit() throws Exception {
 		demo.App.getInstance().Start();
 	}
 
-	@After
+	@AfterEach
 	public final void testCleanup() throws Exception {
 		//demo.App.getInstance().Stop();
 	}
@@ -34,7 +34,7 @@ public class TestTableNestAction {
 				Transaction.getCurrent().runWhileCommit(() -> value1.value++);
 
 				Transaction.getCurrent().runWhileRollback(() -> {
-					Assert.assertEquals(value1.value, value2.value + 1);
+					Assertions.assertEquals(value1.value, value2.value + 1);
 					value2.value++; // 1
 					System.out.println(value1.value);
 					System.out.println(value2.value);
@@ -44,7 +44,7 @@ public class TestTableNestAction {
 
 			demo.App.getInstance().Zeze.newProcedure(() -> {
 				Transaction.getCurrent().runWhileCommit(() -> {
-					Assert.assertEquals(value1.value, value2.value);
+					Assertions.assertEquals(value1.value, value2.value);
 					value1.value++; // 2
 				});
 
@@ -52,7 +52,7 @@ public class TestTableNestAction {
 					Transaction.getCurrent().runWhileCommit(() -> value1.value++);
 
 					Transaction.getCurrent().runWhileRollback(() -> {
-						Assert.assertEquals(value1.value, value2.value + 1);
+						Assertions.assertEquals(value1.value, value2.value + 1);
 						value2.value++; // 2
 						System.out.println(value1.value);
 						System.out.println(value2.value);
@@ -64,14 +64,14 @@ public class TestTableNestAction {
 			}, "nest procedure2").call();
 
 			Transaction.getCurrent().runWhileCommit(() -> {
-				Assert.assertEquals(value1.value, value2.value);
+				Assertions.assertEquals(value1.value, value2.value);
 				value1.value++; // 3
 			});
 			return Procedure.Success;
 		}, "out").call();
 
-		Assert.assertEquals(3, value1.value);
-		Assert.assertEquals(2, value2.value);
+		Assertions.assertEquals(3, value1.value);
+		Assertions.assertEquals(2, value2.value);
 	}
 
 	@Test
@@ -170,6 +170,6 @@ public class TestTableNestAction {
 		}, "nest procedure").call();
 
 		//noinspection SpellCheckingInspection
-		Assert.assertEquals("02478BDFHJLNPQTVXZ", sb.toString());
+		Assertions.assertEquals("02478BDFHJLNPQTVXZ", sb.toString());
 	}
 }

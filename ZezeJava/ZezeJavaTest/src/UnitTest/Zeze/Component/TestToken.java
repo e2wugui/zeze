@@ -11,9 +11,9 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class TestToken {
 	private static final Logger logger = LogManager.getLogger(TestToken.class);
@@ -29,17 +29,17 @@ public class TestToken {
 
 				var token = tokenClient.newToken(new Binary("abc"), 5000).get().getToken();
 				logger.info("token: '{}'", token);
-				Assert.assertEquals(24, token.length());
+				Assertions.assertEquals(24, token.length());
 
 				var res = tokenClient.getToken(token, 1).get();
-				Assert.assertEquals("abc", res.getContext().toString(StandardCharsets.UTF_8));
-				Assert.assertEquals(1, res.getCount());
-				Assert.assertTrue(res.getTime() >= 0);
+				Assertions.assertEquals("abc", res.getContext().toString(StandardCharsets.UTF_8));
+				Assertions.assertEquals(1, res.getCount());
+				Assertions.assertTrue(res.getTime() >= 0);
 
 				res = tokenClient.getToken(token, 1).get();
-				Assert.assertEquals("", res.getContext().toString(StandardCharsets.UTF_8));
-				Assert.assertEquals(0, res.getCount());
-				Assert.assertTrue(res.getTime() < 0);
+				Assertions.assertEquals("", res.getContext().toString(StandardCharsets.UTF_8));
+				Assertions.assertEquals(0, res.getCount());
+				Assertions.assertTrue(res.getTime() < 0);
 			} finally {
 				tokenClient.stop();
 			}
@@ -58,9 +58,9 @@ public class TestToken {
 			try {
 				var f = new TaskCompletionSource<Boolean>();
 				tokenClient.registerNotifyTopicHandler("testTopic", p -> {
-					Assert.assertEquals("testTopic", p.Argument.getTopic());
-					Assert.assertEquals("abc", new String(p.Argument.getContent().copyIf(), StandardCharsets.UTF_8));
-					Assert.assertFalse(p.Argument.isBroadcast());
+					Assertions.assertEquals("testTopic", p.Argument.getTopic());
+					Assertions.assertEquals("abc", new String(p.Argument.getContent().copyIf(), StandardCharsets.UTF_8));
+					Assertions.assertFalse(p.Argument.isBroadcast());
 					f.setResult(true);
 				});
 				tokenClient.waitReady();
@@ -68,7 +68,7 @@ public class TestToken {
 				tokenClient.subTopic("testTopic").get();
 				tokenClient.pubTopic("testTopic", new Binary("abc"), false);
 				tokenClient.unsubTopic("testTopic").get();
-				Assert.assertTrue(f.get(5, TimeUnit.SECONDS));
+				Assertions.assertTrue(f.get(5, TimeUnit.SECONDS));
 			} finally {
 				tokenClient.stop();
 			}
@@ -78,7 +78,7 @@ public class TestToken {
 		}
 	}
 
-	@Ignore
+	@Disabled
 	@Test
 	public void testKeepAlive() throws Exception {
 		Task.tryInitThreadPool();

@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Util;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.net.Inet4Address;
 import java.nio.charset.StandardCharsets;
@@ -13,10 +15,9 @@ import java.util.TreeMap;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import junit.framework.TestCase;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
-public final class TestJson extends TestCase {
+public final class TestJson {
 	static class A {
 		int a;
 	}
@@ -31,12 +32,16 @@ public final class TestJson extends TestCase {
 		Map<A, Integer> m = new HashMap<>();
 	}
 
+	@Test
+
 	public void test1() throws ReflectiveOperationException {
 		byte[] buf = "{a:[{x:1,y:2},{x:3,y:4},{x:5,y:6}]}".getBytes();
 		Object obj = JsonReader.local().buf(buf).parse();
 		assertNotNull(obj);
 		assertEquals("{a=[{x=1, y=2}, {x=3, y=4}, {x=5, y=6}]}", obj.toString());
 	}
+
+	@Test
 
 	public void test2() throws ReflectiveOperationException {
 		C c = JsonReader.local().buf("{a:{a:1,b:2}}").parse(C.class);
@@ -72,6 +77,8 @@ public final class TestJson extends TestCase {
 		assertEquals(6, b.b);
 	}
 
+	@Test
+
 	public void test3() {
 		C c = new C();
 		c.a.a = 1;
@@ -79,6 +86,8 @@ public final class TestJson extends TestCase {
 		String json = JsonWriter.local().clear().setNoQuoteKey(false).write(c).toString();
 		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"m\":{}}", json);
 	}
+
+	@Test
 
 	public void test4() {
 		C c = new C();
@@ -94,6 +103,8 @@ public final class TestJson extends TestCase {
 				"}", json);
 	}
 
+	@Test
+
 	public void test5() {
 		C c = new C();
 		c.a.a = 1;
@@ -101,6 +112,8 @@ public final class TestJson extends TestCase {
 		String json = JsonWriter.local().clear().setFlags(JsonWriter.FLAG_NO_QUOTE_KEY).write(c).toString();
 		assertEquals("{a:{a:1,b:-1},m:{}}", json);
 	}
+
+	@Test
 
 	public void test6() {
 		C c = new C();
@@ -110,6 +123,8 @@ public final class TestJson extends TestCase {
 		assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"c\":null,\"m\":{}}", json);
 	}
 
+	@Test
+
 	public void test7() {
 		System.out.println(System.getProperty("java.version"));
 		System.out.println(Json.instance.getClassMeta(Inet4Address.class));
@@ -118,6 +133,8 @@ public final class TestJson extends TestCase {
 	static class D {
 		final HashMap<Integer, Integer> m = new HashMap<>();
 	}
+
+	@Test
 
 	public void test8() throws ReflectiveOperationException {
 		D d = new D();
@@ -135,6 +152,8 @@ public final class TestJson extends TestCase {
 		int a;
 		E e;
 	}
+
+	@Test
 
 	public void test9() {
 		E e = new E();
@@ -162,6 +181,8 @@ public final class TestJson extends TestCase {
 		F2 f2;
 	}
 
+	@Test
+
 	public void testA() throws ReflectiveOperationException {
 		G g = JsonReader.local().buf("{\"set1\":[123,456],\"set2\":[789],\"set3\":[],\"e1\":{\"1\":[]},\"f2\":[222]}")
 				.parse(G.class);
@@ -173,6 +194,8 @@ public final class TestJson extends TestCase {
 		assertEquals(HashSet.class, g.set3.getClass());
 		assertEquals(222, ((Number)g.f2.get(0)).intValue());
 	}
+
+	@Test
 
 	public void testB() {
 		int[] a = new int[]{1, 2, 3};
@@ -232,6 +255,8 @@ public final class TestJson extends TestCase {
 				"}", json);
 	}
 
+	@Test
+
 	public void testC() {
 		String s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 		assertEquals("4000000000000000", s);
@@ -241,6 +266,8 @@ public final class TestJson extends TestCase {
 			assertEquals("4000000000000000", s);
 		}
 	}
+
+	@Test
 
 	public void testD() {
 		byte[] b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
@@ -283,6 +310,8 @@ public final class TestJson extends TestCase {
 		assertEquals(0xdeaa, c[9]);
 	}
 
+	@Test
+
 	public void testE() throws ReflectiveOperationException {
 		Object o = JsonReader.local().buf("[Infinity,-Infinity,NaN,0x1234567890abcdef,-0x1]").parse();
 		assertNotNull(o);
@@ -295,6 +324,8 @@ public final class TestJson extends TestCase {
 		assertEquals(0x1234567890abcdefL, a.get(3));
 		assertEquals(-1, a.get(4));
 	}
+
+	@Test
 
 	public void testF() throws ReflectiveOperationException {
 		Object o = JsonReader.local().buf("[Infinity,-Infinity,NaN,0x1234567890abcdef,-0x1]").parse();
@@ -312,6 +343,8 @@ public final class TestJson extends TestCase {
 	record Record(int v, String s) {
 	}
 
+	@Test
+
 	public void testG() throws ReflectiveOperationException {
 		Record r = new Record(123, "abc");
 		String json = JsonWriter.local().clear().write(r).toString();
@@ -324,6 +357,8 @@ public final class TestJson extends TestCase {
 		String s;
 		int v;
 	}
+
+	@Test
 
 	public void testH() throws ReflectiveOperationException {
 		H a = JsonReader.local().buf("{s:true,v:123}").parse(H.class);

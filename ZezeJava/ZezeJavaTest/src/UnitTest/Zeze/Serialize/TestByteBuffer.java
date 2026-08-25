@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Serialize;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ThreadLocalRandom;
@@ -18,10 +20,10 @@ import demo.Module1.BItem;
 import demo.Module1.Key;
 import demo.Module1.BSimple;
 import demo.Module1.BValue;
-import junit.framework.TestCase;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
-public class TestByteBuffer extends TestCase {
+public class TestByteBuffer {
+	@Test
 	public void testBitConverter() {
 		var bytes = new byte[256];
 		for (int i = 0; i < bytes.length; ++i)
@@ -38,6 +40,8 @@ public class TestByteBuffer extends TestCase {
 		String s = "01-23-45-67-89-ab-cd-ef-AB-CD-EF";
 		assertEquals(s.toUpperCase(), BitConverter.toString(BitConverter.toBytes(s)));
 	}
+
+	@Test
 
 	public void testBytes() {
 		ByteBuffer bb = ByteBuffer.Allocate();
@@ -86,13 +90,15 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(4 * 2, b0.length);
 		assertEquals(4 * 2, ByteBuffer.utf8Size(str));
 		assertEquals(4 * 2, bb.Bytes[0]);
-		Assert.assertArrayEquals(b0, bb.ReadBytes());
+		Assertions.assertArrayEquals(b0, bb.ReadBytes());
 		bb.ReadIndex = 0;
 		assertEquals(str, bb.ReadString());
 
 		nbb = NioByteBuffer.Wrap(bb.Bytes, bb.WriteIndex);
 		assertEquals(str, nbb.ReadString());
 	}
+
+	@Test
 
 	public void testBasic() {
 		ByteBuffer bb = ByteBuffer.Allocate();
@@ -204,6 +210,8 @@ public class TestByteBuffer extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testUInt() {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
@@ -280,6 +288,8 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(v, nbb.ReadUInt());
 		assertEquals(nbb.getReadIndex(), nbb.getWriteIndex());
 	}
+
+	@Test
 
 	public void testLong() {
 		ByteBuffer bb = ByteBuffer.Allocate();
@@ -553,6 +563,8 @@ public class TestByteBuffer extends TestCase {
 		testSkipULong(-x);
 	}
 
+	@Test
+
 	public void testInteger() {
 		for (int i = 0; i <= 64; i++) {
 			testAll(1L << i);
@@ -587,6 +599,8 @@ public class TestByteBuffer extends TestCase {
 		testSkipULong(Long.MAX_VALUE);
 	}
 
+	@Test
+
 	public void testToLong() {
 		var b = new byte[8];
 		long vbe = 0, vle = 0;
@@ -598,6 +612,8 @@ public class TestByteBuffer extends TestCase {
 			assertEquals(vle, ByteBuffer.ToLong(b, 0, n));
 		}
 	}
+
+	@Test
 
 	public void testBean() {
 		BValue v = new BValue();
@@ -635,6 +651,7 @@ public class TestByteBuffer extends TestCase {
 	}
 
 	@SuppressWarnings("AssertBetweenInconvertibleTypes")
+	@Test
 	public void testUnknown() {
 		var a = new BValue();
 		a.setInt_1(123);
@@ -685,6 +702,8 @@ public class TestByteBuffer extends TestCase {
 		assertEquals(bb1, nbb1);
 		assertEquals(bb1, nbb2);
 	}
+
+	@Test
 
 	public void testCollections() {
 		var r = Random.getInstance();

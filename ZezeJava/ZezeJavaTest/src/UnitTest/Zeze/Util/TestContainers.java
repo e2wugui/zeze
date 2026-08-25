@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Util;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,9 +14,8 @@ import Zeze.Util.LongHashSet;
 import Zeze.Util.LongList;
 import Zeze.Util.OutInt;
 import Zeze.Util.Random;
-import junit.framework.TestCase;
 
-public class TestContainers extends TestCase {
+public class TestContainers {
 	private static final int KEY_RANGE = 100;
 	private static final int TEST_COUNT = 10_0000;
 
@@ -123,6 +124,8 @@ public class TestContainers extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testIntList() {
 		var r = Random.getInstance();
 		var v1 = new IntList();
@@ -144,6 +147,8 @@ public class TestContainers extends TestCase {
 			checkList(v1, v2);
 		}
 	}
+
+	@Test
 
 	public void testLongList() {
 		var r = Random.getInstance();
@@ -167,6 +172,8 @@ public class TestContainers extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testFloatList() {
 		var r = Random.getInstance();
 		var v1 = new FloatList();
@@ -188,6 +195,8 @@ public class TestContainers extends TestCase {
 			checkList(v1, v2);
 		}
 	}
+
+	@Test
 
 	public void testIntHashSet() {
 		var r = Random.getInstance();
@@ -211,6 +220,8 @@ public class TestContainers extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testLongHashSet() {
 		var r = Random.getInstance();
 		var s1 = new LongHashSet();
@@ -233,6 +244,8 @@ public class TestContainers extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testIntHashMap() {
 		var r = Random.getInstance();
 		var m1 = new IntHashMap<Integer>();
@@ -254,6 +267,8 @@ public class TestContainers extends TestCase {
 			checkMap(m1, m2);
 		}
 	}
+
+	@Test
 
 	public void testLongHashMap() {
 		var r = Random.getInstance();

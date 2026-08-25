@@ -1,11 +1,12 @@
 package UnitTest.Zeze.Trans;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import junit.framework.TestCase;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.tikv.common.BytePairWrapper;
 import org.tikv.common.ByteWrapper;
 import org.tikv.common.TiConfiguration;
@@ -17,9 +18,11 @@ import org.tikv.shade.com.google.protobuf.ByteString;
 import org.tikv.txn.KVClient;
 import org.tikv.txn.TwoPhaseCommitter;
 
-@Ignore
-public final class TestDatabaseTikv extends TestCase {
+@Disabled
+public final class TestDatabaseTikv {
 	private static final String serverAddr = "10.12.7.140:5379";
+
+	@Test
 
 	public void testSimple() throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
@@ -39,6 +42,8 @@ public final class TestDatabaseTikv extends TestCase {
 			assertFalse(v2.isPresent());
 		}
 	}
+
+	@Test
 
 	public void testBatch() throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
@@ -102,6 +107,8 @@ public final class TestDatabaseTikv extends TestCase {
 		return version;
 	}
 
+	@Test
+
 	public void testTxn() throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr));
 			 KVClient kvClient = session.createKVClient()) {
@@ -162,6 +169,8 @@ public final class TestDatabaseTikv extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testTxnPerf() throws Exception {
 		var t = System.currentTimeMillis();
 		System.out.println(t + " begin");
@@ -214,6 +223,8 @@ public final class TestDatabaseTikv extends TestCase {
 		}
 	}
 
+	@Test
+
 	public void testRawPerf() throws Exception {
 		var t = System.currentTimeMillis();
 		System.out.println(t + " begin");
@@ -235,6 +246,8 @@ public final class TestDatabaseTikv extends TestCase {
 		System.out.println(t2 + " end " + (t2 - t) + " ms");
 	}
 
+	@Test
+
 	public void testRawScan() throws Exception {
 		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
 			 RawKVClient client = session.createRawClient()) {
@@ -245,6 +258,8 @@ public final class TestDatabaseTikv extends TestCase {
 			}
 		}
 	}
+
+	@Test
 
 	public void testTxnScan() throws Exception {
 		var config = TiConfiguration.createDefault(serverAddr);
