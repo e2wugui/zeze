@@ -11,6 +11,7 @@ import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
+import harness.Bench;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
@@ -504,7 +505,10 @@ public class TestRoleTimer {
 		logger.info("======================================== {} ========================================", msg);
 	}
 
+	// 吞吐基准：250客户端批量登录+定时器风暴，规模本身就是存在意义，功能面已被小规模版覆盖。
+	// @Bench 标注使其只进 bench 车道（integrationTest 排除），避免拖慢全量功能测试。
 	@Test
+	@Bench
 	public void benchRoleTimer() throws Exception {
 		Task.tryInitThreadPool();
 
