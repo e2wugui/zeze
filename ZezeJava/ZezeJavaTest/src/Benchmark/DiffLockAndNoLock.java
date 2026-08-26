@@ -1,6 +1,6 @@
 package Benchmark;
 
-import harness.Fast;
+import harness.Bench;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
-@Fast
+@Bench
 public class DiffLockAndNoLock {
 	Zeze.Util.RocksDatabase db;
 	RocksDatabase.Table table;

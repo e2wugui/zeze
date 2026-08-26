@@ -88,13 +88,31 @@ tasks.named('test', Test) {
     systemProperty 'zeze.test.env', 'off'
 }
 
-// gradle integrationTest：全量测试（含依赖 SM 5001/Global 5002 的 A/B 类）。
+// gradle integrationTest：全量功能测试（含依赖 SM 5001/Global 5002 的 A/B 类），不含 @Bench 吞吐基准。
 tasks.register('integrationTest', Test) {
     group = 'verification'
-    description = '全量测试，需要（或自动创建）SM(5001)/Global(5002) 环境。'
+    description = '全量功能测试（不含 @Bench 吞吐基准），需要（或自动创建）SM(5001)/Global(5002) 环境。'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // 本项目的模式过滤(includeTestsMatching/--tests)不工作，标签过滤可用，故用 @Bench 标签
+        excludeTags 'bench'
+    }
+    workingDir = projectDir
+    jvmArgs '-ea'
+    shouldRunAfter tasks.named('test')
+}
+
+// gradle bench：吞吐基准（@Bench 标注，Benchmark 包整体）。基准靠打印 M/s 观察，不设断言；
+// 其中 A/B/C 事务场景依赖 SM/Global（进程内 harness 自动提供，不设 zeze.test.env=off）。
+tasks.register('bench', Test) {
+    group = 'verification'
+    description = '吞吐基准（@Bench 标注）。'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'bench'
+    }
     workingDir = projectDir
     jvmArgs '-ea'
     shouldRunAfter tasks.named('test')

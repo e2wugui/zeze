@@ -1,10 +1,12 @@
 package Benchmark;
+import harness.Bench;
 import org.junit.jupiter.api.Test;
 
 import demo.App;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
+@Bench
 public class ABasicSimpleAddOneThread {
 	public final static int AddCount = 1_000_000;
 

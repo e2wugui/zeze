@@ -1,5 +1,6 @@
 package Benchmark;
 
+import harness.Bench;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Config;
@@ -9,6 +10,7 @@ import Zeze.Util.TaskSpec;
 import demo.App;
 import org.junit.jupiter.api.Test;
 
+@Bench
 public class CheckpointFlush {
 	@Test
 	public void benchFlushSingleThread() throws Exception {

@@ -1,12 +1,12 @@
 package Benchmark;
 
-import harness.Fast;
+import harness.Bench;
 import Zeze.Serialize.ByteBuffer;
 import demo.Module1.BValue;
 import org.junit.jupiter.api.Test;
 
-@Fast
-public class TestToData {
+@Bench
+public class BenchToData {
 
 	@Test
 	public void testToData() {

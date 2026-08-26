@@ -1,6 +1,6 @@
 package Benchmark;
 
-import harness.Fast;
+import harness.Bench;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
@@ -16,8 +16,8 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.TaskOneByOneByKey2;
 import org.junit.jupiter.api.Test;
 
-@Fast
-public class TestTaskOneByOne {
+@Bench
+public class BenchTaskOneByOne {
 	public final static int TaskCount = 500_0000;
 
 	private final AtomicLong counter = new AtomicLong();
@@ -47,7 +47,7 @@ public class TestTaskOneByOne {
 		} finally {
 			lock.unlock();
 		}
-		b.report("TestTaskOneByOne.testBenchmark", TaskCount);
+		b.report("BenchTaskOneByOne.testBenchmark", TaskCount);
 		System.out.println(counter.get());
 	}
 
@@ -93,7 +93,7 @@ public class TestTaskOneByOne {
 		} finally {
 			lock.unlock();
 		}
-		b.report("TestTaskOneByOne.testBenchmark2", TaskCount);
+		b.report("BenchTaskOneByOne.testBenchmark2", TaskCount);
 		System.out.println(counter.get());
 	}
 
@@ -137,7 +137,7 @@ public class TestTaskOneByOne {
 		}).scheduleNow(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
-		b.report("TestTaskOneByOne.testCyclicBarrier", exeCount);
+		b.report("BenchTaskOneByOne.testCyclicBarrier", exeCount);
 	}
 
 	private static void runCyclicBarrier(TaskOneByOneByKey2 oo, AtomicInteger taskCounter, CountDownLatch taskAwaiter) {
@@ -174,6 +174,6 @@ public class TestTaskOneByOne {
 		}).scheduleNow(60_000);
 		taskAwaiter.await();
 		f.cancel(false);
-		b.report("TestTaskOneByOne.testCyclicBarrier2", exeCount);
+		b.report("BenchTaskOneByOne.testCyclicBarrier2", exeCount);
 	}
 }

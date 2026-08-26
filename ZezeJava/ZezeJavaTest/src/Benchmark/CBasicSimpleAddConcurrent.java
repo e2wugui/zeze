@@ -1,4 +1,5 @@
 package Benchmark;
+import harness.Bench;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import demo.App;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
+@Bench
 public class CBasicSimpleAddConcurrent {
 	public final static int AddCount = 250_000;
 	public final static int ConcurrentLevel = 5_000;

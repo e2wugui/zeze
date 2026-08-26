@@ -14,7 +14,7 @@
 ## 如何运行ZezeJavaTest
 
 1. （可选）改了 solution.xml/demo2.xml 才需要：run ../gen_use_publish.bat
-2. 在 ZezeJava 目录下运行 `gradlew.bat :ZezeJavaTest:test`（快速）或 `gradlew.bat :ZezeJavaTest:integrationTest`（全量）
+2. 在 ZezeJava 目录下运行 `gradlew.bat :ZezeJavaTest:test`（快速）/ `:ZezeJavaTest:integrationTest`（全量功能）/ `:ZezeJavaTest:bench`（吞吐基准）
 3. 或用 IDEA 打开 ZezeJava 目录，右键 "ZezeJavaTest/src" → "Run 'All Tests'"
 
 ---
@@ -22,10 +22,11 @@
 ## 结论先行
 
 - **不需要准备 MySQL/MongoDB/TiKV/RocketMQ**。所有依赖外部数据库的测试都有"主机名门控"或 `@Disabled`，在陌生机器上会自动跳过，不会失败（详见下文分类）。
-- **不需要手工启动任何 bat**。测试已于 2026-08 从 JUnit 4/3 整体迁移到 **JUnit 6（Jupiter 6.1.3，要求 Java 17+）**，并挂在 `ZezeJavaTest` 的 **test 源集**：
-  - `gradle test`：只跑 **@Fast 自包含测试**（42 个类，无任何外部依赖，开箱即绿）；
-  - `gradle integrationTest`：**全量测试**（290 个），由 `harness.TestEnvLauncherListener` 在测试 JVM 内自动启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，会话结束自动关闭；端口被手工 bat 占用时直接复用。
-- 已知限制：**`--tests` 过滤在本项目不工作**（无论 test 还是 integrationTest 任务都报 "No tests found for given includes"，不带过滤的全量运行正常；用 IDEA 跑单个类）。
+- **不需要手工启动任何 bat**。测试已于 2026-08 从 JUnit 4/3 整体迁移到 **JUnit 6（Jupiter 6.1.3，要求 Java 17+）**，并挂在 `ZezeJavaTest` 的 **test 源集**，三车道：
+  - `gradle test`：只跑 **@Fast 自包含测试**（45 个类，无任何外部依赖，开箱即绿，纯测试约 15s）；
+  - `gradle integrationTest`：**全量功能测试**（266 个，不含基准），由 `harness.TestEnvLauncherListener` 在测试 JVM 内自动启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，会话结束自动关闭；端口被手工 bat 占用时直接复用；
+  - `gradle bench`：**吞吐基准**（@Bench 标注的 Benchmark 包整体，9 类 24 个）。基准靠打印 M/s 观察、不设断言，不进功能车道；其中 A/B/C 事务场景依赖 SM/GCM（进程内 harness 自动提供）。
+- 已知限制：**`--tests` 与 `includeTestsMatching` 模式过滤在本项目不工作**（标签过滤正常，三车道均基于标签实现；用 IDEA 跑单个类）。
 - 唯一例外：`Onz/TestOnz` 额外依赖第二对服务 5011/5012（GCM 是进程内单例，起不了第二对），未启动时自动跳过；要跑它先运行 `test/service & global.another.bat`。
 - 两个任务都配置了 `workingDir = ZezeJavaTest`、`-ea`、`maxHeapSize = 2g`（BenchSocket 等大缓冲区测试在默认 512m 堆下会 OOM）。
 
@@ -42,6 +43,7 @@
 ## 测试分层约定（给新增测试的规则）
 
 - 自包含测试（不依赖外部 SM/GCM 进程和外部数据库）标注 **`@Fast`**（`harness.Fast` 组合注解，等价 `@Tag("fast")`），由 `gradle test` 执行。
+- **吞吐基准标注 `@Bench`**（`harness.Bench`，等价 `@Tag("bench")`，Benchmark 包整体），由 `gradle bench` 执行，`integrationTest` 按标签排除。识别特征：无断言、靠 `Benchmark()/report()` 打印 M/s 或耗时——自包含 ≠ 该进快速车道。
 - **不打 tag 的新测试默认归入 `integrationTest`**（环境更全的桶）——忘打 tag 不会打破 "`gradle test` 开箱即绿"。
 - **不要开并行**：`demo.App` 是 JVM 级单例（`Start()` 幂等、测试里 `Stop()` 被注释，整个 JVM 只起一次）、所有测试共享 `workingDir` 下的 `dbhome/`（RocksDB LOCK）、`App.Start()` 固定绑定 HttpServer 10000 端口、大量测试用固定 key——同 JVM 并行（`junit.jupiter.execution.parallel`）和跨 fork 并行（`maxParallelForks` 共享 workingDir）都会互相干扰。
 
@@ -74,12 +76,16 @@
 
 另：`UnitTest/Zeze/Trans/TestGlobal.test2App` 挂 `@Disabled`（两个 app 对同一 key 的 GCM 并发协调 `FutureTask.get()` 永久等待，疑似死锁，待排查）；`TestDatabaseRocksDB` 的 test1/test2 有主机名门控（`DESKTOP-48A4UQ1` 因 CPU 指令集跳过），其余机器正常执行。
 
-### D. 完全自包含（@Fast，`gradle test` 执行）— 42 个
+### D. 完全自包含（@Fast，`gradle test` 执行）— 45 个
 
 不需要任何外部进程，只要求工作目录正确：
 
-- 进程内自建服务/存储：`MQ/TestMQ`、`MQ/TestFileWithIndexed`、`Dbh2/TestLocateBucket`、`Dbh2/TestRocksDb`、`TestLog4jQuery/TestLog4jQ`、`TestLog4jQuery/TestMmap`、`UnitTest/Zeze/Netty/TestNettyHttpServer`、`UnitTest/Zeze/Net/TestDatagram`、`UnitTest/Zeze/Arch/TestArchOnlineSpec`、`UnitTest/Zeze/Collections/TestBeanFactory`、`UnitTest/Zeze/Component/TestToken`、`UnitTest/Zeze/Misc/TestTreeMap`、`Benchmark/DiffLockAndNoLock`、`RelationalMapping/TestRelationalTableDiff`、`Temp/TestBigInt`
-- 纯逻辑：`UnitTest/Zeze/Util/*` 中的 21 个（除 TestTaskSpec）、`UnitTest/Zeze/Serialize/TestByteBuffer`、`TestDynamic`、`Benchmark/BenchSocket`、`TestToData`、`TestTaskOneByOne`、`PMapLogTypeIdHash32Cache`
+- 进程内自建服务/存储：`MQ/TestMQ`、`MQ/TestFileWithIndexed`、`Dbh2/TestLocateBucket`、`Dbh2/TestRocksDb`、`TestLog4jQuery/TestLog4jQ`、`TestLog4jQuery/TestMmap`、`UnitTest/Zeze/Netty/TestNettyHttpServer`、`UnitTest/Zeze/Net/TestDatagram`、`UnitTest/Zeze/Net/TestRpc`（进程内 127.0.0.1:5000 组网）、`UnitTest/Zeze/Arch/TestArchOnlineSpec`、`UnitTest/Zeze/Collections/TestBeanFactory`、`UnitTest/Zeze/Component/TestToken`、`UnitTest/Zeze/Misc/TestTreeMap`、`UnitTest/Zeze/Trans/TestDatabaseRocksDB`（本地嵌入式 RocksDB）、`RelationalMapping/TestRelationalTableDiff`、`Temp/TestBigInt`
+- 纯逻辑：`UnitTest/Zeze/Util/*` 中的 21 个（除 TestTaskSpec）、`UnitTest/Zeze/Serialize/TestByteBuffer`、`TestDynamic`、`TestRawBean.testBasic`（同类的 testTransaction 依赖 demo.App，类级不打 @Fast）、`UnitTest/Zeze/Trans/{TestBegin,TestLock,TestTableKey,TestConcurrentDictionary}`、`UnitTest/Zeze/Net/{TestCodec,TestOutputBuffer}`
+
+### E. 吞吐基准（@Bench，`gradle bench` 执行）— Benchmark 包 9 类 24 个
+
+`BenchSocket`（9，含少量正确性断言）、`BenchTaskOneByOne`（5）、`CheckpointFlush`（4）、`ABasic/BBasic/CBasicSimpleAdd*`（3，事务并发场景依赖 demo.App，bench 任务里由进程内 harness 伺候）、`BenchToData`、`DiffLockAndNoLock`、`PMapLogTypeIdHash32Cache`（各 1）。均以打印 M/s/耗时观察为主。原名 TestTaskOneByOne/TestToData 已改名 BenchTaskOneByOne/BenchToData（它们无断言、纯计速，Test 前缀名不副实）。
 
 ### 2026-08 补标：JUnit 4/3 迁移漏标的死测试已恢复
 
@@ -101,7 +107,8 @@
 - **Connection refused 5001/5002** → 用了旧的运行方式（手工 bat + IDEA）但没启动 bat；新方式 `gradle integrationTest` / IDEA All Tests 会自动进程内启动。
 - **找不到 zeze.xml / dbhome 报错** → 工作目录不对，必须在 `ZezeJava/ZezeJavaTest` 下运行（gradle 任务已自动配置；单独用 ConsoleLauncher 时需自己 cd）。
 - **test_all.bat** → **已废弃**，由 `gradle integrationTest` 取代（它引用旧的 main 源集输出路径且类清单是手工维护的）。
-- **gradle test 只跑部分测试** → 正常，它按 `@Fast` 标签过滤；全量用 `gradle integrationTest`。
+- **gradle test 只跑部分测试** → 正常，它按 `@Fast` 标签过滤；全量功能用 `gradle integrationTest`，基准用 `gradle bench`。三车道均基于 JUnit 标签（模式过滤 `--tests`/`includeTestsMatching` 在本项目不工作，见"结论先行"）。
+- **log/ 目录积累大量日志会拖慢 gradle test** → `TestLog4jQuery/TestLog4jQ` 线性扫描最近一天的日志文件，机器上有日志洪水时单个类可占 60s+，清理 `ZezeJavaTest/log/` 即恢复（都是运行产物）。
 
 ## 遗留改进（2026-08 分层改造后仍有效的）
 

@@ -1,12 +1,12 @@
 package Benchmark;
 
-import harness.Fast;
+import harness.Bench;
 import java.util.ArrayList;
 import Zeze.Transaction.Collections.PMap1;
 import Zeze.Util.Benchmark;
 import org.junit.jupiter.api.Test;
 
-@Fast
+@Bench
 public class PMapLogTypeIdHash32Cache {
 	public int size;
 	@Test

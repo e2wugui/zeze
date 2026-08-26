@@ -1,4 +1,5 @@
 package Benchmark;
+import harness.Bench;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -9,11 +10,11 @@ import demo.App;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("NewClassNamingConvention")
+@Bench
 public class BBasicSimpleAddConcurrentWithConflict {
 	public static final int AddCount = 10_000;
 
 	@Test
-
 	public void testBenchmark() throws Exception {
 		App.Instance.Start();
 		try {
