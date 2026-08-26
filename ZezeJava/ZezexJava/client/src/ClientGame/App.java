@@ -46,6 +46,7 @@ public class App extends Zeze.AppBase {
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
 
+		onLinkConnectedFuture = new TaskCompletionSource<>();
         loginQueueClient.setLoginToken((loginToken) -> {
             var url = "ws://" + loginToken.getLinkIp()
                     + ":" + (loginToken.getLinkPort() + 10000) + "/websocket";
