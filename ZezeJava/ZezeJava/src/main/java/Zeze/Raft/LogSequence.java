@@ -736,9 +736,24 @@ public class LogSequence {
 			if (socket == null)
 				return; // Heartbeat Will Retry
 
+			RaftLog last;
+			try {
+				last = lastRaftLogTermIndex();
+			} catch (RocksDBException e) {
+				logger.warn("sendHeartbeatTo lastRaftLogTermIndex", e); // 下一轮心跳重试
+				return;
+			}
 			var heartbeat = new AppendEntries();
 			heartbeat.Argument.setTerm(term);
 			heartbeat.Argument.setLeaderId(raft.getName());
+			// 心跳携带 prevLog 和 leaderCommit（仍是空entries）：
+			// 1. follower 据此推进自己的 commitIndex，否则空闲期只能等下一次写入捎带；
+			// 2. follower 的 nodeReady 需要观察到 leaderCommit 推进，空闲期一直无法 ready
+			//    会导致它之后无法参与投票（ready与不ready互相拒投，可能选不出Leader）；
+			// 3. prevLog 不匹配说明 follower 落后或分叉，leader 在应答里主动驱动复制。
+			heartbeat.Argument.setPrevLogIndex(last.getIndex());
+			heartbeat.Argument.setPrevLogTerm(last.getTerm());
+			heartbeat.Argument.setLeaderCommit(commitIndex);
 			heartbeat.Send(socket, (p) -> {
 				if (heartbeat.isTimeout())
 					return 0; // skip
@@ -749,6 +764,24 @@ public class LogSequence {
 						// new term found.
 						raft.convertStateTo(Raft.RaftState.Follower);
 						return Procedure.Success;
+					}
+
+					if (!raft.isLeader())
+						return 0;
+
+					if (!heartbeat.Result.getSuccess()) {
+						// follower 日志与 leader 尾部不匹配（落后或分叉），调整 nextIndex 并驱动复制。
+						// 与 processAppendEntriesResult 的失败分支类似，但心跳的 prevLogIndex==lastIndex，
+						// 不使用那个分支里的 Impossible 断言。
+						var ni = heartbeat.Result.getNextIndex();
+						if (ni == 0)
+							ni = connector.getNextIndex() - 1; // 分叉：回退一格
+						if (ni > lastIndex)
+							ni = lastIndex;
+						if (ni < firstIndex)
+							ni = firstIndex;
+						connector.setNextIndex(ni);
+						trySendAppendEntries(connector, null);
 					}
 				} finally {
 					raft.unlock();
@@ -1163,14 +1196,8 @@ public class LogSequence {
 
 		raft.setLeaderId(r.Argument.getLeaderId());
 
-		// is Heartbeat(KeepAlive)
-		if (r.Argument.getEntries().isEmpty()) {
-			r.Result.setSuccess(true);
-			r.SendResult();
-			if (null != raft.onFollowerReceiveKeepAlive)
-				raft.onFollowerReceiveKeepAlive.run();
-			return Procedure.Success;
-		}
+		// 心跳也是正常的AppendEntries（空entries带prevLog/leaderCommit），
+		// 统一走下面的prevLog校验与commit推进，不再特殊提前返回。
 
 		// check and copy log ...
 		var prevLog = readLog(r.Argument.getPrevLogIndex());
@@ -1188,7 +1215,7 @@ public class LogSequence {
 			return Procedure.Success;
 		}
 
-		// NodeReady 严格点，仅在正常复制时才检测。
+		// NodeReady：正常复制与心跳都会携带 leaderCommit 并在此检测。
 		if (lastLeaderCommitIndex == 0) {
 			// Term 增加时会重置为0，see TrySetTerm。严格点？
 			lastLeaderCommitIndex = r.Argument.getLeaderCommit();
@@ -1253,6 +1280,9 @@ public class LogSequence {
 		if (isDebugEnabled)
 			logger.debug("{}: {}", raft.getName(), r);
 		r.SendResultCode(0);
+
+		if (r.Argument.getEntries().isEmpty() && null != raft.onFollowerReceiveKeepAlive)
+			raft.onFollowerReceiveKeepAlive.run();
 
 		return Procedure.Success;
 	}
