@@ -235,8 +235,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 			} catch (Exception e) {
 				logger.warn("waitFlushDone", e);
 				// 马上回复现有的flushReady。允许它们继续flush。降为FlushAsync。
-				for (var ready : flushReadies)
-					ready.SendResult();
+				for (var ready : flushReadies) {
+					if (!ready.isSendResultDone())
+						ready.SendResult();
+				}
 				// 触发当前没有flushReady或者所有相关zeze的完整Checkpoint。
 				//  1. 安全起见是所有zeze，上面的ready.SendResult也可能丢失。
 				//  2. 需要完整Checkpoint的zeze要不要持久化，以后持续触发。这点看起来没有必要。

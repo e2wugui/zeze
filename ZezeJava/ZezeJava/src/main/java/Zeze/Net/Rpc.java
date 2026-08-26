@@ -24,7 +24,7 @@ public abstract class Rpc<TArgument extends Serializable, TResult extends Serial
 	private int timeout = 5000;
 	private boolean isTimeout;
 	private boolean isRequest = true;
-	protected transient boolean sendResultDone; // XXX ugly
+	protected volatile transient boolean sendResultDone; // XXX ugly
 
 	@Override
 	public int getFamilyClass() {
