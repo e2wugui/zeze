@@ -13,7 +13,6 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @Fast
@@ -80,7 +79,6 @@ public class TestToken {
 		}
 	}
 
-	@Disabled
 	@Test
 	public void testKeepAlive() throws Exception {
 		Task.tryInitThreadPool();
@@ -100,8 +98,15 @@ public class TestToken {
 		try {
 			var tokenClient = new Token.TokenClient(conf).start("127.0.0.1", 5003);
 			try {
+				var f = new TaskCompletionSource<Boolean>();
+				tokenClient.registerNotifyTopicHandler("keepAliveTopic", p -> f.setResult(true));
+				tokenClient.waitReady();
+				// 睡过 KeepRecvTimeout(5s)：keep-alive 失效的话连接已被服务端掐断
 				Thread.sleep(10_000);
 				logger.info("sleep over");
+				tokenClient.subTopic("keepAliveTopic").get();
+				tokenClient.pubTopic("keepAliveTopic", new Binary("alive"), false);
+				Assertions.assertTrue(f.get(5, TimeUnit.SECONDS));
 			} finally {
 				tokenClient.stop();
 			}
