@@ -123,6 +123,6 @@ tasks.withType(Test).configureEach {
     maxHeapSize = '2g'
     testLogging {
         events 'failed', 'skipped'
-        exceptionFormat 'full'
+        exceptionFormat = 'full'
     }
 }
