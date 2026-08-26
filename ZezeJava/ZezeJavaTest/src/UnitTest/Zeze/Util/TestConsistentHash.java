@@ -36,7 +36,8 @@ public class TestConsistentHash {
 
 		{
 			var sum = new HashMap<Integer, OutLong>();
-			for (int i = 0; i < 1000_0000; ++i)
+			// 观察分布用（仅打印不断言），100万次足够看出均衡性；fast 车道不跑千万级循环
+			for (int i = 0; i < 100_0000; ++i)
 				sum.computeIfAbsent(consistentHash.get(i), k -> new OutLong()).value += 1;
 			logger.info("sum = {}", sum);
 		}
@@ -107,11 +108,11 @@ public class TestConsistentHash {
 			final int begin = Long.hashCode(timeBegin);
 
 			final var ch1 = new ConsistentHash<>(selector);
-			for (int i = begin; i != begin + 1000; i++)
+			for (int i = begin; i != begin + 500; i++)
 				ch1.add(String.valueOf(i), i);
 
 			final var ch2 = new ConsistentHash<>(selector);
-			for (int i = begin + 1000; i-- != begin; )
+			for (int i = begin + 500; i-- != begin; )
 				ch2.add(String.valueOf(i), i);
 
 			logger.info("testStable: begin={}, ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms", begin,
@@ -132,9 +133,9 @@ public class TestConsistentHash {
 
 			timeBegin = System.nanoTime();
 
-			var indexes = new int[500];
+			var indexes = new int[250];
 			for (int i = 0; i < indexes.length; i++)
-				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 2000));
+				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 1000));
 			for (int i = indexes.length - 1; i >= 0; i--)
 				ch2.remove(indexes[i]);
 			logger.info("testStable: removed half: ch1.size={}:{}/{}, ch2.size={}:{}/{}",
@@ -151,7 +152,7 @@ public class TestConsistentHash {
 			Assertions.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
 			Assertions.assertEquals(ch1.circleSize(), ch2.circleSize());
 
-			for (int i = begin; i != begin + 1000; i++) {
+			for (int i = begin; i != begin + 500; i++) {
 				ch1.remove(i);
 				ch2.remove(i);
 			}

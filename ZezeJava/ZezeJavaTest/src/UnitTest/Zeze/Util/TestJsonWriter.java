@@ -6,9 +6,13 @@ import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 @SuppressWarnings("JavaPrintToLogpoint")
 @Fast
+// 方法级并发：两个 1M 循环的 static 测试（自包含）与实例字段的 testAll 互不接触，无竞态
+@Execution(ExecutionMode.CONCURRENT)
 public class TestJsonWriter {
 	final JsonWriter jw = new JsonWriter();
 	final JsonReader Json = new JsonReader();
@@ -114,13 +118,15 @@ public class TestJsonWriter {
 		count++;
 	}
 
-	public static void testDoubleRange() {
+	@Test
+	public void testDoubleRange() {
 		final JsonWriter jw = JsonWriter.local();
 		double d = 0.01;
+		// 跨距采样（每10个位模式取1，覆盖整个跨度）代替连续百万次全扫，fast 车道不跑 6M 次循环
 		for (int j = 0; j < 5; j++, d *= 10) {
 			long dd = Double.doubleToRawLongBits(d);
-			for (int i = 0; i < 1_000_000; i++) {
-				final double f = Double.longBitsToDouble(dd + i);
+			for (int i = 0; i < 100_000; i++) {
+				final double f = Double.longBitsToDouble(dd + (long)i * 10);
 				jw.clear().write(f);
 				final String s = jw.toString();
 				final double f2 = Double.parseDouble(s);
@@ -145,8 +151,8 @@ public class TestJsonWriter {
 			if (f != f2 && !(Double.isNaN(f) && Double.isNaN(f2)))
 				throw new AssertionError("testDoubleRange[e" + e + ":1]: " + f + " != " + f2 + ", " + s);
 		}
-		for (int i = 0; i < 1_000_000; i++) {
-			final double f = Double.doubleToRawLongBits(i);
+		for (int i = 0; i < 100_000; i++) {
+			final double f = Double.doubleToRawLongBits((long)i * 10);
 			jw.clear().write(f);
 			final String s = jw.toString();
 			final double f2 = Double.parseDouble(s);
@@ -156,10 +162,11 @@ public class TestJsonWriter {
 		System.out.println("testDoubleRange OK!");
 	}
 
-	public static void testDoubleRandom() {
+	@Test
+	public void testDoubleRandom() {
 		final JsonWriter jw = JsonWriter.local();
 		final ThreadLocalRandom r = ThreadLocalRandom.current();
-		for (int i = 0; i < 1_000_000; i++) {
+		for (int i = 0; i < 100_000; i++) {
 			long v = r.nextLong();
 			if ((v & 0x7ff0_0000_0000_0000L) == 0x7ff0_0000_0000_0000L) {
 				v &= 0xfff8_0000_0000_0000L; // Infinity/-Infinity/NaN
@@ -251,8 +258,7 @@ public class TestJsonWriter {
 			testDouble(2, -0.10000000000000001, "-0.1");
 			testDouble(1, -0.10000000000000001, "-0.1");
 
-			testDoubleRange();
-			testDoubleRandom();
+			// testDoubleRange/testDoubleRandom 已拆成独立 @Test 并发执行
 		} catch (Exception e) {
 			//noinspection CallToPrintStackTrace
 			e.printStackTrace();

@@ -20,7 +20,7 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（Benchmark 包整体
 ### 测试分层约定
 
 - 自包含测试（不依赖外部进程/数据库）标注 `@Fast`（`harness.Fast`，即 `@Tag("fast")`），由 `gradle test` 执行。
-- **`gradle test` 是类级并行的**（`junit.jupiter.execution.parallel`，方法保持同线程，仅 test 任务开启）。因此 `@Fast` 准入除"自包含"外还要求**彼此互不干扰**：固定端口独占（现有 fast 类端口：TestRpc=5000、TestToken=5003）、本地目录独占、无静态状态竞争（`Task.tryInitThreadPool` 有锁幂等是安全先例）。违反时失败是间歇性的，很难查。
+- **`gradle test` 是类级并行的**（`junit.jupiter.execution.parallel`，个别类 `@Execution(CONCURRENT)` 方法级并行，仅 test 任务开启）。因此 `@Fast` 准入除"自包含"外还要求**彼此互不干扰**：固定端口独占（现有 fast 类端口：TestRpc=5000、TestToken=5003；`TestTokenKeepAlive` 也用 5003 但在 integrationTest，串行不冲突）、本地目录独占、无静态状态竞争（`Task.tryInitThreadPool` 有锁幂等是安全先例）、**@Test 方法必须非 static**（Jupiter 会静默忽略 static @Test，覆盖悄悄丢失）。违反时失败是间歇性的，很难查。
 - **吞吐基准标注 `@Bench`**（`harness.Bench`，等价 `@Tag("bench")`，Benchmark 包整体），由 `gradle bench` 执行，`integrationTest` 按标签排除。识别特征：无断言、靠 `Benchmark()/report()` 打印 M/s 或耗时——自包含 ≠ 该进快速车道。
 - **新测试不打 tag 默认归入 `integrationTest`**（环境更全的桶）——忘打 tag 不会打破 `gradle test` 开箱即绿。
 - 外部 DB 测试（MySQL/PG/Mongo/SqlServer/TiKV）靠主机名门控自动跳过，见 `ZezeJava/README.md` 测试分类盘点。
