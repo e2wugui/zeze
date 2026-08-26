@@ -22,10 +22,6 @@ public class ModuleRedirectRank {
 
 		try {
 			app1.Start(new String[]{"-ServerId", "30"});
-
-			System.out.println("Begin Thread.sleep");
-			Thread.sleep(2000); // wait connected
-			System.out.println("End Thread.sleep app1 " + app1.Zeze.getServiceManager().getSubscribeStates().values());
 		} catch (Throwable e) {
 			// resource close.
 			try {
@@ -41,9 +37,10 @@ public class ModuleRedirectRank {
 		try {
 			app2.Start(new String[]{"-ServerId", "31", "-ProviderDirectPort", "20002"});
 
-			System.out.println("Begin Thread.sleep");
-			Thread.sleep(2000); // wait connected
-			System.out.println("End Thread.sleep app2 " + app2.Zeze.getServiceManager().getSubscribeStates().values());
+			// 等两个app的provider服务在SM注册并且互相可见（identity即serverId），替代盲等2秒。
+			// 双向都检查：RedirectToServer/TestHash/TestToAll 需要 app1 与 app2 都能路由到对方。
+			harness.TestEnv.waitServerRegistered(app1.Zeze, 30, 31);
+			harness.TestEnv.waitServerRegistered(app2.Zeze, 30, 31);
 		} catch (Throwable e) {
 			// resource close.
 			try {

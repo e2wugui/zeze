@@ -78,18 +78,22 @@ public class TestTimer {
 	public final void test1BasicTimer() throws Exception {
 		System.out.println("========== Testing Basic Timer ==========");
 		var timer = App.getInstance().Zeze.getTimer();
+		// 定时器周期 50ms：逻辑与原 200ms 版一致，只等比压缩等待墙钟（period×times、睡眠窗口同步缩小）。
+		final int periodMs = 50;
+		final int times = 10;
 
 		// Test schedule timer
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle1.class, null);
-			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle1.class);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle1.class);
 			return Procedure.Success;
 		}, "test_CommonSchedule").call());
 
 		// to prevent thread from being killed
-		int sleepCircle = 12;
+		// 窗口比定时器总时长多~30%（与原200ms版的余量比例相同），吸收调度抖动
+		int sleepCircle = 14;
 		for (int i = 0; i < sleepCircle; ++i) {
-			Thread.sleep(200);
+			Thread.sleep(periodMs);
 			System.out.println(">> sleep " + i);
 		}
 		System.out.println("========== Test1 Passed ==========");
@@ -99,35 +103,35 @@ public class TestTimer {
 
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle2.class, testBean1);
-			timer.schedule(TimerSpec.ofDelay(1).period(200).times(10), TestTimerHandle2.class, testBean1);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs).times(times), TestTimerHandle2.class, testBean1);
 			return Procedure.Success;
 		}, "test_ScheduleWithCustomBean").call());
 
 		for (int i = 0; i < sleepCircle; ++i) {
-			Thread.sleep(200);
+			Thread.sleep(periodMs);
 			System.out.println(">> sleep " + i);
 		}
 
-		Assertions.assertSame(10, testBean1.getTestValue());
+		Assertions.assertSame(times, testBean1.getTestValue());
 		System.out.println("========== Test2 Passed ==========");
 
 		// Test canceling schedule
 		TestBean testBean2 = new TestBean();
 		Assertions.assertEquals(Procedure.Success, App.getInstance().Zeze.newProcedure(() -> {
 			//timer.schedule(1, 200, 10, TestTimerHandle3.class, testBean2);
-			timer.schedule(TimerSpec.ofDelay(1).period(200), TestTimerHandle3.class, testBean2);
+			timer.schedule(TimerSpec.ofDelay(1).period(periodMs), TestTimerHandle3.class, testBean2);
 			return Procedure.Success;
 		}, "test_CancelSchedule").call());
 
 		for (int i = 0; i < sleepCircle; ++i) {
-			Thread.sleep(200);
+			Thread.sleep(periodMs);
 			if (i == 5) {
 				testBean2.loseConnection();
 			}
 			System.out.println(">> sleep " + i);
 		}
 
-		Assertions.assertTrue(testBean2.getTestValue() <= 10);
+		Assertions.assertTrue(testBean2.getTestValue() <= times);
 		System.out.println("========== Test3 Passed ==========");
 	}
 }
