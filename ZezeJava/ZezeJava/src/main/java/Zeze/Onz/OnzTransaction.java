@@ -272,8 +272,10 @@ public abstract class OnzTransaction<A extends Data, R extends Data> extends Ree
 
 		if (flushReadies.size() == zezeProcedures.size() || flushReadies.size() == zezeSagas.size()) {
 			// 简单的用数量判断，足够可靠了。
-			for (var ready : flushReadies)
-				ready.SendResult();
+			for (var ready : flushReadies) {
+				if (!ready.isSendResultDone()) // 这里忽略重复发送警告。
+					ready.SendResult();
+			}
 			flushDone.setResult(0);
 		}
 	}

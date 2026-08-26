@@ -22,7 +22,7 @@ public abstract class ProxyableRpc<A extends Serializable, R extends Serializabl
 
 		// proxy 方式，基本逻辑拷贝自 Rpc.SendResult(Binary result)。
 		if (sendResultDone) {
-			logger.error("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
+			logger.warn("Rpc.SendResult Already Done: {} {}", getSender(), this, new Exception());
 			return;
 		}
 		sendResultDone = true;
