@@ -86,7 +86,9 @@ tasks.named('test', Test) {
     jvmArgs '-ea'
     // @Fast 自包含测试不需要 SM/Global 环境，关闭 TestEnvLauncherListener 的进程内启动
     systemProperty 'zeze.test.env', 'off'
-    // 【实验】类级并行：方法保持同线程。只挂 test 任务，integrationTest/bench 绝不并行
+    // 类级并行（方法保持同线程），墙钟 ~24s→~10s。仅限 test 任务：
+    // integrationTest/bench 绝不并行（demo.App 单例、共享 dbhome、端口互踩）。
+    // 代价：@Fast 准入要求"彼此互不干扰"（固定端口独占、本地目录独占、无静态状态竞争），见 AGENTS.md。
     systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
     systemProperty 'junit.jupiter.execution.parallel.mode.classes.default', 'concurrent'
     systemProperty 'junit.jupiter.execution.parallel.mode.default', 'same_thread'
