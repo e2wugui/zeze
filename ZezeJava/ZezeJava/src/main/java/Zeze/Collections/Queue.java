@@ -265,7 +265,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		var nodeValues = head.getValues();
-		var nodeValue = nodeValues.remove(0);
+		var nodeValue = nodeValues.removeFirst();
 		root.setCount(root.getCount() - 1);
 		if (nodeValues.isEmpty()) {
 			root.setHeadNodeKey(head.getNextNodeKey());
@@ -293,7 +293,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			return null;
 
 		@SuppressWarnings("unchecked")
-		var value = (V)head.getValues().get(0).getValue().getBean();
+		var value = (V)head.getValues().getFirst().getValue().getBean();
 		return value;
 	}
 
@@ -319,12 +319,12 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			if (tail != null)
 				tail.setNextNodeKey(newNodeKey);
 			module._tQueueNodes.insert(newNodeKey, tail = new BQueueNode());
-			root.setCount(root.getCount() + 1);
 		}
 		var nodeValue = new BQueueNodeValue();
 		nodeValue.setTimestamp(System.currentTimeMillis());
 		nodeValue.getValue().setBean(value);
 		tail.getValues().add(nodeValue);
+		root.setCount(root.getCount() + 1);
 	}
 
 	/**
@@ -342,7 +342,6 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 			if (root.getTailNodeKey().getNodeId() == 0)
 				root.setTailNodeKey(newNodeKey);
 			module._tQueueNodes.insert(newNodeKey, head = new BQueueNode());
-			root.setCount(root.getCount() + 1);
 			if (headNodeKey.getNodeId() != 0)
 				head.setNextNodeKey(headNodeKey);
 		}
@@ -350,6 +349,7 @@ public class Queue<V extends Bean> implements HotBeanFactory {
 		nodeValue.setTimestamp(System.currentTimeMillis());
 		nodeValue.getValue().setBean(value);
 		head.getValues().add(0, nodeValue);
+		root.setCount(root.getCount() + 1);
 	}
 
 	/**
