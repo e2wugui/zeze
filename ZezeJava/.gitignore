@@ -19,6 +19,7 @@ rocksdbjni.dll
 test.ks
 
 /ZezeJava/out/
+/ZezeJavaTest/out/
 /test/autokeys2
 /test/Dbh2/CommitRocks*
 /test/Dbh2/manager*

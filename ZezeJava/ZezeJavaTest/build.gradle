@@ -86,6 +86,10 @@ tasks.named('test', Test) {
     jvmArgs '-ea'
     // @Fast 自包含测试不需要 SM/Global 环境，关闭 TestEnvLauncherListener 的进程内启动
     systemProperty 'zeze.test.env', 'off'
+    // 【实验】类级并行：方法保持同线程。只挂 test 任务，integrationTest/bench 绝不并行
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
+    systemProperty 'junit.jupiter.execution.parallel.mode.classes.default', 'concurrent'
+    systemProperty 'junit.jupiter.execution.parallel.mode.default', 'same_thread'
 }
 
 // gradle integrationTest：全量功能测试（含依赖 SM 5001/Global 5002 的 A/B 类），不含 @Bench 吞吐基准。
