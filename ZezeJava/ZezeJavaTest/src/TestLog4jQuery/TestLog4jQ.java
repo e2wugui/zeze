@@ -31,16 +31,16 @@ public class TestLog4jQ {
 		var logManager = new Log4jFileManager(logConf);
 		var session = new Log4jSession(logManager);
 		var result = new ArrayList<Log4jLog>();
-		var reset = false;
+		//var reset = false; // reset会导致搜索全部日志，可能很慢，先不测试reset了。
 		while (session.searchContains(result, beginTime, endTime, java.util.List.of(pattern), BCondition.ContainsAll, 1)) {
 			System.out.println("------------------------");
 			for (var log : result)
 				System.out.println(log);
-			if (!reset) {
-				session.reset();
-				reset = true;
-				System.out.println("-------------reset-----------");
-			}
+			//if (!reset) {
+			//	session.reset();
+			//	reset = true;
+			//	System.out.println("-------------reset-----------");
+			//}
 		}
 		if (!result.isEmpty()) {
 			System.out.println("------------------------");
@@ -52,7 +52,7 @@ public class TestLog4jQ {
 	@Test
 	public void testBrowse() throws Exception {
 		var beginDate = Calendar.getInstance();
-		beginDate.add(Calendar.MINUTE, -30);
+		beginDate.add(Calendar.MINUTE, -10);
 		var beginTime = beginDate.getTime().getTime();
 		var endTime = -1; // Log4jLog.parseTime("23-08-25 09:19:01.239");
 		var logActive = "zeze.log";
