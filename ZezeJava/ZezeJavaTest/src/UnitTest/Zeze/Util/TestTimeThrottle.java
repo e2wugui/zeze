@@ -14,7 +14,8 @@ public class TestTimeThrottle {
 		Assertions.assertTrue(throttle.checkNow(1));
 		Assertions.assertTrue(throttle.checkNow(1));
 		Assertions.assertFalse(throttle.checkNow(1));
-		Thread.sleep(2100);
+		// checkNow 是惰性过期（调用时现场清理 expire 之前的 mark，无后台定时器），睡过 expire+余量即可
+		Thread.sleep(1200);
 		Assertions.assertTrue(throttle.checkNow(1));
 		Assertions.assertTrue(throttle.checkNow(1));
 		Assertions.assertTrue(throttle.checkNow(1));

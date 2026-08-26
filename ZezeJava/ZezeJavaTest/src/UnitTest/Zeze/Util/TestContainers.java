@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Util;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import Zeze.Util.OutInt;
 import Zeze.Util.Random;
 
 @Fast
+@Execution(ExecutionMode.CONCURRENT)
 public class TestContainers {
 	private static final int KEY_RANGE = 100;
 	private static final int TEST_COUNT = 10_0000;

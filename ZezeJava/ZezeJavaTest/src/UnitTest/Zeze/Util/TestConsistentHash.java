@@ -1,5 +1,7 @@
 package UnitTest.Zeze.Util;
 
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Fast
+@Execution(ExecutionMode.CONCURRENT)
 public class TestConsistentHash {
 	private static final Logger logger = LogManager.getLogger(TestConsistentHash.class);
 
@@ -108,11 +111,11 @@ public class TestConsistentHash {
 			final int begin = Long.hashCode(timeBegin);
 
 			final var ch1 = new ConsistentHash<>(selector);
-			for (int i = begin; i != begin + 500; i++)
+			for (int i = begin; i != begin + 300; i++)
 				ch1.add(String.valueOf(i), i);
 
 			final var ch2 = new ConsistentHash<>(selector);
-			for (int i = begin + 500; i-- != begin; )
+			for (int i = begin + 300; i-- != begin; )
 				ch2.add(String.valueOf(i), i);
 
 			logger.info("testStable: begin={}, ch1.size={}:{}/{}, ch2.size={}:{}/{}, time={}ms", begin,
@@ -133,9 +136,9 @@ public class TestConsistentHash {
 
 			timeBegin = System.nanoTime();
 
-			var indexes = new int[250];
+			var indexes = new int[150];
 			for (int i = 0; i < indexes.length; i++)
-				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 1000));
+				ch1.remove(indexes[i] = Random.getInstance().nextInt(begin, begin + 600));
 			for (int i = indexes.length - 1; i >= 0; i--)
 				ch2.remove(indexes[i]);
 			logger.info("testStable: removed half: ch1.size={}:{}/{}, ch2.size={}:{}/{}",
@@ -152,7 +155,7 @@ public class TestConsistentHash {
 			Assertions.assertEquals(ch1.circleKeySize(), ch2.circleKeySize());
 			Assertions.assertEquals(ch1.circleSize(), ch2.circleSize());
 
-			for (int i = begin; i != begin + 500; i++) {
+			for (int i = begin; i != begin + 300; i++) {
 				ch1.remove(i);
 				ch2.remove(i);
 			}

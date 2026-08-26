@@ -23,8 +23,8 @@
 
 - **不需要准备 MySQL/MongoDB/TiKV/RocketMQ**。所有依赖外部数据库的测试都有"主机名门控"或 `@Disabled`，在陌生机器上会自动跳过，不会失败（详见下文分类）。
 - **不需要手工启动任何 bat**。测试已于 2026-08 从 JUnit 4/3 整体迁移到 **JUnit 6（Jupiter 6.1.3，要求 Java 17+）**，并挂在 `ZezeJavaTest` 的 **test 源集**，三车道：
-  - `gradle test`：只跑 **@Fast 自包含测试**（45 个类，无任何外部依赖，开箱即绿）。**类级并行**（个别类按 `@Execution(CONCURRENT)` 方法级并行），墙钟约 8s——下限由 worker JVM 启动和 ~3s 级的 CPU 测试杆决定，属刻意设计；
-  - `gradle integrationTest`：**全量功能测试**（266 个，不含基准），由 `harness.TestEnvLauncherListener` 在测试 JVM 内自动启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，会话结束自动关闭；端口被手工 bat 占用时直接复用；
+  - `gradle test`：只跑 **@Fast 自包含测试**（45 个类，无任何外部依赖，开箱即绿）。**类级并行**（个别类按 `@Execution(CONCURRENT)` 方法级并行），墙钟约 7s——下限由 worker JVM 启动、内存 javac（TestClassReloader）等固有成本决定，属刻意设计；
+  - `gradle integrationTest`：**全量功能测试**（268 个，不含基准），由 `harness.TestEnvLauncherListener` 在测试 JVM 内自动启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，会话结束自动关闭；端口被手工 bat 占用时直接复用；
   - `gradle bench`：**吞吐基准**（@Bench 标注的 Benchmark 包整体，9 类 24 个）。基准靠打印 M/s 观察、不设断言，不进功能车道；其中 A/B/C 事务场景依赖 SM/GCM（进程内 harness 自动提供）。
 - 已知限制：**`--tests` 与 `includeTestsMatching` 模式过滤在本项目不工作**（标签过滤正常，三车道均基于标签实现；用 IDEA 跑单个类）。
 - 唯一例外：`Onz/TestOnz` 额外依赖第二对服务 5011/5012（GCM 是进程内单例，起不了第二对），未启动时自动跳过；要跑它先运行 `test/service & global.another.bat`。

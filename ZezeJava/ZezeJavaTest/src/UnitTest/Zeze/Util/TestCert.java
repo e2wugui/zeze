@@ -1,4 +1,6 @@
 package UnitTest.Zeze.Util;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import harness.Fast;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +36,7 @@ import static Zeze.Util.Cert.*;
 
 // 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
 @Fast
+@Execution(ExecutionMode.CONCURRENT)
 public class TestCert {
 	private static final int RSA_BLOCK_SIZE = 2048 / 8; // 256
 	private static final int AES_BLOCK_SIZE = 128 / 8; // 16

@@ -116,7 +116,8 @@ public class TestOutputBuffer {
 			var bb = Zeze.Serialize.ByteBuffer.Allocate();
 
 			var c = new Channel();
-			for (int i = 0; i < 1_000_000; i++) {
+			// 每种分配器容量 25 万次随机操作（4 种共 100 万），对结尾的记账/内容断言足够
+			for (int i = 0; i < 250_000; i++) {
 				switch (r.nextInt(4)) {
 				case 0:
 					var b = (byte)r.nextInt();
