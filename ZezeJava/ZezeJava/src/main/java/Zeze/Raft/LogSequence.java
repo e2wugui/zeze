@@ -909,6 +909,14 @@ public class LogSequence {
 					commitSnapshotNow(path, r.Argument.getLastIncludedIndex());
 					return;
 				}
+				// 防御：快照边界低于已提交位置时丢弃日志会回退commitIndex、
+				// 丢失已apply的数据。按启动InstallSnapshot的回溯逻辑不会发生
+				// （已提交区间必然匹配，走不到这里），一旦发生说明别处有bug。
+				if (r.Argument.getLastIncludedIndex() < commitIndex) {
+					logger.fatal("{} InstallSnapshot LastIncludedIndex={} < commitIndex={}, there must be a bug.",
+							raft.getName(), r.Argument.getLastIncludedIndex(), commitIndex, new Exception());
+					raft.fatalKill();
+				}
 				// 7. Discard the entire log
 				// 整个删除，那么下一次AppendEntries又会找不到prev。不就xxx了吗?
 				// 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，

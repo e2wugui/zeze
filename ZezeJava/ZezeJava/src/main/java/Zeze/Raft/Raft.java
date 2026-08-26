@@ -418,10 +418,24 @@ public final class Raft {
 				return 0;
 			}
 
-			if (logSequence.trySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer) {
+			var setTermResult = logSequence.trySetTerm(r.Argument.getTerm());
+			if (setTermResult == LogSequence.SetTermResult.Newer) {
 				r.Result.setTerm(logSequence.getTerm());
 				// new term found.
 				convertStateTo(RaftState.Follower);
+			} else if (setTermResult == LogSequence.SetTermResult.Same) {
+				// 与 followerOnAppendEntries 的同term处理对齐。
+				switch (getState()) {
+				case Candidate:
+					// 同term已经存在合法Leader，让位。
+					convertStateTo(RaftState.Follower);
+					break;
+				case Leader:
+					logger.fatal("Receive InstallSnapshot from another leader={} with same term={}, there must be a bug. this={}",
+							r.Argument.getLeaderId(), logSequence.getTerm(), getLeaderId(), new Exception());
+					fatalKill();
+					return 0;
+				}
 			}
 			leaderId = r.Argument.getLeaderId();
 			logSequence.setLeaderActiveTime(System.currentTimeMillis());
