@@ -1,9 +1,11 @@
 package UnitTest.Zeze.Trans;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.Transaction.*;
 import org.junit.jupiter.api.Assertions;
 
+@Fast
 public class TestTableKey {
 	@Test
 	public final void test1() {

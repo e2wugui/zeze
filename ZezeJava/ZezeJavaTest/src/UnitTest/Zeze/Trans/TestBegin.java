@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Locks;
@@ -7,6 +8,7 @@ import Zeze.Transaction.Transaction;
 import org.junit.jupiter.api.Assertions;
 
 @SuppressWarnings("DataFlowIssue")
+@Fast
 public class TestBegin {
 	private final Locks Locks = new Locks();
 

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -10,6 +11,7 @@ import Zeze.Util.Factory;
 import demo.Module1.BValue;
 import org.junit.jupiter.api.Assertions;
 
+@Fast
 public class TestRpc {
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 

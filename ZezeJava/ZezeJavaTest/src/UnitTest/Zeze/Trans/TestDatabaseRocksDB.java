@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
@@ -11,6 +12,7 @@ import Zeze.Transaction.DatabaseRocksDb;
 import org.junit.jupiter.api.Assertions;
 import java.net.InetAddress;
 
+@Fast
 public class TestDatabaseRocksDB {
 
 	@Test

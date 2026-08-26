@@ -1,8 +1,10 @@
 package UnitTest.Zeze.Trans;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 
+@Fast
 public class TestConcurrentDictionary {
 	@Test
 	public final void testRemoveInForeach() {

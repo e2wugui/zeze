@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -10,6 +11,7 @@ import Zeze.Transaction.TableKey;
 import Zeze.Util.WeakHashSet;
 import org.junit.jupiter.api.Assertions;
 
+@Fast
 public class TestLock {
 
 	@Test

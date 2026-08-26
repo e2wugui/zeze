@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import Zeze.Serialize.*;
 import Zeze.Net.BufferCodec;
@@ -10,6 +11,7 @@ import Zeze.Net.Encrypt;
 import org.junit.jupiter.api.Assertions;
 import java.util.*;
 
+@Fast
 public class TestCodec{
 
 	@Test

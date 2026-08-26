@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Net;
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 /**
  * 100%覆盖测试OutputBuffer,随机暴力黑盒测试验证
  */
+@Fast
 public class TestOutputBuffer {
 	static class Alloc implements ByteBufferAllocator {
 		final IdentityHashSet<ByteBuffer> allocSet = new IdentityHashSet<>();
