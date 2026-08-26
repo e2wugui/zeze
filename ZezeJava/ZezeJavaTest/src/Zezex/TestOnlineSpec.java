@@ -124,7 +124,7 @@ public class TestOnlineSpec {
 			prepareNewEnvironment(2, 1, 1);
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
-			var server0 = servers.get(0);
+			var server0 = servers.getFirst();
 
 			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role0 = getRole(client0);

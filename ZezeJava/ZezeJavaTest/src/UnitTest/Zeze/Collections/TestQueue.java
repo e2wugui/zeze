@@ -27,11 +27,13 @@ public class TestQueue {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize = queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = new BMyBean();
 				bean.setI(i);
 				queue.add(bean);
 			}
+			Assertions.assertEquals(10, queue.size() - queueSize);
 			var bean = queue.peek();
 			Assertions.assertEquals(0, bean.getI());
 			return Procedure.Success;
@@ -58,10 +60,12 @@ public class TestQueue {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = queue.pop();
 				Assertions.assertEquals(bean.getI(), i);
 			}
+			Assertions.assertEquals(queueSize - 10, queue.size());
 			Assertions.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test2_QueuePop").call();
@@ -73,11 +77,13 @@ public class TestQueue {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
 			for (int i = 0; i < 10; i++) {
 				var bean = new BMyBean();
 				bean.setI(i);
 				queue.push(bean);
 			}
+			Assertions.assertEquals(10, queue.size() - queueSize);
 			var bean = queue.peek();
 			Assertions.assertEquals(9, bean.getI());
 			return Procedure.Success;
@@ -104,10 +110,12 @@ public class TestQueue {
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", BMyBean.class);
+			var queueSize =  queue.size();
 			for (int i = 9; i >= 0; i--) {
 				var bean = queue.pop();
 				Assertions.assertEquals(bean.getI(), i);
 			}
+			Assertions.assertEquals(queueSize - 10, queue.size());
 			Assertions.assertTrue(queue.isEmpty());
 			return Procedure.Success;
 		}, "test4_QueuePop").call();
