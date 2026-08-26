@@ -850,16 +850,12 @@ public class LogSequence {
 			}
 			// 最后修改LastIndex。
 			lastIndex = raftLog.getIndex();
-			// 广播给followers并异步等待多数确认
-			try {
-				raft.getServer().getConfig().ForEachConnector(c -> trySendAppendEntries((Server.ConnectorEx)c, null));
-			} catch (Throwable e) { // rollback. 必须捕捉所有异常。rethrow
-				lastIndex--;
-				// 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
-				if (null != callback)
-					leaderAppendLogs.remove(raftLog.getIndex());
-				throw e;
-			}
+			// 广播给followers并异步等待多数确认。
+			// 【注意】广播中途异常不回滚lastIndex：此时可能已经有connector把该entry
+			// 发给了follower并被持久化，回滚复用同一(term,index)写入不同内容会破坏
+			// 日志匹配不变式（follower冲突检查只比term，同term直接跳过），导致状态机
+			// 静默分叉。entry留着无害：要么之后复制成功提交，要么换主后被截断。
+			raft.getServer().getConfig().ForEachConnector(c -> trySendAppendEntries((Server.ConnectorEx)c, null));
 			var result = new AppendLogResult();
 			result.term = term;
 			result.index = lastIndex;
