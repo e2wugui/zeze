@@ -166,6 +166,13 @@ public class LogSequence {
 		_commitSnapshot(path, newFirstIndex);
 	}
 
+	// 接收InstallSnapshot的提交必须立即生效，不能走延时提交：
+	// 随后马上loadSnapshot(getSnapshotFullName())并按新边界重置commitIndex/lastApplied，
+	// 延时提交会导致加载旧快照（或文件不存在）、firstIndex不推进，节点状态彻底错乱。
+	void commitSnapshotNow(String path, long newFirstIndex) throws IOException, RocksDBException {
+		_commitSnapshot(path, newFirstIndex);
+	}
+
 	private void _commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
@@ -893,7 +900,7 @@ public class LogSequence {
 					// 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
 					// 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
 					logger.warn("Exist Local Log. Do It Like A Local Snapshot!");
-					commitSnapshot(path, r.Argument.getLastIncludedIndex());
+					commitSnapshotNow(path, r.Argument.getLastIncludedIndex());
 					return;
 				}
 				// 7. Discard the entire log
@@ -912,7 +919,7 @@ public class LogSequence {
 				var lastIncludedLog = RaftLog.decode(r.Argument.getLastIncludedLog(),
 						raft.getStateMachine()::logFactory);
 				saveLog(lastIncludedLog);
-				commitSnapshot(path, lastIncludedLog.getIndex());
+				commitSnapshotNow(path, lastIncludedLog.getIndex());
 
 				lastIndex = lastIncludedLog.getIndex();
 				commitIndex = firstIndex;
