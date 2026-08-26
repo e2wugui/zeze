@@ -83,7 +83,9 @@ public final class GlobalCacheManagerAsyncServer extends ReentrantLock implement
 	private AchillesHeelConfig achillesHeelConfig;
 	private GlobalCacheManagerPerf perf;
 
-	private GlobalCacheManagerAsyncServer() {
+	// 每个实例都是独立的服务器（无共享静态状态），可同 JVM 启动多个监听不同端口；
+	// getInstance() 返回供 main 及常规单实例部署使用的默认实例。
+	public GlobalCacheManagerAsyncServer() {
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。

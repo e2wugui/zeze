@@ -24,10 +24,10 @@ public class TestOnz {
 
 	@BeforeEach
 	public void before() throws Exception {
-		// 本测试额外依赖第二对服务 SM(5011)/Global(5012)，进程内 harness 无法提供
-		// （GlobalCacheManagerAsyncServer 是单例），未启动时跳过而不是失败。
+		// 第二对服务 SM(5011)/Global(5012) 由 TestEnvLauncherListener 在进程内自动启动
+		// （GCM 支持多实例）。仅当环境被显式关闭（-Dzeze.test.env=off）或端口被占时才会跳过。
 		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011),
-				"需要第二对服务(5011/5012)：先运行 test/service & global.another.bat");
+				"第二对服务(5011/5012)不可用：zeze.test.env=off 时不自动启动，或先运行 test/service & global.another.bat");
 
 		App.Instance.Start();
 		var config2 = Config.load("./zeze_cluster_2.xml");

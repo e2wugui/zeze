@@ -38,9 +38,13 @@ public class TestGameTimer {
 	LoginQueue loginQueue;
 
 	private static void waitLinkdProvider(Zezex.App linkd) throws InterruptedException {
+		// 稳态订阅数：Game.Server.Module#8(Map)、#9(Rank)、#11013(内置)，
+		// 与 provider.module.binds.xml 及 serverCount 无关（多 server 注册同名服务）。
+		// 历史版本曾用 !isEmpty()，2026-01 被改成 >5（当时环境下有残留服务，稳态为 3 时永远等不到）。
 		while (true) {
-			logger.info("providers={}", linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().values());
-			if (linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates().size() > 5)
+			var states = linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates();
+			logger.info("providers={}", states.values());
+			if (states.size() >= 3)
 				break;
 			logger.info("wait Linkd Provider.");
 			//noinspection BusyWait
