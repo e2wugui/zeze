@@ -31,7 +31,7 @@ public class TestBag {
 	}
 
 	@Test
-	public final void test1_Add() throws Exception {
+	public final void test1_Add() {
 		Assertions.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.newProcedure(TestBag::preRemove, "BagPreRemove").call());
 		var ret = demo.App.getInstance().Zeze.newProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");

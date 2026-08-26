@@ -14,7 +14,7 @@ public class TestBoolList {
 	}
 
 	@Test
-	public void testBoolList() throws Exception {
+	public void testBoolList() {
 		var bl = App.Instance.BoolListModule.open("myBoolListTest");
 		for (int i = 0; i < 1024; ++i) {
 			Assertions.assertFalse(get(bl, i));
