@@ -85,19 +85,34 @@ public class TestOnlineSpec {
 	}
 
 	private void stopAll() throws Exception {
-		for (var client : clients)
-			client.Stop();
-		for (var server : servers)
-			server.stopBeforeModules();
-		for (var server : servers)
-			server.Stop();
-		for (var link : links)
-			link.Stop();
-		loginQueue.stop();
-		loginQueue = null;
-		clients.clear();
-		links.clear();
-		servers.clear();
+		try {
+			for (var client : clients)
+				client.Stop();
+			for (var server : servers) {
+				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
+					server.stopBeforeModules();
+			}
+			for (var server : servers) {
+				if (server.Zeze != null)
+					server.Stop();
+			}
+			for (var link : links) {
+				try {
+					link.Stop();
+				} catch (Exception e) {
+					logger.error("stop link failed", e);
+				}
+			}
+		} finally {
+			// 无论如何都要释放 5020/5021 端口，否则会毒化后续使用 LoginQueue 的测试
+			if (loginQueue != null) {
+				loginQueue.stop();
+				loginQueue = null;
+			}
+			clients.clear();
+			links.clear();
+			servers.clear();
+		}
 	}
 
 	/** 把客户端已注册的协议 handle 替换为计数 handle（AddFactoryHandle 重复注册会抛异常，只能替换）。 */
