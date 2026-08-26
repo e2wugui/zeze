@@ -44,6 +44,9 @@ public final class RaftConfig {
 
 	private int snapshotLogCount = 100_0000; // -1 disable snapshot
 	private boolean snapshotCommitDelayed = false;
+	// 预投票：真正选举前先询问多数派，防止分区后term膨胀的节点回归时打断健康集群。
+	// 滚动升级期间新旧节点混布时旧节点不认识PreVote协议，会导致选不出Leader，此时应临时配置为false。
+	private boolean preVote = true;
 	// snapshot时回退数量，某些系统不能任意截断日志，需要回退一定数量进行保护。回退现在用延时提交实现。
 	private int backgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
 	private int uniqueRequestExpiredDays = 7;
@@ -177,6 +180,14 @@ public final class RaftConfig {
 		return snapshotCommitDelayed;
 	}
 
+	public boolean isPreVote() {
+		return preVote;
+	}
+
+	public void setPreVote(boolean value) {
+		preVote = value;
+	}
+
 	public void setSnapshotLogCount(int value) {
 		snapshotLogCount = value;
 	}
@@ -253,6 +264,9 @@ public final class RaftConfig {
 		attr = self.getAttribute("SnapshotCommitDelayed");
 		if (!attr.isEmpty())
 			snapshotCommitDelayed = Boolean.parseBoolean(attr);
+		attr = self.getAttribute("PreVote");
+		if (!attr.isEmpty())
+			preVote = Boolean.parseBoolean(attr);
 		attr = self.getAttribute("ElectionRandomMax");
 		if (!attr.isEmpty())
 			electionRandomMax = Integer.parseInt(attr);
@@ -303,6 +317,8 @@ public final class RaftConfig {
 			self.setAttribute("SnapshotLogCount", String.valueOf(snapshotLogCount));
 		if (snapshotCommitDelayed)
 			self.setAttribute("SnapshotCommitDelayed", "true");
+		if (!preVote)
+			self.setAttribute("PreVote", "false");
 		if (backgroundApplyCount != 500)
 			self.setAttribute("BackgroundApplyCount", String.valueOf(backgroundApplyCount));
 		if (uniqueRequestExpiredDays != 7)

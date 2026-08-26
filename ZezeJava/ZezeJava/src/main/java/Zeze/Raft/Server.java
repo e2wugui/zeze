@@ -177,6 +177,7 @@ public class Server extends HandshakeBoth {
 
 	private boolean isImportantProtocol(long typeId) {
 		return isHandshakeProtocol(typeId) // 【注意】下面这些模块的Id总是为0。
+				|| typeId == PreVote.TypeId_
 				|| typeId == RequestVote.TypeId_
 				|| typeId == AppendEntries.TypeId_
 				|| typeId == InstallSnapshot.TypeId_

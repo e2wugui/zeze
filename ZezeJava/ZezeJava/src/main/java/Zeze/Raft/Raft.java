@@ -65,6 +65,8 @@ public final class Raft {
 
 	// Candidate
 	private final ConcurrentHashSet<RequestVote> requestVotes = new ConcurrentHashSet<>();
+	private final ConcurrentHashSet<PreVote> preVotes = new ConcurrentHashSet<>();
+	private boolean preVoting; // 处于预投票阶段（term还没有增加）。
 	private long nextVoteTime; // 等待当前轮选举结果超时；用来启动下一次选举。
 
 	// Leader
@@ -740,6 +742,101 @@ public final class Raft {
 		return Procedure.Success;
 	}
 
+	@SuppressWarnings("SameReturnValue")
+	private long processPreVote(PreVote r) throws Exception {
+		lock();
+		try {
+			// PreVote 接收者实现（raft 博士论文 §4.2.3）：
+			// 不修改 term/voteFor，不重置任何选举计时。
+			// 仅当候选者的"下一个term"更大、日志够新，
+			// 且本节点近期没有听得到有效Leader时授予。
+			r.Result.setTerm(logSequence.getTerm());
+			r.Result.setVoteGranted(r.Argument.getTerm() > logSequence.getTerm()
+					&& isLeaderSilent() && isLastLogUpToDate(r.Argument));
+			logger.info("{}: PreVote Granted={} Rpc={}", getName(), r.Result.getVoteGranted(), r);
+			r.SendResultCode(0);
+
+			return Procedure.Success;
+		} finally {
+			unlock();
+		}
+	}
+
+	private boolean isLeaderSilent() {
+		switch (getState()) {
+		case Leader:
+			return false; // 自己就是Leader。
+		case Candidate:
+			return true; // 自己也在选举中，说明Leader已经失联。
+		default:
+			// Follower：在最小选举超时内收到过Leader消息，视为Leader仍然活着。
+			return System.currentTimeMillis() - logSequence.getLeaderActiveTime()
+					>= raftConfig.getLeaderHeartbeatTimer() + 100;
+		}
+	}
+
+	private long processPreVoteResult(PreVote rpc, @SuppressWarnings("unused") Connector c) throws Exception {
+		if (rpc.isTimeout() || rpc.getResultCode() != 0)
+			return 0; // skip error. re-vote later.
+
+		lock();
+		try {
+			if (!preVoting || getState() != RaftState.Candidate) {
+				// 结果回来时，上下文已经发生变化，忽略这个结果。
+				return 0;
+			}
+
+			if (preVotes.contains(rpc) && rpc.Result.getVoteGranted()) {
+				int granteds = 0;
+				for (var vote : preVotes) {
+					if (vote.Result.getVoteGranted())
+						++granteds;
+				}
+
+				if (getState() == RaftState.Candidate && granteds >= raftConfig.getHalfCount()) {
+					// 预投票达成多数派（加上自己），开始真正的选举（此时才增加term）。
+					preVoting = false;
+					sendRequestVote();
+				}
+			}
+		} finally {
+			unlock();
+		}
+		return Procedure.Success;
+	}
+
+	private void startVote() throws RocksDBException {
+		if (raftConfig.isPreVote())
+			sendPreVote();
+		else {
+			preVoting = false;
+			sendRequestVote();
+		}
+	}
+
+	private void sendPreVote() throws RocksDBException {
+		preVotes.clear(); // 每次预投票开始清除。
+		preVoting = true;
+
+		var arg = new BRequestVoteArgument();
+		arg.setTerm(logSequence.getTerm() + 1); // 预投票携带"下一个term"，不修改自身term。
+		arg.setCandidateId(getName());
+		var log = logSequence.lastRaftLogTermIndex();
+		arg.setLastLogIndex(log.getIndex());
+		arg.setLastLogTerm(log.getTerm());
+		arg.setNodeReady(logSequence.getNodeReady());
+
+		nextVoteTime = System.currentTimeMillis() + raftConfig.getElectionTimeout();
+		server.getConfig().forEachConnector(c -> {
+			var rpc = new PreVote();
+			rpc.Argument = arg;
+			preVotes.add(rpc);
+			var sendResult = rpc.Send(c.TryGetReadySocket(),
+					p -> processPreVoteResult(rpc, c), raftConfig.getAppendEntriesTimeout() - 100);
+			logger.info("{}:{}: SendPreVote {}", getName(), sendResult, rpc);
+		});
+	}
+
 	private void sendRequestVote() throws RocksDBException {
 		requestVotes.clear(); // 每次选举开始清除。
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
@@ -772,7 +869,7 @@ public final class Raft {
 		case Candidate:
 			logger.info("RaftState {}: Follower->Candidate", getName());
 			state = RaftState.Candidate;
-			sendRequestVote();
+			startVote();
 			return;
 		case Leader:
 			// 并发的RequestVote的结果如果没有判断当前状态，可能会到达这里。
@@ -787,13 +884,17 @@ public final class Raft {
 			logger.info("RaftState {}: Candidate->Follower", getName());
 			state = RaftState.Follower;
 			requestVotes.clear();
+			preVotes.clear();
+			preVoting = false;
 			return;
 		case Candidate:
 			logger.info("RaftState {}: Candidate->Candidate", getName());
-			sendRequestVote();
+			startVote();
 			return;
 		case Leader:
 			requestVotes.clear();
+			preVotes.clear();
+			preVoting = false;
 			cancelAllReceiveSnapshotting();
 
 			logger.info("RaftState {}: Candidate->Leader", getName());
@@ -855,6 +956,8 @@ public final class Raft {
 	}
 
 	private void registerInternalRpc() {
+		server.AddFactoryHandle(PreVote.TypeId_, new Service.ProtocolFactoryHandle<>(
+				PreVote::new, this::processPreVote, TransactionLevel.Serializable, DispatchMode.Normal));
 		server.AddFactoryHandle(RequestVote.TypeId_, new Service.ProtocolFactoryHandle<>(
 				RequestVote::new, this::processRequestVote, TransactionLevel.Serializable, DispatchMode.Normal));
 		server.AddFactoryHandle(AppendEntries.TypeId_, new Service.ProtocolFactoryHandle<>(
