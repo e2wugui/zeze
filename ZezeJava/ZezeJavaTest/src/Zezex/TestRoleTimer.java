@@ -68,7 +68,8 @@ public class TestRoleTimer {
 			//servers.get(i).getZeze().getTimer().initializeOnlineTimer(servers.get(i).ProviderApp);
 			//servers.get(i).getZeze().getTimer().start();
 		}
-		Thread.sleep(1000);
+		for (var link : links)
+			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（替代盲等1秒）
 		//var link = links.getFirst();
 		//var ipPort = link.LinkdService.getOnePassiveAddress();
 		/*

@@ -70,7 +70,8 @@ public class TestOnlineSpec {
 			server.Start(i + 40, 20000 + i);
 			servers.add(server);
 		}
-		Thread.sleep(1000);
+		for (var link : links)
+			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（替代盲等1秒）
 		var clientsSize = new AtomicInteger(clients.size());
 		clients.parallelStream().forEach(c -> {
 			try {
