@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -48,6 +49,7 @@ public class TestDatabaseMySql {
 		};
 	}
 
+	@Test
 	public final void test1() throws Exception {
 		if (!checkDriverClassExist("com.mysql.cj.jdbc.Driver")) {
 			System.out.println("skip mysql test: not found mysql driver");

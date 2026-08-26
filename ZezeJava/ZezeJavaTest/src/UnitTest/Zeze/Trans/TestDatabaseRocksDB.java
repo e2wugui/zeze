@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
@@ -12,6 +13,7 @@ import java.net.InetAddress;
 
 public class TestDatabaseRocksDB {
 
+	@Test
 	public final void test1() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		if (hostName.equals("DESKTOP-48A4UQ1")) // 这台电脑CPU不支持这个测试会触发rocksdbjni使用的BMI2指令集中的BZHI指令
@@ -80,6 +82,7 @@ public class TestDatabaseRocksDB {
 	/**
 	 * 执行test1插入数据后 ,再次启动db查看数据是否依然存在
 	 */
+	@Test
 	public final void test2() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		if (hostName.equals("DESKTOP-48A4UQ1")) // 这台电脑CPU不支持这个测试会触发rocksdbjni使用的BMI2指令集中的BZHI指令

@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Net;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
@@ -102,6 +103,7 @@ public class TestOutputBuffer {
 		}
 	}
 
+	@Test
 	public void test() throws IOException {
 		long seed = System.currentTimeMillis();
 		System.out.println(getClass().getSimpleName() + ": seed = " + seed);

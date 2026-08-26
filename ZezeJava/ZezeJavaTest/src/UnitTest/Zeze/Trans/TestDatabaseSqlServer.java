@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import Zeze.Config;
 import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 
 public class TestDatabaseSqlServer {
 
+	@Test
 	public final void test1() throws Exception {
 		System.out.println(System.getProperties().get("user.home"));
 		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import UnitTest.Zeze.BMyBean;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Transaction;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Assertions;
 public class TestBegin {
 	private final Locks Locks = new Locks();
 
+	@Test
 	public final void testRollback() {
 		Transaction.create(Locks);
 		try {
@@ -28,6 +30,7 @@ public class TestBegin {
 		}
 	}
 
+	@Test
 	public final void testCommit() {
 		Transaction.create(Locks);
 		try {
@@ -57,6 +60,7 @@ public class TestBegin {
 		Assertions.assertEquals(1, bean.getI());
 	}
 
+	@Test
 	public final void testNestRollback() {
 		Transaction.create(Locks);
 		try {
@@ -88,6 +92,7 @@ public class TestBegin {
 		Assertions.assertEquals(2, bean.getI());
 	}
 
+	@Test
 	public final void testNestCommit() {
 		Transaction.create(Locks);
 		try {

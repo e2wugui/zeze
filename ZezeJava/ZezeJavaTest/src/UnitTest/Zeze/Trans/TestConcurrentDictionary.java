@@ -1,7 +1,10 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
+
 
 public class TestConcurrentDictionary {
+	@Test
 	public final void testRemoveInForeach() {
 		java.util.concurrent.ConcurrentHashMap<Integer, Integer> cd = new java.util.concurrent.ConcurrentHashMap<>();
 

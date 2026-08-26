@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import java.util.Objects;
 import java.util.concurrent.Future;
 import Zeze.Config;
@@ -55,6 +56,7 @@ public class TestGlobal {
 		}
 	}
 
+	@Test
 	public final void testNone() {
 		var rname = EditService.class.getTypeName();
 		System.out.println(rname);
@@ -64,6 +66,8 @@ public class TestGlobal {
 		System.out.println(i);
 	}
 
+	@Test
+	@Disabled("hang：两个 app 对同一 key 的并发全局锁协调（GCM）等待永不完成，待排查后启用")
 	public final void test2App() throws Exception {
 		demo.App app1 = new demo.App();
 		demo.App app2 = new demo.App();

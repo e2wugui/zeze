@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -42,6 +43,7 @@ public class TestDatabasePostgreSQL {
 		return null; // 默认不测试postgresql。
 	}
 
+	@Test
 	public final void test1() throws Exception {
 		if (!checkDriverClassExist("org.postgresql.Driver")) {
 			System.out.println("skip postgres test: not found postgres driver");

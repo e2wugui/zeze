@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import org.junit.jupiter.api.Test;
 import Zeze.Serialize.*;
 import Zeze.Net.BufferCodec;
 import Zeze.Net.Compress;
@@ -11,6 +12,7 @@ import java.util.*;
 
 public class TestCodec{
 
+	@Test
 	public final void testEncrypt() {
 		BufferCodec b2flush = new BufferCodec();
 		byte[] key = {1};
@@ -40,6 +42,7 @@ public class TestCodec{
 		Assertions.assertEquals(2, bdecrypt.getBuffer().Bytes[1]);
 	}
 
+	@Test
 	public final void testEncrypt2() {
 		Random rand = new Random();
 
@@ -67,6 +70,7 @@ public class TestCodec{
 		}
 	}
 
+	@Test
 	public final void testCompress() {
 		Random rand = new Random();
 		int[] sizes = new int[1000];

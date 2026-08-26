@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -24,6 +25,7 @@ public class TestDatabaseMongoDb {
 		return null; // 默认不测试postgresql。
 	}
 
+	@Test
 	public final void test1() throws Exception {
 		String url = getPersonalUrl();
 		if (url == null) {

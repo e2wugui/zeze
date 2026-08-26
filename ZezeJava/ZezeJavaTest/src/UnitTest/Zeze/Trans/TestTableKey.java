@@ -1,9 +1,11 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import Zeze.Transaction.*;
 import org.junit.jupiter.api.Assertions;
 
 public class TestTableKey {
+	@Test
 	public final void test1() {
 		{
 			TableKey tkey1 = new TableKey(1, 1);

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import org.junit.jupiter.api.Test;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 
 public class TestLock {
 
+	@Test
 	@SuppressWarnings("UnusedAssignment")
 	public final void test() {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
@@ -62,6 +64,7 @@ public class TestLock {
 
 	private final Locks Locks = new Locks();
 
+	@Test
 	public final void test1() {
 		Locks locks = Locks;
 
@@ -86,6 +89,7 @@ public class TestLock {
 		Assertions.assertNotEquals(lock3ref, lock1);
 	}
 
+	@Test
 	public final void testRecursion1() {
 		/*
 		TableKey tkey = new TableKey(1, 1);
@@ -97,6 +101,7 @@ public class TestLock {
 		*/
 	}
 
+	@Test
 	public final void testRecursion2() {
 		/*
 		TableKey tkey = new TableKey(1, 1);
@@ -108,6 +113,7 @@ public class TestLock {
 		*/
 	}
 
+	@Test
 	public final void testRwlock() {
 		var rw = new ReentrantReadWriteLock();
 		rw.readLock().lock();

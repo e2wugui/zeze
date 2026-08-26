@@ -51,6 +51,7 @@ public class TestRawBean {
 		}
 	}
 
+	@Test
 	public final void testTransaction() throws Exception {
 		demo.App.Instance.Start();
 

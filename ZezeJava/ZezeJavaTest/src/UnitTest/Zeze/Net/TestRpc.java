@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import org.junit.jupiter.api.Test;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
@@ -12,7 +13,8 @@ import org.junit.jupiter.api.Assertions;
 public class TestRpc {
 	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 
-	public final void testRpcSimple() throws Exception {
+	@Test
+	public final void testRpcSimple() {
 		Service server = new Service("TestRpc.Server");
 		Zeze.Util.Task.tryInitThreadPool();
 		FirstRpc first = new FirstRpc();
