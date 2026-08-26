@@ -99,7 +99,7 @@ public class TestOnline {
 
 			// testcase first;
 			logger.info("=== test3 - 1");
-			var client0 = clients.get(0);
+			var client0 = clients.getFirst();
 			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			var role = getRole(client0);
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
