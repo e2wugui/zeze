@@ -629,8 +629,9 @@ public final class Agent {
 				// java.Future.setResult可以重复调用，重复的会被忽略。
 				// 如果是c#，需要使用TrySetResult。
 				if (timeoutMs <= 0) {
+					// PreVote引入后选举最坏情况多一轮，预算给两倍ElectionTimeoutMax。
 					timeoutMs = raftConfig.getLeaderHeartbeatTimer()
-							+ raftConfig.getElectionTimeoutMax()
+							+ raftConfig.getElectionTimeoutMax() * 2L
 							+ raftConfig.getAppendEntriesTimeout();
 				}
 				return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。
@@ -656,8 +657,9 @@ public final class Agent {
 		// java.Future.setResult可以重复调用，重复的会被忽略。
 		// 如果是c#，需要使用TrySetResult。
 		if (timeoutMs <= 0) {
+			// PreVote引入后选举最坏情况多一轮，预算给两倍ElectionTimeoutMax。
 			timeoutMs = raftConfig.getLeaderHeartbeatTimer()
-					+ raftConfig.getElectionTimeoutMax()
+					+ raftConfig.getElectionTimeoutMax() * 2L
 					+ raftConfig.getAppendEntriesTimeout();
 		}
 		return future.get(timeoutMs, TimeUnit.MILLISECONDS); // 这里使用用户超时，需要确保超时大于选举需要的时间。

@@ -795,7 +795,9 @@ public class LogSequence {
 					if (!raft.isLeader())
 						return 0;
 
-					if (!heartbeat.Result.getSuccess()) {
+					// pending != null 说明复制正在进行，心跳的失败信息是发送时的旧现场，
+					// 此时不动 nextIndex，避免干扰进行中的复制。
+					if (!heartbeat.Result.getSuccess() && connector.getPending() == null) {
 						// follower 日志与 leader 尾部不匹配（落后或分叉），调整 nextIndex 并驱动复制。
 						// 与 processAppendEntriesResult 的失败分支类似，但心跳的 prevLogIndex==lastIndex，
 						// 不使用那个分支里的 Impossible 断言。
