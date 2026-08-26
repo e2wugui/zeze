@@ -1186,17 +1186,21 @@ public class LogSequence {
 	}
 
 	long followerOnAppendEntries(AppendEntries r) throws Exception {
-		setLeaderActiveTime(System.currentTimeMillis());
 		r.Result.setTerm(term); // maybe rewrite later
 		r.Result.setSuccess(false); // set default false
 
 		if (r.Argument.getTerm() < term) {
 			// 1. Reply false if term < currentTerm (§5.1)
+			// 【注意】过期term的请求不重置选举计时，否则被分区/失联后重新出现的旧Leader
+			// 持续发送的过期心跳会压制本节点发起新选举。
 			r.SendResult();
 			logger.info("this={} Leader={} PrevLogIndex={} term < currentTerm",
 					raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex());
 			return Procedure.Success;
 		}
+
+		// term合法才重置选举计时（raft要求只对有效Leader的消息重置）。
+		setLeaderActiveTime(System.currentTimeMillis());
 
 		switch (trySetTerm(r.Argument.getTerm())) {
 		case Newer:
