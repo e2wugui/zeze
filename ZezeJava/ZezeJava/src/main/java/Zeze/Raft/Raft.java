@@ -251,6 +251,16 @@ public final class Raft {
 		}
 	}
 
+	// 是否有InstallSnapshot正在接收中（follower侧）。本地snapshot需要避开。
+	public boolean isReceivingSnapshot() {
+		receiveSnapshottingLock.lock();
+		try {
+			return !receiveSnapshotting.isEmpty();
+		} finally {
+			receiveSnapshottingLock.unlock();
+		}
+	}
+
 	private void cancelAllReceiveSnapshotting() {
 		receiveSnapshottingLock.lock(); // cancel 不中断
 		try {

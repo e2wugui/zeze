@@ -169,6 +169,15 @@ public class LogSequence {
 	private void _commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
+			// 防御竞态：本地snapshot生成期间（checkpoint之后backup/zip较慢）可能接收并
+			// 提交了更新的InstallSnapshot，此时本地snapshot已过期，提交会回退firstIndex
+			// 并用旧状态覆盖新快照，必须丢弃。
+			if (newFirstIndex < firstIndex) {
+				logger.warn("discard stale snapshot: path={} newFirstIndex={} < firstIndex={}",
+						path, newFirstIndex, firstIndex);
+				Files.deleteIfExists(Paths.get(path));
+				return;
+			}
 			// 下面move和save需要原子完成。目前没有处理：更容易失败的先处理可以缓解这个问题。
 			Files.move(Paths.get(path), Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
 			saveFirstIndex(newFirstIndex);
@@ -929,7 +938,10 @@ public class LogSequence {
 	public void snapshot() throws Exception {
 		raft.lock();
 		try {
-			if (getSnapshotting() || !getInstallSnapshotting().isEmpty())
+			// 正在接收InstallSnapshot时不启动本地snapshot：
+			// 接收完成会重置状态机并推进firstIndex，进行中的本地snapshot将作废
+			// （其commit由_commitSnapshot的过期检查兜底丢弃）。
+			if (getSnapshotting() || !getInstallSnapshotting().isEmpty() || raft.isReceivingSnapshot())
 				return;
 
 			setSnapshotting(true);
