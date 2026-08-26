@@ -37,21 +37,6 @@ public class TestGameTimer {
 	final ArrayList<Game.App> servers = new ArrayList<>();
 	LoginQueue loginQueue;
 
-	private static void waitLinkdProvider(Zezex.App linkd) throws InterruptedException {
-		// 稳态订阅数：Game.Server.Module#8(Map)、#9(Rank)、#11013(内置)，
-		// 与 provider.module.binds.xml 及 serverCount 无关（多 server 注册同名服务）。
-		// 历史版本曾用 !isEmpty()，2026-01 被改成 >5（当时环境下有残留服务，稳态为 3 时永远等不到）。
-		while (true) {
-			var states = linkd.LinkdApp.zeze.getServiceManager().getSubscribeStates();
-			logger.info("providers={}", states.values());
-			if (states.size() >= 3)
-				break;
-			logger.info("wait Linkd Provider.");
-			//noinspection BusyWait
-			Thread.sleep(1000);
-		}
-	}
-
 	@SuppressWarnings({"SameParameterValue", "unused"})
 	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
 		clients.clear();
@@ -74,9 +59,8 @@ public class TestGameTimer {
 			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
 			//servers.get(i - 40).getZeze().getTimer().start();
 		}
-		for (var link : links) {
-			waitLinkdProvider(link);
-		}
+		for (var link : links)
+			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（100ms就绪轮询）
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
@@ -141,9 +125,8 @@ public class TestGameTimer {
 			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
 			//servers.get(i - 40).getZeze().getTimer().start();
 		}
-		for (var link : links) {
-			waitLinkdProvider(link);
-		}
+		for (var link : links)
+			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（100ms就绪轮询）
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();

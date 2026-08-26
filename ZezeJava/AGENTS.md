@@ -26,4 +26,4 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（Benchmark 包整体
 - **新测试不打 tag 默认归入 `integrationTest`**（环境更全的桶）——忘打 tag 不会打破 `gradle test` 开箱即绿。
 - 外部 DB 测试（MySQL/PG/Mongo/SqlServer/TiKV）靠主机名门控或 `@Disabled` 自动跳过（门控逻辑见各测试类内的 Assumption）。
 - `integrationTest` / `bench` 不要开并行：`demo.App` 是 JVM 级单例、测试共享 `dbhome/` 与 RocksDB LOCK、`App.Start()` 绑定 10000 端口，同 JVM 并行或 fork 并行都会互相干扰。（注：多数测试默认库其实是 zeze.xml 的 Memory 库，真正落盘的类有限，但单例/端口/静态约束已足以否决整体并行；个别"独立岛屿"类即便理论可并行也维持串行。）
-- 起服务后**不要盲等固定 sleep** 等环境就绪：用注册推送做就绪信号——`harness.TestEnv.waitServerRegistered(zeze, serverIds...)`（轮询 ServiceManager 订阅状态、identity 即 serverId、60s 超时兜底）；linkd 场景另有 TestGameTimer.waitLinkdProvider 先例。间隔 100ms 起，勿用秒级 sleep 轮询（空耗每次重建 ~1s）。
+- 起服务后**不要盲等固定 sleep** 等环境就绪：用注册推送做就绪信号——`harness.TestEnv.waitServerRegistered(zeze, serverIds...)`（轮询 ServiceManager 订阅状态、identity 即 serverId、60s 超时兜底、100ms 间隔）；linkd 场景同样适用（TestGameTimer 的 waitLinkdProvider 计数法已并入）。勿用秒级 sleep 轮询。
