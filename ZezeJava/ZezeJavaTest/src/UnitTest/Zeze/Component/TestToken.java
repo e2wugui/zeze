@@ -85,13 +85,13 @@ public class TestToken {
 		var conf = new Config();
 		var sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
-		sconf.getHandshakeOptions().setKeepRecvTimeout(5);
-		sconf.getHandshakeOptions().setKeepSendTimeout(2);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(2);
+		sconf.getHandshakeOptions().setKeepSendTimeout(1);
 		conf.getServiceConfMap().put("TokenServer", sconf);
 		sconf = new ServiceConf();
 		sconf.getHandshakeOptions().setKeepCheckPeriod(1);
-		sconf.getHandshakeOptions().setKeepRecvTimeout(5);
-		sconf.getHandshakeOptions().setKeepSendTimeout(2);
+		sconf.getHandshakeOptions().setKeepRecvTimeout(2);
+		sconf.getHandshakeOptions().setKeepSendTimeout(1);
 		conf.getServiceConfMap().put("TokenClient", sconf);
 
 		var tokenServer = new Token().start(conf, null, 5003);
@@ -101,8 +101,9 @@ public class TestToken {
 				var f = new TaskCompletionSource<Boolean>();
 				tokenClient.registerNotifyTopicHandler("keepAliveTopic", p -> f.setResult(true));
 				tokenClient.waitReady();
-				// 睡过 KeepRecvTimeout(5s)：keep-alive 失效的话连接已被服务端掐断
-				Thread.sleep(10_000);
+				// 睡过 KeepRecvTimeout(2s)+一个检查周期（整秒截断最迟 ~3.9s 观察到 3>2 判死）：
+				// keep-alive 失效的话连接已被服务端掐断；正常探测让服务端 recvTime 恒 ≤1s，不会误杀
+				Thread.sleep(4_500);
 				logger.info("sleep over");
 				tokenClient.subTopic("keepAliveTopic").get();
 				tokenClient.pubTopic("keepAliveTopic", new Binary("alive"), false);
