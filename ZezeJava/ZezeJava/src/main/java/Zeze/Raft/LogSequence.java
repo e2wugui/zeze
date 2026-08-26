@@ -259,8 +259,18 @@ public class LogSequence {
 		return leaderActiveTime;
 	}
 
+	// 本轮选举超时采样值。每次重置计时（收到Leader消息/状态转换）时重新采样一次，
+	// 而不是每次比较时重新随机——这才符合raft随机化选举超时的本意。
+	private volatile long electionTimeoutSample;
+
+	long getElectionTimeout() {
+		var sample = electionTimeoutSample;
+		return sample > 0 ? sample : raft.getRaftConfig().getElectionTimeout();
+	}
+
 	void setLeaderActiveTime(long value) {
 		leaderActiveTime = value;
+		electionTimeoutSample = raft.getRaftConfig().getElectionTimeout();
 	}
 
 	final class UniqueRequestSet {

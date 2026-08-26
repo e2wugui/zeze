@@ -539,7 +539,7 @@ public final class Raft {
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
-				var electionTimeout = raftConfig.getElectionTimeout();
+				var electionTimeout = logSequence.getElectionTimeout();
 				if (now - logSequence.getLeaderActiveTime() > electionTimeout) {
 					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), electionTimeout);
 					convertStateTo(RaftState.Candidate);

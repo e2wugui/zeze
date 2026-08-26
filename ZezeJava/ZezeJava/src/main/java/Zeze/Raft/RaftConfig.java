@@ -39,7 +39,7 @@ public final class RaftConfig {
 	private String dbHome;
 	private int appendEntriesTimeout = DefaultAppendEntriesTimeout; // 复制日志超时，以及发送失败重试超时
 	private int leaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
-	private int electionRandomMax = 300;
+	private int electionRandomMax = 1000; // 默认给足抖动预算：heartbeat+100+rand(1000)，避免单次心跳抖动引发选举
 	private int maxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
 
 	private int snapshotLogCount = 100_0000; // -1 disable snapshot
@@ -309,7 +309,7 @@ public final class RaftConfig {
 			self.setAttribute("AppendEntriesTimeout", String.valueOf(appendEntriesTimeout));
 		if (leaderHeartbeatTimer != DefaultLeaderHeartbeatTimer)
 			self.setAttribute("LeaderHeartbeatTimer", String.valueOf(leaderHeartbeatTimer));
-		if (electionRandomMax != 300)
+		if (electionRandomMax != 1000)
 			self.setAttribute("ElectionRandomMax", String.valueOf(electionRandomMax));
 		if (maxAppendEntriesCount != 500)
 			self.setAttribute("MaxAppendEntriesCount", String.valueOf(maxAppendEntriesCount));
