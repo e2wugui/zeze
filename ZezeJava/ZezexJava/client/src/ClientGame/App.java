@@ -14,7 +14,7 @@ public class App extends Zeze.AppBase {
     }
     public Connector Connector;
     public LoginQueueClient loginQueueClient = new LoginQueueClient();
-    public TaskCompletionSource<BLoginToken.Data> onLinkConnectedFuture = new TaskCompletionSource<>();
+    public TaskCompletionSource<BLoginToken.Data> onLinkConnectedFuture;
 
     public void Start(String ip, int port) throws Exception {
         var config = Config.load("client.xml");
@@ -25,12 +25,13 @@ public class App extends Zeze.AppBase {
         startModules(); // 启动模块，装载配置什么的。
         startService(); // 启动网络
 
+		onLinkConnectedFuture = new TaskCompletionSource<>();
         loginQueueClient.setLoginToken((loginToken) -> {
             var c = new OutObject<Connector>();
             ClientService.getConfig().tryGetOrAddConnector(loginToken.getLinkIp(), loginToken.getLinkPort(), true, c);
             Connector = c.value;
             Connector.start();
-            Connector.GetReadySocket();
+            Connector.WaitReady();
             onLinkConnectedFuture.setResult(loginToken);
         });
         loginQueueClient.connect("127.0.0.1", 5020);

@@ -44,11 +44,9 @@ public class TestOnline {
 			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
 		for (int i = 0; i < ServerCount; ++i)
 			servers.get(i).Start(i + 50, 20000 + i);
-		Thread.sleep(2000); // wait server ready
+		//Thread.sleep(2000); // wait server ready
 		for (int i = 0; i < ClientCount; ++i) {
-			var link = links.get(i % LinkCount); // 按顺序选择link
-			var ipPort = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
+			clients.get(i).Start("", 0); // 启用了loginQueue，link参数不再需要。
 		}
 	}
 
@@ -108,9 +106,8 @@ public class TestOnline {
 
 			// testcase relogin
 			logger.info("=== test3 - 2");
-			client0.ClientService.stop();
-			client0.ClientService.start();
-			client0.Connector.WaitReady();
+			client0.Stop();
+			client0.Start("", 0); // loginQueue 不再需要link地址。
 			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			relogin(client0, roleId);
 
