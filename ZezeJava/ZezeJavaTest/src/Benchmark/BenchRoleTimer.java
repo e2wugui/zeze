@@ -19,6 +19,7 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskSpec;
+import harness.Bench;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -26,8 +27,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 // 吞吐基准：250客户端批量登录+定时器风暴。规模本身就是存在意义，功能面已被 Zezex.TestRoleTimer 小规模版覆盖。
-// 从 TestRoleTimer 整体迁出（原方法 benchRoleTimer）：归 bench 车道，避免拖慢 integrationTest。
+// 从 TestRoleTimer 整体迁出（原方法 benchRoleTimer）：归 bench 车道（integrationTest 排除），避免拖慢全量功能测试。
 // 组网与RPC复用 Zezex.ZezexTestEnv 脚手架。
+@SuppressWarnings("NewClassNamingConvention")
+@Bench
 public class BenchRoleTimer {
 	private static final @NotNull Logger logger = LogManager.getLogger(BenchRoleTimer.class);
 
