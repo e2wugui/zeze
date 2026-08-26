@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
@@ -6,6 +7,7 @@ import java.util.List;
 import Zeze.Util.ConcurrentHashMapOrdered;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestConcurrentHashMapOrdered {
 	@Test
 	public void testConcurrentHashMapOrdered() {

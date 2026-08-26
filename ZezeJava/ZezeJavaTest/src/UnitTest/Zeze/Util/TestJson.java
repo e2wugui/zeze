@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,7 @@ import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
+@Fast
 public final class TestJson {
 	static class A {
 		int a;

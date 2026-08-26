@@ -1,10 +1,12 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.util.Arrays;
 import Zeze.Util.SortedMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestSortedMap {
 	@Test
 	public void testSortedMap() {

@@ -1,10 +1,12 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import Zeze.Util.ClassReloader;
 import Zeze.Util.InMemoryJavaCompiler;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestClassReloader {
 	@Test
 	public void test() throws Exception {

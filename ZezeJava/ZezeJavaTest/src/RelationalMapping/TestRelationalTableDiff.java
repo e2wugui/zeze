@@ -1,5 +1,6 @@
 package RelationalMapping;
 
+import harness.Fast;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -7,6 +8,7 @@ import Zeze.Schemas;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestRelationalTableDiff {
 	private static void addColumn(ArrayList<Schemas.Column> columns, int id) {
 		addColumn(columns, id, String.valueOf(id));

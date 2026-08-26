@@ -1,4 +1,5 @@
 package Temp;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,7 @@ import Zeze.Util.Id128;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+@Fast
 public class TestBigInt {
 	private static final Logger logger = LogManager.getLogger(TestBigInt.class);
 

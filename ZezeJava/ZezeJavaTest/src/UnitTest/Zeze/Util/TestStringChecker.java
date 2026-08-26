@@ -1,11 +1,13 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import Zeze.Util.StringChecker;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestStringChecker {
 	@Test
 	public void test() throws IOException {

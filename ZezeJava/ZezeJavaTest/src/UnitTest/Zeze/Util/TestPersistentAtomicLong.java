@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.Assertions;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 @SuppressWarnings("CallToPrintStackTrace")
+@Fast
 public class TestPersistentAtomicLong {
 	@Test
 	public void testConcurrent() {

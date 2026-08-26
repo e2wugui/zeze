@@ -1,5 +1,6 @@
 package Benchmark;
 
+import harness.Fast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings({"unused", "NewClassNamingConvention"})
+@Fast
 public class BenchSocket {
 	private static int serializeCount = 5_0000;
 

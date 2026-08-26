@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -32,6 +33,7 @@ import sun.security.x509.X509CertInfo;
 import static Zeze.Util.Cert.*;
 
 // 编译时需要: --add-exports java.base/sun.security.x509=ALL-UNNAMED
+@Fast
 public class TestCert {
 	private static final int RSA_BLOCK_SIZE = 2048 / 8; // 256
 	private static final int AES_BLOCK_SIZE = 128 / 8; // 16

@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.nio.ByteBuffer;
 import Zeze.Util.BloomFilter;
 import Zeze.Util.LongHashSet;
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestBloomFilter implements BloomFilter.BitArray {
 	private static final Logger logger = LogManager.getLogger(TestBloomFilter.class);
 	private static final int HASH_COUNT = 6;

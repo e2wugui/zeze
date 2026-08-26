@@ -1,5 +1,6 @@
 package Benchmark;
 
+import harness.Fast;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
@@ -15,6 +16,7 @@ import Zeze.Util.TaskSpec;
 import Zeze.Util.TaskOneByOneByKey2;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestTaskOneByOne {
 	public final static int TaskCount = 500_0000;
 

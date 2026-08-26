@@ -1,11 +1,13 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import Zeze.Util.FastPriorityQueue;
 import Zeze.Util.FastPriorityQueueNode;
 import Zeze.Util.Random;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestFastPriorityQueue {
 	public static final class Node implements FastPriorityQueueNode<Node> {
 		private int value;

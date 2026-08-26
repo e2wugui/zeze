@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Net;
 
+import harness.Fast;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.Protocol;
@@ -15,6 +16,7 @@ import demo.Module1.BValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestDatagram {
 	@Test
 	public void testSendDispatch() throws Exception {

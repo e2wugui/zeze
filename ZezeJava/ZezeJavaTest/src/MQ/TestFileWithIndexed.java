@@ -1,5 +1,6 @@
 package MQ;
 
+import harness.Fast;
 import java.io.File;
 import java.util.ArrayDeque;
 import java.util.Random;
@@ -11,6 +12,7 @@ import Zeze.Util.RocksDatabase;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestFileWithIndexed {
 	@Test
 	public void testFile() throws Exception {

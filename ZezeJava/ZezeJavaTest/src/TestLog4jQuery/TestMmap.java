@@ -1,5 +1,6 @@
 package TestLog4jQuery;
 
+import harness.Fast;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.RandomAccessFile;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
  * 2. mmap没有关闭操作，只能依赖垃圾回收。
  * 3. mmap打开时会限制一些文件操作不能执行，比如channel.truncate.
  */
+@Fast
 public class TestMmap {
 	public final static int ePageSize = 16;
 	public final static int ePageMask = ePageSize - 1;

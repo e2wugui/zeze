@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Serialize;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -7,6 +8,7 @@ import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import demo.Module1.Key;
 
+@Fast
 public class TestDynamic {
 	@Test
 	public void testDynamicMap() {

@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -7,6 +8,7 @@ import java.util.Map;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
 
+@Fast
 public final class TestJson5 {
 	private int checkCount;
 

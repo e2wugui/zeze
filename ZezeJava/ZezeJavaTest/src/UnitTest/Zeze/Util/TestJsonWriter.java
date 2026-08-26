@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.util.concurrent.ThreadLocalRandom;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("JavaPrintToLogpoint")
+@Fast
 public class TestJsonWriter {
 	final JsonWriter jw = new JsonWriter();
 	final JsonReader Json = new JsonReader();

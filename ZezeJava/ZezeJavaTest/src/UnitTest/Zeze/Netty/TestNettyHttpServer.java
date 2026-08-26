@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Netty;
 
+import harness.Fast;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestNettyHttpServer {
 	private static Netty netty;
 	private static HttpServer server;

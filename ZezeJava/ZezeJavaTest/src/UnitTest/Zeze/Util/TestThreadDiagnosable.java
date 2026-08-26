@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.util.concurrent.ExecutionException;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -8,6 +9,7 @@ import Zeze.Util.ThreadDiagnosable;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestThreadDiagnosable {
 	@Test
 	public void test() throws InterruptedException, ExecutionException {

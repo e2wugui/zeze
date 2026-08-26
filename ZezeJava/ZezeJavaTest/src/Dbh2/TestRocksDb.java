@@ -1,5 +1,6 @@
 package Dbh2;
 
+import harness.Fast;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.ThreadLocalRandom;
@@ -10,6 +11,7 @@ import Zeze.Util.RocksDatabase;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 
+@Fast
 public class TestRocksDb {
 	// 测试RocksDb：key + commit_ts 方式编码，但是能快速定位到最后一个key的能力。
 	@Test

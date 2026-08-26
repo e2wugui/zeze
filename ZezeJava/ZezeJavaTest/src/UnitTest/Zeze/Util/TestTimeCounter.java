@@ -1,9 +1,11 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import Zeze.Util.TimeCounter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestTimeCounter {
 	@Test
 	public void testTimeCounter() {

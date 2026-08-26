@@ -1,5 +1,6 @@
 package MQ;
 
+import harness.Fast;
 import Zeze.Builtin.MQ.BMessage;
 import Zeze.Builtin.MQ.BOptions;
 import Zeze.MQ.MQ;
@@ -9,6 +10,7 @@ import Zeze.MQ.MQProducer;
 import Zeze.Util.Task;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestMQ {
 	@Test
 	public void testMQ() throws Exception {

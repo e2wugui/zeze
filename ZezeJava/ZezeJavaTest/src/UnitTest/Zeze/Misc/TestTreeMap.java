@@ -1,10 +1,12 @@
 package UnitTest.Zeze.Misc;
 
+import harness.Fast;
 import java.util.TreeMap;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestTreeMap {
 	@Test
 	public void testDescTail() {

@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ import Zeze.Util.LongList;
 import Zeze.Util.OutInt;
 import Zeze.Util.Random;
 
+@Fast
 public class TestContainers {
 	private static final int KEY_RANGE = 100;
 	private static final int TEST_COUNT = 10_0000;

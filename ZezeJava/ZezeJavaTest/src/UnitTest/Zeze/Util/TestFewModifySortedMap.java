@@ -1,8 +1,10 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import org.junit.jupiter.api.Test;
 
 import Zeze.Util.FewModifySortedMap;
 
+@Fast
 public class TestFewModifySortedMap {
 	@Test
 	public void test1() {

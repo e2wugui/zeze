@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Serialize;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +23,7 @@ import demo.Module1.BSimple;
 import demo.Module1.BValue;
 import org.junit.jupiter.api.Assertions;
 
+@Fast
 public class TestByteBuffer {
 	@Test
 	public void testBitConverter() {

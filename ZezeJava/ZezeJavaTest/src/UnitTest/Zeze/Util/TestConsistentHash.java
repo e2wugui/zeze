@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestConsistentHash {
 	private static final Logger logger = LogManager.getLogger(TestConsistentHash.class);
 

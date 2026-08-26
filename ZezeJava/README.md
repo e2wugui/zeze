@@ -3,7 +3,7 @@
 ```
 |- ZezeJava     // zeze.jar的代码
 |- ZezeJavaTest // 测试代码
-|- test         // 测试代码启动需要的环境
+|- test         // 手工测试环境脚本（bat 等）
 |- ZezexJava    //
 |- ZokerManager 
 |- scripts
@@ -13,68 +13,54 @@
 
 ## 如何运行ZezeJavaTest
 
-1. run ../gen_use_publish.bat
-2. run test/build.bat
-3. run test/service & global.bat
-4. run test/service & global.another.bat
-5. launch idea and open ZezeJava (this path)
-6. in idea, right click "ZezeJavaTest/src" and click "Run 'All Tests'"
+1. （可选）改了 solution.xml/demo2.xml 才需要：run ../gen_use_publish.bat
+2. 在 ZezeJava 目录下运行 `gradlew.bat :ZezeJavaTest:test`（快速）或 `gradlew.bat :ZezeJavaTest:integrationTest`（全量）
+3. 或用 IDEA 打开 ZezeJava 目录，右键 "ZezeJavaTest/src" → "Run 'All Tests'"
 
 ---
 
 ## 结论先行
 
-- **不需要准备 MySQL/MongoDB/TiKV/RocketMQ**。所有依赖外部数据库的测试都有"主机名门控"或 `@Ignore`，在陌生机器上会自动跳过，不会失败（详见下文分类）。
-- 真正必须的准备只有三件事：**JDK 21**、**`gradlew build copyJar`**、**启动两对 ServiceManager/GlobalCacheManager 进程**。
-- 测试已于 2026-08 从 JUnit 4/3 **整体迁移到 JUnit 6（Jupiter 6.1.3，要求 Java 17+）**，但仍挂在 `ZezeJavaTest` 的 **main 源集**（`ZezeJavaTest/build.gradle` 的 `sourceSets.main.srcDir "src"/"Gen"`），所以 **`gradle test` 依然发现不了任何测试**，目前只能靠 IDEA "Run 'All Tests'"（需 2025.2+ 版本的 IDEA）或 `ZezeJavaTest/test_all.bat`（已改用 JUnit Platform ConsoleLauncher 的 `execute` 子命令）跑。
+- **不需要准备 MySQL/MongoDB/TiKV/RocketMQ**。所有依赖外部数据库的测试都有"主机名门控"或 `@Disabled`，在陌生机器上会自动跳过，不会失败（详见下文分类）。
+- **不需要手工启动任何 bat**。测试已于 2026-08 从 JUnit 4/3 整体迁移到 **JUnit 6（Jupiter 6.1.3，要求 Java 17+）**，并挂在 `ZezeJavaTest` 的 **test 源集**：
+  - `gradle test`：只跑 **@Fast 自包含测试**（42 个类，无任何外部依赖，开箱即绿）；
+  - `gradle integrationTest`：**全量测试**（290 个），由 `harness.TestEnvLauncherListener` 在测试 JVM 内自动启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，会话结束自动关闭；端口被手工 bat 占用时直接复用。
+- 已知限制：**`--tests` 过滤在本项目不工作**（无论 test 还是 integrationTest 任务都报 "No tests found for given includes"，不带过滤的全量运行正常；用 IDEA 跑单个类）。
+- 唯一例外：`Onz/TestOnz` 额外依赖第二对服务 5011/5012（GCM 是进程内单例，起不了第二对），未启动时自动跳过；要跑它先运行 `test/service & global.another.bat`。
+- 两个任务都配置了 `workingDir = ZezeJavaTest`、`-ea`、`maxHeapSize = 2g`（BenchSocket 等大缓冲区测试在默认 512m 堆下会 OOM）。
 
 ## 环境要求
 
 | 项目 | 要求 | 说明 |
 |---|---|---|
-| JDK | 21 | `ZezeJava/build.gradle` 配置了 toolchain Java 21 |
-| 构建 | `gradlew build copyJar` | 编译全部模块并把依赖拷到 `ZezeJava/lib`（service & global.bat 的 classpath 依赖它） |
+| JDK | 21 | `build.gradle` toolchain Java 21 |
+| 快速/全量测试 | `gradlew :ZezeJavaTest:test` / `:ZezeJavaTest:integrationTest` | 无需外部进程，SM/GCM 进程内自启 |
 | 代码生成 | 通常可跳过 | `ZezeJavaTest/Gen` 已提交在仓库里；只有改了 solution.xml/demo2.xml 才需跑根目录 `gen_use_publish.bat` |
 | MySQL/PG/Mongo/SqlServer/TiKV/RocketMQ | **不需要** | 对应测试会自动跳过（见下） |
+| `test/*.bat` | 仅手工调试场景 | 进程内启动取代了 `service & global.bat` 的"跑测试"职责；raft/sync 变体仍服务手工场景 |
 
-## 最小测试流程（Windows）
+## 测试分层约定（给新增测试的规则）
 
-```bat
-:: 1. 编译（在 ZezeJava 目录下）
-gradlew.bat build copyJar
-:: 等价于 test\build.bat
+- 自包含测试（不依赖外部 SM/GCM 进程和外部数据库）标注 **`@Fast`**（`harness.Fast` 组合注解，等价 `@Tag("fast")`），由 `gradle test` 执行。
+- **不打 tag 的新测试默认归入 `integrationTest`**（环境更全的桶）——忘打 tag 不会打破 "`gradle test` 开箱即绿"。
+- **不要开并行**：`demo.App` 是 JVM 级单例（`Start()` 幂等、测试里 `Stop()` 被注释，整个 JVM 只起一次）、所有测试共享 `workingDir` 下的 `dbhome/`（RocksDB LOCK）、`App.Start()` 固定绑定 HttpServer 10000 端口、大量测试用固定 key——同 JVM 并行（`junit.jupiter.execution.parallel`）和跨 fork 并行（`maxParallelForks` 共享 workingDir）都会互相干扰。
 
-:: 2. 启动第一对服务：ServiceManager(5001) + GlobalCacheManager(5002)
-test\"service & global.bat"
+## 测试分类盘点（`ZezeJavaTest/src`，共 105 个带 @Test 的类）
 
-:: 3. 启动第二对服务：ServiceManager(5011) + GlobalCacheManager(5012)
-::    仅 Onz.TestOnz 需要，但建议总是启动
-test\"service & global.another.bat"
+### A. 依赖 SM(5001) + Global(5002) — 约 47 个（主力，由 integrationTest 的进程内 harness 自动服务）
 
-:: 4a. IDEA：打开 ZezeJava 目录，右键 ZezeJavaTest/src → Run 'All Tests'
-:: 4b. 或命令行跑固定清单（约 100 个测试类，JUnitCore 方式）：
-ZezeJavaTest\test_all.bat
-```
+绝大多数核心测试属于此类：`@BeforeEach` 里调 `demo.App.getInstance().Start()`（`src/demo/App.java`）或自建 `Application` 加载 `./zeze.xml`，SM Agent 连 `127.0.0.1:5001`、GCM 连 `5002`。
 
-注意：测试的**工作目录必须是 `ZezeJava/ZezeJavaTest`**。测试用相对路径加载 `./zeze.xml`（指向 SM 5001 / GCM 5002），并读写 `dbhome/`、`autokeys/`、`web/`、`log/` 等目录。IDEA 右键运行时工作目录默认即模块目录，无需额外设置。
-
-## 测试分类盘点
-
-`ZezeJavaTest/src` 下约 78 个可运行测试类（已全部为 JUnit 6 Jupiter 写法；迁移前为 72 个 JUnit4 注解式 + 33 个 JUnit3 风格，其中 JUnit3 的 `extends TestCase`/`testXxx()` 约定已转为 `@Test` 注解），按外部环境依赖分四类：
-
-### A. 依赖外部 SM(5001) + Global(5002) 进程 — 约 45 个（主力）
-
-绝大多数核心测试属于此类：`@Before` 里调 `demo.App.getInstance().Start()`（`src/demo/App.java`），加载 `./zeze.xml`，SM Agent 连 `127.0.0.1:5001`、GCM 连 `5002`。**没有任何 JUnit 测试在进程内自建 ServiceManager**——这就是必须先跑 bat 的根本原因。
-
-- 代表：`UnitTest/Zeze/Trans/*`（TestTable、TestProcedure、TestCheckpoint、TestConflict 等约 20 个）、`Collections/*`、`Component/*`、`Game/TestBag`
-- 进程内组网但仍连外部 SM/Global：`Zezex/TestOnlineSpec`、`TestGameTimer`、`TestRoleTimer`（进程内起 linkd+server+client，但 linkd.xml/server.xml 指向 5001/5002）、`Infinite/Simulate`、`UnitTest/Zeze/Trans/TestConcurrentStartServer`
-- 不启动 bat 的症状：`Connection refused: 127.0.0.1:5001 / 5002`
+- 代表：`UnitTest/Zeze/Trans/*`（TestTable、TestProcedure、TestCheckpoint、TestConflict、TestBegin、TestLock、TestTableKey 等）、`Collections/*`、`Component/*`、`Game/TestBag`、`Game/TestRank`（用 `demo.SimpleApp` 连外部 GCM）、`Serialize/TestRawBean`
+- **注意：`Dbh2/Dbh2Test`、`Dbh2/Dbh2FullTest`、`TestLog4jQuery/TestLogService` 也属于此类**（自建 Application 但加载默认 zeze.xml 连外部 SM/GCM；此前文档误归为自包含）
+- 进程内组网但仍连外部 SM/Global：`Zezex/TestOnlineSpec`、`TestGameTimer`、`TestRoleTimer`、`Infinite/Simulate`、`UnitTest/Zeze/Trans/TestConcurrentStartServer`、`Net/TestRpc`（进程内 127.0.0.1:5000 组网）
+- `UnitTest/Zeze/Util/TestTaskSpec` 也用 `App.Instance.Start()`（不随 Util 其余测试进 fast）
 
 ### B. 额外依赖第二对 SM(5011) + Global(5012) — 仅 1 个
 
-- `Onz/TestOnz.java`：加载 `zeze_cluster_2.xml`，需要 `service & global.another.bat`
+- `Onz/TestOnz.java`：加载 `zeze_cluster_2.xml`。`@BeforeEach` 有 5011 可达性 Assumption，未启动时跳过并提示运行 `test/service & global.another.bat`。
 
-### C. 依赖外部数据库/中间件 — 约 6 个，**全部自动跳过，无需准备**
+### C. 依赖外部数据库/中间件/外网 — 约 7 个，**全部自动跳过，无需准备**
 
 | 测试 | 目标 | 跳过机制 |
 |---|---|---|
@@ -82,49 +68,45 @@ ZezeJavaTest\test_all.bat
 | `UnitTest/Zeze/Trans/TestDatabasePostgreSQL` | `jdbc:postgresql://localhost:5432/devtest` | 仅 `doudouwang` |
 | `UnitTest/Zeze/Trans/TestDatabaseMongoDb` | `mongodb://127.0.0.1:27017/?replicaSet=rs0` | 仅 `doudouwang` |
 | `UnitTest/Zeze/Trans/TestDatabaseSqlServer` | `jdbc:sqlserver://localhost` | 无驱动即 skip，代码自述"先不管了" |
-| `UnitTest/Zeze/Trans/TestDatabaseTikv` | PD `10.12.7.140:5379` | 整个类 `@Ignore` |
-| `UnitTest/Zeze/Misc/TestRocketMQ` | namesrv `127.0.0.1:9876` | 整个类 `@Ignore` |
+| `UnitTest/Zeze/Trans/TestDatabaseTikv` | PD `10.12.7.140:5379` | 整个类 `@Disabled` |
+| `UnitTest/Zeze/Misc/TestRocketMQ` | namesrv `127.0.0.1:9876` | 整个类 `@Disabled` |
+| `UnitTest/Zeze/Net/TestAsyncSocket` | 外网 `www.163.com:80` | `@Disabled`（依赖外网，不适合自动化） |
 
-### D. 完全自包含 — 约 20 个
+另：`UnitTest/Zeze/Trans/TestGlobal.test2App` 挂 `@Disabled`（两个 app 对同一 key 的 GCM 并发协调 `FutureTask.get()` 永久等待，疑似死锁，待排查）；`TestDatabaseRocksDB` 的 test1/test2 有主机名门控（`DESKTOP-48A4UQ1` 因 CPU 指令集跳过），其余机器正常执行。
+
+### D. 完全自包含（@Fast，`gradle test` 执行）— 42 个
 
 不需要任何外部进程，只要求工作目录正确：
 
-- 进程内自建服务：`MQ/TestMQ`（进程内 MQ master+3 manager）、`Dbh2/Dbh2Test`、`Dbh2FullTest`（进程内 3 节点 Raft + 本地 RocksDB）、`TestLog4jQuery/TestLogService`、`UnitTest/Zeze/Netty/TestNettyHttpServer`
-- 本地嵌入存储：`UnitTest/Zeze/Trans/TestDatabaseRocksDB`
-- 纯逻辑：`UnitTest/Zeze/Util/*`（17 个）、`Zeze/Arch/TestArchOnlineSpec`、`Benchmark/DiffLockAndNoLock`、`RelationalMapping/TestRelationalTableDiff` 等
+- 进程内自建服务/存储：`MQ/TestMQ`、`MQ/TestFileWithIndexed`、`Dbh2/TestLocateBucket`、`Dbh2/TestRocksDb`、`TestLog4jQuery/TestLog4jQ`、`TestLog4jQuery/TestMmap`、`UnitTest/Zeze/Netty/TestNettyHttpServer`、`UnitTest/Zeze/Net/TestDatagram`、`UnitTest/Zeze/Arch/TestArchOnlineSpec`、`UnitTest/Zeze/Collections/TestBeanFactory`、`UnitTest/Zeze/Component/TestToken`、`UnitTest/Zeze/Misc/TestTreeMap`、`Benchmark/DiffLockAndNoLock`、`RelationalMapping/TestRelationalTableDiff`、`Temp/TestBigInt`
+- 纯逻辑：`UnitTest/Zeze/Util/*` 中的 21 个（除 TestTaskSpec）、`UnitTest/Zeze/Serialize/TestByteBuffer`、`TestDynamic`、`Benchmark/BenchSocket`、`TestToData`、`TestTaskOneByOne`、`PMapLogTypeIdHash32Cache`
+
+### 2026-08 补标：JUnit 4/3 迁移漏标的死测试已恢复
+
+迁移时 14 个类 26 个 `public void testXxx()` 方法漏了 `@Test` 注解（JUnit 3 靠命名约定自动运行，Jupiter 下等于死代码，其中 5 个 TestDatabase\* 连维护者机器上都不会跑）。已全部补标并验证：
+
+- **24 个直接启用并通过**：`TestBegin`(4)、`TestLock`(5，含裸名 `test()`)、`TestTableKey`、`TestConcurrentDictionary`、`TestCodec`(3)、`TestOutputBuffer`、`TestRpc`、`TestRawBean.testTransaction`、`TestGlobal.testNone`、`TestDatabase{MySql,PostgreSQL,MongoDb,SqlServer}.test1`、`TestDatabaseRocksDB`(2)
+- **2 个有意 `@Disabled`**：`TestAsyncSocket.testConnect`（连外网 www.163.com）、`TestGlobal.test2App`（GCM 并发协调 hang，待排查——这可能是暴露真实问题的线索）
+- 其中的 `@Fast` 候选（TestBegin/TestLock/TestTableKey/TestConcurrentDictionary/TestCodec/TestOutputBuffer 等纯逻辑类）暂留在 integrationTest，后续可评估移入 fast
+- 仍有 3 个文件无 @Test 但属"main 方式手工运行"而非漏标：`TestLog4jQuery/TestWatch`、`SimpleRaft/RaftTest`（`testSimple` 由自身 main 调用）、`Benchmark/BenchStackWalker`（`testAll` 由 main 调用）
+
+## 进程内环境 harness（`src/harness/`）
+
+- `TestEnvLauncherListener`：JUnit Platform `LauncherSessionListener`，经 `src/test/resources/META-INF/services/` ServiceLoader 注册，IDEA / gradle / ConsoleLauncher 三个入口统一生效。会话开始时探测 5001/5002，空闲则进程内启动（`new ServiceManagerServer(null, 5001, Config.load())` + `GlobalCacheManagerAsyncServer.getInstance().start(null, 5002, null)`，语义与 bat 相同），结束只关闭自己启动的。`gradle test` 通过 `-Dzeze.test.env=off` 关闭它。
+- 副作用：SM 的 autokeys 目录从 `test/autokeys` 变为 `ZezeJavaTest/autokeys`（已被 gitignore 覆盖）。
+- 先例参考：`GlobalRaft/TestGlobalCacheMgrWithRaft.java`。
 
 ## 常见问题
 
-- **Connection refused 5001/5002** → 没跑 `test/service & global.bat`，或 `copyJar` 没做导致服务起不来。
-- **找不到 zeze.xml / dbhome 报错** → 工作目录不对，必须在 `ZezeJava/ZezeJavaTest` 下运行。
-- **`gradle test` 显示 "no tests found" 或直接成功** → 正常现象，测试不在 test 源集（见改进建议 1）。
-- **test_all.bat 与 IDEA 全量不一致** → `test_all.bat` 是手工维护的固定类清单，新增测试类不会自动包含。
+- **Connection refused 5001/5002** → 用了旧的运行方式（手工 bat + IDEA）但没启动 bat；新方式 `gradle integrationTest` / IDEA All Tests 会自动进程内启动。
+- **找不到 zeze.xml / dbhome 报错** → 工作目录不对，必须在 `ZezeJava/ZezeJavaTest` 下运行（gradle 任务已自动配置；单独用 ConsoleLauncher 时需自己 cd）。
+- **test_all.bat** → **已废弃**，由 `gradle integrationTest` 取代（它引用旧的 main 源集输出路径且类清单是手工维护的）。
+- **gradle test 只跑部分测试** → 正常，它按 `@Fast` 标签过滤；全量用 `gradle integrationTest`。
 
-## 改进建议
+## 遗留改进（2026-08 分层改造后仍有效的）
 
-### 1. 集成到 `gradle test`（建议做，但要分层）
-
-现状：测试在 main 源集（JUnit 6 迁移已完成，`junit:junit` 依赖已移除，不再需要 vintage engine），根 `build.gradle` 的 `test { useJUnitPlatform() }` 还在根 project 作用域（根 project 无源码），形同虚设。建议：
-
-- 在 `ZezeJavaTest/build.gradle` 增加 test 源集（把 `src`/`Gen` 一起从 main 移到 test，二者互相引用不能拆分），jupiter 依赖改为 `testImplementation`/`testRuntimeOnly`；
-- `test` 任务配置 `workingDir = projectDir`（满足相对路径假设）、`jvmArgs '-ea'`；
-- **关键是分层**：D 类自包含测试用 JUnit5 `@Tag("fast")` 或直接按包过滤纳入默认 `gradle test`；A/B 类注册成单独的 `gradle integrationTest` 任务。这样 `gradle test` 开箱即绿，全量测试单独跑。
-- 不建议"直接把全部测试塞进 gradle test"：外部 DB 测试靠主机名门控跳过是脆弱的约定，CI 机器名一旦撞上就会误跑。
-
-### 2. 消除对外部 SM/Global bat 的依赖（收益最大）
-
-约 45 个测试依赖手工启动的两个 bat，这是新人跑测试最大的坑，也阻塞 CI。两个方向：
-
-- 优先：写一个测试基类（目前已有事实上的共享入口 `demo/App`，可在其 `Start()` 里）在进程内启动 `Zeze.Services.ServiceManagerServer` 和 `GlobalCacheManagerAsyncServer`（二者都是普通 main 类，可编程启动），JVM 退出时关闭。`GlobalRaft/TestGlobalCacheMgrWithRaft.java` 已有进程内 `new ServiceManagerServer` 的先例可参考。端口固定 5001/5002，本地端口冲突时用 JUnit `Assumptions` 跳过而不是失败。
-- 次选：gradle `integrationTest` 任务用 `doFirst` 以后台 JavaExec 拉起两个进程、`doLast` 杀掉——可行但进程管理脆弱，不如进程内启动干净。
-
-### 3. 统一命令行入口
-
-`test_all.bat` 手工维护约 100 个类名，必然腐化。集成 gradle 后用 `gradle test --tests '*'` 取代；过渡期至少让 test_all.bat 改为扫描 class 文件而不是硬编码清单。
-
-### 4. 其他
-
-- 把本指南的"最小流程"3 行命令同步进 `README.md` 和 `AGENTS.md`（目前两处只列步骤不解释为什么）；
-- `ZezeJavaTest/` 根目录散落的 `.zeze.pal`、`CommitRocks*`、`manager*/` 等运行时产物建议加入 .gitignore 并约定跑测试前清理；
 - Zezex 三个测试各自复制了 `prepareNewEnvironment/stopAll`，可抽成公共 harness；
-- `service & global.sync.bat` / `*.raft.bat` 等变体目前没有对应自动化测试使用，建议在脚本内注释说明各自服务于哪些手工场景。
+- `service & global.sync.bat` / `*.raft.bat` 等变体没有对应自动化测试使用，建议在脚本内注释说明各自服务于哪些手工场景；
+- C 类外部 DB 测试的主机名门控是脆弱约定（CI 机器撞名会误跑），后续可改成 `@Tag("external-db")` + 显式开关；
+- `TestGlobal.test2App` 的 GCM 并发协调 hang 值得排查（补标时发现，已 `@Disabled` 保留现场）；
+- `--tests` 过滤失效问题（见"结论先行"）待排查。

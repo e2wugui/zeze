@@ -1,11 +1,13 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.util.Map;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Task;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestConcurrentLruLike {
 	@org.junit.jupiter.api.BeforeEach
 	public void before() {

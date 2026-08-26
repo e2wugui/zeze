@@ -1,9 +1,11 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import Zeze.Util.TimeThrottleQueue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestTimeThrottle {
 	@Test
 	public void testTimeThrottle() throws InterruptedException {

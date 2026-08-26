@@ -1,4 +1,5 @@
 package UnitTest.Zeze.Util;
+import harness.Fast;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
@@ -6,6 +7,7 @@ import java.util.HashMap;
 import Zeze.Util.Str;
 import org.junit.jupiter.api.Assertions;
 
+@Fast
 public final class TestStr {
 	@Test
 	public void testParseSize() {

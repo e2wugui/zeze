@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Component;
 
+import harness.Fast;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestToken {
 	private static final Logger logger = LogManager.getLogger(TestToken.class);
 

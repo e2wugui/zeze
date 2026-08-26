@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Arch;
 
+import harness.Fast;
 import java.lang.reflect.Constructor;
 import java.util.List;
 
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
  * 空目标短路、构造时快照/去重、describe、Rpc fail-fast 守卫。
  * Account/Accounts/Logins/Reliable 的实际投递路径仍由代码走查保证。
  */
+@Fast
 public class TestArchOnlineSpec {
 	private static final long ANY_TYPE_ID = 1L;
 

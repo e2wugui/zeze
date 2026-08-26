@@ -1,5 +1,6 @@
 package TestLog4jQuery;
 
+import harness.Fast;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedList;
@@ -12,6 +13,7 @@ import Zeze.Util.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestLog4jQ {
 	@BeforeEach
 	public void before() {

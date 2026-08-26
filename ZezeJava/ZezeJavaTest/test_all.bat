@@ -1,5 +1,6 @@
 @echo off
 setlocal
+rem 【已废弃】由 gradlew :ZezeJavaTest:integrationTest 取代（本脚本引用旧的 main 源集输出路径，且类清单手工维护）
 pushd %~dp0
 
 rem call ..\ZezeJava\test\build.bat

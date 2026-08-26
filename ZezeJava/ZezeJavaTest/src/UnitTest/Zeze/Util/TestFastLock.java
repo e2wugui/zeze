@@ -1,10 +1,12 @@
 package UnitTest.Zeze.Util;
 
+import harness.Fast;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Util.FastLock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@Fast
 public class TestFastLock {
 	@Test
 	public void testFastLock() throws InterruptedException {

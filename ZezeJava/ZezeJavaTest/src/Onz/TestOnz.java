@@ -10,8 +10,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import harness.TestEnv;
 
 public class TestOnz {
 	protected static final Logger logger = LogManager.getLogger(TestOnz.class);
@@ -21,6 +24,11 @@ public class TestOnz {
 
 	@BeforeEach
 	public void before() throws Exception {
+		// 本测试额外依赖第二对服务 SM(5011)/Global(5012)，进程内 harness 无法提供
+		// （GlobalCacheManagerAsyncServer 是单例），未启动时跳过而不是失败。
+		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011),
+				"需要第二对服务(5011/5012)：先运行 test/service & global.another.bat");
+
 		App.Instance.Start();
 		var config2 = Config.load("./zeze_cluster_2.xml");
 		zeze2.Start(config2);
@@ -41,7 +49,9 @@ public class TestOnz {
 
 	@AfterEach
 	public void after() throws Exception {
-		onzServer.stop();
+		// before() 被 Assumption 跳过时 onzServer 尚未创建
+		if (onzServer != null)
+			onzServer.stop();
 		zeze2.Stop();
 	}
 
