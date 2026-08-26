@@ -114,7 +114,7 @@ public final class RaftConfig {
 	}
 
 	public int getMajorityCount() {
-		return nodes.size() >>> 1 + 1;
+		return (nodes.size() >>> 1) + 1;
 	}
 
 	public String getDbHome() {

@@ -169,6 +169,7 @@ public class LogSequence {
 	private void _commitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
 		raft.lock();
 		try {
+			// 下面move和save需要原子完成。目前没有处理：更容易失败的先处理可以缓解这个问题。
 			Files.move(Paths.get(path), Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
 			saveFirstIndex(newFirstIndex);
 			startRemoveLogOnlyBefore(newFirstIndex);
@@ -604,8 +605,7 @@ public class LogSequence {
 		// of matchIndex[i] ≥ N, and log[N].term == currentTerm:
 		// set commitIndex = N(§5.3, §5.4).
 		var followers = new ArrayList<Server.ConnectorEx>();
-		raft.getServer().getConfig().forEachConnector(c ->
-				followers.add(c instanceof Server.ConnectorEx ? (Server.ConnectorEx)c : null));
+		raft.getServer().getConfig().forEachConnector(c -> followers.add((Server.ConnectorEx)c));
 		followers.sort((a, b) -> Long.compare(b.getMatchIndex(), a.getMatchIndex()));
 		var maxMajorityLogIndex = followers.get(raft.getRaftConfig().getHalfCount() - 1).getMatchIndex();
 		if (maxMajorityLogIndex > commitIndex) {

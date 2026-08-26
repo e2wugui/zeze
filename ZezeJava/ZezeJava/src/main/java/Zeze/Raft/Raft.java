@@ -527,8 +527,9 @@ public final class Raft {
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
-				if (now - logSequence.getLeaderActiveTime() > raftConfig.getElectionTimeout()) {
-					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), raftConfig.getElectionTimeout());
+				var electionTimeout = raftConfig.getElectionTimeout();
+				if (now - logSequence.getLeaderActiveTime() > electionTimeout) {
+					logger.warn("LeaderLostTimeout: {} > {}", now - logSequence.getLeaderActiveTime(), electionTimeout);
 					convertStateTo(RaftState.Candidate);
 				}
 				break;
@@ -741,8 +742,8 @@ public final class Raft {
 
 	private void sendRequestVote() throws RocksDBException {
 		requestVotes.clear(); // 每次选举开始清除。
-		// LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
 		logSequence.trySetTerm(logSequence.getTerm() + 1);
+		logSequence.setVoteFor(getName()); // 先投给自己。
 
 		var arg = new BRequestVoteArgument();
 		arg.setTerm(logSequence.getTerm());
