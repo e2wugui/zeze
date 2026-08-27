@@ -117,7 +117,7 @@ sealed interface OnlineTarget {
 		var sb = new StringBuilder();
 		for (var id : roleIds)
 			sb.append(id).append(',');
-		if (sb.length() > 0)
+		if (!sb.isEmpty())
 			sb.setLength(sb.length() - 1);
 		return sb.toString();
 	}

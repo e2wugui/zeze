@@ -14,12 +14,12 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 在线发送的统一描述：工厂收目标，setter 收选项，终结方法定时机。
- *
+ * <p>
  * 动词约定：无标记 = 事务感知（运行中的事务内延迟到 commit 发送，rollback 不发）；
  * Now 后缀 = 立即发送；WhileRollback = 事务回滚时发送。
- *
+ * <p>
  * 集合目标直传（工厂不预拷贝），快照语义统一由 OnlineTarget 各 record 的规范构造器负责。
- *
+ * <p>
  * 实例可复用、非线程安全。选项在终结方法调用时刻冻结：延迟闭包只捕获局部变量，
  * 从不捕获 spec 实例；调用后修改选项不影响已排队的发送。
  */

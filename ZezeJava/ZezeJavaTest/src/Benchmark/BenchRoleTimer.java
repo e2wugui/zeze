@@ -24,6 +24,7 @@ import harness.Bench;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -76,7 +77,7 @@ public class BenchRoleTimer {
 
 	public static class TimerBatch implements TimerHandle {
 		@Override
-		public void onTimer(TimerContext context) {
+		public void onTimer(@NonNull TimerContext context) {
 			var ctxBean = (ContextBatch)context.customData;
 			assert ctxBean != null;
 			var idSet = batchContext.get(ctxBean.getRoleId());

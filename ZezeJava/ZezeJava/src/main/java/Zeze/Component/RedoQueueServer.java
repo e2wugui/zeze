@@ -14,6 +14,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
+import org.jspecify.annotations.NonNull;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
 	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
@@ -72,7 +73,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		}
 
 		@Override
-		public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
+		public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) {
 			// 总是支持事务
 			var outProtocol = new OutObject<Protocol<?>>();
 			ProtocolDispatch.ofProcedure(getZeze().newProcedure(() -> {

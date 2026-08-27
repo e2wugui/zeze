@@ -228,7 +228,7 @@ public final class Task {
 				throw new IllegalArgumentException();
 
 			if (threadPoolDefault != null || threadPoolScheduled != null)
-				throw new IllegalStateException("ThreadPool Has Inited.");
+				throw new IllegalStateException("ThreadPool Has Initialized.");
 			threadPoolDefault = pool;
 			threadPoolScheduled = scheduled;
 			threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");

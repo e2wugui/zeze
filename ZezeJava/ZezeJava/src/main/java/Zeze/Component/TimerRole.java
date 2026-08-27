@@ -425,7 +425,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	boolean scheduleOnlineNamedImpl(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
 									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
-		if (!checkNamedTimerId(timerId))
+		if (isNamedTimerIdOccupied(timerId))
 			return false;
 		switch (spec) {
 		case SimpleTimerSpec s -> scheduleOnline(false, roleId, timerId, s.build(), handleClass, customData, false);
@@ -437,7 +437,7 @@ public class TimerRole extends TimerOnlineBase<Long> {
 	public boolean scheduleOnlineNamedHot(long roleId, @NotNull String timerId, @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		if (!checkNamedTimerId(timerId))
+		if (isNamedTimerIdOccupied(timerId))
 			return false;
 		switch (spec) {
 		case SimpleTimerSpec s -> scheduleOnline(true, roleId, timerId, s.build(), handleClass, customData, false);

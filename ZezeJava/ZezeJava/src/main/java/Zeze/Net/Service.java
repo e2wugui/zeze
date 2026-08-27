@@ -574,7 +574,7 @@ public class Service extends ReentrantLock {
 				+ ") size=" + data.size() + " so=" + so);
 	}
 
-	@SuppressWarnings("RedundantThrows")
+	@SuppressWarnings({"RedundantThrows", "BooleanMethodIsAlwaysInverted"})
 	public boolean checkOverflow(@NotNull AsyncSocket so, long newSize, byte @NotNull [] bytes, int offset, int length)
 			throws Exception {
 		var maxSize = getSocketOptions().getOutputBufferMaxSize();

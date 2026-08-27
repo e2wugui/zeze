@@ -28,6 +28,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Util.OutInt;
 import Zeze.Util.StableRandom;
 import demo.Module1.BValue;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -266,7 +267,7 @@ public class BenchSocket {
 		}
 
 		@Override
-		public void dispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) throws Exception {
+		public void dispatchUnknownProtocol(@NonNull AsyncSocket so, int moduleId, int protocolId, @NonNull ByteBuffer data) throws Exception {
 			if (moduleId == 0 && protocolId == BenchProtocol.ProtocolId_)
 				return; // 忽略压测协议，不进行decode，增加流量。
 

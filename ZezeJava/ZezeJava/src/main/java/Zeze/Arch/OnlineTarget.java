@@ -94,7 +94,7 @@ sealed interface OnlineTarget {
 			var sb = new StringBuilder();
 			for (var login : logins)
 				sb.append(login.getAccount()).append(',').append(login.getClientId()).append(';');
-			if (sb.length() > 0)
+			if (!sb.isEmpty())
 				sb.setLength(sb.length() - 1);
 			return sb.toString();
 		}

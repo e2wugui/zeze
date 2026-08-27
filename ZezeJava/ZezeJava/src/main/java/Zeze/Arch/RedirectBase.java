@@ -9,7 +9,6 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -78,15 +77,6 @@ public class RedirectBase {
 			}
 		}
 		return socket;
-		/*
-		var out = new OutLong();
-		if (!ProviderApp.Distribute.choiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			throw new ServerNotFoundException("choiceServer: not found server for serverId=" + serverId);
-		var socket = ProviderApp.ProviderDirectService.GetSocket(out.Value);
-		if (socket == null)
-			throw new ServerNotFoundException("choiceServer: not found socket for serverId=" + serverId);
-		return socket;
-		*/
 	}
 
 	public @Nullable AsyncSocket choiceHash(@NotNull IModule module, int hash, int dataConcurrentLevel) {

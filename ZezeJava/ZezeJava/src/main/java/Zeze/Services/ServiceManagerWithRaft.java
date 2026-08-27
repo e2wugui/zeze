@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft implements AutoCloseable {
 	static {
@@ -125,7 +126,7 @@ public final class ServiceManagerWithRaft extends AbstractServiceManagerWithRaft
 		}
 
 		@Override
-		public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
+		public void OnSocketClose(@NonNull AsyncSocket so, Throwable e) throws Exception {
 			var netSession = (Session)so.getUserState();
 			if (null != netSession) {
 				if (logger.isDebugEnabled())

@@ -83,11 +83,11 @@ abstract class TimerOnlineBase<I> {
 		return timer().zeze;
 	}
 
-	// 检查命名timerId合法且未被占用，被各scheduleOnlineNamed入口使用。
-	final boolean checkNamedTimerId(@NotNull String timerId) {
+	// 检查命名timerId格式合法（非法抛异常）且是否已被占用，被各scheduleOnlineNamed入口使用。
+	final boolean isNamedTimerIdOccupied(@NotNull String timerId) {
 		if (timerId.startsWith("@"))
 			throw new IllegalArgumentException("invalid timerId '" + timerId + "', must not begin with '@'");
-		return getOnlineTimer(timerId) == null;
+		return getOnlineTimer(timerId) != null;
 	}
 
 	final @NotNull String newAutoTimerId() {
@@ -251,7 +251,7 @@ abstract class TimerOnlineBase<I> {
 		p.decode(ByteBuffer.Wrap(parameter));
 
 		var sharedVersion = getSharedLoginVersion(target);
-		if (sharedVersion == null || p.getLoginVersion() != sharedVersion.longValue()) {
+		if (sharedVersion == null || p.getLoginVersion() != sharedVersion) {
 			logger.warn("transmit simple timer dropped: not login or version mismatch. {} timerId={} handle={}",
 					identityString(target), p.getTimerId(), p.getHandleClass());
 			return 0;
@@ -272,7 +272,7 @@ abstract class TimerOnlineBase<I> {
 		p.decode(ByteBuffer.Wrap(parameter));
 
 		var sharedVersion = getSharedLoginVersion(target);
-		if (sharedVersion == null || p.getLoginVersion() != sharedVersion.longValue()) {
+		if (sharedVersion == null || p.getLoginVersion() != sharedVersion) {
 			logger.warn("transmit cron timer dropped: not login or version mismatch. {} timerId={} handle={}",
 					identityString(target), p.getTimerId(), p.getHandleClass());
 			return 0;
@@ -286,14 +286,14 @@ abstract class TimerOnlineBase<I> {
 
 	final void onTransmitCancel(@NotNull String timerId, @NotNull I id, long loginVersion) {
 		var sharedVersion = getSharedLoginVersion(id);
-		if (sharedVersion != null && loginVersion == sharedVersion.longValue())
+		if (sharedVersion != null && loginVersion == sharedVersion)
 			cancelOnline(timerId, id, true);
 		else
 			logger.debug("transmit cancel timer dropped: not login or version mismatch. {} timerId={}",
 					identityString(id), timerId);
 	}
 
-	private static @Nullable Bean decodeCustom(@NotNull String customClass, @Nullable Binary customBean)
+	private static @Nullable Bean decodeCustom(@NotNull String customClass, @NotNull Binary customBean)
 			throws ReflectiveOperationException {
 		if (customClass.isEmpty())
 			return null;
@@ -303,10 +303,9 @@ abstract class TimerOnlineBase<I> {
 	}
 
 	// Online.Local删除时，取消这个用户所有的在线定时器。
-	final long onLocalRemove(@NotNull BOnlineTimers timers) {
+	final void onLocalRemove(@NotNull BOnlineTimers timers) {
 		for (var timerId : timers.getTimerIds().keySet())
 			cancelOnlineLocal(timerId);
-		return 0;
 	}
 
 	// ///////////////////////////////////////////////////////////////
@@ -489,7 +488,7 @@ abstract class TimerOnlineBase<I> {
 			var timerLoginVersion = bTimer.getLoginVersion();
 			var id = bTimer.identity();
 			var loginVersion = getLoginVersion(id);
-			if (loginVersion == null || timerLoginVersion != loginVersion.longValue()) {
+			if (loginVersion == null || timerLoginVersion != loginVersion) {
 				// 已经不是注册定时器时候的登录了
 				logger.info("cancel online {} timer mismatch version({}!={}): timerId={}, {}",
 						kind.toLowerCase(), timerLoginVersion, loginVersion, timerId, identityString(id));

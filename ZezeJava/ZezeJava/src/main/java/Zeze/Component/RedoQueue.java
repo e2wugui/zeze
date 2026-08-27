@@ -13,6 +13,7 @@ import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.RocksDatabase;
 import Zeze.Util.Task;
+import org.jspecify.annotations.NonNull;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -154,7 +155,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NonNull AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 		lock();
 		try {
@@ -165,7 +166,7 @@ public class RedoQueue extends HandshakeClient {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable ex) throws Exception {
+	public void OnSocketClose(@NonNull AsyncSocket so, Throwable ex) throws Exception {
 		super.OnSocketClose(so, ex);
 		lock();
 		try {

@@ -454,7 +454,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 									@NotNull String timerId, @NotNull TimerSpec spec,
 									@NotNull Class<? extends TimerHandle> handleClass,
 									@Nullable Bean customData) {
-		if (!checkNamedTimerId(timerId))
+		if (isNamedTimerIdOccupied(timerId))
 			return false;
 		var id = new BAccountClientId(account, clientId);
 		switch (spec) {
@@ -468,7 +468,7 @@ public class TimerAccount extends TimerOnlineBase<BAccountClientId> {
 										  @NotNull String timerId, @NotNull TimerSpec spec,
 										  @NotNull Class<? extends TimerHandle> handleClass,
 										  @Nullable Bean customData) {
-		if (!checkNamedTimerId(timerId))
+		if (isNamedTimerIdOccupied(timerId))
 			return false;
 		var id = new BAccountClientId(account, clientId);
 		switch (spec) {

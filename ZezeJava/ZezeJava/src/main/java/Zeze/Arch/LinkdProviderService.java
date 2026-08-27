@@ -18,6 +18,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 public class LinkdProviderService extends HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
@@ -52,7 +53,7 @@ public class LinkdProviderService extends HandshakeServer {
 
 	// 重载需要的方法。
 	@Override
-	public void dispatchProtocol(long typeId, ByteBuffer bb, ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
+	public void dispatchProtocol(long typeId, @NonNull ByteBuffer bb, @NonNull ProtocolFactoryHandle<?> factoryHandle, AsyncSocket so) throws Exception {
 		// 不支持事务。
 		var p = decodeProtocol(typeId, bb, factoryHandle, so);
 		p.dispatch(this, factoryHandle);
@@ -90,13 +91,13 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket so) throws Exception {
+	public void OnSocketAccept(@NonNull AsyncSocket so) throws Exception {
 		so.setUserState(newSession(so));
 		super.OnSocketAccept(so);
 	}
 
 	@Override
-	public void OnHandshakeDone(AsyncSocket so) throws Exception {
+	public void OnHandshakeDone(@NonNull AsyncSocket so) throws Exception {
 		super.OnHandshakeDone(so);
 
 		var announce = new AnnounceLinkInfo();
@@ -104,14 +105,14 @@ public class LinkdProviderService extends HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Exception {
+	public void OnSocketClose(@NonNull AsyncSocket so, Throwable e) throws Exception {
 		// 先unbind。这样避免有时间窗口。
 		linkdApp.linkdProvider.onProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 
 	@Override
-	public void onServerSocketBind(ServerSocket ss) {
+	public void onServerSocketBind(@NonNull ServerSocket ss) {
 		linkdApp.providerPort = ss.getLocalPort();
 	}
 }

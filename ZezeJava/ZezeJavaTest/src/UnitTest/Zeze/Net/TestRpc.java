@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Net;
 
 import harness.Fast;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
@@ -73,7 +74,7 @@ public class TestRpc {
 		}
 
 		@Override
-		public void OnSocketConnected(AsyncSocket so) throws Exception {
+		public void OnSocketConnected(@NonNull AsyncSocket so) throws Exception {
 			super.OnSocketConnected(so);
 			test.connected.setResult(so);
 		}
