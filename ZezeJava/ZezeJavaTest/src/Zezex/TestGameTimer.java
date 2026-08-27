@@ -1,128 +1,41 @@
 package Zezex;
 
-import java.util.ArrayList;
-import ClientGame.Login.BRole;
-import ClientGame.Login.CreateRole;
-import ClientGame.Login.GetRoleList;
 import UnitTest.Zeze.Component.TestBean;
-import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
-import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
-import Zezex.Linkd.Auth;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Role Online/Offline Timer 走 Game.App 全链路的测试。类级共享环境（单server，online timer 要求登录驻留在本server）：
+ * 方法1 用 TCP 客户端、方法2 用 websocket 客户端（ZezexTestEnv.ClientStartMode），每方法只重建客户端。
+ */
 @SuppressWarnings("CallToPrintStackTrace")
 @TestMethodOrder(MethodOrderer.MethodName.class)
 public class TestGameTimer {
-	private static final @NotNull Logger logger = LogManager.getLogger();
-	final ArrayList<ClientGame.App> clients = new ArrayList<>();
-	final ArrayList<Zezex.App> links = new ArrayList<>();
-	final ArrayList<Game.App> servers = new ArrayList<>();
-	LoginQueue loginQueue;
 
-	@SuppressWarnings({"SameParameterValue", "unused"})
-	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
-		clients.clear();
-		links.clear();
-		servers.clear();
+	static final ZezexTestEnv env = new ZezexTestEnv();
 
-		loginQueue = new LoginQueue();
-		loginQueue.start();
-		for (int i = 0; i < clientCount; ++i)
-			clients.add(new ClientGame.App());
-		for (int i = 0; i < linkCount; ++i)
-			links.add(new Zezex.App());
-		for (int i = 0; i < serverCount; ++i)
-			servers.add(new Game.App());
-
-		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
-		for (int i = 40; i < serverCount + 40; ++i) {
-			servers.get(i - 40).Start(i, 20000 + i - 40);
-			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
-			//servers.get(i - 40).getZeze().getTimer().start();
+	/** 上一方法失败（dirty）则整体重建保留失败隔离；绿路径只重建客户端（~百ms）。单server：online timer 要求登录驻留在本server，双server会走transmit转发且不触发（原方法1即(2,2,1)）。 */
+	private static void prepareMethod(ZezexTestEnv.ClientStartMode mode) throws Exception {
+		if (!env.isPrepared() || env.isDirty()) {
+			if (env.isPrepared())
+				env.stopAll();
+			env.prepareNewEnvironment(0, 2, 1);
 		}
-		for (var link : links)
-			harness.TestEnv.waitServerRegisteredRange(link.Zeze, 40, serverCount); // 等所有provider注册可见（100ms就绪轮询）
-		for (int i = 0; i < clientCount; ++i) {
-			var link = links.get(i % linkCount);
-			var ipPort = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start(ipPort.getKey(), ipPort.getValue());
-		}
-		/*
-		var req = new Cs();
-		req.Argument.setAccount("Request");
-		req.Send(clients.get(0).ClientService.GetSocket());
-		*/
+		env.rebuildClients(2, mode);
 	}
 
-	@SuppressWarnings({"unused", "SameParameterValue"})
-	private void prepareNewEnvironment2(int clientCount, int linkCount, int serverCount) throws Exception {
-		clients.clear();
-		links.clear();
-		servers.clear();
-
-		loginQueue = new LoginQueue();
-		loginQueue.start();
-		for (int i = 0; i < clientCount; ++i)
-			clients.add(new ClientGame.App());
-		for (int i = 0; i < linkCount; ++i)
-			links.add(new Zezex.App());
-		for (int i = 0; i < serverCount; ++i)
-			servers.add(new Game.App());
-
-		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
-		for (int i = 40; i < serverCount + 40; ++i) {
-			servers.get(i - 40).Start(i, 20000 + i - 40);
-			//servers.get(i - 40).getZeze().getTimer().initializeOnlineTimer(servers.get(i - 40).ProviderApp);
-			//servers.get(i - 40).getZeze().getTimer().start();
-		}
-		for (var link : links)
-			harness.TestEnv.waitServerRegisteredRange(link.Zeze, 40, serverCount); // 等所有provider注册可见（100ms就绪轮询）
-		for (int i = 0; i < clientCount; ++i) {
-			var link = links.get(i % linkCount);
-			var ipPort = link.LinkdService.getOnePassiveAddress();
-			clients.get(i).Start2("ws://" + ipPort.getKey() + ":" + (ipPort.getValue() + 10000) + "/websocket");
-		}
-	}
-
-	private void stopAll() throws Exception {
-		try {
-			for (var client : clients)
-				client.Stop();
-			for (var server : servers) {
-				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
-					server.stopBeforeModules();
-			}
-			for (var server : servers) {
-				if (server.Zeze != null)
-					server.Stop();
-			}
-			for (var link : links) {
-				try {
-					link.Stop();
-				} catch (Exception e) {
-					logger.error("stop link failed", e);
-				}
-			}
-		} finally {
-			// 无论如何都要释放 5020/5021 端口，否则会毒化后续使用 LoginQueue 的测试
-			if (loginQueue != null) {
-				loginQueue.stop();
-				loginQueue = null;
-			}
-		}
+	@AfterAll
+	static void teardownEnv() throws Exception {
+		env.stopAll();
 	}
 
 	private static void testContent(TimerContext context) {
@@ -153,27 +66,21 @@ public class TestGameTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			prepareNewEnvironment(2, 2, 1);
+			prepareMethod(ZezexTestEnv.ClientStartMode.TCP);
 
-			var client0 = clients.get(0);
-			var client1 = clients.get(1);
-//			var link0 = links.get(0);
-//			var link1 = links.get(1);
-			var server0 = servers.getFirst();
-//			var server1 = servers.get(1);
+			var client0 = env.clients.get(0);
+			var client1 = env.clients.get(1);
+			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
-//			var timer1 = server1.getZeze().getTimer();
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
-			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
-			login(client0, roleId);
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			var role = ZezexTestEnv.getRole(client0);
+			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
+			ZezexTestEnv.login(client0, roleId);
 
 			var timerRole0 = timer0.getRoleTimer();
-//			var timerRole1 = timer1.getRoleTimer();
-
 			TestBean bean = new TestBean();
 			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
@@ -188,8 +95,8 @@ public class TestGameTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
-			login(client1, roleId);
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.login(client1, roleId);
 			Thread.sleep(200); // 负向断言稳定窗：被踢的timer若残留触发应在此窗内出现
 			Assertions.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
 			log("测试二通过");
@@ -234,10 +141,9 @@ public class TestGameTimer {
 			Assertions.assertTrue(newNamedBean2.getTestValue() >= 10);
 			log("测试三通过");
 		} catch (Throwable e) {
+			env.markDirty();
 			e.printStackTrace();
 			throw e;
-		} finally {
-			stopAll();
 		}
 	}
 
@@ -258,30 +164,25 @@ public class TestGameTimer {
 		try {
 			log("Role Offline Timer 测试启动");
 
-			// 初始化环境
-			prepareNewEnvironment2(2, 2, 2);
+			// 初始化环境（websocket 客户端）
+			prepareMethod(ZezexTestEnv.ClientStartMode.WEBSOCKET);
 
-			var client0 = clients.get(0);
-			var client1 = clients.get(1);
-//			var link0 = links.get(0);
-//			var link1 = links.get(1);
-			var server0 = servers.getFirst();
-//			var server1 = servers.get(1);
+			var client0 = env.clients.get(0);
+			var client1 = env.clients.get(1);
+			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
-//			var timer1 = server1.getZeze().getTimer();
 
 			var timerRole0 = timer0.getRoleTimer();
-//			var timerRole1 = timer1.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
-			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
-			login(client0, roleId);
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account1");
+			var role = ZezexTestEnv.getRole(client0);
+			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role1");
+			ZezexTestEnv.login(client0, roleId);
 
 			// 角色下线时注册定时器
-			logout(client0, roleId);
+			ZezexTestEnv.logout(client0, roleId);
 
 			TestBean bean = new TestBean();
 			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
@@ -297,63 +198,13 @@ public class TestGameTimer {
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
-			login(client1, roleId);
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account1");
+			ZezexTestEnv.login(client1, roleId);
 		} catch (Throwable e) {
+			env.markDirty();
 			e.printStackTrace();
 			throw e;
-		} finally {
-			stopAll();
 		}
-	}
-
-	@SuppressWarnings("unused")
-	private static void relogin(ClientGame.App app, long roleId) {
-		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
-		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, relogin.getResultCode());
-	}
-
-	@SuppressWarnings("unused")
-	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
-		var logout = new Zeze.Builtin.Game.Online.Logout();
-		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, logout.getResultCode());
-	}
-
-	private static void login(ClientGame.App app, long roleId) {
-		var login = new Zeze.Builtin.Game.Online.Login();
-		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, login.getResultCode());
-	}
-
-	@SuppressWarnings("SameParameterValue")
-	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
-		var auth = new Auth();
-		auth.Argument.setAccount(account);
-		auth.Argument.setLoginQueueToken(token.getToken());
-		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, auth.getResultCode());
-	}
-
-	@SuppressWarnings("SameParameterValue")
-	private static long createRole(ClientGame.App app, String role) {
-		var createRole = new CreateRole();
-		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, createRole.getResultCode());
-		return createRole.Result.getId();
-	}
-
-	private static BRole getRole(ClientGame.App app) {
-		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, get.getResultCode());
-		if (get.Result.getRoleList().isEmpty())
-			return null;
-		return get.Result.getRoleList().getFirst();
 	}
 
 	private static void log(String msg) {

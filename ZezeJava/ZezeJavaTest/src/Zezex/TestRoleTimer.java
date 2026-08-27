@@ -11,6 +11,7 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -20,7 +21,29 @@ import org.junit.jupiter.api.Test;
 public class TestRoleTimer {
 	private static final @NotNull Logger logger = LogManager.getLogger(TestRoleTimer.class);
 
-	final ZezexTestEnv env = new ZezexTestEnv();
+	// 类级共享环境：4方法共用 links/servers/LoginQueue（统一(0,2,2)拓扑），每方法只重建客户端；
+	// 方法间用独立账号隔离 Memory 库角色（getRole().getFirst() 不会拿到别的方法的旧角色+历史timer）。
+	static final ZezexTestEnv env = new ZezexTestEnv();
+
+	// 类级共享环境：4方法共用 links/servers/LoginQueue，每方法只重建客户端；方法间用独立账号隔离
+	// Memory 库角色（getRole().getFirst() 不会拿到别的方法的旧角色+历史timer）。
+	// 拓扑必须单server：online timer 的注册要求角色登录驻留在本server（getLocalLoginVersion），
+	// 双server下登录会按模块分配落到另一个server，scheduleOnline 走 "not online but transmit"
+	// 转发且转发后不触发（test1/cron1 的 online timer 全灭）。test2/cron2 的 offline timer
+	// 不依赖登录驻留，原(2,2,2)的第二个server从未被引用，统一到(0,2,1)无损失。
+	private static void prepareMethod() throws Exception {
+		if (!env.isPrepared() || env.isDirty()) {
+			if (env.isPrepared())
+				env.stopAll();
+			env.prepareNewEnvironment(0, 2, 1);
+		}
+		env.rebuildClients(2, ZezexTestEnv.ClientStartMode.TCP);
+	}
+
+	@AfterAll
+	static void teardownEnv() throws Exception {
+		env.stopAll();
+	}
 
 	private static void testContent(TimerContext context) {
 		TestBean bean = (TestBean)context.customData;
@@ -56,7 +79,7 @@ public class TestRoleTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			env.prepareNewEnvironment(2, 2, 1);
+			prepareMethod();
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
@@ -127,8 +150,9 @@ public class TestRoleTimer {
 			log("测试三通过");
 
 			ZezexTestEnv.logout(client1, roleId);
-		} finally {
-			env.stopAll();
+		} catch (Throwable t) {
+			env.markDirty();
+			throw t;
 		}
 	}
 
@@ -138,7 +162,7 @@ public class TestRoleTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			env.prepareNewEnvironment(2, 2, 1);
+			prepareMethod();
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
@@ -147,7 +171,7 @@ public class TestRoleTimer {
 
 			log("测试 Role Online Timer ");
 			log("在客户端0登录role0");
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account1");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = role != null ? role.getId() : ZezexTestEnv.createRole(client0, "new_role0");
 			ZezexTestEnv.login(client0, roleId);
@@ -167,7 +191,7 @@ public class TestRoleTimer {
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account1");
 			ZezexTestEnv.login(client1, roleId);
 			Assertions.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
@@ -207,8 +231,9 @@ public class TestRoleTimer {
 			log("测试三通过");
 
 			ZezexTestEnv.logout(client1, roleId);
-		} finally {
-			env.stopAll();
+		} catch (Throwable t) {
+			env.markDirty();
+			throw t;
 		}
 	}
 
@@ -227,7 +252,7 @@ public class TestRoleTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			env.prepareNewEnvironment(2, 2, 2);
+			prepareMethod();
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
@@ -238,7 +263,7 @@ public class TestRoleTimer {
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account3");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role1");
 			ZezexTestEnv.login(client0, roleId);
@@ -258,12 +283,13 @@ public class TestRoleTimer {
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account3");
 			ZezexTestEnv.login(client1, roleId);
 
 			ZezexTestEnv.logout(client1, roleId);
-		} finally {
-			env.stopAll();
+		} catch (Throwable t) {
+			env.markDirty();
+			throw t;
 		}
 	}
 
@@ -275,7 +301,7 @@ public class TestRoleTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			env.prepareNewEnvironment(2, 2, 2);
+			prepareMethod();
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
@@ -286,7 +312,7 @@ public class TestRoleTimer {
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
-			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account2");
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = role != null ? role.getId() : ZezexTestEnv.createRole(client0, "new_role1");
 			ZezexTestEnv.login(client0, roleId);
@@ -306,12 +332,13 @@ public class TestRoleTimer {
 			bean.getFuture().get(30, TimeUnit.SECONDS);
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
-			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account2");
 			ZezexTestEnv.login(client1, roleId);
 
 			ZezexTestEnv.logout(client1, roleId);
-		} finally {
-			env.stopAll();
+		} catch (Throwable t) {
+			env.markDirty();
+			throw t;
 		}
 	}
 

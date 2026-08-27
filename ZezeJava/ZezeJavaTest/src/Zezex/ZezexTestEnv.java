@@ -8,6 +8,7 @@ import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Services.LoginQueue;
+import Zeze.Transaction.DatabaseMemory;
 import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,18 +17,37 @@ import org.junit.jupiter.api.Assertions;
 
 /**
  * Zezex 系测试的进程内组网脚手架：clients/links/servers 集合与 LoginQueue 的启停、全链路 RPC 助手。
- * 消费方：TestRoleTimer、Benchmark.BenchRoleTimer、TestOnline、TestOnlineSpec。
- * TODO: 仅剩 TestGameTimer 保留分叉副本，差异为 websocket 拨号（Start2("ws://…/websocket") 口味）、
- * 	显式指定 link 地址 + 逐客户端顺序 Start（本脚手架走 LoginQueue 并行 Start），待长出对应钩子后再迁入。
+ * 消费方：TestRoleTimer、TestGameTimer、Benchmark.BenchRoleTimer、TestOnline、TestOnlineSpec。
+ * 支持两种用法：
+ * 1. 方法级：prepareNewEnvironment(clientCount,...) + stopAll()，每方法独立环境（TestOnline/TestOnlineSpec/BenchRoleTimer）。
+ * 2. 类级共享：@BeforeAll prepareNewEnvironment(0,...)（只起 links/servers），每方法 rebuildClients(count, mode)
+ *    重建客户端（provider 常驻上报后 token 秒回，client 重建 ~百ms）；方法失败 markDirty()，下一方法
+ *    检测 isDirty() 后整体 stopAll+prepare 重建，保留失败隔离（TestRoleTimer/TestGameTimer）。
  */
 public final class ZezexTestEnv {
 	private static final @NotNull Logger logger = LogManager.getLogger(ZezexTestEnv.class);
+
+	/** 客户端拨号口味：TCP 走 ClientService 直连；WEBSOCKET 走 Start2 的 ws 拨号（linkd 端口+10000）。 */
+	public enum ClientStartMode { TCP, WEBSOCKET }
 
 	public final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	public final ArrayList<Zezex.App> links = new ArrayList<>();
 	public final ArrayList<Game.App> servers = new ArrayList<>();
 
 	private LoginQueue loginQueue;
+	private boolean dirty; // 类级共享用法：上一方法失败时置位，下一方法据此整体重建环境
+
+	public boolean isDirty() {
+		return dirty;
+	}
+
+	public void markDirty() {
+		dirty = true;
+	}
+
+	public boolean isPrepared() {
+		return loginQueue != null;
+	}
 
 	public void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
 		prepareNewEnvironment(clientCount, linkCount, serverCount, 40);
@@ -38,6 +58,13 @@ public final class ZezexTestEnv {
 		clients.clear();
 		links.clear();
 		servers.clear();
+
+		// DatabaseMemory 是 JVM 级全局静态库（server.xml 的 Memory 库 DatabaseUrl 均为空串，全 JVM 共一个），
+		// 不 clear 会跨环境残留三个全局键：角色名（_trolename 全局唯一索引）、命名 timerId、Online.Shared 登录状态。
+		// 残留表现为：本环境 getRole 拿到上个环境的旧角色、createRole 撞全局角色名、scheduleOnlineNamed 对
+		// shared 在线的遗留角色走 "not online but transmit" 假成功。clear() 把"每个环境一个干净的库"显式化。
+		// integrationTest 串行执行无并发库使用者（先例：Infinite.Simulate 循环 clear）。
+		DatabaseMemory.clear();
 
 		loginQueue = new LoginQueue();
 		loginQueue.start();
@@ -56,10 +83,28 @@ public final class ZezexTestEnv {
 		for (var link : links)
 			harness.TestEnv.waitServerRegisteredRange(link.Zeze, serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
+		startClients(clientCount, ClientStartMode.TCP);
+	}
+
+	/** 类级共享用法：停掉旧客户端并按指定口味重建（环境 links/servers/LoginQueue 不动）。 */
+	public void rebuildClients(int clientCount, ClientStartMode mode) throws Exception {
+		stopClients();
+		startClients(clientCount, mode);
+	}
+
+	public void stopClients() throws Exception {
+		for (var client : clients)
+			client.Stop();
+		clients.clear();
+	}
+
+	private void startClients(int clientCount, ClientStartMode mode) throws InterruptedException {
+		for (int i = 0; i < clientCount; ++i)
+			clients.add(new ClientGame.App());
 		var clientsSize = new AtomicInteger(clients.size());
-		clients.parallelStream().forEach(c -> {
+		java.util.stream.IntStream.range(0, clients.size()).parallel().forEach(i -> {
 			try {
-				c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
+				startClient(clients.get(i), i, mode);
 				clientsSize.decrementAndGet();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -67,6 +112,16 @@ public final class ZezexTestEnv {
 		});
 		while (clientsSize.get() != 0)
 			Thread.onSpinWait();
+	}
+
+	private void startClient(ClientGame.App c, int index, ClientStartMode mode) throws Exception {
+		if (mode == ClientStartMode.WEBSOCKET) {
+			// Start2 的 wsUrl 实参实际未被使用（token 回调内按 LoginQueue 下发的 link 地址重建），此处构造仅为表意
+			var ipPort = links.get(index % links.size()).LinkdService.getOnePassiveAddress();
+			c.Start2("ws://" + ipPort.getKey() + ":" + (ipPort.getValue() + 10000) + "/websocket");
+		} else {
+			c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
+		}
 	}
 
 	public void stopAll() throws Exception {
@@ -97,6 +152,7 @@ public final class ZezexTestEnv {
 			clients.clear();
 			links.clear();
 			servers.clear();
+			dirty = false;
 		}
 	}
 
