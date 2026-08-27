@@ -101,7 +101,6 @@ public class TestGameTimer {
 		try {
 			for (var client : clients)
 				client.Stop();
-			Thread.sleep(100); // 防止client断开连接的时候，下面的provider关闭太快执行异常。这个异常实际上无所谓。
 			for (var server : servers) {
 				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
 					server.stopBeforeModules();
@@ -182,14 +181,16 @@ public class TestGameTimer {
 					TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			sleep(100, 6);
+			// bean 5次触发实际ms级完成：50ms轮询（上限3s），timer真卡住仍会失败
+			for (int i = 0; i < 60 && bean.getTestValue() < 5; ++i)
+				Thread.sleep(50);
 			Assertions.assertTrue(bean.getTestValue() >= 5);
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
 			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
-			sleep(100, 6);
+			Thread.sleep(200); // 负向断言稳定窗：被踢的timer若残留触发应在此窗内出现
 			Assertions.assertEquals(5, bean.getTestValue()); // 确保客户端0的timer被踢掉了【不变】
 			log("测试二通过");
 
@@ -210,7 +211,10 @@ public class TestGameTimer {
 					TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(100, 10);
+			// namedBean 5×100ms理论500ms：轮询到位后再留200ms负向稳定窗（错注册的newNamedBean1若有触发应在此窗内出现）
+			for (int i = 0; i < 60 && namedBean.getTestValue() < 5; ++i)
+				Thread.sleep(50);
+			Thread.sleep(200);
 
 			Assertions.assertEquals(5, namedBean.getTestValue());
 			Assertions.assertEquals(0, newNamedBean1.getTestValue());
@@ -276,8 +280,6 @@ public class TestGameTimer {
 			var roleId = null != role ? role.getId() : createRole(client0, "role0");
 			login(client0, roleId);
 
-			sleep(200, 1);
-
 			// 角色下线时注册定时器
 			logout(client0, roleId);
 
@@ -288,15 +290,15 @@ public class TestGameTimer {
 					TestOfflineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "test1").call());
-
-			sleep(100, 5);
+			// 轮询确认offline timer真的在角色下线期间触发（此前该方法对timer触发零覆盖）
+			for (int i = 0; i < 60 && bean.getTestValue() < 1; ++i)
+				Thread.sleep(50);
+			Assertions.assertTrue(bean.getTestValue() >= 1);
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
 			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			login(client1, roleId);
-
-			sleep(100, 5);
 		} catch (Throwable e) {
 			e.printStackTrace();
 			throw e;
@@ -352,17 +354,6 @@ public class TestGameTimer {
 		if (get.Result.getRoleList().isEmpty())
 			return null;
 		return get.Result.getRoleList().getFirst();
-	}
-
-	private static void sleep(long gap, int times) {
-		try {
-			for (int i = 0; i < times; ++i) {
-				Thread.sleep(gap);
-				System.out.println("-- sleep " + i);
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 	}
 
 	private static void log(String msg) {

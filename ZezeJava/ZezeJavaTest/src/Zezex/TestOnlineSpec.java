@@ -96,7 +96,7 @@ public class TestOnlineSpec {
 			OnlineSpec.ofRoles(online, List.of()).send(encodeBomb);
 			OnlineSpec.ofRoles(online, List.of()).send(encodeBomb.getTypeId(), new Binary(new byte[0]));
 			OnlineSpec.ofAllOnline(online, List.of()).send(encodeBomb);
-			Thread.sleep(300);
+			Thread.sleep(200); // 负向稳定窗
 			Assertions.assertEquals(0, sEquipCount0.get());
 			Assertions.assertEquals(0, sEquipCount1.get());
 
@@ -124,7 +124,7 @@ public class TestOnlineSpec {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).send(new SEquipement());
 				return 1L; // 非 Success 触发回滚
 			}, "testTxnSendRollback").call());
-			Thread.sleep(500);
+			Thread.sleep(200); // 负向稳定窗
 			Assertions.assertEquals(4, sEquipCount0.get()); // rollback 后不收到
 
 			// ---- §8-4 事务内 sendNow：立即收到（不等 commit） ----
@@ -146,7 +146,7 @@ public class TestOnlineSpec {
 				OnlineSpec.ofRoles(online, List.of(roleId0)).sendWhileRollback(new SEquipement());
 				return Procedure.Success;
 			}, "testSendWhileRollbackCommit").call());
-			Thread.sleep(500);
+			Thread.sleep(200); // 负向稳定窗
 			Assertions.assertEquals(6, sEquipCount0.get()); // commit 后不收到
 
 			// ---- §8-6 P0 回归：ofAllOnline 每个目标恰好收到一次（单 set，见类注释） ----
@@ -156,7 +156,7 @@ public class TestOnlineSpec {
 			OnlineSpec.ofAllOnline(online, List.of(roleId0, roleId1)).send(new SEquipement());
 			awaitCount(sEquipCount0, base0 + 1);
 			awaitCount(sEquipCount1, base1 + 1);
-			Thread.sleep(300);
+			Thread.sleep(200); // 负向稳定窗
 			Assertions.assertEquals(base0 + 1, sEquipCount0.get()); // 恰好一次，无重复
 			Assertions.assertEquals(base1 + 1, sEquipCount1.get());
 
