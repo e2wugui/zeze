@@ -45,7 +45,7 @@ public abstract class Record extends ReentrantLock {
 	 * CheckpointMode.Table
 	 * Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	 */
-	private boolean dirty;
+	private volatile boolean dirty;
 	protected volatile @Nullable Bean strongDirtyValue;
 
 	private volatile long timestamp; // 正值表示load方式加载/修改的自增值;负值表示上次用dirty方式读取时间戳的负值
