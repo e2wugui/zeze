@@ -26,8 +26,8 @@ public class TestOnz {
 	public void before() throws Exception {
 		// 第二对服务 SM(5011)/Global(5012) 由 TestEnvLauncherListener 在进程内自动启动
 		// （GCM 支持多实例）。仅当环境被显式关闭（-Dzeze.test.env=off）或端口被占时才会跳过。
-		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011),
-				"第二对服务(5011/5012)不可用：zeze.test.env=off 时不自动启动，或先运行 test/service & global.another.bat");
+		Assumptions.assumeTrue(TestEnv.portReachable("127.0.0.1", 5011) && TestEnv.portReachable("127.0.0.1", 5012),
+				"第二对服务(5011/5012)不可用：zeze.test.env=off 时 TestEnvLauncherListener 不在进程内自动启动");
 
 		App.Instance.Start();
 		var config2 = Config.load("./zeze_cluster_2.xml");
@@ -63,9 +63,27 @@ public class TestOnz {
 		return 0;
 	}
 
+	// 等待 OnzServer 通过 ServiceManager 订阅发现两侧集群的 Onz 服务并建连，替代盲等 sleep。
+	// Onz 没有暴露独立的就绪状态：getZezeInstance 成功（订阅推送到达且 socket ready）即 perform 所需的就绪，
+	// 连接器缓存与 perform 走同一条路径，无额外副作用。100ms 轮询，60s 兜底。
+	private void waitOnzReady() throws InterruptedException {
+		var deadline = System.currentTimeMillis() + 60_000;
+		for (;;) {
+			try {
+				onzServer.getZezeInstance("zeze1");
+				onzServer.getZezeInstance("zeze2");
+				return;
+			} catch (RuntimeException e) {
+				if (System.currentTimeMillis() > deadline)
+					throw e;
+				Thread.sleep(100);
+			}
+		}
+	}
+
 	@Test
 	public void testOnz() throws Exception {
-		Thread.sleep(2000);
+		waitOnzReady();
 		var txn = new KuafuTransaction(1, 1, 1);
 		txn.setOnzServer(onzServer);
 		Assertions.assertEquals(0, onzServer.perform(txn)); // 这里出现过断言失败，是rollback了，有异常日志，但很奇怪，不知道哪里调了rollback。

@@ -34,6 +34,8 @@ public final class App extends Zeze.AppBase {
 	public LinkedMap.Module LinkedMapModule;
 	public DepartmentTree.Module DepartmentTreeModule;
 
+	private boolean started = false;
+
 	public ProviderWithOnline getProvider() {
 		return Provider;
 	}
@@ -69,6 +71,9 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Start(int serverId, int providerDirectPort) throws Exception {
+		if (started)
+			return;
+		started = true;
 
 		var config = Config.load("server.xml");
 		if (serverId != -1) {
@@ -137,6 +142,12 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Exception {
+		if (!started)
+			return;
+		started = false;
+		if (Zeze == null) // 半启动（Start 在 createZeze 前/中失败）：尚无任何资源可停，直接返回，避免 NPE 掩盖真正的失败原因
+			return;
+
 		TaskSpec.ofProcedure(Zeze.newProcedure(() -> {
 			//logger.info("XYZ Stop cancel={}", coldTimerId);
 			Zeze.getTimer().cancel(coldTimerId);
@@ -317,6 +328,8 @@ public final class App extends Zeze.AppBase {
     public void stopBeforeModules() throws Exception {
         lock();
         try {
+            if (Zeze == null) // 半启动（Start 中途失败/未调用）时跳过，避免 NPE 掩盖真正的失败原因
+                return;
             if (Game_Rank != null)
                 Game_Rank.StopBefore();
             if (Game_Map != null)

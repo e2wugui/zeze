@@ -2,6 +2,7 @@ package UnitTest.Zeze.Util;
 
 import harness.Fast;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import Zeze.Util.ClassReloader;
 import Zeze.Util.InMemoryJavaCompiler;
 import org.junit.jupiter.api.Assertions;
@@ -23,7 +24,7 @@ public class TestClassReloader {
 		var v = (int)m.invoke(null);
 		Assertions.assertEquals(1, v);
 
-		ClassReloader.reloadClass(v2Future.get(), compiler.getClassloader());
+		ClassReloader.reloadClass(v2Future.get(60, TimeUnit.SECONDS), compiler.getClassloader());
 		v = (int)m.invoke(null);
 		Assertions.assertEquals(2, v);
 	}

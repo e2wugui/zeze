@@ -16,9 +16,9 @@ import org.junit.jupiter.api.Assertions;
 
 /**
  * Zezex 系测试的进程内组网脚手架：clients/links/servers 集合与 LoginQueue 的启停、全链路 RPC 助手。
- * 消费方：TestRoleTimer、Benchmark.BenchRoleTimer（提取自两者的重复副本）。
- * TODO: TestGameTimer/TestOnlineSpec 另有分叉副本（websocket 拨段、roleCount、半启动只收集成功者等），
- * 	待本类长出对应钩子后再迁入，暂不强行统一。
+ * 消费方：TestRoleTimer、Benchmark.BenchRoleTimer、TestOnline、TestOnlineSpec。
+ * TODO: 仅剩 TestGameTimer 保留分叉副本，差异为 websocket 拨号（Start2("ws://…/websocket") 口味）、
+ * 	显式指定 link 地址 + 逐客户端顺序 Start（本脚手架走 LoginQueue 并行 Start），待长出对应钩子后再迁入。
  */
 public final class ZezexTestEnv {
 	private static final @NotNull Logger logger = LogManager.getLogger(ZezexTestEnv.class);
@@ -30,6 +30,11 @@ public final class ZezexTestEnv {
 	private LoginQueue loginQueue;
 
 	public void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
+		prepareNewEnvironment(clientCount, linkCount, serverCount, 40);
+	}
+
+	// serverIdBase：server 的 serverId 起点（provider 端口不受影响，仍从 20000 起排），默认 40；TestOnline 等旧组网用 50。
+	public void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int serverIdBase) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -47,9 +52,9 @@ public final class ZezexTestEnv {
 		for (int i = 0; i < linkCount; ++i)
 			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
 		for (int i = 0; i < serverCount; ++i)
-			servers.get(i).Start(i + 40, 20000 + i);
+			servers.get(i).Start(serverIdBase + i, 20000 + i);
 		for (var link : links)
-			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（替代盲等1秒） // 等所有provider注册可见（替代盲等1秒）
+			harness.TestEnv.waitServerRegisteredRange(link.Zeze, serverIdBase, serverCount); // 等所有provider注册可见（替代盲等1秒）
 
 		var clientsSize = new AtomicInteger(clients.size());
 		clients.parallelStream().forEach(c -> {

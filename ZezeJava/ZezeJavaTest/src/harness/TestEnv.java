@@ -59,4 +59,18 @@ public final class TestEnv {
 			}
 		}
 	}
+
+	/**
+	 * 连续区间便捷形式：等待 baseId..baseId+serverCount-1（含两端）全部注册，展开后委托给 varargs 版本。
+	 * 注意不定名为重载：两个 int 的定参方法会静默捕获既有“两个离散 serverId”的 varargs 调用
+	 * （如 ModuleRedirectRank 的 waitServerRegistered(zeze, 30, 31)），语义从“等 30/31”变成“等 30..60”。
+	 */
+	public static void waitServerRegisteredRange(Application app, int baseId, int serverCount) throws InterruptedException {
+		if (serverCount < 1)
+			throw new IllegalArgumentException("serverCount must >= 1: " + serverCount);
+		var ids = new int[serverCount];
+		for (int i = 0; i < serverCount; ++i)
+			ids[i] = baseId + i;
+		waitServerRegistered(app, ids);
+	}
 }

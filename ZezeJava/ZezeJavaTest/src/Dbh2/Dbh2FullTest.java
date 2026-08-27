@@ -1,102 +1,56 @@
 package Dbh2;
 
-import java.io.File;
-import java.util.ArrayList;
-import Zeze.Application;
-import Zeze.Config;
 import Zeze.Dbh2.Database;
-import Zeze.Dbh2.Dbh2AgentManager;
-import Zeze.Dbh2.Dbh2Manager;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Bean;
-import Zeze.Util.Task;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import Zeze.Transaction.Database.AbstractKVTable;
 
 // 测试整体结构(Dbh2Manager,Master,Agent)。只保留功能路径：环境拓扑(raft/bucket多manager)+数据正确性断言。
-// 吞吐负载部分见 Benchmark.BenchDbh2FullTransaction（@Bench，进 bench 车道）。
+// 吞吐负载部分见 Benchmark.BenchDbh2FullTransaction（@Bench，进 bench 车道）。环境拓扑由 Dbh2TestEnv 脚手架提供。
 public class Dbh2FullTest {
-	private static Database newDatabase(Dbh2AgentManager dbh2AgentManager, @SuppressWarnings("SameParameterValue") String dbName) {
-		var databaseConf = new Config.DatabaseConf();
-		databaseConf.setDatabaseType(Config.DbType.Dbh2);
-		databaseConf.setDatabaseUrl("dbh2://127.0.0.1:11000/" + dbName);
-		databaseConf.setName("dbh2");
-		return new Database(null, dbh2AgentManager, databaseConf);
-	}
-
 	@Test
 	public void testFull() throws Exception {
-		System.setProperty("Dbh2MasterDefaultBucketPortId", "18000");
-		Task.tryInitThreadPool();
-		Zeze.Net.Selectors.getInstance().add(7);
-
-		var master = new Zeze.Dbh2.Master.Main("zeze.xml");
-		var managers = new ArrayList<Dbh2Manager>();
-		var serviceManager = Application.createServiceManager(Config.load(), "Dbh2ServiceManager");
-		assert serviceManager != null;
-		serviceManager.start();
-		serviceManager.waitReady();
-
-		var value = ByteBuffer.Wrap(new byte[]{1, 2, 3, 4});
-		Database database = null;
-		Application.renameAndDeleteDirectory(new File("CommitRocks"));
-		var dbh2AgentManager = new Dbh2AgentManager(serviceManager, null, 100);
+		var env = new Dbh2TestEnv();
+		env.prepareNewEnvironment();
 		try {
-			master.start();
-			for (int i = 0; i < 3; ++i)
-				managers.add(new Zeze.Dbh2.Dbh2Manager("manager" + i, "zeze" + i + ".xml"));
-			for (var manager : managers)
-				manager.start();
-			dbh2AgentManager.start();
-
-			database = newDatabase(dbh2AgentManager, "dbh2TestDb");
-			var tables = new ArrayList<AbstractKVTable>();
-			for (int i = 0; i < 4; ++i) {
-				var tableName = "table" + i;
-				tables.add((Database.AbstractKVTable)database.openTable(tableName, Bean.hash32(tableName)));
-			}
-			for (var table : tables)
-				table.waitReady();
-
 			// testFull();
-			var table1 = tables.getFirst();
-			var table2 = tables.get(1);
+			var table1 = env.tables.getFirst();
+			var table2 = env.tables.get(1);
 
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var key1 = ByteBuffer.Wrap(new byte[]{1});
 
-			try (var trans = database.beginTransaction()) {
-				table1.replace(trans, key, value);
-				table1.replace(trans, key1, value);
-				table2.replace(trans, key, value);
-				table2.replace(trans, key1, value);
+			try (var trans = env.database.beginTransaction()) {
+				table1.replace(trans, key, env.value);
+				table1.replace(trans, key1, env.value);
+				table2.replace(trans, key, env.value);
+				table2.replace(trans, key1, env.value);
 				trans.commit();
 			}
 			{
 				var valueFindKey = table1.find(key);
 				Assertions.assertNotNull(valueFindKey);
-				Assertions.assertEquals(valueFindKey, value);
+				Assertions.assertEquals(valueFindKey, env.value);
 
 				var valueFindKey1 = table1.find(key1);
 				Assertions.assertNotNull(valueFindKey1);
-				Assertions.assertEquals(valueFindKey1, value);
+				Assertions.assertEquals(valueFindKey1, env.value);
 			}
 			{
 				var valueFindKey = table2.find(key);
 				Assertions.assertNotNull(valueFindKey);
-				Assertions.assertEquals(valueFindKey, value);
+				Assertions.assertEquals(valueFindKey, env.value);
 
 				var valueFindKey1 = table2.find(key1);
 				Assertions.assertNotNull(valueFindKey1);
-				Assertions.assertEquals(valueFindKey1, value);
+				Assertions.assertEquals(valueFindKey1, env.value);
 			}
 
 			// testCommitServerQueryVerify()
-			try (var _trans = database.beginTransaction()) {
+			try (var _trans = env.database.beginTransaction()) {
 				var trans = (Database.Dbh2Transaction)_trans;
-				table1.replace(trans, key, value);
-				table1.replace(trans, key1, value);
+				table1.replace(trans, key, env.value);
+				table1.replace(trans, key1, env.value);
 				trans.commitBreakAfterPrepareForDebugOnly();
 			}
 			// <CustomizeConf Name="Dbh2Config" RpcTimeout="1000" PrepareMaxTime="2000" BucketMaxTime="3000"/>
@@ -105,12 +59,7 @@ public class Dbh2FullTest {
 			// 需要时，去掉这个注释，然后在测试log中查找" query"以及"timeout undo"。验证回查。
 			// Thread.sleep(110_000);
 		} finally {
-			master.stop();
-			for (var manager : managers)
-				manager.stop();
-			if (database != null)
-				database.close();
-			dbh2AgentManager.stop();
+			env.stopAll();
 		}
 	}
 }

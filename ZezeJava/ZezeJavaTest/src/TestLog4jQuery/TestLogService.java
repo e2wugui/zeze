@@ -21,7 +21,16 @@ public class TestLogService {
 			logService.start();
 			logAgent.start();
 
-			Thread.sleep(1000); // 等待ServiceManager订阅成功。
+			// 等待 ServiceManager 订阅推送到达：LogService 注册后 logAgent 的 client 才会出现 connector，
+			// 否则下面 getLogServers() 为空、循环静默跳过。LogAgent 不是 Application，且注册 identity 不是纯
+			// serverId（LogServiceConf.formatServiceIdentity 拼了 ip_port），不能复用 TestEnv.waitServerRegistered，
+			// 按同样的 100ms 间隔、60s 兜底轮询。
+			var deadline = System.currentTimeMillis() + 60_000;
+			while (logAgent.getLogServers().isEmpty()) {
+				if (System.currentTimeMillis() > deadline)
+					throw new IllegalStateException("等待 Zeze.LogService 注册推送超时(60s)");
+				Thread.sleep(100);
+			}
 
 			System.out.println("----------------------------");
 

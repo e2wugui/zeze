@@ -1,5 +1,6 @@
 package Zezex;
 
+import java.util.concurrent.TimeUnit;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -59,8 +60,6 @@ public class TestRoleTimer {
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
-			var link0 = env.links.get(0);
-			var link1 = env.links.get(1);
 			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
@@ -77,7 +76,7 @@ public class TestRoleTimer {
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1), NullCustomDataHandle.class, null);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			timerFuture.get();
+			timerFuture.get(30, TimeUnit.SECONDS);
 			System.out.println("NullCustomDataHandle Done!");
 			TestBean bean = new TestBean();
 			bean.resetFuture(5);
@@ -86,7 +85,7 @@ public class TestRoleTimer {
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1).period(1).times(5), TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			bean.getFuture().await();
+			bean.getFuture().get(30, TimeUnit.SECONDS);
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
@@ -112,7 +111,7 @@ public class TestRoleTimer {
 					TimerSpec.ofDelay(1).period(1).times(5), TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			namedBean.getFuture().await();
+			namedBean.getFuture().get(30, TimeUnit.SECONDS);
 			Assertions.assertEquals(0, newNamedBean1.getTestValue());
 
 			// 在执行完后注册同名NamedTimer，应该成功
@@ -124,11 +123,10 @@ public class TestRoleTimer {
 					TimerSpec.ofDelay(1).period(1).times(5), TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			newNamedBean2.getFuture().await();
+			newNamedBean2.getFuture().get(30, TimeUnit.SECONDS);
 			log("测试三通过");
 
 			ZezexTestEnv.logout(client1, roleId);
-			sleep(200, 5);
 		} finally {
 			env.stopAll();
 		}
@@ -144,8 +142,6 @@ public class TestRoleTimer {
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
-			var link0 = env.links.get(0);
-			var link1 = env.links.get(1);
 			var server0 = env.servers.getFirst();
 			var timer0 = server0.getZeze().getTimer();
 
@@ -167,13 +163,12 @@ public class TestRoleTimer {
 					TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
-			bean.getFuture().await();
+			bean.getFuture().get(30, TimeUnit.SECONDS);
 			log("测试一通过");
 
 			log("在客户端1登录role0，踢掉客户端0的登录");
 			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			ZezexTestEnv.login(client1, roleId);
-			sleep(1000, 1);
 			Assertions.assertTrue(bean.getTestValue() > 0); // 确保客户端0的timer被踢掉了
 			log("测试二通过");
 
@@ -196,7 +191,7 @@ public class TestRoleTimer {
 					TestOnlineTimerHandle.class, newNamedBean1);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			namedBean.getFuture().await();
+			namedBean.getFuture().get(30, TimeUnit.SECONDS);
 
 			// 在执行完后注册同名NamedTimer，应该成功
 			TestBean newNamedBean2 = new TestBean();
@@ -208,11 +203,10 @@ public class TestRoleTimer {
 					TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			newNamedBean2.getFuture().await();
+			newNamedBean2.getFuture().get(30, TimeUnit.SECONDS);
 			log("测试三通过");
 
 			ZezexTestEnv.logout(client1, roleId);
-			sleep(100, 2);
 		} finally {
 			env.stopAll();
 		}
@@ -237,15 +231,10 @@ public class TestRoleTimer {
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
-			var link0 = env.links.get(0);
-			var link1 = env.links.get(1);
 			var server0 = env.servers.get(0);
-			var server1 = env.servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
-			var timer1 = server1.getZeze().getTimer();
 
 			var timerRole0 = timer0.getRoleTimer();
-			var timerRole1 = timer1.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
@@ -253,8 +242,6 @@ public class TestRoleTimer {
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role1");
 			ZezexTestEnv.login(client0, roleId);
-
-			sleep(200, 1);
 
 			// 角色下线时注册定时器
 			ZezexTestEnv.logout(client0, roleId);
@@ -267,17 +254,14 @@ public class TestRoleTimer {
 					TestOfflineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "test1").call());
-			bean.getFuture().await();
+			bean.getFuture().get(30, TimeUnit.SECONDS);
 
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
 			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			ZezexTestEnv.login(client1, roleId);
 
-			sleep(200, 1);
-
 			ZezexTestEnv.logout(client1, roleId);
-			sleep(200, 1);
 		} finally {
 			env.stopAll();
 		}
@@ -295,15 +279,10 @@ public class TestRoleTimer {
 
 			var client0 = env.clients.get(0);
 			var client1 = env.clients.get(1);
-			var link0 = env.links.get(0);
-			var link1 = env.links.get(1);
 			var server0 = env.servers.get(0);
-			var server1 = env.servers.get(1);
 			var timer0 = server0.getZeze().getTimer();
-			var timer1 = server1.getZeze().getTimer();
 
 			var timerRole0 = timer0.getRoleTimer();
-			var timerRole1 = timer1.getRoleTimer();
 
 			// 注册登录客户端0
 			log("注册登录客户端0");
@@ -311,8 +290,6 @@ public class TestRoleTimer {
 			var role = ZezexTestEnv.getRole(client0);
 			var roleId = role != null ? role.getId() : ZezexTestEnv.createRole(client0, "new_role1");
 			ZezexTestEnv.login(client0, roleId);
-
-			sleep(100, 1);
 
 			// 角色下线时注册定时器
 			ZezexTestEnv.logout(client0, roleId);
@@ -326,35 +303,15 @@ public class TestRoleTimer {
 				return Procedure.Success;
 			}, "test1").call());
 
-			bean.getFuture().await();
+			bean.getFuture().get(30, TimeUnit.SECONDS);
 			// 注册登录客户端1，踢掉客户端0的登录
 			log("注册登录客户端1");
 			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
 			ZezexTestEnv.login(client1, roleId);
 
-			sleep(100, 1);
 			ZezexTestEnv.logout(client1, roleId);
-			sleep(100, 1);
 		} finally {
 			env.stopAll();
-		}
-	}
-
-	private static void relogin(ClientGame.App app, long roleId) {
-		var relogin = new Zeze.Builtin.Game.Online.ReLogin();
-		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket(), 30_000).await();
-		Assertions.assertEquals(0, relogin.getResultCode());
-	}
-
-	private static void sleep(long gap, int times) {
-		try {
-			for (int i = 0; i < times; ++i) {
-				Thread.sleep(gap);
-				System.out.println("-- sleep " + i);
-			}
-		} catch (InterruptedException e) {
-			logger.error("", e);
 		}
 	}
 

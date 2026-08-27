@@ -1,27 +1,18 @@
 package Zezex;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ClientGame.Equip.SEquipement;
 import ClientGame.Fight.AreYouFight;
-import ClientGame.Login.BRole;
-import ClientGame.Login.CreateRole;
-import ClientGame.Login.GetRoleList;
-import Zeze.Builtin.Game.Online.Login;
-import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.SReliableNotify;
-import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Game.OnlineSpec;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
-import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * OnlineSpec 的回归测试。
- * harness 参考 TestOnline/TestRoleTimer：loginQueue + linkd + server + client 全进程内组网。
+ * harness 用 ZezexTestEnv 脚手架：loginQueue + linkd + server + client 全进程内组网。
  *
  * 关于 §8-6（P0 回归，ofAllOnline 多 OnlineSet）：本 harness 只有默认单 OnlineSet，
  * 无法覆盖多 set 场景；这里断言单 set 下每个目标恰好收到一次。
@@ -43,78 +34,13 @@ import org.junit.jupiter.api.Test;
 public class TestOnlineSpec {
 	private static final @NotNull Logger logger = LogManager.getLogger(TestOnlineSpec.class);
 
-	final ArrayList<ClientGame.App> clients = new ArrayList<>();
-	final ArrayList<Zezex.App> links = new ArrayList<>();
-	final ArrayList<Game.App> servers = new ArrayList<>();
-	LoginQueue loginQueue;
+	final ZezexTestEnv env = new ZezexTestEnv();
 
 	// 客户端接收计数：SEquipement 是普通协议计数器，SReliableNotify 是可靠通知计数器。
 	private final AtomicInteger sEquipCount0 = new AtomicInteger();
 	private final AtomicInteger sEquipCount1 = new AtomicInteger();
 	private final AtomicInteger sReliableCount0 = new AtomicInteger();
 	private final AtomicInteger sReliableCount1 = new AtomicInteger();
-
-	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
-		loginQueue = new LoginQueue();
-		loginQueue.start();
-
-		for (int i = 0; i < clientCount; ++i)
-			clients.add(new ClientGame.App());
-		for (int i = 0; i < linkCount; ++i)
-			links.add(new Zezex.App());
-		for (int i = 0; i < linkCount; ++i)
-			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
-		// server 创建后立即启动，只收集启动成功的：半启动的 Game.App 在 stopAll 里 stopBeforeModules/Stop 会 NPE，掩盖真正的失败原因
-		for (int i = 0; i < serverCount; ++i) {
-			var server = new Game.App();
-			server.Start(i + 40, 20000 + i);
-			servers.add(server);
-		}
-		for (var link : links)
-			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（替代盲等1秒）
-		var clientsSize = new AtomicInteger(clients.size());
-		clients.parallelStream().forEach(c -> {
-			try {
-				c.Start("", 0); // 启用了LoginQueue以后，link参数不再使用。
-				clientsSize.decrementAndGet();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		});
-		while (clientsSize.get() != 0)
-			Thread.onSpinWait();
-	}
-
-	private void stopAll() throws Exception {
-		try {
-			for (var client : clients)
-				client.Stop();
-			for (var server : servers) {
-				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
-					server.stopBeforeModules();
-			}
-			for (var server : servers) {
-				if (server.Zeze != null)
-					server.Stop();
-			}
-			for (var link : links) {
-				try {
-					link.Stop();
-				} catch (Exception e) {
-					logger.error("stop link failed", e);
-				}
-			}
-		} finally {
-			// 无论如何都要释放 5020/5021 端口，否则会毒化后续使用 LoginQueue 的测试
-			if (loginQueue != null) {
-				loginQueue.stop();
-				loginQueue = null;
-			}
-			clients.clear();
-			links.clear();
-			servers.clear();
-		}
-	}
 
 	/** 把客户端已注册的协议 handle 替换为计数 handle（AddFactoryHandle 重复注册会抛异常，只能替换）。 */
 	@SuppressWarnings("unchecked")
@@ -137,20 +63,20 @@ public class TestOnlineSpec {
 	public void testOnlineSpec() throws Exception {
 		Task.tryInitThreadPool();
 		try {
-			prepareNewEnvironment(2, 1, 1);
-			var client0 = clients.get(0);
-			var client1 = clients.get(1);
-			var server0 = servers.getFirst();
+			env.prepareNewEnvironment(2, 1, 1);
+			var client0 = env.clients.get(0);
+			var client1 = env.clients.get(1);
+			var server0 = env.servers.getFirst();
 
-			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
-			var role0 = getRole(client0);
-			var roleId0 = null != role0 ? role0.getId() : createRole(client0, "role0");
-			login(client0, roleId0);
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			var role0 = ZezexTestEnv.getRole(client0);
+			var roleId0 = null != role0 ? role0.getId() : ZezexTestEnv.createRole(client0, "role0");
+			ZezexTestEnv.login(client0, roleId0);
 
-			auth(client1.onLinkConnectedFuture.get(), client1, "account1");
-			var role1 = getRole(client1);
-			var roleId1 = null != role1 ? role1.getId() : createRole(client1, "role1");
-			login(client1, roleId1);
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account1");
+			var role1 = ZezexTestEnv.getRole(client1);
+			var roleId1 = null != role1 ? role1.getId() : ZezexTestEnv.createRole(client1, "role1");
+			ZezexTestEnv.login(client1, roleId1);
 
 			var online = server0.Provider.getOnline();
 			// 登录流程结束后再替换 handle，避免登录期间的推送干扰计数基准。
@@ -291,51 +217,13 @@ public class TestOnlineSpec {
 			// p1 按调用时刻选项执行由接收计数间接断言；同时走查确认 OnlineSpec.send0 等
 			// 延迟闭包仅捕获局部变量（tg/tr/o），从不捕获 spec 实例。
 
-			logout(client0, roleId0);
-			logout(client1, roleId1);
+			ZezexTestEnv.logout(client0, roleId0);
+			ZezexTestEnv.logout(client1, roleId1);
 		} catch (Throwable e) { // rethrow
 			logger.error("", e);
 			throw e;
 		} finally {
-			stopAll();
+			env.stopAll();
 		}
-	}
-
-	private static void login(ClientGame.App app, long roleId) {
-		var login = new Login();
-		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, login.getResultCode());
-	}
-
-	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
-		var logout = new Logout();
-		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, logout.getResultCode());
-	}
-
-	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
-		var auth = new Auth();
-		auth.Argument.setAccount(account);
-		auth.Argument.setLoginQueueToken(token.getToken());
-		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, auth.getResultCode());
-	}
-
-	private static long createRole(ClientGame.App app, String role) {
-		var createRole = new CreateRole();
-		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, createRole.getResultCode());
-		return createRole.Result.getId();
-	}
-
-	private static BRole getRole(ClientGame.App app) {
-		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, get.getResultCode());
-		if (get.Result.getRoleList().isEmpty())
-			return null;
-		return get.Result.getRoleList().get(0);
 	}
 }

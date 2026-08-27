@@ -1,21 +1,14 @@
 package Zezex;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.WebSocket;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.concurrent.CompletionStage;
 import ClientGame.Login.BRole;
 import ClientGame.Login.CreateRole;
 import ClientGame.Login.GetRoleList;
-import ClientZezex.Linkd.Cs;
 import UnitTest.Zeze.Component.TestBean;
 import Zeze.Builtin.LoginQueue.BLoginToken;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
 import Zeze.Component.TimerSpec;
-import Zeze.Net.Protocol;
 import Zeze.Services.LoginQueue;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
@@ -38,7 +31,7 @@ public class TestGameTimer {
 	LoginQueue loginQueue;
 
 	@SuppressWarnings({"SameParameterValue", "unused"})
-	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
+	private void prepareNewEnvironment(int clientCount, int linkCount, int serverCount) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -60,7 +53,7 @@ public class TestGameTimer {
 			//servers.get(i - 40).getZeze().getTimer().start();
 		}
 		for (var link : links)
-			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（100ms就绪轮询）
+			harness.TestEnv.waitServerRegisteredRange(link.Zeze, 40, serverCount); // 等所有provider注册可见（100ms就绪轮询）
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
@@ -71,40 +64,10 @@ public class TestGameTimer {
 		req.Argument.setAccount("Request");
 		req.Send(clients.get(0).ClientService.GetSocket());
 		*/
-		HttpClient.newHttpClient().newWebSocketBuilder().buildAsync(
-				URI.create("ws://127.0.0.1:" + 22000 + "/websocket"), new WebSocket.Listener() {
-					@Override
-					public void onOpen(WebSocket webSocket) {
-						webSocket.request(1);
-						var cs = new Cs();
-						cs.Argument.setAccount("RequestWeb");
-						var bb = cs.encode();
-						var buf = ByteBuffer.wrap(bb.Bytes, bb.ReadIndex, bb.size());
-						webSocket.sendBinary(buf, true);
-						logger.info("Cs Web {}", cs.Argument);
-					}
-
-					final Zeze.Serialize.ByteBuffer input = Zeze.Serialize.ByteBuffer.Allocate();
-
-					@Override
-					public CompletionStage<?> onBinary(WebSocket webSocket, ByteBuffer data, boolean last) {
-						webSocket.request(1);
-						var n = data.remaining();
-						input.EnsureWrite(n);
-						data.get(input.Bytes, input.WriteIndex, n);
-						input.WriteIndex += n;
-						if (last) {
-							var sc = Protocol.decode(clients.getFirst().ClientService, input);
-							logger.info("Sc Web {}", sc != null ? sc.Argument : null);
-							input.Compact();
-						}
-						return null;
-					}
-				});
 	}
 
 	@SuppressWarnings({"unused", "SameParameterValue"})
-	private void prepareNewEnvironment2(int clientCount, int linkCount, int serverCount, int roleCount) throws Exception {
+	private void prepareNewEnvironment2(int clientCount, int linkCount, int serverCount) throws Exception {
 		clients.clear();
 		links.clear();
 		servers.clear();
@@ -126,7 +89,7 @@ public class TestGameTimer {
 			//servers.get(i - 40).getZeze().getTimer().start();
 		}
 		for (var link : links)
-			harness.TestEnv.waitServerRegistered(link.Zeze, 40, 39 + serverCount); // 等所有provider注册可见（100ms就绪轮询）
+			harness.TestEnv.waitServerRegisteredRange(link.Zeze, 40, serverCount); // 等所有provider注册可见（100ms就绪轮询）
 		for (int i = 0; i < clientCount; ++i) {
 			var link = links.get(i % linkCount);
 			var ipPort = link.LinkdService.getOnePassiveAddress();
@@ -191,7 +154,7 @@ public class TestGameTimer {
 
 		try {
 			log("Role Online Timer 初始化测试环境");
-			prepareNewEnvironment(2, 2, 1, 2);
+			prepareNewEnvironment(2, 2, 1);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);
@@ -216,7 +179,7 @@ public class TestGameTimer {
 			Assertions.assertEquals(Procedure.Success, server0.Zeze.newProcedure(() -> {
 				//timerRole0.scheduleOnline(roleId, 1, 1, 5, System.currentTimeMillis() + 2000, TestOnlineTimerHandle.class, bean);
 				timerRole0.scheduleOnline(roleId, TimerSpec.ofDelay(1).period(1).times(5).endTime(System.currentTimeMillis() + 2000),
-					TestRoleTimer.TestOnlineTimerHandle.class, bean);
+					TestOnlineTimerHandle.class, bean);
 				return Procedure.Success;
 			}, "testOnlineWithBean").call());
 			sleep(100, 6);
@@ -261,7 +224,9 @@ public class TestGameTimer {
 					TestOnlineTimerHandle.class, newNamedBean2);
 				return res ? Procedure.Success : Procedure.Exception;
 			}, "testOnlineWithBean").call());
-			sleep(100, 11);
+			// 100ms 周期 ×10 次理论约 1 秒，盲等 1.1 秒余量太薄易抖：改为有界轮询（50ms 间隔，最多 3 秒），timer 真卡住仍会失败
+			for (int i = 0; i < 60 && newNamedBean2.getTestValue() < 10; ++i)
+				Thread.sleep(50);
 			Assertions.assertTrue(newNamedBean2.getTestValue() >= 10);
 			log("测试三通过");
 		} catch (Throwable e) {
@@ -290,7 +255,7 @@ public class TestGameTimer {
 			log("Role Offline Timer 测试启动");
 
 			// 初始化环境
-			prepareNewEnvironment2(2, 2, 2, 2);
+			prepareNewEnvironment2(2, 2, 2);
 
 			var client0 = clients.get(0);
 			var client1 = clients.get(1);

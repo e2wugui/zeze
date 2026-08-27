@@ -112,7 +112,7 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assertions.assertSame(times, testBean1.getTestValue());
+		Assertions.assertEquals(times, testBean1.getTestValue());
 		System.out.println("========== Test2 Passed ==========");
 
 		// Test canceling schedule
@@ -131,7 +131,12 @@ public class TestTimer {
 			System.out.println(">> sleep " + i);
 		}
 
-		Assertions.assertTrue(testBean2.getTestValue() <= times);
+		// 验证取消语义：i==5 loseConnection 后，TestTimerHandle3 下次触发即 cancel。
+		// 先确认已触发过（排除定时器根本没跑导致空转通过），再等 4 个周期确认计数不再增长（未取消则每 50ms 还会 +1）。
+		var canceledValue = testBean2.getTestValue();
+		Assertions.assertTrue(canceledValue > 0);
+		Thread.sleep(periodMs * 4L);
+		Assertions.assertEquals(canceledValue, testBean2.getTestValue());
 		System.out.println("========== Test3 Passed ==========");
 	}
 }

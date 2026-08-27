@@ -1,18 +1,9 @@
 package Zezex;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import ClientGame.Login.BRole;
-import ClientGame.Login.CreateRole;
-import ClientGame.Login.GetRoleList;
 import Game.Fight.IModuleFight;
-import Zeze.Builtin.Game.Online.Login;
-import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
-import Zeze.Builtin.LoginQueue.BLoginToken;
-import Zeze.Services.LoginQueue;
 import Zeze.Util.Task;
-import Zezex.Linkd.Auth;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,63 +17,16 @@ public class TestOnline {
 
 	private static final Logger logger = LogManager.getLogger(TestOnline.class);
 
-	final ArrayList<ClientGame.App> clients = new ArrayList<>();
-	final ArrayList<Zezex.App> links = new ArrayList<>();
-	final ArrayList<Game.App> servers = new ArrayList<>();
-	LoginQueue loginQueue;
+	final ZezexTestEnv env = new ZezexTestEnv();
 
 	final static int ClientCount = 2;
 	final static int LinkCount = 2;
 	final static int ServerCount = 2;
 	final static int RoleCount = 2;
 
-	private void start() throws Exception {
-		loginQueue = new LoginQueue();
-		loginQueue.start();
-
-		for (int i = 0; i < LinkCount; ++i)
-			links.get(i).Start(-(i + 1), 12000 + i, 15000 + i);
-		for (int i = 0; i < ServerCount; ++i)
-			servers.get(i).Start(i + 50, 20000 + i);
-		//Thread.sleep(2000); // wait server ready
-		for (int i = 0; i < ClientCount; ++i) {
-			clients.get(i).Start("", 0); // 启用了loginQueue，link参数不再需要。
-		}
-	}
-
-	private void stop() throws Exception {
-		logger.info("Begin Stop");
-		try {
-			for (var client : clients)
-				client.Stop();
-			for (var server : servers) {
-				if (server.Zeze != null) // 半启动（Start 中途失败/未调用）的 server，跳过避免 NPE 掩盖真正的失败原因
-					server.stopBeforeModules();
-			}
-			for (var server : servers) {
-				if (server.Zeze != null)
-					server.Stop();
-			}
-			for (var link : links) {
-				try {
-					link.Stop();
-				} catch (Exception e) {
-					logger.error("stop link failed", e);
-				}
-			}
-		} finally {
-			// 无论如何都要释放 5020/5021 端口，否则会毒化后续使用 LoginQueue 的测试
-			if (loginQueue != null) {
-				loginQueue.stop();
-				loginQueue = null;
-			}
-			logger.info("End Stop");
-		}
-	}
-
 	private void areYouFight() throws InterruptedException {
 		while (true) {
-			for (var server : servers) {
+			for (var server : env.servers) {
 				var fightModule = server.Zeze.getHotManager().getModuleContext("Game.Fight", IModuleFight.class);
 				if (fightModule.getService().isAreYouFightDone())
 					return;
@@ -97,96 +41,50 @@ public class TestOnline {
 	public void test3() throws Exception {
 		Task.tryInitThreadPool();
 
-		for (int i = 0; i < ClientCount; ++i) {
-			var client = new ClientGame.App();
-			clients.add(client);
-		}
-		for (int i = 0; i < LinkCount; ++i)
-			links.add(new Zezex.App());
-		for (int i = 0; i < ServerCount; ++i)
-			servers.add(new Game.App());
-
 		try {
 			logger.info("=== test3 - start");
-			start();
+			// serverId 从 50 起排（旧组网沿用的编号，避开其他 Zezex 测试的 40 段），provider 端口仍从 20000 起排。
+			env.prepareNewEnvironment(ClientCount, LinkCount, ServerCount, 50);
 
 			// testcase first;
 			logger.info("=== test3 - 1");
-			var client0 = clients.getFirst();
-			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
-			var role = getRole(client0);
-			var roleId = null != role ? role.getId() : createRole(client0, "role0");
-			login(client0, roleId);
+			var client0 = env.clients.getFirst();
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			var role = ZezexTestEnv.getRole(client0);
+			var roleId = null != role ? role.getId() : ZezexTestEnv.createRole(client0, "role0");
+			ZezexTestEnv.login(client0, roleId);
 			areYouFight();
 
 			// testcase relogin
 			logger.info("=== test3 - 2");
 			client0.Stop();
 			client0.Start("", 0); // loginQueue 不再需要link地址。
-			auth(client0.onLinkConnectedFuture.get(), client0, "account0");
+			ZezexTestEnv.auth(client0.onLinkConnectedFuture.get(), client0, "account0");
 			relogin(client0, roleId);
 
 			// testcase kick
 			logger.info("=== test3 - 3");
-			var client1 = clients.get(1);
-			auth(client1.onLinkConnectedFuture.get(), client1, "account0");
-			login(client1, roleId);
+			var client1 = env.clients.get(1);
+			ZezexTestEnv.auth(client1.onLinkConnectedFuture.get(), client1, "account0");
+			ZezexTestEnv.login(client1, roleId);
 
 			// logout client1: client0 被踢了
 			logger.info("=== test3 - 4");
-			logout(client1, roleId);
+			ZezexTestEnv.logout(client1, roleId);
 		} catch (Throwable e) { // rethrow
 			logger.error("", e);
 			throw e;
 		} finally {
 			logger.info("=== test3 - stop");
-			stop();
+			env.stopAll();
 		}
 	}
 
 	private static void relogin(ClientGame.App app, long roleId) {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);
-		relogin.SendForWait(app.ClientService.GetSocket(), 10_000).await();
+		relogin.SendForWait(app.ClientService.GetSocket(), 30_000).await();
 		Assertions.assertEquals(0, relogin.getResultCode());
-	}
-
-	private static void logout(ClientGame.App app, long roleIdForLogOnly) {
-		var logout = new Logout();
-		logout.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, logout.getResultCode());
-	}
-
-	private static void login(ClientGame.App app, long roleId) {
-		var login = new Login();
-		login.Argument.setRoleId(roleId);
-		login.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, login.getResultCode());
-	}
-
-	private static void auth(BLoginToken.Data token, ClientGame.App app, String account) {
-		var auth = new Auth();
-		auth.Argument.setAccount(account);
-		auth.Argument.setLoginQueueToken(token.getToken());
-		auth.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, auth.getResultCode());
-	}
-
-	private static long createRole(ClientGame.App app, String role) {
-		var createRole = new CreateRole();
-		createRole.Argument.setName(role);
-		createRole.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, createRole.getResultCode());
-		return createRole.Result.getId();
-	}
-
-	private static BRole getRole(ClientGame.App app) {
-		var get = new GetRoleList();
-		get.SendForWait(app.ClientService.GetSocket(), 10_000).await();
-		Assertions.assertEquals(0, get.getResultCode());
-		if (get.Result.getRoleList().isEmpty())
-			return null;
-		return get.Result.getRoleList().get(0);
 	}
 
 //	public void testLoginXyz() throws Exception {

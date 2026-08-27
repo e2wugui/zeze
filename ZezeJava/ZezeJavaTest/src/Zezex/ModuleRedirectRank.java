@@ -23,13 +23,13 @@ public class ModuleRedirectRank {
 		try {
 			app1.Start(new String[]{"-ServerId", "30"});
 		} catch (Throwable e) {
-			// resource close.
+			// resource close（best-effort）：Stop 的异常只打印不抛，保证抛出的 RuntimeException 包的是原始启动异常 e，
+			// 否则 Stop 失败（如半启动时的 NPE）会掩盖真正的启动失败原因。
 			try {
 				app1.Stop();
 			} catch (Exception ex) {
 				//noinspection CallToPrintStackTrace
-				e.printStackTrace();
-				throw new RuntimeException(ex);
+				ex.printStackTrace();
 			}
 			throw new RuntimeException(e);
 		}
@@ -42,13 +42,13 @@ public class ModuleRedirectRank {
 			harness.TestEnv.waitServerRegistered(app1.Zeze, 30, 31);
 			harness.TestEnv.waitServerRegistered(app2.Zeze, 30, 31);
 		} catch (Throwable e) {
-			// resource close.
+			// resource close（best-effort）：Stop 的异常只打印不抛，保证抛出的 RuntimeException 包的是原始启动异常 e，
+			// 否则 Stop 失败（如半启动时的 NPE）会掩盖真正的启动失败原因。
 			try {
 				app2.Stop();
 			} catch (Exception ex) {
 				//noinspection CallToPrintStackTrace
-				e.printStackTrace();
-				throw new RuntimeException(ex);
+				ex.printStackTrace();
 			}
 			throw new RuntimeException(e);
 		}

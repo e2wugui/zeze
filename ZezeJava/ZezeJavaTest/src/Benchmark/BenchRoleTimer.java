@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Component.TimerContext;
 import Zeze.Component.TimerHandle;
@@ -147,7 +148,7 @@ public class BenchRoleTimer {
 					}, "scheduleOnlineN")).run();
 				}
 				if (!loginRoleIds.isEmpty())
-					batchFuture.await();
+					batchFuture.get(120, TimeUnit.SECONDS); // 250客户端登录+2500个定时器风暴，超时兜底要宽松
 				log("batch future done.");
 
 				// 这里应该对成功login才logout，或者忽略logout结果，目前把这个错误暴露出来不忽略。

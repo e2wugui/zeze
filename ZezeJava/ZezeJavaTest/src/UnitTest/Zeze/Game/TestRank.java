@@ -11,6 +11,7 @@ import Zeze.Builtin.Game.Rank.BValueLong;
 import Zeze.Game.Rank;
 import Zeze.Transaction.Procedure;
 import demo.SimpleApp;
+import harness.TestEnv;
 
 public class TestRank {
 	private static final int CONC_LEVEL = 100;
@@ -37,10 +38,11 @@ public class TestRank {
 			for (int i = 0; i < APP_COUNT; i++)
 				(apps[i] = new SimpleApp(SERVER_ID_BEGIN + i)).start();
 
-			System.out.println("Begin Thread.sleep");
-			Thread.sleep(2000); // wait connected
+			// 等待每个 app 的 ServiceManager 订阅推送看到全部 server 注册（Rank 按 serverId 重定向到其他 app），替代盲等 2s
+			for (var app : apps)
+				TestEnv.waitServerRegisteredRange(app.getZeze(), SERVER_ID_BEGIN, APP_COUNT);
 			for (int i = 0; i < APP_COUNT; i++) {
-				System.out.format("End Thread.sleep app%d:%n", SERVER_ID_BEGIN + i);
+				System.out.format("waitServerRegistered app%d done:%n", SERVER_ID_BEGIN + i);
 				apps[i].getZeze().getServiceManager().getSubscribeStates().forEach((name, state) -> {
 					System.out.format("  '%s':%n", name);
 					state.getLocalStates().forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
