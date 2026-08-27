@@ -29,6 +29,8 @@ public abstract class LoadBase {
 
 	public void setLoginQueueAgent(LoginQueueAgent loginQueueAgent) {
 		this.loginQueueAgent = loginQueueAgent;
+		if (null != loginQueueAgent)
+			loginQueueAgent.setOnConnected(this::reportNow);
 	}
 
 	public LoginQueueAgent getLoginQueueAgent() {
@@ -70,7 +72,16 @@ public abstract class LoadBase {
 
 	public abstract int getServicePort();
 
-	private void onTimerTask() {
+	/** 立即上报一次负载。agent连上LoginQueue时回调（否则首次上报要等reportDelaySeconds的定期上报，默认2秒+分配tick）；也用于reconnect后重新宣告。 */
+	public final synchronized void reportNow() {
+		int online = getOnlineLocalCount();
+		long loginTimes = getOnlineLoginTimes();
+		int onlineNew = (int)(loginTimes - lastLoginTime);
+		lastLoginTime = loginTimes;
+		report(overload.getOverload(), online, onlineNew);
+	}
+
+	private synchronized void onTimerTask() {
 		var overload = this.overload.getOverload();
 		int online = getOnlineLocalCount();
 		long loginTimes = getOnlineLoginTimes();

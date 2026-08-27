@@ -23,6 +23,7 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 	private final int serverId;
 	private final String serviceIp;
 	private final int servicePort;
+	private volatile Runnable onConnected;
 
 	public LoginQueueAgent(Config config, int serverId, String serviceIp, int servicePort) {
 		this.serverId = serverId;
@@ -45,9 +46,17 @@ public class LoginQueueAgent extends AbstractLoginQueueAgent {
 		return secret;
 	}
 
+	/** 连接建立（收到AnnounceSecret）后回调；LoadBase用它立即上报一次负载，消除冷启动后LoginQueue看不到本服务的窗口。 */
+	public void setOnConnected(Runnable onConnected) {
+		this.onConnected = onConnected;
+	}
+
 	@Override
 	protected long ProcessAnnounceSecret(AnnounceSecret r) {
 		secret = r.Argument;
+		var cb = onConnected;
+		if (null != cb)
+			cb.run();
 		return 0;
 	}
 

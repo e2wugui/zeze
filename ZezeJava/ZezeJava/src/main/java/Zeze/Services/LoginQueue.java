@@ -89,19 +89,7 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	private void allocateTimer() throws Exception {
-		// 每个server分配OnlineNew，随机一半以上的分配量。
-		var max = server.providerSize() * maxOnlineNew;
-		var half = max / 2;
-		if (half > 0)
-			max = half + Zeze.Util.Random.getInstance().nextInt(half);
-		var allocate = 0;
-		for (var e : queue) {
-			if (++allocate > max)
-				break;
-			if (!tryAllocateServer(e))
-				break; // 分配失败
-			queue.poll();
-		}
+		drainQueue();
 
 		// 比分配更长的间隔。每N次timer触发广播一次。
 		if (++broadcastCount >= 3) {
@@ -115,6 +103,27 @@ public class LoginQueue extends AbstractLoginQueue {
 				p.Argument.setQueuePosition(i);
 				p.Send(e);
 			}
+		}
+	}
+
+	/**
+	 * 给排队连接分配server。timer周期调用；LoginQueueServer收到provider/link上报时也立即调用，
+	 * 让刚变得可分配的排队连接不用等下一个1秒tick。
+	 * synchronized：两个调用方在不同线程，串行化避免同一排队连接被并发分配（putLoginToken+closeGracefully）两次。
+	 */
+	synchronized void drainQueue() throws Exception {
+		// 每个server分配OnlineNew，随机一半以上的分配量。
+		var max = server.providerSize() * maxOnlineNew;
+		var half = max / 2;
+		if (half > 0)
+			max = half + Zeze.Util.Random.getInstance().nextInt(half);
+		var allocate = 0;
+		for (var e : queue) {
+			if (++allocate > max)
+				break;
+			if (!tryAllocateServer(e))
+				break; // 分配失败
+			queue.poll();
 		}
 	}
 

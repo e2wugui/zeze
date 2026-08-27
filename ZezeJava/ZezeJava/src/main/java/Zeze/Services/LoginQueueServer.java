@@ -120,20 +120,22 @@ public class LoginQueueServer extends AbstractLoginQueueServer {
         return cipher.doFinal(bytes, offset, size);
     }
 
-    @Override
-    protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) {
-        r.getSender().setUserState(providers);
-        providers.put(r.getSender(), r.Argument);
-        loginQueue.tryResetTimeThrottle(providers.size());
-        return 0;
-    }
+	@Override
+	protected long ProcessReportProviderLoad(Zeze.Builtin.LoginQueueServer.ReportProviderLoad r) throws Exception {
+		r.getSender().setUserState(providers);
+		providers.put(r.getSender(), r.Argument);
+		loginQueue.tryResetTimeThrottle(providers.size());
+		loginQueue.drainQueue(); // 上报可能让choiceProvider/choiceLink首次可用，立即给排队连接分配，不等1秒tick
+		return 0;
+	}
 
-    @Override
-    protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) {
-        r.getSender().setUserState(links);
-        links.put(r.getSender(), r.Argument);
-        return 0;
-    }
+	@Override
+	protected long ProcessReportLinkLoad(Zeze.Builtin.LoginQueueServer.ReportLinkLoad r) throws Exception {
+		r.getSender().setUserState(links);
+		links.put(r.getSender(), r.Argument);
+		loginQueue.drainQueue();
+		return 0;
+	}
 
     public int providerSize() {
         return providers.size();
