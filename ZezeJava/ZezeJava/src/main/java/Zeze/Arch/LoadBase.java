@@ -76,9 +76,9 @@ public abstract class LoadBase {
 	public final synchronized void reportNow() {
 		int online = getOnlineLocalCount();
 		long loginTimes = getOnlineLoginTimes();
-		int onlineNew = (int)(loginTimes - lastLoginTime);
+		int onlineNewPerSecond = (int)((loginTimes - lastLoginTime) / Math.max(1, timeoutDelaySeconds));
 		lastLoginTime = loginTimes;
-		report(overload.getOverload(), online, onlineNew);
+		report(overload.getOverload(), online, onlineNewPerSecond);
 	}
 
 	private synchronized void onTimerTask() {
