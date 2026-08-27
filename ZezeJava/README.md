@@ -95,7 +95,6 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准(打印 M/s 观察,不
 - **不需要手工启动任何服务**:`integrationTest` 会在测试 JVM 内自动启动 ServiceManager(5001)与 GlobalCacheManagerAsyncServer(5002),以及第二对服务(5011/5012,仅 `Onz/TestOnz` 使用的独立集群),结束自动关闭。
 - **Zezex 系测试需要先发布一次 hot 模块**(新机器/清理过 `ZezexJava/server/hot` 时):在 `ZezexJava` 目录运行 `distribute.bat`。该目录是 gitignore 的构建产物,缺失时 Game.Login 等模块不加载,相关测试在 GetRoleList 等 RPC 上超时。
 - IDEA:打开 `ZezeJava` 目录,右键 `ZezeJavaTest/src` → "Run 'All Tests'"。
-- `--tests` / `includeTestsMatching` 模式过滤在本项目不工作,按 JUnit 标签过滤正常;跑单个类请用 IDEA。
 
 ## 代码生成
 
@@ -103,21 +102,6 @@ gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准(打印 M/s 观察,不
 - `ZezeJava/genRedirect.bat`:改了代码中 `@Redirect` 相关注解后运行。
 - 仓库根目录 `gen_use_publish.bat`:全量重新生成(confcs、框架、ZezeJavaTest、ZezexJava、python),改了 `solution.xml`/`demo2.xml` 后使用。
 - 生成的代码都已提交 git,日常使用方不需要运行这些脚本。
-
-## 内置服务
-
-框架自带两个基础服务,分布式部署时需要先启动:
-
-- **ServiceManagerServer**(默认端口 5001):服务发现与注册。
-- **GlobalCacheManagerAsyncServer**(默认端口 5002):跨进程缓存一致性协调。
-
-手工启动的方式(任选其一):
-
-```bat
-ZezeJava\global&service.bat                    :: Windows 脚本,一次启动两个服务
-gradlew.bat :ZezeJava:startServiceManager      :: 或用 gradle 任务单独启动(跨平台)
-gradlew.bat :ZezeJava:startGlobalCacheManagerAsync
-```
 
 `test/` 下还有 raft / sync 等变体启动脚本,服务于对应的手工测试场景。单机跑测试时不需要手工启动(见上文"运行测试")。
 

@@ -6,25 +6,7 @@
 
 ```bat
 :: 在 ZezeJava 目录下，只需 JDK 21，不需要任何手工启动的服务：
-gradlew.bat :ZezeJavaTest:test             :: 快速自包含测试（@Fast 标注的 45 个类，无外部依赖）
-gradlew.bat :ZezeJavaTest:integrationTest  :: 全量功能测试（自动在进程内启动 SM:5001/GCM:5002，不含基准）
-gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（Benchmark 包整体）
+gradlew.bat :ZezeJavaTest:test             :: 快速自包含测试（@Fast 标注的类，无外部依赖）
+gradlew.bat :ZezeJavaTest:integrationTest  :: 全量功能测试（自动在进程内启动 SM/GCM，不含fast和bench）
+gradlew.bat :ZezeJavaTest:bench            :: 吞吐基准（@Bench 标注的类）
 ```
-
-- `integrationTest` 通过 `harness.TestEnvLauncherListener`（JUnit LauncherSessionListener，ServiceLoader 注册）在测试 JVM 内启动 ServiceManager(5001) 与 GlobalCacheManagerAsyncServer(5002)，以及第二对服务 SM(5011，独立 autokeys 目录)/GCM(5012)（GCM 支持多实例，仅 `Onz.TestOnz` 需要），会话结束自动关闭；若端口已被手工 bat 占用则直接复用。
-- `Onz.TestOnz` 在环境被显式关闭（`-Dzeze.test.env=off`，如 fast 车道配置）时仍以 Assumption 跳过。
-- IDEA：打开 `ZezeJava` 目录，右键 `ZezeJavaTest/src` → "Run 'All Tests'"（launcher listener 同样生效，无需手工 bat）。
-- 测试工作目录必须是 `ZezeJava/ZezeJavaTest`（gradle 任务已配置 `workingDir`；测试用相对路径加载 `./zeze.xml`，并读写 `dbhome/`、`autokeys/` 等目录）。
-- **Zezex 系测试（TestOnline/TestGameTimer/TestRoleTimer/TestOnlineSpec）依赖 hot 模块**：`server.xml` 的 `HotWorkingDir=../ZezexJava/server/hot`，该目录是 gitignore 的构建产物。新机器/清空后需先在 `ZezexJava` 下运行 `distribute.bat`（或等价的 `java Zeze.Hot.Distribute ...`，见 bat 内命令）发布一次，否则 Game.Login 等 hot 模块不加载，客户端 GetRoleList 等 RPC 超时。
-- （可选）改了 solution.xml/demo2.xml 需重新生成代码时，运行仓库根目录 `gen_use_publish.bat`。
-
-### 测试分层约定
-
-- 自包含测试（不依赖外部进程/数据库）标注 `@Fast`（`harness.Fast`，即 `@Tag("fast")`），由 `gradle test` 执行。
-- **`gradle test` 是类级并行的**（`junit.jupiter.execution.parallel`，个别类 `@Execution(CONCURRENT)` 方法级并行，仅 test 任务开启）。因此 `@Fast` 准入除"自包含"外还要求**彼此互不干扰**：固定端口独占（现有 fast 类端口：TestRpc=5000、TestToken=5003；`TestTokenKeepAlive` 也用 5003 但在 integrationTest，串行不冲突）、本地目录独占、无静态状态竞争（`Task.tryInitThreadPool` 有锁幂等是安全先例）、**@Test 方法必须非 static**（Jupiter 会静默忽略 static @Test，覆盖悄悄丢失）。违反时失败是间歇性的，很难查。
-- **吞吐基准标注 `@Bench`**（`harness.Bench`，等价 `@Tag("bench")`，Benchmark 包整体），由 `gradle bench` 执行，`integrationTest` 按标签排除。识别特征：无断言、靠 `Benchmark()/report()` 打印 M/s 或耗时——自包含 ≠ 该进快速车道。负载/压测型的成类基准放 Benchmark 包下独立成文件（如 `Benchmark.BenchDbh2FullTransaction`、`Benchmark.BenchRoleTimer`），**不要以方法级 @Bench 内嵌在功能测试类里**：容易被后续重写弄丢注解而混回 integrationTest（已有教训）；组网样板用脚手架（Zezex 系 `Zezex.ZezexTestEnv`、Dbh2 拓扑 `Dbh2.Dbh2TestEnv`），勿再复制副本（TestOnline/TestOnlineSpec 已迁入，仅 TestGameTimer 因 websocket/显式 link 地址钩子保留分叉）。
-- **新测试不打 tag 默认归入 `integrationTest`**（环境更全的桶）——忘打 tag 不会打破 `gradle test` 开箱即绿。
-- 外部 DB 测试（MySQL/PG/Mongo/SqlServer/TiKV）靠主机名门控或 `@Disabled` 自动跳过（门控逻辑见各测试类内的 Assumption）。
-- `integrationTest` / `bench` 不要开并行：`demo.App` 是 JVM 级单例、测试共享 `dbhome/` 与 RocksDB LOCK、`App.Start()` 绑定 10000 端口，同 JVM 并行或 fork 并行都会互相干扰。（注：多数测试默认库其实是 zeze.xml 的 Memory 库，真正落盘的类有限，但单例/端口/静态约束已足以否决整体并行；个别"独立岛屿"类即便理论可并行也维持串行。）
-- 起服务后**不要盲等固定 sleep** 等环境就绪：用注册推送做就绪信号——`harness.TestEnv.waitServerRegistered(zeze, serverIds...)`（轮询 ServiceManager 订阅状态、identity 即 serverId、60s 超时兜底、100ms 间隔）；**连续 id 段用 `waitServerRegisteredRange(zeze, baseId, count)`**，勿写 `(baseId, baseId+count-1)` 端点对（会漏等中间 id，ModuleRedirectRank 的 `(30,31)` 这类显式列表才用 varargs 版）；linkd 场景同样适用（TestGameTimer 的 waitLinkdProvider 计数法已并入）。勿用秒级 sleep 轮询。
-- 全车道测试有 **300s 默认超时**兜底（`src/test/resources/junit-platform.properties` 的 `junit.jupiter.execution.timeout.default`）；等待异步事件优先用 `TaskCompletionSource` 带超时的 `get/await` 重载（报错比车道级超时更精确），勿写无界 `get()/await()`。
