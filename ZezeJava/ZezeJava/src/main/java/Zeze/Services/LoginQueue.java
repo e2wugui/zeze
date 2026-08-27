@@ -99,6 +99,8 @@ public class LoginQueue extends AbstractLoginQueue {
 			for (var e : queue) {
 				if (++i > 10000) // 最多广播10000个，客户端如果没有收到PutQueueSize，就显示>10000。
 					break;
+				if (e.isClosed()) // 队头之外的中部瞬时残留（drainQueue只清队头）：跳过发送，位置计数保持
+					continue;
 				var p = new PutQueuePosition();
 				p.Argument.setQueuePosition(i);
 				p.Send(e);
@@ -118,12 +120,20 @@ public class LoginQueue extends AbstractLoginQueue {
 		if (half > 0)
 			max = half + Zeze.Util.Random.getInstance().nextInt(half);
 		var allocate = 0;
-		for (var e : queue) {
-			if (++allocate > max)
+		// peek/poll 而非 for-each+poll：队头排队期间断开的连接直接清掉，不占本轮分配配额，
+		// 且不依赖分配是否成功（providerSize()==0 时 max==0，for-each 版本会什么都不做，
+		// closed 残留越积越多，虚高 queue.size 导致 tryOnAccept 误发 PutQueueFull）。
+		for (var e = queue.peek(); e != null; e = queue.peek()) {
+			if (e.isClosed()) {
+				queue.poll();
+				continue;
+			}
+			if (allocate >= max)
 				break;
 			if (!tryAllocateServer(e))
 				break; // 分配失败
 			queue.poll();
+			++allocate;
 		}
 	}
 
@@ -187,7 +197,9 @@ public class LoginQueue extends AbstractLoginQueue {
 	}
 
 	void onClose(AsyncSocket so) {
-		// queue.remove(so); // 遍历时处理isClosed的。
+		// 不在这里 queue.remove(so)：remove 是 O(n)，且每次分配成功 putLoginToken 后的
+		// closeGracefully 也会触发 onClose（此时连接已出队，remove 是无效全量扫描），
+		// 高吞吐下退化为 O(n²)；排队期间断开的连接由 drainQueue 的队头清理统一负责。
 	}
 
 	public static void main(String [] args) throws Exception {

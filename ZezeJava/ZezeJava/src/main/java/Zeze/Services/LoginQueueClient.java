@@ -15,9 +15,10 @@ public class LoginQueueClient extends AbstractLoginQueueClient {
     }
 
     public void connect(String hostNameOrAddress, int port) {
-        // autoReconnect：客户端并发拨号（或 LoginQueue 短暂不可达）可能撞 accept backlog 溢出被 RST，
-        // 不重连则本客户端永远拿不到 token；Connector.stop（close/Service.stop）会取消重连任务。
-        service.connect(hostNameOrAddress, port, true);
+        // 绝不能 autoReconnect：与 LoginQueue 之间是一次性服务——排队拿一次 token，服务端发完直接关闭连接，
+        // 客户端拿 token 去 linkd 登录。重连会重新排队再拿 token（等于自己攻击 LoginQueue 队列），
+        // 且重复触发 setLoginToken 回调会重启连 linkd 的流程，其后果未定义。
+        service.connect(hostNameOrAddress, port, false);
     }
 
     public void close() throws Exception {

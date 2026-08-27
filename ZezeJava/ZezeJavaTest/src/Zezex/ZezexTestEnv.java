@@ -99,18 +99,27 @@ public final class ZezexTestEnv {
 		clients.clear();
 	}
 
-	private void startClients(int clientCount, ClientStartMode mode) {
+	private void startClients(int clientCount, ClientStartMode mode) throws InterruptedException {
 		for (int i = 0; i < clientCount; ++i)
 			clients.add(new ClientGame.App());
 		var clientsSize = new AtomicInteger(clients.size());
-		java.util.stream.IntStream.range(0, clients.size()).parallel().forEach(i -> {
-			try {
-				startClient(clients.get(i), i, mode);
-				clientsSize.decrementAndGet();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		});
+		// 分批错峰拨号：全部并发 connect LoginQueue(5020) 会撞 Windows listen backlog 溢出被 RST
+		// （Connection refused），而 LoginQueueClient 是一次性服务不重连，被拒客户端永远拿不到 token。
+		// 每批之间留出 accept 消化间隙即可避免。
+		final var dialBatchSize = 25;
+		for (var begin = 0; begin < clients.size(); begin += dialBatchSize) {
+			int from = begin, to = Math.min(begin + dialBatchSize, clients.size());
+			java.util.stream.IntStream.range(from, to).parallel().forEach(i -> {
+				try {
+					startClient(clients.get(i), i, mode);
+					clientsSize.decrementAndGet();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			});
+			if (to < clients.size())
+				Thread.sleep(30);
+		}
 		while (clientsSize.get() != 0)
 			Thread.onSpinWait();
 	}
