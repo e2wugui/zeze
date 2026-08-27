@@ -43,8 +43,11 @@ public class TestAsyncSocket {
 	@Disabled("依赖外网 www.163.com:80，不适合自动化环境")
 	public final void testConnect() {
 		ServiceClient client = new ServiceClient();
-		try (AsyncSocket ignored = client.newClientSocket("www.163.com", 80, null, null)) {
+		var socket = client.newClientSocket("www.163.com", 80, null, null);
+		try {
 			client.Future.await();
+		} finally {
+			socket.close(null);
 		}
 	}
 }

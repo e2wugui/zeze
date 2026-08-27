@@ -1,6 +1,5 @@
 package Zeze.Net;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -28,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class TcpSocket extends AsyncSocket implements SelectorHandle, Closeable {
+public final class TcpSocket extends AsyncSocket implements SelectorHandle {
 	private static final @NotNull Logger logger = LogManager.getLogger(TcpSocket.class);
 	private static final @NotNull VarHandle closedHandle, outputBufferSizeHandle;
 	private static final byte SEND_CLOSE_DETAIL_MAX = 20; // 必须小于REAL_CLOSED

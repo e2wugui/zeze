@@ -8,6 +8,7 @@
 ## [未发布]
 
 ### 变更
+- **AsyncSocket 不再实现 Closeable**（`TcpSocket` 同步移除冗余声明）：socket 引用为共享借用（如 `Service.GetSocket` 获取的连接），所有权归连接管理层，不满足 Closeable"获取即拥有"的契约，且会误导工具链与调用方误关共享连接；`close()` 方法本身保留、行为不变，关闭统一使用显式的 `close(ex, gracefully)` / `closeGracefully()`
 - **Online 发送 API（OnlineSpec）重构**：spec 层收敛（Game 7 文件→4，Arch 8→4），目的地抽象为包私有 `OnlineTarget`，骨架（rpc 守卫/日志/编码/事务时机）每包一份；删除上一版 spec 的 9 个类（`AbstractOnlineSpec`、`RolesOnlineSpec`、`AllOnlinesSpec`、`ReliableOnlineSpec`、`LoginsOnlineSpec`、`AccountOnlineSpec`、`AccountsOnlineSpec`），`OnlineSpec.ofXxx` 工厂表达式保持不变，下游按工厂表达式使用者不受影响
 - **统一发送日志标识格式**（`describe()`）；空目标发送不再编码协议
 - **spec 可复用**：选项在终结方法调用时刻冻结（延迟闭包不捕获 spec 实例），之后修改选项不影响已排队的发送

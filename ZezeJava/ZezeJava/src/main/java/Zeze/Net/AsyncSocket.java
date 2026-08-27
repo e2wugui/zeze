@@ -1,6 +1,5 @@
 package Zeze.Net;
 
-import java.io.Closeable;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +17,12 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class AsyncSocket implements Closeable {
+/**
+ * @since 1.7.0 不再实现 java.io.Closeable：socket 引用为共享借用，所有权归连接管理层（Service 等），
+ *         不满足 Closeable"获取即拥有"的契约；关闭请使用显式的 {@link #close(Throwable, boolean)}
+ *         或 {@link #closeGracefully()}。
+ */
+public abstract class AsyncSocket {
 	private static final @NotNull Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final @NotNull Level PROTOCOL_LOG_LEVEL = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = PROTOCOL_LOG_LEVEL != Level.OFF && logger.isEnabled(PROTOCOL_LOG_LEVEL);
@@ -116,7 +120,6 @@ public abstract class AsyncSocket implements Closeable {
 		return close(ex, false);
 	}
 
-	@Override
 	public void close() {
 		close(null);
 	}
