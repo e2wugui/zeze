@@ -28,7 +28,7 @@ public final class RecordAccessed extends Bean {
 	}
 
 	final @NotNull AtomicTupleRecord<?, ?> atomicTupleRecord;
-	boolean dirty;
+	volatile boolean dirty;
 	PutLog committedPutLog; // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
 
 	public RecordAccessed(@NotNull AtomicTupleRecord<?, ?> a) {

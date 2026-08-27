@@ -147,23 +147,23 @@ public final class RelativeRecordSet extends ReentrantLock {
 
 		// CheckpointMode.Table
 		boolean needFlushNow = onzProcedure != null; // 此参数存在即表示Onz.eFlushImmediately。
-		boolean allCheckpointWhenCommit = true;
+		//boolean allCheckpointWhenCommit = true;
 
 		var all = new TreeMap<Long, RelativeRecordSet>();
 		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
-			if (ar.dirty)
+			var record = ar.atomicTupleRecord.record;
+			if (ar.dirty || record.getDirty())
 				allRead = false;
 
-			var record = ar.atomicTupleRecord.record;
 			if (record.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
 				if (ar.dirty) {
 					needFlushNow = true;
 				}
-			} else {
-				allCheckpointWhenCommit = false;
+			//} else {
+			//	allCheckpointWhenCommit = false;
 			}
 			// 读写都需要收集。
 			transAccessRecords.add(record);
@@ -171,6 +171,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			all.putIfAbsent(volatileRrs.id, volatileRrs);
 		}
 
+		/*
 		if (allCheckpointWhenCommit) {
 			// && procedure.Zeze.Config.CheckpointMode != CheckpointMode.Period
 			// CheckpointMode.Period上面已经处理了，此时不会是它。
@@ -184,6 +185,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 			//logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
 			return;
 		}
+		*/
 
 		var locked = new ArrayList<RelativeRecordSet>();
 		try {
@@ -280,7 +282,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 	private static @NotNull RelativeRecordSet _merge_(@NotNull ArrayList<RelativeRecordSet> locked,
 													  @NotNull Transaction trans, boolean allRead) {
 		// find largest
-		var largest = locked.get(0);
+		var largest = locked.getFirst();
 		for (int index = 1; index < locked.size(); ++index) {
 			var r = locked.get(index);
 			var cur = largest.recordSet == null ? 0 : largest.recordSet.size();
@@ -441,6 +443,13 @@ public final class RelativeRecordSet extends ReentrantLock {
 			var locks = new ArrayList<RelativeRecordSet>(n);
 			try {
 				var nr = 0;
+				for (var rrs : sortedRrs.values()) {
+					rrs.lock();
+					locks.add(rrs);
+					//noinspection DataFlowIssue
+					nr += rrs.recordSet.size();
+				}
+				/*
 				if (checkpoint.zeze.getConfig().isHistory()) {
 					for (var rrs : sortedRrs.values()) {
 						rrs.lock();
@@ -456,6 +465,7 @@ public final class RelativeRecordSet extends ReentrantLock {
 						nr += rrs.recordSet.size();
 					}
 				}
+				*/
 				var rs = new ArrayList<Record>(nr);
 				var onzProcedures = new HashSet<OnzProcedure>();
 				History history = null;
